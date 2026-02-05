@@ -26,6 +26,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Placeholder values for build-time environment variable requirements
 ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
+# Ensure public directory exists even if not in source
+RUN mkdir -p public
 RUN npm run build
 
 # Stage 4: Runner
@@ -46,6 +48,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # IMPORTANT: Prisma 7 needs the generated client in the runner stage
 # Based on your schema.prisma: output = "./generated/prisma"
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 USER nextjs
 
