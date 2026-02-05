@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Cliente Supabase robusto con Service Role para bypass de RLS en servidor
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null as any;
 
 /**
  * Sube un archivo al bucket 'e14' (Hardcoded para evitar errores de 'Bucket not found')
@@ -16,6 +18,10 @@ export async function uploadToStorage(
     _contentType?: string, // Ignorado, se deriva del archivo o se maneja por SDK
     _bucket?: string       // Ignorado para forzar 'e14' como se solicitó
 ) {
+  if (!supabase) {
+    console.error("❌ Supabase client not initialized. Check environment variables.");
+    throw new Error("Storage client not initialized");
+  }
   try {
     // 1. FORZAMOS EL NOMBRE 'e14' AQUÍ MISMO
     const bucketName = 'e14'; 
@@ -49,6 +55,10 @@ export async function uploadToStorage(
  * Genera una URL firmada para acceso temporal a archivos.
  */
 export async function getSignedUrl(path: string, bucket: string = 'e14', expiresIn: number = 3600): Promise<string> {
+    if (!supabase) {
+        console.error("❌ Supabase client not initialized.");
+        return '';
+    }
     try {
         const { data, error } = await supabase.storage
             .from(bucket)

@@ -23,6 +23,9 @@ RUN npx prisma generate
 
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
+# Placeholder values for build-time environment variable requirements
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
 RUN npm run build
 
 # Stage 4: Runner
