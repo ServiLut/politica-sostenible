@@ -4,7 +4,7 @@ import { hash } from 'bcryptjs';
 import { getCurrentUser } from '@/lib/session';
 import { createAuditLog } from '@/lib/audit';
 
-
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();

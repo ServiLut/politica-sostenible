@@ -3,6 +3,8 @@ import Sidebar from '@/components/layout/Sidebar';
 import { getGlobalLockStatus } from '@/lib/security-guard';
 import EmergencyLockScreen from '@/components/security/EmergencyLockScreen';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {

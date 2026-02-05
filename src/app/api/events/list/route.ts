@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-
+export const dynamic = 'force-dynamic';
 
 // Helper to ensure Campaign Context exists (Self-Healing)
 async function ensureCampaign() {

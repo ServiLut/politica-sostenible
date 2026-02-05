@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, User, ShieldCheck, AlertCircle } from 'lucide-react';
 
 import { toast } from 'sonner';
 
-export default function LoginView() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ fullName: '', pin: '' });
@@ -107,5 +107,13 @@ export default function LoginView() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginView() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
