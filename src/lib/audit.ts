@@ -5,15 +5,20 @@ export async function createAuditLog(
   action: string,
   entity: string,
   entityId?: string,
-  details?: any
+  details?: any,
+  userSnapshot?: { id: string; role: string }
 ) {
   try {
-    // 1. Snapshot Role for Forensics (Ref: Paso 11.4)
-    // We fetch the user to get the CURRENT role at the time of the event.
-    const user = await prisma.user.findUnique({
-        where: { id: userId.includes('-') ? userId : '00000000-0000-0000-0000-000000000000' }, // Quick check for UUID-like
-        select: { id: true, role: true }
-    });
+    let user = userSnapshot;
+
+    // 1. Snapshot Role for Forensics
+    // If not provided, we fetch the user to get the CURRENT role at the time of the event.
+    if (!user && userId !== 'SYSTEM' && userId.includes('-')) {
+      user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, role: true }
+      }) || undefined;
+    }
 
     const enrichedDetails = {
         ...details,
@@ -23,7 +28,7 @@ export async function createAuditLog(
 
     await prisma.auditLog.create({
       data: {
-        userId: user ? user.id : null, // Only link if it's a real user
+        userId: user ? user.id : null,
         action,
         entity,
         entityId,

@@ -15,7 +15,10 @@ const getPool = () => {
   
   return new pg.Pool({ 
     connectionString: connectionString.replace('sslmode=require', 'sslmode=no-verify'),
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    max: process.env.NODE_ENV === 'production' ? 1 : 10, // Limit connections in serverless/prod
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 30000,
   });
 };
 
