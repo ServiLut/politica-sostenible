@@ -136,8 +136,8 @@ export default function ProgressiveCapture() {
       
       {/* Header */}
       <div className="mb-6">
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Registro V4.2
+          <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            Política Sostenible
           </h2>
           <p className="text-gray-500 mt-1">Captura consolidada de territorio.</p>
       </div>

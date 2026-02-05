@@ -276,7 +276,7 @@ export default function E14PublicUpload({ params }: { params: { tableId: string 
         {/* FOOTER */}
         <div className="p-4 text-center border-t border-white/5">
             <p className="text-[10px] text-slate-600 font-mono">
-                ENCRIPTACIÓN MILITAR ACTIVA &bull; V4.2
+                ENCRIPTACIÓN MILITAR ACTIVA &bull; POLÍTICA SOSTENIBLE
             </p>
         </div>
     </div>

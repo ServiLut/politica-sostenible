@@ -7,7 +7,7 @@ export async function signSessionToken(payload: { userId: string; role: string; 
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h') // Sesión de 1 día
+    .setExpirationTime('4h') // Sesión de 4 horas máximo
     .sign(key);
 }
 

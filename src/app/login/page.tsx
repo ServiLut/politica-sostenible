@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, User, ShieldCheck, AlertCircle } from 'lucide-react';
 
@@ -9,8 +9,17 @@ import { toast } from 'sonner';
 
 export default function LoginView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ fullName: '', pin: '' });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'inactivity') {
+      toast.error('Sesión Expirada', { 
+        description: 'Se ha cerrado la sesión por inactividad para proteger sus datos.' 
+      });
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +51,9 @@ export default function LoginView() {
             <div className="w-20 h-20 bg-brand-black rounded-[2.5rem] flex items-center justify-center shadow-2xl mb-6 group transition-all hover:rotate-12">
                 <ShieldCheck className="w-10 h-10 text-brand-green-500" />
             </div>
-            <h1 className="text-4xl font-black text-brand-black tracking-tighter uppercase">CRM <span className="text-brand-green-600">V4.2</span></h1>
+            <h1 className="text-3xl md:text-4xl font-black text-brand-black tracking-tighter uppercase break-words px-2">
+              POLÍTICA <span className="text-brand-green-600">SOSTENIBLE</span>
+            </h1>
             <p className="text-[10px] font-black text-brand-gray-400 uppercase tracking-[0.4em] mt-3 bg-white px-4 py-1 rounded-full shadow-sm border border-brand-gray-100">Inteligencia Electoral Segura</p>
         </div>
 

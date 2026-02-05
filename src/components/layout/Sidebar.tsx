@@ -102,12 +102,13 @@ export default function Sidebar() {
         <div className="flex flex-col h-full">
           
           {/* Logo Area - Green Accent */}
-          <div className="h-24 flex flex-col items-center justify-center border-b border-brand-gray-100 bg-brand-gray-50/50">
-            <div className="flex items-center gap-2">
-                <ShieldCheck className="w-8 h-8 text-brand-green-600" />
-                <h1 className="text-xl font-black tracking-tight text-brand-black">CRM <span className="text-brand-green-600 font-bold">V4.2</span></h1>
+          <div className="h-24 flex flex-col items-center justify-center border-b border-brand-gray-100 bg-brand-gray-50/50 px-4">
+            <div className="flex items-center gap-2 max-w-full">
+                <ShieldCheck className="w-6 h-6 text-brand-green-600 shrink-0" />
+                <h1 className="text-base font-black tracking-tighter text-brand-black leading-none uppercase">
+                  POLÍTICA <span className="text-brand-green-600 font-bold">SOSTENIBLE</span>
+                </h1>
             </div>
-            <p className="text-[10px] text-brand-gray-500 font-bold uppercase tracking-widest mt-1">Soberanía de Datos</p>
           </div>
 
           {/* Navigation Links */}

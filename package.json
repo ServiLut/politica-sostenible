@@ -1,7 +1,7 @@
 {
   "name": "crm_felipe",
   "version": "1.0.0",
-  "description": "CRM Politico V4.2",
+  "description": "Política Sostenible",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",

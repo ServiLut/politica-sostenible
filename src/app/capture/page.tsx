@@ -18,8 +18,7 @@ export default function CapturePage() {
 
       <div className="mt-8 text-center text-slate-400 text-xs max-w-xs">
         <p>Los datos recolectados están protegidos por encriptación AES-256 en reposo.</p>
-        <p className="mt-2">CRM V4.2 • Módulo de Terreno</p>
-      </div>
+                    <p className="mt-2">Política Sostenible • Módulo de Terreno</p>      </div>
     </div>
   );
 }

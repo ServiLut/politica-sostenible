@@ -3,7 +3,7 @@ import { hash } from 'bcryptjs';
 import { prisma } from '../src/lib/prisma';
 
 async function main() {
-  console.log('🌱 Starting V4.2 Data Seed...');
+  console.log('🌱 Starting Política Sostenible Data Seed...');
 
   // 1. Create Organization
   const org = await prisma.organization.create({

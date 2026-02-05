@@ -132,8 +132,8 @@ export async function POST(req: NextRequest) {
     await prisma.consent.create({
       data: {
         politicalContactId: contact.id,
-        consentText: 'Autorización tratamiento de datos V4.2',
-        version: 'v4.2-full',
+        consentText: 'Autorización tratamiento de datos Política Sostenible',
+        version: 'politica-sostenible',
         channel: 'PWA_CAPTURE',
         granted: true
       }
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
         'PoliticalContact', 
         contact.id, 
         { 
-            msg: `Captura V4.2 por ${actingUser.fullName}`,
+            msg: `Captura Política Sostenible por ${actingUser.fullName}`,
             territoryId,
             transportNeed,
             address,

@@ -142,7 +142,7 @@ export const generatePDFReport = (data: any) => {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`Página ${i} de ${totalPages} - Documento Confidencial - CRM Político V4.2`, pageWidth / 2, 290, { align: 'center' });
+    doc.text(`Página ${i} de ${totalPages} - Documento Confidencial - Política Sostenible`, pageWidth / 2, 290, { align: 'center' });
   }
 
   // Save

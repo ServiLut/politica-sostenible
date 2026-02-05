@@ -11,7 +11,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-extrabold text-brand-black mb-4 tracking-tight">
+        <h1 className="text-4xl md:text-6xl font-extrabold text-brand-black mb-4 tracking-tight break-words px-4">
           POLÍTICA <span className="text-brand-green-600">SOSTENIBLE</span>
         </h1>
 
@@ -40,7 +40,7 @@ export default function HomePage() {
       </div>
 
       <footer className="absolute bottom-8 text-brand-gray-500 text-sm">
-        &copy; {new Date().getFullYear()} CRM Político V4.2 - Todos los derechos
+        &copy; {new Date().getFullYear()} Política Sostenible - Todos los derechos
         reservados.
       </footer>
     </main>

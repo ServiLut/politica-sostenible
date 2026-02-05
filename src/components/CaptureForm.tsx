@@ -229,10 +229,10 @@ export default function CaptureForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 md:p-8 rounded-3xl shadow-2xl border border-gray-100">
         
-        {/* Header V4.2 */}
+        {/* Header - Política Sostenible */}
         <div className="text-center pb-2">
-            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Captura V4.2 FULL</h2>
-            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em]">Módulo de Terreno Consolidado</p>
+            <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter leading-tight">Captura Política Sostenible</h2>
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] mt-1">Módulo de Terreno Consolidado</p>
         </div>
 
         {/* Success Banner */}
