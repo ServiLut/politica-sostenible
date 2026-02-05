@@ -1,0 +1,507 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "./generated/prisma"
+  engineType      = "library"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["politica-sostenible"]
+}
+
+model Organization {
+  id                String     @id @default(uuid())
+  name              String
+  legalId           String?
+  responsibleName   String?
+  createdAt         DateTime   @default(now())
+  budget            Decimal    @default(0)
+  isEmergencyLocked Boolean    @default(false)
+  campaigns         Campaign[]
+  users             User[]
+
+  @@schema("politica-sostenible")
+}
+
+model Campaign {
+  id                String             @id @default(uuid())
+  organizationId    String
+  name              String
+  status            String             @default("active")
+  createdAt         DateTime           @default(now())
+  dDayActive        Boolean            @default(false)
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  elections         Election[]
+  events            Event[]
+  messages          Message[]
+  politicalContacts PoliticalContact[]
+  territories       Territory[]
+
+  @@schema("politica-sostenible")
+}
+
+model Election {
+  id                String             @id @default(uuid())
+  campaignId        String
+  name              String
+  electionDate      DateTime
+  status            ElectionStatus     @default(DRAFT)
+  createdAt         DateTime           @default(now())
+  e14Records        E14Record[]
+  campaign          Campaign           @relation(fields: [campaignId], references: [id])
+  electoralContacts ElectoralContact[]
+  events            Event[]
+  lessons           Lesson[]
+  messages          Message[]
+  metricHistory     MetricHistory[]
+  p2pBundles        P2PBundle[]
+  pollingPlaces     PollingPlace[]
+  votedStatuses     VotedStatus[]
+
+  @@schema("politica-sostenible")
+}
+
+model Territory {
+  id                String             @id @default(uuid())
+  campaignId        String
+  parentId          String?
+  responsibleUserId String?
+  name              String
+  level             String
+  lat               Decimal?
+  lng               Decimal?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  electoralContacts ElectoralContact[]
+  events            Event[]
+  politicalContacts PoliticalContact[]
+  pollingPlaces     PollingPlace[]
+  tasks             Task[]
+  campaign          Campaign           @relation(fields: [campaignId], references: [id])
+  parent            Territory?         @relation("SubTerritories", fields: [parentId], references: [id])
+  subTerritories    Territory[]        @relation("SubTerritories")
+  responsible       User?              @relation("TerritoryResponsible", fields: [responsibleUserId], references: [id])
+  users             User[]
+
+  @@schema("politica-sostenible")
+}
+
+model PollingPlace {
+  id                String             @id @default(uuid())
+  electionId        String
+  territoryId       String
+  name              String
+  address           String?
+  lat               Decimal?
+  lng               Decimal?
+  createdAt         DateTime           @default(now())
+  e14Records        E14Record[]
+  electoralContacts ElectoralContact[]
+  people            Person[]
+  election          Election           @relation(fields: [electionId], references: [id])
+  territory         Territory          @relation(fields: [territoryId], references: [id])
+  tables            PollingTable[]
+
+  @@schema("politica-sostenible")
+}
+
+model PollingTable {
+  id                String             @id @default(uuid())
+  pollingPlaceId    String
+  tableNumber       String
+  createdAt         DateTime           @default(now())
+  e14Records        E14Record[]
+  electoralContacts ElectoralContact[]
+  pollingPlace      PollingPlace       @relation(fields: [pollingPlaceId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model Person {
+  id             String             @id @default(uuid())
+  fullName       String?
+  phone          String             @unique
+  createdAt      DateTime           @default(now())
+  idCardBackUrl  String?
+  idCardFrontUrl String?
+  address        String?
+  pollingPlaceId String?
+  transportNeed  Boolean            @default(false)
+  tableNumber    String?
+  pollingPlace   PollingPlace?      @relation(fields: [pollingPlaceId], references: [id])
+  contacts       PoliticalContact[]
+
+  @@schema("politica-sostenible")
+}
+
+model PoliticalContact {
+  id               String                   @id @default(uuid())
+  personId         String
+  campaignId       String
+  ownerLeaderId    String?
+  status           String                   @default("active")
+  createdAt        DateTime                 @default(now())
+  territoryId      String?
+  lastContacted    DateTime?
+  consents         Consent[]
+  transferRequests ContactTransferRequest[]
+  electoralHistory ElectoralContact[]
+  eventAttendance  EventAttendance[]
+  messageLogs      MessageLog[]
+  campaign         Campaign                 @relation(fields: [campaignId], references: [id])
+  leader           User?                    @relation("LeaderContacts", fields: [ownerLeaderId], references: [id])
+  person           Person                   @relation(fields: [personId], references: [id])
+  territory        Territory?               @relation(fields: [territoryId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model Consent {
+  id                 String           @id @default(uuid())
+  politicalContactId String
+  consentText        String
+  version            String
+  channel            String
+  granted            Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  contact            PoliticalContact @relation(fields: [politicalContactId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model ElectoralContact {
+  id                 String           @id @default(uuid())
+  politicalContactId String
+  electionId         String
+  pollingPlaceId     String?
+  pollingTableId     String?
+  territoryId        String?
+  homeLat            Decimal?
+  homeLng            Decimal?
+  distanceMeters     Int?
+  transportNeed      String?
+  voted              Boolean          @default(false)
+  markedBy           String?
+  markedAt           DateTime?
+  createdAt          DateTime         @default(now())
+  election           Election         @relation(fields: [electionId], references: [id])
+  politicalContact   PoliticalContact @relation(fields: [politicalContactId], references: [id])
+  pollingPlace       PollingPlace?    @relation(fields: [pollingPlaceId], references: [id])
+  pollingTable       PollingTable?    @relation(fields: [pollingTableId], references: [id])
+  territory          Territory?       @relation(fields: [territoryId], references: [id])
+  votedStatuses      VotedStatus[]
+
+  @@schema("politica-sostenible")
+}
+
+model User {
+  id                String                @id @default(uuid())
+  organizationId    String
+  fullName          String?
+  role              ActorRole
+  email             String?               @unique
+  pinHash           String?
+  pinAttempts       Int                   @default(0)
+  pinLockedUntil    DateTime?
+  recoveryCode      String?
+  recoveryExpires   DateTime?
+  isActive          Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  reportsToId       String?
+  territoryId       String?
+  auditLogs         AuditLog[]
+  expenses          Expense[]
+  Message           Message[]
+  politicalContacts PoliticalContact[]    @relation("LeaderContacts")
+  sensitiveActions  SensitiveActionAuth[]
+  tasks             Task[]                @relation("AssignedTasks")
+  organization      Organization          @relation(fields: [organizationId], references: [id])
+  reportsTo         User?                 @relation("Hierarchy", fields: [reportsToId], references: [id])
+  subordinates      User[]                @relation("Hierarchy")
+  territory         Territory?            @relation(fields: [territoryId], references: [id])
+  responsibleFor    Territory[]           @relation("TerritoryResponsible")
+
+  @@schema("politica-sostenible")
+}
+
+model Event {
+  id                String            @id @default(uuid())
+  campaignId        String
+  electionId        String?
+  territoryId       String
+  name              String
+  eventDate         DateTime
+  lat               Decimal?
+  lng               Decimal?
+  responsibleUserId String
+  estimatedCost     Decimal           @default(0)
+  createdAt         DateTime          @default(now())
+  campaign          Campaign          @relation(fields: [campaignId], references: [id])
+  election          Election?         @relation(fields: [electionId], references: [id])
+  territory         Territory         @relation(fields: [territoryId], references: [id])
+  attendance        EventAttendance[]
+  expenses          Expense[]
+
+  @@schema("politica-sostenible")
+}
+
+model EventAttendance {
+  id                  String           @id @default(uuid())
+  eventId             String
+  politicalContactId  String
+  method              String?
+  confirmed           Boolean          @default(false)
+  gpsLat              Decimal?
+  gpsLng              Decimal?
+  overrideUsed        Boolean          @default(false)
+  overrideReason      String?
+  environmentPhotoUrl String?
+  confirmedAt         DateTime?
+  event               Event            @relation(fields: [eventId], references: [id])
+  contact             PoliticalContact @relation(fields: [politicalContactId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model Expense {
+  id                String   @id @default(uuid())
+  eventId           String
+  amount            Decimal
+  type              String
+  uxCategory        String?
+  cneCategoryId     String?
+  evidencePhotoUrl  String?
+  responsibleUserId String
+  createdAt         DateTime @default(now())
+  status            String   @default("PROCESANDO")
+  event             Event    @relation(fields: [eventId], references: [id])
+  responsibleUser   User     @relation(fields: [responsibleUserId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model E14Record {
+  id             String       @id @default(uuid())
+  electionId     String
+  pollingPlaceId String
+  pollingTableId String
+  e14PhotoUrl    String
+  photoBlurScore Int?
+  uploadedBy     String
+  uploadedAt     DateTime     @default(now())
+  status         String       @default("PENDING")
+  election       Election     @relation(fields: [electionId], references: [id])
+  pollingPlace   PollingPlace @relation(fields: [pollingPlaceId], references: [id])
+  pollingTable   PollingTable @relation(fields: [pollingTableId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model Message {
+  id         String       @id @default(uuid())
+  campaignId String
+  electionId String?
+  type       String
+  content    String
+  approvedBy String?
+  createdAt  DateTime     @default(now())
+  approver   User?        @relation(fields: [approvedBy], references: [id])
+  campaign   Campaign     @relation(fields: [campaignId], references: [id])
+  election   Election?    @relation(fields: [electionId], references: [id])
+  logs       MessageLog[]
+
+  @@schema("politica-sostenible")
+}
+
+model MessageLog {
+  id                 String           @id @default(uuid())
+  messageId          String
+  politicalContactId String
+  channelUsed        String
+  senderNumber       String?
+  deliveryStatus     String?
+  fallbackReason     String?
+  sentAt             DateTime         @default(now())
+  message            Message          @relation(fields: [messageId], references: [id])
+  contact            PoliticalContact @relation(fields: [politicalContactId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String?
+  action         String
+  entity         String
+  entityId       String?
+  details        Json?
+  renderHash     String?
+  exportCanaryId String?
+  createdAt      DateTime @default(now())
+  user           User?    @relation(fields: [userId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model AnomalyAlert {
+  id          String        @id @default(uuid())
+  type        String
+  entity      String?
+  entityId    String?
+  electionId  String?
+  territoryId String?
+  severity    SeverityLevel
+  detectedAt  DateTime      @default(now())
+  status      String        @default("OPEN")
+  resolvedAt  DateTime?
+  description String?
+
+  @@schema("politica-sostenible")
+}
+
+model Task {
+  id               String     @id @default(uuid())
+  title            String
+  description      String?
+  assignedToId     String
+  territoryId      String?
+  relatedEntity    String?
+  relatedId        String?
+  priority         Int        @default(3)
+  dueDate          DateTime?
+  status           TaskStatus @default(PENDING)
+  createdAt        DateTime   @default(now())
+  evidenceText     String?
+  evidenceUrl      String?
+  completionReport String?
+  adminFeedback    String?
+  user             User       @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  territory        Territory? @relation(fields: [territoryId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  electionId String
+  category   String
+  finding    String
+  action     String
+  createdAt  DateTime @default(now())
+  election   Election @relation(fields: [electionId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model P2PBundle {
+  id          String    @id @default(uuid())
+  electionId  String
+  payloadHash String
+  signature   String
+  collectedBy String
+  uploadedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  election    Election  @relation(fields: [electionId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model ContactTransferRequest {
+  id           String           @id @default(uuid())
+  contactId    String
+  fromLeaderId String
+  toLeaderId   String
+  status       String           @default("pending")
+  reason       String?
+  createdAt    DateTime         @default(now())
+  contact      PoliticalContact @relation(fields: [contactId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model AutomationRule {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@schema("politica-sostenible")
+}
+
+model MetricHistory {
+  id          String   @id @default(uuid())
+  electionId  String
+  date        DateTime
+  category    String
+  metric      String
+  value       Decimal
+  dimension   String
+  dimensionId String
+  details     Json?
+  createdAt   DateTime @default(now())
+  election    Election @relation(fields: [electionId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model VotedStatus {
+  id                 String           @id @default(uuid())
+  electoralContactId String
+  electionId         String
+  hasVoted           Boolean          @default(true)
+  gpsSnapshot        Json?
+  createdAt          DateTime         @default(now())
+  election           Election         @relation(fields: [electionId], references: [id])
+  electoralContact   ElectoralContact @relation(fields: [electoralContactId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+model SensitiveActionAuth {
+  id         String   @id @default(uuid())
+  userId     String
+  actionType String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@schema("politica-sostenible")
+}
+
+enum ElectionStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+
+  @@schema("politica-sostenible")
+}
+
+enum ActorRole {
+  ADMIN
+  COORDINATOR
+  LEADER
+  TESTIGO
+  DONANTE
+
+  @@schema("politica-sostenible")
+}
+
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("politica-sostenible")
+}
+
+enum TaskStatus {
+  PENDING
+  DONE
+  OVERDUE
+  IN_REVIEW
+  REJECTED
+
+  @@schema("politica-sostenible")
+}

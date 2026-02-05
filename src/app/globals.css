@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-gray-50 text-brand-black antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .card-friendly {
+    @apply bg-white border border-brand-gray-100 rounded-2xl shadow-soft-xl transition-all;
+  }
+  
+  .btn-primary-friendly {
+    @apply bg-brand-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .btn-success-friendly {
+    @apply bg-brand-green-100 text-brand-green-700 px-6 py-3 rounded-xl font-bold hover:bg-brand-green-200 transition-all active:scale-95 flex items-center justify-center gap-2;
+  }
+}
