@@ -1,0 +1,19 @@
+{
+  "name": "politica-sostenible",
+  "packageManager": "pnpm@10.28.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "start": "turbo start",
+    "install:all": "pnpm install",
+    "api": "bruno open api-docs"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.1"
+  }
+}

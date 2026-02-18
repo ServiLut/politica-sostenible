@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id        String              @id @default(cuid())
+  slug      String              @unique
+  name      String
+  type      TenantType          @default(CANDIDACY)
+  config    Json?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  finances  FinancialEntry[]
+  divisions PoliticalDivision[] @relation("TenantDivisions")
+  users     User[]
+  voters    Voter[]
+  witnesses WitnessReport[]
+  events    CampaignEvent[]
+  inventory InventoryItem[]
+  settings  CampaignSettings?
+}
+
+model CampaignSettings {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  maxTotalBudget   Decimal  @db.Decimal(15, 2)
+  maxPublicityLimit Decimal  @db.Decimal(15, 2)
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model User {
+  id               String             @id @default(cuid())
+  email            String             @unique
+  password         String
+  name             String
+  role             Role               @default(VOLUNTEER)
+  documentId       String
+  phone            String?
+  points           Int                @default(0)
+  tenantId         String
+  divisionId       String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  financialEntries FinancialEntry[]
+  division         PoliticalDivision? @relation(fields: [divisionId], references: [id])
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
+  registeredVoters Voter[]            @relation("Registrar")
+  witnessReports   WitnessReport[]
+  
+  // Gamification & Logistics
+  pointLogs        PointLog[]
+  inventoryMoves   InventoryMovement[]
+
+  @@unique([documentId, tenantId])
+  @@index([tenantId])
+}
+
+model PoliticalDivision {
+  id        String              @id @default(cuid())
+  code      String
+  name      String
+  type      DivisionType
+  parentId  String?
+  tenantId  String?
+  parent    PoliticalDivision?  @relation("Hierarchy", fields: [parentId], references: [id])
+  children  PoliticalDivision[] @relation("Hierarchy")
+  tenant    Tenant?             @relation("TenantDivisions", fields: [tenantId], references: [id])
+  users     User[]
+  voters    Voter[]             @relation("VoterPuesto")
+  witnesses WitnessReport[]
+
+  @@unique([code, type])
+  @@index([type])
+}
+
+model Voter {
+  id                String             @id @default(cuid())
+  documentId        String
+  firstName         String
+  lastName          String
+  phone             String?
+  email             String?
+  tenantId          String
+  puestoId          String?
+  mesa              Int?
+  registrarId       String
+  psychographicData Json?
+  votingIntention   Int?
+  isSignatureValid  Boolean            @default(false)
+  signatureImageUrl String?
+  // Campos de Habeas Data (Sección 2.2)
+  consentAccepted   Boolean            @default(false)
+  consentIp         String?
+  consentTimestamp  DateTime?
+  termsVersion      String?            @default("2026.1")
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  puesto            PoliticalDivision? @relation("VoterPuesto", fields: [puestoId], references: [id])
+  registrar         User               @relation("Registrar", fields: [registrarId], references: [id])
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+
+  @@unique([documentId, tenantId])
+  @@index([tenantId])
+  @@index([puestoId])
+}
+
+model FinancialEntry {
+  id          String        @id @default(cuid())
+  type        EntryType
+  amount      Decimal       @db.Decimal(15, 2)
+  date        DateTime
+  cneCode     CneCode
+  description String
+  tenantId    String
+  vendorName  String
+  vendorTaxId String
+  evidenceUrl String?
+  reporterId  String
+  status      FinanceStatus @default(PENDING)
+  auditLog    Json?
+  createdAt   DateTime      @default(now())
+  reporter    User          @relation(fields: [reporterId], references: [id])
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([cneCode])
+}
+
+model WitnessReport {
+  id              String            @id @default(cuid())
+  tenantId        String
+  witnessId       String
+  puestoId        String
+  mesa            Int
+  e14ImageUrl     String
+  candidateVotes  Int
+  totalTableVotes Int
+  observations    String?
+  // Auditoría Forense (Sección 7.3)
+  blockchainHash  String?
+  timestampProof  DateTime?         @default(now())
+  
+  isSynced        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  puesto          PoliticalDivision @relation(fields: [puestoId], references: [id])
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  witness         User              @relation(fields: [witnessId], references: [id])
+
+  @@index([tenantId])
+  @@index([puestoId, mesa])
+}
+
+// Gamification & Logistics (Sección 5.2 y 7)
+
+model CampaignEvent {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  date        DateTime
+  location    String?
+  points      Int      @default(0) // Puntos por asistir
+  tenantId    String
+  createdAt   DateTime @default(now())
+  
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  attendees   PointLog[]
+
+  @@index([tenantId])
+}
+
+model PointLog {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String   // ej. "Registro Votante", "Asistencia Evento"
+  eventId   String?
+  createdAt DateTime @default(now())
+
+  user      User           @relation(fields: [userId], references: [id])
+  event     CampaignEvent? @relation(fields: [eventId], references: [id])
+
+  @@index([userId])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  name      String   // ej. "Camiseta", "Gorra"
+  sku       String?
+  quantity  Int      @default(0)
+  warehouse String?  // Ubicación física
+  tenantId  String
+  
+  tenant    Tenant              @relation(fields: [tenantId], references: [id])
+  movements InventoryMovement[]
+
+  @@index([tenantId])
+}
+
+model InventoryMovement {
+  id        String       @id @default(cuid())
+  itemId    String
+  userId    String
+  quantity  Int          // Positivo (entrada) o Negativo (salida)
+  type      MovementType
+  createdAt DateTime     @default(now())
+
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+}
+
+enum TenantType {
+  CANDIDACY
+  PARTY
+  GSC
+}
+
+enum Role {
+  ADMIN
+  CAMPAIGN_MANAGER
+  ZONE_COORDINATOR
+  WITNESS
+  VOLUNTEER
+}
+
+enum DivisionType {
+  COUNTRY
+  DEPARTAMENTO
+  MUNICIPIO
+  ZONA
+  PUESTO
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+enum FinanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REPORTED_CNE
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum CneCode {
+  PUBLICIDAD_VALLAS // 108
+  TRANSPORTE // 110
+  SEDE_CAMPANA // 102
+  ACTOS_PUBLICOS // 105
+  OTROS
+}

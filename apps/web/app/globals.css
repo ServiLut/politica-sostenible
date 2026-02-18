@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Registrar colores para que Tailwind permita usar /opacidad */
+  --color-base: var(--color-base);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-theme: var(--color-border);
+  --color-surface: var(--color-white);
+}
+
+:root {
+  /* Paleta de Colores Politica Sostenible */
+  --color-base: #F3F4F6;      /* Gris muy claro - Limpieza */
+  --color-primary: #0047AB;   /* Azul Cobalto - Confianza */
+  --color-secondary: #111827; /* Negro Grisáceo - Elegancia */
+  --color-accent: #EF4444;    /* Rojo - Urgencia/Acción */
+  --color-text-main: #111827;
+  --color-text-secondary: #4B5563;
+  --color-border: #D1D5DB;
+  --color-white: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-base: #1a1a1a;
+    --color-primary: #F5F1EB; 
+    --color-secondary: #8DA168;
+    --color-accent: #D97E5E;
+    --color-text-main: #F5F1EB;
+    --color-text-secondary: #A0A0A0;
+    --color-border: #2D2D2D;    /* Gris muy oscuro pero no negro para el borde en dark mode */
+    --color-white: #222222;
+  }
+}
+
+.dark {
+  /* Dark mode overrides when .dark class is present */
+  --color-base: #1a1a1a;
+  --color-primary: #F5F1EB; 
+  --color-secondary: #8DA168;
+  --color-accent: #D97E5E;
+  --color-text-main: #F5F1EB;
+  --color-text-secondary: #A0A0A0;
+  --color-border: #333333;
+  --color-white: #222222;
+}
+
+body {
+  color: var(--color-text-main);
+  background-color: var(--color-base);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom utilities based on palette */
+.bg-base { background-color: var(--color-base); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-surface { background-color: var(--color-white); }
+
+/* Dashboard Specific Background Overrides */
+.dashboard-bg-custom {
+  --color-base: #F1F3F5; /* Gris neutro profesional para el dashboard */
+}
+
+.dark .dashboard-bg-custom {
+  --color-base: #1a1a1a; /* Mantiene el fondo oscuro actual */
+}
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-accent { color: var(--color-accent); }
+.text-body { color: var(--color-text-main); }
+.text-muted { color: var(--color-text-secondary); }
+.text-base-color { color: var(--color-base); }
+
+.border-theme { border-color: var(--color-border); }
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-base);
+  transition: opacity 0.2s;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.btn-outline {
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background: transparent;
+}
+.btn-outline:hover {
+  background-color: var(--color-primary);
+  color: var(--color-base);
+}
