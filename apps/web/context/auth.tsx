@@ -43,11 +43,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Load from localStorage for persistence in dev mode
     const savedRole = localStorage.getItem('dev_role') as UserRole;
+    
     if (savedRole) {
-      simulateLogin(savedRole);
-      // Auto-redirect if already logged in
-      if (window.location.pathname === '/') {
-        router.push('/dashboard/executive');
+      const mockUser: User = {
+        id: `user-${savedRole}`,
+        email: `${savedRole.toLowerCase()}@campana.com`,
+        name: `Usuario ${savedRole}`,
+        role: savedRole,
+      };
+      
+      // Batch updates
+      setUser(mockUser);
+      setTenant(MOCK_TENANT);
+      
+      // Auto-redirect if already logged in and at root
+      if (typeof window !== 'undefined' && window.location.pathname === '/') {
+        router.replace('/dashboard/executive');
       }
     }
     setLoading(false);

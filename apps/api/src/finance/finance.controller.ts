@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Headers, UnauthorizedException, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  UnauthorizedException,
+  Res,
+} from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 
@@ -38,10 +46,16 @@ export class FinanceController {
 
   @Get('cne-report')
   @ApiHeader({ name: 'x-tenant-id', required: true })
-  async getCneReport(@Headers('x-tenant-id') tenantId: string, @Res() res: any) {
+  async getCneReport(
+    @Headers('x-tenant-id') tenantId: string,
+    @Res() res: any,
+  ) {
     const csv = await this.financeService.generateCneReport(tenantId);
     res.header('Content-Type', 'text/csv');
-    res.header('Content-Disposition', `attachment; filename=cne_report_${tenantId}.csv`);
+    res.header(
+      'Content-Disposition',
+      `attachment; filename=cne_report_${tenantId}.csv`,
+    );
     return res.send(csv);
   }
 }

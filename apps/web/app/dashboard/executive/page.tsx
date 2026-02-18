@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 import { 
   Users, 
   Target, 
-  Zap, 
-  AlertTriangle, 
   Calendar,
   ShieldCheck,
   MapPin,
@@ -25,27 +23,10 @@ export default function ExecutivePage() {
   
   const kpis = getExecutiveKPIs();
   
-  // Mock budget for display
-  const budget = {
-    totalGastos: 1250000000,
-    porcentajeEjecucionTope: 72.4,
-  };
-
-  const formatCOP = (amount: number) => {
-    if (!mounted) return `$ ${amount}`;
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
   const formatNum = (num: number) => {
     if (!mounted) return num.toString();
     return num.toLocaleString();
   };
-
-  const isBudgetCritical = budget.porcentajeEjecucionTope > 80;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">

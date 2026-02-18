@@ -31,7 +31,9 @@ export class LogisticsService {
         existing.candidateVotes !== candidateVotes ||
         existing.totalTableVotes !== totalTableVotes
       ) {
-        console.warn(`[Conflict] Mesa ${mesa} en Puesto ${puestoId} tiene datos discrepantes.`);
+        console.warn(
+          `[Conflict] Mesa ${mesa} en Puesto ${puestoId} tiene datos discrepantes.`,
+        );
         // Podríamos guardar el duplicado con un flag de conflicto en una tabla de auditoría
         throw new ConflictException('CONFLICT');
       }

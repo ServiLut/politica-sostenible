@@ -18,10 +18,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 import { useCampaign, VoterStatus } from "@/context/CampaignContext";
-import { toast } from "@/components/ui/Toast";
+import { useToast } from "@/context/ToastContext";
 
 export default function VotantesPage() {
   const { voters, addVoter, deleteVoter } = useCampaign();
+  const { success, info } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -53,7 +54,7 @@ export default function VotantesPage() {
     if (!formData.nombres || !formData.cedula) return;
     
     addVoter(formData);
-    toast.success(`Simpatizante ${formData.nombres} vinculado correctamente`);
+    success(`Simpatizante ${formData.nombres} vinculado correctamente`);
     
     setFormData({ 
       nombres: "", 
@@ -187,7 +188,7 @@ export default function VotantesPage() {
                         <button 
                           onClick={() => {
                             deleteVoter(v.id);
-                            toast.info("Registro eliminado de la base local");
+                            info("Registro eliminado de la base local");
                           }} 
                           className="p-2 text-zinc-400 hover:text-red-500 transition-colors"
                         >

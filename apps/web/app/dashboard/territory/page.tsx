@@ -1,61 +1,19 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useCRM } from '@/context/CRMContext';
 import { MapPin, User, Globe } from 'lucide-react';
 
 export default function TerritoryPage() {
   const { territory } = useCRM();
   const mapRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leafletRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<any[]>([]);
 
-  useEffect(() => {
-    if (!mapRef.current || leafletRef.current) return;
-
-    const loadLeaflet = async () => {
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-
-      if (!(window as any).L) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.async = true;
-        script.onload = () => initMap();
-        document.body.appendChild(script);
-      } else {
-        initMap();
-      }
-    };
-
-    const initMap = () => {
-      const L = (window as any).L;
-      if (!L || !mapRef.current || leafletRef.current) return;
-
-      const map = L.map(mapRef.current).setView([6.2442, -75.5812], 12);
-      leafletRef.current = map;
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
-
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 500);
-
-      updateMarkers();
-    };
-
-    loadLeaflet();
-  }, []);
-
-  const updateMarkers = () => {
+  const updateMarkers = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L = (window as any).L;
     const map = leafletRef.current;
     if (!L || !map) return;
@@ -63,13 +21,15 @@ export default function TerritoryPage() {
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bounds: any[] = [];
     territory.forEach(zone => {
       if (zone.lat && zone.lng) {
         const percentage = zone.target > 0 ? Math.round((zone.current / zone.target) * 100) : 0;
         const color = percentage >= 70 ? '#10b981' : percentage >= 40 ? '#f59e0b' : '#ef4444';
         
-        const pos = [zone.lat, zone.lng];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pos: any = [zone.lat, zone.lng];
         bounds.push(pos);
 
         // Crear Icono Personalizado con Número
@@ -94,7 +54,7 @@ export default function TerritoryPage() {
           iconAnchor: [18, 18]
         });
 
-        const marker = L.marker(pos as any, { icon: customIcon }).addTo(map);
+        const marker = L.marker(pos, { icon: customIcon }).addTo(map);
 
         marker.bindPopup(`
           <div style="font-family: sans-serif; padding: 10px; min-width: 180px;">
@@ -120,13 +80,60 @@ export default function TerritoryPage() {
     if (bounds.length > 0 && map) {
       map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
     }
-  };
+  }, [territory]);
+
+  useEffect(() => {
+    if (!mapRef.current || leafletRef.current) return;
+
+    const loadLeaflet = async () => {
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!(window as any).L) {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.async = true;
+        script.onload = () => initMap();
+        document.body.appendChild(script);
+      } else {
+        initMap();
+      }
+    };
+
+    const initMap = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const L = (window as any).L;
+      if (!L || !mapRef.current || leafletRef.current) return;
+
+      const map = L.map(mapRef.current).setView([6.2442, -75.5812], 12);
+      leafletRef.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 500);
+
+      updateMarkers();
+    };
+
+    loadLeaflet();
+  }, [updateMarkers]);
 
   useEffect(() => {
     if (leafletRef.current) {
       updateMarkers();
     }
-  }, [territory]);
+  }, [territory, updateMarkers]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

@@ -29,6 +29,9 @@ export interface TerritoryZone {
   lng?: number;
 }
 
+export type FinanceStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REPORTED_CNE';
+export type CneCode = 'PUBLICIDAD_VALLAS' | 'TRANSPORTE' | 'SEDE_CAMPANA' | 'ACTOS_PUBLICOS' | 'OTROS';
+
 export interface FinanceTransaction {
   id: string;
   concept: string;
@@ -36,6 +39,10 @@ export interface FinanceTransaction {
   type: 'Ingreso' | 'Gasto';
   category: string;
   date: string;
+  status: FinanceStatus;
+  cneCode?: CneCode;
+  providerId?: string;
+  evidenceUrl?: string;
 }
 
 export interface CampaignEvent { id: string; title: string; date: string; location: string; type: 'Reunión' | 'Marcha' | 'Capacitación' | 'Otro'; attendeesCount: number; }
@@ -68,6 +75,9 @@ interface CRMContextType {
   addTerritoryZone: (zone: Omit<TerritoryZone, 'id' | 'current'>) => void;
   updateTerritoryZone: (id: string, zone: Partial<TerritoryZone>) => void;
   deleteTerritoryZone: (id: string) => void;
+  addFinanceTransaction: (transaction: Omit<FinanceTransaction, 'id'>) => void;
+  updateFinanceTransaction: (id: string, transaction: Partial<FinanceTransaction>) => void;
+  deleteFinanceTransaction: (id: string) => void;
   updateCampaignGoal: (goal: number) => void;
   addEvent: (event: Omit<CampaignEvent, 'id'>) => void;
   updateEvent: (id: string, event: Partial<CampaignEvent>) => void;
@@ -94,6 +104,14 @@ interface CRMContextType {
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
+const DEFAULT_COMPLIANCE: ComplianceObligation[] = [
+  { id: 'cne-1', title: 'Registro de Libros y Cuenta Única', deadline: '2026-03-01', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
+  { id: 'cne-2', title: 'Designación Gerente y Contador', deadline: '2026-03-05', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
+  { id: 'cne-3', title: 'Reporte Semanal de Ingresos/Gastos', deadline: '2026-03-10', status: 'Pendiente', priority: 'Media', type: 'Cuentas Claras' },
+  { id: 'cne-4', title: 'Registro de Publicidad Exterior (Vallas)', deadline: '2026-03-15', status: 'Pendiente', priority: 'Media', type: 'Publicidad Exterior' },
+  { id: 'cne-5', title: 'Informe Final de Campaña (Cuentas Claras)', deadline: '2026-06-25', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
+];
+
 export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [territory, setTerritory] = useState<TerritoryZone[]>([]);
@@ -118,18 +136,18 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       return saved ? JSON.parse(saved) : def;
     };
 
-    setContacts(parse('crm_contacts', []));
-    setCampaignGoal(parse('crm_campaign_goal', 50000));
-    setFinance(parse('crm_finance', []));
-    setWitnesses(parse('crm_witnesses', []));
-    setEvents(parse('crm_events', []));
-    setPollingStations(parse('crm_stations', []));
-    setE14Reports(parse('crm_reports', []));
-    setBroadcasts(parse('crm_broadcasts', []));
-    setTasks(parse('crm_tasks', []));
-    setTeam(parse('crm_team', []));
-    setCompliance(parse('crm_compliance', []));
-    setAuditLogs(parse('crm_audit', []));
+    const loadedContacts = parse('crm_contacts', []);
+    const loadedGoal = parse('crm_campaign_goal', 50000);
+    const loadedFinance = parse('crm_finance', []);
+    const loadedWitnesses = parse('crm_witnesses', []);
+    const loadedEvents = parse('crm_events', []);
+    const loadedStations = parse('crm_stations', []);
+    const loadedReports = parse('crm_reports', []);
+    const loadedBroadcasts = parse('crm_broadcasts', []);
+    const loadedTasks = parse('crm_tasks', []);
+    const loadedTeam = parse('crm_team', []);
+    const loadedCompliance = parse('crm_compliance', DEFAULT_COMPLIANCE);
+    const loadedAudit = parse('crm_audit', []);
 
     // Mezclar Territorio
     const savedTerritory = parse('crm_territory', []);
@@ -152,6 +170,19 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         mergedMap.set(normalizedInput, z);
       }
     });
+
+    setContacts(loadedContacts);
+    setCampaignGoal(loadedGoal);
+    setFinance(loadedFinance);
+    setWitnesses(loadedWitnesses);
+    setEvents(loadedEvents);
+    setPollingStations(loadedStations);
+    setE14Reports(loadedReports);
+    setBroadcasts(loadedBroadcasts);
+    setTasks(loadedTasks);
+    setTeam(loadedTeam);
+    setCompliance(loadedCompliance);
+    setAuditLogs(loadedAudit);
     setTerritory(Array.from(mergedMap.values()));
     
     setIsLoaded(true);
@@ -203,6 +234,29 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTerritoryZone = useCallback((id: string) => {
     setTerritory(prev => prev.filter(z => z.id !== id));
+  }, []);
+
+  const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
+    setFinance(prev => [{ ...t, id: 'tx-' + Date.now() }, ...prev]);
+  }, []);
+
+  const updateFinanceTransaction = useCallback((id: string, t: Partial<FinanceTransaction>) => {
+    setFinance(prev => prev.map(item => {
+      if (item.id === id) {
+        // Regla de inmutabilidad: No se puede editar si ya fue reportado al CNE
+        if (item.status === 'REPORTED_CNE') return item;
+        return { ...item, ...t };
+      }
+      return item;
+    }));
+  }, []);
+
+  const deleteFinanceTransaction = useCallback((id: string) => {
+    setFinance(prev => prev.filter(t => {
+      // Regla de inmutabilidad: No se puede borrar si ya fue reportado al CNE
+      if (t.id === id && t.status === 'REPORTED_CNE') return true;
+      return t.id !== id;
+    }));
   }, []);
 
   const updateCampaignGoal = useCallback((goal: number) => {
@@ -261,7 +315,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   return (
     <CRMContext.Provider value={{ 
       contacts, territory: enrichedTerritory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal,
-      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, uploadEvidence, logAction,
+      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, uploadEvidence, logAction,
       getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getElectionResults, getTeamStats, getComplianceScore
     }}>
       {children}

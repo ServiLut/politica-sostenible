@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { 
-  DollarSign, 
   Plus, 
   Receipt, 
   AlertCircle,
@@ -16,12 +15,13 @@ import {
 } from "lucide-react";
 import { useCampaign, TransactionType } from "@/context/CampaignContext";
 import { cn } from "@/components/ui/utils";
-import { toast } from "@/components/ui/Toast";
+import { useToast } from "@/context/ToastContext";
 
 const CNE_CATEGORIES = ["Propaganda Electoral", "Transporte", "Sede", "Actos Públicos", "Logística", "Donaciones"] as const;
 
 export default function FinanzasPage() {
   const { transactions, addTransaction, getBudgetStats } = useCampaign();
+  const { success } = useToast();
   const [mounted, setMounted] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -58,7 +58,7 @@ export default function FinanzasPage() {
       concept: formData.concept
     });
     
-    toast.success(`Movimiento por ${formatCOP(monto)} registrado`);
+    success(`Movimiento por ${formatCOP(monto)} registrado`);
     setFormData({ ...formData, concept: "", amount: "" });
   };
 
