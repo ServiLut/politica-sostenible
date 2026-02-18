@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useCRM } from '@/context/CRMContext';
-import { MapPin, Plus, Trash2, Globe, Info, Search, Edit2, X, Target, Save } from 'lucide-react';
+import { useCRM, TerritoryZone } from '@/context/CRMContext';
+import { MapPin, Plus, Trash2, Globe, Search, Edit2, X, Target, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function SettingsPage() {
   const { territory, team, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
@@ -10,6 +10,37 @@ export default function SettingsPage() {
   const [leaderSearch, setLeaderSearch] = useState('');
   const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
   const [goalInput, setGoalInput] = useState(campaignGoal.toString());
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoneSearch, setZoneSearch] = useState('');
+  const itemsPerPage = 5;
+
+  const filteredTerritory = useMemo(() => {
+    return territory.filter(zone => 
+      zone.name.toLowerCase().includes(zoneSearch.toLowerCase()) ||
+      zone.leader.toLowerCase().includes(zoneSearch.toLowerCase())
+    );
+  }, [territory, zoneSearch]);
+
+  const totalPages = Math.ceil(filteredTerritory.length / itemsPerPage);
+
+  const paginatedTerritory = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTerritory.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTerritory, currentPage]);
+
+  // Reset to page 1 when searching
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [zoneSearch]);
+
+  // Handle page reset if items are deleted and page becomes empty
+  React.useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredTerritory.length, totalPages, currentPage]);
 
   const [form, setForm] = useState({
     name: '',
@@ -53,7 +84,7 @@ export default function SettingsPage() {
     setLeaderSearch('');
   };
 
-  const handleEdit = (zone: any) => {
+  const handleEdit = (zone: TerritoryZone) => {
     setEditingId(zone.id);
     setForm({
       name: zone.name,
@@ -234,27 +265,44 @@ export default function SettingsPage() {
 
         {/* Listado */}
         <div className="lg:col-span-2">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col h-full">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-slate-100 text-slate-600 rounded-2xl">
                   <Globe size={24} />
                 </div>
                 <h2 className="text-xl font-black text-slate-900">Zonas Registradas</h2>
               </div>
-              <span className="text-xs font-black bg-slate-100 px-4 py-2 rounded-full text-slate-600 uppercase tracking-widest">
-                {territory.length} Activas
-              </span>
+              
+              <div className="flex items-center gap-4 flex-1 md:justify-end">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Buscar zona o líder..."
+                    className="w-full pl-11 pr-4 py-2 text-sm rounded-xl border border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    value={zoneSearch}
+                    onChange={(e) => setZoneSearch(e.target.value)}
+                  />
+                </div>
+                <span className="text-xs font-black bg-slate-100 px-4 py-2 rounded-full text-slate-600 uppercase tracking-widest whitespace-nowrap">
+                  {filteredTerritory.length} {zoneSearch ? 'Resultados' : 'Activas'}
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {territory.length === 0 ? (
+            <div className="space-y-3 flex-1 min-h-[480px]">
+              {filteredTerritory.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[2rem]">
-                  <p className="text-slate-400 font-bold italic text-sm">No hay zonas configuradas. Usa el formulario de la izquierda.</p>
+                  <p className="text-slate-400 font-bold italic text-sm">
+                    {zoneSearch 
+                      ? `No se encontraron resultados para "${zoneSearch}"`
+                      : 'No hay zonas configuradas. Usa el formulario de la izquierda.'}
+                  </p>
                 </div>
               ) : (
-                territory.map((zone) => (
-                  <div key={zone.id} className="flex items-center justify-between p-5 rounded-[1.5rem] border border-slate-50 hover:border-blue-100 hover:bg-blue-50/10 transition-all group">
+                paginatedTerritory.map((zone) => (
+                  <div key={zone.id} className="flex items-center justify-between p-5 rounded-[1.5rem] border border-slate-50 hover:border-blue-100 hover:bg-blue-50/10 transition-all group animate-in fade-in zoom-in-95 duration-300">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
                         <MapPin size={20} />
@@ -284,6 +332,31 @@ export default function SettingsPage() {
                 ))
               )}
             </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-50">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Página {currentPage} de {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-xl border border-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-xl border border-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
