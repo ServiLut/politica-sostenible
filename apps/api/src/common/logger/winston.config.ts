@@ -8,14 +8,14 @@ export const winstonConfig = WinstonModule.createLogger({
         winston.format.timestamp(),
         winston.format.ms(),
         winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, context, ms }) => {
-          const ctx =
-            typeof context === 'string'
-              ? context
-              : context
-                ? JSON.stringify(context)
-                : 'Application';
-          return `[Nest] ${String(timestamp)} ${String(level)} [${ctx}] ${String(message)} ${String(ms)}`;
+        winston.format.printf((info: winston.Logform.TransformableInfo) => {
+          const { timestamp, level, message, context, ms } = info;
+          const ctx = typeof context === 'string' ? context : 'Application';
+          const msg = typeof message === 'string' ? message : JSON.stringify(message);
+          const t = typeof timestamp === 'string' ? timestamp : String(timestamp);
+          const elapsed = typeof ms === 'string' ? ms : '';
+          
+          return `[Nest] ${t} ${level} [${ctx}] ${msg} ${elapsed}`;
         }),
       ),
     }),

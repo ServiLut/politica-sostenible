@@ -41,11 +41,13 @@ export interface FinanceTransaction {
   date: string;
   status: FinanceStatus;
   cneCode?: CneCode;
-  providerId?: string;
+  vendorTaxId?: string; // NIT o Cédula (Legal)
+  providerId?: string; // Legacy support
   evidenceUrl?: string;
+  relatedEntityId?: string; // Conexión con Eventos o Inventario
 }
 
-export interface CampaignEvent { id: string; title: string; date: string; location: string; type: 'Reunión' | 'Marcha' | 'Capacitación' | 'Otro'; attendeesCount: number; }
+export interface CampaignEvent { id: string; title: string; date: string; location: string; type: 'Reunión' | 'Marcha' | 'Capacitación' | 'Otro'; attendeesCount: number; estimatedCost?: number; }
 export interface PollingStation { id: string; name: string; totalTables: number; reportedTables: number; witnessesCount: number; }
 export interface E14Report { id: string; stationId: string; tableNumber: string; votesCandidate: number; votesOpponent: number; imageUrl?: string; timestamp: string; }
 export interface Broadcast { id: string; name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; status: 'Procesando' | 'Enviado' | 'Error'; sentCount: number; deliveredCount: number; segment: string; message: string; date: string; activeStatus: 'active' | 'archived'; }
@@ -68,6 +70,7 @@ interface CRMContextType {
   compliance: ComplianceObligation[];
   auditLogs: AuditLog[];
   campaignGoal: number;
+  TOPE_LEGAL_CNE: number;
   addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'status'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
   toggleContactStatus: (id: string) => void;
@@ -97,6 +100,7 @@ interface CRMContextType {
   getExecutiveKPIs: () => any;
   getTerritoryStats: () => TerritoryZone[];
   getFinanceSummary: () => any;
+  getProjectedCompliance: () => any;
   getElectionResults: () => any;
   getTeamStats: () => any;
   getComplianceScore: () => number;
@@ -171,6 +175,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setContacts(loadedContacts);
     setCampaignGoal(loadedGoal);
     setFinance(loadedFinance);
@@ -208,11 +213,11 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs]);
 
   // FUNCIONES
-  const addContact = useCallback((c: any) => {
-    setContacts(prev => [{ ...c, id: 'contact-' + Date.now(), createdAt: new Date().toISOString(), status: 'active' }, ...prev]);
+  const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
+    setContacts(prev => [{ ...c, id: 'contact-' + Date.now(), createdAt: new Date().toISOString(), status: 'active' } as Contact, ...prev]);
   }, []);
 
-  const updateContact = useCallback((id: string, f: any) => {
+  const updateContact = useCallback((id: string, f: Partial<Contact>) => {
     setContacts(prev => prev.map(c => c.id === id ? { ...c, ...f } : c));
   }, []);
 
@@ -220,11 +225,11 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setContacts(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'archived' : 'active' } : c)); 
   }, []);
 
-  const moveContactStage = useCallback((id: string, s: any) => {
+  const moveContactStage = useCallback((id: string, s: PipelineStage) => {
     setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: s } : c));
   }, []);
   
-  const addTerritoryZone = useCallback((z: any) => {
+  const addTerritoryZone = useCallback((z: Omit<TerritoryZone, 'id' | 'current'>) => {
     setTerritory(prev => [...prev, { ...z, id: 'tz-' + Date.now(), current: 0 }]);
   }, []);
 
@@ -263,27 +268,27 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setCampaignGoal(goal);
   }, []);
 
-  const addEvent = useCallback((e: any) => { setEvents(prev => [{...e, id: 'e'+Date.now()}, ...prev]); }, []);
-  const updateEvent = useCallback((id: string, f: any) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, ...f } : e)); }, []);
+  const addEvent = useCallback((e: Omit<CampaignEvent, 'id'>) => { setEvents(prev => [{...e, id: 'e'+Date.now()}, ...prev]); }, []);
+  const updateEvent = useCallback((id: string, f: Partial<CampaignEvent>) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, ...f } : e)); }, []);
   const deleteEvent = useCallback((id: string) => { setEvents(prev => prev.filter(e => e.id !== id)); }, []);
   const rsvpEvent = useCallback((id: string) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e)); }, []);
-  const reportE14 = useCallback((r: any) => { 
+  const reportE14 = useCallback((r: Omit<E14Report, 'id' | 'timestamp'>) => { 
     setE14Reports(prev => [...prev, {...r, id: 'rep-'+Date.now(), timestamp: new Date().toISOString()}]);
     setPollingStations(prev => prev.map(s => s.id === r.stationId ? { ...s, reportedTables: s.reportedTables + 1 } : s));
-  }, [pollingStations]);
-  const sendBroadcast = useCallback((d: any) => {
+  }, []);
+  const sendBroadcast = useCallback((d: Omit<Broadcast, 'id' | 'status' | 'sentCount' | 'deliveredCount' | 'date' | 'activeStatus'>) => {
     const id = 'br-'+Date.now();
-    setBroadcasts(prev => [{...d, id, status: 'Procesando', sentCount: 0, deliveredCount: 0, date: new Date().toISOString().split('T')[0], activeStatus: 'active'}, ...prev]);
+    setBroadcasts(prev => [{...d, id, status: 'Procesando', sentCount: 0, deliveredCount: 0, date: new Date().toISOString().split('T')[0], activeStatus: 'active'} as Broadcast, ...prev]);
     setTimeout(() => setBroadcasts(prev => prev.map(b => b.id === id ? {...b, status: 'Enviado', sentCount: 100, deliveredCount: 98} : b)), 2000);
   }, []);
-  const updateBroadcast = useCallback((id: string, d: any) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, ...d } : b)); }, []);
+  const updateBroadcast = useCallback((id: string, d: Partial<Broadcast>) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, ...d } : b)); }, []);
   const toggleBroadcastStatus = useCallback((id: string) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, activeStatus: b.activeStatus === 'active' ? 'archived' : 'active' } : b)); }, []);
-  const addTask = useCallback((t: any) => { setTasks(prev => [{...t, id: 'tk-'+Date.now(), status: 'Pendiente', progress: 0}, ...prev]); }, []);
+  const addTask = useCallback((t: Omit<CampaignTask, 'id' | 'status' | 'progress'>) => { setTasks(prev => [{...t, id: 'tk-'+Date.now(), status: 'Pendiente', progress: 0}, ...prev]); }, []);
   const completeTask = useCallback((id: string) => { 
     setTasks(prev => prev.map(x => x.id === id ? {...x, status: 'Completada', progress: 100} : x));
   }, []);
-  const inviteMember = useCallback((m: any) => { setTeam(prev => [{...m, id: 'u-'+Date.now(), performance: 0, status: 'active'}, ...prev]); }, []);
-  const updateMember = useCallback((id: string, m: any) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
+  const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: 'u-'+Date.now(), performance: 0, status: 'active'}, ...prev]); }, []);
+  const updateMember = useCallback((id: string, m: Partial<TeamMember>) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
   const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
   const uploadEvidence = useCallback((id: string, file: string) => { setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Cumplido', evidence: file } : o)); }, []);
   const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
@@ -311,12 +316,47 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const getElectionResults = () => ({ myVotes: e14Reports.reduce((a, b) => a + b.votesCandidate, 0), opponentVotes: e14Reports.reduce((a, b) => a + b.votesOpponent, 0), tablesReported: e14Reports.length, totalTables: pollingStations.reduce((a, b) => a + b.totalTables, 0) });
   const getTeamStats = () => ({ totalTasks: tasks.length, completedTasks: tasks.filter(t => t.status === 'Completada').length, teamEfficiency: tasks.length > 0 ? (tasks.filter(t => t.status === 'Completada').length / tasks.length) * 100 : 0 });
   const getComplianceScore = () => compliance.length > 0 ? (compliance.filter(o => o.status === 'Cumplido').length / compliance.length) * 100 : 0;
+  
+  const TOPE_LEGAL_CNE = 50000000;
+
+  const getProjectedCompliance = () => {
+      // 1. Gastos Reales (Aprobados o Reportados)
+      const actualExpenses = finance
+        .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
+        .reduce((a, b) => a + b.amount, 0);
+
+      // 2. Gastos Proyectados (Eventos sin transacción vinculada)
+      // Asumimos un costo promedio por asistente si no hay estimado
+      const projectedEventsCost = events.reduce((acc, event) => {
+         // Si ya existe una transacción vinculada a este evento, no lo sumamos (evitar doble conteo)
+         const hasTransaction = finance.some(f => f.relatedEntityId === event.id);
+         if (hasTransaction) return acc;
+         
+         const estimated = event.estimatedCost || (event.attendeesCount * 5000); // 5000 COP por persona (refrigerio simple)
+         return acc + estimated;
+      }, 0);
+
+      // 3. Inventario (Simulación: Asumimos que cada "Salida" de inventario es un gasto de publicidad no registrado si no tiene ID)
+      // Para este MVP, asumiremos un valor fijo de proyección de inventario
+      const projectedInventoryCost = 0; 
+
+      const totalProjected = actualExpenses + projectedEventsCost + projectedInventoryCost;
+      
+      return {
+          actualExpenses,
+          projectedEventsCost,
+          totalProjected,
+          topeLegal: TOPE_LEGAL_CNE,
+          executionPercentage: (totalProjected / TOPE_LEGAL_CNE) * 100,
+          isAtRisk: (totalProjected / TOPE_LEGAL_CNE) > 0.9
+      };
+  };
 
   return (
     <CRMContext.Provider value={{ 
-      contacts, territory: enrichedTerritory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal,
+      contacts, territory: enrichedTerritory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
       addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, uploadEvidence, logAction,
-      getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getElectionResults, getTeamStats, getComplianceScore
+      getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore
     }}>
       {children}
     </CRMContext.Provider>

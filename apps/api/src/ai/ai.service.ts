@@ -89,7 +89,7 @@ export class AiService {
   /**
    * Procesa consultas en lenguaje natural sobre los datos de la campaña.
    */
-  chat(tenantId: string, prompt: string) {
+  chat(_tenantId: string, prompt: string) {
     this.logger.log(`Consulta IA recibida: ${prompt}`);
 
     // Simulación de lógica RAG (Retrieval Augmented Generation)

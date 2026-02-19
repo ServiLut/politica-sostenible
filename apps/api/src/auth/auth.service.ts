@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -13,6 +14,8 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -28,7 +31,7 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !(await bcrypt.compare(password, user.password as string))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -93,8 +96,8 @@ export class AuthService {
           tenantId: tenant.id,
         };
       });
-    } catch (error) {
-      console.error('Error in registration:', error);
+    } catch (error: unknown) {
+      this.logger.error(`Error in registration: ${error instanceof Error ? error.message : String(error)}`);
       throw new InternalServerErrorException('Error al registrar el usuario');
     }
   }

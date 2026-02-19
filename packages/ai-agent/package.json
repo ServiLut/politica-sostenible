@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@politica-sostenible/typescript-config": "workspace:*",
+    "@prisma/client-runtime-utils": "^7.4.0",
     "@types/node": "^22.10.7",
     "prisma": "7.3.0",
     "tsx": "^4.19.2",

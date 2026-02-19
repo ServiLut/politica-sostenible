@@ -69,43 +69,43 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-      <div className="p-4 border-t border-slate-800 space-y-4">
-        {/* Role Switcher (Dev Mode) */}
-        <div className="space-y-2">
-          <label className="text-[10px] uppercase font-bold text-slate-500 px-2">
-            Simulador de Roles
-          </label>
-          <select
-            className="w-full bg-slate-800 text-sm border-none rounded px-2 py-1 text-slate-200 focus:ring-1 focus:ring-blue-500"
-            value={user?.role || ''}
-            onChange={(e) => loginAs(e.target.value as UserRole)}
+        <div className="p-4 border-t border-slate-800 space-y-4">
+          {/* Role Switcher (Dev Mode) */}
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-slate-500 px-2">
+              Simulador de Roles
+            </label>
+            <select
+              className="w-full bg-slate-800 text-sm border-none rounded px-2 py-1 text-slate-200 focus:ring-1 focus:ring-blue-500"
+              value={user?.role || ''}
+              onChange={(e) => loginAs(e.target.value as UserRole)}
+            >
+              {Object.values(UserRole).map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
+              {user?.name.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-[10px] text-slate-400 truncate">{user?.role}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={signOut}
+            className="w-full text-left px-2 py-1 text-xs text-red-400 hover:text-red-300 transition-colors"
           >
-            {Object.values(UserRole).map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
+            Cerrar Sesión
+          </button>
         </div>
-
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
-            {user?.name.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.name}</p>
-            <p className="text-[10px] text-slate-400 truncate">{user?.role}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={signOut}
-          className="w-full text-left px-2 py-1 text-xs text-red-400 hover:text-red-300 transition-colors"
-        >
-          Cerrar Sesión
-        </button>
-      </div>
-    </aside>
+      </aside>
     </>
   );
 }

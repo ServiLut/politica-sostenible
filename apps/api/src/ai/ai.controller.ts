@@ -40,7 +40,7 @@ export class AiController {
 
   @Post('chat')
   @ApiOperation({ summary: 'Consulta cognitiva sobre la campaña' })
-  chat(@Body('prompt') prompt: string, @Body('tenantId') tenantId: string) {
-    return this.aiService.chat(tenantId, prompt);
+  chat(@Body('prompt') prompt: string, @Body('tenantId') _tenantId: string) {
+    return this.aiService.chat(_tenantId, prompt);
   }
 }

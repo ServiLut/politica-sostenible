@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../prisma/generated/prisma';
 import { z } from "zod";
 
 const prisma = new PrismaClient();

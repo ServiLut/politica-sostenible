@@ -25,6 +25,7 @@ export default function TestigosPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
