@@ -46,7 +46,7 @@ export default function TasksPage() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2"
+          className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-teal-700 transition-all flex items-center gap-2"
         >
           <Plus size={20} /> Asignar Misión
         </button>
@@ -76,7 +76,7 @@ export default function TasksPage() {
                           "text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
                           task.type === 'Puerta a Puerta' ? 'bg-red-50 text-red-600 border-red-100' :
                           task.type === 'Llamadas' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                          task.type === 'Logística' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                          task.type === 'Logística' ? 'bg-teal-50 text-teal-600 border-teal-100' :
                           'bg-indigo-50 text-indigo-600 border-indigo-100'
                         )}>
                           {task.type}
@@ -103,7 +103,7 @@ export default function TasksPage() {
                         <div 
                           className={cn(
                             "h-full transition-all duration-1000",
-                            task.status === 'Completada' ? 'bg-emerald-500' : 'bg-blue-600'
+                            task.status === 'Completada' ? 'bg-emerald-500' : 'bg-teal-600'
                           )} 
                           style={{ width: `${task.progress}%` }}
                         />
@@ -153,11 +153,11 @@ export default function TasksPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Título de la Misión</label>
-                  <input required placeholder="Ej: Barrido Comuna 13" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
+                  <input required placeholder="Ej: Barrido Comuna 13" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-teal-500 outline-none transition-all" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Tipo</label>
-                  <select className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none" value={newTask.type} onChange={e => setNewTask({...newTask, type: e.target.value as any})}>
+                  <select className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-teal-500 outline-none" value={newTask.type} onChange={e => setNewTask({...newTask, type: e.target.value as any})}>
                     <option value="Puerta a Puerta">Puerta a Puerta</option>
                     <option value="Llamadas">Llamadas</option>
                     <option value="Logística">Logística</option>
@@ -166,23 +166,23 @@ export default function TasksPage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Responsable</label>
-                  <select required className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none" value={newTask.assignedTo} onChange={e => setNewTask({...newTask, assignedTo: e.target.value})}>
+                  <select required className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-teal-500 outline-none" value={newTask.assignedTo} onChange={e => setNewTask({...newTask, assignedTo: e.target.value})}>
                     <option value="">Seleccionar...</option>
                     {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Fecha Límite</label>
-                  <input required type="date" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none" value={newTask.deadline} onChange={e => setNewTask({...newTask, deadline: e.target.value})} />
+                  <input required type="date" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-teal-500 outline-none" value={newTask.deadline} onChange={e => setNewTask({...newTask, deadline: e.target.value})} />
                 </div>
                 <div className="col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Descripción</label>
-                  <textarea required rows={3} placeholder="Instrucciones específicas para el responsable..." className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-medium focus:border-blue-500 outline-none" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} />
+                  <textarea required rows={3} placeholder="Instrucciones específicas para el responsable..." className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-medium focus:border-teal-500 outline-none" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} />
                 </div>
               </div>
               <div className="pt-4 flex gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-4 bg-blue-600 rounded-2xl text-xs font-black uppercase text-white shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                <button type="submit" className="flex-1 px-4 py-4 bg-teal-600 rounded-2xl text-xs font-black uppercase text-white shadow-xl hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
                   Asignar Misión
                 </button>
               </div>

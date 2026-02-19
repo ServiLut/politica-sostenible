@@ -165,7 +165,7 @@ export default function DirectoryPage() {
           </button>
           <button 
             onClick={() => handleOpenDialog()}
-            className="flex-1 md:flex-none bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            className="flex-1 md:flex-none bg-teal-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
           >
             <UserPlus size={18} /> Nuevo Contacto
           </button>
@@ -178,7 +178,7 @@ export default function DirectoryPage() {
           <input 
             type="text"
             placeholder="Buscar por nombre, cédula o barrio..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-teal-500 transition-all outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -208,7 +208,7 @@ export default function DirectoryPage() {
                 )}>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-sm border border-blue-100 shadow-inner relative">
+                      <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-black text-sm border border-teal-100 shadow-inner relative">
                         {contact.name.charAt(0)}
                         {contact.status === 'archived' && (
                           <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center">
@@ -234,7 +234,7 @@ export default function DirectoryPage() {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
+                      <span className="text-[10px] font-black text-teal-600 uppercase tracking-tighter">
                         {contact.role}
                       </span>
                       <span className="text-[9px] font-bold text-slate-400 uppercase">
@@ -251,7 +251,7 @@ export default function DirectoryPage() {
                     <div className="flex justify-end gap-2">
                       <button 
                         onClick={() => handleOpenDialog(contact)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
                       >
                         <Pencil size={16} />
                       </button>
@@ -301,7 +301,7 @@ export default function DirectoryPage() {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Nombre Completo</label>
                   <input 
                     required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
@@ -310,7 +310,7 @@ export default function DirectoryPage() {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Cédula / ID</label>
                   <input 
                     required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                     value={formData.cedula}
                     onChange={(e) => setFormData({...formData, cedula: e.target.value})}
                   />
@@ -319,7 +319,7 @@ export default function DirectoryPage() {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Teléfono</label>
                   <input 
                     required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   />
@@ -331,7 +331,7 @@ export default function DirectoryPage() {
                     <input 
                       required 
                       placeholder="Buscar barrio o comuna..."
-                      className="w-full pl-12 pr-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all"
+                      className="w-full pl-12 pr-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                       value={neighborhoodSearch}
                       onChange={(e) => {
                         setNeighborhoodSearch(e.target.value);
@@ -351,7 +351,7 @@ export default function DirectoryPage() {
                             <button
                               key={zone.id}
                               type="button"
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center justify-between group"
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-teal-50 hover:text-teal-600 transition-all flex items-center justify-between group"
                               onClick={() => {
                                 setFormData({...formData, neighborhood: zone.name});
                                 setNeighborhoodSearch(zone.name);
@@ -359,7 +359,7 @@ export default function DirectoryPage() {
                               }}
                             >
                               <span className="font-bold">{zone.name}</span>
-                              <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-400 uppercase">Zona</span>
+                              <span className="text-[10px] font-black text-slate-400 group-hover:text-teal-400 uppercase">Zona</span>
                             </button>
                           ))
                         ) : (
@@ -374,7 +374,7 @@ export default function DirectoryPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Rol Político</label>
                   <select 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all appearance-none"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all appearance-none"
                     value={formData.role}
                     onChange={(e) => setFormData({...formData, role: e.target.value as ContactRole})}
                   >
@@ -388,7 +388,7 @@ export default function DirectoryPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Etapa de Conversión</label>
                   <select 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all appearance-none"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all appearance-none"
                     value={formData.stage}
                     onChange={(e) => setFormData({...formData, stage: e.target.value as PipelineStage})}
                   >
@@ -405,7 +405,7 @@ export default function DirectoryPage() {
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Dirección de Residencia</label>
                 <input 
                   required 
-                  className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all"
+                  className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
                 />
@@ -421,7 +421,7 @@ export default function DirectoryPage() {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-8 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-8 py-4 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
                 >
                   <Shield size={16} /> {currentContact ? 'Guardar Cambios' : 'Registrar Votante'}
                 </button>

@@ -194,13 +194,13 @@ export default function EventsPage() {
         <div className="flex gap-3">
           <button 
             onClick={() => setIsGlobalMapOpen(true)}
-            className="bg-white text-blue-600 border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-2"
+            className="bg-white text-teal-600 border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center gap-2"
           >
             <Map size={18} /> Mapa Estratégico
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
+            className="bg-teal-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center gap-2"
           >
             <Plus size={18} /> Nuevo Evento
           </button>
@@ -217,7 +217,7 @@ export default function EventsPage() {
             <div key={event.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-xl transition-all group">
               <div className="p-8">
                 <div className="flex items-start justify-between mb-6">
-                  <div className="bg-slate-50 text-slate-900 w-16 h-16 rounded-2xl flex flex-col items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 transition-all duration-300 shadow-inner">
+                  <div className="bg-teal-50 text-teal-600 w-16 h-16 rounded-2xl flex flex-col items-center justify-center border border-teal-100 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-500 transition-all duration-300 shadow-inner">
                     <span className="text-2xl font-black leading-none">{day || '??'}</span>
                     <span className="text-[10px] font-black uppercase tracking-widest">{month || '---'}</span>
                   </div>
@@ -226,7 +226,7 @@ export default function EventsPage() {
                       "text-[8px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border shadow-sm",
                       event.type === 'Marcha' ? 'bg-red-50 text-red-600 border-red-100' :
                       event.type === 'Reunión' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                      'bg-blue-50 text-blue-600 border-blue-100'
+                      'bg-teal-50 text-teal-600 border-teal-100'
                     )}>
                       {event.type}
                     </span>
@@ -234,7 +234,7 @@ export default function EventsPage() {
                       <div className="flex gap-1">
                         <button 
                           onClick={() => handleEdit(event)}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
                         >
                           <Pencil size={14} />
                         </button>
@@ -254,10 +254,10 @@ export default function EventsPage() {
                 <div className="space-y-3 mb-8">
                   <button 
                     onClick={() => handleMapClick(event.location)}
-                    className="flex items-center gap-2 text-slate-500 text-[11px] font-black uppercase hover:text-blue-600 transition-colors group/loc"
+                    className="flex items-center gap-2 text-slate-500 text-[11px] font-black uppercase hover:text-teal-600 transition-colors group/loc"
                   >
-                    <MapPin size={14} className="text-blue-500 group-hover/loc:scale-110 transition-transform" /> 
-                    <span className="truncate border-b-2 border-slate-50 group-hover/loc:border-blue-100">
+                    <MapPin size={14} className="text-teal-500 group-hover/loc:scale-110 transition-transform" /> 
+                    <span className="truncate border-b-2 border-slate-50 group-hover/loc:border-teal-100">
                       {event.location}
                     </span>
                   </button>
@@ -268,7 +268,7 @@ export default function EventsPage() {
 
                 <button 
                   onClick={() => rsvpEvent(event.id)}
-                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-200 transition-all active:scale-[0.98]"
+                  className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-700 shadow-lg shadow-teal-200 hover:shadow-teal-300 transition-all active:scale-[0.98]"
                 >
                   Registrar Asistencia (+1)
                 </button>
@@ -297,8 +297,8 @@ export default function EventsPage() {
 
             <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.3em]">Operativa de Eventos</span>
+                <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.3em]">Operativa de Eventos</span>
               </div>
               <h3 className="text-3xl font-black text-slate-900 tracking-tighter">
                 {editingEvent ? 'Editar Evento' : 'Crear Evento'}
@@ -309,20 +309,20 @@ export default function EventsPage() {
               <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título del Evento</label>
-                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
-                    <input required type="date" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                    <input required type="date" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
                     <div className="relative">
                       <div 
                         onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
-                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-blue-500 cursor-pointer flex justify-between items-center transition-all"
+                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
                       >
                         <span className="text-slate-900">{newEvent.type}</span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
@@ -337,10 +337,10 @@ export default function EventsPage() {
                                 setNewEvent({...newEvent, type: type as any});
                                 setIsModalTypeOpen(false);
                               }}
-                              className="px-6 py-3 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center"
+                              className="px-6 py-3 hover:bg-teal-50 text-xs font-bold text-slate-600 hover:text-teal-600 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center"
                             >
                               {type}
-                              {newEvent.type === type && <Check size={14} className="text-blue-600" />}
+                              {newEvent.type === type && <Check size={14} className="text-teal-600" />}
                             </div>
                           ))}
                         </div>
@@ -363,7 +363,7 @@ export default function EventsPage() {
 
               <div className="pt-6 flex gap-4">
                 <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-2 px-8 py-4 bg-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                <button type="submit" className="flex-2 px-8 py-4 bg-teal-600 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
                   {editingEvent ? 'Guardar Cambios' : 'Generar Evento'}
                 </button>
               </div>
@@ -391,8 +391,8 @@ export default function EventsPage() {
 
             <div className="px-10 py-10 border-b border-slate-100 bg-white">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.25em]">Geolocalización Territorial</span>
+                <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.25em]">Geolocalización Territorial</span>
               </div>
               <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
                 {selectedLocation}
@@ -413,7 +413,7 @@ export default function EventsPage() {
 
             <div className="px-10 py-8 bg-slate-50 flex justify-between items-center border-t border-slate-100">
               <div className="flex items-center gap-4 text-slate-500">
-                <div className="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
+                <div className="h-10 w-10 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-600 shrink-0 shadow-inner">
                   <Globe size={18} />
                 </div>
                 <p className="text-[11px] font-bold uppercase tracking-widest leading-relaxed">
@@ -422,7 +422,7 @@ export default function EventsPage() {
               </div>
               <button 
                 onClick={() => setIsMapModalOpen(false)}
-                className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
+                className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
               >
                 Cerrar Vista
               </button>
@@ -460,7 +460,7 @@ export default function EventsPage() {
 
                 {/* BARRA DE FILTROS DEL MAPA */}
                 <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[2rem] border border-white/10 backdrop-blur-md relative">
-                  <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-blue-500 transition-all">
+                  <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-teal-500 transition-all">
                     <Search size={16} className="text-slate-500" />
                     <input 
                       type="text" 
@@ -496,7 +496,7 @@ export default function EventsPage() {
                             className="px-5 py-3 hover:bg-white/5 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest cursor-pointer transition-colors border-b border-white/5 last:border-none flex justify-between items-center"
                           >
                             {type === 'all' ? 'Todos' : type}
-                            {mapFilterType === type && <Check size={12} className="text-blue-400" />}
+                            {mapFilterType === type && <Check size={12} className="text-teal-400" />}
                           </div>
                         ))}
                       </div>
@@ -513,10 +513,10 @@ export default function EventsPage() {
                       }}
                       className={cn(
                         "flex items-center gap-3 bg-white/5 px-5 py-3 rounded-2xl border transition-all group",
-                        isRangePickerOpen ? "border-blue-500 bg-white/10 shadow-lg shadow-blue-500/10" : "border-white/10 hover:border-white/20"
+                        isRangePickerOpen ? "border-teal-500 bg-white/10 shadow-lg shadow-teal-500/10" : "border-white/10 hover:border-white/20"
                       )}
                     >
-                      <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-blue-400" : "text-slate-500")} />
+                      <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-teal-400" : "text-slate-500")} />
                       <div className="flex flex-col items-start leading-none gap-1">
                         <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Rango Temporal</span>
                         <span className="text-[10px] text-slate-200 font-black uppercase">
@@ -537,7 +537,7 @@ export default function EventsPage() {
                             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Inicio</label>
                             <input 
                               type="date" 
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-blue-500 [color-scheme:dark] w-full"
+                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
                               value={mapFilterStartDate}
                               onChange={(e) => setMapFilterStartDate(e.target.value)}
                             />
@@ -546,7 +546,7 @@ export default function EventsPage() {
                             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Fin</label>
                             <input 
                               type="date" 
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-blue-500 [color-scheme:dark] w-full"
+                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
                               value={mapFilterEndDate}
                               onChange={(e) => setMapFilterEndDate(e.target.value)}
                             />
@@ -554,7 +554,7 @@ export default function EventsPage() {
                         </div>
                         <button 
                           onClick={() => setIsRangePickerOpen(false)}
-                          className="w-full py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all mt-2 shadow-lg shadow-blue-500/20"
+                          className="w-full py-4 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all mt-2 shadow-lg shadow-teal-500/20"
                         >
                           Aplicar Rango
                         </button>
@@ -588,7 +588,7 @@ export default function EventsPage() {
               <div className="absolute bottom-10 left-10 flex flex-wrap gap-4 z-20 max-w-[500px]">
                 {[
                   { label: 'Marchas', color: 'bg-red-500' },
-                  { label: 'Reuniones', color: 'bg-blue-500' },
+                  { label: 'Reuniones', color: 'bg-teal-500' },
                   { label: 'Capacitación', color: 'bg-emerald-500' },
                   { label: 'Otros', color: 'bg-orange-500' }
                 ].map(item => (
