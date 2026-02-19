@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
   Res,
 } from '@nestjs/common';
-import { FinanceService } from './finance.service';
+import { FinanceService, CreateFinanceDto } from './finance.service';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 
 @ApiTags('Finance')
@@ -21,7 +21,7 @@ export class FinanceController {
   async create(
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-user-id') userId: string,
-    @Body() dto: any,
+    @Body() dto: CreateFinanceDto,
   ) {
     if (!tenantId || !userId) throw new UnauthorizedException();
     return this.financeService.create(tenantId, userId, dto);
@@ -40,7 +40,7 @@ export class FinanceController {
   }
 
   @Post('validate')
-  async validateExpense(@Body() data: any) {
+  async validateExpense(@Body() data: Partial<CreateFinanceDto>) {
     return this.financeService.validateExpense(data);
   }
 

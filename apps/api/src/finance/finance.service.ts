@@ -1,13 +1,13 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ColombiaValidator } from '../common/utils/colombia-validator.util';
-import { EntryType } from '../../prisma/generated/prisma';
+import { EntryType, CneCode } from '../../prisma/generated/prisma';
 
 export interface CreateFinanceDto {
   type: EntryType;
   amount: number | string;
   date: string;
-  cneCode: string;
+  cneCode: CneCode;
   description: string;
   vendorName: string;
   vendorTaxId: string;
