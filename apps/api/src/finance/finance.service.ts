@@ -78,18 +78,19 @@ export class FinanceService {
     }
   }
 
-  async validateExpense(
-    data: any,
-  ): Promise<{ valid: boolean; reason?: string }> {
+  validateExpense(data: any): Promise<{ valid: boolean; reason?: string }> {
     // Implementar lógica compleja de validación CNE aquí
     // Ejemplo: Verificar si el proveedor está en lista negra
     if (
       data.vendorName &&
       data.vendorName.toLowerCase().includes('inhabilitado')
     ) {
-      return { valid: false, reason: 'Proveedor inhabilitado por CNE' };
+      return Promise.resolve({
+        valid: false,
+        reason: 'Proveedor inhabilitado por CNE',
+      });
     }
-    return { valid: true };
+    return Promise.resolve({ valid: true });
   }
 
   async generateCneReport(tenantId: string): Promise<string> {
@@ -104,7 +105,7 @@ export class FinanceService {
     const rows = expenses
       .map(
         (e) =>
-          `${e.date.toISOString().split('T')[0]},"${e.description}",${e.amount},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`,
+          `${e.date.toISOString().split('T')[0]},"${e.description}",${String(e.amount)},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`,
       )
       .join('\n');
 

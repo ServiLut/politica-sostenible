@@ -139,6 +139,14 @@ export default function FinancePage() {
   const formatCOP = (val: number) => 
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    if (isModalOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -292,7 +300,7 @@ export default function FinancePage() {
               <YAxis hide />
               <Tooltip 
                 contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
-                formatter={(value: number) => [formatCOP(value), 'Monto']}
+                formatter={(value: any) => [formatCOP(Number(value)), 'Monto']}
               />
               <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
                 {barData.map((entry, index) => (
@@ -320,7 +328,7 @@ export default function FinancePage() {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatCOP(value)} />
+              <Tooltip formatter={(value: any) => formatCOP(Number(value))} />
               <Legend verticalAlign="bottom" height={36} wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
             </PieChart>
           </ResponsiveContainer>
@@ -437,7 +445,7 @@ export default function FinancePage() {
                             </button>
                           </>
                         ) : (
-                          <Ban size={16} className="text-slate-300" title="Registro Inmutable" />
+                          <Ban size={16} className="text-slate-300" />
                         )}
                       </div>
                     </td>
@@ -451,8 +459,14 @@ export default function FinancePage() {
 
       {/* Modal Registro */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-10">
               <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-8 flex items-center gap-3">
                 <Receipt size={28} className="text-blue-600" /> Nuevo Registro Contable

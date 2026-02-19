@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCRM, CampaignTask } from '@/context/CRMContext';
 import { Plus, X, User, Calendar, CheckCircle, Clock, Loader2, ClipboardList } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
@@ -22,6 +22,14 @@ export default function TasksPage() {
     setIsModalOpen(false);
     setNewTask({ title: '', type: 'Puerta a Puerta', assignedTo: '', deadline: '', description: '' });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    if (isModalOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
 
   const columns = [
     { id: 'Pendiente', title: 'Pendiente', icon: <Clock size={16} className="text-red-500" /> },
@@ -126,8 +134,14 @@ export default function TasksPage() {
 
       {/* Modal Nueva Misión */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-8 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tighter">Asignar Misión</h3>

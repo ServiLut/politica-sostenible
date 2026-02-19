@@ -87,7 +87,9 @@ export default function StrategicMap({ events }: StrategicMapProps) {
               const zName = normalize(z.name);
               return cleanLoc.includes(zName) || zName.includes(cleanLoc);
             });
-            if (zone) position = [zone.lat, zone.lng];
+            if (zone && zone.lat !== undefined && zone.lng !== undefined) {
+              position = [zone.lat, zone.lng];
+            }
           }
 
           // 3. Si no hay posición, no renderizar

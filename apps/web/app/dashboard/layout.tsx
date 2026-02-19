@@ -47,9 +47,9 @@ export default function DashboardLayout({
   // Permission Denied View
   if (!hasPermission) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div className="flex-1 flex flex-col h-screen overflow-hidden items-center justify-center p-8 text-center relative">
           <div className="lg:hidden absolute top-4 left-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -81,9 +81,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <header className="h-16 border-b border-slate-200 bg-white flex items-center px-4 lg:px-8 justify-between">
           <div className="flex items-center gap-4">
             <button 

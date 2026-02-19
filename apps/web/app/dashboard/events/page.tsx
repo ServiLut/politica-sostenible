@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCRM, CampaignEvent } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
@@ -184,6 +184,19 @@ export default function EventsPage() {
     setNewEvent({ title: '', date: '', location: '', type: 'Reunión' });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isErrorModalOpen) setIsErrorModalOpen(false);
+        else if (isMapModalOpen) setIsMapModalOpen(false);
+        else if (isGlobalMapOpen) setIsGlobalMapOpen(false);
+        else if (isModalOpen) closeModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, isMapModalOpen, isGlobalMapOpen, isErrorModalOpen]);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -196,7 +209,7 @@ export default function EventsPage() {
             onClick={() => setIsGlobalMapOpen(true)}
             className="bg-white text-blue-600 border-2 border-blue-50 px-6 py-3 rounded-2xl font-black text-sm shadow-md hover:bg-blue-50 transition-all flex items-center gap-2"
           >
-            <Map size={18} /> Mapa de Territorio
+            <Map size={18} /> Mapa de Eventos
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -280,25 +293,34 @@ export default function EventsPage() {
 
       {/* Modal Nueva Evento */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-xl font-black text-slate-900">
-                {editingEvent ? 'Editar Evento' : 'Crear Evento'}
-              </h3>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600"><X /></button>
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-8 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
+                  {editingEvent ? 'Editar Evento' : 'Crear Evento'}
+                </h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión Territorial</p>
+              </div>
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm"><X /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-4">
+            <form onSubmit={handleSubmit} className="p-10 space-y-6">
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Título</label>
-                <input required className="w-full px-4 py-2 border rounded-xl text-sm" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Título</label>
+                <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Fecha</label>
-                <input required type="date" className="w-full px-4 py-2 border rounded-xl text-sm" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Fecha</label>
+                <input required type="date" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Lugar</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Lugar</label>
                 <LocationSelector 
                   required
                   value={newEvent.location} 
@@ -308,17 +330,17 @@ export default function EventsPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Tipo</label>
-                <select className="w-full px-4 py-2 border rounded-xl text-sm" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Tipo</label>
+                <select className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
                   <option value="Reunión">Reunión</option>
                   <option value="Marcha">Marcha</option>
                   <option value="Capacitación">Capacitación</option>
                   <option value="Otro">Otro</option>
                 </select>
               </div>
-              <div className="pt-6 flex gap-3">
-                <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border rounded-xl text-sm font-bold text-slate-600">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 rounded-xl text-sm font-bold text-white shadow-lg">
+              <div className="pt-4 flex gap-4">
+                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 px-4 py-4 bg-blue-600 rounded-2xl text-xs font-black uppercase text-white shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
                   {editingEvent ? 'Guardar Cambios' : 'Crear Evento'}
                 </button>
               </div>
@@ -329,8 +351,14 @@ export default function EventsPage() {
 
       {/* Modal del Mapa */}
       {isMapModalOpen && selectedLocation && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[95vh]">
+        <div 
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          onClick={() => setIsMapModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[95vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header Mejorado */}
             <div className="px-10 py-8 border-b border-slate-100 bg-white flex justify-between items-center">
               <div>
@@ -386,8 +414,14 @@ export default function EventsPage() {
 
       {/* Modal Mapa de Territorio (Global) */}
       {isGlobalMapOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-[#0F172A] w-full max-w-6xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]">
+        <div 
+          className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          onClick={() => setIsGlobalMapOpen(false)}
+        >
+          <div 
+            className="bg-[#0F172A] w-full max-w-6xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="absolute top-8 right-8 z-20">
               <button 
                 onClick={() => setIsGlobalMapOpen(false)}
@@ -543,8 +577,14 @@ export default function EventsPage() {
 
       {/* Modal de Error de Localización */}
       {isErrorModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsErrorModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6">
               <AlertTriangle size={32} />
             </div>

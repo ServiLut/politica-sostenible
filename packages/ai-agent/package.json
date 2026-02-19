@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "dev": "node -e \"console.log('Ecosistema Cognitivo: Agente de IA listo en modo pasivo.')\""
   },
@@ -15,7 +15,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@politica-sostenible/typescript-config": "workspace:*",
     "@types/node": "^22.10.7",
+    "prisma": "7.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { Scan, Shield, Users, LogOut, Zap, Wifi, WifiOff } from 'lucide-react';
 
 export default function FieldHomePage() {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => {
+    if (typeof window !== 'undefined') return window.navigator.onLine;
+    return true;
+  });
 
   useEffect(() => {
-    setIsOnline(window.navigator.onLine);
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);

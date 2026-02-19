@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCRM, Contact, ContactRole, PipelineStage } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
@@ -81,6 +81,11 @@ export default function DirectoryPage() {
     setIsDialogOpen(true);
   };
 
+  const closeModal = () => {
+    setIsDialogOpen(false);
+    setCurrentContact(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentContact) {
@@ -90,8 +95,7 @@ export default function DirectoryPage() {
       addContact(formData);
       toastSuccess("Contacto añadido al directorio");
     }
-    setIsDialogOpen(false);
-    setCurrentContact(null);
+    closeModal();
   };
 
   const handleToggleStatusClick = (contact: Contact) => {
@@ -111,6 +115,14 @@ export default function DirectoryPage() {
       setContactToToggle(null);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModal();
+    };
+    if (isDialogOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDialogOpen]);
 
   const handleExport = () => {
     if (contacts.length === 0) {
@@ -263,8 +275,14 @@ export default function DirectoryPage() {
 
       {/* Contact Modal */}
       {isDialogOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
@@ -272,7 +290,7 @@ export default function DirectoryPage() {
                 </h3>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión de Base de Datos</p>
               </div>
-              <button onClick={() => { setIsDialogOpen(false); setCurrentContact(null); }} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm">
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm">
                 <X size={20} />
               </button>
             </div>
@@ -396,7 +414,7 @@ export default function DirectoryPage() {
               <div className="pt-6 flex gap-4">
                 <button 
                   type="button" 
-                  onClick={() => { setIsDialogOpen(false); setCurrentContact(null); }}
+                  onClick={closeModal}
                   className="flex-1 px-8 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
                 >
                   Cancelar
