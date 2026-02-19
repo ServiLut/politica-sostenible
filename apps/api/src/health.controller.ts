@@ -12,15 +12,15 @@ export class HealthController {
       const tenants = await this.prisma.tenant.count();
       const voters = await this.prisma.voter.count();
       const finance = await this.prisma.financialEntry.count();
-      
+
       return {
         status: 'ok',
         database: 'connected',
         tables: {
           tenants,
           voters,
-          finance
-        }
+          finance,
+        },
       };
     } catch (error) {
       return {

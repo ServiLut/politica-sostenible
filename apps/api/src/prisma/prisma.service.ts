@@ -12,7 +12,9 @@ export class PrismaService
     const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
     if (!connectionString) {
-      console.warn('⚠️ No se encontró DATABASE_URL o DIRECT_URL. Asegúrate de configurar las variables de entorno.');
+      console.warn(
+        '⚠️ No se encontró DATABASE_URL o DIRECT_URL. Asegúrate de configurar las variables de entorno.',
+      );
     }
 
     const pool = new pg.Pool({

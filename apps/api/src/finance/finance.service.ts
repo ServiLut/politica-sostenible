@@ -12,7 +12,10 @@ export class FinanceService {
       // Si el NIT incluye guion, validamos el DV
       if (data.vendorTaxId.includes('-')) {
         const isValid = ColombiaValidator.isValidNIT(data.vendorTaxId);
-        if (!isValid) throw new BadRequestException('NIT o Dígito de Verificación inválido');
+        if (!isValid)
+          throw new BadRequestException(
+            'NIT o Dígito de Verificación inválido',
+          );
       }
     }
 
@@ -21,9 +24,11 @@ export class FinanceService {
     if (data.type === 'EXPENSE') {
       const summary = await this.getSummary(tenantId);
       const projectedTotal = summary.totalExpenses + Number(data.amount);
-      
+
       if (projectedTotal > MAX_CAMPAIGN_BUDGET) {
-        throw new BadRequestException('ALERTA CNE: Este gasto excede el tope máximo permitido para la campaña.');
+        throw new BadRequestException(
+          'ALERTA CNE: Este gasto excede el tope máximo permitido para la campaña.',
+        );
       }
     }
 
@@ -63,7 +68,9 @@ export class FinanceService {
       return {
         totalExpenses: expenses._sum.amount ? Number(expenses._sum.amount) : 0,
         totalIncome: income._sum.amount ? Number(income._sum.amount) : 0,
-        balance: (Number(income._sum.amount) || 0) - (Number(expenses._sum.amount) || 0),
+        balance:
+          (Number(income._sum.amount) || 0) -
+          (Number(expenses._sum.amount) || 0),
       };
     } catch (error) {
       console.error('❌ Error in FinanceService.getSummary:', error);
@@ -71,10 +78,15 @@ export class FinanceService {
     }
   }
 
-  async validateExpense(data: any): Promise<{ valid: boolean; reason?: string }> {
+  async validateExpense(
+    data: any,
+  ): Promise<{ valid: boolean; reason?: string }> {
     // Implementar lógica compleja de validación CNE aquí
     // Ejemplo: Verificar si el proveedor está en lista negra
-    if (data.vendorName && data.vendorName.toLowerCase().includes('inhabilitado')) {
+    if (
+      data.vendorName &&
+      data.vendorName.toLowerCase().includes('inhabilitado')
+    ) {
       return { valid: false, reason: 'Proveedor inhabilitado por CNE' };
     }
     return { valid: true };
@@ -87,10 +99,14 @@ export class FinanceService {
       orderBy: { date: 'asc' },
     });
 
-    const header = 'Fecha,Concepto,Monto,Proveedor,NIT,Código CNE,Responsable\n';
-    const rows = expenses.map(e => 
-      `${e.date.toISOString().split('T')[0]},"${e.description}",${e.amount},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`
-    ).join('\n');
+    const header =
+      'Fecha,Concepto,Monto,Proveedor,NIT,Código CNE,Responsable\n';
+    const rows = expenses
+      .map(
+        (e) =>
+          `${e.date.toISOString().split('T')[0]},"${e.description}",${e.amount},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`,
+      )
+      .join('\n');
 
     return header + rows;
   }

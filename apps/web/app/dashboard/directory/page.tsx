@@ -6,17 +6,13 @@ import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
 import * as XLSX from 'xlsx';
 import { 
-  Users, 
   UserPlus, 
   Search, 
   Filter, 
   FileSpreadsheet, 
   Pencil, 
-  Trash2, 
   RotateCcw,
   X,
-  Mail,
-  Phone,
   MapPin,
   Shield,
   Ban

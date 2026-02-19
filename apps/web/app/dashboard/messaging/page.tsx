@@ -29,9 +29,14 @@ export default function MessagingPage() {
   const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
   const [broadcastToToggle, setBroadcastToToggle] = useState<Broadcast | null>(null);
   
-  const [newCampaign, setNewCampaign] = useState({
+  const [newCampaign, setNewCampaign] = useState<{
+    name: string;
+    channel: 'WhatsApp' | 'SMS' | 'Email';
+    segment: string;
+    message: string;
+  }>({
     name: '',
-    channel: 'WhatsApp' as const,
+    channel: 'WhatsApp',
     segment: 'Todos',
     message: ''
   });

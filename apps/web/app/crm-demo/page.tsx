@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Users, 
   Target, 
@@ -11,19 +11,16 @@ import {
   Bell, 
   Menu, 
   X, 
-  ChevronRight,
   UserCheck,
   Activity,
   MapPin,
   Search,
   Filter,
-  MoreVertical,
   Trash2,
   Edit,
   Phone,
   MessageSquare,
   CheckCircle2,
-  History,
   Plus,
   ArrowUpRight,
   ArrowDownRight,
@@ -32,14 +29,11 @@ import {
   AlertTriangle,
   ExternalLink,
   Flag,
-  Clock,
   Zap,
   Camera,
-  RotateCcw
+  Lock
 } from 'lucide-react';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -56,16 +50,17 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // --- CONSTANTS ---
-const TOPE_MAXIMO_LEY = 50000000;
+const LIMITE_GASTOS_CNE = 50000000;
 const BARRIOS = ["Usaquén", "Chapinero", "Santa Fe", "San Cristóbal", "Usme", "Tunjuelito", "Bosa", "Kennedy", "Fontibón", "Engativá"];
 
 // --- TYPES & INTERFACES ---
 
 type Role = 'SuperAdmin' | 'Gerente' | 'Contador' | 'LiderZonal' | 'Testigo';
 type MissionStatus = 'Pendiente' | 'En Proceso' | 'Validación' | 'Completada';
+type TransactionStatus = 'Borrador' | 'Pendiente de Soporte' | 'Legalizado';
 
 interface Interaction {
   date: string;
@@ -116,7 +111,12 @@ interface Transaction {
   concept: string;
   amount: number;
   type: 'Ingreso' | 'Gasto';
-  category: 'Logística' | 'Pauta' | 'Transporte' | 'Refrigerios' | 'Donación' | 'Otros';
+  category: string;
+  categoryCode: string;
+  providerNit?: string;
+  invoiceNumber?: string;
+  status: TransactionStatus;
+  createdBy: string;
   supportUrl: string;
 }
 
@@ -172,7 +172,7 @@ const AppContext = createContext<{
   addVoter: (voter: Omit<Voter, 'id'>) => void;
   updateVoter: (id: number, voter: Partial<Voter>) => void;
   addInteraction: (voterId: number, interaction: Interaction) => void;
-  addTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  addTransaction: (tx: Omit<Transaction, 'id' | 'createdBy' | 'date'>) => void;
   addReport: (report: Omit<E14Report, 'id' | 'timestamp' | 'testigoId'>) => void;
   massImport: () => void;
   updateMissionStatus: (id: number, status: MissionStatus, evidence?: string) => void;
@@ -213,8 +213,32 @@ const generateInitialData = (): AppState => {
   }));
 
   const transactions: Transaction[] = [
-    { id: 1, date: '2026-02-01', concept: 'Donación Empresarial', amount: 15000000, type: 'Ingreso', category: 'Donación', supportUrl: '#' },
-    { id: 2, date: '2026-02-05', concept: 'Pauta Facebook Ads', amount: 5000000, type: 'Gasto', category: 'Pauta', supportUrl: '#' },
+    { 
+      id: 1, 
+      date: '2026-02-01', 
+      concept: 'Donación Empresarial', 
+      amount: 15000000, 
+      type: 'Ingreso', 
+      category: 'Donación', 
+      categoryCode: '201', 
+      status: 'Legalizado',
+      createdBy: 'Admin Principal',
+      supportUrl: '#' 
+    },
+    { 
+      id: 2, 
+      date: '2026-02-05', 
+      concept: 'Pauta Facebook Ads', 
+      amount: 5000000, 
+      type: 'Gasto', 
+      category: 'Propaganda electoral', 
+      categoryCode: '105', 
+      providerNit: '900.123.456-1',
+      invoiceNumber: 'FE-889',
+      status: 'Pendiente de Soporte',
+      createdBy: 'Admin Principal',
+      supportUrl: '#' 
+    },
   ];
 
   const reports: E14Report[] = [
@@ -371,11 +395,6 @@ const MissionsView = () => {
       case 'Validación': return 'bg-purple-100 text-purple-600';
       case 'Completada': return 'bg-emerald-100 text-emerald-600';
     }
-  };
-
-  const canMoveToNext = (current: MissionStatus) => {
-    // Buttons locked if not passing through 'En Proceso'
-    // This is handled in the UI logic below
   };
 
   return (
@@ -681,14 +700,6 @@ const VoterDirectory = () => {
     gender: []
   });
 
-  if (['Contador', 'Testigo'].includes(currentUser.role)) return (
-    <div className="h-full flex flex-col items-center justify-center space-y-4">
-      <ShieldAlert className="h-16 w-16 text-red-500" />
-      <h2 className="text-2xl font-bold">Acceso Denegado</h2>
-      <p className="text-slate-500">Su rol no tiene permisos para ver el censo electoral.</p>
-    </div>
-  );
-
   const filteredVoters = useMemo(() => {
     let result = voters;
     if (currentUser.role === 'LiderZonal') result = result.filter(v => v.barrio === currentUser.zona);
@@ -701,6 +712,14 @@ const VoterDirectory = () => {
     if (filters.gender.length > 0) result = result.filter(v => filters.gender.includes(v.gender));
     return result;
   }, [voters, searchTerm, filters, currentUser]);
+
+  if (['Contador', 'Testigo'].includes(currentUser.role)) return (
+    <div className="h-full flex flex-col items-center justify-center space-y-4">
+      <ShieldAlert className="h-16 w-16 text-red-500" />
+      <h2 className="text-2xl font-bold">Acceso Denegado</h2>
+      <p className="text-slate-500">Su rol no tiene permisos para ver el censo electoral.</p>
+    </div>
+  );
 
   const totalPages = Math.ceil(filteredVoters.length / itemsPerPage);
   const paginatedVoters = filteredVoters.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -874,9 +893,28 @@ const VoterDirectory = () => {
 };
 
 
+const CNE_CATEGORIES = [
+  { code: '101', name: 'Gastos de administración' },
+  { code: '102', name: 'Actos públicos' },
+  { code: '105', name: 'Propaganda electoral' },
+  { code: '108', name: 'Transporte y correo' },
+];
+
 const FinanceModule = () => {
-  const { state } = useApp();
+  const { state, addTransaction } = useApp();
   const { currentUser, transactions } = state;
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    concept: '',
+    amount: 0,
+    type: 'Gasto' as 'Ingreso' | 'Gasto',
+    category: 'Gastos de administración',
+    categoryCode: '101',
+    providerNit: '',
+    invoiceNumber: '',
+    status: 'Borrador' as TransactionStatus,
+    supportUrl: '#'
+  });
 
   if (['LiderZonal', 'Testigo'].includes(currentUser.role)) return (
     <div className="h-full flex flex-col items-center justify-center space-y-4">
@@ -886,23 +924,328 @@ const FinanceModule = () => {
     </div>
   );
 
+  const totalIncome = transactions.filter(t => t.type === 'Ingreso').reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === 'Gasto').reduce((acc, curr) => acc + curr.amount, 0);
+  const balance = totalIncome - totalExpenses;
+  const budgetExecution = (totalExpenses / LIMITE_GASTOS_CNE) * 100;
+
+  const getAlertColor = (percent: number) => {
+    if (percent > 90) return 'bg-red-600 animate-pulse';
+    if (percent > 70) return 'bg-orange-500';
+    return 'bg-emerald-500';
+  };
+
+  const barData = [
+    { name: 'Sem 1', ingresos: 5000000, gastos: 2000000 },
+    { name: 'Sem 2', ingresos: 3000000, gastos: 4500000 },
+    { name: 'Sem 3', ingresos: 7000000, gastos: 3000000 },
+    { name: 'Sem 4', ingresos: totalIncome - 15000000, gastos: totalExpenses - 9500000 },
+  ];
+
+  const pieData = [
+    { name: 'Admin', value: transactions.filter(t => t.categoryCode === '101').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Actos', value: transactions.filter(t => t.categoryCode === '102').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Propaganda', value: transactions.filter(t => t.categoryCode === '105').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Transporte', value: transactions.filter(t => t.categoryCode === '108').reduce((a, b) => a + b.amount, 0) },
+  ].filter(d => d.value > 0);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(transactions.map(t => ({
+      Fecha: t.date,
+      Concepto: t.concept,
+      Tipo: t.type,
+      Monto: t.amount,
+      Categoría: t.category,
+      Código: t.categoryCode,
+      NIT: t.providerNit || 'N/A',
+      Factura: t.invoiceNumber || 'N/A',
+      Estado: t.status,
+      RegistradoPor: t.createdBy
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Finanzas");
+    XLSX.writeFile(wb, "Reporte_Financiero_CNE.xlsx");
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text("POLITICA 2026 - Reporte Cuentas Claras", 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Responsable: ${currentUser.name}`, 14, 30);
+    doc.text(`Fecha de Reporte: ${new Date().toLocaleDateString()}`, 14, 35);
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Fecha', 'Concepto', 'Cod', 'Monto', 'Estado']],
+      body: transactions.map(t => [t.date, t.concept, t.categoryCode, `$${t.amount.toLocaleString()}`, t.status]),
+    });
+    doc.save("Reporte_CNE.pdf");
+  };
+
   return (
     <div className="space-y-6">
-       <h2 className="text-3xl font-bold">Gestión Financiera</h2>
+       <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold">Gestión Financiera Compliance</h2>
+          <div className="flex gap-2">
+             <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-bold"><FileText className="h-4 w-4" /> PDF</button>
+             <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-bold"><Download className="h-4 w-4" /> Excel</button>
+             <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold"><Plus className="h-4 w-4" /> Nuevo Movimiento</button>
+          </div>
+       </div>
+
+       {/* Topes CNE */}
+       <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100">
+          <div className="flex justify-between items-end mb-2">
+             <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase">Ejecución de Presupuesto (Tope CNE)</p>
+                <h4 className="text-xl font-black">${totalExpenses.toLocaleString()} / <span className="text-slate-400">${LIMITE_GASTOS_CNE.toLocaleString()}</span></h4>
+             </div>
+             <span className={`text-xs font-black px-2 py-1 rounded-lg ${budgetExecution > 90 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                {budgetExecution.toFixed(1)}% utilizado
+             </span>
+          </div>
+          <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
+             <div 
+                className={`h-full transition-all duration-1000 ${getAlertColor(budgetExecution)}`} 
+                style={{ width: `${Math.min(budgetExecution, 100)}%` }} 
+             />
+          </div>
+          {budgetExecution > 90 && (
+             <div className="mt-3 flex items-center gap-2 text-red-600 animate-pulse">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-xs font-black uppercase">Riesgo de Sanción Legal: Tope casi alcanzado</span>
+             </div>
+          )}
+       </div>
+
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-lg">
-           <p className="text-blue-100 text-sm">Ingresos Totales</p>
-           <h4 className="text-3xl font-black mt-1">$15.000.000</h4>
+         <div className="bg-emerald-600 text-white p-6 rounded-3xl shadow-lg">
+           <p className="text-emerald-100 text-xs font-bold uppercase">Ingresos Totales</p>
+           <h4 className="text-3xl font-black mt-1">${totalIncome.toLocaleString()}</h4>
+           <div className="mt-4 flex items-center gap-1 text-[10px] bg-emerald-700 w-fit px-2 py-1 rounded-full">
+              <ArrowUpRight className="h-3 w-3" /> +12% este mes
+           </div>
          </div>
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100">
-           <p className="text-slate-500 text-sm">Gastos Ejecutados</p>
-           <h4 className="text-3xl font-black mt-1">$9.550.000</h4>
+         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100">
+           <p className="text-slate-500 text-xs font-bold uppercase">Gastos Ejecutados</p>
+           <h4 className="text-3xl font-black mt-1">${totalExpenses.toLocaleString()}</h4>
+           <div className="mt-4 flex items-center gap-1 text-[10px] bg-red-50 text-red-600 w-fit px-2 py-1 rounded-full">
+              <ArrowDownRight className="h-3 w-3" /> -5% vs semana anterior
+           </div>
          </div>
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100">
-           <p className="text-slate-500 text-sm">Balance</p>
-           <h4 className="text-3xl font-black mt-1 text-emerald-600">$5.450.000</h4>
+         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100">
+           <p className="text-slate-500 text-xs font-bold uppercase">Balance Campaña</p>
+           <h4 className={`text-3xl font-black mt-1 ${balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+              ${balance.toLocaleString()}
+           </h4>
+           <div className="mt-4 flex items-center gap-1 text-[10px] bg-slate-100 text-slate-500 w-fit px-2 py-1 rounded-full">
+              <Activity className="h-3 w-3" /> Auditoría en tiempo real
+           </div>
          </div>
        </div>
+
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+             <h3 className="text-sm font-black text-slate-400 uppercase mb-6">Ingresos vs Gastos (Semanal)</h3>
+             <div className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
+                      <YAxis hide />
+                      <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                      <Bar dataKey="ingresos" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="gastos" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                   </BarChart>
+                </ResponsiveContainer>
+             </div>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+             <h3 className="text-sm font-black text-slate-400 uppercase mb-6">Distribución por Código CNE</h3>
+             <div className="h-[250px] flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                   <RePieChart>
+                      <Pie
+                        data={pieData}
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" align="center" />
+                   </RePieChart>
+                </ResponsiveContainer>
+             </div>
+          </div>
+       </div>
+
+       {/* Transacciones Recientes */}
+       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+             <h3 className="font-black uppercase tracking-tighter text-slate-900">Libro Diario de Campaña</h3>
+             <Search className="h-4 w-4 text-slate-400" />
+          </div>
+          <div className="overflow-x-auto">
+             <table className="w-full text-left border-collapse">
+                <thead>
+                   <tr className="bg-slate-50 text-[10px] font-black text-slate-500 uppercase">
+                      <th className="p-4">Fecha</th>
+                      <th className="p-4">Concepto / Categoría</th>
+                      <th className="p-4">Monto</th>
+                      <th className="p-4">CNE Cod</th>
+                      <th className="p-4">Estado</th>
+                      <th className="p-4">Acciones</th>
+                   </tr>
+                </thead>
+                <tbody>
+                   {transactions.slice().reverse().map(t => (
+                      <tr key={t.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                         <td className="p-4 text-xs font-bold text-slate-500">{t.date}</td>
+                         <td className="p-4">
+                            <p className="font-black text-slate-900 text-sm">{t.concept}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">{t.category}</p>
+                         </td>
+                         <td className={`p-4 font-black ${t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                            {t.type === 'Ingreso' ? '+' : '-'}${t.amount.toLocaleString()}
+                         </td>
+                         <td className="p-4">
+                            <span className="bg-slate-100 px-2 py-1 rounded text-[10px] font-black text-slate-600">{t.categoryCode}</span>
+                         </td>
+                         <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-black ${
+                               t.status === 'Legalizado' ? 'bg-blue-100 text-blue-700' : 
+                               t.status === 'Pendiente de Soporte' ? 'bg-yellow-100 text-yellow-700' : 
+                               'bg-slate-100 text-slate-700'
+                            }`}>
+                               {t.status.toUpperCase()}
+                            </span>
+                         </td>
+                         <td className="p-4">
+                            {t.status !== 'Legalizado' ? (
+                               <div className="flex gap-1">
+                                  <button className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></button>
+                                  <button className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 className="h-4 w-4" /></button>
+                               </div>
+                            ) : (
+                               <Lock className="h-4 w-4 text-slate-300" />
+                            )}
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
+          </div>
+       </div>
+
+       {/* Formulario Modal */}
+       {showForm && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+             <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                   <h3 className="text-2xl font-black tracking-tighter">Registrar Movimiento</h3>
+                   <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-full"><X /></button>
+                </div>
+                <div className="p-8 space-y-4">
+                   <div className="grid grid-cols-2 gap-4">
+                      <button 
+                         onClick={() => setFormData({...formData, type: 'Gasto'})}
+                         className={`p-4 rounded-2xl border-2 font-black transition-all ${formData.type === 'Gasto' ? 'border-red-600 bg-red-50 text-red-600' : 'border-slate-100 text-slate-400'}`}
+                      >Gasto</button>
+                      <button 
+                         onClick={() => setFormData({...formData, type: 'Ingreso'})}
+                         className={`p-4 rounded-2xl border-2 font-black transition-all ${formData.type === 'Ingreso' ? 'border-emerald-600 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-400'}`}
+                      >Ingreso</button>
+                   </div>
+                   
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Concepto del Movimiento</label>
+                      <input 
+                         type="text" 
+                         className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-600" 
+                         placeholder="Ej: Alquiler de sonido para mitin"
+                         value={formData.concept}
+                         onChange={(e) => setFormData({...formData, concept: e.target.value})}
+                      />
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black text-slate-400 uppercase px-1">Valor (COP)</label>
+                         <input 
+                            type="number" 
+                            className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-600" 
+                            placeholder="0"
+                            value={formData.amount}
+                            onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
+                         />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black text-slate-400 uppercase px-1">Categoría CNE</label>
+                         <select 
+                            className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-600"
+                            value={formData.categoryCode}
+                            onChange={(e) => {
+                               const cat = CNE_CATEGORIES.find(c => c.code === e.target.value);
+                               setFormData({...formData, categoryCode: e.target.value, category: cat?.name || ''});
+                            }}
+                         >
+                            {CNE_CATEGORIES.map(c => <option key={c.code} value={c.code}>{c.code} - {c.name}</option>)}
+                            <option value="201">201 - Donaciones</option>
+                         </select>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black text-slate-400 uppercase px-1">NIT Proveedor</label>
+                         <input 
+                            type="text" 
+                            className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-600" 
+                            placeholder="900.xxx.xxx-x"
+                            value={formData.providerNit}
+                            onChange={(e) => setFormData({...formData, providerNit: e.target.value})}
+                         />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black text-slate-400 uppercase px-1">N° Factura</label>
+                         <input 
+                            type="text" 
+                            className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-600" 
+                            placeholder="FE-000"
+                            value={formData.invoiceNumber}
+                            onChange={(e) => setFormData({...formData, invoiceNumber: e.target.value})}
+                         />
+                      </div>
+                   </div>
+
+                   <div className="pt-4 flex gap-4">
+                      <button 
+                         onClick={() => {
+                            addTransaction(formData);
+                            setShowForm(false);
+                         }}
+                         className="flex-1 bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all shadow-lg"
+                      >GUARDAR BORRADOR</button>
+                      <button 
+                         onClick={() => {
+                            addTransaction({...formData, status: 'Legalizado'});
+                            setShowForm(false);
+                         }}
+                         className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg"
+                      >LEGALIZAR AHORA</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+       )}
     </div>
   );
 };
@@ -916,7 +1259,7 @@ const TerritoryModule = () => {
       const votersInBarrio = voters.filter(v => v.barrio === barrio);
       const duroCount = votersInBarrio.filter(v => v.intencion >= 4).length;
       const percentage = votersInBarrio.length > 0 ? (duroCount / votersInBarrio.length) * 100 : 0;
-      let color = percentage >= 70 ? 'bg-emerald-500' : percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
+      const color = percentage >= 70 ? 'bg-emerald-500' : percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
       return { name: barrio, total: votersInBarrio.length, percentage, color };
     });
   }, [voters]);
@@ -1132,7 +1475,7 @@ const ElectionDayModule = () => {
                 <h3 className="text-[10px] font-black text-slate-500 uppercase">Estado de Testigos</h3>
                 <div className="flex items-end gap-1 h-32">
                    {BARRIOS.map((_, i) => (
-                     <div key={i} className="flex-1 bg-blue-600/20 rounded-t hover:bg-blue-600 transition-all" style={{ height: `${20 + Math.random() * 80}%` }} />
+                     <div key={i} className="flex-1 bg-blue-600/20 rounded-t hover:bg-blue-600 transition-all" style={{ height: `${30 + (i * 7) % 70}%` }} />
                    ))}
                 </div>
                 <div className="flex justify-between text-[10px] font-bold">
@@ -1153,7 +1496,7 @@ export default function SaaSArchitectureApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<'dashboard' | 'directory' | 'missions' | 'messaging' | 'finances' | 'territory' | 'day-d'>('dashboard');
 
-  const triggerRules = (voter: Voter, currentMissions: Mission[], currentUsers: User[]): Mission[] => {
+  const triggerRules = (voter: Voter, currentMissions: Mission[]): Mission[] => {
     const newMissions: Mission[] = [];
     const existingForVoter = currentMissions.filter(m => m.voterId === voter.id);
 
@@ -1188,25 +1531,25 @@ export default function SaaSArchitectureApp() {
     return newMissions;
   };
 
-  const setRole = (role: Role) => {
+  const setRole = useCallback((role: Role) => {
     const newUser = state.users.find(u => u.role === role) || state.users[0];
-    setState(prev => ({ ...prev, currentUser: { ...newUser, role }, currentView: role === 'Testigo' ? 'day-d' : prev.currentView }));
+    setState(prev => ({ ...prev, currentUser: { ...newUser, role } }));
     if (role === 'Testigo') setCurrentView('day-d');
-  };
+  }, [state.users]);
 
-  const deleteVoter = (id: number) => {
+  const deleteVoter = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       voters: prev.voters.filter(v => v.id !== id),
       missions: prev.missions.filter(m => m.voterId !== id),
       logs: [{ id: Date.now(), msg: `Votante ID ${id} eliminado`, time: "0 min", type: 'warning' }, ...prev.logs]
     }));
-  };
+  }, []);
 
-  const addVoter = (voterData: Omit<Voter, 'id'>) => {
+  const addVoter = useCallback((voterData: Omit<Voter, 'id'>) => {
     const newVoter = { ...voterData, id: Date.now() };
     setState(prev => {
-      const newMissions = triggerRules(newVoter, prev.missions, prev.users);
+      const newMissions = triggerRules(newVoter, prev.missions);
       return {
         ...prev,
         voters: [newVoter, ...prev.voters],
@@ -1214,14 +1557,14 @@ export default function SaaSArchitectureApp() {
         logs: [{ id: Date.now(), msg: `Votante ${newVoter.name} agregado`, time: "0 min", type: 'info' }, ...prev.logs]
       };
     });
-  };
+  }, []);
 
-  const updateVoter = (id: number, voterData: Partial<Voter>) => {
+  const updateVoter = useCallback((id: number, voterData: Partial<Voter>) => {
     setState(prev => {
       const updatedVoters = prev.voters.map(v => v.id === id ? { ...v, ...voterData } : v);
       const updatedVoter = updatedVoters.find(v => v.id === id);
       if (updatedVoter) {
-        const newMissions = triggerRules(updatedVoter, prev.missions, prev.users);
+        const newMissions = triggerRules(updatedVoter, prev.missions);
         return {
           ...prev,
           voters: updatedVoters,
@@ -1231,32 +1574,32 @@ export default function SaaSArchitectureApp() {
       }
       return prev;
     });
-  };
+  }, []);
 
-  const massImport = () => {
-    const newVoters: Voter[] = Array.from({ length: 1000 }).map((_, i) => {
-      const barrio = BARRIOS[Math.floor(Math.random() * BARRIOS.length)];
-      const id = state.voters.length + i + 5000;
-      const lider = state.users.find(u => u.role === 'LiderZonal' && u.zona === barrio) || state.users[0];
-      return {
-        id,
-        cedula: `80${100000 + i}`,
-        name: `Importado ${i + 1}`,
-        phone: `310${2000000 + i}`,
-        gender: Math.random() > 0.5 ? 'M' : 'F',
-        barrio,
-        puesto: Math.random() > 0.2 ? `Colegio ${barrio}` : "",
-        mesa: Math.floor(Math.random() * 20) + 1,
-        intencion: Math.floor(Math.random() * 5) + 1,
-        interacciones: [],
-        liderId: lider.id
-      };
-    });
-
+  const massImport = useCallback(() => {
     setState(prev => {
+      const newVoters: Voter[] = Array.from({ length: 1000 }).map((_, i) => {
+        const barrio = BARRIOS[Math.floor(Math.random() * BARRIOS.length)];
+        const id = prev.voters.length + i + 5000;
+        const lider = prev.users.find(u => u.role === 'LiderZonal' && u.zona === barrio) || prev.users[0];
+        return {
+          id,
+          cedula: `80${100000 + i}`,
+          name: `Importado ${i + 1}`,
+          phone: `310${2000000 + i}`,
+          gender: Math.random() > 0.5 ? 'M' : 'F',
+          barrio,
+          puesto: Math.random() > 0.2 ? `Colegio ${barrio}` : "",
+          mesa: Math.floor(Math.random() * 20) + 1,
+          intencion: Math.floor(Math.random() * 5) + 1,
+          interacciones: [],
+          liderId: lider.id
+        };
+      });
+
       let allNewMissions: Mission[] = [];
       newVoters.forEach(v => {
-        allNewMissions = [...allNewMissions, ...triggerRules(v, [], prev.users)];
+        allNewMissions = [...allNewMissions, ...triggerRules(v, [])];
       });
       return {
         ...prev,
@@ -1265,9 +1608,9 @@ export default function SaaSArchitectureApp() {
         logs: [{ id: Date.now(), msg: `Importación masiva: 1,000 registros cargados`, time: "0 min", type: 'info' }, ...prev.logs]
       };
     });
-  };
+  }, []);
 
-  const updateMissionStatus = (id: number, status: MissionStatus, evidence?: string) => {
+  const updateMissionStatus = useCallback((id: number, status: MissionStatus, evidence?: string) => {
     setState(prev => ({
       ...prev,
       missions: prev.missions.map(m => {
@@ -1279,9 +1622,9 @@ export default function SaaSArchitectureApp() {
       }),
       logs: [{ id: Date.now(), msg: `Misión ${id} actualizada a ${status}`, time: "0 min", type: 'info' }, ...prev.logs]
     }));
-  };
+  }, []);
 
-  const createCampaign = (campaign: Omit<Campaign, 'id' | 'status'>) => {
+  const createCampaign = useCallback((campaign: Omit<Campaign, 'id' | 'status'>) => {
     const newCampaign: Campaign = {
       ...campaign,
       id: Date.now(),
@@ -1293,49 +1636,70 @@ export default function SaaSArchitectureApp() {
       messages: [newCampaign, ...prev.messages],
       logs: [{ id: Date.now(), msg: `Campaña "${campaign.name}" enviada a ${campaign.audienceCount} personas`, time: "0 min", type: 'info' }, ...prev.logs]
     }));
-  };
+  }, []);
 
-  const addInteraction = (voterId: number, interaction: Interaction) => {
+  const addInteraction = useCallback((voterId: number, interaction: Interaction) => {
     setState(prev => ({
       ...prev,
       voters: prev.voters.map(v => v.id === voterId ? { ...v, interacciones: [interaction, ...v.interacciones] } : v)
     }));
-  };
+  }, []);
 
-  const addTransaction = (tx: Omit<Transaction, 'id'>) => {
-    setState(prev => ({
-      ...prev,
-      transactions: [...prev.transactions, { ...tx, id: Date.now() }],
-      logs: [{ id: Date.now(), msg: `Gasto registrado: ${tx.concept}`, time: "0 min", type: 'warning' }, ...prev.logs]
-    }));
-  };
+  const addTransaction = useCallback((tx: Omit<Transaction, 'id' | 'createdBy' | 'date'>) => {
+    setState(prev => {
+      const totalGastos = prev.transactions
+        .filter(t => t.type === 'Gasto')
+        .reduce((acc, curr) => acc + curr.amount, 0);
+      
+      if (tx.type === 'Gasto' && (totalGastos + tx.amount) > LIMITE_GASTOS_CNE) {
+        if (!window.confirm("RIESGO DE SANCIÓN LEGAL: Este gasto supera el tope permitido por el CNE. ¿Desea proceder bajo su responsabilidad?")) {
+          return prev;
+        }
+      }
 
-  const addReport = (report: Omit<E14Report, 'id' | 'timestamp' | 'testigoId'>) => {
-    const newReport: E14Report = {
-      ...report,
-      id: Date.now(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      testigoId: state.currentUser.id
-    };
+      const newTx: Transaction = { 
+        ...tx, 
+        id: Date.now(), 
+        date: new Date().toISOString().split('T')[0],
+        createdBy: prev.currentUser.name
+      };
 
-    const newAlerts = [...state.alerts];
-    if (report.votosCandidato === 0 && report.votosOpositor > 10) {
-      newAlerts.unshift({
+      return {
+        ...prev,
+        transactions: [...prev.transactions, newTx],
+        logs: [{ id: Date.now(), msg: `Movimiento registrado (${tx.status}): ${tx.concept}`, time: "0 min", type: tx.type === 'Gasto' ? 'warning' : 'info' }, ...prev.logs]
+      };
+    });
+  }, []);
+
+  const addReport = useCallback((report: Omit<E14Report, 'id' | 'timestamp' | 'testigoId'>) => {
+    setState(prev => {
+      const newReport: E14Report = {
+        ...report,
         id: Date.now(),
-        msg: `FRAUDE POTENCIAL: Mesa ${report.mesa} reportó 0 votos para candidato.`,
-        time: newReport.timestamp,
-        type: 'fraud',
-        severity: 'high'
-      });
-    }
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        testigoId: prev.currentUser.id
+      };
 
-    setState(prev => ({
-      ...prev,
-      reports: [...prev.reports, newReport],
-      alerts: newAlerts,
-      logs: [{ id: Date.now(), msg: `Reporte recibido Mesa ${report.mesa}`, time: "0 min", type: 'info' }, ...prev.logs]
-    }));
-  };
+      const newAlerts = [...prev.alerts];
+      if (report.votosCandidato === 0 && report.votosOpositor > 10) {
+        newAlerts.unshift({
+          id: Date.now(),
+          msg: `FRAUDE POTENCIAL: Mesa ${report.mesa} reportó 0 votos para candidato.`,
+          time: newReport.timestamp,
+          type: 'fraud',
+          severity: 'high'
+        });
+      }
+
+      return {
+        ...prev,
+        reports: [...prev.reports, newReport],
+        alerts: newAlerts,
+        logs: [{ id: Date.now(), msg: `Reporte recibido Mesa ${report.mesa}`, time: "0 min", type: 'info' }, ...prev.logs]
+      };
+    });
+  }, []);
 
   const contextValue = useMemo(() => ({
     state,
@@ -1350,7 +1714,7 @@ export default function SaaSArchitectureApp() {
     massImport,
     updateMissionStatus,
     createCampaign
-  }), [state]);
+  }), [state, setRole, deleteVoter, addVoter, updateVoter, addInteraction, addTransaction, addReport, massImport, updateMissionStatus, createCampaign]);
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
@@ -1363,6 +1727,7 @@ export default function SaaSArchitectureApp() {
   ].filter(item => {
     if (state.currentUser.role === 'Testigo') return item.id === 'day-d';
     if (state.currentUser.role === 'Contador') return ['dashboard', 'finances'].includes(item.id);
+    if (state.currentUser.role === 'LiderZonal') return item.id !== 'finances';
     return true;
   });
 
@@ -1373,7 +1738,7 @@ export default function SaaSArchitectureApp() {
         {/* Sidebar */}
         <aside className={`${isSidebarOpen ? 'w-72' : 'w-20'} bg-slate-900 transition-all duration-300 flex flex-col z-30 shadow-2xl`}>
           <div className="p-6 flex items-center justify-between border-b border-slate-800">
-            {isSidebarOpen && <h1 className="text-xl font-black text-white tracking-tighter italic">ESTRATEGIA<span className="text-red-600">2026</span></h1>}
+            {isSidebarOpen && <h1 className="text-xl font-black text-white tracking-tighter italic">POLITICA<span className="text-red-600">2026</span></h1>}
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-400 hover:text-white">
               {isSidebarOpen ? <X /> : <Menu />}
             </button>
@@ -1383,7 +1748,7 @@ export default function SaaSArchitectureApp() {
             {navigationItems.map((item) => (
               <div 
                 key={item.id} 
-                onClick={() => setCurrentView(item.id as any)}
+                onClick={() => setCurrentView(item.id as 'dashboard' | 'directory' | 'missions' | 'messaging' | 'finances' | 'territory' | 'day-d')}
                 className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
                   currentView === item.id 
                   ? (item.id === 'day-d' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white') 

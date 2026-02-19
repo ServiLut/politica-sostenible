@@ -21,7 +21,9 @@ export class VoterService {
     });
 
     if (existingVoter) {
-      throw new ConflictException('Este ciudadano ya está registrado en la campaña.');
+      throw new ConflictException(
+        'Este ciudadano ya está registrado en la campaña.',
+      );
     }
 
     // 2. Crear el registro

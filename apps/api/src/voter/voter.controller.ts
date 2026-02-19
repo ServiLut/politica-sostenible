@@ -1,4 +1,11 @@
-import { Controller, Post, Get, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { VoterService } from './voter.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
@@ -17,7 +24,8 @@ export class VoterController {
     @Headers('x-user-id') userId: string,
     @Body() dto: CreateVoterDto,
   ) {
-    if (!tenantId || !userId) throw new UnauthorizedException('Faltan credenciales de campaña');
+    if (!tenantId || !userId)
+      throw new UnauthorizedException('Faltan credenciales de campaña');
     return this.voterService.create(tenantId, userId, dto);
   }
 
@@ -25,7 +33,8 @@ export class VoterController {
   @ApiOperation({ summary: 'Lista todos los votantes de la campaña' })
   @ApiHeader({ name: 'x-tenant-id', required: true })
   async findAll(@Headers('x-tenant-id') tenantId: string) {
-    if (!tenantId) throw new UnauthorizedException('Faltan credenciales de campaña');
+    if (!tenantId)
+      throw new UnauthorizedException('Faltan credenciales de campaña');
     return this.voterService.findAll(tenantId);
   }
 
@@ -33,7 +42,8 @@ export class VoterController {
   @ApiOperation({ summary: 'Obtiene estadísticas de la campaña' })
   @ApiHeader({ name: 'x-tenant-id', required: true })
   async getStats(@Headers('x-tenant-id') tenantId: string) {
-    if (!tenantId) throw new UnauthorizedException('Faltan credenciales de campaña');
+    if (!tenantId)
+      throw new UnauthorizedException('Faltan credenciales de campaña');
     return this.voterService.getStats(tenantId);
   }
 }

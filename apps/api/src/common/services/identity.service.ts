@@ -21,7 +21,9 @@ export class IdentityService {
   async verifyWithRegistraduria(cedula: string): Promise<boolean> {
     // TODO: Implementar integración con API de la Registraduría Nacional
     // Este método simula la verificación de vigencia del documento.
-    console.log(`[IdentityService] Verificando cédula ${cedula} con la Registraduría (Simulado)`);
+    console.log(
+      `[IdentityService] Verificando cédula ${cedula} con la Registraduría (Simulado)`,
+    );
     return true;
   }
 }

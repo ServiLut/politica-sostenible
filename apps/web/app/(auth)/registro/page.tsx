@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Button, Input, Label, Select } from "@/components/ui";
 import {
   UserPlus,
-  User,
   Mail,
   Lock,
   Phone,
@@ -16,7 +15,6 @@ import {
   Loader2,
   ShieldCheck,
   Zap,
-  Users,
 } from "lucide-react";
 
 export default function RegisterPage() {

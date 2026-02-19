@@ -21,9 +21,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /* turbopack: {
+  turbopack: {
     root: path.resolve(__dirname, "../../"),
-  }, */
+  },
 };
 
 export default nextConfig;
