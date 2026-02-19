@@ -1,4 +1,4 @@
-import { Controller, Post, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get } from '@nestjs/common';
 import { CampaignService } from './campaign.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 

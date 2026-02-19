@@ -1,11 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+export interface CreateWitnessReportDto {
+  puestoId: string;
+  mesa: number;
+  e14ImageUrl: string;
+  candidateVotes: number;
+  totalTableVotes: number;
+  observations?: string;
+}
+
 @Injectable()
 export class WitnessService {
   constructor(private prisma: PrismaService) {}
 
-  async create(tenantId: string, witnessId: string, data: any) {
+  async create(
+    tenantId: string,
+    witnessId: string,
+    data: CreateWitnessReportDto,
+  ) {
     return this.prisma.witnessReport.create({
       data: {
         ...data,

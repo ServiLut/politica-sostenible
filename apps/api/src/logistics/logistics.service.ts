@@ -1,6 +1,28 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+export interface SyncE14Dto {
+  puestoId: string;
+  mesa: number;
+  candidateVotes: number;
+  totalTableVotes: number;
+  e14ImageUrl: string;
+  tenantId: string;
+  witnessId: string;
+  observations?: string;
+}
+
+export interface SyncVoterDto {
+  documentId: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  tenantId: string;
+  registrarId: string;
+  puestoId?: string;
+}
+
 @Injectable()
 export class LogisticsService {
   constructor(private prisma: PrismaService) {}
@@ -8,7 +30,7 @@ export class LogisticsService {
   /**
    * Sincroniza un acta E-14. Implementa resolución de conflictos básica.
    */
-  async syncE14(data: any) {
+  async syncE14(data: SyncE14Dto) {
     const {
       puestoId,
       mesa,
@@ -31,7 +53,9 @@ export class LogisticsService {
         existing.candidateVotes !== candidateVotes ||
         existing.totalTableVotes !== totalTableVotes
       ) {
-        console.warn(`[Conflict] Mesa ${mesa} en Puesto ${puestoId} tiene datos discrepantes.`);
+        console.warn(
+          `[Conflict] Mesa ${mesa} en Puesto ${puestoId} tiene datos discrepantes.`,
+        );
         // Podríamos guardar el duplicado con un flag de conflicto en una tabla de auditoría
         throw new ConflictException('CONFLICT');
       }
@@ -58,7 +82,7 @@ export class LogisticsService {
   /**
    * Sincroniza un nuevo simpatizante recolectado offline.
    */
-  async syncVoter(data: any) {
+  async syncVoter(data: SyncVoterDto) {
     const {
       documentId,
       firstName,

@@ -1,4 +1,10 @@
-import { Controller, Post, UseInterceptors, UploadedFile, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  Body,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
@@ -17,7 +23,9 @@ export class AiController {
   }
 
   @Post('ocr-receipt')
-  @ApiOperation({ summary: 'Extrae datos de factura/recibo usando Gemini Vision' })
+  @ApiOperation({
+    summary: 'Extrae datos de factura/recibo usando Gemini Vision',
+  })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async performReceiptOcr(@UploadedFile() file: Express.Multer.File) {
@@ -26,13 +34,13 @@ export class AiController {
 
   @Post('analyze-sentiment')
   @ApiOperation({ summary: 'Análisis de sentimiento regionalizado' })
-  async analyzeSentiment(@Body('text') text: string) {
+  analyzeSentiment(@Body('text') text: string) {
     return this.aiService.analyzeRegionalSentiment(text);
   }
 
   @Post('chat')
   @ApiOperation({ summary: 'Consulta cognitiva sobre la campaña' })
-  async chat(@Body('prompt') prompt: string, @Body('tenantId') tenantId: string) {
-    return this.aiService.chat(tenantId, prompt);
+  chat(@Body('prompt') prompt: string, @Body('tenantId') _tenantId: string) {
+    return this.aiService.chat(_tenantId, prompt);
   }
 }

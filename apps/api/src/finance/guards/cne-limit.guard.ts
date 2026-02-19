@@ -49,7 +49,8 @@ export class CneLimitGuard implements CanActivate {
         _sum: { amount: true },
       });
 
-      const totalPublicity = Number(currentPublicity._sum.amount || 0) + newAmount;
+      const totalPublicity =
+        Number(currentPublicity._sum.amount || 0) + newAmount;
       if (totalPublicity > Number(settings.maxPublicityLimit)) {
         throw new ForbiddenException(
           'Tope de gastos excedido para publicidad exterior (CNE 108).',

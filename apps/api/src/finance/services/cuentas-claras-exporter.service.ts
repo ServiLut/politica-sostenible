@@ -20,11 +20,12 @@ export class CuentasClarasExporter {
       orderBy: { date: 'asc' },
     });
 
-    const header = 'FECHA|NIT_PROVEEDOR|NOMBRE_PROVEEDOR|CONCEPTO|VALOR|CODIGO_CNE';
+    const header =
+      'FECHA|NIT_PROVEEDOR|NOMBRE_PROVEEDOR|CONCEPTO|VALOR|CODIGO_CNE';
     const rows = expenses.map((exp) => {
       const dateStr = exp.date.toISOString().split('T')[0];
       const cneCodeNumeric = this.mapCneEnumToNumeric(exp.cneCode);
-      
+
       return [
         dateStr,
         exp.vendorTaxId,

@@ -75,7 +75,9 @@ export class CampaignService {
       };
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException('Error inicializando datos electorales');
+      throw new InternalServerErrorException(
+        'Error inicializando datos electorales',
+      );
     }
   }
 
