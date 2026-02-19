@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useCRM, FinanceTransaction, CneCode, FinanceStatus } from '@/context/CRMContext';
+import { useCRM, FinanceTransaction, CneCode, Contact } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { 
   Wallet, 
@@ -9,7 +9,6 @@ import {
   TrendingDown, 
   Receipt, 
   FileText, 
-  FileSpreadsheet, 
   ChevronDown,
   Download,
   AlertCircle,
@@ -19,7 +18,10 @@ import {
   Plus,
   Trash2,
   ExternalLink,
-  Info
+  Info,
+  Search,
+  UserCheck,
+  Calendar
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -34,15 +36,21 @@ import {
   Cell, 
   Legend 
 } from 'recharts';
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { cn } from '@/components/ui/utils';
 
-const TOPE_LEGAL_CNE = 50000000; // 50 millones COP
-
 export default function FinancePage() {
-  const { finance, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, logAction } = useCRM();
+  const { 
+    finance, 
+    addFinanceTransaction, 
+    updateFinanceTransaction, 
+    deleteFinanceTransaction, 
+    logAction, 
+    contacts, 
+    getProjectedCompliance,
+    TOPE_LEGAL_CNE
+  } = useCRM();
   const { success: toastSuccess, error: toastError } = useToast();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -58,21 +66,36 @@ export default function FinancePage() {
     date: new Date().toISOString().split('T')[0],
     status: 'PENDING',
     cneCode: 'OTROS',
-    providerId: '',
+    vendorTaxId: '',
     evidenceUrl: ''
   });
 
-  // Cálculos de Compliance con useMemo
+  // Donor Search State
+  const [donorSearch, setDonorSearch] = useState('');
+  const [showDonorResults, setShowDonorResults] = useState(false);
+  
+  const filteredDonors = useMemo(() => {
+    if (!donorSearch) return [];
+    return contacts.filter(c => 
+      c.name.toLowerCase().includes(donorSearch.toLowerCase()) || 
+      c.cedula.includes(donorSearch)
+    ).slice(0, 5);
+  }, [contacts, donorSearch]);
+
+  const selectDonor = (donor: Contact) => {
+    setFormData({
+      ...formData,
+      vendorTaxId: donor.cedula,
+      concept: `Donación - ${donor.name}`,
+      providerId: donor.id // Linking internal ID
+    });
+    setDonorSearch(donor.name);
+    setShowDonorResults(false);
+  };
+
+  // Cálculos Avanzados de Compliance (Motor Legal)
   const complianceData = useMemo(() => {
-    const totalIncome = finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0);
-    const totalExpenses = finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0);
-    
-    // Sumar gastos APPROVED o REPORTED_CNE para el tope legal (solo GASTOS cuentan contra el tope)
-    const approvedExpenses = finance
-      .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
-      .reduce((a, b) => a + b.amount, 0);
-    
-    const executionPercentage = (approvedExpenses / TOPE_LEGAL_CNE) * 100;
+    const projected = getProjectedCompliance();
     
     // Agrupar por Código CNE para el gráfico de torta
     const expensesByCne = finance
@@ -85,24 +108,32 @@ export default function FinancePage() {
 
     const pieData = Object.entries(expensesByCne).map(([name, value]) => ({ name, value }));
     
-    // Datos para gráfico de barras
-    const barData = [
-      { name: 'Tope Legal', monto: TOPE_LEGAL_CNE },
-      { name: 'Gasto Ejecutado', monto: approvedExpenses }
-    ];
+    // Agrupar por Semana (Ingresos vs Gastos)
+    const weeks: Record<string, { name: string, ingresos: number, gastos: number }> = {};
+    finance.forEach(t => {
+      const date = new Date(t.date);
+      const weekKey = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`;
+      if (!weeks[weekKey]) weeks[weekKey] = { name: `Sem ${Math.ceil(date.getDate() / 7)}`, ingresos: 0, gastos: 0 };
+      
+      if (t.type === 'Ingreso') weeks[weekKey].ingresos += t.amount;
+      else weeks[weekKey].gastos += t.amount;
+    });
+
+    const weeklyData = Object.values(weeks).sort((a, b) => a.name.localeCompare(b.name));
 
     return {
-      totalIncome,
-      totalExpenses,
-      approvedExpenses,
-      balance: totalIncome - totalExpenses,
-      executionPercentage,
+      totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0),
+      totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0),
+      approvedExpenses: projected.actualExpenses,
+      balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0),
+      executionPercentage: projected.executionPercentage,
+      projectedEventsCost: projected.projectedEventsCost,
       pieData,
-      barData
+      weeklyData
     };
-  }, [finance]);
+  }, [finance, getProjectedCompliance]);
 
-  const { totalIncome, totalExpenses, approvedExpenses, balance, executionPercentage, pieData, barData } = complianceData;
+  const { totalIncome, approvedExpenses, balance, executionPercentage, pieData, weeklyData, projectedEventsCost } = complianceData;
 
   // Sistema de Alerta "Semáforo"
   const alertStatus = useMemo(() => {
@@ -152,15 +183,30 @@ export default function FinancePage() {
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.type === 'Gasto' && (!formData.providerId || !formData.cneCode)) {
-      toastError("Para gastos, el NIT y el Código CNE son obligatorios");
-      return;
+    
+    // Validación CNE Estricta
+    if (formData.type === 'Gasto') {
+      if (!formData.vendorTaxId) {
+        toastError("BLOCKED: El NIT o Cédula del proveedor es obligatorio por ley.");
+        return;
+      }
+      if (!formData.cneCode || formData.cneCode === 'OTROS') {
+        const confirm = window.confirm("¿Seguro que desea usar código 'OTROS'? El CNE recomienda clasificar todo gasto.");
+        if (!confirm) return;
+      }
+    }
+
+    if (formData.type === 'Ingreso' && !formData.vendorTaxId) {
+       toastError("BLOCKED: Debe identificar al donante (Cédula/NIT) para cumplir con Cuentas Claras.");
+       return;
     }
     
     addFinanceTransaction(formData);
-    logAction('Tesorero', `Agregó ${formData.type}: ${formData.concept}`, 'Finanzas');
-    toastSuccess(`${formData.type} registrado correctamente`);
+    logAction('Tesorero', `Agregó ${formData.type} legal: ${formData.concept} (NIT: ${formData.vendorTaxId})`, 'Finanzas');
+    toastSuccess("Movimiento registrado bajo protocolo CNE");
     setIsModalOpen(false);
+    
+    // Reset Form
     setFormData({
       concept: '',
       amount: 0,
@@ -169,15 +215,18 @@ export default function FinancePage() {
       date: new Date().toISOString().split('T')[0],
       status: 'PENDING',
       cneCode: 'OTROS',
-      providerId: '',
+      vendorTaxId: '',
       evidenceUrl: ''
     });
+    setDonorSearch('');
   };
 
   const handleReportToCne = (id: string) => {
-    updateFinanceTransaction(id, { status: 'REPORTED_CNE' });
-    logAction('Tesorero', `Reportó transacción al CNE ID: ${id}`, 'Finanzas', 'Critical');
-    toastSuccess("Transacción reportada y bloqueada para edición");
+    if(window.confirm("¿Está seguro? Una vez reportado, este gasto será INMUTABLE.")) {
+        updateFinanceTransaction(id, { status: 'REPORTED_CNE' });
+        logAction('Tesorero', `Reportó transacción al CNE ID: ${id}`, 'Finanzas', 'Critical');
+        toastSuccess("Transacción blindada y reportada.");
+    }
   };
 
   const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -187,7 +236,7 @@ export default function FinancePage() {
     const date = new Date().toLocaleDateString();
 
     doc.setFontSize(18);
-    doc.text("REPORTE CUENTAS CLARAS - CNE", 14, 20);
+    doc.text("REPORTE OFICIAL - CUENTAS CLARAS", 14, 20);
     doc.setFontSize(10);
     doc.text(`Generado el: ${date}`, 14, 28);
     
@@ -211,11 +260,11 @@ export default function FinancePage() {
     // Detalle de Movimientos
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 10,
-      head: [['Fecha', 'Concepto', 'Proveedor/NIT', 'Código CNE', 'Monto', 'Estado']],
+      head: [['Fecha', 'Concepto', 'NIT/Cédula', 'Código CNE', 'Monto', 'Estado']],
       body: finance.map(t => [
         t.date,
         t.concept,
-        t.providerId || 'N/A',
+        t.vendorTaxId || 'N/A',
         t.cneCode || 'N/A',
         formatCOP(t.amount),
         t.status
@@ -232,14 +281,14 @@ export default function FinancePage() {
     <div className="space-y-8 pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Compliance Financiero</h1>
-          <p className="text-slate-500 font-medium">Sistema de control "Cuentas Claras" bajo normativa CNE.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Cerebro Financiero</h1>
+          <p className="text-slate-500 font-medium">Auditoría en tiempo real y cumplimiento CNE.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-slate-900 transition-all flex items-center gap-2"
         >
-          <Plus size={20} /> Registrar Movimiento
+          <Plus size={20} /> Nuevo Movimiento
         </button>
       </div>
 
@@ -254,6 +303,11 @@ export default function FinancePage() {
         <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Control de Riesgo CNE</p>
           <h3 className="text-lg font-black tracking-tight">{alertStatus.msg}</h3>
+          {projectedEventsCost > 0 && (
+              <p className="text-[10px] font-bold mt-1 text-slate-500 flex items-center gap-1">
+                  <Info size={10} /> Se detectaron {formatCOP(projectedEventsCost)} en eventos no legalizados aún.
+              </p>
+          )}
         </div>
         <div className="text-right">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Tope Ejecutado</p>
@@ -264,7 +318,7 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-[#111827] text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
           <Wallet className="text-blue-400 mb-4" size={32} />
-          <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em] mb-1">Balance General</p>
+          <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em] mb-1">Caja Disponible</p>
           <h3 className="text-3xl font-black tracking-tighter">{formatCOP(balance)}</h3>
         </div>
         
@@ -284,21 +338,21 @@ export default function FinancePage() {
       {/* Visualización Analítica */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm h-[400px]">
-          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Gasto vs Tope Legal</h3>
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] mb-8 flex items-center gap-2">
+            <Calendar size={14} /> Flujo de Caja Semanal
+          </h3>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
+            <BarChart data={weeklyData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
               <YAxis hide />
               <Tooltip 
                 contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
-                formatter={(value: number) => [formatCOP(value), 'Monto']}
+                formatter={(value: number | undefined) => [value !== undefined ? formatCOP(value) : '', 'Monto']}
               />
-              <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
-                {barData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === 0 ? '#f1f5f9' : (executionPercentage > 90 ? '#ef4444' : '#2563eb')} />
-                ))}
-              </Bar>
+              <Legend wrapperStyle={{fontSize: '10px', fontWeight: 'bold', paddingTop: '20px'}} />
+              <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="gastos" name="Gastos" fill="#ef4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -320,7 +374,7 @@ export default function FinancePage() {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatCOP(value)} />
+              <Tooltip formatter={(value: number | undefined) => value !== undefined ? formatCOP(value) : ''} />
               <Legend verticalAlign="bottom" height={36} wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
             </PieChart>
           </ResponsiveContainer>
@@ -331,7 +385,7 @@ export default function FinancePage() {
       <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
         <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
           <h3 className="font-black text-slate-900 flex items-center gap-2">
-            <Receipt size={20} className="text-blue-600" /> Libro Auxiliar de Bancos
+            <Receipt size={20} className="text-blue-600" /> Libro Auditor (Bancos)
           </h3>
           
           <div className="relative" ref={dropdownRef}>
@@ -387,7 +441,7 @@ export default function FinancePage() {
                       </div>
                     </td>
                     <td className="px-8 py-4">
-                      <p className="text-xs font-bold text-slate-700">{t.providerId || 'Sin tercero'}</p>
+                      <p className="text-xs font-bold text-slate-700">{t.vendorTaxId || 'Sin ID Legal'}</p>
                       <p className="text-[9px] font-black text-blue-600 uppercase mt-1">{t.cneCode || t.category}</p>
                     </td>
                     <td className="px-8 py-4">
@@ -425,7 +479,7 @@ export default function FinancePage() {
                             <button 
                               onClick={() => handleReportToCne(t.id)}
                               className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white"
-                              title="Reportar al CNE"
+                              title="Reportar al CNE (Bloquear)"
                             >
                               <FileCheck size={14} />
                             </button>
@@ -437,7 +491,9 @@ export default function FinancePage() {
                             </button>
                           </>
                         ) : (
-                          <Ban size={16} className="text-slate-300" title="Registro Inmutable" />
+                          <span title="Registro Inmutable (Bloqueado)">
+                            <Ban size={16} className="text-slate-300" />
+                          </span>
                         )}
                       </div>
                     </td>
@@ -449,13 +505,13 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Modal Registro */}
+      {/* Modal Registro (Smart Form) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-10">
               <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-8 flex items-center gap-3">
-                <Receipt size={28} className="text-blue-600" /> Nuevo Registro Contable
+                <Receipt size={28} className="text-blue-600" /> Nuevo Movimiento
               </h3>
               
               <form onSubmit={handleAddTransaction} className="space-y-6">
@@ -467,8 +523,8 @@ export default function FinancePage() {
                       value={formData.type}
                       onChange={(e) => setFormData({...formData, type: e.target.value as any})}
                     >
-                      <option value="Ingreso">Ingreso (Aporte/Donación)</option>
-                      <option value="Gasto">Gasto (Inversión Campaña)</option>
+                      <option value="Ingreso">Ingreso (Donación)</option>
+                      <option value="Gasto">Gasto (Inversión)</option>
                     </select>
                   </div>
                   <div>
@@ -483,28 +539,67 @@ export default function FinancePage() {
                   </div>
                 </div>
 
+                {/* Buscador de Donantes (Solo Ingresos) */}
+                {formData.type === 'Ingreso' && (
+                  <div className="relative">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Buscar Donante (Base de Datos)</label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-4 text-slate-400" size={16} />
+                      <input 
+                        type="text" 
+                        value={donorSearch}
+                        onChange={(e) => { setDonorSearch(e.target.value); setShowDonorResults(true); }}
+                        placeholder="Nombre o Cédula del simpatizante..."
+                        className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-5 py-4 font-bold text-slate-700"
+                      />
+                    </div>
+                    {showDonorResults && filteredDonors.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-white border border-slate-100 shadow-xl rounded-2xl mt-2 z-20 overflow-hidden">
+                        {filteredDonors.map(d => (
+                          <button 
+                            key={d.id}
+                            type="button"
+                            onClick={() => selectDonor(d)}
+                            className="w-full text-left px-5 py-3 hover:bg-slate-50 flex items-center justify-between group"
+                          >
+                            <div>
+                              <p className="text-xs font-black text-slate-900">{d.name}</p>
+                              <p className="text-[10px] text-slate-500">CC: {d.cedula}</p>
+                            </div>
+                            <UserCheck size={14} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Concepto / Descripción</label>
                   <input 
                     type="text" 
-                    placeholder="Ej: Alquiler de sonido para acto público"
+                    value={formData.concept}
+                    placeholder="Ej: Aporte voluntario o Pago de Sede"
                     required
                     className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-700"
                     onChange={(e) => setFormData({...formData, concept: e.target.value})}
                   />
                 </div>
 
-                {formData.type === 'Gasto' && (
-                  <div className="grid grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-2 block">NIT / Cédula Proveedor</label>
-                      <input 
-                        type="text" 
-                        placeholder="Obligatorio para CNE"
-                        className="w-full bg-white border-none rounded-xl px-5 py-3 font-bold text-slate-700"
-                        onChange={(e) => setFormData({...formData, providerId: e.target.value})}
-                      />
-                    </div>
+                {/* Campos Legales (CNE) */}
+                <div className="grid grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-2 block">NIT / Cédula (Obligatorio)</label>
+                    <input 
+                      type="text" 
+                      value={formData.vendorTaxId}
+                      placeholder={formData.type === 'Ingreso' ? "Cédula Donante" : "NIT Proveedor"}
+                      className="w-full bg-white border-none rounded-xl px-5 py-3 font-bold text-slate-700"
+                      onChange={(e) => setFormData({...formData, vendorTaxId: e.target.value})}
+                    />
+                  </div>
+                  
+                  {formData.type === 'Gasto' && (
                     <div>
                       <label className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-2 block">Código CNE</label>
                       <select 
@@ -519,22 +614,23 @@ export default function FinancePage() {
                         <option value="OTROS">Otros Gastos</option>
                       </select>
                     </div>
-                    <div className="col-span-2">
-                      <label className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-2 block">Link Soporte / Factura PDF</label>
-                      <input 
-                        type="url" 
-                        placeholder="https://storage.supabase.com/..."
-                        className="w-full bg-white border-none rounded-xl px-5 py-3 font-bold text-slate-700"
-                        onChange={(e) => setFormData({...formData, evidenceUrl: e.target.value})}
-                      />
-                    </div>
+                  )}
+                  
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-2 block">Link Soporte / Factura PDF</label>
+                    <input 
+                      type="url" 
+                      placeholder="https://..."
+                      className="w-full bg-white border-none rounded-xl px-5 py-3 font-bold text-slate-700"
+                      onChange={(e) => setFormData({...formData, evidenceUrl: e.target.value})}
+                    />
                   </div>
-                )}
+                </div>
 
                 <div className="flex gap-4 pt-4">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-black uppercase text-slate-400 text-xs tracking-widest">Cancelar</button>
                   <button type="submit" className="flex-1 bg-slate-900 text-white rounded-2xl py-4 font-black uppercase text-xs tracking-widest shadow-xl hover:bg-blue-600 transition-all">
-                    Guardar Movimiento
+                    Registrar Movimiento
                   </button>
                 </div>
               </form>

@@ -18,12 +18,12 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen sticky top-0">
-      <a href="/">
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-xl font-bold text-blue-400">CRM Político</h1>
-        <p className="text-xs text-slate-400 mt-1">SaaS Enterprise 2026</p>
-      </div>
-      </a>
+      <Link href="/">
+        <div className="p-6 border-b border-slate-800">
+          <h1 className="text-xl font-bold text-blue-400">CRM Político</h1>
+          <p className="text-xs text-slate-400 mt-1">SaaS Enterprise 2026</p>
+        </div>
+      </Link>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
         {filteredNav.map((item) => {

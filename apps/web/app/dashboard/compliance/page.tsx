@@ -162,7 +162,7 @@ export default function CompliancePage() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
                 <YAxis hide />
-                <Tooltip formatter={(val: number) => formatCOP(val)} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
                 <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
                   {barData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={index === 0 ? '#f1f5f9' : (executionPercentage > 90 ? '#ef4444' : '#2563eb')} />
@@ -195,7 +195,7 @@ export default function CompliancePage() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(val: number) => formatCOP(val)} />
+                <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} />
                 <Legend verticalAlign="bottom" height={36} wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
               </PieChart>
             </ResponsiveContainer>

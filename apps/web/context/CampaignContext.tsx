@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect, useCallback } from "react";
 
 // --- TYPES & INTERFACES ---
 
@@ -118,6 +118,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const data = JSON.parse(saved);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setVoters(data.voters || []);
         setTransactions(data.transactions || []);
         setZones(data.zones || []);
@@ -126,10 +127,11 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
         console.error("Failed to parse saved data", e);
       }
     } else {
-      setVoters(MOCK_DATA.voters as any);
-      setTransactions(MOCK_DATA.transactions as any);
-      setZones(MOCK_DATA.zones as any);
-      setWitnesses(MOCK_DATA.witnesses as any);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setVoters(MOCK_DATA.voters as Voter[]);
+      setTransactions(MOCK_DATA.transactions as FinanceItem[]);
+      setZones(MOCK_DATA.zones as TerritoryZone[]);
+      setWitnesses(MOCK_DATA.witnesses as Witness[]);
     }
     setIsLoaded(true);
   }, []);
@@ -142,28 +144,28 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     }
   }, [voters, transactions, zones, witnesses, isLoaded]);
 
-  const addVoter = (voter: Omit<Voter, "id">) => {
+  const addVoter = useCallback((voter: Omit<Voter, "id">) => {
     setVoters(prev => [{ ...voter, id: crypto.randomUUID() }, ...prev]);
-  };
+  }, []);
 
-  const updateVoter = (id: string, data: Partial<Voter>) => {
+  const updateVoter = useCallback((id: string, data: Partial<Voter>) => {
     setVoters(prev => prev.map(v => v.id === id ? { ...v, ...data } : v));
-  };
+  }, []);
 
-  const deleteVoter = (id: string) => {
+  const deleteVoter = useCallback((id: string) => {
     setVoters(prev => prev.filter(v => v.id !== id));
-  };
+  }, []);
 
-  const addTransaction = (item: Omit<FinanceItem, "id" | "fecha">) => {
+  const addTransaction = useCallback((item: Omit<FinanceItem, "id" | "fecha">) => {
     const newItem: FinanceItem = {
       ...item,
       id: crypto.randomUUID(),
       fecha: new Date().toISOString().split('T')[0]
     };
     setTransactions(prev => [newItem, ...prev]);
-  };
+  }, []);
 
-  const getBudgetStats = (): BudgetStats => {
+  const getBudgetStats = useCallback((): BudgetStats => {
     const totalIngresos = transactions.filter(t => t.tipo === "Ingreso").reduce((acc, t) => acc + t.monto, 0);
     const totalGastos = transactions.filter(t => t.tipo === "Gasto").reduce((acc, t) => acc + t.monto, 0);
     return {
@@ -172,17 +174,17 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
       saldo: totalIngresos - totalGastos,
       porcentajeEjecucionTope: (totalGastos / TOPE_LEGAL) * 100
     };
-  };
+  }, [transactions]);
 
-  const assignWitness = (witness: Omit<Witness, "id" | "reporto_e14">) => {
+  const assignWitness = useCallback((witness: Omit<Witness, "id" | "reporto_e14">) => {
     setWitnesses(prev => [{ ...witness, id: crypto.randomUUID(), reporto_e14: false }, ...prev]);
-  };
+  }, []);
 
-  const updateWitness = (id: string, data: Partial<Witness>) => {
+  const updateWitness = useCallback((id: string, data: Partial<Witness>) => {
     setWitnesses(prev => prev.map(w => w.id === id ? { ...w, ...data } : w));
-  };
+  }, []);
 
-  const getDashboardKPIs = (): CampaignStats => {
+  const getDashboardKPIs = useCallback((): CampaignStats => {
     const metaGlobal = zones.reduce((acc, z) => acc + z.meta_votos, 0);
     const votosEfectivos = voters.filter(v => v.estado === "Firme" || v.estado === "Ya Votó").length;
     const fechaEleccion = new Date("2026-10-25");
@@ -196,7 +198,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
       porcentajeAvance: metaGlobal ? (votosEfectivos / metaGlobal) * 100 : 0,
       diasRestantes: diasRestantes > 0 ? diasRestantes : 0
     };
-  };
+  }, [voters, zones]);
 
   const value = useMemo(() => ({
     voters,
@@ -211,7 +213,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     assignWitness,
     updateWitness,
     getDashboardKPIs
-  }), [voters, transactions, zones, witnesses]);
+  }), [voters, transactions, zones, witnesses, addVoter, updateVoter, deleteVoter, addTransaction, getBudgetStats, assignWitness, updateWitness, getDashboardKPIs]);
 
   return (
     <CampaignContext.Provider value={value}>

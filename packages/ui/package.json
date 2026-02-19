@@ -4,12 +4,20 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "lint": "eslint *.ts*"
+    "lint": "eslint src"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@politica-sostenible/typescript-config": "workspace:*",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.3.0",
     "react": "^19.2.3",
     "typescript": "^5.0.0",
-    "@politica-sostenible/typescript-config": "workspace:*"
+    "typescript-eslint": "^8.56.0"
   },
   "peerDependencies": {
     "react": "^19.2.3"

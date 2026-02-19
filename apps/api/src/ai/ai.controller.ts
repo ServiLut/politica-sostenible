@@ -34,16 +34,13 @@ export class AiController {
 
   @Post('analyze-sentiment')
   @ApiOperation({ summary: 'Análisis de sentimiento regionalizado' })
-  async analyzeSentiment(@Body('text') text: string) {
+  analyzeSentiment(@Body('text') text: string) {
     return this.aiService.analyzeRegionalSentiment(text);
   }
 
   @Post('chat')
   @ApiOperation({ summary: 'Consulta cognitiva sobre la campaña' })
-  async chat(
-    @Body('prompt') prompt: string,
-    @Body('tenantId') tenantId: string,
-  ) {
-    return this.aiService.chat(tenantId, prompt);
+  chat(@Body('prompt') prompt: string, @Body('tenantId') _tenantId: string) {
+    return this.aiService.chat(_tenantId, prompt);
   }
 }

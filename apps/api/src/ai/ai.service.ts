@@ -74,7 +74,7 @@ export class AiService {
   /**
    * Analiza el sentimiento y regionalismos de un comentario.
    */
-  async analyzeRegionalSentiment(text: string) {
+  analyzeRegionalSentiment(text: string) {
     // Ejemplo de lógica mencionada en la doc (punto 5.3)
     const isCosteno = text.toLowerCase().includes('culebra');
     return {
@@ -89,7 +89,7 @@ export class AiService {
   /**
    * Procesa consultas en lenguaje natural sobre los datos de la campaña.
    */
-  async chat(tenantId: string, prompt: string) {
+  chat(_tenantId: string, prompt: string) {
     this.logger.log(`Consulta IA recibida: ${prompt}`);
 
     // Simulación de lógica RAG (Retrieval Augmented Generation)

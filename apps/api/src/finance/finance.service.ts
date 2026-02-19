@@ -1,12 +1,24 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ColombiaValidator } from '../common/utils/colombia-validator.util';
+import { EntryType, FinanceStatus, CneCode } from '../../prisma/generated/prisma';
+
+export interface CreateFinanceDto {
+  type: EntryType;
+  amount: number | string;
+  date: string;
+  cneCode: CneCode;
+  description: string;
+  vendorName: string;
+  vendorTaxId: string;
+  evidenceUrl?: string;
+}
 
 @Injectable()
 export class FinanceService {
   constructor(private prisma: PrismaService) {}
 
-  async create(tenantId: string, reporterId: string, data: any) {
+  async create(tenantId: string, reporterId: string, data: CreateFinanceDto) {
     // 1. Validar NIT del proveedor (Sección 6.2)
     if (data.type === 'EXPENSE' && data.vendorTaxId) {
       // Si el NIT incluye guion, validamos el DV
@@ -48,7 +60,7 @@ export class FinanceService {
         where: { tenantId },
         orderBy: { date: 'desc' },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Error in FinanceService.findAll:', error);
       throw error;
     }
@@ -72,19 +84,20 @@ export class FinanceService {
           (Number(income._sum.amount) || 0) -
           (Number(expenses._sum.amount) || 0),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Error in FinanceService.getSummary:', error);
       throw error;
     }
   }
 
   async validateExpense(
-    data: any,
+    data: Partial<CreateFinanceDto>,
   ): Promise<{ valid: boolean; reason?: string }> {
     // Implementar lógica compleja de validación CNE aquí
     // Ejemplo: Verificar si el proveedor está en lista negra
     if (
       data.vendorName &&
+      typeof data.vendorName === 'string' &&
       data.vendorName.toLowerCase().includes('inhabilitado')
     ) {
       return { valid: false, reason: 'Proveedor inhabilitado por CNE' };
@@ -104,7 +117,7 @@ export class FinanceService {
     const rows = expenses
       .map(
         (e) =>
-          `${e.date.toISOString().split('T')[0]},"${e.description}",${e.amount},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`,
+          `${e.date.toISOString().split('T')[0]},"${e.description}",${String(e.amount)},"${e.vendorName}",${e.vendorTaxId},${e.cneCode},${e.reporter.name}`,
       )
       .join('\n');
 

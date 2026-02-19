@@ -22,11 +22,12 @@ export class HealthController {
           finance,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; code?: string };
       return {
         status: 'error',
-        message: error.message,
-        code: error.code,
+        message: err.message || 'Unknown error',
+        code: err.code || 'UNKNOWN_ERROR',
       };
     }
   }

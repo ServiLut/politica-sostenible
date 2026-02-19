@@ -15,6 +15,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@politica-sostenible/typescript-config": "workspace:*",
+    "@prisma/client-runtime-utils": "^7.4.0",
     "@types/node": "^22.10.7",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
