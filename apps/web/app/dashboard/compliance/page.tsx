@@ -5,7 +5,6 @@ import { useCRM } from '@/context/CRMContext';
 import { 
   ShieldCheck, 
   AlertTriangle, 
-  FileText, 
   Download, 
   Upload, 
   CheckCircle, 
@@ -69,14 +68,13 @@ export default function CompliancePage() {
     ];
 
     return {
-      approvedExpenses,
       executionPercentage,
       pieData,
       barData
     };
   }, [finance]);
 
-  const { approvedExpenses, executionPercentage, pieData, barData } = complianceStats;
+  const { executionPercentage, pieData, barData } = complianceStats;
 
   // SISTEMA DE ALERTA "SEMÁFORO"
   const alertStatus = useMemo(() => {
@@ -106,7 +104,7 @@ export default function CompliancePage() {
     });
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10,
       head: [['Obligación', 'Estado', 'Vencimiento']],
       body: compliance.map(o => [o.title, o.status, o.deadline]),
       headStyles: { fillColor: [37, 99, 235] }

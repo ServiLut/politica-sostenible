@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   Users, 
   Target, 
@@ -110,11 +111,14 @@ export default function ExecutivePage() {
               <ShieldCheck className="text-[#0047AB]" />
               Últimos Ingresos al CRM
             </h3>
-            <button className="text-[10px] font-black text-[#0047AB] uppercase tracking-widest hover:underline flex items-center gap-1">
+            <Link 
+              href="/dashboard/directory"
+              className="text-[10px] font-black text-[#0047AB] uppercase tracking-widest hover:underline flex items-center gap-1"
+            >
               Ver Todo el Directorio <ChevronRight size={14} />
-            </button>
+            </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {contacts.slice(0, 6).map((c) => (
               <div key={c.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-transparent hover:border-zinc-200 transition-all">
                 <div className="flex items-center gap-4">

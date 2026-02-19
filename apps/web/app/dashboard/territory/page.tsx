@@ -212,7 +212,7 @@ export default function TerritoryPage() {
               <select
                 value={selectedZoneId}
                 onChange={(e) => setSelectedZoneId(e.target.value)}
-                className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-100 bg-slate-50 text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer"
+                className="py-2 text-xs font-bold rounded-xl border border-slate-100 bg-slate-50 text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer"
               >
                 <option value="all">Todas las Zonas</option>
                 {territory.map(zone => (

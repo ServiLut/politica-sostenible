@@ -6,8 +6,14 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth';
 import { dashboardConfig } from '@/config/navigation';
 import { UserRole } from '@/types/saas-schema';
+import { X } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, loginAs, signOut } = useAuth();
 
@@ -17,32 +23,51 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen sticky top-0">
-      <a href="/">
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-xl font-bold text-blue-400">CRM Político</h1>
-        <p className="text-xs text-slate-400 mt-1">SaaS Enterprise 2026</p>
-      </div>
-      </a>
+    <>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          onClick={onClose}
+        />
+      )}
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-        {filteredNav.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block px-4 py-2 rounded-md transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              {item.title}
-            </Link>
-          );
-        })}
-      </nav>
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col h-screen transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+          <Link href="/" onClick={onClose} className="block">
+            <h1 className="text-xl font-bold text-blue-400">CRM Político</h1>
+            <p className="text-xs text-slate-400 mt-1">SaaS Enterprise 2026</p>
+          </Link>
+          <button 
+            onClick={onClose}
+            className="lg:hidden text-slate-400 hover:text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          {filteredNav.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`block px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                {item.title}
+              </Link>
+            );
+          })}
+        </nav>
 
       <div className="p-4 border-t border-slate-800 space-y-4">
         {/* Role Switcher (Dev Mode) */}
@@ -81,5 +106,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Map as MapIcon, Shield, Radio, Target } from "lucide-react";
+import { Radio, Target } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 
 interface TacticalMapProps {
@@ -39,7 +39,6 @@ export function TacticalMap({ zones }: TacticalMapProps) {
             const top = zone.coords ? `${(7 - zone.coords[0]) * 500}%` : `${30 + (idx % 2) * 30}%`;
             
             const colorClass = zone.percent >= 70 ? "bg-emerald-500" : zone.percent >= 30 ? "bg-amber-500" : "bg-red-500";
-            const borderClass = zone.percent >= 70 ? "border-emerald-500/50" : zone.percent >= 30 ? "border-amber-500/50" : "border-red-500/50";
 
             return (
               <div 
