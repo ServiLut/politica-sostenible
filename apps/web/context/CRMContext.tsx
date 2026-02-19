@@ -289,12 +289,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: 'u-'+Date.now(), performance: 0, status: 'active'}, ...prev]); }, []);
   const updateMember = useCallback((id: string, m: Partial<TeamMember>) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
-  const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
-  const uploadEvidence = useCallback((id: string, file: string) => { setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Cumplido', evidence: file } : o)); }, []);
   const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
     const log: AuditLog = { id: 'log-' + Date.now(), actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
     setAuditLogs(prev => [log, ...prev]);
   }, []);
+  const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
+  const uploadEvidence = useCallback((id: string, file: string) => {
+    setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Cumplido', evidence: file } : o));
+    logAction('Sistema', `Evidencia cargada: ${file}`, 'Compliance', 'Info');
+  }, [logAction]);
 
   // ENRIQUECIMIENTO (Reactivo a contacts)
   const enrichedTerritory = useMemo(() => {
