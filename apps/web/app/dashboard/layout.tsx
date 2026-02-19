@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { UserNav } from '@/components/UserNav';
 import { useAuth } from '@/context/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { dashboardConfig } from '@/config/navigation';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Menu } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -16,18 +16,24 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Find config for current route to check permissions
   const currentRouteConfig = dashboardConfig.find(item => pathname.startsWith(item.href));
   const hasPermission = !currentRouteConfig || (user && currentRouteConfig.allowedRoles.includes(user.role));
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (mounted && !loading && !user) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, mounted]);
 
-  if (loading || !user) {
+  if (!mounted || loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -42,8 +48,16 @@ export default function DashboardLayout({
   if (!hasPermission) {
     return (
       <div className="flex min-h-screen bg-slate-50">
-        <Sidebar />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="lg:hidden absolute top-4 left-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
           <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 flex flex-col items-center gap-6 max-w-md shadow-xl shadow-red-900/5">
             <div className="h-20 w-20 bg-red-100 rounded-[1.5rem] flex items-center justify-center text-red-600">
               <ShieldAlert size={48} />
@@ -68,11 +82,19 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="h-16 border-b border-slate-200 bg-white flex items-center px-8 justify-between">
-          <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
-            Infraestructura Segura <span className="text-emerald-500">● Online</span>
+        <header className="h-16 border-b border-slate-200 bg-white flex items-center px-4 lg:px-8 justify-between">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
+              Infraestructura Segura <span className="text-emerald-500">● Online</span>
+            </div>
           </div>
           <div className="flex items-center gap-6">
             <div className="text-xs font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-full hidden md:block">
@@ -81,7 +103,7 @@ export default function DashboardLayout({
             <UserNav />
           </div>
         </header>
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -14,7 +14,7 @@ export default function SettingsPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [zoneSearch, setZoneSearch] = useState('');
-  const itemsPerPage = 5;
+  const itemsPerPage = 4;
 
   const filteredTerritory = useMemo(() => {
     return territory.filter(zone => 
@@ -291,7 +291,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-3 flex-1 min-h-[480px]">
+            <div className="space-y-3 flex-1 min-h-[290px]">
               {filteredTerritory.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[2rem]">
                   <p className="text-slate-400 font-bold italic text-sm">
@@ -335,7 +335,7 @@ export default function SettingsPage() {
 
             {/* Paginación */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-50">
+              <div className="flex items-center justify-end gap-4 border-t border-slate-50">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                   Página {currentPage} de {totalPages}
                 </p>

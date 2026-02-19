@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCRM, CampaignEvent } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Calendar, MapPin, Users, Plus, X, Tag, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, X, Tag, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
+import { LocationSelector } from '@/components/ui/LocationSelector';
+import { MEDELLIN_LOCATIONS } from '@/data/medellin-locations';
+import { MEDELLIN_ZONES } from '@/data/medellin-geo';
+import dynamic from 'next/dynamic';
+
+const StrategicMap = dynamic(() => import('@/components/layout/StrategicMap'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 font-black animate-pulse">CARGANDO INTELIGENCIA TERRITORIAL...</div>
+});
 
 export default function EventsPage() {
   const { events, addEvent, updateEvent, deleteEvent, rsvpEvent } = useCRM();
@@ -15,8 +24,63 @@ export default function EventsPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isGlobalMapOpen, setIsGlobalMapOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<CampaignEvent | null>(null);
+
+  // Map Filters State
+  const [mapFilterType, setMapFilterType] = useState<string>("all");
+  const [mapFilterStartDate, setMapFilterStartDate] = useState<string>("");
+  const [mapFilterEndDate, setMapFilterEndDate] = useState<string>("");
+  const [mapSearch, setMapSearch] = useState<string>("");
+  const [isRangePickerOpen, setIsRangePickerOpen] = useState(false);
+
+  const filteredEventsForMap = useMemo(() => {
+    return events.filter(event => {
+      // 1. Tipo (Lógica Inclusiva con Normalización)
+      const filterType = mapFilterType.trim().toLowerCase();
+      const eventType = event.type.trim().toLowerCase();
+      
+      // Short-circuit: Si es "all", incluir todo por defecto en esta categoría
+      let matchesType = filterType === "all";
+      
+      if (!matchesType) {
+        // Comparación normalizada para tipos específicos
+        // Manejamos "otro" y "otros" como equivalentes para máxima compatibilidad
+        if (filterType === "otro" || filterType === "otros") {
+          matchesType = eventType === "otro" || eventType === "otros";
+        } else {
+          matchesType = eventType === filterType;
+        }
+      }
+      
+      // 2. Rango de Fechas Estricto (Respetado incluso en "Todos los tipos")
+      const eventDateStr = event.date.includes('T') ? event.date.split('T')[0] : event.date;
+      const afterStart = !mapFilterStartDate || eventDateStr >= mapFilterStartDate;
+      const beforeEnd = !mapFilterEndDate || eventDateStr <= mapFilterEndDate;
+      const matchesDate = afterStart && beforeEnd;
+      
+      // 3. Búsqueda por Texto (Opcional/Acumulativa)
+      const search = mapSearch.trim().toLowerCase();
+      const matchesSearch = !search || 
+        event.title.toLowerCase().includes(search) ||
+        event.location.toLowerCase().includes(search);
+      
+      return matchesType && matchesDate && matchesSearch;
+    });
+  }, [events, mapFilterType, mapFilterStartDate, mapFilterEndDate, mapSearch]);
+
+  const clearMapFilters = () => {
+    setMapFilterType("all");
+    setMapFilterStartDate("");
+    setMapFilterEndDate("");
+    setMapSearch("");
+    setIsRangePickerOpen(false);
+  };
   
   const [newEvent, setNewEvent] = useState<Omit<CampaignEvent, 'id' | 'attendeesCount'>>({
     title: '',
@@ -26,6 +90,57 @@ export default function EventsPage() {
   });
 
   const isAdmin = ["SuperAdmin", "AdminCampana"].includes(user?.role || "");
+
+  const isLocationValid = (text: string): boolean => {
+    const cleanText = text.trim().toLowerCase();
+    
+    // 1. Coincidencia con Lista Predefinida (Prioridad)
+    const isFromList = MEDELLIN_LOCATIONS.some(
+      opt => opt.name.toLowerCase() === cleanText
+    );
+    if (isFromList) return true;
+
+    // 2. Palabras Clave Geográficas e Indicadores Locales
+    const geoKeywords = /\b(comuna|barrio|sector|calle|carrera|cra|cll|avenida|diagonal|belencito|corazon|poblado|laureles|belen|itagu|envigado|bello|sabaneta|estrella|caldas|copacabana|girardota|barbosa|santa|santo|san|pilarica|boston|prado|centro)\b/i;
+    const hasGeoKeyword = geoKeywords.test(cleanText);
+
+    // 3. Filtros de Calidad (Anti-Basura)
+    const hasLetters = /[a-z]/i.test(cleanText);
+    const isRepetitive = /(.)\1{4,}/.test(cleanText); // e.g., "aaaaa"
+    const isRandomSequence = /asdf|qwerty|zxcv|jklm|dfgh|hjkl/i.test(cleanText); // e.g., "asdfgh"
+
+    // Si tiene palabras clave geográficas, es válido si tiene letras y no es basura evidente
+    if (hasGeoKeyword && hasLetters && !isRepetitive && !isRandomSequence) {
+      return true;
+    }
+
+    // 4. Si es una dirección manual sin keywords, debe ser suficientemente descriptiva
+    return cleanText.length > 6 && hasLetters && !isRepetitive && !isRandomSequence;
+  };
+
+  const validateLocation = (query: string) => {
+    if (isLocationValid(query)) {
+      setNewEvent({ ...newEvent, location: query });
+      handleOpenMap(query);
+    } else {
+      setErrorMessage("Ubicación no encontrada. El lugar ingresado no parece ser una dirección válida. Por favor, intenta de nuevo.");
+      setIsErrorModalOpen(true);
+    }
+  };
+
+  const handleMapClick = (location: string) => {
+    if (isLocationValid(location)) {
+      handleOpenMap(location);
+    } else {
+      setErrorMessage("Ubicación no encontrada. El lugar ingresado no parece ser una dirección válida. Por favor, intenta de nuevo.");
+      setIsErrorModalOpen(true);
+    }
+  };
+
+  const handleOpenMap = (location: string) => {
+    setSelectedLocation(location);
+    setIsMapModalOpen(true);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,12 +191,20 @@ export default function EventsPage() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Agenda de Campaña</h1>
           <p className="text-slate-500">Planificación de marchas, reuniones y eventos masivos.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2"
-        >
-          <Plus size={18} /> Nuevo Evento
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsGlobalMapOpen(true)}
+            className="bg-white text-blue-600 border-2 border-blue-50 px-6 py-3 rounded-2xl font-black text-sm shadow-md hover:bg-blue-50 transition-all flex items-center gap-2"
+          >
+            <Map size={18} /> Mapa de Territorio
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2"
+          >
+            <Plus size={18} /> Nuevo Evento
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,9 +252,15 @@ export default function EventsPage() {
                 <h3 className="text-xl font-black text-slate-900 mb-4">{event.title}</h3>
                 
                 <div className="space-y-2 mb-8">
-                  <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
-                    <MapPin size={14} className="text-blue-500" /> {event.location}
-                  </div>
+                  <button 
+                    onClick={() => handleMapClick(event.location)}
+                    className="flex items-center gap-2 text-slate-500 text-xs font-bold hover:text-blue-600 transition-colors group/loc"
+                  >
+                    <MapPin size={14} className="text-blue-500 group-hover/loc:scale-110 transition-transform" /> 
+                    <span className="underline decoration-slate-200 underline-offset-4 group-hover/loc:decoration-blue-400">
+                      {event.location}
+                    </span>
+                  </button>
                   <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
                     <Users size={14} className="text-emerald-500" /> {event.attendeesCount} Confirmados
                   </div>
@@ -170,7 +299,13 @@ export default function EventsPage() {
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Lugar</label>
-                <input required className="w-full px-4 py-2 border rounded-xl text-sm" value={newEvent.location} onChange={e => setNewEvent({...newEvent, location: e.target.value})} />
+                <LocationSelector 
+                  required
+                  value={newEvent.location} 
+                  onChange={val => setNewEvent({...newEvent, location: val})} 
+                  onManualSubmit={validateLocation}
+                  placeholder="Ej. El Poblado, Envigado..."
+                />
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Tipo</label>
@@ -188,6 +323,241 @@ export default function EventsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal del Mapa */}
+      {isMapModalOpen && selectedLocation && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[95vh]">
+            {/* Header Mejorado */}
+            <div className="px-10 py-8 border-b border-slate-100 bg-white flex justify-between items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.25em]">Localización del Evento</span>
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+                  {selectedLocation}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsMapModalOpen(false)}
+                className="p-4 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-300 group"
+              >
+                <X size={24} className="group-hover:rotate-90 transition-transform" />
+              </button>
+            </div>
+            
+            {/* Contenedor Panorámico (Aspect 16:9) */}
+            <div className="w-full aspect-video bg-slate-100 relative">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                frameBorder="0" 
+                style={{ border: 0 }}
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedLocation + ", Medellin, Antioquia, Colombia")}&t=&z=15&ie=UTF8&iwloc=B&output=embed`}
+                allowFullScreen
+                className="grayscale-[0.05] contrast-[1.05]"
+              />
+            </div>
+
+            {/* Footer Moderno */}
+            <div className="px-10 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                  <Globe size={16} />
+                </div>
+                <p className="text-[11px] text-slate-500 font-bold">
+                  Utilice los controles del mapa para explorar la zona del evento.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsMapModalOpen(false)}
+                className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all transform hover:-translate-y-1 active:translate-y-0"
+              >
+                Cerrar Vista de Mapa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Mapa de Territorio (Global) */}
+      {isGlobalMapOpen && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-[#0F172A] w-full max-w-6xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]">
+            <div className="absolute top-8 right-8 z-20">
+              <button 
+                onClick={() => setIsGlobalMapOpen(false)}
+                className="bg-white/10 backdrop-blur-md p-4 rounded-2xl text-white hover:bg-white/20 transition-all border border-white/10"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-10 border-b border-white/5 bg-white/5">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase text-emerald-400 tracking-[0.3em]">Territory Intelligence System</span>
+                  </div>
+                  <h3 className="text-3xl font-black text-white tracking-tight">Mapa Estratégico de Campaña</h3>
+                  <p className="text-slate-400 text-sm mt-2">Visualización global de eventos y despliegue territorial.</p>
+                </div>
+
+                {/* Filtros Dinámicos */}
+                <div className="flex flex-wrap items-center gap-4 bg-white/5 p-4 rounded-[2rem] border border-white/10">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10 focus-within:border-blue-500 transition-all">
+                    <Search size={16} className="text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Buscar evento o lugar..." 
+                      className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-500 min-w-[150px]"
+                      value={mapSearch}
+                      onChange={(e) => setMapSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Filter size={14} className="text-slate-500" />
+                    <select 
+                      className="bg-transparent text-xs text-slate-300 font-bold outline-none cursor-pointer"
+                      value={mapFilterType}
+                      onChange={(e) => setMapFilterType(e.target.value)}
+                    >
+                      <option value="all" className="bg-[#0F172A]">Todos los tipos</option>
+                      <option value="Reunión" className="bg-[#0F172A]">Reuniones</option>
+                      <option value="Marcha" className="bg-[#0F172A]">Marchas</option>
+                      <option value="Capacitación" className="bg-[#0F172A]">Capacitaciones</option>
+                      <option value="Otro" className="bg-[#0F172A]">Otros</option>
+                    </select>
+                  </div>
+
+                  <div className="h-4 w-[1px] bg-white/10" />
+
+                  {/* Selector de Rango Único (Popover) */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsRangePickerOpen(!isRangePickerOpen)}
+                      className={cn(
+                        "flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-[1.2rem] border transition-all group",
+                        isRangePickerOpen ? "border-blue-500 bg-white/10" : "border-white/10 hover:border-white/20"
+                      )}
+                    >
+                      <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-blue-400" : "text-slate-500")} />
+                      <div className="flex flex-col items-start">
+                        <span className="text-[6px] font-black text-slate-500 uppercase tracking-[0.2em]">Rango de Fechas</span>
+                        <span className="text-[10px] text-slate-200 font-bold">
+                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar Rango'}
+                        </span>
+                      </div>
+                      <ChevronDown size={14} className={cn("text-slate-600 transition-transform", isRangePickerOpen && "rotate-180")} />
+                    </button>
+
+                    {isRangePickerOpen && (
+                      <div className="absolute top-full left-0 mt-3 p-4 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[200] flex gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Inicio</label>
+                          <input 
+                            type="date" 
+                            className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-blue-500 [color-scheme:dark]"
+                            value={mapFilterStartDate}
+                            onChange={(e) => setMapFilterStartDate(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fin</label>
+                          <input 
+                            type="date" 
+                            className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-blue-500 [color-scheme:dark]"
+                            value={mapFilterEndDate}
+                            onChange={(e) => setMapFilterEndDate(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {(mapFilterType !== "all" || mapFilterStartDate || mapFilterEndDate || mapSearch) && (
+                    <>
+                      <div className="h-4 w-[1px] bg-white/10" />
+                      <button 
+                        onClick={clearMapFilters}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                      >
+                        <X size={12} /> Limpiar Filtros
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
+              {/* Grid Background */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none z-10" style={{ 
+                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`, 
+                backgroundSize: '40px 40px' 
+              }} />
+
+              {/* Mapa de Cartografía Real */}
+              <div className="absolute inset-0 z-0">
+                <StrategicMap events={filteredEventsForMap} />
+                
+                {filteredEventsForMap.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm z-10 pointer-events-none">
+                    <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-[2rem] text-center">
+                      <div className="text-slate-400 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Territory Intelligence Status</div>
+                      <p className="text-white text-xs font-bold">No hay eventos detectados en este rango temporal</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Overlay Leyenda */}
+              <div className="absolute bottom-10 left-10 flex flex-col gap-3 z-20">
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Marchas</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
+                  <div className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Reuniones</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Capacitaciones</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
+                  <div className="h-2 w-2 rounded-full bg-orange-500" />
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Otros</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Error de Localización */}
+      {isErrorModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Ubicación no encontrada</h3>
+            <p className="text-sm text-slate-500 font-bold leading-relaxed mb-8">
+              {errorMessage}
+            </p>
+            <button 
+              onClick={() => setIsErrorModalOpen(false)}
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-colors"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

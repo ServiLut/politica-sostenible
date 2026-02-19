@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button, Input, Label } from "@/components/ui";
-import { LogIn, Mail, Lock, Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { LogIn, Mail, Lock, Sparkles, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({

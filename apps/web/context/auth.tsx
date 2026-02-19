@@ -23,9 +23,29 @@ const MOCK_TENANT: Tenant = {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const savedRole = localStorage.getItem('dev_role') as UserRole;
+      if (savedRole) {
+        return {
+          id: `user-${savedRole}`,
+          email: `${savedRole.toLowerCase()}@campana.com`,
+          name: `Usuario ${savedRole}`,
+          role: savedRole,
+        };
+      }
+    }
+    return null;
+  });
+
+  const [tenant, setTenant] = useState<Tenant | null>(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('dev_role')) {
+      return MOCK_TENANT;
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const simulateLogin = (role: UserRole) => {
@@ -41,28 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Load from localStorage for persistence in dev mode
-    const savedRole = localStorage.getItem('dev_role') as UserRole;
-    
-    if (savedRole) {
-      const mockUser: User = {
-        id: `user-${savedRole}`,
-        email: `${savedRole.toLowerCase()}@campana.com`,
-        name: `Usuario ${savedRole}`,
-        role: savedRole,
-      };
-      
-      // Batch updates
-      setUser(mockUser);
-      setTenant(MOCK_TENANT);
-      
-      // Auto-redirect if already logged in and at root
-      if (typeof window !== 'undefined' && window.location.pathname === '/') {
-        router.replace('/dashboard/executive');
-      }
+    // Auto-redirect if already logged in and at root
+    if (user && typeof window !== 'undefined' && window.location.pathname === '/') {
+      router.replace('/dashboard/executive');
     }
-    setLoading(false);
-  }, [router]);
+  }, [user, router]);
 
   const loginAs = (role: UserRole) => {
     setLoading(true);

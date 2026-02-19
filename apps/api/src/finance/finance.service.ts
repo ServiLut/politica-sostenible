@@ -1,13 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ColombiaValidator } from '../common/utils/colombia-validator.util';
-import { EntryType, FinanceStatus, CneCode } from '../../prisma/generated/prisma';
+import { EntryType } from '../../prisma/generated/prisma';
 
 export interface CreateFinanceDto {
   type: EntryType;
   amount: number | string;
   date: string;
-  cneCode: CneCode;
+  cneCode: string;
   description: string;
   vendorName: string;
   vendorTaxId: string;
@@ -16,6 +16,8 @@ export interface CreateFinanceDto {
 
 @Injectable()
 export class FinanceService {
+  private readonly logger = new Logger(FinanceService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async create(tenantId: string, reporterId: string, data: CreateFinanceDto) {
@@ -46,10 +48,16 @@ export class FinanceService {
 
     return this.prisma.financialEntry.create({
       data: {
-        ...data,
+        type: data.type,
+        amount: data.amount.toString(), // Prisma Decimal accepts string
+        date: new Date(data.date),
+        cneCode: data.cneCode,
+        description: data.description,
+        vendorName: data.vendorName,
+        vendorTaxId: data.vendorTaxId,
+        evidenceUrl: data.evidenceUrl,
         tenantId,
         reporterId,
-        date: new Date(data.date),
       },
     });
   }

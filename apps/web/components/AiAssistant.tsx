@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Send, X, Bot, Zap, MessageCircle } from 'lucide-react';
+import { Sparkles, Send, X, Bot, Zap } from 'lucide-react';
 import { Card, Button, Input } from '@/components/ui';
 
 interface Message {
@@ -37,7 +37,7 @@ export function AiAssistant() {
       });
       const json = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', text: json.data.answer, actionable: json.data.actionable }]);
-    } catch (e) {
+    } catch (_e) {
       setMessages(prev => [...prev, { role: 'assistant', text: 'Error al conectar con mi cerebro cognitivo.' }]);
     } finally {
       setLoading(false);
