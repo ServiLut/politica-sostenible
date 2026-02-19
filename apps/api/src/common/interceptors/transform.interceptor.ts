@@ -28,9 +28,11 @@ export class TransformInterceptor<T> implements NestInterceptor<
     return next.handle().pipe(
       map((data: unknown) => {
         const isObject = typeof data === 'object' && data !== null;
-        const message = (isObject && 'message' in data) ? String(data.message) : 'Success';
-        const responseData = (isObject && 'data' in data) ? (data.data as T) : (data as T);
-        
+        const message =
+          isObject && 'message' in data ? String(data.message) : 'Success';
+        const responseData =
+          isObject && 'data' in data ? (data.data as T) : (data as T);
+
         return {
           statusCode,
           message,

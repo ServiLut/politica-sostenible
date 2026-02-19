@@ -5,7 +5,7 @@ import { useCRM, CampaignEvent } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Calendar, MapPin, Users, Plus, X, Tag, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, X, Tag, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { LocationSelector } from '@/components/ui/LocationSelector';
 import { MEDELLIN_LOCATIONS } from '@/data/medellin-locations';
@@ -38,19 +38,16 @@ export default function EventsPage() {
   const [mapFilterEndDate, setMapFilterEndDate] = useState<string>("");
   const [mapSearch, setMapSearch] = useState<string>("");
   const [isRangePickerOpen, setIsRangePickerOpen] = useState(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
 
   const filteredEventsForMap = useMemo(() => {
     return events.filter(event => {
-      // 1. Tipo (Lógica Inclusiva con Normalización)
       const filterType = mapFilterType.trim().toLowerCase();
       const eventType = event.type.trim().toLowerCase();
       
-      // Short-circuit: Si es "all", incluir todo por defecto en esta categoría
       let matchesType = filterType === "all";
-      
       if (!matchesType) {
-        // Comparación normalizada para tipos específicos
-        // Manejamos "otro" y "otros" como equivalentes para máxima compatibilidad
         if (filterType === "otro" || filterType === "otros") {
           matchesType = eventType === "otro" || eventType === "otros";
         } else {
@@ -58,13 +55,11 @@ export default function EventsPage() {
         }
       }
       
-      // 2. Rango de Fechas Estricto (Respetado incluso en "Todos los tipos")
       const eventDateStr = event.date.includes('T') ? event.date.split('T')[0] : event.date;
       const afterStart = !mapFilterStartDate || eventDateStr >= mapFilterStartDate;
       const beforeEnd = !mapFilterEndDate || eventDateStr <= mapFilterEndDate;
       const matchesDate = afterStart && beforeEnd;
       
-      // 3. Búsqueda por Texto (Opcional/Acumulativa)
       const search = mapSearch.trim().toLowerCase();
       const matchesSearch = !search || 
         event.title.toLowerCase().includes(search) ||
@@ -80,6 +75,7 @@ export default function EventsPage() {
     setMapFilterEndDate("");
     setMapSearch("");
     setIsRangePickerOpen(false);
+    setIsTypeDropdownOpen(false);
   };
   
   const [newEvent, setNewEvent] = useState<Omit<CampaignEvent, 'id' | 'attendeesCount'>>({
@@ -93,28 +89,16 @@ export default function EventsPage() {
 
   const isLocationValid = (text: string): boolean => {
     const cleanText = text.trim().toLowerCase();
-    
-    // 1. Coincidencia con Lista Predefinida (Prioridad)
-    const isFromList = MEDELLIN_LOCATIONS.some(
-      opt => opt.name.toLowerCase() === cleanText
-    );
+    const isFromList = MEDELLIN_LOCATIONS.some(opt => opt.name.toLowerCase() === cleanText);
     if (isFromList) return true;
 
-    // 2. Palabras Clave Geográficas e Indicadores Locales
     const geoKeywords = /\b(comuna|barrio|sector|calle|carrera|cra|cll|avenida|diagonal|belencito|corazon|poblado|laureles|belen|itagu|envigado|bello|sabaneta|estrella|caldas|copacabana|girardota|barbosa|santa|santo|san|pilarica|boston|prado|centro)\b/i;
     const hasGeoKeyword = geoKeywords.test(cleanText);
-
-    // 3. Filtros de Calidad (Anti-Basura)
     const hasLetters = /[a-z]/i.test(cleanText);
-    const isRepetitive = /(.)\1{4,}/.test(cleanText); // e.g., "aaaaa"
-    const isRandomSequence = /asdf|qwerty|zxcv|jklm|dfgh|hjkl/i.test(cleanText); // e.g., "asdfgh"
+    const isRepetitive = /(.)\1{4,}/.test(cleanText);
+    const isRandomSequence = /asdf|qwerty|zxcv|jklm|dfgh|hjkl/i.test(cleanText);
 
-    // Si tiene palabras clave geográficas, es válido si tiene letras y no es basura evidente
-    if (hasGeoKeyword && hasLetters && !isRepetitive && !isRandomSequence) {
-      return true;
-    }
-
-    // 4. Si es una dirección manual sin keywords, debe ser suficientemente descriptiva
+    if (hasGeoKeyword && hasLetters && !isRepetitive && !isRandomSequence) return true;
     return cleanText.length > 6 && hasLetters && !isRepetitive && !isRandomSequence;
   };
 
@@ -182,6 +166,7 @@ export default function EventsPage() {
     setIsModalOpen(false);
     setEditingEvent(null);
     setNewEvent({ title: '', date: '', location: '', type: 'Reunión' });
+    setIsModalTypeOpen(false);
   };
 
   useEffect(() => {
@@ -197,23 +182,25 @@ export default function EventsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, isMapModalOpen, isGlobalMapOpen, isErrorModalOpen]);
 
+  const EVENT_TYPES = ["Reunión", "Marcha", "Capacitación", "Otro"];
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Agenda de Campaña</h1>
-          <p className="text-slate-500">Planificación de marchas, reuniones y eventos masivos.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Agenda de Campaña</h1>
+          <p className="text-slate-500 font-medium">Planificación de marchas, reuniones y eventos masivos.</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={() => setIsGlobalMapOpen(true)}
-            className="bg-white text-blue-600 border-2 border-blue-50 px-6 py-3 rounded-2xl font-black text-sm shadow-md hover:bg-blue-50 transition-all flex items-center gap-2"
+            className="bg-white text-blue-600 border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-2"
           >
-            <Map size={18} /> Mapa de Eventos
+            <Map size={18} /> Mapa Estratégico
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2"
+            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
           >
             <Plus size={18} /> Nuevo Evento
           </button>
@@ -223,23 +210,23 @@ export default function EventsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => {
           const eventDate = new Date(event.date);
-          const day = eventDate.getDate() + 1; // Basic correction for UTC dates in input
+          const day = eventDate.getUTCDate();
           const month = eventDate.toLocaleString('es', { month: 'short' }).toUpperCase();
 
           return (
             <div key={event.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-xl transition-all group">
               <div className="p-8">
                 <div className="flex items-start justify-between mb-6">
-                  <div className="bg-blue-50 text-blue-600 w-16 h-16 rounded-2xl flex flex-col items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                  <div className="bg-slate-50 text-slate-900 w-16 h-16 rounded-2xl flex flex-col items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 transition-all duration-300 shadow-inner">
                     <span className="text-2xl font-black leading-none">{day || '??'}</span>
                     <span className="text-[10px] font-black uppercase tracking-widest">{month || '---'}</span>
                   </div>
                   <div className="flex gap-2">
                     <span className={cn(
-                      "text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border flex items-center h-fit",
+                      "text-[8px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border shadow-sm",
                       event.type === 'Marcha' ? 'bg-red-50 text-red-600 border-red-100' :
                       event.type === 'Reunión' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                      'bg-slate-50 text-slate-600 border-slate-100'
+                      'bg-blue-50 text-blue-600 border-blue-100'
                     )}>
                       {event.type}
                     </span>
@@ -247,13 +234,13 @@ export default function EventsPage() {
                       <div className="flex gap-1">
                         <button 
                           onClick={() => handleEdit(event)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                         >
                           <Pencil size={14} />
                         </button>
                         <button 
                           onClick={() => handleDelete(event.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -262,26 +249,26 @@ export default function EventsPage() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-black text-slate-900 mb-4">{event.title}</h3>
+                <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight leading-tight">{event.title}</h3>
                 
-                <div className="space-y-2 mb-8">
+                <div className="space-y-3 mb-8">
                   <button 
                     onClick={() => handleMapClick(event.location)}
-                    className="flex items-center gap-2 text-slate-500 text-xs font-bold hover:text-blue-600 transition-colors group/loc"
+                    className="flex items-center gap-2 text-slate-500 text-[11px] font-black uppercase hover:text-blue-600 transition-colors group/loc"
                   >
                     <MapPin size={14} className="text-blue-500 group-hover/loc:scale-110 transition-transform" /> 
-                    <span className="underline decoration-slate-200 underline-offset-4 group-hover/loc:decoration-blue-400">
+                    <span className="truncate border-b-2 border-slate-50 group-hover/loc:border-blue-100">
                       {event.location}
                     </span>
                   </button>
-                  <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                  <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                     <Users size={14} className="text-emerald-500" /> {event.attendeesCount} Confirmados
                   </div>
                 </div>
 
                 <button 
                   onClick={() => rsvpEvent(event.id)}
-                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-colors"
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-200 transition-all active:scale-[0.98]"
                 >
                   Registrar Asistencia (+1)
                 </button>
@@ -294,54 +281,90 @@ export default function EventsPage() {
       {/* Modal Nueva Evento */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={closeModal}
         >
           <div 
-            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-8 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
-                  {editingEvent ? 'Editar Evento' : 'Crear Evento'}
-                </h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión Territorial</p>
+            <button 
+              onClick={closeModal} 
+              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
+            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.3em]">Operativa de Eventos</span>
               </div>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm"><X /></button>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">
+                {editingEvent ? 'Editar Evento' : 'Crear Evento'}
+              </h3>
             </div>
+
             <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Título</label>
-                <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título del Evento</label>
+                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
+                    <input required type="date" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-blue-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
+                    <div className="relative">
+                      <div 
+                        onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
+                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-blue-500 cursor-pointer flex justify-between items-center transition-all"
+                      >
+                        <span className="text-slate-900">{newEvent.type}</span>
+                        <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
+                      </div>
+                      
+                      {isModalTypeOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {EVENT_TYPES.map(type => (
+                            <div 
+                              key={type}
+                              onClick={() => {
+                                setNewEvent({...newEvent, type: type as any});
+                                setIsModalTypeOpen(false);
+                              }}
+                              className="px-6 py-3 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center"
+                            >
+                              {type}
+                              {newEvent.type === type && <Check size={14} className="text-blue-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Localización Estratégica</label>
+                  <LocationSelector 
+                    required
+                    value={newEvent.location} 
+                    onChange={val => setNewEvent({...newEvent, location: val})} 
+                    onManualSubmit={validateLocation}
+                    placeholder="Ej. El Poblado, Envigado..."
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Fecha</label>
-                <input required type="date" className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Lugar</label>
-                <LocationSelector 
-                  required
-                  value={newEvent.location} 
-                  onChange={val => setNewEvent({...newEvent, location: val})} 
-                  onManualSubmit={validateLocation}
-                  placeholder="Ej. El Poblado, Envigado..."
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Tipo</label>
-                <select className="w-full px-5 py-3 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
-                  <option value="Reunión">Reunión</option>
-                  <option value="Marcha">Marcha</option>
-                  <option value="Capacitación">Capacitación</option>
-                  <option value="Otro">Otro</option>
-                </select>
-              </div>
-              <div className="pt-4 flex gap-4">
-                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-4 bg-blue-600 rounded-2xl text-xs font-black uppercase text-white shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                  {editingEvent ? 'Guardar Cambios' : 'Crear Evento'}
+
+              <div className="pt-6 flex gap-4">
+                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" className="flex-2 px-8 py-4 bg-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                  {editingEvent ? 'Guardar Cambios' : 'Generar Evento'}
                 </button>
               </div>
             </form>
@@ -349,37 +372,34 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Modal del Mapa */}
+      {/* Modal del Mapa (Vista Detalle) */}
       {isMapModalOpen && selectedLocation && (
         <div 
           className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
           onClick={() => setIsMapModalOpen(false)}
         >
           <div 
-            className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[95vh]"
+            className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header Mejorado */}
-            <div className="px-10 py-8 border-b border-slate-100 bg-white flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.25em]">Localización del Evento</span>
-                </div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-                  {selectedLocation}
-                </h3>
+            <button 
+              onClick={() => setIsMapModalOpen(false)}
+              className="absolute top-8 right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
+            <div className="px-10 py-10 border-b border-slate-100 bg-white">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.25em]">Geolocalización Territorial</span>
               </div>
-              <button 
-                onClick={() => setIsMapModalOpen(false)}
-                className="p-4 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-300 group"
-              >
-                <X size={24} className="group-hover:rotate-90 transition-transform" />
-              </button>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                {selectedLocation}
+              </h3>
             </div>
             
-            {/* Contenedor Panorámico (Aspect 16:9) */}
-            <div className="w-full aspect-video bg-slate-100 relative">
+            <div className="flex-1 bg-slate-100 relative min-h-[500px]">
               <iframe 
                 width="100%" 
                 height="100%" 
@@ -391,212 +411,220 @@ export default function EventsPage() {
               />
             </div>
 
-            {/* Footer Moderno */}
-            <div className="px-10 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                  <Globe size={16} />
+            <div className="px-10 py-8 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+              <div className="flex items-center gap-4 text-slate-500">
+                <div className="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
+                  <Globe size={18} />
                 </div>
-                <p className="text-[11px] text-slate-500 font-bold">
-                  Utilice los controles del mapa para explorar la zona del evento.
+                <p className="text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+                  Utilice los controles del mapa para explorar el área estratégica del evento.
                 </p>
               </div>
               <button 
                 onClick={() => setIsMapModalOpen(false)}
-                className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all transform hover:-translate-y-1 active:translate-y-0"
+                className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
               >
-                Cerrar Vista de Mapa
+                Cerrar Vista
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Mapa de Territorio (Global) */}
+      {/* Modal Mapa Global (Strategic Map) */}
       {isGlobalMapOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
           onClick={() => setIsGlobalMapOpen(false)}
         >
           <div 
-            className="bg-[#0F172A] w-full max-w-6xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
+            className="bg-[#0F172A] w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-8 right-8 z-20">
-              <button 
-                onClick={() => setIsGlobalMapOpen(false)}
-                className="bg-white/10 backdrop-blur-md p-4 rounded-2xl text-white hover:bg-white/20 transition-all border border-white/10"
-              >
-                <X size={24} />
-              </button>
-            </div>
+            <button 
+              onClick={() => setIsGlobalMapOpen(false)}
+              className="absolute top-8 left-8 z-[60] p-3 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-2xl border border-white/10 hover:border-red-500/30 transition-all group"
+            >
+              <X size={20} className="group-hover:-rotate-90 transition-transform" />
+            </button>
 
-            <div className="p-10 border-b border-white/5 bg-white/5">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="p-10 border-b border-white/5 bg-white/5 relative z-20 pl-24">
+              <div className="flex flex-row items-center justify-between gap-8">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[10px] font-black uppercase text-emerald-400 tracking-[0.3em]">Territory Intelligence System</span>
                   </div>
-                  <h3 className="text-3xl font-black text-white tracking-tight">Mapa Estratégico de Campaña</h3>
-                  <p className="text-slate-400 text-sm mt-2">Visualización global de eventos y despliegue territorial.</p>
+                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Mapa Estratégico</h3>
                 </div>
 
-                {/* Filtros Dinámicos */}
-                <div className="flex flex-wrap items-center gap-4 bg-white/5 p-4 rounded-[2rem] border border-white/10">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10 focus-within:border-blue-500 transition-all">
-                    <Search size={16} className="text-slate-400" />
+                {/* BARRA DE FILTROS DEL MAPA */}
+                <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[2rem] border border-white/10 backdrop-blur-md relative">
+                  <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-blue-500 transition-all">
+                    <Search size={16} className="text-slate-500" />
                     <input 
                       type="text" 
-                      placeholder="Buscar evento o lugar..." 
-                      className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-500 min-w-[150px]"
+                      placeholder="Buscar..." 
+                      className="bg-transparent border-none outline-none text-[11px] font-bold text-white placeholder:text-slate-600 min-w-[120px]"
                       value={mapSearch}
                       onChange={(e) => setMapSearch(e.target.value)}
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Filter size={14} className="text-slate-500" />
-                    <select 
-                      className="bg-transparent text-xs text-slate-300 font-bold outline-none cursor-pointer"
-                      value={mapFilterType}
-                      onChange={(e) => setMapFilterType(e.target.value)}
+                  <div className="relative">
+                    <div 
+                      onClick={() => {
+                        setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                        setIsRangePickerOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all cursor-pointer min-w-[140px]"
                     >
-                      <option value="all" className="bg-[#0F172A]">Todos los tipos</option>
-                      <option value="Reunión" className="bg-[#0F172A]">Reuniones</option>
-                      <option value="Marcha" className="bg-[#0F172A]">Marchas</option>
-                      <option value="Capacitación" className="bg-[#0F172A]">Capacitaciones</option>
-                      <option value="Otro" className="bg-[#0F172A]">Otros</option>
-                    </select>
+                      <Filter size={14} className="text-slate-500" />
+                      <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">{mapFilterType === 'all' ? 'Todos' : mapFilterType}</span>
+                      <ChevronDown className={cn("text-slate-600 transition-transform ml-auto", isTypeDropdownOpen && "rotate-180")} size={12} />
+                    </div>
+
+                    {isTypeDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-3 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        {["all", ...EVENT_TYPES].map(type => (
+                          <div 
+                            key={type}
+                            onClick={() => {
+                              setMapFilterType(type);
+                              setIsTypeDropdownOpen(false);
+                            }}
+                            className="px-5 py-3 hover:bg-white/5 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest cursor-pointer transition-colors border-b border-white/5 last:border-none flex justify-between items-center"
+                          >
+                            {type === 'all' ? 'Todos' : type}
+                            {mapFilterType === type && <Check size={12} className="text-blue-400" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="h-4 w-[1px] bg-white/10" />
+                  <div className="h-6 w-[1px] bg-white/10" />
 
-                  {/* Selector de Rango Único (Popover) */}
                   <div className="relative">
                     <button 
-                      onClick={() => setIsRangePickerOpen(!isRangePickerOpen)}
+                      onClick={() => {
+                        setIsRangePickerOpen(!isRangePickerOpen);
+                        setIsTypeDropdownOpen(false);
+                      }}
                       className={cn(
-                        "flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-[1.2rem] border transition-all group",
-                        isRangePickerOpen ? "border-blue-500 bg-white/10" : "border-white/10 hover:border-white/20"
+                        "flex items-center gap-3 bg-white/5 px-5 py-3 rounded-2xl border transition-all group",
+                        isRangePickerOpen ? "border-blue-500 bg-white/10 shadow-lg shadow-blue-500/10" : "border-white/10 hover:border-white/20"
                       )}
                     >
                       <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-blue-400" : "text-slate-500")} />
-                      <div className="flex flex-col items-start">
-                        <span className="text-[6px] font-black text-slate-500 uppercase tracking-[0.2em]">Rango de Fechas</span>
-                        <span className="text-[10px] text-slate-200 font-bold">
-                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar Rango'}
+                      <div className="flex flex-col items-start leading-none gap-1">
+                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Rango Temporal</span>
+                        <span className="text-[10px] text-slate-200 font-black uppercase">
+                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar'}
                         </span>
                       </div>
                       <ChevronDown size={14} className={cn("text-slate-600 transition-transform", isRangePickerOpen && "rotate-180")} />
                     </button>
 
                     {isRangePickerOpen && (
-                      <div className="absolute top-full left-0 mt-3 p-4 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[200] flex gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Inicio</label>
-                          <input 
-                            type="date" 
-                            className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-blue-500 [color-scheme:dark]"
-                            value={mapFilterStartDate}
-                            onChange={(e) => setMapFilterStartDate(e.target.value)}
-                          />
+                      <div className="absolute top-full right-0 mt-4 p-6 bg-[#1E293B] border border-white/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[300px]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Definir Período</span>
+                          <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-500 hover:text-white"><X size={14} /></button>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fin</label>
-                          <input 
-                            type="date" 
-                            className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-blue-500 [color-scheme:dark]"
-                            value={mapFilterEndDate}
-                            onChange={(e) => setMapFilterEndDate(e.target.value)}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Inicio</label>
+                            <input 
+                              type="date" 
+                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-blue-500 [color-scheme:dark] w-full"
+                              value={mapFilterStartDate}
+                              onChange={(e) => setMapFilterStartDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Fin</label>
+                            <input 
+                              type="date" 
+                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-blue-500 [color-scheme:dark] w-full"
+                              value={mapFilterEndDate}
+                              onChange={(e) => setMapFilterEndDate(e.target.value)}
+                            />
+                          </div>
                         </div>
+                        <button 
+                          onClick={() => setIsRangePickerOpen(false)}
+                          className="w-full py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all mt-2 shadow-lg shadow-blue-500/20"
+                        >
+                          Aplicar Rango
+                        </button>
                       </div>
                     )}
                   </div>
-
-                  {(mapFilterType !== "all" || mapFilterStartDate || mapFilterEndDate || mapSearch) && (
-                    <>
-                      <div className="h-4 w-[1px] bg-white/10" />
-                      <button 
-                        onClick={clearMapFilters}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
-                      >
-                        <X size={12} /> Limpiar Filtros
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
 
             <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
-              {/* Grid Background */}
-              <div className="absolute inset-0 opacity-20 pointer-events-none z-10" style={{ 
+              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{ 
                 backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`, 
                 backgroundSize: '40px 40px' 
               }} />
 
-              {/* Mapa de Cartografía Real */}
               <div className="absolute inset-0 z-0">
                 <StrategicMap events={filteredEventsForMap} />
                 
                 {filteredEventsForMap.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm z-10 pointer-events-none">
-                    <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-[2rem] text-center">
-                      <div className="text-slate-400 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Territory Intelligence Status</div>
-                      <p className="text-white text-xs font-bold">No hay eventos detectados en este rango temporal</p>
+                    <div className="bg-white/5 border border-white/10 px-8 py-5 rounded-[2.5rem] text-center shadow-2xl">
+                      <div className="text-slate-500 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
+                      <p className="text-white text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Overlay Leyenda */}
-              <div className="absolute bottom-10 left-10 flex flex-col gap-3 z-20">
-                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
-                  <div className="h-2 w-2 rounded-full bg-red-500" />
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Marchas</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
-                  <div className="h-2 w-2 rounded-full bg-blue-500" />
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Reuniones</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Capacitaciones</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
-                  <div className="h-2 w-2 rounded-full bg-orange-500" />
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Otros</span>
-                </div>
+              {/* Leyenda Absoluta */}
+              <div className="absolute bottom-10 left-10 flex flex-wrap gap-4 z-20 max-w-[500px]">
+                {[
+                  { label: 'Marchas', color: 'bg-red-500' },
+                  { label: 'Reuniones', color: 'bg-blue-500' },
+                  { label: 'Capacitación', color: 'bg-emerald-500' },
+                  { label: 'Otros', color: 'bg-orange-500' }
+                ].map(item => (
+                  <div key={item.label} className="flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
+                    <div className={cn("h-2 w-2 rounded-full", item.color)} />
+                    <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">{item.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de Error de Localización */}
+      {/* Error Modal */}
       {isErrorModalOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setIsErrorModalOpen(false)}
         >
           <div 
-            className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-300"
+            className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6">
-              <AlertTriangle size={32} />
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner">
+              <AlertTriangle size={36} />
             </div>
-            <h3 className="text-xl font-black text-slate-900 mb-2">Ubicación no encontrada</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tighter">ERROR GEOGRÁFICO</h3>
             <p className="text-sm text-slate-500 font-bold leading-relaxed mb-8">
               {errorMessage}
             </p>
             <button 
               onClick={() => setIsErrorModalOpen(false)}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-colors"
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-slate-200"
             >
-              Entendido
+              Corregir Ubicación
             </button>
           </div>
         </div>
