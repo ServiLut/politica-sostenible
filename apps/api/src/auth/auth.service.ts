@@ -31,7 +31,7 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password as string))) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -97,7 +97,9 @@ export class AuthService {
         };
       });
     } catch (error: unknown) {
-      this.logger.error(`Error in registration: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Error in registration: ${error instanceof Error ? error.message : String(error)}`,
+      );
       throw new InternalServerErrorException('Error al registrar el usuario');
     }
   }

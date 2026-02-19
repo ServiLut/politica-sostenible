@@ -1,251 +1,339 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useCRM, PipelineStage, Contact } from '@/context/CRMContext';
+import { useCRM, PipelineStage } from '@/context/CRMContext';
 import { 
-  ChevronRight, 
-  ChevronLeft, 
-  MapPin, 
-  Phone, 
   Search, 
-  Filter, 
-  User, 
-  MessageCircle, 
+  MapPin, 
   PhoneCall, 
-  TrendingUp, 
-  Target,
-  ArrowRight,
-  MoreHorizontal
+  MessageCircle, 
+  Target, 
+  ChevronRight, 
+  ChevronLeft,
+  Users,
+  Filter,
+  UserCheck,
+  IdCard,
+  History,
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 const STAGES: PipelineStage[] = ['Prospecto', 'Contactado', 'Simpatizante', 'Firme', 'Votó'];
 
-const STAGE_COLORS = {
-  'Prospecto': 'border-slate-200 bg-slate-50',
-  'Contactado': 'border-blue-200 bg-blue-50/30',
-  'Simpatizante': 'border-purple-200 bg-purple-50/30',
-  'Firme': 'border-emerald-200 bg-emerald-50/30',
-  'Votó': 'border-amber-200 bg-amber-50/30'
-};
-
-const STAGE_TEXT_COLORS = {
-  'Prospecto': 'text-slate-600',
-  'Contactado': 'text-blue-600',
-  'Simpatizante': 'text-purple-600',
-  'Firme': 'text-emerald-600',
-  'Votó': 'text-amber-600'
-};
-
-const STAGE_BADGE_COLORS = {
-  'Prospecto': 'bg-slate-200 text-slate-700',
-  'Contactado': 'bg-blue-200 text-blue-700',
-  'Simpatizante': 'bg-purple-200 text-purple-700',
-  'Firme': 'bg-emerald-200 text-emerald-700',
-  'Votó': 'bg-amber-200 text-amber-700'
-};
-
 export default function PipelinePage() {
   const { contacts, team, campaignGoal, moveContactStage } = useCRM();
+  const [activeStage, setActiveStage] = useState<PipelineStage>('Prospecto');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeader, setSelectedLeader] = useState('all');
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const filteredContacts = useMemo(() => {
     return contacts.filter(c => {
+      const matchesStage = c.stage === activeStage;
       const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            c.cedula.includes(searchTerm);
-      // Nota: En el contexto actual, los contactos tienen 'neighborhood', 
-      // vincularemos el filtro de líder a los contactos que pertenecen a la zona del líder o similar
-      // Por ahora, asumiremos que si hay una asignación, se filtra.
       const matchesLeader = selectedLeader === 'all' || c.neighborhood.includes(selectedLeader);
-      return matchesSearch && matchesLeader;
+      return matchesStage && matchesSearch && matchesLeader;
     });
-  }, [contacts, searchTerm, selectedLeader]);
+  }, [contacts, activeStage, searchTerm, selectedLeader]);
 
-  // Cálculos de Estrategia
-  const confirmedVotes = contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length;
-  const targetVotes = campaignGoal; 
-  const progressPercent = targetVotes > 0 ? (confirmedVotes / targetVotes) * 100 : 0;
+  const displayedContacts = useMemo(() => {
+    return filteredContacts.slice(0, visibleCount);
+  }, [filteredContacts, visibleCount]);
 
-  const handleMove = (id: string, currentStage: PipelineStage, direction: 'next' | 'prev') => {
-    const currentIndex = STAGES.indexOf(currentStage);
-    const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-    
-    if (nextIndex >= 0 && nextIndex < STAGES.length) {
-      moveContactStage(id, STAGES[nextIndex]);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+      if (visibleCount < filteredContacts.length) {
+        setVisibleCount(prev => prev + 50);
+      }
     }
   };
 
+  const selectedContact = useMemo(() => 
+    contacts.find(c => c.id === selectedContactId) || filteredContacts[0], 
+    [contacts, selectedContactId, filteredContacts]
+  );
+
+  const funnelStats = useMemo(() => {
+    return STAGES.map((s, i) => {
+      const count = contacts.filter(c => c.stage === s).length;
+      const nextCount = contacts.filter(c => c.stage === STAGES[i+1]).length;
+      const dropRate = count > 0 ? Math.round(((count - nextCount) / count) * 100) : 0;
+      return { stage: s, count, dropRate };
+    });
+  }, [contacts]);
+
+  const confirmedVotes = contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length;
+
   return (
-    <div className="h-[calc(100vh-12rem)] flex flex-col space-y-6 animate-in fade-in duration-500">
-      {/* HEADER DE RENDIMIENTO ESTRATÉGICO */}
-      <div className="bg-[#111827] text-white p-8 rounded-[3rem] shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 border-b-4 border-blue-600">
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-3">
-            <Target className="text-blue-500" size={24} />
-            <h2 className="text-2xl font-black tracking-tighter uppercase">Avance Hacia la Victoria</h2>
-          </div>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Votos Asegurados (Firme + Votó)</p>
-          <div className="flex items-end gap-3">
-            <span className="text-5xl font-black tracking-tighter text-blue-500">{confirmedVotes.toLocaleString()}</span>
-            <span className="text-slate-500 font-bold mb-2">/ {targetVotes.toLocaleString()} META</span>
-          </div>
-        </div>
-        
-        <div className="flex-1 w-full max-w-md space-y-4">
-          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
-            <span>Progreso Electoral</span>
-            <span>{progressPercent.toFixed(2)}%</span>
-          </div>
-          <div className="h-4 w-full bg-white/10 rounded-full overflow-hidden p-1 shadow-inner">
-            <div 
-              className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(37,99,235,0.5)]"
-              style={{ width: `${Math.min(progressPercent, 100)}%` }}
-            />
+    <div className="h-[calc(100vh-4rem)] flex flex-col -m-8 bg-slate-50/50 overflow-hidden text-slate-900 font-sans">
+      
+      {/* 1. TACTICAL FUNNEL STRIP (Clean & Professional) */}
+      <div className="bg-white text-slate-500 shrink-0 border-b border-slate-200 shadow-sm z-20">
+        <div className="flex divide-x divide-slate-100 overflow-x-auto scrollbar-hide">
+          {funnelStats.map((stat, i) => (
+            <button
+              key={stat.stage}
+              onClick={() => { setActiveStage(stat.stage as PipelineStage); setVisibleCount(50); }}
+              className={cn(
+                "flex-1 px-6 py-5 transition-all hover:bg-slate-50 text-left relative overflow-hidden group min-w-[140px]",
+                activeStage === stat.stage ? "bg-teal-50/30" : "bg-transparent"
+              )}
+            >
+              <div className="flex justify-between items-start mb-1 gap-2">
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-[0.2em] truncate",
+                  activeStage === stat.stage ? "text-teal-600" : "text-slate-400"
+                )}>{stat.stage}</span>
+                {i < STAGES.length - 1 && (
+                  <span className="text-[8px] font-bold text-slate-300">
+                    Fuga: {stat.dropRate}%
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className={cn(
+                  "text-2xl font-black tabular-nums tracking-tighter",
+                  activeStage === stat.stage ? "text-slate-900" : "text-slate-600"
+                )}>{stat.count.toLocaleString()}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Pax</span>
+              </div>
+              {activeStage === stat.stage && (
+                <div className="absolute bottom-0 left-0 h-1 w-full bg-teal-600 shadow-[0_0_15px_rgba(13,148,136,0.2)]" />
+              )}
+            </button>
+          ))}
+          <div className="px-8 py-4 bg-teal-600 flex flex-col justify-center min-w-[180px] shrink-0 overflow-hidden relative shadow-inner">
+            <div className="absolute top-0 right-0 p-1 opacity-10"><Target size={48} className="text-white" /></div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-teal-50 truncate relative z-10">Meta de Victoria</span>
+            <div className="flex items-baseline gap-1 relative z-10">
+              <span className="text-2xl font-black text-white tracking-tighter">{confirmedVotes.toLocaleString()}</span>
+              <span className="text-[11px] font-bold text-teal-100/60 uppercase">/ {campaignGoal.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Gestión de Conversión</h1>
-          <p className="text-slate-500 font-medium">Mueve a los ciudadanos hacia el voto seguro.</p>
+      {/* 2. COMMAND BAR (Filters) */}
+      <div className="px-8 py-4 bg-white border-b border-slate-100 flex items-center gap-6 shrink-0 z-10 shadow-sm">
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500" size={18} />
+          <input 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre, documento o teléfono..." 
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-teal-500/5 focus:border-teal-500 outline-none transition-all"
+          />
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="h-8 w-px bg-slate-100 shrink-0" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-teal-50 rounded-xl text-teal-600 border border-teal-100"><Filter size={16} /></div>
           <select 
             value={selectedLeader}
             onChange={(e) => setSelectedLeader(e.target.value)}
-            className="px-6 py-3 bg-white border-2 border-slate-100 rounded-2xl text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+            className="bg-transparent text-[11px] font-black uppercase tracking-widest text-slate-500 focus:outline-none cursor-pointer truncate max-w-[200px]"
           >
-            <option value="all">Todos los Líderes</option>
+            <option value="all">Todo el Territorio</option>
             {team.map(m => (
-              <option key={m.id} value={m.territory}>{m.name} ({m.territory})</option>
+              <option key={m.id} value={m.territory}>{m.territory}</option>
             ))}
           </select>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nombre o cédula..." 
-              className="pl-12 pr-6 py-3 bg-white border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none focus:border-blue-500 transition-all w-64 shadow-sm"
-            />
-          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto pb-6 -mx-6 px-6 scrollbar-hide">
-        <div className="flex gap-6 h-full min-w-max">
-          {STAGES.map((stage, index) => {
-            const stageContacts = filteredContacts.filter(c => c.stage === stage);
-            const nextStage = STAGES[index + 1];
-            const nextStageCount = filteredContacts.filter(c => c.stage === nextStage).length;
+      {/* 3. MAIN AREA (Master-Detail) */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* LEFT: LIST */}
+        <div className="w-80 md:w-[400px] border-r border-slate-100 flex flex-col overflow-hidden bg-white shrink-0">
+          <div 
+            className="flex-1 overflow-y-auto custom-scrollbar"
+            onScroll={handleScroll}
+          >
+            {displayedContacts.map((contact) => (
+              <button
+                key={contact.id}
+                onClick={() => setSelectedContactId(contact.id)}
+                className={cn(
+                  "w-full text-left px-8 py-6 border-b border-slate-50 transition-all flex items-center gap-5 group relative",
+                  selectedContact?.id === contact.id ? "bg-teal-50/40" : "hover:bg-slate-50/80"
+                )}
+              >
+                {selectedContact?.id === contact.id && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-600" />
+                )}
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 transition-all",
+                  selectedContact?.id === contact.id ? "bg-teal-600 text-white shadow-lg" : "bg-slate-100 text-slate-400 group-hover:bg-teal-100 group-hover:text-teal-600"
+                )}>
+                  {contact.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    "text-[12px] font-black uppercase truncate mb-1.5",
+                    selectedContact?.id === contact.id ? "text-slate-900" : "text-slate-600"
+                  )}>{contact.name}</p>
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="text-[10px] font-bold text-slate-400 font-mono shrink-0">{contact.cedula}</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-200 shrink-0" />
+                    <span className="text-[10px] font-black text-teal-600/60 uppercase truncate">{contact.neighborhood}</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} className={cn(
+                  "transition-transform",
+                  selectedContact?.id === contact.id ? "text-teal-600 translate-x-1" : "text-slate-200"
+                )} />
+              </button>
+            ))}
             
-            // Tasa de conversión simulada
-            const convRate = stageContacts.length > 0 
-              ? Math.round((nextStageCount / (stageContacts.length + nextStageCount)) * 100) 
-              : 0;
+            {filteredContacts.length > displayedContacts.length && (
+              <div className="p-8 text-center bg-slate-50/20">
+                 <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                 <p className="text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Cargando registros tácticos...</p>
+              </div>
+            )}
 
-            return (
-              <React.Fragment key={stage}>
-                <div 
-                  className={cn(
-                    "w-80 flex flex-col rounded-[3rem] border-2 shadow-sm transition-all",
-                    STAGE_COLORS[stage]
-                  )}
-                >
-                  {/* Column Header */}
-                  <div className="px-8 py-6 flex justify-between items-center border-b border-white/50 bg-white/40 backdrop-blur-sm">
-                    <h3 className={cn("font-black text-[10px] uppercase tracking-[0.2em]", STAGE_TEXT_COLORS[stage])}>
-                      {stage}
-                    </h3>
-                    <span className={cn(
-                      "px-3 py-1 rounded-full text-[10px] font-black shadow-inner",
-                      STAGE_BADGE_COLORS[stage]
-                    )}>
-                      {stageContacts.length}
-                    </span>
+            {filteredContacts.length === 0 && (
+              <div className="p-20 text-center">
+                <Users size={48} className="text-slate-100 mx-auto mb-4" />
+                <p className="text-[11px] font-black uppercase text-slate-300 tracking-[0.2em]">Sin resultados operativos</p>
+              </div>
+            )}
+          </div>
+          <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+            <span>{filteredContacts.length.toLocaleString()} Pax Registrados</span>
+            <span className="text-teal-600">Sync Online</span>
+          </div>
+        </div>
+
+        {/* RIGHT: DETAIL */}
+        <div className="flex-1 bg-white flex flex-col overflow-hidden">
+          {selectedContact ? (
+            <div className="flex-1 flex flex-col p-10 md:p-16 overflow-y-auto custom-scrollbar">
+              <div className="max-w-4xl mx-auto w-full space-y-10">
+                
+                {/* Profile Header */}
+                <div className="relative">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-12">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="px-3 py-1 bg-teal-50 text-teal-700 text-[9px] font-black uppercase tracking-widest rounded-lg border border-teal-100 shadow-sm">Expediente de Campaña</span>
+                      </div>
+                      <h3 className="text-5xl font-black text-slate-900 tracking-tighter uppercase break-words leading-[0.85] mb-6">
+                        {selectedContact.name}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-8 text-slate-400">
+                        <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
+                          <IdCard size={18} className="text-teal-500" /> {selectedContact.cedula}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
+                          <MapPin size={18} className="text-teal-500" /> {selectedContact.neighborhood}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-[0.3em] shrink-0 shadow-2xl">
+                      {selectedContact.stage}
+                    </div>
                   </div>
 
-                  {/* Column Content */}
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-                    {stageContacts.map((contact) => (
-                      <div 
-                        key={contact.id}
-                        className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 group hover:shadow-2xl hover:-translate-y-1 transition-all animate-in fade-in zoom-in-95 duration-300"
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-sm text-slate-500 border border-slate-100 shadow-inner">
-                            {contact.name.charAt(0)}
-                          </div>
-                          <div className="flex gap-1">
-                            <button 
-                              onClick={() => handleMove(contact.id, stage, 'prev')}
-                              disabled={STAGES.indexOf(stage) === 0}
-                              className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl disabled:opacity-0 transition-all"
-                            >
-                              <ChevronLeft size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleMove(contact.id, stage, 'next')}
-                              disabled={STAGES.indexOf(stage) === STAGES.length - 1}
-                              className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl disabled:opacity-0 transition-all"
-                            >
-                              <ChevronRight size={18} />
-                            </button>
-                          </div>
-                        </div>
-
-                        <h4 className="text-sm font-black text-slate-900 mb-4 tracking-tight leading-tight uppercase">{contact.name}</h4>
-                        
-                        <div className="space-y-2 pt-4 border-t border-slate-50">
-                          <div className="flex items-center gap-2 text-[9px] font-black uppercase text-slate-400">
-                            <MapPin size={10} className="text-blue-500" /> {contact.neighborhood}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 mt-4">
-                          <button 
-                            className="flex items-center justify-center gap-2 py-2 bg-blue-50 text-blue-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
-                            onClick={() => window.open(`tel:${contact.phone}`)}
-                          >
-                            <PhoneCall size={12} /> Llamar
-                          </button>
-                          <button 
-                            className="flex items-center justify-center gap-2 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all"
-                            onClick={() => window.open(`https://wa.me/${contact.phone}`)}
-                          >
-                            <MessageCircle size={12} /> WhatsApp
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {stageContacts.length === 0 && (
-                      <div className="h-40 border-2 border-dashed border-slate-200/50 rounded-[2.5rem] flex flex-col items-center justify-center bg-white/20">
-                        <User size={24} className="text-slate-200 mb-2" />
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center px-6">
-                          Sin actividad
-                        </p>
-                      </div>
-                    )}
+                  {/* Operational Actions */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                    <button onClick={() => window.open(`tel:${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-6 bg-slate-50 text-slate-600 rounded-[2rem] hover:bg-teal-600 hover:text-white transition-all transform hover:-translate-y-1 border border-slate-100 shadow-sm group">
+                      <PhoneCall size={24} className="mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Llamada</span>
+                    </button>
+                    <button onClick={() => window.open(`https://wa.me/${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-6 bg-emerald-50 text-emerald-700 rounded-[2rem] hover:bg-emerald-600 hover:text-white transition-all transform hover:-translate-y-1 border border-emerald-100 shadow-sm group">
+                      <MessageCircle size={24} className="mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">WhatsApp</span>
+                    </button>
+                    <button 
+                      onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) - 1])}
+                      disabled={STAGES.indexOf(selectedContact.stage) === 0}
+                      className="flex flex-col items-center justify-center p-6 bg-slate-50 text-slate-400 rounded-[2rem] hover:bg-rose-500 hover:text-white disabled:opacity-30 transition-all border border-slate-100 group"
+                    >
+                      <ChevronLeft size={24} className="mb-3" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Retroceder</span>
+                    </button>
+                    <button 
+                      onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) + 1])}
+                      disabled={STAGES.indexOf(selectedContact.stage) === STAGES.length - 1}
+                      className="flex flex-col items-center justify-center p-6 bg-teal-600 text-white rounded-[2rem] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 transform hover:-translate-y-1 group"
+                    >
+                      <ChevronRight size={24} className="mb-3 group-hover:translate-x-1 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Avanzar</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* CONVERSION RATE INDICATOR */}
-                {index < STAGES.length - 1 && (
-                  <div className="flex flex-col justify-center items-center gap-2 group">
-                    <div className="h-px w-8 bg-slate-200 group-hover:bg-blue-400 transition-all" />
-                    <div className="bg-white border border-slate-100 px-2 py-1 rounded-full shadow-sm">
-                      <span className="text-[8px] font-black text-blue-600">{convRate}%</span>
+                {/* Grid Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-8">
+                    <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-teal-500" /> Localización
+                    </h4>
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Dirección</p>
+                        <p className="text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.address || 'No registrada'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Zona Electoral</p>
+                        <p className="text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.neighborhood}</p>
+                      </div>
                     </div>
-                    <ArrowRight size={14} className="text-slate-300 group-hover:text-blue-500 transition-all" />
-                    <div className="h-px w-8 bg-slate-200 group-hover:bg-blue-400 transition-all" />
                   </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+
+                  <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-8">
+                    <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-teal-500" /> Trazabilidad
+                    </h4>
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Vinculación</p>
+                        <p className="text-md font-bold text-slate-700 font-mono">{new Date(selectedContact.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Legalidad</p>
+                        <div className="flex items-center gap-2 bg-emerald-100/50 w-fit px-4 py-2 rounded-2xl border border-emerald-200">
+                          <UserCheck size={14} className="text-emerald-600" />
+                          <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Habeas Data OK</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Analytics Strip */}
+                <div className="bg-teal-50 p-8 rounded-[2.5rem] flex items-center justify-between border border-teal-100 relative overflow-hidden group shadow-sm">
+                   <div className="absolute inset-0 bg-gradient-to-r from-teal-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                   <div className="flex items-center gap-6 relative z-10">
+                      <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 border border-teal-100 shadow-sm">
+                        <Target size={32} />
+                      </div>
+                      <div>
+                         <p className="text-md font-black text-slate-900 uppercase tracking-tight">Análisis de Intención de Voto</p>
+                         <p className="text-[11px] text-teal-600 font-bold uppercase tracking-[0.2em]">Prioridad de contacto: Máxima Inmediata</p>
+                      </div>
+                   </div>
+                   <button className="bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-2xl transition-all shadow-lg shadow-teal-100 flex items-center justify-center relative z-10 hover:rotate-12 transform">
+                      <ExternalLink size={24} />
+                   </button>
+                </div>
+
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center">
+               <div className="w-32 h-34 bg-slate-50 rounded-[3rem] flex items-center justify-center mb-8 border border-slate-100 shadow-inner">
+                 <Users size={64} className="text-slate-200" />
+               </div>
+               <p className="text-xs font-black uppercase tracking-[0.5em] text-slate-300 animate-pulse">Seleccione un ciudadano para mando táctico</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

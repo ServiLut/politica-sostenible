@@ -33,22 +33,26 @@ import { cn } from '@/components/ui/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const TOPE_LEGAL_CNE = 50000000; // 50.000.000 COP
-
 export default function CompliancePage() {
-  const { compliance, finance, getComplianceScore, uploadEvidence, logAction, auditLogs } = useCRM();
+  const { 
+    compliance, 
+    finance, 
+    getComplianceScore, 
+    uploadEvidence, 
+    logAction, 
+    auditLogs,
+    getProjectedCompliance,
+    TOPE_LEGAL_CNE 
+  } = useCRM();
+
   const score = getComplianceScore();
+  const projectedData = getProjectedCompliance();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // LÓGICA DE CÁLCULO DE TOPES (REAL)
   const complianceStats = useMemo(() => {
-    // Sumar todos los registros de Gasto (OUT) que estén APPROVED o REPORTED_CNE
-    const approvedExpenses = finance
-      .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
-      .reduce((a, b) => a + b.amount, 0);
-
-    const executionPercentage = (approvedExpenses / TOPE_LEGAL_CNE) * 100;
+    const { actualExpenses, projectedEventsCost, totalProjected, executionPercentage } = projectedData;
 
     // Agrupar por Código CNE para Gráfico de Torta
     const expensesByCne = finance
@@ -61,25 +65,27 @@ export default function CompliancePage() {
 
     const pieData = Object.entries(expensesByCne).map(([name, value]) => ({ name, value }));
 
-    // Gráfico de Barras: Presupuesto vs Real
+    // Gráfico de Barras: Real vs Proyectado vs Tope
     const barData = [
-      { name: 'Presupuesto Legal', monto: TOPE_LEGAL_CNE },
-      { name: 'Gasto Real', monto: approvedExpenses }
+      { name: 'Gasto Real', monto: actualExpenses, fill: '#2563eb' },
+      { name: 'Gasto Proyectado', monto: projectedEventsCost, fill: '#8b5cf6' },
+      { name: 'Tope Legal', monto: TOPE_LEGAL_CNE, fill: '#f1f5f9' }
     ];
 
     return {
       executionPercentage,
+      totalProjected,
       pieData,
       barData
     };
-  }, [finance]);
+  }, [finance, projectedData, TOPE_LEGAL_CNE]);
 
-  const { executionPercentage, pieData, barData } = complianceStats;
+  const { executionPercentage, pieData, barData, totalProjected } = complianceStats;
 
   // SISTEMA DE ALERTA "SEMÁFORO"
   const alertStatus = useMemo(() => {
     if (executionPercentage > 90) return { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', msg: '¡PELIGRO! Riesgo de sanción administrativa por superar topes', icon: <ShieldAlert className="animate-pulse" size={32} />, critical: true };
-    if (executionPercentage >= 70) return { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', msg: 'Atención: Se acerca al límite legal', icon: <AlertTriangle size={32} />, critical: false };
+    if (executionPercentage >= 70) return { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', msg: 'Atención: Se acerca al límite legal (Incluyendo Proyectados)', icon: <AlertTriangle size={32} />, critical: false };
     return { color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', msg: 'Estado Seguro: Operación dentro de límites legales', icon: <ShieldCheck size={32} />, critical: false };
   }, [executionPercentage]);
 
@@ -94,10 +100,11 @@ export default function CompliancePage() {
     doc.text("INFORME DE COMPLIANCE - CUENTAS CLARAS", 14, 22);
     doc.setFontSize(10);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
-    doc.text(`Porcentaje de Ejecución: ${executionPercentage.toFixed(2)}%`, 14, 35);
+    doc.text(`Porcentaje de Ejecución Proyectada: ${executionPercentage.toFixed(2)}%`, 14, 35);
+    doc.text(`Gasto Real: ${formatCOP(projectedData.actualExpenses)}`, 14, 40);
 
     autoTable(doc, {
-      startY: 45,
+      startY: 50,
       head: [['Categoría CNE', 'Total Gastado']],
       body: pieData.map(d => [d.name, formatCOP(d.value as number)]),
       headStyles: { fillColor: [15, 23, 42] }
@@ -142,33 +149,44 @@ export default function CompliancePage() {
           <h3 className="text-2xl font-black tracking-tighter">{alertStatus.msg}</h3>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Tope Ejecutado</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Tope Proyectado</p>
           <h3 className="text-4xl font-black">{executionPercentage.toFixed(1)}%</h3>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* GRÁFICO DE BARRAS: PRESUPUESTO VS REAL */}
-        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-2 mb-8">
             <BarChart3 className="text-blue-600" size={20} />
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Presupuesto Inicial vs Gasto Real</h3>
+            <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Ejecución Presupuestal Detallada</h3>
           </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                <YAxis hide />
-                <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
-                  {barData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#f1f5f9' : (executionPercentage > 90 ? '#ef4444' : '#2563eb')} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {barData.every(d => d.monto === 0 && d.name !== 'Tope Legal') ? (
+            <div className="h-[300px] flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+               <Scale className="text-slate-300 mb-2" size={32} />
+               <p className="text-[10px] font-black uppercase text-slate-400">Sin gastos registrados</p>
+               <p className="text-[8px] font-bold text-slate-400 mt-1 max-w-[200px]">Registra egresos en el módulo de Finanzas para ver el comparativo legal.</p>
+            </div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                  <YAxis hide />
+                  <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                  <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
+                    {barData.map((entry: any, index: number) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={executionPercentage > 90 && entry.name !== 'Tope Legal' ? '#ef4444' : entry.fill} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* GRÁFICO DE TORTA: GASTOS POR CÓDIGO CNE */}
@@ -177,27 +195,35 @@ export default function CompliancePage() {
             <PieIcon className="text-emerald-500" size={20} />
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Gastos por Categoría Legal (CNE)</h3>
           </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} />
-                <Legend verticalAlign="bottom" height={36} wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {pieData.length === 0 ? (
+            <div className="h-[300px] flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+               <PieIcon className="text-slate-300 mb-2" size={32} />
+               <p className="text-[10px] font-black uppercase text-slate-400">Sin categorías reportadas</p>
+               <p className="text-[8px] font-bold text-slate-400 mt-1 max-w-[200px]">Asigna un Código CNE a tus gastos para ver la distribución.</p>
+            </div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
@@ -298,23 +324,26 @@ export default function CompliancePage() {
                 El archivo debe ser una factura o documento oficial que respalde el cumplimiento ante el CNE.
               </p>
               
-              <div className="border-2 border-dashed border-slate-100 p-12 rounded-[2.5rem] bg-slate-50 mb-8 flex flex-col items-center">
-                <Upload size={32} className="text-slate-300 mb-2" />
-                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Arrastra el archivo PDF aquí</p>
+              <div className="relative border-2 border-dashed border-slate-100 p-12 rounded-[2.5rem] bg-slate-50 mb-8 flex flex-col items-center group hover:border-blue-300 transition-all cursor-pointer">
+                <input 
+                  type="file" 
+                  accept=".pdf,.jpg,.png"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && selectedId) {
+                      uploadEvidence(selectedId, file.name);
+                      logAction('Admin', `Cargó evidencia: ${file.name} para hito: ${selectedId}`, 'Compliance', 'Info');
+                      setIsModalOpen(false);
+                    }
+                  }}
+                />
+                <Upload size={32} className="text-slate-300 mb-2 group-hover:text-blue-500 transition-colors" />
+                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Haz clic para seleccionar PDF</p>
               </div>
 
               <div className="flex gap-4">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400">Cancelar</button>
-                <button 
-                  onClick={() => {
-                    if (selectedId) uploadEvidence(selectedId, 'soporte_cargado.pdf');
-                    logAction('Admin', `Cargó evidencia para hito: ${selectedId}`, 'Compliance', 'Info');
-                    setIsModalOpen(false);
-                  }}
-                  className="flex-1 bg-slate-900 text-white rounded-2xl py-4 font-black uppercase text-xs shadow-xl hover:bg-emerald-600 transition-all"
-                >
-                  Subir Soporte
-                </button>
               </div>
             </div>
           </div>
