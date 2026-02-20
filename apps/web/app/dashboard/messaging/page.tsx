@@ -10,11 +10,13 @@ import {
   X, 
   Loader2,
   Pencil,
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function MessagingPage() {
-  const { broadcasts, sendBroadcast, updateBroadcast } = useCRM();
+  const { broadcasts, sendBroadcast, updateBroadcast, toggleBroadcastStatus } = useCRM();
   const { success: toastSuccess } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,7 +95,9 @@ export default function MessagingPage() {
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       <button onClick={() => handleOpenModal(b)} className="p-2 text-slate-400 hover:text-teal-600 hover:bg-white rounded-xl transition-all shadow-sm"><Pencil size={16} /></button>
-                      
+                      <button onClick={() => toggleBroadcastStatus(b.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-white rounded-xl transition-all shadow-sm">
+                        {b.activeStatus === 'active' ? <Ban size={16} /> : <RotateCcw size={16} />}
+                      </button>
                     </div>
                   </td>
                 </tr>

@@ -531,7 +531,7 @@ export default function EventsPage() {
               <X size={20} className="group-hover:rotate-90 transition-transform" />
             </button>
 
-            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
+            <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[2.5rem] md:rounded-t-[3rem]">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                 <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.3em]">Planificación de Mando</span>
@@ -556,21 +556,21 @@ export default function EventsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
-                    <input required type="date" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                    <input required type="date" className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
                     <div className="relative">
                       <div
                         onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
-                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
+                        className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
                       >
                         <span className="text-slate-900 font-black uppercase text-[10px]">{newEvent.type}</span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
                       </div>
 
                       {isModalTypeOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                           {EVENT_TYPES.map(type => (
                             <div
                               key={type}
@@ -666,21 +666,20 @@ export default function EventsPage() {
           >
             <button
               onClick={() => setIsMapModalOpen(false)}
-              className="absolute top-8 right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+              className="absolute top-6 md:top-8 right-6 md:right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
             >
               <X size={20} className="group-hover:rotate-90 transition-transform" />
             </button>
 
-            <div className="px-10 py-10 border-b border-slate-100 bg-white">
+            <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-100 bg-white">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                 <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.25em]">Geolocalización Territorial</span>
               </div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+              <h3 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight uppercase truncate pr-10">
                 {selectedLocation}
               </h3>
             </div>
-
             <div className="flex-1 bg-slate-100 relative min-h-[500px]">
               <iframe
                 width="100%"
@@ -693,18 +692,18 @@ export default function EventsPage() {
               />
             </div>
 
-            <div className="px-10 py-8 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+            <div className="px-6 md:px-10 py-6 md:py-8 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100">
               <div className="flex items-center gap-4 text-slate-500">
                 <div className="h-10 w-10 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0 shadow-inner border border-teal-100">
                   <Globe size={18} />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-widest leading-relaxed">
-                  Utilice los controles del mapa para explorar el área estratégica del evento.
+                <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+                  Utilice los controles del mapa para explorar el área estratégica.
                 </p>
               </div>
               <button
                 onClick={() => setIsMapModalOpen(false)}
-                className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
+                className="w-full sm:w-auto px-12 py-4 md:py-5 bg-slate-900 text-white rounded-[1.25rem] md:rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
               >
                 Cerrar Vista
               </button>
@@ -725,14 +724,14 @@ export default function EventsPage() {
           >
             <button
               onClick={() => setIsGlobalMapOpen(false)}
-              className="absolute top-8 left-8 z-[60] p-3 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-2xl border border-white/10 hover:border-red-500/30 transition-all group"
+              className="absolute top-4 md:top-8 right-4 md:left-8 md:right-auto z-[60] p-2 md:p-3 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl md:rounded-2xl border-2 border-teal-100 hover:border-red-100 shadow-sm transition-all group"
             >
-              <X size={20} className="group-hover:-rotate-90 transition-transform" />
+              <X size={18} className="md:w-5 md:h-5 group-hover:-rotate-90 transition-transform" />
             </button>
 
-            <div className="p-10 border-b border-white/5 bg-white/5 relative z-20 pl-24">
-              <div className="flex flex-row items-center justify-between gap-8">
-                <div>
+            <div className="pt-14 pb-6 md:py-10 px-5 md:px-10 md:pl-24 border-b-2 border-slate-100 bg-slate-50/30 relative z-20">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8">
+                <div className="md:pr-10">
                   <div className="flex items-center gap-3 mb-1">
                     <div className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
                     <span className="text-[10px] font-black uppercase text-teal-400 tracking-[0.3em]">Territory Intelligence System</span>
@@ -843,6 +842,7 @@ export default function EventsPage() {
                       </div>
                     )}
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -855,28 +855,27 @@ export default function EventsPage() {
 
               <div className="absolute inset-0 z-0">
                 <StrategicMap events={filteredEventsForMap} />
-
                 {filteredEventsForMap.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm z-10 pointer-events-none">
-                    <div className="bg-white/5 border border-white/10 px-8 py-5 rounded-[2.5rem] text-center shadow-2xl">
-                      <div className="text-slate-500 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
-                      <p className="text-white text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
+                  <div className="absolute inset-0 flex items-center justify-center bg-teal-50/20 backdrop-blur-[2px] z-10 pointer-events-none">
+                    <div className="bg-white border-2 border-teal-100 px-6 md:px-8 py-4 md:py-5 rounded-[2rem] md:rounded-[2.5rem] text-center shadow-2xl shadow-teal-200/50 mx-4">
+                      <div className="text-teal-400 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
+                      <p className="text-slate-900 text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Leyenda Absoluta */}
-              <div className="absolute bottom-10 left-10 flex flex-wrap gap-4 z-20 max-w-[500px]">
+              <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-auto flex flex-wrap md:flex-row items-center gap-2 md:gap-4 z-20 overflow-visible pb-2">
                 {[
                   { label: 'Marchas', color: 'bg-rose-500' },
                   { label: 'Reuniones', color: 'bg-teal-500' },
                   { label: 'Capacitación', color: 'bg-emerald-500' },
                   { label: 'Otros', color: 'bg-orange-500' }
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
-                    <div className={cn("h-2 w-2 rounded-full", item.color)} />
-                    <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">{item.label}</span>
+                  <div key={item.label} className="flex items-center gap-2 md:gap-3 bg-white/90 backdrop-blur-md border-2 border-teal-50 px-2.5 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-teal-500/5 shrink-0">
+                    <div className={cn("h-2 md:h-2.5 w-2 md:w-2.5 rounded-full shadow-sm", item.color)} />
+                    <span className="text-[8px] md:text-[9px] font-black text-slate-700 uppercase tracking-widest whitespace-nowrap">{item.label}</span>
                   </div>
                 ))}
               </div>

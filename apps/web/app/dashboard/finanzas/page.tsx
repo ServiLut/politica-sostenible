@@ -26,7 +26,6 @@ export default function FinanzasPage() {
   });
 
   useEffect(() => {
-     
     setMounted(true);
   }, []);
 
