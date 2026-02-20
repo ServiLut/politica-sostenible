@@ -98,7 +98,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center text-sm font-black text-white shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center text-sm font-black shadow-sm transition-all">
               {user?.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">

@@ -4,9 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, MoreVertical, Pencil, Trash2, Check } from 'lucide-react';
 import { CampaignEvent } from '@/context/CRMContext';
 import { getCoordsForLocation, Coordinate } from '@/utils/geo';
+import { cn } from '@/components/ui/utils';
 
 // This component will automatically re-center the map when the events change
 function RecenterAutomatically({ events }: { events: CampaignEvent[] }) {
@@ -37,14 +38,6 @@ function RecenterAutomatically({ events }: { events: CampaignEvent[] }) {
   return null;
 }
 
-function ChangeView({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
-  return null;
-}
-
 // Custom icons for different event types
 const createCustomIcon = (color: string) => {
   if (typeof window === 'undefined') return null;
@@ -61,6 +54,8 @@ const createCustomIcon = (color: string) => {
   });
 };
 
+const MEDELLIN_CENTER: [number, number] = [6.2442, -75.5812];
+
 interface StrategicMapProps {
   events: CampaignEvent[];
   onEdit?: (event: CampaignEvent) => void;
@@ -71,7 +66,6 @@ interface StrategicMapProps {
 export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: StrategicMapProps) {
   const [isReady, setIsReady] = useState(false);
   const [openOptionsId, setOpenOptionsId] = useState<string | null>(null);
-  const center: [number, number] = [6.2442, -75.5812]; // Medellin Center
 
   useEffect(() => {
     // Fix for default marker icons in Leaflet + Next.js
@@ -94,13 +88,12 @@ export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: Stra
   return (
     <div className="w-full h-full relative z-0 min-h-[400px]">
       <MapContainer 
-        center={center} 
+        center={MEDELLIN_CENTER} 
         zoom={13} 
         scrollWheelZoom={true} 
         className="w-full h-full"
         style={{ background: '#F8FAFC', height: '100%', width: '100%' }}
       >
-        <ChangeView center={center} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -126,8 +119,8 @@ export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: Stra
           // 4. Fallback final cerca del centro para que no desaparezca
           if (!position && event.location) {
             position = { 
-              lat: center[0] + (idx * 0.002), 
-              lng: center[1] + (idx * 0.002) 
+              lat: MEDELLIN_CENTER[0] + (idx * 0.002), 
+              lng: MEDELLIN_CENTER[1] + (idx * 0.002) 
             };
           }
 
@@ -156,65 +149,94 @@ export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: Stra
 
           return (
             <Marker key={event.id} position={finalPosition} icon={icon}>
-              <Popup className="custom-popup">
-                <div className="p-4 min-w-[220px] bg-white rounded-2xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${badgeClass}`}>
-                      {event.type}
-                    </span>
-                  </div>
-                  
-                  <h4 className="text-sm font-black text-slate-900 leading-tight mb-1">{event.title}</h4>
-                  <p className="text-[11px] text-slate-500 font-bold mb-3 italic">
-                    {new Date(event.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                  
-                  <button 
-                    onClick={() => {
-                      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ", Medellin, Antioquia, Colombia")}`;
-                      window.open(url, '_blank');
-                    }}
-                    className="flex items-center gap-2 text-slate-400 mb-4 hover:text-teal-600 transition-colors group/loc"
-                  >
-                    <MapPin size={12} className="group-hover/loc:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider border-b border-transparent group-hover/loc:border-teal-200">
-                      {event.location}
-                    </span>
-                  </button>
-                  
+              <Popup 
+                className="custom-popup" 
+                autoPan={false}
+                closeOnClick={false}
+              >
+                <div 
+                  className="p-5 min-w-[240px] bg-white rounded-3xl relative overflow-visible"
+                  ref={(node) => {
+                    if (node) {
+                      L.DomEvent.disableClickPropagation(node);
+                      L.DomEvent.disableScrollPropagation(node);
+                    }
+                  }}
+                >
+                  {/* Action Dots - Back to Original Size */}
                   {isAdmin && (
-                    <div className="relative">
+                    <div className="absolute top-4 right-4 z-50">
                       <button 
-                        onClick={() => setOpenOptionsId(openOptionsId === event.id ? null : event.id)}
-                        className="w-full py-2.5 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-teal-700 transition-all shadow-lg shadow-teal-200/50 active:scale-[0.98] flex items-center justify-center gap-2"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setOpenOptionsId(openOptionsId === event.id ? null : event.id);
+                        }}
+                        className={cn(
+                          "p-2 rounded-xl transition-all hover:bg-slate-50",
+                          openOptionsId === event.id ? "text-teal-600 bg-teal-50" : "text-slate-400"
+                        )}
                       >
-                        <MoreHorizontal size={14} /> Gestión de Evento
+                        <MoreVertical size={18} />
                       </button>
 
                       {openOptionsId === event.id && (
-                        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[100]">
+                        <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100] p-1.5">
                           <button 
+                            type="button"
                             onClick={() => {
                               onEdit?.(event);
                               setOpenOptionsId(null);
                             }}
-                            className="w-full px-4 py-3 hover:bg-teal-50 text-[10px] font-bold text-slate-600 hover:text-teal-600 flex items-center gap-3 transition-colors border-b border-slate-50"
+                            className="w-full px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-teal-50 hover:text-teal-600 flex items-center gap-3 transition-all text-slate-600"
                           >
-                            <Pencil size={12} /> Editar Registro
+                            <Pencil size={14} /> Editar
                           </button>
                           <button 
+                            type="button"
                             onClick={() => {
                               onDelete?.(event.id);
                               setOpenOptionsId(null);
                             }}
-                            className="w-full px-4 py-3 hover:bg-red-50 text-[10px] font-bold text-slate-600 hover:text-red-600 flex items-center gap-3 transition-colors"
+                            className="w-full px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-50 hover:text-rose-600 flex items-center gap-3 transition-all text-slate-600"
                           >
-                            <Trash2 size={12} /> Eliminar Registro
+                            <Trash2 size={14} /> Eliminar
                           </button>
                         </div>
                       )}
                     </div>
                   )}
+
+                  <div className="flex items-center gap-2 mb-4 pr-10">
+                    <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border tracking-widest ${badgeClass}`}>
+                      {event.type}
+                    </span>
+                  </div>
+                  
+                  <h4 className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-[0.9] mb-2 pr-10">{event.title}</h4>
+                  
+                  <div className="flex items-center gap-2 text-teal-600 mb-4">
+                    <Check size={14} className="shrink-0" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">
+                      {new Date(event.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ", Medellin, Antioquia, Colombia")}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-2xl text-slate-500 hover:text-teal-600 hover:bg-teal-50 transition-all group/loc border border-transparent hover:border-teal-100"
+                    >
+                      <MapPin size={14} className="text-teal-500 group-hover/loc:scale-110 transition-transform" />
+                      <span className="text-[10px] font-bold uppercase tracking-tight truncate">
+                        {event.location}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </Popup>
             </Marker>
@@ -268,7 +290,7 @@ export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: Stra
         .custom-popup .leaflet-popup-content-wrapper {
           border-radius: 1.5rem;
           padding: 0;
-          overflow: hidden;
+          overflow: visible;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
         .custom-popup .leaflet-popup-content {

@@ -9,8 +9,7 @@ import {
   TrendingDown, 
   Receipt, 
   AlertCircle,
-  ShieldCheck,
-  Plus
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 

@@ -3,6 +3,7 @@
 import React from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy, Medal, Zap } from 'lucide-react';
+import { cn } from './ui/utils';
 
 const TOP_VOLUNTEERS = [
   { name: 'Diana Rivera', points: 1250, rank: 1, avatar: '👩‍💼', trend: 'up' },
@@ -36,34 +37,39 @@ export const VolunteerRanking = () => {
       </div>
 
       <div className="space-y-3">
-        {TOP_VOLUNTEERS.map((v) => (
+        {TOP_VOLUNTEERS.map((v, idx) => (
           <div 
             key={v.rank} 
             className={`flex items-center gap-4 p-4 rounded-2xl transition-all border ${
-              v.rank === 1 ? 'bg-blue-50 border-blue-100 ring-1 ring-blue-200' : 'bg-white border-gray-50'
+              v.rank === 1 ? 'bg-teal-50 border-teal-100 shadow-sm' : 'bg-white border-slate-50'
             }`}
           >
             <div className="relative">
-              <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full text-2xl shadow-sm border border-gray-100">
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center rounded-2xl text-xl shadow-sm border shrink-0 transition-all",
+                idx === 0 ? "bg-teal-50 text-teal-600 border-teal-100" :
+                idx === 1 ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                "bg-slate-50 text-slate-500 border-slate-100"
+              )}>
                 {v.avatar}
               </div>
-              <div className="absolute -top-2 -left-2">
-                {v.rank === 1 && <Medal className="w-6 h-6 text-yellow-500 fill-yellow-200" />}
-                {v.rank === 2 && <Medal className="w-6 h-6 text-gray-400 fill-gray-100" />}
-                {v.rank === 3 && <Medal className="w-6 h-6 text-amber-600 fill-amber-100" />}
+              <div className="absolute -top-2 -left-2 z-10">
+                {v.rank === 1 && <Medal className="w-6 h-6 text-yellow-500 fill-yellow-200 drop-shadow-sm" />}
+                {v.rank === 2 && <Medal className="w-6 h-6 text-slate-400 fill-slate-100 drop-shadow-sm" />}
+                {v.rank === 3 && <Medal className="w-6 h-6 text-amber-600 fill-amber-100 drop-shadow-sm" />}
               </div>
             </div>
             
             <div className="flex-1">
-              <p className="font-bold text-gray-900 leading-none mb-1">{v.name}</p>
+              <p className="font-black text-slate-900 uppercase tracking-tight text-sm mb-1">{v.name}</p>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-blue-600">{v.points}</span>
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">registros</span>
+                <span className="text-xs font-black text-teal-600">{v.points}</span>
+                <span className="text-[8px] uppercase font-black text-slate-400 tracking-widest">registros</span>
               </div>
             </div>
 
             <div className="text-right">
-              <p className={`text-xs font-bold ${v.rank === 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <p className={`text-xs font-black ${v.rank === 1 ? 'text-teal-600' : 'text-slate-300'}`}>
                 #{v.rank}
               </p>
             </div>
