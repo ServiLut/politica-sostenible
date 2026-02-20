@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic';
 import jsPDF from "jspdf";
 import { getCoordsForLocation, Coordinate } from '@/utils/geo';
 
-const StrategicMap = dynamic(() => import('@/components/layout/StrategicMap'), { 
+const StrategicMap = dynamic(() => import('@/components/layout/StrategicMap'), {
   ssr: false,
   loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 font-black animate-pulse">CARGANDO INTELIGENCIA TERRITORIAL...</div>
 });
@@ -25,7 +25,7 @@ export default function EventsPage() {
   const { events, addEvent, updateEvent, deleteEvent, rsvpEvent, logAction } = useCRM();
   const { user } = useAuth();
   const { success: toastSuccess, info: toastInfo } = useToast();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -52,7 +52,7 @@ export default function EventsPage() {
     return events.filter(event => {
       const filterType = mapFilterType.trim().toLowerCase();
       const eventType = event.type.trim().toLowerCase();
-      
+
       let matchesType = filterType === "all";
       if (!matchesType) {
         if (filterType === "otro" || filterType === "otros") {
@@ -61,23 +61,23 @@ export default function EventsPage() {
           matchesType = eventType === filterType;
         }
       }
-      
+
       const eventDateStr = event.date.includes('T') ? event.date.split('T')[0] : event.date;
       const afterStart = !mapFilterStartDate || eventDateStr >= mapFilterStartDate;
       const beforeEnd = !mapFilterEndDate || eventDateStr <= mapFilterEndDate;
       const matchesDate = afterStart && beforeEnd;
-      
+
       const search = mapSearch.trim().toLowerCase();
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         event.title.toLowerCase().includes(search) ||
         event.location.toLowerCase().includes(search);
-      
+
       return matchesType && matchesDate && matchesSearch;
     });
   }, [events, mapFilterType, mapFilterStartDate, mapFilterEndDate, mapSearch]);
 
 
-  
+
   const [newEvent, setNewEvent] = useState<Omit<CampaignEvent, 'id' | 'attendeesCount'>>({
     title: '',
     date: '',
@@ -93,9 +93,9 @@ export default function EventsPage() {
   const handleGeneratePoster = async (event: CampaignEvent) => {
     setIsGeneratingPoster(event.id);
     toastInfo(`Generando convocatoria oficial: ${event.title}`);
-    
+
     await new Promise(r => setTimeout(r, 1500));
-    
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -135,20 +135,20 @@ export default function EventsPage() {
       doc.setFontSize(9);
       doc.setTextColor(teal600);
       doc.text(label.toUpperCase(), sidebarWidth / 2, y, { align: 'center' });
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(white);
       const valueLines = doc.splitTextToSize(value, sidebarWidth - margin*2);
       doc.text(valueLines, sidebarWidth / 2, y + 5, { align: 'center' });
-      
+
       y += 25;
     };
 
     drawSidebarInfo("Tipo de Evento", event.type);
     drawSidebarInfo("Prioridad", event.priority || 'Media');
     drawSidebarInfo("Meta Asistentes", `${event.targetAttendees || 100} asistentes`);
-    
+
     // --- Main Content ---
     let contentY = margin + 5;
     // Date Box
@@ -159,12 +159,12 @@ export default function EventsPage() {
     doc.setFontSize(12);
     doc.setTextColor(slate700);
     doc.text("FECHA DEL EVENTO:", contentX + 8, contentY + 13);
-    
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(teal600);
     doc.text(event.date, contentX + 50, contentY + 13);
-    
+
     // Main Title
     contentY += 45;
     doc.setFont("helvetica", "bold");
@@ -179,14 +179,14 @@ export default function EventsPage() {
     doc.setFontSize(11);
     doc.setTextColor(slate500);
     doc.text("LUGAR:", contentX, contentY);
-    
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(slate700);
     const locationLines = doc.splitTextToSize(event.location, contentWidth);
     doc.text(locationLines, contentX, contentY + 6);
     contentY += (locationLines.length * 6) + 10;
-    
+
     // Separator
     doc.setDrawColor(slate100);
     doc.setLineWidth(0.5);
@@ -221,7 +221,7 @@ export default function EventsPage() {
 
     doc.save(`Convocatoria_${event.title.replace(/\s+/g, '_')}.pdf`);
     logAction("Usuario", `Convocatoria Generada: ${event.title}`, "Eventos", "Info");
-    
+
     setIsGeneratingPoster(null);
     toastSuccess("Poster de convocatoria descargado.");
   };
@@ -344,15 +344,15 @@ export default function EventsPage() {
             Planificación estratégica de movilización, capacitación y eventos masivos.
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsGlobalMapOpen(true)}
             className="group h-14 px-8 bg-white text-slate-900 border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-sm hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center gap-3"
           >
             <Map size={18} className="text-teal-600 group-hover:scale-110 transition-transform" /> Mapa Táctico
           </button>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="h-14 px-8 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-teal-600 hover:shadow-teal-100 transition-all flex items-center gap-3 group"
           >
@@ -385,8 +385,8 @@ export default function EventsPage() {
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Efectividad Meta</p>
           <div className="flex items-end justify-between">
             <h4 className="text-3xl font-black text-slate-900">
-              {events.length > 0 
-                ? Math.round((events.reduce((a, c) => a + c.attendeesCount, 0) / events.reduce((a, c) => a + (c.targetAttendees || 100), 0)) * 100) 
+              {events.length > 0
+                ? Math.round((events.reduce((a, c) => a + c.attendeesCount, 0) / events.reduce((a, c) => a + (c.targetAttendees || 100), 0)) * 100)
                 : 0}%
             </h4>
             <div className="h-8 w-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
@@ -444,12 +444,12 @@ export default function EventsPage() {
                 </div>
 
                 <div className="space-y-6 mb-10">
-                  <button 
+                  <button
                     onClick={() => handleMapClick(event.location)}
                     className="flex items-center gap-3 text-slate-400 text-[11px] font-bold uppercase hover:text-teal-600 transition-colors w-full group/loc"
                   >
                     <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/loc:bg-teal-50 transition-colors">
-                      <MapPin size={16} className="text-teal-500" /> 
+                      <MapPin size={16} className="text-teal-500" />
                     </div>
                     <span className="truncate border-b border-transparent group-hover/loc:border-teal-200">
                       {event.location}
@@ -462,7 +462,7 @@ export default function EventsPage() {
                       <p className="text-[10px] font-black text-slate-900 uppercase">{progress.toFixed(0)}%</p>
                     </div>
                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={cn(
                           "h-full transition-all duration-1000",
                           progress > 80 ? "bg-emerald-500" : progress > 40 ? "bg-teal-500" : "bg-amber-500"
@@ -474,14 +474,14 @@ export default function EventsPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button 
+                  <button
                     onClick={() => rsvpEvent(event.id)}
                     className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 shadow-xl shadow-slate-100 hover:shadow-teal-100 transition-all flex items-center justify-center gap-2"
                   >
                     <Users size={16} /> Confirmar Asistencia
                   </button>
                   <div className="relative group/more">
-                    <button 
+                    <button
                       onClick={() => handleGeneratePoster(event)}
                       disabled={isGeneratingPoster === event.id}
                       className="h-14 w-14 flex items-center justify-center bg-slate-50 text-slate-600 rounded-2xl border border-slate-100 hover:bg-white hover:border-teal-200 hover:text-teal-600 transition-all disabled:opacity-50"
@@ -494,13 +494,13 @@ export default function EventsPage() {
 
                 {isAdmin && (
                   <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end gap-2">
-                    <button 
+                    <button
                       onClick={() => handleEdit(event)}
                       className="p-3 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
                     >
                       <Pencil size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(event.id)}
                       className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                     >
@@ -516,16 +516,16 @@ export default function EventsPage() {
 
       {/* Modal Nuevo Evento - Rediseñado */}
       {isModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={closeModal}
         >
-          <div 
+          <div
             className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
-              onClick={closeModal} 
+            <button
+              onClick={closeModal}
               className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
             >
               <X size={20} className="group-hover:rotate-90 transition-transform" />
@@ -552,7 +552,7 @@ export default function EventsPage() {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Descripción Estratégica</label>
                   <textarea rows={3} placeholder="Objetivos y detalles clave..." className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all resize-none" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
@@ -561,18 +561,18 @@ export default function EventsPage() {
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
                     <div className="relative">
-                      <div 
+                      <div
                         onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
                         className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
                       >
                         <span className="text-slate-900 font-black uppercase text-[10px]">{newEvent.type}</span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
                       </div>
-                      
+
                       {isModalTypeOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                           {EVENT_TYPES.map(type => (
-                            <div 
+                            <div
                               key={type}
                               onClick={() => {
                                 setNewEvent({...newEvent, type: type as any});
@@ -594,22 +594,22 @@ export default function EventsPage() {
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Prioridad</label>
                     <div className="relative">
-                      <div 
+                      <div
                         onClick={() => setIsModalPriorityOpen(!isModalPriorityOpen)}
                         className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
                       >
                         <span className={cn(
                           "font-black uppercase text-[10px]",
-                          newEvent.priority === 'Alta' ? 'text-rose-600' : 
+                          newEvent.priority === 'Alta' ? 'text-rose-600' :
                           newEvent.priority === 'Media' ? 'text-amber-600' : 'text-slate-600'
                         )}>{newEvent.priority}</span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={16} />
                       </div>
-                      
+
                       {isModalPriorityOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                           {PRIORITIES.map(p => (
-                            <div 
+                            <div
                               key={p}
                               onClick={() => {
                                 setNewEvent({...newEvent, priority: p as any});
@@ -633,10 +633,10 @@ export default function EventsPage() {
 
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Localización Estratégica</label>
-                  <LocationSelector 
+                  <LocationSelector
                     required
-                    value={newEvent.location} 
-                    onChange={val => setNewEvent({...newEvent, location: val})} 
+                    value={newEvent.location}
+                    onChange={val => setNewEvent({...newEvent, location: val})}
                     onManualSubmit={validateLocation}
                     placeholder="Ej. El Poblado, Envigado..."
                   />
@@ -656,15 +656,15 @@ export default function EventsPage() {
 
       {/* Modal del Mapa (Vista Detalle) */}
       {isMapModalOpen && selectedLocation && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
           onClick={() => setIsMapModalOpen(false)}
         >
-          <div 
+          <div
             className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               onClick={() => setIsMapModalOpen(false)}
               className="absolute top-8 right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
             >
@@ -680,12 +680,12 @@ export default function EventsPage() {
                 {selectedLocation}
               </h3>
             </div>
-            
+
             <div className="flex-1 bg-slate-100 relative min-h-[500px]">
-              <iframe 
-                width="100%" 
-                height="100%" 
-                frameBorder="0" 
+              <iframe
+                width="100%"
+                height="100%"
+                frameBorder="0"
                 style={{ border: 0 }}
                 src={`https://maps.google.com/maps?q=${selectedCoords ? `${selectedCoords.lat},${selectedCoords.lng}` : encodeURIComponent(selectedLocation + ", Medellin, Antioquia, Colombia")}&t=&z=15&ie=UTF8&iwloc=B&output=embed`}
                 allowFullScreen
@@ -702,7 +702,7 @@ export default function EventsPage() {
                   Utilice los controles del mapa para explorar el área estratégica del evento.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsMapModalOpen(false)}
                 className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
               >
@@ -715,15 +715,15 @@ export default function EventsPage() {
 
       {/* Modal Mapa Global (Strategic Map) */}
       {isGlobalMapOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
           onClick={() => setIsGlobalMapOpen(false)}
         >
-          <div 
+          <div
             className="bg-[#0F172A] w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               onClick={() => setIsGlobalMapOpen(false)}
               className="absolute top-8 left-8 z-[60] p-3 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-2xl border border-white/10 hover:border-red-500/30 transition-all group"
             >
@@ -744,9 +744,9 @@ export default function EventsPage() {
                 <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[2rem] border border-white/10 backdrop-blur-md relative">
                   <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-teal-500 transition-all">
                     <Search size={16} className="text-slate-500" />
-                    <input 
-                      type="text" 
-                      placeholder="Buscar..." 
+                    <input
+                      type="text"
+                      placeholder="Buscar..."
                       className="bg-transparent border-none outline-none text-[11px] font-bold text-white placeholder:text-slate-600 min-w-[120px]"
                       value={mapSearch}
                       onChange={(e) => setMapSearch(e.target.value)}
@@ -754,7 +754,7 @@ export default function EventsPage() {
                   </div>
 
                   <div className="relative">
-                    <div 
+                    <div
                       onClick={() => {
                         setIsTypeDropdownOpen(!isTypeDropdownOpen);
                         setIsRangePickerOpen(false);
@@ -767,9 +767,9 @@ export default function EventsPage() {
                     </div>
 
                     {isTypeDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-3 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute top-full left-0 right-0 mt-3 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                         {["all", ...EVENT_TYPES].map(type => (
-                          <div 
+                          <div
                             key={type}
                             onClick={() => {
                               setMapFilterType(type);
@@ -788,7 +788,7 @@ export default function EventsPage() {
                   <div className="h-6 w-[1px] bg-white/10" />
 
                   <div className="relative">
-                    <button 
+                    <button
                       onClick={() => {
                         setIsRangePickerOpen(!isRangePickerOpen);
                         setIsTypeDropdownOpen(false);
@@ -817,8 +817,8 @@ export default function EventsPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-2">
                             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Inicio</label>
-                            <input 
-                              type="date" 
+                            <input
+                              type="date"
                               className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
                               value={mapFilterStartDate}
                               onChange={(e) => setMapFilterStartDate(e.target.value)}
@@ -826,15 +826,15 @@ export default function EventsPage() {
                           </div>
                           <div className="flex flex-col gap-2">
                             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Fin</label>
-                            <input 
-                              type="date" 
+                            <input
+                              type="date"
                               className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
                               value={mapFilterEndDate}
                               onChange={(e) => setMapFilterEndDate(e.target.value)}
                             />
                           </div>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setIsRangePickerOpen(false)}
                           className="w-full py-4 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all mt-2 shadow-lg shadow-teal-500/20"
                         >
@@ -848,14 +848,14 @@ export default function EventsPage() {
             </div>
 
             <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
-              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{ 
-                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`, 
-                backgroundSize: '40px 40px' 
+              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{
+                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`,
+                backgroundSize: '40px 40px'
               }} />
 
               <div className="absolute inset-0 z-0">
                 <StrategicMap events={filteredEventsForMap} />
-                
+
                 {filteredEventsForMap.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm z-10 pointer-events-none">
                     <div className="bg-white/5 border border-white/10 px-8 py-5 rounded-[2.5rem] text-center shadow-2xl">
@@ -887,11 +887,11 @@ export default function EventsPage() {
 
       {/* Error Modal */}
       {isErrorModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setIsErrorModalOpen(false)}
         >
-          <div 
+          <div
             className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
@@ -902,7 +902,7 @@ export default function EventsPage() {
             <p className="text-sm text-slate-500 font-bold leading-relaxed mb-8">
               {errorMessage}
             </p>
-            <button 
+            <button
               onClick={() => setIsErrorModalOpen(false)}
               className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-slate-200"
             >
@@ -912,7 +912,7 @@ export default function EventsPage() {
         </div>
       )}
 
-      <AlertDialog 
+      <AlertDialog
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}

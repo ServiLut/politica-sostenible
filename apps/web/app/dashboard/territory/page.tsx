@@ -2,17 +2,30 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useCRM } from '@/context/CRMContext';
-import { MapPin, User, Globe, Map as MapIcon, LayoutGrid } from 'lucide-react';
+import { MapPin, User, Globe, Map as MapIcon, LayoutGrid, ChevronDown, Check } from 'lucide-react';
+import { cn } from '@/components/ui/utils';
 
 export default function TerritoryPage() {
   const { territory } = useCRM();
   const [activeTab, setActiveTab] = useState<'map' | 'zones'>('map');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('all');
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
-   
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<any>(null);
    
   const markersRef = useRef<any[]>([]);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsZoneDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const updateMarkers = useCallback(() => {
      
@@ -179,7 +192,7 @@ export default function TerritoryPage() {
             onClick={() => setActiveTab('map')}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               activeTab === 'map'
-                ? 'bg-white text-blue-600 shadow-sm'
+                ? 'bg-white text-teal-600 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -189,7 +202,7 @@ export default function TerritoryPage() {
             onClick={() => setActiveTab('zones')}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               activeTab === 'zones'
-                ? 'bg-white text-blue-600 shadow-sm'
+                ? 'bg-white text-teal-600 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -203,22 +216,57 @@ export default function TerritoryPage() {
         <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 px-4 pt-2">
             <div className="flex items-center gap-2">
-              <Globe className="text-blue-600" size={20} />
+              <Globe className="text-teal-600" size={20} />
               <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Mapa Metropolitano de Medellín</h2>
             </div>
 
             <div className="flex items-center gap-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Filtrar por Zona:</label>
-              <select
-                value={selectedZoneId}
-                onChange={(e) => setSelectedZoneId(e.target.value)}
-                className="py-2 text-xs font-bold rounded-xl border border-slate-100 bg-slate-50 text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer"
-              >
-                <option value="all">Todas las Zonas</option>
-                {territory.map(zone => (
-                  <option key={zone.id} value={zone.id}>{zone.name}</option>
-                ))}
-              </select>
+              <div className="w-56 relative" ref={dropdownRef}>
+                <button 
+                  onClick={() => setIsZoneDropdownOpen(!isZoneDropdownOpen)}
+                  className="w-full h-10 px-5 flex items-center justify-between bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-black text-slate-600 hover:border-teal-500/30 hover:bg-white transition-all cursor-pointer group"
+                >
+                  <span className="truncate">
+                    {selectedZoneId === 'all' ? 'Todas las Zonas' : territory.find(z => z.id === selectedZoneId)?.name || 'Seleccionar'}
+                  </span>
+                  <ChevronDown className={cn("text-slate-400 transition-transform", isZoneDropdownOpen && "rotate-180")} size={14} />
+                </button>
+                
+                {isZoneDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div 
+                      onClick={() => {
+                        setSelectedZoneId('all');
+                        setIsZoneDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "px-5 py-3 hover:bg-teal-50 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-b border-slate-50 flex justify-between items-center",
+                        selectedZoneId === 'all' ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                      )}
+                    >
+                      Todas las Zonas
+                      {selectedZoneId === 'all' && <Check size={14} className="text-teal-600" />}
+                    </div>
+                    {territory.map(zone => (
+                      <div 
+                        key={zone.id}
+                        onClick={() => {
+                          setSelectedZoneId(zone.id);
+                          setIsZoneDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "px-5 py-3 hover:bg-teal-50 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                          selectedZoneId === zone.id ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                        )}
+                      >
+                        <span className="truncate pr-4">{zone.name}</span>
+                        {selectedZoneId === zone.id && <Check size={14} className="text-teal-600" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -260,7 +308,7 @@ export default function TerritoryPage() {
             return (
               <div key={zone.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all group">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all">
+                  <div className="p-3 bg-teal-50 text-teal-600 rounded-2xl group-hover:bg-teal-600 group-hover:text-white transition-all">
                     <MapPin size={20} />
                   </div>
                   <div className="text-right">

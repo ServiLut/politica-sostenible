@@ -67,8 +67,8 @@ export default function CompliancePage() {
 
     // Gráfico de Barras: Real vs Proyectado vs Tope
     const barData = [
-      { name: 'Gasto Real', monto: actualExpenses, fill: '#2563eb' },
-      { name: 'Gasto Proyectado', monto: projectedEventsCost, fill: '#8b5cf6' },
+      { name: 'Gasto Real', monto: actualExpenses, fill: '#0d9488' }, // teal-600
+      { name: 'Gasto Proyectado', monto: projectedEventsCost, fill: '#14b8a6' }, // teal-500
       { name: 'Tope Legal', monto: TOPE_LEGAL_CNE, fill: '#f1f5f9' }
     ];
 
@@ -85,13 +85,13 @@ export default function CompliancePage() {
   const alertStatus = useMemo(() => {
     if (executionPercentage > 90) return { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', msg: '¡PELIGRO! Riesgo de sanción administrativa por superar topes', icon: <ShieldAlert className="animate-pulse" size={32} />, critical: true };
     if (executionPercentage >= 70) return { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', msg: 'Atención: Se acerca al límite legal (Incluyendo Proyectados)', icon: <AlertTriangle size={32} />, critical: false };
-    return { color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', msg: 'Estado Seguro: Operación dentro de límites legales', icon: <ShieldCheck size={32} />, critical: false };
+    return { color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', msg: 'Estado Seguro: Operación dentro de límites legales', icon: <ShieldCheck size={32} />, critical: false };
   }, [executionPercentage]);
 
   const formatCOP = (val: number) => 
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
-  const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const COLORS = ['#0d9488', '#10b981', '#f59e0b', '#ef4444', '#14b8a6'];
 
   const handleGenerateReport = () => {
     const doc = new jsPDF();
@@ -106,14 +106,14 @@ export default function CompliancePage() {
       startY: 50,
       head: [['Categoría CNE', 'Total Gastado']],
       body: pieData.map(d => [d.name, formatCOP(d.value as number)]),
-      headStyles: { fillColor: [15, 23, 42] }
+      headStyles: { fillColor: [13, 148, 136] } // teal-600
     });
 
     autoTable(doc, {
       startY: (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10,
       head: [['Obligación', 'Estado', 'Vencimiento']],
       body: compliance.map(o => [o.title, o.status, o.deadline]),
-      headStyles: { fillColor: [37, 99, 235] }
+      headStyles: { fillColor: [20, 184, 166] } // teal-500
     });
 
     doc.save(`reporte_compliance_${Date.now()}.pdf`);
@@ -121,15 +121,15 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex justify-between items-start">
+    <div className="space-y-8 pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Módulo de Compliance</h1>
           <p className="text-slate-500 font-medium">Control legal, topes de campaña y reportes CNE.</p>
         </div>
         <button 
           onClick={handleGenerateReport}
-          className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-xl hover:bg-blue-600 transition-all flex items-center gap-2"
+          className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-2"
         >
           <Download size={18} /> Descargar Reporte Consolidado
         </button>
@@ -155,9 +155,9 @@ export default function CompliancePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* GRÁFICO DE BARRAS: PRESUPUESTO VS REAL */}
-        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-100 shadow-sm relative overflow-hidden group hover:border-teal-500/30 transition-all">
           <div className="flex items-center gap-2 mb-8">
-            <BarChart3 className="text-blue-600" size={20} />
+            <BarChart3 className="text-teal-600" size={20} />
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Ejecución Presupuestal Detallada</h3>
           </div>
           {barData.every(d => d.monto === 0 && d.name !== 'Tope Legal') ? (
@@ -189,9 +189,9 @@ export default function CompliancePage() {
         </div>
 
         {/* GRÁFICO DE TORTA: GASTOS POR CÓDIGO CNE */}
-        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-100 shadow-sm group hover:border-teal-500/30 transition-all">
           <div className="flex items-center gap-2 mb-8">
-            <PieIcon className="text-emerald-500" size={20} />
+            <PieIcon className="text-teal-500" size={20} />
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Gastos por Categoría Legal (CNE)</h3>
           </div>
           {pieData.length === 0 ? (
@@ -228,12 +228,12 @@ export default function CompliancePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* MATRIZ DE OBLIGACIONES */}
-        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="lg:col-span-2 bg-white border-2 border-slate-100 rounded-[3rem] overflow-hidden shadow-sm">
           <div className="px-10 py-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
             <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
-              <Scale size={20} className="text-blue-600" /> Matriz de Obligaciones Normativas
+              <Scale size={20} className="text-teal-600" /> Matriz de Obligaciones Normativas
             </h3>
-            <span className="bg-blue-50 text-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+            <span className="bg-teal-50 text-teal-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
               Puntaje: {Math.round(score)}%
             </span>
           </div>
@@ -248,7 +248,7 @@ export default function CompliancePage() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {compliance.map((o) => (
-                  <tr key={o.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={o.id} className="hover:bg-teal-50/30 transition-colors group">
                     <td className="px-10 py-6">
                       <p className="text-sm font-black text-slate-900 mb-1">{o.title}</p>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">{o.type} • Vence: {o.deadline}</p>
@@ -265,7 +265,7 @@ export default function CompliancePage() {
                       {o.status !== 'Cumplido' ? (
                         <button 
                           onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
-                          className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                          className="p-3 bg-teal-50 text-teal-600 rounded-2xl hover:bg-teal-600 hover:text-white transition-all shadow-sm"
                         >
                           <Upload size={16} />
                         </button>
@@ -281,27 +281,27 @@ export default function CompliancePage() {
         </div>
 
         {/* LOGS DE AUDITORÍA */}
-        <div className="bg-white border border-slate-100 rounded-[3rem] shadow-sm flex flex-col">
+        <div className="bg-white border-2 border-slate-100 rounded-[3rem] shadow-sm flex flex-col">
           <div className="px-8 py-8 border-b border-slate-50 flex items-center gap-3">
-             <History className="text-slate-400" size={20} />
+             <History className="text-teal-600" size={20} />
              <h3 className="font-black text-sm uppercase tracking-tighter">Bitácora Forense</h3>
           </div>
-          <div className="flex-1 overflow-y-auto max-h-[500px] p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto max-h-[500px] p-6 space-y-4 font-mono">
              {auditLogs.slice(0, 8).map((log) => (
-                <div key={log.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div key={log.id} className="p-4 bg-teal-50/30 rounded-2xl border border-teal-100/50 hover:bg-white hover:border-teal-500 transition-all">
                    <div className="flex justify-between items-start mb-1">
                       <span className="text-[10px] font-black text-slate-900 uppercase">{log.actor}</span>
                       <span className="text-[8px] font-bold text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
                    </div>
                    <p className="text-[10px] text-slate-600 leading-tight mb-2 font-medium">{log.action}</p>
                    <div className="flex items-center gap-1.5">
-                      <div className={cn("w-1.5 h-1.5 rounded-full", log.severity === 'Critical' ? "bg-red-500" : "bg-blue-500")} />
+                      <div className={cn("w-1.5 h-1.5 rounded-full", log.severity === 'Critical' ? "bg-red-500" : "bg-teal-500")} />
                       <span className="text-[8px] font-black uppercase text-slate-400">{log.module}</span>
                    </div>
                 </div>
              ))}
              {auditLogs.length === 0 && (
-                <div className="text-center py-20 text-slate-300">
+                <div className="text-center py-20 text-slate-200">
                    <Info size={32} className="mx-auto mb-2 opacity-20" />
                    <p className="text-[10px] font-black uppercase">Sin registros de auditoría</p>
                 </div>
@@ -315,15 +315,15 @@ export default function CompliancePage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-10 text-center">
-              <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-24 h-24 bg-teal-50 text-teal-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <Lock size={40} />
               </div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tighter mb-4">Cargar Soporte Legal</h3>
-              <p className="text-slate-500 text-sm mb-8">
+              <p className="text-slate-500 text-sm mb-8 font-medium">
                 El archivo debe ser una factura o documento oficial que respalde el cumplimiento ante el CNE.
               </p>
               
-              <div className="relative border-2 border-dashed border-slate-100 p-12 rounded-[2.5rem] bg-slate-50 mb-8 flex flex-col items-center group hover:border-blue-300 transition-all cursor-pointer">
+              <div className="relative border-2 border-dashed border-teal-100 p-12 rounded-[2.5rem] bg-teal-50/30 mb-8 flex flex-col items-center group hover:border-teal-500 hover:bg-white transition-all cursor-pointer">
                 <input 
                   type="file" 
                   accept=".pdf,.jpg,.png"
@@ -337,12 +337,12 @@ export default function CompliancePage() {
                     }
                   }}
                 />
-                <Upload size={32} className="text-slate-300 mb-2 group-hover:text-blue-500 transition-colors" />
-                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Haz clic para seleccionar PDF</p>
+                <Upload size={32} className="text-teal-300 mb-2 group-hover:text-teal-600 transition-colors" />
+                <p className="text-[9px] font-black uppercase text-teal-400 tracking-widest">Haz clic para seleccionar soporte</p>
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400">Cancelar</button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Cancelar</button>
               </div>
             </div>
           </div>

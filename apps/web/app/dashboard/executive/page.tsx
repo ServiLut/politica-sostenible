@@ -250,7 +250,7 @@ export default function ExecutivePage() {
               </div>
               <Link 
                 href="/dashboard/directory"
-                className="group flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-teal-600 shadow-lg shadow-slate-200"
+                className="group flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-teal-700 shadow-lg shadow-teal-200"
               >
                 Ver Todo <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -261,32 +261,32 @@ export default function ExecutivePage() {
                 {contacts.slice(0, 6).map((c, idx) => (
                   <div 
                     key={c.id} 
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
                   >
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-5 min-w-0 flex-1">
                       <div className={cn(
-                        "h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all",
+                        "h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all shrink-0",
                         idx % 3 === 0 ? "bg-teal-100 text-teal-700" : 
                         idx % 3 === 1 ? "bg-slate-100 text-slate-600" : 
                         "bg-indigo-50 text-indigo-600"
                       )}>
                         {c.name.charAt(0)}
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-base font-black text-slate-900 uppercase">{c.name}</p>
+                          <p className="text-base font-black text-slate-900 uppercase truncate">{c.name}</p>
                           {idx === 0 && (
-                            <span className="text-[8px] font-black bg-teal-600 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm shadow-teal-200">En Vivo</span>
+                            <span className="shrink-0 text-[8px] font-black bg-teal-600 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm shadow-teal-200">En Vivo</span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-400 mt-0.5">
-                          <MapPin size={10} className="text-teal-500" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">{c.neighborhood}</p>
+                          <MapPin size={10} className="text-teal-500 shrink-0" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest truncate">{c.neighborhood}</p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-4 sm:mt-0 flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="mt-4 sm:mt-0 flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
                       <div className={cn(
                         "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm",
                         c.stage === 'Firme' || c.stage === 'Votó' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
@@ -354,20 +354,20 @@ export default function ExecutivePage() {
           </div>
 
           {/* Performance Card */}
-          <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl space-y-6">
-            <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-[0.3em] border-b border-white/5 pb-4">Desempeño Operativo</h4>
+          <div className="bg-teal-50 p-8 rounded-[2.5rem] border border-teal-100 shadow-sm space-y-6 hover:-translate-y-1 transition-all duration-300 group">
+            <h4 className="text-[10px] font-black text-teal-600 uppercase tracking-[0.3em] border-b border-teal-200/50 pb-4">Desempeño Operativo</h4>
             <div className="space-y-5">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nuevos Líderes</span>
-                <span className="text-lg font-black text-white">12</span>
+                <span className="text-lg font-black text-slate-900">12</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Eventos Hoy</span>
-                <span className="text-lg font-black text-white">04</span>
+                <span className="text-lg font-black text-slate-900">04</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Conversión</span>
-                <span className="text-lg font-black text-emerald-400">8.4%</span>
+                <span className="text-lg font-black text-emerald-600">8.4%</span>
               </div>
             </div>
           </div>
