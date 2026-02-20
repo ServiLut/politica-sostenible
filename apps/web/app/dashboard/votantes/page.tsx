@@ -5,14 +5,12 @@ import {
   Search, 
   UserPlus, 
   Download, 
-  Phone,
   Trash2,
   Edit2,
   ChevronRight,
   Filter,
   Inbox,
   X,
-  MapPin,
   IdCard
 } from "lucide-react";
 import { cn } from "@/components/ui/utils";

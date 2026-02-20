@@ -12,9 +12,9 @@ export default function TerritoryPage() {
   const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const leafletRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const markersRef = useRef<any[]>([]);
 
   // Cerrar dropdown al hacer click fuera
@@ -29,7 +29,7 @@ export default function TerritoryPage() {
   }, []);
 
   const updateMarkers = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const L = (window as any).L;
     const map = leafletRef.current;
     if (!L || !map || !mapRef.current) return;
@@ -37,7 +37,7 @@ export default function TerritoryPage() {
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const bounds: any[] = [];
     const zonesToDisplay = selectedZoneId === 'all' 
       ? territory 
@@ -131,7 +131,7 @@ export default function TerritoryPage() {
     if (!mapRef.current || leafletRef.current) return;
 
     const initMap = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const L = (window as any).L;
       if (!L || !mapRef.current || leafletRef.current) return;
 

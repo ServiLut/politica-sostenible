@@ -1,13 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { CampaignEvent } from '@/context/CRMContext';
 import { MEDELLIN_ZONES } from '@/data/medellin-geo';
 import { MEDELLIN_COORDINATES } from '@/data/medellin-coordinates';
+
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
 
 // Custom icons for different event types
 const createCustomIcon = (color: string) => {
@@ -20,17 +28,21 @@ const createCustomIcon = (color: string) => {
         <div class="marker-core" style="background-color: ${color}"></div>
       </div>
     `,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
 };
 
 interface StrategicMapProps {
   events: CampaignEvent[];
+  onEdit?: (event: CampaignEvent) => void;
+  onDelete?: (id: string) => void;
+  isAdmin?: boolean;
 }
 
-export default function StrategicMap({ events }: StrategicMapProps) {
+export default function StrategicMap({ events, onEdit, onDelete, isAdmin }: StrategicMapProps) {
   const [isReady, setIsReady] = useState(false);
+  const [openOptionsId, setOpenOptionsId] = useState<string | null>(null);
   const center: [number, number] = [6.2442, -75.5812]; // Medellin Center
 
   useEffect(() => {
@@ -58,41 +70,66 @@ export default function StrategicMap({ events }: StrategicMapProps) {
         zoom={13} 
         scrollWheelZoom={true} 
         className="w-full h-full"
-        style={{ background: '#0F172A', height: '100%', width: '100%' }}
+        style={{ background: '#F8FAFC', height: '100%', width: '100%' }}
       >
+        <ChangeView center={center} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         
         {events.map((event, idx) => {
           const normalize = (str: string) => 
-            str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           
           const cleanLoc = normalize(event.location);
           let position: [number, number] | null = null;
 
-          // 1. Buscar todas las coincidencias y elegir la más específica (la más larga)
-          const candidates = Object.entries(MEDELLIN_COORDINATES)
-            .filter(([key]) => cleanLoc.includes(normalize(key)))
+          // 1. Buscar en MEDELLIN_COORDINATES (Diccionario de palabras clave)
+          const coordinateMatches = Object.entries(MEDELLIN_COORDINATES)
+            .filter(([key]) => {
+              const normalizedKey = normalize(key);
+              return cleanLoc === normalizedKey || cleanLoc.includes(normalizedKey);
+            })
             .sort((a, b) => b[0].length - a[0].length);
 
-          if (candidates.length > 0) {
-            position = [candidates[0][1].lat, candidates[0][1].lng];
+          if (coordinateMatches.length > 0) {
+            position = [coordinateMatches[0][1].lat, coordinateMatches[0][1].lng];
           }
 
-          // 2. Fallback a Zonas de Medellín
+          // 2. Fallback a MEDELLIN_ZONES (Nombres oficiales de comunas)
           if (!position) {
-            const zone = MEDELLIN_ZONES.find(z => {
+            const zoneMatch = MEDELLIN_ZONES.find(z => {
               const zName = normalize(z.name);
-              return cleanLoc.includes(zName) || zName.includes(cleanLoc);
+              // Versión súper limpia para comparación: sin guiones y espacios simples
+              const ultraCleanZName = zName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+              const ultraCleanLoc = cleanLoc.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+
+              return ultraCleanLoc.includes(ultraCleanZName) || 
+                     ultraCleanZName.includes(ultraCleanLoc) ||
+                     (ultraCleanLoc.includes("comuna") && ultraCleanZName.includes(ultraCleanLoc.replace("medellin", "").trim()));
             });
-            if (zone && zone.lat !== undefined && zone.lng !== undefined) {
-              position = [zone.lat, zone.lng];
+            if (zoneMatch && zoneMatch.lat !== undefined && zoneMatch.lng !== undefined) {
+              position = [zoneMatch.lat, zoneMatch.lng];
             }
           }
 
-          // 3. Si no hay posición, no renderizar
+          // 3. Fallback específico para casos comunes que puedan fallar por formato
+          if (!position) {
+            if (cleanLoc.includes("comuna 11") || cleanLoc.includes("laureles") || cleanLoc.includes("estadio")) {
+              position = [6.2452, -75.5905];
+            } else if (cleanLoc.includes("comuna 14") || cleanLoc.includes("poblado")) {
+              position = [6.2052, -75.5655];
+            } else if (cleanLoc.includes("comuna 16") || cleanLoc.includes("belen")) {
+              position = [6.2305, -75.6005];
+            }
+          }
+
+          // 4. Fallback final cerca del centro para que no desaparezca
+          if (!position && event.location) {
+            position = [center[0] + (idx * 0.002), center[1] + (idx * 0.002)];
+          }
+
           if (!position) return null;
 
           // Reducción del "jitter" para mayor precisión visual (aprox 100m de dispersión)
@@ -119,23 +156,64 @@ export default function StrategicMap({ events }: StrategicMapProps) {
           return (
             <Marker key={event.id} position={finalPosition} icon={icon}>
               <Popup className="custom-popup">
-                <div className="p-4 min-w-[200px] bg-white rounded-2xl">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="p-4 min-w-[220px] bg-white rounded-2xl">
+                  <div className="flex items-center justify-between mb-3">
                     <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${badgeClass}`}>
                       {event.type}
                     </span>
                   </div>
+                  
                   <h4 className="text-sm font-black text-slate-900 leading-tight mb-1">{event.title}</h4>
                   <p className="text-[11px] text-slate-500 font-bold mb-3 italic">
                     {new Date(event.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </p>
-                  <div className="flex items-center gap-2 text-slate-400 mb-4">
-                    <MapPin size={12} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{event.location}</span>
-                  </div>
-                  <button className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-blue-600 transition-colors">
-                    Ver Detalles
+                  
+                  <button 
+                    onClick={() => {
+                      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ", Medellin, Antioquia, Colombia")}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="flex items-center gap-2 text-slate-400 mb-4 hover:text-teal-600 transition-colors group/loc"
+                  >
+                    <MapPin size={12} className="group-hover/loc:scale-110 transition-transform" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider border-b border-transparent group-hover/loc:border-teal-200">
+                      {event.location}
+                    </span>
                   </button>
+                  
+                  {isAdmin && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => setOpenOptionsId(openOptionsId === event.id ? null : event.id)}
+                        className="w-full py-2.5 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-teal-700 transition-all shadow-lg shadow-teal-200/50 active:scale-[0.98] flex items-center justify-center gap-2"
+                      >
+                        <MoreHorizontal size={14} /> Gestión de Evento
+                      </button>
+
+                      {openOptionsId === event.id && (
+                        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[100]">
+                          <button 
+                            onClick={() => {
+                              onEdit?.(event);
+                              setOpenOptionsId(null);
+                            }}
+                            className="w-full px-4 py-3 hover:bg-teal-50 text-[10px] font-bold text-slate-600 hover:text-teal-600 flex items-center gap-3 transition-colors border-b border-slate-50"
+                          >
+                            <Pencil size={12} /> Editar Registro
+                          </button>
+                          <button 
+                            onClick={() => {
+                              onDelete?.(event.id);
+                              setOpenOptionsId(null);
+                            }}
+                            className="w-full px-4 py-3 hover:bg-red-50 text-[10px] font-bold text-slate-600 hover:text-red-600 flex items-center gap-3 transition-colors"
+                          >
+                            <Trash2 size={12} /> Eliminar Registro
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -145,22 +223,22 @@ export default function StrategicMap({ events }: StrategicMapProps) {
 
       <style jsx global>{`
         .leaflet-container {
-          background: #0F172A !important;
+          background: #F8FAFC !important;
         }
         .marker-container {
           position: relative;
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
         .marker-core {
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
-          border: 3px solid #0F172A;
-          box-shadow: 0 0 10px rgba(0,0,0,0.5);
+          border: 3px solid #1e293b;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
           z-index: 2;
         }
         .marker-pulse {
@@ -168,21 +246,21 @@ export default function StrategicMap({ events }: StrategicMapProps) {
           width: 100%;
           height: 100%;
           border-radius: 50%;
-          animation: pulse 2s infinite;
+          animation: pulse 1.5s infinite;
           opacity: 0.6;
           z-index: 1;
         }
         @keyframes pulse {
           0% {
-            transform: scale(0.6);
-            opacity: 0.8;
+            transform: scale(0.5);
+            opacity: 0.9;
           }
           70% {
-            transform: scale(2.5);
+            transform: scale(2.2);
             opacity: 0;
           }
           100% {
-            transform: scale(0.6);
+            transform: scale(0.5);
             opacity: 0;
           }
         }

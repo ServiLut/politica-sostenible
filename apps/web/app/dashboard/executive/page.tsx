@@ -11,7 +11,8 @@ import {
   TrendingUp,
   ChevronRight,
   ArrowUpRight,
-  UserPlus
+  UserPlus,
+  ArrowLeft
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
 import { cn } from "@/components/ui/utils";
@@ -33,44 +34,55 @@ export default function ExecutivePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 py-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-10 py-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 px-4 md:px-0">
+      {/* Back Navigation */}
+      <div className="px-2">
+        <Link 
+          href="/dashboard" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+          Regresar al Centro de Comando
+        </Link>
+      </div>
+
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-0 md:px-2">
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-3 py-1 bg-teal-50 text-teal-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-teal-100">
               Panel Estratégico
             </span>
           </div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-4xl md:text-5xl font-black text-black tracking-tight leading-none">
             Centro de <span className="text-teal-600">Mando</span>
           </h1>
-          <p className="text-slate-500 font-medium max-w-md">
+          <p className="text-slate-600 text-sm md:text-base font-medium max-w-md">
             Visión estratégica y analítica en tiempo real para la victoria electoral 2026.
           </p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white p-1.5 pr-6 rounded-full border border-slate-200 shadow-sm transition-all hover:shadow-md">
+        <div className="flex items-center gap-3 bg-white p-1.5 pr-6 rounded-full border border-slate-200 shadow-sm transition-all hover:shadow-md self-start md:self-auto">
           <div className="h-10 w-10 bg-teal-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-teal-200">
             <Calendar size={18} />
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Cuenta Regresiva</p>
-            <p className="text-sm font-black text-slate-900">45 Días para la Victoria</p>
+            <p className="text-sm font-black text-black">45 Días para la Victoria</p>
           </div>
         </div>
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Total CRM */}
-        <div className="group relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/5">
-          <div className="h-14 w-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-sm">
-            <Users size={28} />
+        <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/5">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-sm">
+            <Users size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Censo Electoral Total</p>
-            <h3 className="text-4xl font-black text-slate-900 tracking-tighter" suppressHydrationWarning>
+            <h3 className="text-3xl md:text-4xl font-black text-black tracking-tighter" suppressHydrationWarning>
               {formatNum(kpis.totalContacts)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
@@ -83,13 +95,13 @@ export default function ExecutivePage() {
         </div>
 
         {/* Votos Firmes */}
-        <div className="group relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/5">
-          <div className="h-14 w-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
-            <Target size={28} />
+        <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/5">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-emerald-50 text-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
+            <Target size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Votos Fidelizados</p>
-            <h3 className="text-4xl font-black text-slate-900 tracking-tighter" suppressHydrationWarning>
+            <h3 className="text-3xl md:text-4xl font-black text-black tracking-tighter" suppressHydrationWarning>
               {formatNum(kpis.firmVotes)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
@@ -102,20 +114,20 @@ export default function ExecutivePage() {
         </div>
 
         {/* Avance de Meta Real */}
-        <div className="group relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5">
-          <div className="flex justify-between items-start mb-6">
-            <div className="h-14 w-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">
-              <TrendingUp size={28} />
+        <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5">
+          <div className="flex justify-between items-start mb-4 md:mb-6">
+            <div className="h-12 w-12 md:h-14 md:w-14 bg-amber-50 text-amber-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">
+              <TrendingUp size={24} className="md:w-7 md:h-7" />
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-black bg-slate-900 text-white px-2.5 py-1 rounded-full uppercase tracking-tighter">
+              <span className="text-[10px] font-black bg-black text-white px-2.5 py-1 rounded-full uppercase tracking-tighter">
                 Meta: 50K
               </span>
             </div>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Progreso de Objetivo</p>
-            <h3 className="text-4xl font-black tracking-tighter text-slate-900">{kpis.progressPercentage.toFixed(1)}%</h3>
+            <h3 className="text-3xl md:text-4xl font-black tracking-tighter text-black">{kpis.progressPercentage.toFixed(1)}%</h3>
             <div className="mt-4 space-y-2">
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                  <div 
@@ -124,20 +136,20 @@ export default function ExecutivePage() {
                  />
               </div>
               <p className="text-[9px] font-black text-slate-400 text-right uppercase tracking-[0.1em]">
-                {formatNum(50000 - kpis.firmVotes)} votos faltantes
+                {formatNum(50000 - kpis.firmVotes)} faltantes
               </p>
             </div>
           </div>
         </div>
 
         {/* Cobertura Territorial */}
-        <div className="group relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/5">
-          <div className="h-14 w-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
-            <MapPin size={28} />
+        <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/5">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-indigo-50 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
+            <MapPin size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cobertura Territorial</p>
-            <h3 className="text-4xl font-black text-slate-900 tracking-tighter" suppressHydrationWarning>
+            <h3 className="text-3xl md:text-4xl font-black text-black tracking-tighter" suppressHydrationWarning>
               {formatNum(kpis.coverageNeighborhoods)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
@@ -150,34 +162,34 @@ export default function ExecutivePage() {
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity Monitor */}
-        <Card className="lg:col-span-2 border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
+        <Card className="lg:col-span-2 border border-slate-100 shadow-sm rounded-[2rem] md:rounded-[2.5rem] overflow-hidden bg-white">
           <CardContent className="p-0">
-            <div className="p-10 border-b border-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center border border-teal-100">
-                  <ShieldCheck size={24} />
+            <div className="p-5 md:p-10 border-b border-slate-50 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                <div className="h-10 w-10 md:h-12 md:w-12 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center border border-teal-100 shrink-0">
+                  <ShieldCheck size={20} className="md:w-6 md:h-6" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Actividad en Tiempo Real</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Monitor de Ingresos al CRM</p>
+                <div className="min-w-0">
+                  <h3 className="text-base md:text-xl font-black text-black tracking-tight truncate">Actividad en Tiempo Real</h3>
+                  <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">Monitor de Ingresos</p>
                 </div>
               </div>
               <Link 
                 href="/dashboard/directory"
-                className="group flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-teal-700 shadow-lg shadow-teal-200"
+                className="group flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-teal-600 text-white rounded-xl md:rounded-2xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all hover:bg-teal-700 shadow-lg shadow-teal-200 shrink-0 whitespace-nowrap"
               >
                 Ver Todo <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
             
-            <div className="p-8">
+            <div className="p-4 md:p-8">
               <div className="divide-y divide-slate-50">
                 {contacts.slice(0, 6).map((c, idx) => (
                   <div 
                     key={c.id} 
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
                   >
-                    <div className="flex items-center gap-5 min-w-0 flex-1">
+                    <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1 w-full">
                       <div className={cn(
                         "h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all shrink-0",
                         idx % 3 === 0 ? "bg-teal-100 text-teal-700" : 
@@ -186,31 +198,35 @@ export default function ExecutivePage() {
                       )}>
                         {c.name.charAt(0)}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-black text-slate-900 uppercase truncate">{c.name}</p>
+                      <div className="min-w-0 flex-1 pt-1 sm:pt-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <p className="text-base font-black text-black uppercase tracking-tight break-words whitespace-normal leading-tight max-w-xs md:max-w-md">
+                            {c.name}
+                          </p>
                           {idx === 0 && (
                             <span className="shrink-0 text-[8px] font-black bg-teal-600 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm shadow-teal-200">En Vivo</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 text-slate-400 mt-0.5">
-                          <MapPin size={10} className="text-teal-500 shrink-0" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest truncate">{c.neighborhood}</p>
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <MapPin size={12} className="text-teal-600 shrink-0" />
+                          <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest leading-none break-words whitespace-normal">
+                            {c.neighborhood}
+                          </p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-4 sm:mt-0 flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0 border-t sm:border-t-0 border-slate-50 pt-3 sm:pt-0">
                       <div className={cn(
-                        "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm",
+                        "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm",
                         c.stage === 'Firme' || c.stage === 'Votó' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
                         c.stage === 'Contactado' || c.stage === 'Simpatizante' ? "bg-teal-50 text-teal-700 border-teal-100" :
                         "bg-slate-50 text-slate-600 border-slate-100"
                       )}>
                         {c.stage}
                       </div>
-                      <button className="p-2 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all">
-                        <ChevronRight size={18} />
+                      <button className="p-2.5 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all border border-transparent hover:border-teal-100">
+                        <ChevronRight size={20} />
                       </button>
                     </div>
                   </div>
@@ -230,26 +246,26 @@ export default function ExecutivePage() {
         {/* Secondary Info Column */}
         <div className="space-y-8">
           {/* Strategic Action Card */}
-          <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+          <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
               <Target size={180} className="text-teal-600" />
             </div>
             <div className="relative z-10">
-              <div className="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-6">
-                <Target size={24} />
+              <div className="h-10 w-10 md:h-12 md:w-12 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+                <Target size={20} className="md:w-6 md:h-6" />
               </div>
-              <h4 className="text-xl font-black text-slate-900 mb-2 leading-tight">Acción Sugerida</h4>
-              <p className="text-slate-500 text-sm mb-8 font-medium leading-relaxed">
+              <h4 className="text-lg md:text-xl font-black text-slate-900 mb-2 leading-tight">Acción Sugerida</h4>
+              <p className="text-slate-500 text-xs md:text-sm mb-6 md:mb-8 font-medium leading-relaxed">
                 Detectamos un crecimiento del 15% en la zona norte. Se recomienda reforzar con líderes locales.
               </p>
-              <button className="w-full bg-teal-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100">
+              <button className="w-full bg-teal-600 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100">
                 Generar Reporte de Zona
               </button>
             </div>
           </div>
 
           {/* Performance Card */}
-          <div className="bg-teal-50 p-8 rounded-[2.5rem] border border-teal-100 shadow-sm space-y-6 hover:-translate-y-1 transition-all duration-300 group">
+          <div className="bg-teal-50 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-teal-100 shadow-sm space-y-6 hover:-translate-y-1 transition-all duration-300 group">
             <h4 className="text-[10px] font-black text-teal-600 uppercase tracking-[0.3em] border-b border-teal-200/50 pb-4">Desempeño Operativo</h4>
             <div className="space-y-5">
               <div className="flex justify-between items-center">

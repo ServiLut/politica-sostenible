@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Vote, ShieldCheck, FileText, AlertCircle, CheckCircle2, Search } from 'lucide-react';
+import { ShieldCheck, FileText, AlertCircle, CheckCircle2, Search } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function ElectionsPage() {

@@ -37,7 +37,7 @@ export function AiAssistant() {
       });
       const json = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', text: json.data.answer, actionable: json.data.actionable }]);
-    } catch (_e) {
+    } catch {
       setMessages(prev => [...prev, { role: 'assistant', text: 'Error al conectar con mi cerebro cognitivo.' }]);
     } finally {
       setLoading(false);

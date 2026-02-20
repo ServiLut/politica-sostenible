@@ -5,11 +5,10 @@ import { useCRM, CampaignEvent } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Calendar, MapPin, Users, Plus, X, Tag, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown, Check } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, X, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { LocationSelector } from '@/components/ui/LocationSelector';
 import { MEDELLIN_LOCATIONS } from '@/data/medellin-locations';
-import { MEDELLIN_ZONES } from '@/data/medellin-geo';
 import dynamic from 'next/dynamic';
 
 const StrategicMap = dynamic(() => import('@/components/layout/StrategicMap'), { 
@@ -69,15 +68,6 @@ export default function EventsPage() {
     });
   }, [events, mapFilterType, mapFilterStartDate, mapFilterEndDate, mapSearch]);
 
-  const clearMapFilters = () => {
-    setMapFilterType("all");
-    setMapFilterStartDate("");
-    setMapFilterEndDate("");
-    setMapSearch("");
-    setIsRangePickerOpen(false);
-    setIsTypeDropdownOpen(false);
-  };
-  
   const [newEvent, setNewEvent] = useState<Omit<CampaignEvent, 'id' | 'attendeesCount'>>({
     title: '',
     date: '',
@@ -186,21 +176,21 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Agenda de Campaña</h1>
-          <p className="text-slate-500 font-medium">Planificación de marchas, reuniones y eventos masivos.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase">Agenda de Campaña</h1>
+          <p className="text-sm md:text-base text-slate-500 font-medium">Planificación de marchas, reuniones y eventos masivos.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
             onClick={() => setIsGlobalMapOpen(true)}
-            className="bg-white text-teal-600 border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto bg-white text-teal-600 border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center justify-center gap-2"
           >
             <Map size={18} /> Mapa Estratégico
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-teal-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto bg-teal-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
           >
             <Plus size={18} /> Nuevo Evento
           </button>
@@ -281,55 +271,55 @@ export default function EventsPage() {
       {/* Modal Nueva Evento */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={closeModal}
         >
           <div 
-            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
+            className="bg-white w-full max-w-lg rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative max-h-[90vh] overflow-y-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={closeModal} 
-              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+              className="absolute top-6 md:top-8 right-6 md:right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
             >
               <X size={20} className="group-hover:rotate-90 transition-transform" />
             </button>
 
-            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
+            <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[2.5rem] md:rounded-t-[3rem]">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                 <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.3em]">Operativa de Eventos</span>
               </div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">
                 {editingEvent ? 'Editar Evento' : 'Crear Evento'}
               </h3>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-6">
               <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título del Evento</label>
-                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
-                    <input required type="date" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                    <input required type="date" className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
                     <div className="relative">
                       <div 
                         onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
-                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
+                        className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
                       >
                         <span className="text-slate-900">{newEvent.type}</span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
                       </div>
                       
                       {isModalTypeOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                           {EVENT_TYPES.map(type => (
                             <div 
                               key={type}
@@ -361,8 +351,8 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-4">
-                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+              <div className="pt-6 flex flex-col sm:flex-row gap-3 md:gap-4">
+                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-red-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 transition-all">Cancelar</button>
                 <button type="submit" className="flex-2 px-8 py-4 bg-teal-600 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
                   {editingEvent ? 'Guardar Cambios' : 'Generar Evento'}
                 </button>
@@ -375,31 +365,31 @@ export default function EventsPage() {
       {/* Modal del Mapa (Vista Detalle) */}
       {isMapModalOpen && selectedLocation && (
         <div 
-          className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300"
           onClick={() => setIsMapModalOpen(false)}
         >
           <div 
-            className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh]"
+            className="bg-white w-full max-w-5xl rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={() => setIsMapModalOpen(false)}
-              className="absolute top-8 right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+              className="absolute top-6 md:top-8 right-6 md:right-8 z-30 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
             >
               <X size={20} className="group-hover:rotate-90 transition-transform" />
             </button>
 
-            <div className="px-10 py-10 border-b border-slate-100 bg-white">
+            <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-100 bg-white">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                 <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.25em]">Geolocalización Territorial</span>
               </div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+              <h3 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight uppercase truncate pr-10">
                 {selectedLocation}
               </h3>
             </div>
             
-            <div className="flex-1 bg-slate-100 relative min-h-[500px]">
+            <div className="flex-1 bg-slate-100 relative min-h-[300px] md:min-h-[500px]">
               <iframe 
                 width="100%" 
                 height="100%" 
@@ -411,18 +401,18 @@ export default function EventsPage() {
               />
             </div>
 
-            <div className="px-10 py-8 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+            <div className="px-6 md:px-10 py-6 md:py-8 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100">
               <div className="flex items-center gap-4 text-slate-500">
                 <div className="h-10 w-10 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-600 shrink-0 shadow-inner">
                   <Globe size={18} />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-widest leading-relaxed">
-                  Utilice los controles del mapa para explorar el área estratégica del evento.
+                <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+                  Utilice los controles del mapa para explorar el área estratégica.
                 </p>
               </div>
               <button 
                 onClick={() => setIsMapModalOpen(false)}
-                className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
+                className="w-full sm:w-auto px-12 py-4 md:py-5 bg-slate-900 text-white rounded-[1.25rem] md:rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
               >
                 Cerrar Vista
               </button>
@@ -434,167 +424,175 @@ export default function EventsPage() {
       {/* Modal Mapa Global (Strategic Map) */}
       {isGlobalMapOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
           onClick={() => setIsGlobalMapOpen(false)}
         >
           <div 
-            className="bg-[#0F172A] w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
+            className="bg-white w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border-4 border-teal-500/20 h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={() => setIsGlobalMapOpen(false)}
-              className="absolute top-8 left-8 z-[60] p-3 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-2xl border border-white/10 hover:border-red-500/30 transition-all group"
+              className="absolute top-4 md:top-8 right-4 md:left-8 md:right-auto z-[60] p-2 md:p-3 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl md:rounded-2xl border-2 border-teal-100 hover:border-red-100 shadow-sm transition-all group"
             >
-              <X size={20} className="group-hover:-rotate-90 transition-transform" />
+              <X size={18} className="md:w-5 md:h-5 group-hover:-rotate-90 transition-transform" />
             </button>
 
-            <div className="p-10 border-b border-white/5 bg-white/5 relative z-20 pl-24">
-              <div className="flex flex-row items-center justify-between gap-8">
-                <div>
+            <div className="pt-14 pb-6 md:py-10 px-5 md:px-10 md:pl-24 border-b-2 border-slate-100 bg-slate-50/30 relative z-20">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8">
+                <div className="md:pr-10">
                   <div className="flex items-center gap-3 mb-1">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase text-emerald-400 tracking-[0.3em]">Territory Intelligence System</span>
+                    <div className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Territory Intelligence System</span>
                   </div>
-                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Mapa Estratégico</h3>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Mapa Estratégico</h3>
                 </div>
 
                 {/* BARRA DE FILTROS DEL MAPA */}
-                <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[2rem] border border-white/10 backdrop-blur-md relative">
-                  <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-teal-500 transition-all">
-                    <Search size={16} className="text-slate-500" />
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 md:gap-4 bg-white p-2 rounded-[1.5rem] md:rounded-[2rem] border-2 border-teal-500/30 shadow-sm backdrop-blur-md relative w-full lg:w-auto">
+                  <div className="flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2 md:py-3 bg-slate-50 rounded-xl md:rounded-2xl border-2 border-transparent hover:border-teal-500 focus-within:border-teal-500 focus-within:bg-white transition-all group/search flex-1">
+                    <Search size={16} className="text-slate-400 group-hover/search:text-teal-500 transition-colors shrink-0" />
                     <input 
                       type="text" 
                       placeholder="Buscar..." 
-                      className="bg-transparent border-none outline-none text-[11px] font-bold text-white placeholder:text-slate-600 min-w-[120px]"
+                      className="bg-transparent border-none outline-none text-[11px] font-bold text-slate-900 placeholder:text-slate-400 w-full"
                       value={mapSearch}
                       onChange={(e) => setMapSearch(e.target.value)}
                     />
                   </div>
 
-                  <div className="relative">
-                    <div 
-                      onClick={() => {
-                        setIsTypeDropdownOpen(!isTypeDropdownOpen);
-                        setIsRangePickerOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all cursor-pointer min-w-[140px]"
-                    >
-                      <Filter size={14} className="text-slate-500" />
-                      <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">{mapFilterType === 'all' ? 'Todos' : mapFilterType}</span>
-                      <ChevronDown className={cn("text-slate-600 transition-transform ml-auto", isTypeDropdownOpen && "rotate-180")} size={12} />
+                  <div className="flex flex-row items-center gap-2 md:gap-3 w-full lg:w-auto">
+                    <div className="relative flex-1 lg:flex-none">
+                      <div 
+                        onClick={() => {
+                          setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                          setIsRangePickerOpen(false);
+                        }}
+                        className="flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2 md:py-3 bg-slate-50 rounded-xl md:rounded-2xl border-2 border-transparent hover:border-teal-500 hover:bg-white transition-all cursor-pointer min-w-0 md:min-w-[140px] group/type"
+                      >
+                        <Filter size={14} className="text-slate-400 group-hover/type:text-teal-500 transition-colors shrink-0" />
+                        <span className="text-[9px] md:text-[11px] text-slate-600 font-black uppercase tracking-widest truncate">{mapFilterType === 'all' ? 'Todos' : mapFilterType}</span>
+                        <ChevronDown className={cn("text-slate-400 transition-transform ml-auto shrink-0", isTypeDropdownOpen && "rotate-180")} size={12} />
+                      </div>
+
+                      {isTypeDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-3 w-full md:w-48 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          {["all", ...EVENT_TYPES].map(type => (
+                            <div 
+                              key={type}
+                              onClick={() => {
+                                setMapFilterType(type);
+                                setIsTypeDropdownOpen(false);
+                              }}
+                              className="px-5 py-3 hover:bg-slate-50 text-[10px] font-black text-slate-400 hover:text-teal-600 uppercase tracking-widest cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center"
+                            >
+                              {type === 'all' ? 'Todos' : type}
+                              {mapFilterType === type && <Check size={12} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {isTypeDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-3 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                        {["all", ...EVENT_TYPES].map(type => (
-                          <div 
-                            key={type}
-                            onClick={() => {
-                              setMapFilterType(type);
-                              setIsTypeDropdownOpen(false);
-                            }}
-                            className="px-5 py-3 hover:bg-white/5 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest cursor-pointer transition-colors border-b border-white/5 last:border-none flex justify-between items-center"
+                    <div className="hidden lg:block h-6 w-[1px] bg-slate-100" />
+
+                    <div className="relative flex-1 lg:flex-none">
+                      <button 
+                        onClick={() => {
+                          setIsRangePickerOpen(!isRangePickerOpen);
+                          setIsTypeDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 md:gap-3 bg-slate-50 px-3 md:px-5 py-2 md:py-3 rounded-xl md:rounded-2xl border-2 transition-all group/range w-full lg:w-auto",
+                          isRangePickerOpen ? "border-teal-500 bg-white shadow-lg shadow-teal-500/10" : "border-transparent hover:border-teal-500 hover:bg-white"
+                        )}
+                      >
+                        <Calendar size={16} className={cn("transition-colors shrink-0", isRangePickerOpen ? "text-teal-600" : "text-slate-400 group-hover/range:text-teal-500")} />
+                        <div className="flex flex-col items-start leading-none gap-0.5 md:gap-1">
+                          <span className="text-[6px] md:text-[7px] font-black text-slate-400 uppercase tracking-widest">Temporal</span>
+                          <span className="text-[8px] md:text-[10px] text-slate-700 font-black uppercase truncate max-w-[60px] md:max-w-none">
+                            {mapFilterStartDate ? `${mapFilterStartDate.split('-').slice(1).join('/')}` : 'Rango'}
+                          </span>
+                        </div>
+                        <ChevronDown className={cn("text-slate-400 transition-transform ml-auto shrink-0", isRangePickerOpen && "rotate-180")} size={12} />
+                      </button>
+
+                      {isRangePickerOpen && (
+                        <div className="absolute top-full right-0 mt-4 p-4 md:p-6 bg-white border-2 border-slate-100 rounded-[1.5rem] md:rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 w-[280px] md:min-w-[300px]">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Definir Período</span>
+                            <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 md:gap-4">
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Inicio</label>
+                              <input 
+                                type="date" 
+                                className="bg-slate-50 border-2 border-transparent hover:border-teal-500 rounded-xl p-2.5 md:p-3 text-[10px] font-bold text-slate-900 outline-none focus:border-teal-500 focus:bg-white transition-all [color-scheme:light] w-full"
+                                value={mapFilterStartDate}
+                                onChange={(e) => setMapFilterStartDate(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Fin</label>
+                              <input 
+                                type="date" 
+                                className="bg-slate-50 border-2 border-transparent hover:border-teal-500 rounded-xl p-2.5 md:p-3 text-[10px] font-bold text-slate-900 outline-none focus:border-teal-500 focus:bg-white transition-all [color-scheme:light] w-full"
+                                value={mapFilterEndDate}
+                                onChange={(e) => setMapFilterEndDate(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setIsRangePickerOpen(false)}
+                            className="w-full py-3.5 md:py-4 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all mt-2 shadow-lg shadow-teal-500/20"
                           >
-                            {type === 'all' ? 'Todos' : type}
-                            {mapFilterType === type && <Check size={12} className="text-teal-400" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="h-6 w-[1px] bg-white/10" />
-
-                  <div className="relative">
-                    <button 
-                      onClick={() => {
-                        setIsRangePickerOpen(!isRangePickerOpen);
-                        setIsTypeDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 bg-white/5 px-5 py-3 rounded-2xl border transition-all group",
-                        isRangePickerOpen ? "border-teal-500 bg-white/10 shadow-lg shadow-teal-500/10" : "border-white/10 hover:border-white/20"
+                            Aplicar Rango
+                          </button>
+                        </div>
                       )}
-                    >
-                      <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-teal-400" : "text-slate-500")} />
-                      <div className="flex flex-col items-start leading-none gap-1">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Rango Temporal</span>
-                        <span className="text-[10px] text-slate-200 font-black uppercase">
-                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar'}
-                        </span>
-                      </div>
-                      <ChevronDown size={14} className={cn("text-slate-600 transition-transform", isRangePickerOpen && "rotate-180")} />
-                    </button>
-
-                    {isRangePickerOpen && (
-                      <div className="absolute top-full right-0 mt-4 p-6 bg-[#1E293B] border border-white/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[300px]">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Definir Período</span>
-                          <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-500 hover:text-white"><X size={14} /></button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-2">
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Inicio</label>
-                            <input 
-                              type="date" 
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
-                              value={mapFilterStartDate}
-                              onChange={(e) => setMapFilterStartDate(e.target.value)}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Fin</label>
-                            <input 
-                              type="date" 
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
-                              value={mapFilterEndDate}
-                              onChange={(e) => setMapFilterEndDate(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setIsRangePickerOpen(false)}
-                          className="w-full py-4 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all mt-2 shadow-lg shadow-teal-500/20"
-                        >
-                          Aplicar Rango
-                        </button>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
-              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{ 
-                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`, 
+            <div className="flex-1 relative bg-white overflow-hidden">
+              <div className="absolute inset-0 opacity-20 pointer-events-none z-10" style={{ 
+                backgroundImage: `radial-gradient(#99f6e4 1.5px, transparent 1.5px)`, 
                 backgroundSize: '40px 40px' 
               }} />
 
-              <div className="absolute inset-0 z-0">
-                <StrategicMap events={filteredEventsForMap} />
+              <div className="absolute inset-0 z-0 border-t-2 border-teal-50">
+                <StrategicMap 
+                  events={filteredEventsForMap} 
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onViewDetails={handleOpenMap}
+                  isAdmin={isAdmin}
+                />
                 
                 {filteredEventsForMap.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm z-10 pointer-events-none">
-                    <div className="bg-white/5 border border-white/10 px-8 py-5 rounded-[2.5rem] text-center shadow-2xl">
-                      <div className="text-slate-500 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
-                      <p className="text-white text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
+                  <div className="absolute inset-0 flex items-center justify-center bg-teal-50/20 backdrop-blur-[2px] z-10 pointer-events-none">
+                    <div className="bg-white border-2 border-teal-100 px-6 md:px-8 py-4 md:py-5 rounded-[2rem] md:rounded-[2.5rem] text-center shadow-2xl shadow-teal-200/50 mx-4">
+                      <div className="text-teal-400 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
+                      <p className="text-slate-900 text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Leyenda Absoluta */}
-              <div className="absolute bottom-10 left-10 flex flex-wrap gap-4 z-20 max-w-[500px]">
+              <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-auto flex flex-wrap md:flex-row items-center gap-2 md:gap-4 z-20 overflow-visible pb-2">
                 {[
                   { label: 'Marchas', color: 'bg-red-500' },
                   { label: 'Reuniones', color: 'bg-teal-500' },
                   { label: 'Capacitación', color: 'bg-emerald-500' },
                   { label: 'Otros', color: 'bg-orange-500' }
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
-                    <div className={cn("h-2 w-2 rounded-full", item.color)} />
-                    <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">{item.label}</span>
+                  <div key={item.label} className="flex items-center gap-2 md:gap-3 bg-white/90 backdrop-blur-md border-2 border-teal-50 px-2.5 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-teal-500/5 shrink-0">
+                    <div className={cn("h-2 md:h-2.5 w-2 md:w-2.5 rounded-full shadow-sm", item.color)} />
+                    <span className="text-[8px] md:text-[9px] font-black text-slate-700 uppercase tracking-widest whitespace-nowrap">{item.label}</span>
                   </div>
                 ))}
               </div>

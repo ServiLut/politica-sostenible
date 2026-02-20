@@ -175,7 +175,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setContacts(loadedContacts);
     setCampaignGoal(loadedGoal);
     setFinance(loadedFinance);
@@ -210,7 +210,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     save('crm_team', team);
     save('crm_compliance', compliance);
     save('crm_audit', auditLogs);
-  }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs]);
+  }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
 
   // FUNCIONES
   const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {

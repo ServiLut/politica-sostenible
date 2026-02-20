@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useCRM } from '@/context/CRMContext';
-import { Shield, Lock, Terminal, ShieldAlert, UserCheck, Eye, Zap, AlertCircle } from 'lucide-react';
+import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, AlertCircle } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function SecurityPage() {

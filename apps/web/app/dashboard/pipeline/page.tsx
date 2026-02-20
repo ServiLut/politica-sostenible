@@ -14,8 +14,6 @@ import {
   Filter,
   UserCheck,
   IdCard,
-  History,
-  Info,
   ExternalLink
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';

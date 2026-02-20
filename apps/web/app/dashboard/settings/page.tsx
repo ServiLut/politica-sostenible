@@ -2,13 +2,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCRM, TerritoryZone } from '@/context/CRMContext';
-import { MapPin, Plus, Trash2, Globe, Search, Edit2, X, Target, Save, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
+import { MapPin, Plus, Trash2, Search, Edit2, Target, Save, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { territory, team, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
+  const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [leaderSearch, setLeaderSearch] = useState('');
   const [goalInput, setGoalInput] = useState(campaignGoal.toString());
 
   const [currentPage, setCurrentPage] = useState(1);

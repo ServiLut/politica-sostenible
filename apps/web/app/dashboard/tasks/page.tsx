@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCRM, CampaignTask } from '@/context/CRMContext';
-import { Plus, X, User, Calendar, CheckCircle, Clock, Loader2, ClipboardList } from 'lucide-react';
+import { Plus, X, Calendar, CheckCircle, Clock, Loader2, ClipboardList } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function TasksPage() {

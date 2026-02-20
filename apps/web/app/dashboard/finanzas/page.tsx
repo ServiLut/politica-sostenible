@@ -3,14 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   Plus, 
-  Receipt, 
-  AlertCircle,
   BarChart3,
   Calendar,
-  Wallet,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
   Inbox
 } from "lucide-react";
 import { useCampaign, TransactionType } from "@/context/CampaignContext";
@@ -32,7 +26,6 @@ export default function FinanzasPage() {
   });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

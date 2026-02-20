@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MapPin, ChevronDown, X, Globe } from 'lucide-react';
-import { MEDELLIN_LOCATIONS, LocationOption } from '../../data/medellin-locations';
+import { MEDELLIN_LOCATIONS } from '../../data/medellin-locations';
 import { cn } from './utils';
 
 interface LocationSelectorProps {

@@ -1,14 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCRM, Broadcast } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
-import { AlertDialog } from '@/components/ui/AlertDialog';
 import { 
   Send, 
   MessageSquare, 
-  Phone, 
-  Mail, 
   Plus, 
   X, 
   Loader2,
@@ -19,13 +16,11 @@ import {
 import { cn } from '@/components/ui/utils';
 
 export default function MessagingPage() {
-  const { broadcasts, sendBroadcast, updateBroadcast, toggleBroadcastStatus } = useCRM();
+  const { broadcasts, sendBroadcast, updateBroadcast } = useCRM();
   const { success: toastSuccess } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
-  const [broadcastToToggle, setBroadcastToToggle] = useState<Broadcast | null>(null);
   
   const [newCampaign, setNewCampaign] = useState<{ name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; segment: string; message: string; }>({ name: '', channel: 'WhatsApp', segment: 'Todos', message: '' });
   
@@ -100,7 +95,7 @@ export default function MessagingPage() {
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       <button onClick={() => handleOpenModal(b)} className="p-2 text-slate-400 hover:text-teal-600 hover:bg-white rounded-xl transition-all shadow-sm"><Pencil size={16} /></button>
-                      <button onClick={() => { setBroadcastToToggle(b); setIsStatusModalOpen(true); }} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-white rounded-xl transition-all shadow-sm">{b.activeStatus === 'active' ? <Ban size={16} /> : <RotateCcw size={16} />}</button>
+                      <button className="p-2 text-slate-400 hover:text-rose-500 hover:bg-white rounded-xl transition-all shadow-sm">{b.activeStatus === 'active' ? <Ban size={16} /> : <RotateCcw size={16} />}</button>
                     </div>
                   </td>
                 </tr>

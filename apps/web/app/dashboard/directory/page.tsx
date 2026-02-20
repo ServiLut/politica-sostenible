@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCRM, Contact, ContactRole, PipelineStage } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
@@ -15,13 +17,15 @@ import {
   X,
   MapPin,
   Shield,
-  Ban
+  Ban,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function DirectoryPage() {
   const { contacts, territory, addContact, updateContact, toggleContactStatus } = useCRM();
   const { success: toastSuccess } = useToast();
+  const router = useRouter();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -150,7 +154,18 @@ export default function DirectoryPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-32">
+      {/* Back Navigation */}
+      <div className="px-2">
+        <Link 
+          href="/dashboard/executive" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+          Regresar al Centro de Mando
+        </Link>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Directorio CRM</h1>
@@ -189,7 +204,56 @@ export default function DirectoryPage() {
       </div>
 
       <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block md:hidden divide-y divide-slate-50">
+          {filteredContacts.map((contact) => (
+            <div key={contact.id} className={cn(
+              "p-6 space-y-4 overflow-hidden",
+              contact.status === 'archived' && "opacity-60 grayscale bg-slate-50"
+            )}>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-black text-lg border border-teal-100 shrink-0">
+                    {contact.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-black text-black uppercase tracking-tight leading-tight mb-1 whitespace-normal break-words max-w-[200px] md:max-w-none">
+                      {contact.name}
+                    </p>
+                    <p className="text-xs font-bold text-slate-400 truncate">{contact.cedula}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => handleOpenDialog(contact)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-teal-600 transition-all"><Pencil size={18} /></button>
+                  <button onClick={() => handleToggleStatusClick(contact)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-amber-600 transition-all"><Ban size={18} /></button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-1 min-w-0">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rol Político</p>
+                  <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2.5 py-1 rounded-lg uppercase border border-teal-100 inline-block truncate max-w-full">
+                    {contact.role}
+                  </span>
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Etapa Pipeline</p>
+                  <span className="text-[10px] font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg uppercase inline-block truncate max-w-full">
+                    {contact.stage}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100 overflow-hidden">
+                <MapPin size={14} className="text-teal-600 shrink-0" />
+                <p className="text-xs font-bold uppercase tracking-wide whitespace-normal break-words flex-1 min-w-0">{contact.neighborhood}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -216,16 +280,18 @@ export default function DirectoryPage() {
                           </div>
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-black text-slate-900">{contact.name}</p>
+                      <div className="min-w-0 max-w-[250px]">
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-sm font-black text-black uppercase break-words whitespace-normal leading-tight">
+                            {contact.name}
+                          </p>
                           {contact.status === 'archived' && (
-                            <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-widest uppercase">
+                            <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-widest uppercase w-fit mt-1">
                               Suspendido
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-bold text-slate-400">{contact.phone}</p>
+                        <p className="text-xs font-bold text-slate-400 mt-1">{contact.phone}</p>
                       </div>
                     </div>
                   </td>
@@ -243,8 +309,11 @@ export default function DirectoryPage() {
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
-                      <MapPin size={12} className="text-slate-300" /> {contact.neighborhood}
+                    <div className="flex items-center gap-1 text-xs font-bold text-slate-500 max-w-[200px]">
+                      <MapPin size={12} className="text-slate-300 shrink-0" /> 
+                      <span className="whitespace-normal break-words leading-tight uppercase text-[10px]">
+                        {contact.neighborhood}
+                      </span>
                     </div>
                   </td>
                   <td className="px-8 py-5 text-right">
@@ -276,27 +345,27 @@ export default function DirectoryPage() {
       {/* Contact Modal */}
       {isDialogOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4"
           onClick={closeModal}
         >
           <div 
-            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            className="bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
+                <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter">
                   {currentContact ? 'Editar Contacto' : 'Nuevo Registro'}
                 </h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión de Base de Datos</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión de Base de Datos</p>
               </div>
               <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm">
                 <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Nombre Completo</label>
                   <input 
@@ -411,17 +480,17 @@ export default function DirectoryPage() {
                 />
               </div>
 
-              <div className="pt-6 flex gap-4">
+              <div className="pt-6 flex flex-col md:flex-row gap-3 md:gap-4 shrink-0 pb-2">
                 <button 
                   type="button" 
                   onClick={closeModal}
-                  className="flex-1 px-8 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
+                  className="w-full md:flex-1 px-8 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-8 py-4 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                  className="w-full md:flex-1 px-8 py-4 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
                 >
                   <Shield size={16} /> {currentContact ? 'Guardar Cambios' : 'Registrar Votante'}
                 </button>

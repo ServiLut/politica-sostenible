@@ -7,11 +7,9 @@ import {
   CheckCircle2, 
   ArrowRight, 
   ArrowLeft,
-  ChevronRight,
   ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui';
 
 const steps = [
   { id: 1, name: 'Personal', icon: User },
@@ -21,16 +19,6 @@ const steps = [
 
 export default function NewVoterPage() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    cedula: '',
-    telefono: '',
-    email: '',
-    puesto: '',
-    mesa: '',
-    comuna: '',
-    observaciones: ''
-  });
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
