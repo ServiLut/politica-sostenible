@@ -801,7 +801,7 @@ export default function EventsPage() {
                       <div className="flex flex-col items-start leading-none gap-1">
                         <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Rango Temporal</span>
                         <span className="text-[10px] text-slate-200 font-black uppercase">
-                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar'}
+                          {mapFilterStartDate ? `${mapFilterStartDate} -> ${mapFilterEndDate || '...'}` : 'Seleccionar'}
                         </span>
                       </div>
                       <ChevronDown size={14} className={cn("text-slate-600 transition-transform", isRangePickerOpen && "rotate-180")} />
@@ -842,16 +842,11 @@ export default function EventsPage() {
                       </div>
                     )}
                   </div>
-                  </div>
                 </div>
               </div>
-            </div>
 
             <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
-              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{
-                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`,
-                backgroundSize: '40px 40px'
-              }} />
+              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{ backgroundColor: "rgba(51, 65, 85, 0.1)" }} />
 
               <div className="absolute inset-0 z-0">
                 <StrategicMap events={filteredEventsForMap} />
@@ -882,6 +877,7 @@ export default function EventsPage() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Error Modal */}
@@ -921,5 +917,6 @@ export default function EventsPage() {
         variant="danger"
       />
     </div>
+  </div>
   );
 }
