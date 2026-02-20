@@ -1,13 +1,41 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
 import { CampaignEvent } from '@/context/CRMContext';
-import { MEDELLIN_ZONES } from '@/data/medellin-geo';
-import { MEDELLIN_COORDINATES } from '@/data/medellin-coordinates';
+import { getCoordsForLocation, Coordinate } from '@/utils/geo';
+
+// This component will automatically re-center the map when the events change
+function RecenterAutomatically({ events }: { events: CampaignEvent[] }) {
+  const map = useMap();
+  useEffect(() => {
+    // This timeout gives the map time to initialize and avoids race conditions
+    const timer = setTimeout(() => {
+      const coords = events
+        .map(event => getCoordsForLocation(event.location))
+        .filter((coord): coord is Coordinate => coord !== null);
+
+      if (coords.length > 0) {
+        const bounds = new L.LatLngBounds(coords.map(c => [c.lat, c.lng]));
+        
+        if (bounds.isValid()) {
+           if (coords.length === 1) {
+              map.setView([coords[0].lat, coords[0].lng], 15);
+           } else {
+              map.fitBounds(bounds, { padding: [50, 50] });
+           }
+        }
+      }
+    }, 100); // A small delay is often helpful
+
+    return () => clearTimeout(timer);
+  }, [events, map]);
+
+  return null;
+}
 
 // Custom icons for different event types
 const createCustomIcon = (color: string) => {
@@ -65,32 +93,10 @@ export default function StrategicMap({ events }: StrategicMapProps) {
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
         
-        {events.map((event, idx) => {
-          const normalize = (str: string) => 
-            str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          
-          const cleanLoc = normalize(event.location);
-          let position: [number, number] | null = null;
-
-          // 1. Buscar todas las coincidencias y elegir la más específica (la más larga)
-          const candidates = Object.entries(MEDELLIN_COORDINATES)
-            .filter(([key]) => cleanLoc.includes(normalize(key)))
-            .sort((a, b) => b[0].length - a[0].length);
-
-          if (candidates.length > 0) {
-            position = [candidates[0][1].lat, candidates[0][1].lng];
-          }
-
-          // 2. Fallback a Zonas de Medellín
-          if (!position) {
-            const zone = MEDELLIN_ZONES.find(z => {
-              const zName = normalize(z.name);
-              return cleanLoc.includes(zName) || zName.includes(cleanLoc);
-            });
-            if (zone && zone.lat !== undefined && zone.lng !== undefined) {
-              position = [zone.lat, zone.lng];
-            }
-          }
+        <RecenterAutomatically events={events} />
+        
+        {events.map((event, _idx) => {
+          const position = getCoordsForLocation(event.location);
 
           // 3. Si no hay posición, no renderizar
           if (!position) return null;
@@ -98,7 +104,7 @@ export default function StrategicMap({ events }: StrategicMapProps) {
           // Reducción del "jitter" para mayor precisión visual (aprox 100m de dispersión)
           const jitterLat = (Math.random() - 0.5) * 0.001;
           const jitterLng = (Math.random() - 0.5) * 0.001;
-          const finalPosition: [number, number] = [position[0] + jitterLat, position[1] + jitterLng];
+          const finalPosition: [number, number] = [position.lat + jitterLat, position.lng + jitterLng];
 
           let icon = blueIcon;
           let badgeClass = 'bg-blue-50 text-blue-600 border-blue-100';

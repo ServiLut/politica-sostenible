@@ -47,7 +47,18 @@ export interface FinanceTransaction {
   relatedEntityId?: string; // Conexión con Eventos o Inventario
 }
 
-export interface CampaignEvent { id: string; title: string; date: string; location: string; type: 'Reunión' | 'Marcha' | 'Capacitación' | 'Otro'; attendeesCount: number; estimatedCost?: number; }
+export interface CampaignEvent { 
+  id: string; 
+  title: string; 
+  date: string; 
+  location: string; 
+  type: 'Reunión' | 'Marcha' | 'Capacitación' | 'Otro'; 
+  attendeesCount: number; 
+  estimatedCost?: number;
+  description?: string;
+  priority?: 'Baja' | 'Media' | 'Alta';
+  targetAttendees?: number;
+}
 export interface PollingStation { id: string; name: string; totalTables: number; reportedTables: number; witnessesCount: number; }
 export interface E14Report { id: string; stationId: string; tableNumber: string; votesCandidate: number; votesOpponent: number; imageUrl?: string; timestamp: string; }
 export interface Broadcast { id: string; name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; status: 'Procesando' | 'Enviado' | 'Error'; sentCount: number; deliveredCount: number; segment: string; message: string; date: string; activeStatus: 'active' | 'archived'; }
@@ -175,7 +186,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setContacts(loadedContacts);
     setCampaignGoal(loadedGoal);
     setFinance(loadedFinance);
@@ -210,7 +221,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     save('crm_team', team);
     save('crm_compliance', compliance);
     save('crm_audit', auditLogs);
-  }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs]);
+  }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
 
   // FUNCIONES
   const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
@@ -313,7 +324,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     });
   }, [territory, contacts]);
 
-  const getExecutiveKPIs = () => ({ totalContacts: contacts.length, firmVotes: contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length, coverageNeighborhoods: new Set(contacts.map(c => c.neighborhood)).size, progressPercentage: (contacts.filter(c => c.stage === 'Firme').length / 50000) * 100 });
+  const getExecutiveKPIs = () => ({ 
+    totalContacts: contacts.length, 
+    firmVotes: contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length, 
+    coverageNeighborhoods: new Set(contacts.map(c => c.neighborhood)).size, 
+    progressPercentage: (contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length / (campaignGoal || 1)) * 100,
+    campaignGoal
+  });
   const getTerritoryStats = () => enrichedTerritory;
   const getFinanceSummary = () => ({ totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0), totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0), balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0) });
   const getElectionResults = () => ({ myVotes: e14Reports.reduce((a, b) => a + b.votesCandidate, 0), opponentVotes: e14Reports.reduce((a, b) => a + b.votesOpponent, 0), tablesReported: e14Reports.length, totalTables: pollingStations.reduce((a, b) => a + b.totalTables, 0) });

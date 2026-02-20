@@ -14,12 +14,18 @@ import {
   UserPlus
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
+import { useToast } from "@/context/ToastContext";
 import { cn } from "@/components/ui/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ExecutivePage() {
-  const { getExecutiveKPIs, contacts } = useCRM();
+  const { getExecutiveKPIs, contacts, logAction, territory } = useCRM();
+  const { success, info, error } = useToast();
   const [mounted, setMounted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +36,86 @@ export default function ExecutivePage() {
   const formatNum = (num: number) => {
     if (!mounted) return num.toString();
     return num.toLocaleString();
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      setIsGenerating(true);
+      info("Generando reporte estratégico detallado...");
+      
+      // Simular delay para realismo
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const doc = new jsPDF();
+      
+      // Título y Estilo
+      doc.setFontSize(22);
+      doc.setTextColor(13, 148, 136); // Teal 600
+      doc.text("REPORTE ESTRATÉGICO DE CAMPAÑA", 20, 20);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Slate 500
+      doc.text(`Fecha de generación: ${new Date().toLocaleString()}`, 20, 30);
+      doc.text("Estrategia Victoria Electoral 2026", 20, 35);
+      
+      // Resumen Ejecutivo
+      doc.setFontSize(16);
+      doc.setTextColor(15, 23, 42); // Slate 900
+      doc.text("1. Resumen Ejecutivo", 20, 50);
+      
+      const summaryData = [
+        ["Métrica", "Valor"],
+        ["Censo Electoral CRM", kpis.totalContacts.toString()],
+        ["Votos Fidelizados (Firme/Votó)", kpis.firmVotes.toString()],
+        ["Meta Global de Campaña", kpis.campaignGoal.toLocaleString()],
+        ["Progreso de Meta", `${kpis.progressPercentage.toFixed(2)}%`],
+        ["Cobertura de Barrios", kpis.coverageNeighborhoods.toString()]
+      ];
+      
+      autoTable(doc, {
+        startY: 55,
+        head: [summaryData[0]],
+        body: summaryData.slice(1),
+        theme: 'grid',
+        headStyles: { fillColor: [13, 148, 136] }
+      });
+      
+      // Análisis Territorial
+      // @ts-expect-error: jspdf-autotable adds lastAutoTable to the jsPDF instance
+      const lastY = doc.lastAutoTable?.finalY || 100;
+      doc.text("2. Desglose Territorial (Top Nodos)", 20, lastY + 15);
+      
+      const zoneData = territory
+        .sort((a, b) => b.current - a.current)
+        .slice(0, 10)
+        .map(z => [z.name, z.leader || "Sin Líder", z.target.toString(), z.current.toString(), `${((z.current / (z.target || 1)) * 100).toFixed(1)}%`]);
+      
+      autoTable(doc, {
+        startY: lastY + 20,
+        head: [["Zona/Nodo", "Líder Asignado", "Meta Local", "Actual", "% Avance"]],
+        body: zoneData,
+        theme: 'striped',
+        headStyles: { fillColor: [15, 23, 42] }
+      });
+      
+      // Pie de página
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text("Confidencial - Solo para uso estratégico de campaña", 105, 285, { align: "center" });
+      }
+      
+      doc.save(`Reporte_Ejecutivo_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      logAction("Usuario Ejecutivo", "Generación de Reporte PDF: Completo", "Estrategia", "Info");
+      success("Reporte generado y descargado correctamente.");
+    } catch (err) {
+      console.error(err);
+      error("Error al generar el reporte PDF.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -109,7 +195,7 @@ export default function ExecutivePage() {
             </div>
             <div className="text-right">
               <span className="text-[10px] font-black bg-slate-900 text-white px-2.5 py-1 rounded-full uppercase tracking-tighter">
-                Meta: 50K
+                Meta: {formatNum(kpis.campaignGoal)}
               </span>
             </div>
           </div>
@@ -124,7 +210,7 @@ export default function ExecutivePage() {
                  />
               </div>
               <p className="text-[9px] font-black text-slate-400 text-right uppercase tracking-[0.1em]">
-                {formatNum(50000 - kpis.firmVotes)} votos faltantes
+                {formatNum(Math.max(0, kpis.campaignGoal - kpis.firmVotes))} votos faltantes
               </p>
             </div>
           </div>
@@ -242,8 +328,27 @@ export default function ExecutivePage() {
               <p className="text-slate-500 text-sm mb-8 font-medium leading-relaxed">
                 Detectamos un crecimiento del 15% en la zona norte. Se recomienda reforzar con líderes locales.
               </p>
-              <button className="w-full bg-teal-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100">
-                Generar Reporte de Zona
+              <button 
+                onClick={handleGenerateReport}
+                disabled={isGenerating}
+                className={cn(
+                  "w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-2",
+                  isGenerating 
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none" 
+                    : "bg-teal-600 text-white hover:bg-teal-700 shadow-teal-100"
+                )}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={16} />
+                    Generar Reporte de Zona
+                  </>
+                )}
               </button>
             </div>
           </div>

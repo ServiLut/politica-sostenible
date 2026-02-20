@@ -5,14 +5,14 @@ import { useCRM, TeamMember } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Users, UserPlus, Shield, MapPin, TrendingUp, X, Mail, Edit, Ban, RotateCcw } from 'lucide-react';
+import { Users, UserPlus, MapPin, X, Mail, Edit, Ban, RotateCcw } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function OrgPage() {
   const { team, inviteMember, updateMember, toggleMemberStatus, getTeamStats, territory } = useCRM();
   const { role: currentUserRole } = useAuth();
   const { success: toastSuccess } = useToast();
-  const { totalTasks, completedTasks, teamEfficiency } = getTeamStats();
+  const { teamEfficiency } = getTeamStats();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);

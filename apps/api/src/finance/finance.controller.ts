@@ -8,7 +8,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { FinanceService, CreateFinanceDto } from './finance.service';
-import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiHeader } from '@nestjs/swagger';
 
 @ApiTags('Finance')
 @Controller('finance')

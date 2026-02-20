@@ -8,12 +8,9 @@ import {
   CheckCircle, 
   XCircle, 
   X, 
-  Phone, 
   MoreHorizontal,
-  Mail,
   Eye,
   ChevronRight,
-  MessageSquare
 } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 import { useCampaign } from "@/context/CampaignContext";

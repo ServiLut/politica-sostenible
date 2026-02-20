@@ -1,130 +1,34 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useCRM, FinanceTransaction, CneCode, Contact } from '@/context/CRMContext';
-import { useToast } from '@/context/ToastContext';
+import React, { useMemo } from 'react';
+import { useCRM } from '@/context/CRMContext';
 import { 
   Wallet, 
   TrendingUp, 
   TrendingDown, 
   Receipt, 
-  FileText, 
-  ChevronDown,
-  Download,
   AlertCircle,
   ShieldCheck,
-  Ban,
-  FileCheck,
-  Plus,
-  Trash2,
-  ExternalLink,
-  Info,
-  Search,
-  UserCheck,
-  Calendar
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Legend 
-} from 'recharts';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { cn } from '@/components/ui/utils';
 
 export default function FinancePage() {
   const { 
     finance, 
-    addFinanceTransaction, 
-    updateFinanceTransaction, 
-    deleteFinanceTransaction, 
-    logAction, 
-    contacts, 
     getProjectedCompliance,
-    TOPE_LEGAL_CNE
   } = useCRM();
-  const { success: toastSuccess, error: toastError } = useToast();
   
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [formData, setFormData] = useState<Omit<FinanceTransaction, 'id'>>({
-    concept: '',
-    amount: 0,
-    type: 'Gasto',
-    category: 'Logística',
-    date: new Date().toISOString().split('T')[0],
-    status: 'PENDING',
-    cneCode: 'OTROS',
-    vendorTaxId: '',
-    evidenceUrl: ''
-  });
-
-  const [donorSearch, setDonorSearch] = useState('');
-  const [showDonorResults, setShowDonorResults] = useState(false);
-  
-  const filteredDonors = useMemo(() => {
-    if (!donorSearch) return [];
-    return contacts.filter(c => 
-      c.name.toLowerCase().includes(donorSearch.toLowerCase()) || 
-      c.cedula.includes(donorSearch)
-    ).slice(0, 5);
-  }, [contacts, donorSearch]);
-
-  const selectDonor = (donor: Contact) => {
-    setFormData({
-      ...formData,
-      vendorTaxId: donor.cedula,
-      concept: `Donación - ${donor.name}`,
-      providerId: donor.id
-    });
-    setDonorSearch(donor.name);
-    setShowDonorResults(false);
-  };
-
   const complianceData = useMemo(() => {
     const projected = getProjectedCompliance();
-    const expensesByCne = finance
-      .filter(f => f.type === 'Gasto')
-      .reduce((acc: Record<string, number>, curr) => {
-        const code = curr.cneCode || 'OTROS';
-        acc[code] = (acc[code] || 0) + curr.amount;
-        return acc;
-      }, {});
-
-    const pieData = Object.entries(expensesByCne).map(([name, value]) => ({ name, value }));
-    const weeks: Record<string, { name: string, ingresos: number, gastos: number }> = {};
-    
-    finance.forEach(t => {
-      const date = new Date(t.date);
-      const weekKey = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`;
-      if (!weeks[weekKey]) weeks[weekKey] = { name: `Sem ${Math.ceil(date.getDate() / 7)}`, ingresos: 0, gastos: 0 };
-      if (t.type === 'Ingreso') weeks[weekKey].ingresos += t.amount;
-      else weeks[weekKey].gastos += t.amount;
-    });
-
     return {
       totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0),
       totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0),
-      approvedExpenses: projected.actualExpenses,
       balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0),
       executionPercentage: projected.executionPercentage,
-      projectedEventsCost: projected.projectedEventsCost,
-      pieData,
-      weeklyData: Object.values(weeks).sort((a, b) => a.name.localeCompare(b.name))
     };
   }, [finance, getProjectedCompliance]);
 
-  const { totalIncome, totalExpenses, approvedExpenses, balance, executionPercentage, pieData, weeklyData, projectedEventsCost } = complianceData;
+  const { totalIncome, totalExpenses, balance, executionPercentage } = complianceData;
 
   const alertStatus = useMemo(() => {
     if (executionPercentage > 90) return { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', msg: '¡PELIGRO! Riesgo de sanción administrativa', icon: <AlertCircle className="animate-pulse" /> };
@@ -134,17 +38,6 @@ export default function FinancePage() {
 
   const formatCOP = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
-  const handleAddTransaction = (e: React.FormEvent) => {
-    e.preventDefault();
-    addFinanceTransaction(formData);
-    logAction('Tesorero', `Agregó ${formData.type} legal: ${formData.concept}`, 'Finanzas');
-    toastSuccess("Movimiento registrado");
-    setIsModalOpen(false);
-    setFormData({ concept: '', amount: 0, type: 'Gasto', category: 'Logística', date: new Date().toISOString().split('T')[0], status: 'PENDING', cneCode: 'OTROS', vendorTaxId: '', evidenceUrl: '' });
-  };
-
-  const COLORS = ['#0d9488', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6'];
-
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
@@ -152,9 +45,6 @@ export default function FinancePage() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión Financiera</h1>
           <p className="text-slate-500 font-medium">Control de ingresos, gastos y cumplimiento Cuentas Claras.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-2">
-          <Plus size={20} /> Nuevo Movimiento
-        </button>
       </div>
 
       <div className={cn("p-8 rounded-[2.5rem] border flex items-center gap-8 shadow-sm transition-all", alertStatus.bg, alertStatus.border, alertStatus.color)}>

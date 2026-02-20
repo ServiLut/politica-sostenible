@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useCRM, PipelineStage } from '@/context/CRMContext';
+import { useCRM, PipelineStage, Contact } from '@/context/CRMContext';
+import { useToast } from '@/context/ToastContext';
 import { 
   Search, 
   MapPin, 
@@ -14,9 +15,14 @@ import {
   Filter,
   UserCheck,
   IdCard,
-  History,
-  Info,
-  ExternalLink
+  ExternalLink,
+  ShieldAlert,
+  BrainCircuit,
+  X,
+  TrendingUp,
+  MessageSquareQuote,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
@@ -24,11 +30,16 @@ const STAGES: PipelineStage[] = ['Prospecto', 'Contactado', 'Simpatizante', 'Fir
 
 export default function PipelinePage() {
   const { contacts, team, campaignGoal, moveContactStage } = useCRM();
+  const { info, success } = useToast();
   const [activeStage, setActiveStage] = useState<PipelineStage>('Prospecto');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeader, setSelectedLeader] = useState('all');
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(50);
+  
+  // AI Analysis States
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const filteredContacts = useMemo(() => {
     return contacts.filter(c => {
@@ -69,9 +80,209 @@ export default function PipelinePage() {
 
   const confirmedVotes = contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length;
 
+  // --- MOTOR DE INTELIGENCIA LOCAL (SOBERANÍA DEL DATO) ---
+  const KNOWLEDGE_BASE: Record<string, { issues: string[], tone: string, proposal: string }> = {
+    'Popular': { issues: ['Acceso a Agua Potable', 'Rutas de Transporte', 'Oportunidades Juveniles'], tone: 'Solidario y Directo', proposal: 'Inversión social prioritaria' },
+    'Santa Cruz': { issues: ['Espacio Público', 'Seguridad Barrial', 'Apoyo a Madres Cabeza de Familia'], tone: 'Cercano y Comprometido', proposal: 'Red de cuidado barrial' },
+    'Manrique': { issues: ['Movilidad (Metroplús)', 'Cultura y Arte', 'Desempleo'], tone: 'Enérgico y Cultural', proposal: 'Distrito creativo y empleo' },
+    'Aranjuez': { issues: ['Patrimonio Cultural', 'Seguridad en Parques', 'Comercio Local'], tone: 'Respetuoso e Histórico', proposal: 'Protección al comerciante' },
+    'Castilla': { issues: ['Seguridad y Convivencia', 'Mantenimiento Vial', 'Zonas Deportivas'], tone: 'Firme y Propositivo', proposal: 'Seguridad integral' },
+    'Doce de Octubre': { issues: ['Conectividad Internet', 'Servicios de Salud', 'Vivienda Digna'], tone: 'Servicial y Atento', proposal: 'Salud a tu alcance' },
+    'Robledo': { issues: ['Transporte Universitario', 'Seguridad', 'Centros de Salud'], tone: 'Académico y Serio', proposal: 'Corredor universitario seguro' },
+    'Villa Hermosa': { issues: ['Riesgo Geológico', 'Transporte Informal', 'Escuelas'], tone: 'Protector y Urgente', proposal: 'Gestión del riesgo real' },
+    'Buenos Aires': { issues: ['Tranvía y Movilidad', 'Seguridad', 'Comercio Informal'], tone: 'Moderno y Dinámico', proposal: 'Integración modal justa' },
+    'La Candelaria': { issues: ['Habitante de Calle', 'Seguridad (Centro)', 'Recuperación Espacio Público', 'Ruido'], tone: 'Urgente y Ordenado', proposal: 'Plan de choque centro' },
+    'Laureles': { issues: ['Ruido Nocturno', 'Parqueo Indebido', 'Seguridad Residencial'], tone: 'Formal y Tranquilo', proposal: 'Control urbano estricto' },
+    'La América': { issues: ['Seguridad', 'Cuidado Adulto Mayor', 'Parques'], tone: 'Familiar y Tradicional', proposal: 'Bienestar para el mayor' },
+    'San Javier': { issues: ['Turismo Responsable', 'Extorsión/Vacunas', 'Arte Urbano'], tone: 'Valiente y Artístico', proposal: 'Turismo con beneficio local' },
+    'Poblado': { issues: ['Movilidad y Tacos', 'Valorización/Impuestos', 'Seguridad Tecnológica', 'Ruido'], tone: 'Ejecutivo y Profesional', proposal: 'Gerencia técnica eficiente' },
+    'Guayabal': { issues: ['Contaminación Auditiva', 'Industria vs Vivienda', 'Vías'], tone: 'Industrial y Práctico', proposal: 'Convivencia mixta regulada' },
+    'Belén': { issues: ['Movilidad (80)', 'Seguridad en Parques', 'Metroplús'], tone: 'Vecinal y Activo', proposal: 'Movilidad inteligente ya' },
+    'San Antonio': { issues: ['Vías Terciarias', 'Transporte Veredal', 'Agroindustria'], tone: 'Rural y Campesino', proposal: 'El campo es prioridad' },
+    'Default': { issues: ['Seguridad', 'Empleo', 'Costo de Vida'], tone: 'Empático', proposal: 'Mejoramiento de calidad de vida' }
+  };
+
+  const ARCHETYPES = [
+    { name: 'Líder Comunitario', traits: ['Influyente', 'Preocupado por el barrio'], trigger: 'Participación' },
+    { name: 'Comerciante', traits: ['Pragmático', 'Busca seguridad'], trigger: 'Economía' },
+    { name: 'Estudiante', traits: ['Idealista', 'Busca oportunidades'], trigger: 'Futuro' },
+    { name: 'Ama de Casa', traits: ['Protectora', 'Busca bienestar familia'], trigger: 'Seguridad' },
+    { name: 'Pensionado', traits: ['Experimentado', 'Busca tranquilidad'], trigger: 'Salud' },
+    { name: 'Profesional', traits: ['Analítico', 'Busca eficiencia'], trigger: 'Gestión' }
+  ];
+
+  // Pseudo-random determinista basado en string
+  const getDeterministicRandom = (seed: string) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const x = Math.sin(hash) * 10000;
+    return x - Math.floor(x);
+  };
+
+  const handleAiAnalysis = async (contact: Contact) => {
+    setIsAnalyzing(true);
+    info(`Iniciando motor de inteligencia táctica para ${contact.name}...`);
+    
+    // Simular delay de "pensamiento profundo"
+    await new Promise(resolve => setTimeout(resolve, 1800));
+    
+    // 1. Detección de Contexto Geográfico
+    const zoneKey = Object.keys(KNOWLEDGE_BASE).find(k => contact.neighborhood.includes(k) || contact.address.includes(k)) || 'Default';
+    const zoneData = KNOWLEDGE_BASE[zoneKey];
+    
+    // 2. Generación de Arquetipo Determinista
+    const seed = contact.id + contact.name;
+    const rand = getDeterministicRandom(seed);
+    const archetypeIndex = Math.floor(rand * ARCHETYPES.length);
+    const archetype = ARCHETYPES[archetypeIndex];
+
+    // 3. Cálculo de Probabilidad (Base Stage + Factor Random Determinista)
+    const stageBase = { 'Prospecto': 15, 'Contactado': 40, 'Simpatizante': 70, 'Firme': 95, 'Votó': 100 };
+    const baseProb = stageBase[contact.stage] || 10;
+    const variance = (rand * 20) - 10; // +/- 10%
+    let probability = Math.round(Math.min(100, Math.max(0, baseProb + variance)));
+    
+    // Si ya votó, siempre es 100%
+    if (contact.stage === 'Votó') probability = 100;
+
+    // 4. Construcción del Script Cognitivo
+    const issue = zoneData.issues[Math.floor(rand * zoneData.issues.length)];
+    const script = `Hola ${contact.name.split(' ')[0]}, como ${archetype.name.toLowerCase()} en ${zoneKey}, sabemos que la ${issue.toLowerCase()} te afecta. Nuestra propuesta de ${zoneData.proposal.toLowerCase()} está diseñada para ti.`;
+
+    setAnalysisResult({
+      contact,
+      probability,
+      sentiment: probability > 80 ? 'Lealtad Alta' : probability > 50 ? 'Persuadible' : 'Resistente',
+      topConcerns: zoneData.issues,
+      strategicAction: probability > 70 ? 'Activar como multiplicador (Referidos)' : 'Visita presencial de líder zonal',
+      riskLevel: probability < 40 ? 'Crítico' : probability < 70 ? 'Medio' : 'Bajo',
+      archetype: archetype.name,
+      tone: zoneData.tone,
+      script: script
+    });
+    
+    setIsAnalyzing(false);
+    success("Perfilado estratégico generado con éxito.");
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col -m-8 bg-slate-50/50 overflow-hidden text-slate-900 font-sans">
       
+      {/* AI ANALYSIS MODAL OVERLAY */}
+      {analysisResult && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+            {/* Modal Header */}
+            <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                  <BrainCircuit size={24} />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black uppercase tracking-tighter">Perfilado Cognitivo</h4>
+                  <p className="text-[10px] text-teal-400 font-black uppercase tracking-[0.2em]">Soberanía del Dato • Engine Local v2.0</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setAnalysisResult(null)}
+                className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all group"
+              >
+                <X size={20} className="group-hover:rotate-90 transition-transform" />
+              </button>
+            </div>
+
+            <div className="p-10 space-y-8 overflow-y-auto max-h-[70vh]">
+              {/* Score and Sentiment */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex flex-col items-center justify-center text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Probabilidad de Voto</p>
+                  <div className="relative">
+                    <svg className="w-32 h-32 transform -rotate-90">
+                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
+                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                        strokeDasharray={364.4} strokeDashoffset={364.4 - (364.4 * analysisResult.probability) / 100}
+                        className={cn(
+                          "transition-all duration-1000 ease-out",
+                          analysisResult.probability > 75 ? "text-emerald-500" : analysisResult.probability > 40 ? "text-teal-500" : "text-rose-500"
+                        )}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{analysisResult.probability}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Arquetipo Identificado</p>
+                    <p className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                       <Users size={18} className="text-teal-600" />
+                       {analysisResult.archetype}
+                    </p>
+                  </div>
+                  <div className="p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tono Sugerido</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                      <p className="text-lg font-black text-slate-900 uppercase tracking-tight">{analysisResult.tone}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inquietudes */}
+              <div className="space-y-4">
+                <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <ShieldAlert size={14} className="text-teal-600" /> Micro-Targeting: {analysisResult.contact.neighborhood}
+                </h5>
+                <div className="flex flex-wrap gap-3">
+                  {analysisResult.topConcerns.map((issue: string) => (
+                    <span key={issue} className="px-4 py-2 bg-teal-50 text-teal-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-teal-100">
+                      {issue}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recomendación */}
+              <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white relative overflow-hidden group">
+                <TrendingUp className="absolute -right-4 -bottom-4 w-32 h-32 text-white/5 group-hover:scale-110 transition-transform duration-700" />
+                <div className="relative z-10">
+                  <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.3em] mb-4">Script de Conversión Personalizado</p>
+                  <div className="flex gap-4">
+                    <MessageSquareQuote size={24} className="text-teal-500 shrink-0 mt-1" />
+                    <p className="text-sm font-medium leading-relaxed text-slate-300 italic">
+                      "{analysisResult.script}"
+                    </p>
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Siguiente Paso Táctico</p>
+                      <p className="text-xs font-black uppercase text-white">{analysisResult.strategicAction}</p>
+                    </div>
+                    <CheckCircle2 size={24} className="text-emerald-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setAnalysisResult(null)}
+                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-teal-600 transition-all shadow-xl"
+              >
+                Cerrar Análisis
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. TACTICAL FUNNEL STRIP (Clean & Professional) */}
       <div className="bg-white text-slate-500 shrink-0 border-b border-slate-200 shadow-sm z-20">
         <div className="flex divide-x divide-slate-100 overflow-x-auto scrollbar-hide">
@@ -312,15 +523,21 @@ export default function PipelinePage() {
                    <div className="absolute inset-0 bg-gradient-to-r from-teal-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                    <div className="flex items-center gap-6 relative z-10">
                       <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 border border-teal-100 shadow-sm">
-                        <Target size={32} />
+                        {isAnalyzing ? <Loader2 size={32} className="animate-spin" /> : <Target size={32} />}
                       </div>
                       <div>
                          <p className="text-md font-black text-slate-900 uppercase tracking-tight">Análisis de Intención de Voto</p>
-                         <p className="text-[11px] text-teal-600 font-bold uppercase tracking-[0.2em]">Prioridad de contacto: Máxima Inmediata</p>
+                         <p className="text-[11px] text-teal-600 font-bold uppercase tracking-[0.2em]">
+                           {isAnalyzing ? "IA Procesando Perfil Cognitivo..." : "Prioridad de contacto: Máxima Inmediata"}
+                         </p>
                       </div>
                    </div>
-                   <button className="bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-2xl transition-all shadow-lg shadow-teal-100 flex items-center justify-center relative z-10 hover:rotate-12 transform">
-                      <ExternalLink size={24} />
+                   <button 
+                    onClick={() => handleAiAnalysis(selectedContact)}
+                    disabled={isAnalyzing}
+                    className="bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-2xl transition-all shadow-lg shadow-teal-100 flex items-center justify-center relative z-10 hover:rotate-12 transform disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                      {isAnalyzing ? <Loader2 size={24} className="animate-spin" /> : <ExternalLink size={24} />}
                    </button>
                 </div>
 

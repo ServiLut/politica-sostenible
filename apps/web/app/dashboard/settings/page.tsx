@@ -1,29 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useCRM, TerritoryZone } from '@/context/CRMContext';
-import { MapPin, Plus, Trash2, Globe, Search, Edit2, X, Target, Save, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
+import { MapPin, Plus, Trash2, Edit2, Target, Save } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { territory, team, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
+  const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [leaderSearch, setLeaderSearch] = useState('');
-  const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
   const [goalInput, setGoalInput] = useState(campaignGoal.toString());
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [zoneSearch, setZoneSearch] = useState('');
-  const itemsPerPage = 4;
-
-  const filteredTerritory = useMemo(() => {
-    return territory.filter(zone => 
-      zone.name.toLowerCase().includes(zoneSearch.toLowerCase()) ||
-      zone.leader.toLowerCase().includes(zoneSearch.toLowerCase())
-    );
-  }, [territory, zoneSearch]);
-
-  const totalPages = Math.ceil(filteredTerritory.length / itemsPerPage);
 
   const [form, setForm] = useState({ name: '', target: 0, leader: '', lat: '', lng: '' });
 
@@ -32,14 +16,12 @@ export default function SettingsPage() {
     updateCampaignGoal(Number(goalInput));
   };
 
-  const filteredTeam = useMemo(() => team.filter(member => member.name.toLowerCase().includes(leaderSearch.toLowerCase())), [team, leaderSearch]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const zoneData = { name: form.name, target: Number(form.target), leader: form.leader, lat: Number(form.lat), lng: Number(form.lng) };
     if (editingId) { updateTerritoryZone(editingId, zoneData); setEditingId(null); }
     else { addTerritoryZone(zoneData); }
-    setForm({ name: '', target: 0, leader: '', lat: '', lng: '' }); setLeaderSearch('');
+    setForm({ name: '', target: 0, leader: '', lat: '', lng: '' });
   };
 
   const handleEdit = (zone: TerritoryZone) => {

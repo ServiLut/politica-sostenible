@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useCRM, E14Report } from '@/context/CRMContext';
-import { Shield, LayoutDashboard, FileText, AlertTriangle, CheckCircle, X, TrendingUp } from 'lucide-react';
+import { useCRM } from '@/context/CRMContext';
+import { Shield, LayoutDashboard, AlertTriangle, CheckCircle, X, TrendingUp } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function WarRoomPage() {

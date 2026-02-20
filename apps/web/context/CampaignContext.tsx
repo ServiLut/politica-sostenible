@@ -118,7 +118,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         setVoters(data.voters || []);
         setTransactions(data.transactions || []);
         setZones(data.zones || []);
@@ -127,7 +127,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
         console.error("Failed to parse saved data", e);
       }
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setVoters(MOCK_DATA.voters as Voter[]);
       setTransactions(MOCK_DATA.transactions as FinanceItem[]);
       setZones(MOCK_DATA.zones as TerritoryZone[]);

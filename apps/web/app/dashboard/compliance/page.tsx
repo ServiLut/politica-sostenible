@@ -52,7 +52,7 @@ export default function CompliancePage() {
 
   // LÓGICA DE CÁLCULO DE TOPES (REAL)
   const complianceStats = useMemo(() => {
-    const { actualExpenses, projectedEventsCost, totalProjected, executionPercentage } = projectedData;
+    const { actualExpenses, projectedEventsCost, executionPercentage } = projectedData;
 
     // Agrupar por Código CNE para Gráfico de Torta
     const expensesByCne = finance
@@ -74,13 +74,12 @@ export default function CompliancePage() {
 
     return {
       executionPercentage,
-      totalProjected,
       pieData,
       barData
     };
   }, [finance, projectedData, TOPE_LEGAL_CNE]);
 
-  const { executionPercentage, pieData, barData, totalProjected } = complianceStats;
+  const { executionPercentage, pieData, barData } = complianceStats;
 
   // SISTEMA DE ALERTA "SEMÁFORO"
   const alertStatus = useMemo(() => {
