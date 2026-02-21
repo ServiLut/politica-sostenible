@@ -11,8 +11,7 @@ import {
   TrendingUp,
   ChevronRight,
   ArrowUpRight,
-  UserPlus,
-  ArrowLeft
+  UserPlus
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
 import { useToast } from "@/context/ToastContext";
@@ -121,19 +120,8 @@ export default function ExecutivePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-10 py-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 px-4 md:px-0">
-      {/* Back Navigation */}
-      <div className="px-2">
-        <Link 
-          href="/dashboard" 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm group"
-        >
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-          Regresar al Centro de Comando
-        </Link>
-      </div>
-
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-0 md:px-2">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-0 md:px-2 pt-4 md:pt-0">
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-3 py-1 bg-teal-50 text-teal-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-teal-100">
@@ -163,7 +151,7 @@ export default function ExecutivePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Total CRM */}
         <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/5">
-          <div className="h-12 w-12 md:h-14 md:w-14 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-sm">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 border border-teal-100 transition-all duration-300 shadow-sm">
             <Users size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
@@ -172,7 +160,7 @@ export default function ExecutivePage() {
               {formatNum(kpis.totalContacts)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
-              <span className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                 <ArrowUpRight size={10} className="mr-0.5" /> +12%
               </span>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Este mes</p>
@@ -182,7 +170,7 @@ export default function ExecutivePage() {
 
         {/* Votos Firmes */}
         <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/5">
-          <div className="h-12 w-12 md:h-14 md:w-14 bg-emerald-50 text-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-emerald-50 text-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 border border-emerald-100 transition-all duration-300 shadow-sm">
             <Target size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
@@ -191,7 +179,7 @@ export default function ExecutivePage() {
               {formatNum(kpis.firmVotes)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
-              <span className="flex items-center text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
+              <span className="flex items-center text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
                 {(kpis.firmVotes / (kpis.totalContacts || 1) * 100).toFixed(1)}%
               </span>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Efectividad de Conversión</p>
@@ -202,11 +190,11 @@ export default function ExecutivePage() {
         {/* Avance de Meta Real */}
         <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5">
           <div className="flex justify-between items-start mb-4 md:mb-6">
-            <div className="h-12 w-12 md:h-14 md:w-14 bg-amber-50 text-amber-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">
+            <div className="h-12 w-12 md:h-14 md:w-14 bg-amber-50 text-amber-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-amber-100 transition-all">
               <TrendingUp size={24} className="md:w-7 md:h-7" />
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-black bg-slate-900 text-white px-2.5 py-1 rounded-full uppercase tracking-tighter">
+              <span className="text-[10px] font-black bg-slate-900 text-white px-2.5 py-1 rounded-full uppercase tracking-tighter border border-slate-800">
                 Meta: {formatNum(kpis.campaignGoal)}
               </span>
             </div>
@@ -230,7 +218,7 @@ export default function ExecutivePage() {
 
         {/* Cobertura Territorial */}
         <div className="group relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/5">
-          <div className="h-12 w-12 md:h-14 md:w-14 bg-indigo-50 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
+          <div className="h-12 w-12 md:h-14 md:w-14 bg-indigo-50 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 border border-indigo-100 transition-all duration-300 shadow-sm">
             <MapPin size={24} className="md:w-7 md:h-7" />
           </div>
           <div className="space-y-1">
@@ -239,7 +227,7 @@ export default function ExecutivePage() {
               {formatNum(kpis.coverageNeighborhoods)}
             </h3>
             <div className="flex items-center gap-2 pt-2">
-              <p className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest">Nodos Activos</p>
+              <p className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest border border-indigo-100">Nodos Activos</p>
             </div>
           </div>
         </div>
@@ -276,17 +264,12 @@ export default function ExecutivePage() {
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
                   >
                     <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1 w-full">
-                      <div className={cn(
-                        "h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all shrink-0",
-                        idx % 3 === 0 ? "bg-teal-100 text-teal-700" : 
-                        idx % 3 === 1 ? "bg-slate-100 text-slate-600" : 
-                        "bg-indigo-50 text-indigo-600"
-                      )}>
+                      <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all shrink-0 border bg-teal-50 text-teal-600 border-teal-100">
                         {c.name.charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1 pt-1 sm:pt-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <p className="text-base font-black text-black uppercase tracking-tight break-words whitespace-normal leading-tight max-w-xs md:max-w-md">
+                          <p className="text-base font-black text-black uppercase tracking-tight break-words whitespace-normal leading-tight max-w-full">
                             {c.name}
                           </p>
                           {idx === 0 && (

@@ -44,7 +44,7 @@ export function UserNav() {
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-zinc-50 transition-all border border-transparent hover:border-zinc-200"
         >
-          <div className="h-9 w-9 rounded-full bg-[#111827] text-white flex items-center justify-center font-black text-sm shadow-lg">
+          <div className="h-9 w-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center font-black text-sm shadow-sm transition-all">
             {userInitial}
           </div>
           <div className="hidden md:block text-left">

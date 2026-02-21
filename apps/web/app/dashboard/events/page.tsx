@@ -517,7 +517,7 @@ export default function EventsPage() {
       {/* Modal Nuevo Evento - Rediseñado */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={closeModal}
         >
           <div
@@ -715,76 +715,83 @@ export default function EventsPage() {
       {/* Modal Mapa Global (Strategic Map) */}
       {isGlobalMapOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[150] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[150] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300"
           onClick={() => setIsGlobalMapOpen(false)}
         >
           <div
-            className="bg-[#0F172A] w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border border-white/10 h-[85vh]"
+            className="bg-white w-full max-w-7xl rounded-[3rem] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-500 border-[3px] border-teal-600 h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setIsGlobalMapOpen(false)}
-              className="absolute top-4 md:top-8 right-4 md:left-8 md:right-auto z-[60] p-2 md:p-3 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl md:rounded-2xl border-2 border-teal-100 hover:border-red-100 shadow-sm transition-all group"
+              className="absolute top-6 left-6 md:left-10 z-[60] p-3 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-2xl border-2 border-slate-100 shadow-sm transition-all group"
             >
-              <X size={18} className="md:w-5 md:h-5 group-hover:-rotate-90 transition-transform" />
+              <X size={20} className="group-hover:-rotate-90 transition-transform" />
             </button>
 
-            <div className="pt-14 pb-6 md:py-10 px-5 md:px-10 md:pl-24 border-b-2 border-slate-100 bg-slate-50/30 relative z-20">
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8">
-                <div className="md:pr-10">
+            <div className="pt-16 pb-8 px-6 md:px-12 md:pl-28 border-b-2 border-teal-50 bg-slate-50/50 relative z-20">
+              <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
+                <div>
                   <div className="flex items-center gap-3 mb-1">
                     <div className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase text-teal-400 tracking-[0.3em]">Territory Intelligence System</span>
+                    <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.3em]">Inteligencia Territorial SIT</span>
                   </div>
-                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Mapa Táctico de Operaciones</h3>
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Mapa Táctico de Operaciones</h3>
                 </div>
 
-                {/* BARRA DE FILTROS DEL MAPA */}
-                <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[2rem] border border-white/10 backdrop-blur-md relative">
-                  <div className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 focus-within:border-teal-500 transition-all">
-                    <Search size={16} className="text-slate-500" />
+                {/* BARRA DE FILTROS UNIFICADA CON HOVER Y BORDES REFINADOS */}
+                <div className="flex items-center bg-white p-1 rounded-[2rem] border-2 border-teal-600/30 shadow-xl relative w-full xl:w-auto overflow-hidden">
+                  <div className="flex items-center gap-3 px-5 py-2.5 flex-1 xl:flex-none xl:min-w-[200px] hover:bg-teal-50/50 transition-colors group/search">
+                    <Search size={16} className="text-teal-500 group-hover/search:scale-110 transition-transform" />
                     <input
                       type="text"
-                      placeholder="Buscar..."
-                      className="bg-transparent border-none outline-none text-[11px] font-bold text-white placeholder:text-slate-600 min-w-[120px]"
+                      placeholder="Buscar en el mapa..."
+                      className="bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder:text-slate-400 w-full"
                       value={mapSearch}
                       onChange={(e) => setMapSearch(e.target.value)}
                     />
                   </div>
 
+                  <div className="h-8 w-px bg-teal-600/10 mx-1" />
+
                   <div className="relative">
-                    <div
+                    <button
                       onClick={() => {
                         setIsTypeDropdownOpen(!isTypeDropdownOpen);
                         setIsRangePickerOpen(false);
                       }}
-                      className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all cursor-pointer min-w-[140px]"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 rounded-xl transition-all cursor-pointer min-w-[140px]"
                     >
-                      <Filter size={14} className="text-slate-500" />
-                      <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">{mapFilterType === 'all' ? 'Todos' : mapFilterType}</span>
-                      <ChevronDown className={cn("text-slate-600 transition-transform ml-auto", isTypeDropdownOpen && "rotate-180")} size={12} />
-                    </div>
+                      <Filter size={14} className="text-teal-600" />
+                      <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest truncate max-w-[80px]">{mapFilterType === 'all' ? 'Tipos' : mapFilterType}</span>
+                      <ChevronDown className={cn("text-slate-400 transition-transform ml-auto", isTypeDropdownOpen && "rotate-180")} size={12} />
+                    </button>
 
                     {isTypeDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-3 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                        {["all", ...EVENT_TYPES].map(type => (
-                          <div
-                            key={type}
-                            onClick={() => {
-                              setMapFilterType(type);
-                              setIsTypeDropdownOpen(false);
-                            }}
-                            className="px-5 py-3 hover:bg-white/5 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest cursor-pointer transition-colors border-b border-white/5 last:border-none flex justify-between items-center"
-                          >
-                            {type === 'all' ? 'Todos' : type}
-                            {mapFilterType === type && <Check size={12} className="text-teal-400" />}
-                          </div>
-                        ))}
+                      <div className="absolute top-full right-0 mt-3 w-48 bg-white border-2 border-teal-600/10 rounded-[1.5rem] shadow-2xl z-[300] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5">
+                        <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                          {["all", ...EVENT_TYPES].map(type => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setMapFilterType(type);
+                                setIsTypeDropdownOpen(false);
+                              }}
+                              className={cn(
+                                "w-full px-4 py-2 text-left text-[10px] font-black rounded-lg transition-all flex items-center justify-between group uppercase tracking-widest",
+                                mapFilterType === type ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
+                              )}
+                            >
+                              {type === 'all' ? 'Todos' : type}
+                              {mapFilterType === type && <Check size={12} className="text-teal-600" />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="h-6 w-[1px] bg-white/10" />
+                  <div className="h-8 w-px bg-teal-600/10 mx-1" />
 
                   <div className="relative">
                     <button
@@ -793,41 +800,38 @@ export default function EventsPage() {
                         setIsTypeDropdownOpen(false);
                       }}
                       className={cn(
-                        "flex items-center gap-3 bg-white/5 px-5 py-3 rounded-2xl border transition-all group",
-                        isRangePickerOpen ? "border-teal-500 bg-white/10 shadow-lg shadow-teal-500/10" : "border-white/10 hover:border-white/20"
+                        "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group min-w-[150px]",
+                        isRangePickerOpen ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "hover:bg-teal-50 text-slate-600"
                       )}
                     >
-                      <Calendar size={16} className={cn("transition-colors", isRangePickerOpen ? "text-teal-400" : "text-slate-500")} />
-                      <div className="flex flex-col items-start leading-none gap-1">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Rango Temporal</span>
-                        <span className="text-[10px] text-slate-200 font-black uppercase">
-                          {mapFilterStartDate ? `${mapFilterStartDate} → ${mapFilterEndDate || '...'}` : 'Seleccionar'}
-                        </span>
-                      </div>
-                      <ChevronDown size={14} className={cn("text-slate-600 transition-transform", isRangePickerOpen && "rotate-180")} />
+                      <Calendar size={14} className={cn("transition-colors", isRangePickerOpen ? "text-white" : "text-teal-600")} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        {mapFilterStartDate ? `${mapFilterStartDate.split('-')[2]}/${mapFilterStartDate.split('-')[1]}` : 'Fecha'}
+                      </span>
+                      <ChevronDown size={12} className={cn("transition-transform ml-auto", isRangePickerOpen ? "text-white" : "text-slate-400", isRangePickerOpen && "rotate-180")} />
                     </button>
 
                     {isRangePickerOpen && (
-                      <div className="absolute top-full right-0 mt-4 p-6 bg-[#1E293B] border border-white/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[300px]">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Definir Período</span>
-                          <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-500 hover:text-white"><X size={14} /></button>
+                      <div className="absolute top-full right-0 mt-3 p-5 bg-white border-2 border-teal-600/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Definir Período</span>
+                          <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={14} /></button>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-2">
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Inicio</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Inicio</label>
                             <input
                               type="date"
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
+                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
                               value={mapFilterStartDate}
                               onChange={(e) => setMapFilterStartDate(e.target.value)}
                             />
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Fin</label>
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Fin</label>
                             <input
                               type="date"
-                              className="bg-white/5 border border-white/10 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-teal-500 [color-scheme:dark] w-full"
+                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
                               value={mapFilterEndDate}
                               onChange={(e) => setMapFilterEndDate(e.target.value)}
                             />
@@ -835,9 +839,9 @@ export default function EventsPage() {
                         </div>
                         <button
                           onClick={() => setIsRangePickerOpen(false)}
-                          className="w-full py-4 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all mt-2 shadow-lg shadow-teal-500/20"
+                          className="w-full py-3 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100"
                         >
-                          Aplicar Rango
+                          Aplicar
                         </button>
                       </div>
                     )}
@@ -846,35 +850,38 @@ export default function EventsPage() {
               </div>
             </div>
 
-            <div className="flex-1 relative bg-[#0F172A] overflow-hidden">
-              <div className="absolute inset-0 opacity-10 pointer-events-none z-10" style={{
-                backgroundImage: `radial-gradient(#334155 1px, transparent 1px)`,
-                backgroundSize: '40px 40px'
-              }} />
-
+            <div className="flex-1 relative bg-slate-50 overflow-hidden">
               <div className="absolute inset-0 z-0">
-                <StrategicMap events={filteredEventsForMap} />
+                <StrategicMap 
+                  events={filteredEventsForMap} 
+                  isAdmin={isAdmin}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
                 {filteredEventsForMap.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-teal-50/20 backdrop-blur-[2px] z-10 pointer-events-none">
-                    <div className="bg-white border-2 border-teal-100 px-6 md:px-8 py-4 md:py-5 rounded-[2rem] md:rounded-[2.5rem] text-center shadow-2xl shadow-teal-200/50 mx-4">
-                      <div className="text-teal-400 font-black text-[9px] uppercase tracking-[0.4em] mb-2">System Status: Idle</div>
-                      <p className="text-slate-900 text-xs font-bold uppercase tracking-widest">No se detectan eventos estratégicos</p>
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px] z-10 pointer-events-none">
+                    <div className="bg-white border-4 border-teal-600/20 px-10 py-8 rounded-[3rem] text-center shadow-2xl shadow-teal-900/10 mx-4 max-w-xs border-b-8">
+                      <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-teal-100 shadow-inner">
+                        <Map size={32} className="text-teal-600" />
+                      </div>
+                      <div className="text-teal-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2">Sin Operaciones Activas</div>
+                      <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed">No hay eventos que coincidan con los filtros aplicados.</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Leyenda Absoluta */}
-              <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-auto flex flex-wrap md:flex-row items-center gap-2 md:gap-4 z-20 overflow-visible pb-2">
+              {/* Leyenda Absoluta Rediseñada */}
+              <div className="absolute bottom-8 left-8 right-8 md:right-auto flex flex-wrap items-center gap-3 z-20">
                 {[
-                  { label: 'Marchas', color: 'bg-rose-500' },
-                  { label: 'Reuniones', color: 'bg-teal-500' },
-                  { label: 'Capacitación', color: 'bg-emerald-500' },
-                  { label: 'Otros', color: 'bg-orange-500' }
+                  { label: 'Marchas', color: 'bg-rose-500', shadow: 'shadow-rose-200' },
+                  { label: 'Reuniones', color: 'bg-teal-500', shadow: 'shadow-teal-200' },
+                  { label: 'Capacitación', color: 'bg-emerald-500', shadow: 'shadow-emerald-200' },
+                  { label: 'Otros', color: 'bg-orange-500', shadow: 'shadow-orange-200' }
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-2 md:gap-3 bg-white/90 backdrop-blur-md border-2 border-teal-50 px-2.5 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-teal-500/5 shrink-0">
-                    <div className={cn("h-2 md:h-2.5 w-2 md:w-2.5 rounded-full shadow-sm", item.color)} />
-                    <span className="text-[8px] md:text-[9px] font-black text-slate-700 uppercase tracking-widest whitespace-nowrap">{item.label}</span>
+                  <div key={item.label} className="flex items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-100 px-4 py-2.5 rounded-2xl shadow-xl shadow-slate-200/50">
+                    <div className={cn("h-2.5 w-2.5 rounded-full shadow-lg", item.color, item.shadow)} />
+                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{item.label}</span>
                   </div>
                 ))}
               </div>

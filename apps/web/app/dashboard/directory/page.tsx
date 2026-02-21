@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCRM, Contact, ContactRole, PipelineStage } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
@@ -18,14 +17,15 @@ import {
   MapPin,
   Shield,
   Ban,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function DirectoryPage() {
   const { contacts, territory, addContact, updateContact, toggleContactStatus } = useCRM();
   const { success: toastSuccess } = useToast();
-  const router = useRouter();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -35,6 +35,8 @@ export default function DirectoryPage() {
   
   const [neighborhoodSearch, setNeighborhoodSearch] = useState('');
   const [showNeighborhoodDropdown, setShowNeighborhoodDropdown] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showStageDropdown, setShowStageDropdown] = useState(false);
 
   const [formData, setFormData] = useState<Omit<Contact, 'id' | 'createdAt' | 'status'>>({
     name: '',
@@ -349,10 +351,10 @@ export default function DirectoryPage() {
           onClick={closeModal}
         >
           <div 
-            className="bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh] flex flex-col"
+            className="bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[3rem] shadow-2xl animate-in zoom-in-95 duration-200 max-h-[95vh] flex flex-col relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+            <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0 rounded-t-[2rem] md:rounded-t-[3rem]">
               <div>
                 <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter">
                   {currentContact ? 'Editar Contacto' : 'Nuevo Registro'}
@@ -364,7 +366,7 @@ export default function DirectoryPage() {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-visible custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Nombre Completo</label>
@@ -440,33 +442,77 @@ export default function DirectoryPage() {
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Rol Político</label>
-                  <select 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all appearance-none"
-                    value={formData.role}
-                    onChange={(e) => setFormData({...formData, role: e.target.value as ContactRole})}
+                  <button
+                    type="button"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
+                    onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                    onBlur={() => setTimeout(() => setShowRoleDropdown(false), 200)}
                   >
-                    <option value="Simpatizante">Simpatizante</option>
-                    <option value="Líder">Líder</option>
-                    <option value="Voluntario">Voluntario</option>
-                    <option value="Testigo">Testigo</option>
-                    <option value="Donante">Donante</option>
-                  </select>
+                    <span className="text-slate-900">{formData.role}</span>
+                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showRoleDropdown && "rotate-180")} />
+                  </button>
+                  
+                  {showRoleDropdown && (
+                    <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
+                      <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                        {(['Simpatizante', 'Líder', 'Voluntario', 'Testigo', 'Donante'] as ContactRole[]).map(role => (
+                          <button
+                            key={role}
+                            type="button"
+                            className={cn(
+                              "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                              formData.role === role ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                            )}
+                            onClick={() => {
+                              setFormData({...formData, role});
+                              setShowRoleDropdown(false);
+                            }}
+                          >
+                            <span className="font-bold">{role}</span>
+                            {formData.role === role && <Check size={14} className="text-teal-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Etapa de Conversión</label>
-                  <select 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all appearance-none"
-                    value={formData.stage}
-                    onChange={(e) => setFormData({...formData, stage: e.target.value as PipelineStage})}
+                  <button
+                    type="button"
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
+                    onClick={() => setShowStageDropdown(!showStageDropdown)}
+                    onBlur={() => setTimeout(() => setShowStageDropdown(false), 200)}
                   >
-                    <option value="Prospecto">Prospecto</option>
-                    <option value="Contactado">Contactado</option>
-                    <option value="Simpatizante">Simpatizante</option>
-                    <option value="Firme">Firme</option>
-                    <option value="Votó">Votó</option>
-                  </select>
+                    <span className="text-slate-900">{formData.stage}</span>
+                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showStageDropdown && "rotate-180")} />
+                  </button>
+                  
+                  {showStageDropdown && (
+                    <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
+                      <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                        {(['Prospecto', 'Contactado', 'Simpatizante', 'Firme', 'Votó'] as PipelineStage[]).map(stage => (
+                          <button
+                            key={stage}
+                            type="button"
+                            className={cn(
+                              "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                              formData.stage === stage ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                            )}
+                            onClick={() => {
+                              setFormData({...formData, stage});
+                              setShowStageDropdown(false);
+                            }}
+                          >
+                            <span className="font-bold">{stage}</span>
+                            {formData.stage === stage && <Check size={14} className="text-teal-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               

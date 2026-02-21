@@ -125,7 +125,7 @@ export default function SettingsPage() {
                     placeholder="Buscar zona o líder..." 
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-transparent rounded-xl text-[11px] font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
                     value={''} // Clear search
-                    onChange={(e) => {}} // No-op
+                    onChange={(_e) => {}} // No-op
                   />
                 </div>
               </div>

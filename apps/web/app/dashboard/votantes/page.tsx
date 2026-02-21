@@ -136,7 +136,7 @@ export default function VotantesPage() {
                   <tr key={v.id} className="group hover:bg-teal-50/30 transition-all">
                     <td className="px-10 py-7">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-teal-600 group-hover:text-white transition-all">
+                        <div className="w-10 h-10 bg-teal-50 text-teal-600 border border-teal-100 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm transition-all group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600">
                           {v.nombres.charAt(0)}
                         </div>
                         <div>

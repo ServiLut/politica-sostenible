@@ -5,7 +5,7 @@ import { useCRM, TeamMember } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Users, UserPlus, MapPin, X, Mail, Edit, Ban, RotateCcw } from 'lucide-react';
+import { Users, UserPlus, MapPin, X, Mail, Edit, Ban, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function OrgPage() {
@@ -16,6 +16,8 @@ export default function OrgPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showTerritoryDropdown, setShowTerritoryDropdown] = useState(false);
   const [memberToToggle, setMemberToToggle] = useState<TeamMember | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   
@@ -156,10 +158,7 @@ export default function OrgPage() {
                       )}>
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm transition-all",
-                              m.role.includes('Admin') ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-500"
-                            )}>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm transition-all border shrink-0 bg-teal-600/15 text-teal-600 border-teal-600/20">
                               {m.name.charAt(0)}
                               {m.status === 'suspended' && (
                                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center">
@@ -244,10 +243,10 @@ export default function OrgPage() {
                 onClick={closeModal}
               >
                 <div 
-                  className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+                  className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl animate-in zoom-in-95 duration-200 relative"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="px-10 py-10 border-b border-slate-100 flex justify-between items-center">
+                  <div className="px-10 py-10 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-[3rem]">
                     <div>
                       <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">
                         {editingMember ? 'Editar Perfil' : 'Vincular al Equipo'}
@@ -267,31 +266,83 @@ export default function OrgPage() {
                         <input required type="email" placeholder="email@campana.com" className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newMember.email} onChange={e => setNewMember({...newMember, email: e.target.value})} />
                       </div>
                       <div className="grid grid-cols-2 gap-5">
-                        <div>
+                        <div className="relative">
                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Rol Operativo</label>
-                          <select className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none cursor-pointer" value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value})}>
-                            <option value="Admin Campaña">Admin Campaña</option>
-                            <option value="Coordinador">Coordinador</option>
-                            <option value="Líder Territorial">Líder Territorial</option>
-                            <option value="Voluntario">Voluntario</option>
-                            <option value="Testigo">Testigo</option>
-                          </select>
+                          <button
+                            type="button"
+                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
+                            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                            onBlur={() => setTimeout(() => setShowRoleDropdown(false), 200)}
+                          >
+                            <span className="text-slate-900">{newMember.role}</span>
+                            <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showRoleDropdown && "rotate-180")} />
+                          </button>
+                          
+                          {showRoleDropdown && (
+                            <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
+                              <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                {['Admin Campaña', 'Coordinador', 'Líder Territorial', 'Voluntario', 'Testigo'].map(role => (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    className={cn(
+                                      "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                                      newMember.role === role ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                                    )}
+                                    onClick={() => {
+                                      setNewMember({...newMember, role});
+                                      setShowRoleDropdown(false);
+                                    }}
+                                  >
+                                    <span className="font-bold">{role}</span>
+                                    {newMember.role === role && <Check size={14} className="text-teal-600" />}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div>
+                        <div className="relative">
                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Territorio</label>
-                          <input 
-                            required 
-                            list="territory-list"
-                            placeholder="Ej: Medellín" 
-                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
-                            value={newMember.territory} 
-                            onChange={e => setNewMember({...newMember, territory: e.target.value})} 
-                          />
-                          <datalist id="territory-list">
-                            {existingTerritories.map(t => (
-                              <option key={t} value={t} />
-                            ))}
-                          </datalist>
+                          <button
+                            type="button"
+                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
+                            onClick={() => setShowTerritoryDropdown(!showTerritoryDropdown)}
+                            onBlur={() => setTimeout(() => setShowTerritoryDropdown(false), 200)}
+                          >
+                            <span className="text-slate-900">{newMember.territory || 'Seleccione...'}</span>
+                            <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showTerritoryDropdown && "rotate-180")} />
+                          </button>
+                          
+                          {showTerritoryDropdown && (
+                            <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
+                              <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                {existingTerritories.length > 0 ? (
+                                  existingTerritories.map(t => (
+                                    <button
+                                      key={t}
+                                      type="button"
+                                      className={cn(
+                                        "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                                        newMember.territory === t ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                                      )}
+                                      onClick={() => {
+                                        setNewMember({...newMember, territory: t});
+                                        setShowTerritoryDropdown(false);
+                                      }}
+                                    >
+                                      <span className="font-bold">{t}</span>
+                                      {newMember.territory === t && <Check size={14} className="text-teal-600" />}
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">
+                                    No hay territorios configurados.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
