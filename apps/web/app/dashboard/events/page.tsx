@@ -842,7 +842,6 @@ export default function EventsPage() {
                       </div>
                     )}
                   </div>
-                  </div>
                 </div>
               </div>
             </div>
