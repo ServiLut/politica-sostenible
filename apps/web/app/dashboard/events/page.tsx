@@ -54,6 +54,8 @@ export default function EventsPage() {
   const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
   const [isModalPriorityOpen, setIsModalPriorityOpen] = useState(false);
   const [isModalCalendarOpen, setIsModalCalendarOpen] = useState(false);
+  const [isFilterStartCalendarOpen, setIsFilterStartCalendarOpen] = useState(false);
+  const [isFilterEndCalendarOpen, setIsFilterEndCalendarOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
 
   // Refs for closing dropdowns on outside click
@@ -61,12 +63,15 @@ export default function EventsPage() {
   const priorityRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const mapTypeRef = useRef<HTMLDivElement>(null);
+  const mapCalendarRef = useRef<HTMLDivElement>(null);
+  const filterStartRef = useRef<HTMLDivElement>(null);
+  const filterEndRef = useRef<HTMLDivElement>(null);
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-  const renderCalendar = (currentDate: string, onSelect: (date: string) => void) => {
+  const renderCalendar = (currentDate: string, onSelect: (date: string) => void, closeFn: () => void) => {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     const days = [];
@@ -74,7 +79,7 @@ export default function EventsPage() {
     const startDay = firstDayOfMonth(year, month);
 
     for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+      days.push(<div key={`empty-${i}`} className="h-9 w-9" />);
     }
 
     for (let i = 1; i <= totalDays; i++) {
@@ -87,11 +92,13 @@ export default function EventsPage() {
           type="button"
           onClick={() => {
             onSelect(dateStr);
-            setIsModalCalendarOpen(false);
+            closeFn();
           }}
           className={cn(
-            "h-8 w-8 rounded-full text-[10px] font-black transition-all flex items-center justify-center",
-            isSelected ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "hover:bg-teal-50 text-slate-600"
+            "h-9 w-9 rounded-2xl text-[11px] font-black transition-all flex items-center justify-center border-2",
+            isSelected 
+              ? "bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-200 scale-110 z-10" 
+              : "bg-white border-transparent hover:bg-teal-50 hover:border-teal-100 text-slate-600"
           )}
         >
           {i}
@@ -107,6 +114,9 @@ export default function EventsPage() {
       if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) setIsModalPriorityOpen(false);
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsModalCalendarOpen(false);
       if (mapTypeRef.current && !mapTypeRef.current.contains(event.target as Node)) setIsTypeDropdownOpen(false);
+      if (mapCalendarRef.current && !mapCalendarRef.current.contains(event.target as Node)) setIsRangePickerOpen(false);
+      if (filterStartRef.current && !filterStartRef.current.contains(event.target as Node)) setIsFilterStartCalendarOpen(false);
+      if (filterEndRef.current && !filterEndRef.current.contains(event.target as Node)) setIsFilterEndCalendarOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -568,21 +578,55 @@ export default function EventsPage() {
               <ChevronDown size={14} className={cn(isRangePickerOpen && "rotate-180")} />
             </button>
             {isRangePickerOpen && (
-              <div className="absolute top-full right-0 mt-2 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute top-full right-0 mt-2 p-6 bg-white border-2 border-teal-600 rounded-[2.5rem] shadow-[0_20px_50px_rgba(13,148,136,0.15)] z-50 w-80 animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Rango de Operación</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsRangePickerOpen(false)} 
+                    className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rango de Operación</span>
-                    <button onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }} className="text-[9px] font-black text-teal-600 uppercase hover:underline">Limpiar</button>
-                  </div>
                   <div className="space-y-2">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
-                    <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                    <label className="text-[9px] font-black text-teal-600 uppercase tracking-widest px-1">Fecha Inicial</label>
+                    <div className="relative group">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-600/40 group-focus-within:text-teal-600 transition-colors" size={16} />
+                      <input
+                        type="date"
+                        className="w-full bg-teal-50/30 border-2 border-teal-100 rounded-2xl pl-12 pr-4 py-3.5 text-[11px] font-black text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all [color-scheme:light] appearance-none"
+                        value={filterStartDate}
+                        onChange={(e) => setFilterStartDate(e.target.value)}
+                      />
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
-                    <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                    <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest px-1">Fecha Final</label>
+                    <div className="relative group">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-600/40 group-focus-within:text-rose-600 transition-colors" size={16} />
+                      <input
+                        type="date"
+                        className="w-full bg-rose-50/30 border-2 border-rose-100 rounded-2xl pl-12 pr-4 py-3.5 text-[11px] font-black text-slate-700 outline-none focus:border-rose-500 focus:bg-white transition-all [color-scheme:light] appearance-none"
+                        value={filterEndDate}
+                        onChange={(e) => setFilterEndDate(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <button onClick={() => setIsRangePickerOpen(false)} className="w-full py-3 bg-teal-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-700 transition-all shadow-lg shadow-teal-100">Aplicar Filtro</button>
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }}
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all"
+                  >
+                    Limpiar Filtros
+                  </button>
                 </div>
               </div>
             )}
@@ -1077,7 +1121,7 @@ export default function EventsPage() {
                 </div>
 
                 {/* BARRA DE FILTROS UNIFICADA CON HOVER Y BORDES REFINADOS */}
-                <div className="flex items-center bg-white p-1 rounded-[2rem] border-2 border-teal-600/30 shadow-xl relative w-full xl:w-auto overflow-hidden">
+                <div className="flex items-center bg-white p-1 rounded-[2rem] border-2 border-teal-600/30 shadow-xl relative w-full xl:w-auto">
                   <div className="flex items-center gap-3 px-5 py-2.5 flex-1 xl:flex-none xl:min-w-[200px] hover:bg-teal-50/50 transition-colors group/search">
                     <Search size={16} className="text-teal-500 group-hover/search:scale-110 transition-transform" />
                     <input
@@ -1130,7 +1174,7 @@ export default function EventsPage() {
 
                   <div className="h-8 w-px bg-teal-600/10 mx-1" />
 
-                  <div className="relative">
+                  <div className="relative" ref={mapCalendarRef}>
                     <button
                       onClick={() => {
                         setIsRangePickerOpen(!isRangePickerOpen);
@@ -1149,30 +1193,127 @@ export default function EventsPage() {
                     </button>
 
                     {isRangePickerOpen && (
-                      <div className="absolute top-full right-0 mt-3 p-5 bg-white border-2 border-teal-600/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[300px]">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Definir Período</span>
-                          <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={14} /></button>
+                      <div className="absolute top-full right-0 mt-3 p-6 bg-white border-2 border-teal-600 rounded-[2.5rem] shadow-[0_20px_50px_rgba(13,148,136,0.15)] z-[300] flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 min-w-[320px]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Filtro Temporal</span>
+                          </div>
+                          <button 
+                            onClick={() => setIsRangePickerOpen(false)} 
+                            className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Inicio</label>
-                            <input
-                              type="date"
-                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
-                              value={filterStartDate}
-                              onChange={(e) => setFilterStartDate(e.target.value)}
-                            />
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-teal-600 uppercase tracking-widest px-1">Inicio de Operación</label>
+                            <div className="relative" ref={filterStartRef}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsFilterStartCalendarOpen(!isFilterStartCalendarOpen);
+                                  setIsFilterEndCalendarOpen(false);
+                                }}
+                                className="w-full flex items-center gap-4 bg-teal-50/30 border-2 border-teal-100 rounded-2xl px-5 py-3.5 text-[11px] font-black text-slate-700 hover:border-teal-500 transition-all outline-none"
+                              >
+                                <Calendar className="text-teal-600" size={16} />
+                                <span>{filterStartDate || "Seleccionar..."}</span>
+                              </button>
+                              
+                              {isFilterStartCalendarOpen && (
+                                <div className="absolute top-full left-0 mt-3 p-5 bg-white border-2 border-teal-100 rounded-[2rem] shadow-2xl z-[400] animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="flex items-center justify-between mb-4 px-2">
+                                    <button 
+                                      type="button" 
+                                      onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                                      className="p-2 hover:bg-teal-50 rounded-xl text-teal-600 transition-all"
+                                    >
+                                      <ChevronLeft size={16} />
+                                    </button>
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">
+                                      {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                                    </span>
+                                    <button 
+                                      type="button" 
+                                      onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                                      className="p-2 hover:bg-teal-50 rounded-xl text-teal-600 transition-all"
+                                    >
+                                      <ChevronRight size={16} />
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-7 gap-1.5 mb-2">
+                                    {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                                      <div key={`${d}-${i}`} className="h-9 w-9 flex items-center justify-center text-[9px] font-black text-slate-300 uppercase">{d}</div>
+                                    ))}
+                                  </div>
+                                  <div className="grid grid-cols-7 gap-1.5">
+                                    {renderCalendar(filterStartDate, (d) => setFilterStartDate(d), () => setIsFilterStartCalendarOpen(false))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Fin</label>
-                            <input
-                              type="date"
-                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
-                              value={filterEndDate}
-                              onChange={(e) => setFilterEndDate(e.target.value)}
-                            />
+                          
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest px-1">Fin de Operación</label>
+                            <div className="relative" ref={filterEndRef}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsFilterEndCalendarOpen(!isFilterEndCalendarOpen);
+                                  setIsFilterStartCalendarOpen(false);
+                                }}
+                                className="w-full flex items-center gap-4 bg-rose-50/30 border-2 border-rose-100 rounded-2xl px-5 py-3.5 text-[11px] font-black text-slate-700 hover:border-rose-500 transition-all outline-none"
+                              >
+                                <Calendar className="text-rose-600" size={16} />
+                                <span>{filterEndDate || "Seleccionar..."}</span>
+                              </button>
+
+                              {isFilterEndCalendarOpen && (
+                                <div className="absolute top-full left-0 mt-3 p-5 bg-white border-2 border-rose-100 rounded-[2rem] shadow-2xl z-[400] animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="flex items-center justify-between mb-4 px-2">
+                                    <button 
+                                      type="button" 
+                                      onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                                      className="p-2 hover:bg-rose-50 rounded-xl text-rose-600 transition-all"
+                                    >
+                                      <ChevronLeft size={16} />
+                                    </button>
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">
+                                      {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                                    </span>
+                                    <button 
+                                      type="button" 
+                                      onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                                      className="p-2 hover:bg-rose-50 rounded-xl text-rose-600 transition-all"
+                                    >
+                                      <ChevronRight size={16} />
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-7 gap-1.5 mb-2">
+                                    {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                                      <div key={`${d}-${i}`} className="h-9 w-9 flex items-center justify-center text-[9px] font-black text-slate-300 uppercase">{d}</div>
+                                    ))}
+                                  </div>
+                                  <div className="grid grid-cols-7 gap-1.5">
+                                    {renderCalendar(filterEndDate, (d) => setFilterEndDate(d), () => setIsFilterEndCalendarOpen(false))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <button 
+                            onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }}
+                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all"
+                          >
+                            Restablecer Fechas
+                          </button>
                         </div>
                       </div>
                     )}
