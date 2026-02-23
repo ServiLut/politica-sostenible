@@ -44,14 +44,10 @@ import autoTable from 'jspdf-autotable';
 
 // CONSTANTES DE NORMATIVA CNE COLOMBIA
 const CNE_CATEGORIES: Record<string, string> = {
-  '501': 'Gastos de Administración',
-  '502': 'Oficinas y Sedes',
-  '503': 'Actos Públicos',
-  '504': 'Propaganda Electoral',
-  '505': 'Transporte y Correo',
-  '506': 'Encuestas y Consultoría',
-  '507': 'Gastos Financieros',
-  '508': 'Inversión en Materiales',
+  'PUBLICIDAD_VALLAS': 'Propaganda Electoral (Vallas)',
+  'SEDE_CAMPANA': 'Oficinas y Sedes',
+  'ACTOS_PUBLICOS': 'Actos Públicos',
+  'TRANSPORTE': 'Transporte y Correo',
   'OTROS': 'Otros Gastos No Clasificados'
 };
 
@@ -125,7 +121,7 @@ export default function CompliancePage() {
   // Obligations Filtering & Pagination State
   const [obligationSearch, setObligationSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -136,10 +132,12 @@ export default function CompliancePage() {
   const weightedScore = useMemo(() => {
     if (compliance.length === 0) return 0;
     const weights = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
-    const totalWeight = compliance.reduce((acc, o) => acc + weights[o.priority], 0);
+    const totalWeight = compliance.reduce((acc, o) => acc + (weights[o.priority as keyof typeof weights] || 0), 0);
+    if (totalWeight === 0) return 0;
+    
     const completedWeight = compliance
       .filter(o => o.status === 'Cumplido')
-      .reduce((acc, o) => acc + weights[o.priority], 0);
+      .reduce((acc, o) => acc + (weights[o.priority as keyof typeof weights] || 0), 0);
     return (completedWeight / totalWeight) * 100;
   }, [compliance]);
 
@@ -175,7 +173,8 @@ export default function CompliancePage() {
       .filter(f => f.type === 'Gasto')
       .reduce((acc: Record<string, number>, curr) => {
         const category = CNE_CATEGORIES[curr.cneCode || ''] || CNE_CATEGORIES['OTROS'];
-        acc[category] = (acc[category] || 0) + curr.amount;
+        const amount = Number(curr.amount || 0);
+        acc[category] = (acc[category] || 0) + (isNaN(amount) ? 0 : amount);
         return acc;
       }, {});
 
@@ -497,7 +496,7 @@ export default function CompliancePage() {
                       {['all', ...OBLIGATION_TYPES].map(t => (
                         <button 
                           key={t} 
-                          onClick={() => { /* setFilterType(t); */ setIsTypeDropdownOpen(false); }}
+                          onClick={() => { setFilterType(t); setIsTypeDropdownOpen(false); }}
                           className={cn("w-full px-4 py-2 text-left text-[9px] font-black uppercase tracking-widest rounded-lg flex justify-between items-center transition-all", 
                             filterType === t ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50")}
                         >

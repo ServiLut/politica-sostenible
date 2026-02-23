@@ -387,10 +387,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   
   const TOPE_LEGAL_CNE = 50000000;
 
-  const getProjectedCompliance = () => {
-      // 1. Gastos Reales (Aprobados o Reportados)
+  const getProjectedCompliance = useCallback(() => {
+      // 1. Gastos Reales (Incluimos PENDING para que el usuario vea reflejados sus cambios en el prototipo)
       const actualExpenses = finance
-        .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
+        .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE' || f.status === 'PENDING'))
         .reduce((a, b) => a + b.amount, 0);
 
       // 2. Gastos Proyectados (Eventos sin transacción vinculada)
@@ -400,8 +400,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
          const hasTransaction = finance.some(f => f.relatedEntityId === event.id);
          if (hasTransaction) return acc;
          
-         const estimated = event.estimatedCost || (event.attendeesCount * 5000); // 5000 COP por persona (refrigerio simple)
-         return acc + estimated;
+         const estimated = Number(event.estimatedCost || 0) || (Number(event.attendeesCount || 0) * 5000); // 5000 COP por persona (refrigerio simple)
+         return acc + (isNaN(estimated) ? 0 : estimated);
       }, 0);
 
       // 3. Inventario (Simulación: Asumimos que cada "Salida" de inventario es un gasto de publicidad no registrado si no tiene ID)
@@ -418,7 +418,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
           executionPercentage: (totalProjected / TOPE_LEGAL_CNE) * 100,
           isAtRisk: (totalProjected / TOPE_LEGAL_CNE) > 0.9
       };
-  };
+  }, [finance, events, TOPE_LEGAL_CNE]);
 
   return (
     <CRMContext.Provider value={{ 
