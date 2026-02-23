@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCRM, CampaignEvent } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Calendar, MapPin, Users, Plus, X, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown, Check, TrendingUp, FileDown, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, X, Pencil, Trash2, AlertTriangle, Globe, Map, Filter, Search, ChevronDown, Check, TrendingUp, FileDown, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
+import { Input } from '@/components/ui/input';
 import { LocationSelector } from '@/components/ui/LocationSelector';
 import { MEDELLIN_LOCATIONS } from '@/data/medellin-locations';
 import dynamic from 'next/dynamic';
@@ -47,6 +48,64 @@ export default function EventsPage() {
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
   const [isModalPriorityOpen, setIsModalPriorityOpen] = useState(false);
+  const [isModalCalendarOpen, setIsModalCalendarOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
+
+  // Refs for closing dropdowns on outside click
+  const typeRef = useRef<HTMLDivElement>(null);
+  const priorityRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const mapTypeRef = useRef<HTMLDivElement>(null);
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+  const renderCalendar = (currentDate: string, onSelect: (date: string) => void) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = [];
+    const totalDays = daysInMonth(year, month);
+    const startDay = firstDayOfMonth(year, month);
+
+    for (let i = 0; i < startDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const isSelected = currentDate === dateStr;
+      
+      days.push(
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            onSelect(dateStr);
+            setIsModalCalendarOpen(false);
+          }}
+          className={cn(
+            "h-8 w-8 rounded-full text-[10px] font-black transition-all flex items-center justify-center",
+            isSelected ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "hover:bg-teal-50 text-slate-600"
+          )}
+        >
+          {i}
+        </button>
+      );
+    }
+    return days;
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (typeRef.current && !typeRef.current.contains(event.target as Node)) setIsModalTypeOpen(false);
+      if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) setIsModalPriorityOpen(false);
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsModalCalendarOpen(false);
+      if (mapTypeRef.current && !mapTypeRef.current.contains(event.target as Node)) setIsTypeDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredEventsForMap = useMemo(() => {
     return events.filter(event => {
@@ -541,111 +600,190 @@ export default function EventsPage() {
               </h3>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-10 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título de la Operación</label>
-                  <input required placeholder="Ej: Gran Marcha por la Victoria" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Descripción Estratégica</label>
-                  <textarea rows={3} placeholder="Objetivos y detalles clave..." className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all resize-none" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
+              <div className="flex-1 p-6 md:p-10 space-y-6 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-6">
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
-                    <input required type="date" className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all [color-scheme:light]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título de la Operación</label>
+                    <Input 
+                      required 
+                      placeholder="Ej: Gran Marcha por la Victoria" 
+                      className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10" 
+                      value={newEvent.title} 
+                      onChange={e => setNewEvent({...newEvent, title: e.target.value})} 
+                    />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
-                    <div className="relative">
-                      <div
-                        onClick={() => setIsModalTypeOpen(!isModalTypeOpen)}
-                        className="w-full px-5 md:px-6 py-3.5 md:py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] md:rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
-                      >
-                        <span className="text-slate-900 font-black uppercase text-[10px]">{newEvent.type}</span>
-                        <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
-                      </div>
 
-                      {isModalTypeOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                          {EVENT_TYPES.map(type => (
-                            <div
-                              key={type}
-                              onClick={() => {
-                                setNewEvent({...newEvent, type: type as any});
-                                setIsModalTypeOpen(false);
-                              }}
-                              className="px-6 py-3 hover:bg-teal-50 text-[10px] font-black text-slate-600 hover:text-teal-600 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center uppercase"
-                            >
-                              {type}
-                              {newEvent.type === type && <Check size={14} className="text-teal-600" />}
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Descripción Estratégica</label>
+                    <textarea 
+                      rows={3} 
+                      placeholder="Objetivos y detalles clave..." 
+                      className="w-full px-6 py-4 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all resize-none placeholder:text-slate-400" 
+                      value={newEvent.description} 
+                      onChange={e => setNewEvent({...newEvent, description: e.target.value})} 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
+                      <div className="relative" ref={calendarRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsModalCalendarOpen(!isModalCalendarOpen);
+                            setIsModalTypeOpen(false);
+                            setIsModalPriorityOpen(false);
+                          }}
+                          className="w-full flex items-center gap-4 px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                        >
+                          <Calendar size={18} className="text-teal-600" />
+                          <span className="truncate">{newEvent.date || "Seleccionar..."}</span>
+                        </button>
+                        {isModalCalendarOpen && (
+                          <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                            <div className="flex items-center justify-between mb-4">
+                              <button 
+                                type="button" 
+                                onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                                className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                              >
+                                <ChevronLeft size={14} />
+                              </button>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                                {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                              </span>
+                              <button 
+                                type="button" 
+                                onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                                className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                              >
+                                <ChevronRight size={14} />
+                              </button>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <div className="grid grid-cols-7 gap-1 mb-1">
+                              {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                                <div key={`${d}-${i}`} className="h-7 w-7 flex items-center justify-center text-[8px] font-black text-slate-300 uppercase">{d}</div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-1">
+                              {renderCalendar(newEvent.date, (d) => setNewEvent({...newEvent, date: d}))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
+                      <div className="relative" ref={typeRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsModalTypeOpen(!isModalTypeOpen);
+                            setIsModalPriorityOpen(false);
+                            setIsModalCalendarOpen(false);
+                          }}
+                          className="w-full flex items-center justify-between px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-[10px] font-black uppercase text-slate-900 hover:border-teal-500 transition-all outline-none"
+                        >
+                          {newEvent.type}
+                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
+                        </button>
+
+                        {isModalTypeOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            {EVENT_TYPES.map(type => (
+                              <div
+                                key={type}
+                                onClick={() => {
+                                  setNewEvent({...newEvent, type: type as any});
+                                  setIsModalTypeOpen(false);
+                                }}
+                                className={cn(
+                                  "px-6 py-3 hover:bg-teal-50 text-[10px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                  newEvent.type === type ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                                )}
+                              >
+                                {type}
+                                {newEvent.type === type && <Check size={14} className="text-teal-600" />}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Prioridad</label>
-                    <div className="relative">
-                      <div
-                        onClick={() => setIsModalPriorityOpen(!isModalPriorityOpen)}
-                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus-within:border-teal-500 cursor-pointer flex justify-between items-center transition-all"
-                      >
-                        <span className={cn(
-                          "font-black uppercase text-[10px]",
-                          newEvent.priority === 'Alta' ? 'text-rose-600' :
-                          newEvent.priority === 'Media' ? 'text-amber-600' : 'text-slate-600'
-                        )}>{newEvent.priority}</span>
-                        <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={16} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Prioridad</label>
+                      <div className="relative" ref={priorityRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsModalPriorityOpen(!isModalPriorityOpen);
+                            setIsModalTypeOpen(false);
+                            setIsModalCalendarOpen(false);
+                          }}
+                          className="w-full flex items-center justify-between px-6 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-[10px] font-black uppercase hover:border-teal-500 transition-all outline-none"
+                        >
+                          <span className={cn(
+                            newEvent.priority === 'Alta' ? 'text-rose-600' :
+                            newEvent.priority === 'Media' ? 'text-amber-600' : 'text-slate-600'
+                          )}>{newEvent.priority}</span>
+                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={16} />
+                        </button>
+
+                        {isModalPriorityOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            {PRIORITIES.map(p => (
+                              <div
+                                key={p}
+                                onClick={() => {
+                                  setNewEvent({...newEvent, priority: p as any});
+                                  setIsModalPriorityOpen(false);
+                                }}
+                                className={cn(
+                                  "px-6 py-3 hover:bg-teal-50 text-[10px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                  newEvent.priority === p ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                                )}
+                              >
+                                {p}
+                                {newEvent.priority === p && <Check size={14} className="text-teal-600" />}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-
-                      {isModalPriorityOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                          {PRIORITIES.map(p => (
-                            <div
-                              key={p}
-                              onClick={() => {
-                                setNewEvent({...newEvent, priority: p as any});
-                                setIsModalPriorityOpen(false);
-                              }}
-                              className="px-6 py-3 hover:bg-teal-50 text-[10px] font-black text-slate-600 hover:text-teal-600 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center uppercase"
-                            >
-                              {p}
-                              {newEvent.priority === p && <Check size={14} className="text-teal-600" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Meta Asistentes</label>
+                      <Input 
+                        type="number" 
+                        required 
+                        className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10" 
+                        value={newEvent.targetAttendees} 
+                        onChange={e => setNewEvent({...newEvent, targetAttendees: Number(e.target.value)})} 
+                      />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Meta Asistentes</label>
-                    <input type="number" required className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={newEvent.targetAttendees} onChange={e => setNewEvent({...newEvent, targetAttendees: Number(e.target.value)})} />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Localización Estratégica</label>
-                  <LocationSelector
-                    required
-                    value={newEvent.location}
-                    onChange={val => setNewEvent({...newEvent, location: val})}
-                    onManualSubmit={validateLocation}
-                    placeholder="Ej. El Poblado, Envigado..."
-                  />
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Localización Estratégica</label>
+                    <LocationSelector
+                      required
+                      value={newEvent.location}
+                      onChange={val => setNewEvent({...newEvent, location: val})}
+                      onManualSubmit={validateLocation}
+                      placeholder="Ej. El Poblado, Envigado..."
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-4 sticky bottom-0 bg-white">
+              <div className="p-6 md:p-10 pt-4 md:pt-6 border-t border-slate-100 flex gap-4 bg-white shrink-0 rounded-b-[3rem]">
                 <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-2 px-8 py-4 bg-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 hover:bg-teal-600 transition-all flex items-center justify-center gap-2">
+                <button type="submit" className="flex-2 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-teal-600 transition-all flex items-center justify-center gap-2">
                   {editingEvent ? 'Guardar Cambios' : 'Generar Operación'}
                 </button>
               </div>
@@ -754,7 +892,7 @@ export default function EventsPage() {
 
                   <div className="h-8 w-px bg-teal-600/10 mx-1" />
 
-                  <div className="relative">
+                  <div className="relative" ref={mapTypeRef}>
                     <button
                       onClick={() => {
                         setIsTypeDropdownOpen(!isTypeDropdownOpen);
@@ -812,37 +950,55 @@ export default function EventsPage() {
                     </button>
 
                     {isRangePickerOpen && (
-                      <div className="absolute top-full right-0 mt-3 p-5 bg-white border-2 border-teal-600/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                      <div className="absolute top-full right-0 mt-3 p-5 bg-white border-2 border-teal-600/10 rounded-[2rem] shadow-2xl z-[300] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 min-w-[300px]">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Definir Período</span>
                           <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={14} /></button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Inicio</label>
-                            <input
-                              type="date"
-                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
-                              value={mapFilterStartDate}
-                              onChange={(e) => setMapFilterStartDate(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Fin</label>
-                            <input
-                              type="date"
-                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
-                              value={mapFilterEndDate}
-                              onChange={(e) => setMapFilterEndDate(e.target.value)}
-                            />
-                          </div>
+                        
+                        <div className="flex items-center justify-between mb-2">
+                          <button 
+                            type="button" 
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                            {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setIsRangePickerOpen(false)}
-                          className="w-full py-3 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100"
-                        >
-                          Aplicar
-                        </button>
+
+                        <div className="grid grid-cols-7 gap-1 mb-1">
+                          {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                            <div key={`${d}-${i}`} className="h-7 w-7 flex items-center justify-center text-[8px] font-black text-slate-300 uppercase">{d}</div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {renderCalendar(mapFilterStartDate, (d) => setMapFilterStartDate(d))}
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                          <button 
+                            onClick={() => { setMapFilterStartDate(""); setMapFilterEndDate(""); }}
+                            className="text-[9px] font-black uppercase text-slate-400 hover:text-rose-500"
+                          >
+                            Limpiar
+                          </button>
+                          <button
+                            onClick={() => setIsRangePickerOpen(false)}
+                            className="px-6 py-2 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100"
+                          >
+                            Aplicar
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

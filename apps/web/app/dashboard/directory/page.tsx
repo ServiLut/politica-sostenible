@@ -22,6 +22,7 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
+import { Input } from '@/components/ui/input';
 
 export default function DirectoryPage() {
   const { contacts, territory, addContact, updateContact, toggleContactStatus } = useCRM();
@@ -366,177 +367,185 @@ export default function DirectoryPage() {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-visible custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Nombre Completo</label>
-                  <input 
-                    required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Cédula / ID</label>
-                  <input 
-                    required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                    value={formData.cedula}
-                    onChange={(e) => setFormData({...formData, cedula: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Teléfono</label>
-                  <input 
-                    required 
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2 relative">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Barrio / Comuna</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input 
+            <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+              <div className="flex-1 p-6 md:p-10 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Nombre Completo</label>
+                    <Input 
                       required 
-                      placeholder="Buscar barrio o comuna..."
-                      className="w-full pl-12 pr-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                      value={neighborhoodSearch}
-                      onChange={(e) => {
-                        setNeighborhoodSearch(e.target.value);
-                        setFormData({...formData, neighborhood: e.target.value});
-                        setShowNeighborhoodDropdown(true);
-                      }}
-                      onFocus={() => setShowNeighborhoodDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowNeighborhoodDropdown(false), 200)}
+                      className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
                     />
                   </div>
-                  
-                  {showNeighborhoodDropdown && (
-                    <div className="absolute z-50 w-full mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                      <div className="max-h-48 overflow-y-auto">
-                        {filteredNeighborhoods.length > 0 ? (
-                          filteredNeighborhoods.map(zone => (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Cédula / ID</label>
+                    <Input 
+                      required 
+                      className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10"
+                      value={formData.cedula}
+                      onChange={(e) => setFormData({...formData, cedula: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Teléfono</label>
+                    <Input 
+                      required 
+                      className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Barrio / Comuna</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <Input 
+                        required 
+                        placeholder="Buscar barrio o comuna..."
+                        className="pl-12 rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10"
+                        value={neighborhoodSearch}
+                        onChange={(e) => {
+                          setNeighborhoodSearch(e.target.value);
+                          setFormData({...formData, neighborhood: e.target.value});
+                          setShowNeighborhoodDropdown(true);
+                        }}
+                        onFocus={() => setShowNeighborhoodDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowNeighborhoodDropdown(false), 200)}
+                      />
+                    </div>
+                    
+                    {showNeighborhoodDropdown && (
+                      <div className="absolute z-50 w-full mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                        <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                          {filteredNeighborhoods.length > 0 ? (
+                            filteredNeighborhoods.map(zone => (
+                              <button
+                                key={zone.id}
+                                type="button"
+                                className="w-full px-4 py-3 text-left text-sm hover:bg-teal-50 hover:text-teal-600 transition-all flex items-center justify-between group"
+                                onClick={() => {
+                                  setFormData({...formData, neighborhood: zone.name});
+                                  setNeighborhoodSearch(zone.name);
+                                  setShowNeighborhoodDropdown(false);
+                                }}
+                              >
+                                <span className="font-bold">{zone.name}</span>
+                                <span className="text-[10px] font-black text-slate-400 group-hover:text-teal-400 uppercase">Zona</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">
+                              No se encontraron zonas.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Rol Político</label>
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold flex items-center justify-between hover:border-teal-500 transition-all outline-none"
+                      onClick={() => {
+                        setShowRoleDropdown(!showRoleDropdown);
+                        setShowStageDropdown(false);
+                      }}
+                      onBlur={() => setTimeout(() => setShowRoleDropdown(false), 200)}
+                    >
+                      <span className="text-slate-900">{formData.role}</span>
+                      <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showRoleDropdown && "rotate-180")} />
+                    </button>
+                    
+                    {showRoleDropdown && (
+                      <div className="absolute z-[60] w-full mt-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5">
+                        <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                          {(['Simpatizante', 'Líder', 'Voluntario', 'Testigo', 'Donante'] as ContactRole[]).map(role => (
                             <button
-                              key={zone.id}
+                              key={role}
                               type="button"
-                              className="w-full px-4 py-3 text-left text-sm hover:bg-teal-50 hover:text-teal-600 transition-all flex items-center justify-between group"
+                              className={cn(
+                                "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                                formData.role === role ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                              )}
                               onClick={() => {
-                                setFormData({...formData, neighborhood: zone.name});
-                                setNeighborhoodSearch(zone.name);
-                                setShowNeighborhoodDropdown(false);
+                                setFormData({...formData, role});
+                                setShowRoleDropdown(false);
                               }}
                             >
-                              <span className="font-bold">{zone.name}</span>
-                              <span className="text-[10px] font-black text-slate-400 group-hover:text-teal-400 uppercase">Zona</span>
+                              <span className="font-bold">{role}</span>
+                              {formData.role === role && <Check size={14} className="text-teal-600" />}
                             </button>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">
-                            No se encontraron zonas.
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2 relative">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Rol Político</label>
-                  <button
-                    type="button"
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
-                    onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                    onBlur={() => setTimeout(() => setShowRoleDropdown(false), 200)}
-                  >
-                    <span className="text-slate-900">{formData.role}</span>
-                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showRoleDropdown && "rotate-180")} />
-                  </button>
-                  
-                  {showRoleDropdown && (
-                    <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
-                      <div className="max-h-40 overflow-y-auto custom-scrollbar">
-                        {(['Simpatizante', 'Líder', 'Voluntario', 'Testigo', 'Donante'] as ContactRole[]).map(role => (
-                          <button
-                            key={role}
-                            type="button"
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
-                              formData.role === role ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
-                            )}
-                            onClick={() => {
-                              setFormData({...formData, role});
-                              setShowRoleDropdown(false);
-                            }}
-                          >
-                            <span className="font-bold">{role}</span>
-                            {formData.role === role && <Check size={14} className="text-teal-600" />}
-                          </button>
-                        ))}
+                    )}
+                  </div>
+                  <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Etapa de Conversión</label>
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold flex items-center justify-between hover:border-teal-500 transition-all outline-none"
+                      onClick={() => {
+                        setShowStageDropdown(!showStageDropdown);
+                        setShowRoleDropdown(false);
+                      }}
+                      onBlur={() => setTimeout(() => setShowStageDropdown(false), 200)}
+                    >
+                      <span className="text-slate-900">{formData.stage}</span>
+                      <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showStageDropdown && "rotate-180")} />
+                    </button>
+                    
+                    {showStageDropdown && (
+                      <div className="absolute z-[60] w-full mt-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5">
+                        <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                          {(['Prospecto', 'Contactado', 'Simpatizante', 'Firme', 'Votó'] as PipelineStage[]).map(stage => (
+                            <button
+                              key={stage}
+                              type="button"
+                              className={cn(
+                                "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
+                                formData.stage === stage ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                              )}
+                              onClick={() => {
+                                setFormData({...formData, stage});
+                                setShowStageDropdown(false);
+                              }}
+                            >
+                              <span className="font-bold">{stage}</span>
+                              {formData.stage === stage && <Check size={14} className="text-teal-600" />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2 relative">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Etapa de Conversión</label>
-                  <button
-                    type="button"
-                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold flex items-center justify-between hover:bg-white hover:border-slate-100 transition-all focus:border-teal-500 outline-none"
-                    onClick={() => setShowStageDropdown(!showStageDropdown)}
-                    onBlur={() => setTimeout(() => setShowStageDropdown(false), 200)}
-                  >
-                    <span className="text-slate-900">{formData.stage}</span>
-                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showStageDropdown && "rotate-180")} />
-                  </button>
-                  
-                  {showStageDropdown && (
-                    <div className="absolute z-[60] w-full bottom-full mb-2 bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 p-1.5">
-                      <div className="max-h-40 overflow-y-auto custom-scrollbar">
-                        {(['Prospecto', 'Contactado', 'Simpatizante', 'Firme', 'Votó'] as PipelineStage[]).map(stage => (
-                          <button
-                            key={stage}
-                            type="button"
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all flex items-center justify-between group",
-                              formData.stage === stage ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
-                            )}
-                            onClick={() => {
-                              setFormData({...formData, stage});
-                              setShowStageDropdown(false);
-                            }}
-                          >
-                            <span className="font-bold">{stage}</span>
-                            {formData.stage === stage && <Check size={14} className="text-teal-600" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block px-1">Dirección de Residencia</label>
+                  <Input 
+                    required 
+                    className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10"
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Dirección de Residencia</label>
-                <input 
-                  required 
-                  className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                />
               </div>
 
-              <div className="pt-6 flex flex-col md:flex-row gap-3 md:gap-4 shrink-0 pb-2">
+              <div className="p-6 md:p-10 border-t border-slate-100 flex flex-col md:flex-row gap-3 md:gap-4 shrink-0 bg-white rounded-b-[2rem] md:rounded-b-[3rem]">
                 <button 
                   type="button" 
                   onClick={closeModal}
-                  className="w-full md:flex-1 px-8 py-4 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
+                  className="w-full md:flex-1 px-8 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="w-full md:flex-1 px-8 py-4 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                  className="w-full md:flex-1 px-8 py-4 bg-teal-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
                 >
                   <Shield size={16} /> {currentContact ? 'Guardar Cambios' : 'Registrar Votante'}
                 </button>

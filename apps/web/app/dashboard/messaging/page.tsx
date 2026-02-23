@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCRM, Broadcast } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { 
@@ -11,9 +11,12 @@ import {
   Loader2,
   Pencil,
   Ban,
-  RotateCcw
+  RotateCcw,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
+import { Input } from '@/components/ui/input';
 
 export default function MessagingPage() {
   const { broadcasts, sendBroadcast, updateBroadcast, toggleBroadcastStatus } = useCRM();
@@ -21,6 +24,23 @@ export default function MessagingPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
+  
+  // Custom Dropdown States
+  const [isChannelOpen, setIsChannelOpen] = useState(false);
+  const [isSegmentOpen, setIsSegmentOpen] = useState(false);
+  
+  // Refs for outside click
+  const channelRef = useRef<HTMLDivElement>(null);
+  const segmentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (channelRef.current && !channelRef.current.contains(event.target as Node)) setIsChannelOpen(false);
+      if (segmentRef.current && !segmentRef.current.contains(event.target as Node)) setIsSegmentOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   const [newCampaign, setNewCampaign] = useState<{ name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; segment: string; message: string; }>({ name: '', channel: 'WhatsApp', segment: 'Todos', message: '' });
   
@@ -116,14 +136,108 @@ export default function MessagingPage() {
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-6">
               <div className="space-y-5">
-                <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Nombre de Campaña</label><input required placeholder="Ej: Invitación Domingo" className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white transition-all outline-none" value={newCampaign.name} onChange={e => setNewCampaign({...newCampaign, name: e.target.value})} /></div>
-                <div className="grid grid-cols-2 gap-5">
-                  <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Canal</label><select className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" value={newCampaign.channel} onChange={e => setNewCampaign({...newCampaign, channel: e.target.value as any})}><option value="WhatsApp">WhatsApp</option><option value="SMS">SMS</option><option value="Email">Email</option></select></div>
-                  <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Segmento</label><select className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" value={newCampaign.segment} onChange={e => setNewCampaign({...newCampaign, segment: e.target.value})}><option value="Todos">Todos</option><option value="Líderes">Líderes</option><option value="Testigos">Testigos</option></select></div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Nombre de Campaña</label>
+                  <Input 
+                    required 
+                    placeholder="Ej: Invitación Domingo" 
+                    className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10" 
+                    value={newCampaign.name} 
+                    onChange={e => setNewCampaign({...newCampaign, name: e.target.value})} 
+                  />
                 </div>
-                <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Mensaje Táctico</label><textarea required rows={4} placeholder="Contenido del mensaje..." className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-medium focus:border-teal-500 focus:bg-white transition-all outline-none" value={newCampaign.message} onChange={e => setNewCampaign({...newCampaign, message: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Canal</label>
+                    <div className="relative" ref={channelRef}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsChannelOpen(!isChannelOpen);
+                          setIsSegmentOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        {newCampaign.channel}
+                        <ChevronDown size={16} className={cn("text-slate-400 transition-transform", isChannelOpen && "rotate-180")} />
+                      </button>
+                      {isChannelOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {['WhatsApp', 'SMS', 'Email'].map(channel => (
+                            <div 
+                              key={channel}
+                              onClick={() => {
+                                setNewCampaign({...newCampaign, channel: channel as any});
+                                setIsChannelOpen(false);
+                              }}
+                              className={cn(
+                                "px-5 py-3 hover:bg-teal-50 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                newCampaign.channel === channel ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                              )}
+                            >
+                              {channel}
+                              {newCampaign.channel === channel && <Check size={14} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Segmento</label>
+                    <div className="relative" ref={segmentRef}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSegmentOpen(!isSegmentOpen);
+                          setIsChannelOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        {newCampaign.segment}
+                        <ChevronDown size={16} className={cn("text-slate-400 transition-transform", isSegmentOpen && "rotate-180")} />
+                      </button>
+                      {isSegmentOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {['Todos', 'Líderes', 'Testigos'].map(segment => (
+                            <div 
+                              key={segment}
+                              onClick={() => {
+                                setNewCampaign({...newCampaign, segment: segment});
+                                setIsSegmentOpen(false);
+                              }}
+                              className={cn(
+                                "px-5 py-3 hover:bg-teal-50 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                newCampaign.segment === segment ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                              )}
+                            >
+                              {segment}
+                              {newCampaign.segment === segment && <Check size={14} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Mensaje Táctico</label>
+                  <textarea 
+                    required 
+                    rows={4} 
+                    placeholder="Contenido del mensaje..." 
+                    className="w-full px-5 py-4 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-medium focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all placeholder:text-slate-400" 
+                    value={newCampaign.message} 
+                    onChange={e => setNewCampaign({...newCampaign, message: e.target.value})} 
+                  />
+                </div>
               </div>
-              <div className="pt-6 flex gap-4"><button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500">Cancelar</button><button type="submit" className="flex-1 py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"><Send size={16} /> Lanzar Campaña</button></div>
+              <div className="pt-6 flex gap-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button type="submit" className="flex-1 py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
+                  <Send size={16} /> Lanzar Campaña
+                </button>
+              </div>
             </form>
           </div>
         </div>
