@@ -9,7 +9,13 @@ import {
   TrendingDown, 
   Receipt, 
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  X,
+  ChevronDown,
+  Check,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
@@ -23,6 +29,49 @@ export default function FinancePage() {
   const { success: toastSuccess } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isCneDropdownOpen, setIsCneDropdownOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+  const renderCalendarUI = (currentDate: string, onSelect: (date: string) => void) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = [];
+    const totalDays = daysInMonth(year, month);
+    const startDay = firstDayOfMonth(year, month);
+
+    for (let i = 0; i < startDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const isSelected = currentDate === dateStr;
+      
+      days.push(
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            onSelect(dateStr);
+            setIsCalendarOpen(false);
+          }}
+          className={cn(
+            "h-8 w-8 rounded-full text-[10px] font-black transition-all flex items-center justify-center",
+            isSelected ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "hover:bg-teal-50 text-slate-600"
+          )}
+        >
+          {i}
+        </button>
+      );
+    }
+    return days;
+  };
 
   const [formData, setFormData] = useState<Omit<FinanceTransaction, 'id'>>({
     concept: '',
@@ -75,7 +124,7 @@ export default function FinancePage() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-teal-600 transition-all shadow-xl hover:-translate-y-1 duration-300"
+          className="flex items-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 hover:-translate-y-1 duration-300"
         >
           <Receipt size={18} />
           Nuevo Registro
@@ -179,48 +228,202 @@ export default function FinancePage() {
           onClick={() => setIsModalOpen(false)}
         >
           <div 
-            className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative"
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Nuevo Movimiento</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Registro Legal CNE</p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
+            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Nuevo Registro</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Crea un nuevo registro</p>
             </div>
             <form onSubmit={handleAddTransaction} className="p-10 space-y-6">
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Concepto</label>
-                  <input required placeholder="Ej: Donación de simpatizante" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={formData.concept} onChange={e => setFormData({...formData, concept: e.target.value})} />
+                  <input 
+                    required 
+                    placeholder="Ej: Donación de simpatizante" 
+                    className="w-full px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
+                    value={formData.concept} 
+                    onChange={e => setFormData({...formData, concept: e.target.value})} 
+                  />
                 </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Monto</label>
-                    <input required type="number" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCalendarOpen(!isCalendarOpen);
+                          setIsTypeDropdownOpen(false);
+                          setIsCneDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-4 px-5 py-4 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        <Calendar size={18} className="text-teal-600" />
+                        <span className="truncate">{formData.date || "Seleccionar..."}</span>
+                      </button>
+                      
+                      {isCalendarOpen && (
+                        <div className="absolute top-full left-0 mt-2 p-4 bg-white border-2 border-slate-100 rounded-[2rem] shadow-2xl z-[220] animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                          <div className="flex items-center justify-between mb-4">
+                            <button 
+                              type="button" 
+                              onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                              {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                            </span>
+                            <button 
+                              type="button" 
+                              onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1 mb-1">
+                            {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                              <div key={`${d}-${i}`} className="h-7 w-7 flex items-center justify-center text-[8px] font-black text-slate-300 uppercase">{d}</div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-7 gap-1">
+                            {renderCalendarUI(formData.date, (d) => setFormData({...formData, date: d}))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo</label>
-                    <select className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
-                      <option value="Gasto">Gasto</option>
-                      <option value="Ingreso">Ingreso</option>
-                    </select>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Monto</label>
+                    <input 
+                      required 
+                      type="number" 
+                      className="w-full px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
+                      value={formData.amount} 
+                      onChange={e => setFormData({...formData, amount: Number(e.target.value)})} 
+                    />
                   </div>
                 </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Movimiento</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                        setIsCneDropdownOpen(false);
+                        setIsCalendarOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                    >
+                      {formData.type}
+                      <ChevronDown className={cn("text-slate-400 transition-transform", isTypeDropdownOpen && "rotate-180")} size={18} />
+                    </button>
+
+                    {isTypeDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {['Gasto', 'Ingreso'].map(t => (
+                          <div
+                            key={t}
+                            onClick={() => {
+                              setFormData({...formData, type: t as any});
+                              setIsTypeDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "px-6 py-3 hover:bg-teal-50 text-[11px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                              formData.type === t ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                            )}
+                          >
+                            {t}
+                            {formData.type === t && <Check size={14} className="text-teal-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {formData.type === 'Gasto' && (
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Código Legal CNE</label>
-                    <select className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" value={formData.cneCode} onChange={e => setFormData({...formData, cneCode: e.target.value as any})}>
-                      <option value="OTROS">199 - Otros Gastos / Operativos</option>
-                      <option value="PUBLICIDAD_VALLAS">108 - Publicidad en Vallas / Exterior</option>
-                      <option value="TRANSPORTE">110 - Transporte y Movilidad</option>
-                      <option value="SEDE_CAMPANA">102 - Arrendamiento de Sede</option>
-                      <option value="ACTOS_PUBLICOS">105 - Actos Públicos y Eventos</option>
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCneDropdownOpen(!isCneDropdownOpen);
+                          setIsTypeDropdownOpen(false);
+                          setIsCalendarOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        <span className="truncate">
+                          {formData.cneCode === 'OTROS' ? '199 - Otros Gastos / Operativos' :
+                           formData.cneCode === 'PUBLICIDAD_VALLAS' ? '108 - Publicidad en Vallas / Exterior' :
+                           formData.cneCode === 'TRANSPORTE' ? '110 - Transporte y Movilidad' :
+                           formData.cneCode === 'SEDE_CAMPANA' ? '102 - Arrendamiento de Sede' :
+                           formData.cneCode === 'ACTOS_PUBLICOS' ? '105 - Actos Públicos y Eventos' : formData.cneCode}
+                        </span>
+                        <ChevronDown className={cn("text-slate-400 transition-transform", isCneDropdownOpen && "rotate-180")} size={18} />
+                      </button>
+
+                      {isCneDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {[
+                            { value: 'OTROS', label: '199 - Otros Gastos / Operativos' },
+                            { value: 'PUBLICIDAD_VALLAS', label: '108 - Publicidad en Vallas / Exterior' },
+                            { value: 'TRANSPORTE', label: '110 - Transporte y Movilidad' },
+                            { value: 'SEDE_CAMPANA', label: '102 - Arrendamiento de Sede' },
+                            { value: 'ACTOS_PUBLICOS', label: '105 - Actos Públicos y Eventos' }
+                          ].map(item => (
+                            <div
+                              key={item.value}
+                              onClick={() => {
+                                setFormData({...formData, cneCode: item.value as any});
+                                setIsCneDropdownOpen(false);
+                              }}
+                              className={cn(
+                                "px-6 py-3 hover:bg-teal-50 text-[11px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                formData.cneCode === item.value ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                              )}
+                            >
+                              <span className="truncate mr-4">{item.label}</span>
+                              {formData.cneCode === item.value && <Check size={14} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
+              
               <div className="pt-6 flex gap-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500">Cancelar</button>
-                <button type="submit" className="flex-1 py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all">Registrar Movimiento</button>
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 py-4 bg-slate-100 rounded-[1.5rem] text-[10px] font-black uppercase text-slate-500 hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-4 bg-teal-600 text-white rounded-[1.5rem] font-black text-[10px] uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all"
+                >
+                  Registrar Movimiento
+                </button>
               </div>
             </form>
           </div>

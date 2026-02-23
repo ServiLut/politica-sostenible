@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 export default function TasksPage() {
   const { tasks, team, addTask, completeTask } = useCRM();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeColumn, setActiveColumn] = useState('Pendiente');
+  const [activeFilter, setActiveFilter] = useState('Todas');
   
   // Refs for closing dropdowns on outside click
   const typeRef = useRef<HTMLDivElement>(null);
@@ -100,101 +100,112 @@ export default function TasksPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen]);
 
-  const columns = [
-    { id: 'Pendiente', title: 'Pendiente', icon: <Clock size={16} className="text-red-500" />, color: 'bg-red-50/30 border-red-100/50' },
-    { id: 'En Progreso', title: 'En Proceso', icon: <Loader2 size={16} className="text-amber-500 animate-spin" />, color: 'bg-amber-50/30 border-amber-100/50' },
-    { id: 'Completada', title: 'Completada', icon: <CheckCircle size={16} className="text-emerald-500" />, color: 'bg-emerald-50/30 border-emerald-100/50' },
+  const filters = [
+    { id: 'Todas', title: 'Todas', icon: <ClipboardList size={14} /> },
+    { id: 'Pendiente', title: 'Pendientes', icon: <Clock size={14} className="text-red-500" /> },
+    { id: 'En Progreso', title: 'En Proceso', icon: <Loader2 size={14} className="text-amber-500" /> },
+    { id: 'Completada', title: 'Completadas', icon: <CheckCircle size={14} className="text-emerald-500" /> },
   ];
 
+  const filteredTasks = activeFilter === 'Todas' 
+    ? tasks 
+    : tasks.filter(t => t.status === activeFilter);
+
   return (
-    <div className="space-y-4 sm:space-y-8 h-full flex flex-col p-4 sm:p-0">
+    <div className="space-y-6 h-full flex flex-col p-4 sm:p-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">Misiones de Campo</h1>
-          <p className="text-xs sm:text-sm text-slate-500">Gestión de tareas operativas y despliegue territorial.</p>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Gestión estratégica y despliegue territorial en tiempo real.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto bg-teal-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-black text-xs sm:text-sm shadow-xl hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+          className="w-full sm:w-auto bg-teal-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2 group"
         >
-          <Plus size={18} /> Asignar Misión
+          <Plus size={18} className="group-hover:rotate-90 transition-transform" /> Asignar Misión
         </button>
       </div>
 
-      {/* Mobile Column Selector */}
-      <div className="flex sm:hidden bg-slate-100/50 p-1.5 rounded-[2rem] border border-slate-200 shadow-inner">
-        {columns.map(col => (
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
+        {filters.map(filter => (
           <button
-            key={col.id}
-            onClick={() => setActiveColumn(col.id)}
+            key={filter.id}
+            onClick={() => setActiveFilter(filter.id)}
             className={cn(
-              "flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2",
-              activeColumn === col.id 
-                ? "bg-white text-teal-600 shadow-sm scale-[1.02]" 
-                : "text-slate-400 hover:text-slate-500"
+              "flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border",
+              activeFilter === filter.id 
+                ? "bg-white text-teal-600 border-teal-100 shadow-sm scale-[1.02]" 
+                : "bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-500"
             )}
           >
-            {col.icon}
-            {col.title}
+            {filter.icon}
+            {filter.title}
+            <span className={cn(
+              "ml-1 px-1.5 py-0.5 rounded-full text-[9px]",
+              activeFilter === filter.id ? "bg-teal-50 text-teal-600" : "bg-slate-200/50 text-slate-400"
+            )}>
+              {filter.id === 'Todas' ? tasks.length : tasks.filter(t => t.status === filter.id).length}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-x-auto sm:overflow-visible pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-4 sm:gap-6 h-full min-w-0">
-          {columns.map((col) => {
-            const colTasks = tasks.filter(t => t.status === col.id);
-            return (
-              <div 
-                key={col.id} 
-                className={cn(
-                  "w-full sm:w-96 rounded-[2.5rem] sm:rounded-[3rem] p-4 sm:p-6 flex flex-col border transition-all duration-500",
-                  col.color,
-                  activeColumn === col.id ? "flex" : "hidden sm:flex"
-                )}
-              >
-                <div className="flex items-center justify-between mb-4 sm:mb-6 px-2 sm:px-4">
-                  <div className="flex items-center gap-2">
-                    {col.icon}
-                    <h3 className="font-black text-slate-900 text-xs sm:text-sm uppercase tracking-widest">{col.title}</h3>
-                  </div>
-                  <span className="bg-white px-2 sm:px-3 py-1 rounded-full text-[10px] font-black text-slate-400 border border-slate-200">
-                    {colTasks.length}
-                  </span>
-                </div>
-
-                <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                  {colTasks.map((task) => (
-                    <div key={task.id} className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-md transition-all group">
-                      <div className="flex justify-between items-start mb-3 sm:mb-4">
-                        <span className={cn(
-                          "text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-2 sm:px-3 py-1 rounded-full border",
-                          task.type === 'Puerta a Puerta' ? 'bg-red-50 text-red-600 border-red-100' :
-                          task.type === 'Llamadas' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                          task.type === 'Logística' ? 'bg-teal-50 text-teal-600 border-teal-100' :
-                          'bg-indigo-50 text-indigo-600 border-indigo-100'
-                        )}>
-                          {task.type}
-                        </span>
-                        <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-teal-600 bg-teal-50/50 px-2 sm:px-3 py-1 rounded-full border border-teal-100/50">
-                          <Calendar size={10} /> {task.deadline}
-                        </div>
+      {/* Main Table Content */}
+      <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50">
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Misión / Detalles</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Categoría</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Responsable</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Plazo</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Progreso</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredTasks.map(task => (
+                <tr key={task.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-8 py-6">
+                    <div className="max-w-[280px]">
+                      <div className="font-black text-slate-900 text-sm leading-tight group-hover:text-teal-600 transition-colors">{task.title}</div>
+                      <div className="text-[11px] text-slate-500 mt-1 line-clamp-1 font-medium">{task.description}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <span className={cn(
+                      "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border inline-block",
+                      task.type === 'Puerta a Puerta' ? 'bg-red-50 text-red-600 border-red-100' :
+                      task.type === 'Llamadas' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                      task.type === 'Logística' ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                      'bg-indigo-50 text-indigo-600 border-indigo-100'
+                    )}>
+                      {task.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-[11px] font-black text-white border-2 border-white shadow-lg shadow-teal-100 ring-1 ring-teal-50">
+                        {task.assignedTo.charAt(0)}
                       </div>
-
-                      <h4 className="text-sm sm:text-md font-black text-slate-900 mb-1 sm:mb-2 leading-tight">{task.title}</h4>
-                      <p className="text-[10px] sm:text-xs text-slate-500 mb-4 sm:mb-6 line-clamp-2">{task.description}</p>
-
-                      <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 flex items-center justify-center text-[8px] sm:text-[10px] font-black text-slate-500">
-                            {task.assignedTo.charAt(0)}
-                          </div>
-                          <span className="text-[10px] sm:text-xs font-bold text-slate-700">{task.assignedTo}</span>
-                        </div>
-                        <span className="text-[8px] sm:text-[10px] font-black text-slate-400">{task.progress}%</span>
+                      <span className="text-xs font-black text-slate-700">{task.assignedTo}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 whitespace-nowrap">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 bg-slate-100/50 px-3 py-1.5 rounded-full border border-slate-200/50 w-fit">
+                      <Calendar size={12} className="text-teal-600" />
+                      {task.deadline}
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex flex-col gap-2 min-w-[120px]">
+                      <div className="flex justify-between items-center text-[9px] font-black text-slate-400">
+                        <span className="text-teal-600">{task.progress}%</span>
                       </div>
-
-                      <div className="h-1 sm:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mb-4 sm:mb-6">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                         <div 
                           className={cn(
                             "h-full transition-all duration-1000",
@@ -203,29 +214,51 @@ export default function TasksPage() {
                           style={{ width: `${task.progress}%` }}
                         />
                       </div>
-
-                      {task.status !== 'Completada' && (
-                        <button 
-                          onClick={() => completeTask(task.id)}
-                          className="w-full py-2 sm:py-3 bg-slate-900 text-white rounded-xl font-black text-[8px] sm:text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-colors"
-                        >
-                          Marcar Completada
-                        </button>
-                      )}
                     </div>
-                  ))}
-                  {colTasks.length === 0 && (
-                    <div className="text-center py-10 sm:py-20 opacity-10 flex flex-col items-center">
-                      <ClipboardList size={32} className="sm:size-12 mb-2 sm:mb-4" />
-                      <p className="text-[8px] sm:text-xs font-black uppercase tracking-widest">Sin Misiones</p>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        task.status === 'Pendiente' ? 'bg-red-500 animate-pulse' :
+                        task.status === 'En Progreso' ? 'bg-amber-500 animate-pulse' :
+                        'bg-emerald-500'
+                      )} />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{task.status}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    {task.status !== 'Completada' ? (
+                      <button 
+                        onClick={() => completeTask(task.id)}
+                        className="bg-slate-900 hover:bg-emerald-600 text-white p-2.5 rounded-xl transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95"
+                        title="Marcar completada"
+                      >
+                        <Check size={16} />
+                      </button>
+                    ) : (
+                      <div className="text-emerald-500 bg-emerald-50 p-2.5 rounded-xl inline-flex border border-emerald-100">
+                        <CheckCircle size={16} />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filteredTasks.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-32 text-center opacity-20">
+                    <div className="flex flex-col items-center">
+                      <ClipboardList size={48} className="mb-4" />
+                      <p className="text-xs font-black uppercase tracking-[0.2em]">No se encontraron misiones</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
+
 
       {/* Modal Nueva Misión */}
       {isModalOpen && (

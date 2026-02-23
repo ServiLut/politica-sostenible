@@ -128,10 +128,16 @@ export default function MessagingPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-10 py-10 border-b border-slate-100 flex justify-between items-center">
-              <div><h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Configurar Envío</h3><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Mensajería de Alto Alcance</p></div>
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-10 py-10 border-b border-slate-100 flex justify-between items-center rounded-t-[3rem] bg-slate-50/50">
+              <div><h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Nueva Campaña</h3><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Mensajería de Alto Alcance</p></div>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 bg-slate-50 p-3 rounded-2xl transition-all"><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-6">

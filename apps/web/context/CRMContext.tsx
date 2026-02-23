@@ -228,9 +228,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
 
   // FUNCIONES
+  const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
+    const log: AuditLog = { id: 'log-' + Date.now(), actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
+    setAuditLogs(prev => [log, ...prev]);
+  }, []);
+
   const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
     setContacts(prev => [{ ...c, id: 'contact-' + Date.now(), createdAt: new Date().toISOString(), status: 'active' } as Contact, ...prev]);
-  }, []);
+    logAction('Sistema', `Nuevo registro: ${c.name} (${c.neighborhood})`, 'Votantes', 'Info');
+  }, [logAction]);
 
   const updateContact = useCallback((id: string, f: Partial<Contact>) => {
     setContacts(prev => prev.map(c => c.id === id ? { ...c, ...f } : c));
@@ -242,7 +248,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const moveContactStage = useCallback((id: string, s: PipelineStage) => {
     setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: s } : c));
-  }, []);
+    logAction('Sistema', `Cambio de fase: ${contacts.find(c => c.id === id)?.name} -> ${s}`, 'Votantes', 'Info');
+  }, [contacts, logAction]);
   
   const addTerritoryZone = useCallback((z: Omit<TerritoryZone, 'id' | 'current'>) => {
     setTerritory(prev => [...prev, { ...z, id: 'tz-' + Date.now(), current: 0 }]);
@@ -275,7 +282,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
     setFinance(prev => [{ ...t, id: 'tx-' + Date.now() }, ...prev]);
-  }, []);
+    logAction('Tesorero', `${t.type}: ${t.concept} - $${t.amount.toLocaleString()}`, 'Finanzas', 'Info');
+  }, [logAction]);
 
   const updateFinanceTransaction = useCallback((id: string, t: Partial<FinanceTransaction>) => {
     setFinance(prev => prev.map(item => {
@@ -300,7 +308,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setCampaignGoal(goal);
   }, []);
 
-  const addEvent = useCallback((e: Omit<CampaignEvent, 'id'>) => { setEvents(prev => [{...e, id: 'e'+Date.now()}, ...prev]); }, []);
+  const addEvent = useCallback((e: Omit<CampaignEvent, 'id'>) => { 
+    setEvents(prev => [{...e, id: 'e'+Date.now()}, ...prev]); 
+    logAction('Operaciones', `Evento creado: ${e.title}`, 'Eventos', 'Info');
+  }, [logAction]);
   const updateEvent = useCallback((id: string, f: Partial<CampaignEvent>) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, ...f } : e)); }, []);
   const deleteEvent = useCallback((id: string) => { setEvents(prev => prev.filter(e => e.id !== id)); }, []);
   const rsvpEvent = useCallback((id: string) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e)); }, []);
@@ -336,10 +347,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: 'u-'+Date.now(), performance: 0, status: 'active'}, ...prev]); }, []);
   const updateMember = useCallback((id: string, m: Partial<TeamMember>) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
-  const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
-    const log: AuditLog = { id: 'log-' + Date.now(), actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
-    setAuditLogs(prev => [log, ...prev]);
-  }, []);
   const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
   const addComplianceObligation = useCallback((o: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => {
     setCompliance(prev => [{...o, id: 'req-'+Date.now(), status: 'Pendiente'}, ...prev]);

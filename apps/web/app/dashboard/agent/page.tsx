@@ -95,26 +95,26 @@ export default function AgentPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-144px)] animate-in fade-in zoom-in-95 duration-500">
       {/* Chat Header */}
-      <div className="bg-white p-6 rounded-t-[2.5rem] border border-zinc-100 flex items-center justify-between shadow-sm">
+      <div className="bg-white p-6 rounded-t-[2.5rem] border-b border-slate-100 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="h-12 w-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-lg shadow-teal-100">
             <Bot className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-secondary tracking-tight">Estratega Electoral IA</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">Estratega Electoral IA</h1>
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Activo y Analizando datos</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análisis de datos activo</span>
             </div>
           </div>
         </div>
-        <button className="p-3 text-zinc-300 hover:text-secondary transition-colors">
+        <button className="p-3 text-slate-300 hover:text-slate-900 transition-colors">
           <MoreVertical className="h-5 w-5" />
         </button>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto bg-white/50 p-8 space-y-8 backdrop-blur-sm">
+      <div className="flex-1 overflow-y-auto bg-slate-50/30 p-8 space-y-8 custom-scrollbar">
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
@@ -124,8 +124,8 @@ export default function AgentPage() {
             )}
           >
             <div className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm",
-              msg.role === 'assistant' ? "bg-secondary text-white" : "bg-primary text-white"
+              "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white",
+              msg.role === 'assistant' ? "bg-slate-900 text-white" : "bg-teal-600 text-white"
             )}>
               {msg.role === 'assistant' ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
             </div>
@@ -135,22 +135,22 @@ export default function AgentPage() {
               msg.role === 'user' ? "items-end text-right" : ""
             )}>
               <div className={cn(
-                "p-6 rounded-[2rem] text-sm font-medium leading-relaxed shadow-sm",
+                "p-6 rounded-[2rem] text-sm font-medium leading-relaxed shadow-sm border",
                 msg.role === 'assistant' 
-                  ? "bg-white text-secondary border border-zinc-100 rounded-tl-none" 
-                  : "bg-primary text-white rounded-tr-none"
+                  ? "bg-white text-slate-700 border-slate-100 rounded-tl-none" 
+                  : "bg-teal-600 text-white border-teal-500 rounded-tr-none shadow-teal-100"
               )}>
                 {msg.content}
               </div>
-              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
               
               {msg.role === 'assistant' && (
                 <div className="flex items-center gap-2 px-2">
-                  <button className="p-1.5 text-zinc-300 hover:text-emerald-500 transition-colors"><ThumbsUp className="h-3 w-3" /></button>
-                  <button className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors"><ThumbsDown className="h-3 w-3" /></button>
-                  <button className="p-1.5 text-zinc-300 hover:text-primary transition-colors"><RefreshCcw className="h-3 w-3" /></button>
+                  <button className="p-1.5 text-slate-300 hover:text-teal-600 transition-colors"><ThumbsUp className="h-3 w-3" /></button>
+                  <button className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors"><ThumbsDown className="h-3 w-3" /></button>
+                  <button className="p-1.5 text-slate-300 hover:text-teal-600 transition-colors"><RefreshCcw className="h-3 w-3" /></button>
                 </div>
               )}
             </div>
@@ -158,13 +158,13 @@ export default function AgentPage() {
         ))}
         {isTyping && (
           <div className="flex items-start gap-4 max-w-4xl mx-auto animate-in fade-in duration-300">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-secondary text-white">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-slate-900 text-white">
               <Bot className="h-5 w-5 animate-pulse" />
             </div>
-            <div className="bg-white text-secondary border border-zinc-100 rounded-[2rem] rounded-tl-none p-6 shadow-sm flex gap-1 items-center h-14">
-              <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="bg-white text-slate-700 border border-slate-100 rounded-[2rem] rounded-tl-none p-6 shadow-sm flex gap-1 items-center h-14">
+              <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
@@ -172,11 +172,11 @@ export default function AgentPage() {
       </div>
 
       {/* Chat Input Area */}
-      <div className="p-8 bg-white border-t border-zinc-100 rounded-b-[2.5rem] shadow-2xl">
+      <div className="p-8 bg-white border-t border-slate-100 rounded-b-[2.5rem] shadow-2xl">
         <div className="max-w-4xl mx-auto">
           <div className="relative group">
             <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-2 text-zinc-300 hover:text-primary transition-colors">
+              <button className="p-2 text-slate-400 hover:text-teal-600 transition-colors">
                 <Paperclip className="h-5 w-5" />
               </button>
             </div>
@@ -187,14 +187,14 @@ export default function AgentPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Escribe tu pregunta estratégica aquí..."
-              className="w-full h-16 pl-16 pr-20 rounded-[1.5rem] bg-zinc-50 border-none text-sm font-bold focus:ring-2 focus:ring-primary transition-all shadow-inner"
+              className="w-full h-16 pl-16 pr-20 rounded-[1.5rem] bg-slate-50 border-2 border-transparent focus:border-teal-500 focus:bg-white text-sm font-bold outline-none transition-all shadow-inner placeholder:text-slate-300"
             />
             
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <button 
                 onClick={handleSend}
                 disabled={!input.trim()}
-                className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-primary/20"
+                className="h-10 w-10 rounded-xl bg-teal-600 text-white flex items-center justify-center hover:bg-teal-700 transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-teal-100"
               >
                 <Send className="h-5 w-5" />
               </button>
@@ -202,12 +202,12 @@ export default function AgentPage() {
           </div>
           
           <div className="mt-4 flex items-center justify-center gap-6">
-             <div className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-               <Sparkles className="h-3 w-3 text-primary" />
+             <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <Sparkles className="h-3 w-3 text-teal-600" />
                Analizando encuestas en vivo
              </div>
-             <div className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-               <Sparkles className="h-3 w-3 text-primary" />
+             <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <Sparkles className="h-3 w-3 text-teal-600" />
                Sincronizado con CNE
              </div>
           </div>

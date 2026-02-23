@@ -11,6 +11,7 @@ import {
   History, 
   Info, 
   Lock, 
+  Calendar,
   BarChart3, 
   PieChart as PieIcon,
   Scale,
@@ -21,7 +22,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -74,6 +76,51 @@ export default function CompliancePage() {
   const [isNewObligationModalOpen, setIsNewObligationModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newObligation, setNewObligation] = useState({ title: '', deadline: '', priority: 'Media' as const, type: 'Cuentas Claras' as const });
+
+  // Modal Dropdown States
+  const [isModalPriorityOpen, setIsModalPriorityOpen] = useState(false);
+  const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
+  const [isModalCalendarOpen, setIsModalCalendarOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+  const renderCalendarUI = (currentDate: string, onSelect: (date: string) => void) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = [];
+    const totalDays = daysInMonth(year, month);
+    const startDay = firstDayOfMonth(year, month);
+
+    for (let i = 0; i < startDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const isSelected = currentDate === dateStr;
+      
+      days.push(
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            onSelect(dateStr);
+            setIsModalCalendarOpen(false);
+          }}
+          className={cn(
+            "h-8 w-8 rounded-full text-[10px] font-black transition-all flex items-center justify-center",
+            isSelected ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "hover:bg-teal-50 text-slate-600"
+          )}
+        >
+          {i}
+        </button>
+      );
+    }
+    return days;
+  };
 
   // Obligations Filtering & Pagination State
   const [obligationSearch, setObligationSearch] = useState('');
@@ -140,9 +187,9 @@ export default function CompliancePage() {
     const dailyRunway = remainingBudget / daysUntilElection;
 
     const barData = [
-      { name: 'Real', monto: actualExpenses, fill: '#0d9488' },
-      { name: 'Proyectado', monto: actualExpenses + projectedEventsCost, fill: '#14b8a6' },
-      { name: 'Tope Legal', monto: TOPE_LEGAL_CNE, fill: '#f1f5f9' }
+      { name: 'EJECUCIÓN REAL', monto: actualExpenses, fill: '#0d9488' },
+      { name: 'PROYECCIÓN FINAL', monto: actualExpenses + projectedEventsCost, fill: '#14b8a6' },
+      { name: 'LÍMITE LEGAL CNE', monto: TOPE_LEGAL_CNE, fill: '#0f172a' }
     ];
 
     return {
@@ -197,7 +244,7 @@ export default function CompliancePage() {
   const formatCOP = (val: number) => 
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
-  const COLORS = ['#0d9488', '#10b981', '#f59e0b', '#ef4444', '#14b8a6'];
+  const COLORS = ['#0f172a', '#0d9488', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
 
   const handleGenerateReport = () => {
     const doc = new jsPDF();
@@ -307,16 +354,36 @@ export default function CompliancePage() {
           ) : (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                  <YAxis hide />
-                  <Tooltip formatter={(val: number | undefined) => val !== undefined ? formatCOP(val) : ''} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                  <Bar dataKey="monto" radius={[10, 10, 0, 0]}>
+                <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 9, fontWeight: 900, fill: '#334155' }} 
+                    dy={10}
+                  />
+                  <YAxis hide domain={[0, TOPE_LEGAL_CNE * 1.1]} />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-slate-900 px-4 py-3 rounded-2xl shadow-2xl border border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{payload[0].payload.name}</p>
+                            <p className="text-sm font-black text-white">{formatCOP(payload[0].value as number)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="monto" radius={[12, 12, 0, 0]} barSize={60}>
                     {barData.map((entry: any, index: number) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={realExecPercent > 90 && entry.name !== 'Tope Legal' ? '#ef4444' : entry.fill} 
+                        fill={realExecPercent > 95 && entry.name !== 'LÍMITE LEGAL CNE' ? '#ef4444' : entry.fill}
+                        className="transition-all duration-500 hover:opacity-80"
                       />
                     ))}
                   </Bar>
@@ -675,9 +742,22 @@ export default function CompliancePage() {
 
       {/* MODAL DE NUEVA OBLIGACIÓN */}
       {isNewObligationModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative">
-            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setIsNewObligationModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsNewObligationModalOpen(false)}
+              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
+            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
               <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Añadir Obligación</h3>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Requisito Legal / Normativo</p>
             </div>
@@ -688,7 +768,7 @@ export default function CompliancePage() {
                   <input 
                     required 
                     placeholder="Ej: Reporte Quincenal CNE" 
-                    className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
+                    className="w-full px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
                     value={newObligation.title} 
                     onChange={e => setNewObligation({...newObligation, title: e.target.value})} 
                   />
@@ -696,40 +776,127 @@ export default function CompliancePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha Límite</label>
-                    <input 
-                      required 
-                      type="date" 
-                      className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
-                      value={newObligation.deadline} 
-                      onChange={e => setNewObligation({...newObligation, deadline: e.target.value})} 
-                    />
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalCalendarOpen(!isModalCalendarOpen);
+                          setIsModalPriorityOpen(false);
+                          setIsModalTypeOpen(false);
+                        }}
+                        className="w-full flex items-center gap-4 px-5 py-4 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        <Calendar size={18} className="text-teal-600" />
+                        <span className="truncate">{newObligation.deadline || "Seleccionar..."}</span>
+                      </button>
+                      
+                      {isModalCalendarOpen && (
+                        <div className="absolute top-full left-0 mt-2 p-4 bg-white border-2 border-slate-100 rounded-[2rem] shadow-2xl z-[220] animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                          <div className="flex items-center justify-between mb-4">
+                            <button 
+                              type="button" 
+                              onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
+                              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                              {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+                            </span>
+                            <button 
+                              type="button" 
+                              onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
+                              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1 mb-1">
+                            {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                              <div key={`${d}-${i}`} className="h-7 w-7 flex items-center justify-center text-[8px] font-black text-slate-300 uppercase">{d}</div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-7 gap-1">
+                            {renderCalendarUI(newObligation.deadline, (d) => setNewObligation({...newObligation, deadline: d}))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Prioridad</label>
-                    <select 
-                      className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" 
-                      value={newObligation.priority} 
-                      onChange={e => setNewObligation({...newObligation, priority: e.target.value as any})}
-                    >
-                      <option value="Alta">Alta (Crítica)</option>
-                      <option value="Media">Media (Importante)</option>
-                      <option value="Baja">Baja (Rutinaria)</option>
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalPriorityOpen(!isModalPriorityOpen);
+                          setIsModalTypeOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        {newObligation.priority}
+                        <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={18} />
+                      </button>
+
+                      {isModalPriorityOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {['Alta', 'Media', 'Baja'].map(p => (
+                            <div
+                              key={p}
+                              onClick={() => {
+                                setNewObligation({...newObligation, priority: p as any});
+                                setIsModalPriorityOpen(false);
+                              }}
+                              className={cn(
+                                "px-6 py-3 hover:bg-teal-50 text-[11px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                newObligation.priority === p ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                              )}
+                            >
+                              {p}
+                              {newObligation.priority === p && <Check size={14} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Obligación</label>
-                  <select 
-                    className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" 
-                    value={newObligation.type} 
-                    onChange={e => setNewObligation({...newObligation, type: e.target.value as any})}
-                  >
-                    <option value="Cuentas Claras">Cuentas Claras</option>
-                    <option value="Registro Libros">Registro de Libros</option>
-                    <option value="Publicidad Exterior">Publicidad Exterior</option>
-                    <option value="Laboral / Contratos">Laboral / Contratos</option>
-                    <option value="Otros">Otros (Normativo)</option>
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsModalTypeOpen(!isModalTypeOpen);
+                        setIsModalPriorityOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                    >
+                      {newObligation.type}
+                      <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={18} />
+                    </button>
+
+                    {isModalTypeOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {OBLIGATION_TYPES.map(t => (
+                          <div
+                            key={t}
+                            onClick={() => {
+                              setNewObligation({...newObligation, type: t as any});
+                              setIsModalTypeOpen(false);
+                            }}
+                            className={cn(
+                              "px-6 py-3 hover:bg-teal-50 text-[11px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                              newObligation.type === t ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                            )}
+                          >
+                            {t}
+                            {newObligation.type === t && <Check size={14} className="text-teal-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="pt-6 flex gap-4">

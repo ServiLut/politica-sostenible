@@ -11,7 +11,11 @@ import {
   TrendingUp,
   ChevronRight,
   ArrowUpRight,
-  UserPlus
+  UserPlus,
+  Activity,
+  Clock,
+  AlertCircle,
+  DollarSign
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
 import { useToast } from "@/context/ToastContext";
@@ -22,7 +26,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function ExecutivePage() {
-  const { getExecutiveKPIs, contacts, logAction, territory, team } = useCRM();
+  const { getExecutiveKPIs, contacts, logAction, territory, team, auditLogs } = useCRM();
   const { success, info, error } = useToast();
   const [mounted, setMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,6 +40,39 @@ export default function ExecutivePage() {
   const formatNum = (num: number) => {
     if (!mounted) return num.toString();
     return num.toLocaleString();
+  };
+
+  const getTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return "Hace un momento";
+    if (diffInSeconds < 3600) return `Hace ${Math.floor(diffInSeconds / 60)}m`;
+    if (diffInSeconds < 86400) return `Hace ${Math.floor(diffInSeconds / 3600)}h`;
+    return then.toLocaleDateString();
+  };
+
+  const getLogIcon = (module: string) => {
+    switch (module) {
+      case 'Votantes': return <UserPlus size={16} />;
+      case 'Eventos': return <Calendar size={16} />;
+      case 'Finanzas': return <DollarSign size={16} />;
+      case 'Compliance': return <ShieldCheck size={16} />;
+      case 'Estrategia': return <Target size={16} />;
+      default: return <Activity size={16} />;
+    }
+  };
+
+  const getLogColor = (module: string) => {
+    switch (module) {
+      case 'Votantes': return 'text-teal-600 bg-teal-50 border-teal-100';
+      case 'Eventos': return 'text-blue-600 bg-blue-50 border-blue-100';
+      case 'Finanzas': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+      case 'Compliance': return 'text-amber-600 bg-amber-50 border-amber-100';
+      case 'Estrategia': return 'text-rose-600 bg-rose-50 border-rose-100';
+      default: return 'text-slate-600 bg-slate-50 border-slate-100';
+    }
   };
 
   const handleGenerateReport = async () => {
@@ -129,7 +166,7 @@ export default function ExecutivePage() {
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-black tracking-tight leading-none">
-            Centro de <span className="text-teal-600">Mando</span>
+            Dash<span className="text-teal-600">board</span>
           </h1>
           <p className="text-slate-600 text-sm md:text-base font-medium max-w-md">
             Visión estratégica y analítica en tiempo real para la victoria electoral 2026.
@@ -241,73 +278,77 @@ export default function ExecutivePage() {
             <div className="p-5 md:p-10 border-b border-slate-50 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 md:gap-4 min-w-0">
                 <div className="h-10 w-10 md:h-12 md:w-12 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center border border-teal-100 shrink-0">
-                  <ShieldCheck size={20} className="md:w-6 md:h-6" />
+                  <Activity size={20} className="md:w-6 md:h-6" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base md:text-xl font-black text-black tracking-tight truncate">Actividad en Tiempo Real</h3>
-                  <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">Monitor de Ingresos</p>
+                  <h3 className="text-base md:text-xl font-black text-black tracking-tight truncate">Bitácora de Operaciones</h3>
+                  <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">Actividad en Tiempo Real</p>
                 </div>
               </div>
-              <Link 
-                href="/dashboard/directory"
-                className="group flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-teal-600 text-white rounded-xl md:rounded-2xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all hover:bg-teal-700 shadow-lg shadow-teal-200 shrink-0 whitespace-nowrap"
-              >
-                Ver Todo <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">En Vivo</span>
+              </div>
             </div>
             
             <div className="p-4 md:p-8">
-              <div className="divide-y divide-slate-50">
-                {contacts.slice(0, 6).map((c, idx) => (
-                  <div 
-                    key={c.id} 
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
-                  >
-                    <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1 w-full">
-                      <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm group-hover:scale-110 transition-all shrink-0 border bg-teal-50 text-teal-600 border-teal-100">
-                        {c.name.charAt(0)}
+              <div className="space-y-4">
+                {(auditLogs && auditLogs.length > 0) ? (
+                  auditLogs.slice(0, 6).map((log) => (
+                    <div 
+                      key={log.id} 
+                      className="flex items-center justify-between p-4 transition-all hover:bg-slate-50/80 rounded-2xl group border border-transparent hover:border-slate-100 gap-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className={cn(
+                          "h-12 w-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0 transition-transform group-hover:scale-110",
+                          getLogColor(log.module)
+                        )}>
+                          {getLogIcon(log.module)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{log.module}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-teal-600">{log.actor}</span>
+                          </div>
+                          <p className="text-sm font-bold text-slate-900 leading-tight">
+                            {log.action}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1 pt-1 sm:pt-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <p className="text-base font-black text-black uppercase tracking-tight break-words whitespace-normal leading-tight max-w-full">
-                            {c.name}
-                          </p>
-                          {idx === 0 && (
-                            <span className="shrink-0 text-[8px] font-black bg-teal-600 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-sm shadow-teal-200">En Vivo</span>
-                          )}
+                      
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Clock size={10} />
+                          <span className="text-[9px] font-black uppercase tracking-tighter">
+                            {getTimeAgo(log.timestamp)}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-slate-600">
-                          <MapPin size={12} className="text-teal-600 shrink-0" />
-                          <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest leading-none break-words whitespace-normal">
-                            {c.neighborhood}
-                          </p>
-                        </div>
+                        {log.severity === 'Warning' && (
+                          <span className="text-[7px] font-black bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 uppercase">Prioridad</span>
+                        )}
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0 border-t sm:border-t-0 border-slate-50 pt-3 sm:pt-0">
-                      <div className={cn(
-                        "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm",
-                        c.stage === 'Firme' || c.stage === 'Votó' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
-                        c.stage === 'Contactado' || c.stage === 'Simpatizante' ? "bg-teal-50 text-teal-700 border-teal-100" :
-                        "bg-slate-50 text-slate-600 border-slate-100"
-                      )}>
-                        {c.stage}
-                      </div>
-                      <button className="p-2.5 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all border border-transparent hover:border-teal-100">
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                
-                {contacts.length === 0 && (
+                  ))
+                ) : (
                   <div className="flex flex-col items-center justify-center py-20 text-slate-200 space-y-4">
-                    <UserPlus size={48} className="opacity-20" />
-                    <p className="font-bold uppercase tracking-widest text-[10px]">Sin registros recientes</p>
+                    <Activity size={48} className="opacity-20" />
+                    <p className="font-bold uppercase tracking-widest text-[10px]">Esperando actividad del sistema...</p>
                   </div>
                 )}
               </div>
+              
+              {auditLogs.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-slate-50">
+                  <Link 
+                    href="/dashboard/security" 
+                    className="flex items-center justify-center gap-2 w-full py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+                  >
+                    Ver Historial Completo <ChevronRight size={14} />
+                  </Link>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -362,7 +403,7 @@ export default function ExecutivePage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Eventos de Campaña</span>
-                <span className="text-lg font-black text-slate-900">{territory.length > 0 ? getExecutiveKPIs().eventsCount || 0 : 0}</span>
+                <span className="text-lg font-black text-slate-900">{kpis.eventsCount || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Conversión</span>

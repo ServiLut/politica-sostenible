@@ -427,7 +427,7 @@ export default function EventsPage() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="h-14 px-8 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-teal-600 hover:shadow-teal-100 transition-all flex items-center gap-3 group"
+            className="h-14 px-8 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-3 group"
           >
             <Plus size={18} className="group-hover:rotate-90 transition-transform" /> Crear Evento
           </button>
@@ -582,7 +582,7 @@ export default function EventsPage() {
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
                     <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
                   </div>
-                  <button onClick={() => setIsRangePickerOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all">Aplicar Filtro</button>
+                  <button onClick={() => setIsRangePickerOpen(false)} className="w-full py-3 bg-teal-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-700 transition-all shadow-lg shadow-teal-100">Aplicar Filtro</button>
                 </div>
               </div>
             )}
@@ -664,7 +664,7 @@ export default function EventsPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => rsvpEvent(event.id)}
-                      className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 shadow-xl shadow-slate-100 hover:shadow-teal-100 transition-all flex items-center justify-center gap-2"
+                      className="flex-1 py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-700 shadow-xl shadow-teal-100 transition-all flex items-center justify-center gap-2"
                     >
                       <Users size={16} /> Confirmar Asistencia
                     </button>
@@ -779,46 +779,46 @@ export default function EventsPage() {
           onClick={closeModal}
         >
           <div
-            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
+            className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-visible animate-in zoom-in-95 duration-300 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={closeModal}
-              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+              className="absolute top-6 right-6 z-10 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group"
             >
-              <X size={20} className="group-hover:rotate-90 transition-transform" />
+              <X size={18} className="group-hover:rotate-90 transition-transform" />
             </button>
 
-            <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-100 bg-slate-50/50 rounded-t-[2.5rem] md:rounded-t-[3rem]">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
-                <span className="text-[10px] font-black uppercase text-teal-600 tracking-[0.3em]">Planificación de Mando</span>
+            <div className="px-7 py-6 border-b border-slate-100 bg-slate-50/50 rounded-t-[2.5rem]">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-600 animate-pulse" />
+                <span className="text-[9px] font-black uppercase text-teal-600 tracking-[0.3em]">Planificación de Mando</span>
               </div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">
-                {editingEvent ? 'Editar Operación' : 'Nueva Operación'}
+              <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">
+                {editingEvent ? 'Editar Operación' : 'Crear Evento'}
               </h3>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
-              <div className="flex-1 p-6 md:p-10 space-y-6 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 gap-6">
+            <form onSubmit={handleSubmit} className="flex flex-col max-h-[80vh]">
+              <div className="flex-1 p-7 space-y-4 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Título de la Operación</label>
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Título de la Operación</label>
                     <Input 
                       required 
                       placeholder="Ej: Gran Marcha por la Victoria" 
-                      className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10" 
+                      className="rounded-xl bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10 text-sm" 
                       value={newEvent.title} 
                       onChange={e => setNewEvent({...newEvent, title: e.target.value})} 
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Descripción Estratégica</label>
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Descripción Estratégica</label>
                     <textarea 
-                      rows={3} 
+                      rows={2} 
                       placeholder="Objetivos y detalles clave..." 
-                      className="w-full px-6 py-4 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all resize-none placeholder:text-slate-400" 
+                      className="w-full px-5 py-3 border-2 border-slate-200 bg-teal-50/30 rounded-xl text-sm font-bold focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all resize-none placeholder:text-slate-400" 
                       value={newEvent.description} 
                       onChange={e => setNewEvent({...newEvent, description: e.target.value})} 
                     />
@@ -826,7 +826,7 @@ export default function EventsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Fecha</label>
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Fecha</label>
                       <div className="relative" ref={calendarRef}>
                         <button
                           type="button"
@@ -835,13 +835,13 @@ export default function EventsPage() {
                             setIsModalTypeOpen(false);
                             setIsModalPriorityOpen(false);
                           }}
-                          className="w-full flex items-center gap-4 px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 border-2 border-slate-200 bg-teal-50/30 rounded-xl text-xs font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
                         >
-                          <Calendar size={18} className="text-teal-600" />
+                          <Calendar size={16} className="text-teal-600" />
                           <span className="truncate">{newEvent.date || "Seleccionar..."}</span>
                         </button>
                         {isModalCalendarOpen && (
-                          <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                          <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200 min-w-[260px]">
                             <div className="flex items-center justify-between mb-4">
                               <button 
                                 type="button" 
@@ -874,7 +874,7 @@ export default function EventsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Tipo de Evento</label>
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Tipo de Evento</label>
                       <div className="relative" ref={typeRef}>
                         <button
                           type="button"
@@ -883,14 +883,14 @@ export default function EventsPage() {
                             setIsModalPriorityOpen(false);
                             setIsModalCalendarOpen(false);
                           }}
-                          className="w-full flex items-center justify-between px-5 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-[10px] font-black uppercase text-slate-900 hover:border-teal-500 transition-all outline-none"
+                          className="w-full flex items-center justify-between px-4 py-2.5 border-2 border-slate-200 bg-teal-50/30 rounded-xl text-[10px] font-black uppercase text-slate-900 hover:border-teal-500 transition-all outline-none"
                         >
                           {newEvent.type}
-                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={16} />
+                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalTypeOpen && "rotate-180")} size={14} />
                         </button>
 
                         {isModalTypeOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                             {EVENT_TYPES.map(type => (
                               <div
                                 key={type}
@@ -899,12 +899,12 @@ export default function EventsPage() {
                                   setIsModalTypeOpen(false);
                                 }}
                                 className={cn(
-                                  "px-6 py-3 hover:bg-teal-50 text-[10px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                  "px-5 py-2.5 hover:bg-teal-50 text-[9px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
                                   newEvent.type === type ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
                                 )}
                               >
                                 {type}
-                                {newEvent.type === type && <Check size={14} className="text-teal-600" />}
+                                {newEvent.type === type && <Check size={12} className="text-teal-600" />}
                               </div>
                             ))}
                           </div>
@@ -915,7 +915,7 @@ export default function EventsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Prioridad</label>
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Prioridad</label>
                       <div className="relative" ref={priorityRef}>
                         <button
                           type="button"
@@ -924,17 +924,17 @@ export default function EventsPage() {
                             setIsModalTypeOpen(false);
                             setIsModalCalendarOpen(false);
                           }}
-                          className="w-full flex items-center justify-between px-6 py-3.5 border-2 border-slate-200 bg-teal-50/30 rounded-[1.5rem] text-[10px] font-black uppercase hover:border-teal-500 transition-all outline-none"
+                          className="w-full flex items-center justify-between px-4 py-2.5 border-2 border-slate-200 bg-teal-50/30 rounded-xl text-[10px] font-black uppercase hover:border-teal-500 transition-all outline-none"
                         >
                           <span className={cn(
                             newEvent.priority === 'Alta' ? 'text-rose-600' :
                             newEvent.priority === 'Media' ? 'text-amber-600' : 'text-slate-600'
                           )}>{newEvent.priority}</span>
-                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={16} />
+                          <ChevronDown className={cn("text-slate-400 transition-transform", isModalPriorityOpen && "rotate-180")} size={14} />
                         </button>
 
                         {isModalPriorityOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                             {PRIORITIES.map(p => (
                               <div
                                 key={p}
@@ -943,12 +943,12 @@ export default function EventsPage() {
                                   setIsModalPriorityOpen(false);
                                 }}
                                 className={cn(
-                                  "px-6 py-3 hover:bg-teal-50 text-[10px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                  "px-5 py-2.5 hover:bg-teal-50 text-[9px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
                                   newEvent.priority === p ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
                                 )}
                               >
                                 {p}
-                                {newEvent.priority === p && <Check size={14} className="text-teal-600" />}
+                                {newEvent.priority === p && <Check size={12} className="text-teal-600" />}
                               </div>
                             ))}
                           </div>
@@ -956,11 +956,11 @@ export default function EventsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Meta Asistentes</label>
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Meta Asistentes</label>
                       <Input 
                         type="number" 
                         required 
-                        className="rounded-[1.5rem] bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10" 
+                        className="rounded-xl bg-teal-50/30 border-slate-200 font-bold focus-visible:border-teal-500 focus-visible:ring-teal-500/10 text-sm" 
                         value={newEvent.targetAttendees} 
                         onChange={e => setNewEvent({...newEvent, targetAttendees: Number(e.target.value)})} 
                       />
@@ -968,7 +968,7 @@ export default function EventsPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Localización Estratégica</label>
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-1.5 px-1">Localización Estratégica</label>
                     <LocationSelector
                       required
                       value={newEvent.location}
@@ -980,9 +980,9 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              <div className="p-6 md:p-10 pt-4 md:pt-6 border-t border-slate-100 flex gap-4 bg-white shrink-0 rounded-b-[3rem]">
-                <button type="button" onClick={closeModal} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-2 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-teal-600 transition-all flex items-center justify-center gap-2">
+              <div className="p-7 border-t border-slate-100 flex gap-3 bg-white shrink-0 rounded-b-[2.5rem]">
+                <button type="button" onClick={closeModal} className="flex-1 px-4 py-3 border-2 border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" className="flex-[1.5] px-6 py-3 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
                   {editingEvent ? 'Guardar Cambios' : 'Generar Operación'}
                 </button>
               </div>
@@ -1040,7 +1040,7 @@ export default function EventsPage() {
               </div>
               <button
                 onClick={() => setIsMapModalOpen(false)}
-                className="w-full sm:w-auto px-12 py-4 md:py-5 bg-slate-900 text-white rounded-[1.25rem] md:rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 transition-all shadow-xl shadow-slate-200"
+                className="w-full sm:w-auto px-12 py-4 md:py-5 bg-teal-600 text-white rounded-[1.25rem] md:rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100"
               >
                 Cerrar Vista
               </button>
@@ -1240,7 +1240,7 @@ export default function EventsPage() {
             </p>
             <button
               onClick={() => setIsErrorModalOpen(false)}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-slate-200"
+              className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100"
             >
               Corregir Ubicación
             </button>
