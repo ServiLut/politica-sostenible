@@ -36,6 +36,11 @@ export const dashboardConfig: NavItem[] = [
     allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador],
   },
   {
+    title: 'Estratega IA',
+    href: '/dashboard/agent',
+    allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana],
+  },
+  {
     title: 'Eventos',
     href: '/dashboard/events',
     allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador, UserRole.Lider, UserRole.Voluntario],

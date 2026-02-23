@@ -2,12 +2,60 @@
 
 import React, { useState } from 'react';
 import { useCRM } from '@/context/CRMContext';
-import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, AlertCircle } from 'lucide-react';
+import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, Search, Filter, Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, FileDown, Activity, Globe, X } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function SecurityPage() {
   const { auditLogs } = useCRM();
   const [panicMode, setPanicMode] = useState(false);
+
+  // Advanced Filtering & Pagination States
+  const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [filterModule, setFilterModule] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const [isSeverityOpen, setIsSeverityOpen] = useState(false);
+  const [isModuleOpen, setIsModuleOpen] = useState(false);
+  const [isRangeOpen, setIsRangeOpen] = useState(false);
+
+  const SEVERITIES = ["Critical", "Warning", "Info"];
+  const MODULES = Array.from(new Set(auditLogs.map(log => log.module)));
+
+  const filteredLogs = React.useMemo(() => {
+    return auditLogs.filter(log => {
+      const matchesSeverity = filterSeverity === "all" || log.severity === filterSeverity;
+      const matchesModule = filterModule === "all" || log.module === filterModule;
+      
+      const logDate = log.timestamp.split('T')[0];
+      const matchesDate = (!filterStartDate || logDate >= filterStartDate) && 
+                         (!filterEndDate || logDate <= filterEndDate);
+      
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = !search || 
+        log.action.toLowerCase().includes(search) || 
+        log.actor.toLowerCase().includes(search) ||
+        log.ip.toLowerCase().includes(search);
+
+      return matchesSeverity && matchesModule && matchesDate && matchesSearch;
+    });
+  }, [auditLogs, filterSeverity, filterModule, searchTerm, filterStartDate, filterEndDate]);
+
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const threatLevel = React.useMemo(() => {
+    const criticalCount = auditLogs.filter(l => l.severity === 'Critical').length;
+    if (panicMode) return { label: 'MAXIMO', color: 'text-red-600', bg: 'bg-red-50', level: 100 };
+    if (criticalCount > 5) return { label: 'ELEVADO', color: 'text-rose-500', bg: 'bg-rose-50', level: 75 };
+    if (criticalCount > 0) return { label: 'MODERADO', color: 'text-amber-500', bg: 'bg-amber-50', level: 40 };
+    return { label: 'BAJO', color: 'text-emerald-500', bg: 'bg-emerald-50', level: 10 };
+  }, [auditLogs, panicMode]);
+
+  React.useEffect(() => { setCurrentPage(1); }, [filterSeverity, filterModule, searchTerm, filterStartDate, filterEndDate]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -72,7 +120,153 @@ export default function SecurityPage() {
         </div>
       </div>
 
-      {/* Audit Log Table - Updated to Light/Warm Theme */}
+      {/* Threat Monitor & Filter Hub */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Threat Level Display (Discretionary Improvement) */}
+        <div className={cn("flex-1 p-8 rounded-[2.5rem] border-2 shadow-sm transition-all duration-500 flex items-center justify-between", 
+          panicMode ? "bg-red-50 border-red-200" : "bg-white border-slate-100")}>
+          <div className="space-y-4 flex-1">
+            <div className="flex items-center gap-2">
+              <Activity size={16} className={threatLevel.color} />
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Nivel de Amenaza Actual</span>
+            </div>
+            <div className="flex items-end gap-3">
+              <h4 className={cn("text-5xl font-black uppercase tracking-tighter leading-none", threatLevel.color)}>{threatLevel.label}</h4>
+              <span className="text-slate-400 font-bold text-xs uppercase mb-1">Status de Integridad</span>
+            </div>
+            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+              <div 
+                className={cn("h-full transition-all duration-1000 ease-out", 
+                  panicMode ? "bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]" : 
+                  threatLevel.level > 50 ? "bg-rose-500" : 
+                  threatLevel.level > 20 ? "bg-amber-500" : "bg-emerald-500"
+                )} 
+                style={{ width: `${threatLevel.level}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Global Search & Export */}
+        <div className="xl:w-[450px] space-y-4">
+          <div className="bg-white p-4 rounded-3xl border-2 border-slate-100 flex items-center gap-4 focus-within:border-teal-500 transition-all shadow-sm">
+            <Search className="text-slate-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="Buscar actor, acción o IP..." 
+              className="bg-transparent border-none outline-none text-xs font-black uppercase tracking-widest text-slate-900 w-full placeholder:text-slate-300"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => alert('Generando informe forense PDF...') }
+              className="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+            >
+              <FileDown size={18} /> Exportar Reporte
+            </button>
+            <button 
+              onClick={() => { setFilterSeverity('all'); setFilterModule('all'); setSearchTerm(''); setFilterStartDate(''); setFilterEndDate(''); }}
+              className="w-14 h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Forensics Control Bar */}
+      <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 px-4 border-r border-slate-100 h-8">
+          <Filter size={14} className="text-teal-600" />
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Filtros Avanzados:</span>
+        </div>
+
+        {/* Severity Select */}
+        <div className="relative">
+          <button 
+            onClick={() => { setIsSeverityOpen(!isSeverityOpen); setIsModuleOpen(false); setIsRangeOpen(false); }}
+            className="px-6 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center gap-4 transition-all group"
+          >
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{filterSeverity === 'all' ? 'Severidad' : filterSeverity}</span>
+            <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isSeverityOpen && "rotate-180")} />
+          </button>
+          {isSeverityOpen && (
+            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1.5">
+              {['all', ...SEVERITIES].map(s => (
+                <button 
+                  key={s} 
+                  onClick={() => { setFilterSeverity(s); setIsSeverityOpen(false); }}
+                  className={cn("w-full px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest rounded-lg flex justify-between items-center transition-all", 
+                    filterSeverity === s ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50")}
+                >
+                  {s === 'all' ? 'Todas' : s}
+                  {filterSeverity === s && <Check size={12} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Module Select */}
+        <div className="relative">
+          <button 
+            onClick={() => { setIsModuleOpen(!isModuleOpen); setIsSeverityOpen(false); setIsRangeOpen(false); }}
+            className="px-6 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center gap-4 transition-all group"
+          >
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{filterModule === 'all' ? 'Módulo' : filterModule}</span>
+            <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isModuleOpen && "rotate-180")} />
+          </button>
+          {isModuleOpen && (
+            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1.5">
+              {['all', ...MODULES].map(m => (
+                <button 
+                  key={m} 
+                  onClick={() => { setFilterModule(m); setIsModuleOpen(false); }}
+                  className={cn("w-full px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest rounded-lg flex justify-between items-center transition-all", 
+                    filterModule === m ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50")}
+                >
+                  {m === 'all' ? 'Todos los Módulos' : m}
+                  {filterModule === m && <Check size={12} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Date Range Select */}
+        <div className="relative ml-auto">
+          <button 
+            onClick={() => { setIsRangeOpen(!isRangeOpen); setIsSeverityOpen(false); setIsModuleOpen(false); }}
+            className={cn("px-6 py-3 rounded-xl flex items-center gap-4 transition-all", 
+              (filterStartDate || filterEndDate) ? "bg-teal-600 text-white" : "bg-slate-50 hover:bg-slate-100 text-slate-600")}
+          >
+            <Calendar size={14} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Rango Forense</span>
+            <ChevronDown size={14} className={cn(isRangeOpen && "rotate-180")} />
+          </button>
+          {isRangeOpen && (
+            <div className="absolute top-full right-0 mt-2 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-50 w-72 animate-in fade-in zoom-in-95 duration-200 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Audit Window</span>
+                <button onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }} className="text-[9px] font-black text-teal-600 uppercase hover:underline">Clear</button>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">START_DATE</label>
+                  <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">END_DATE</label>
+                  <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                </div>
+              </div>
+              <button onClick={() => setIsRangeOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all">Establecer Período</button>
+            </div>
+          )}
+        </div>
+      </div>
       <div className="bg-white rounded-[3rem] p-10 text-slate-900 border-2 border-teal-500/20 shadow-sm relative overflow-hidden group hover:border-teal-500 hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-500">
         <div className="flex items-center gap-3 mb-10 border-b border-slate-100 pb-6">
           <Terminal className="text-teal-600" />
@@ -80,38 +274,103 @@ export default function SecurityPage() {
           <span className="ml-auto text-[10px] font-black text-teal-600 uppercase tracking-[0.3em]">Inmutable System</span>
         </div>
         
-        <div className="space-y-4 font-mono text-xs">
-          {auditLogs.map((log) => (
-            <div key={log.id} className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 rounded-2xl hover:bg-teal-50/50 transition-all group border border-transparent hover:border-teal-100">
-              <span className="text-slate-400 whitespace-nowrap font-bold">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-teal-600 font-black uppercase text-[10px]">{log.actor}</span>
-                  <span className="text-slate-200">|</span>
-                  <span className={cn(
-                    "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
-                    log.severity === 'Critical' ? 'bg-red-100 text-red-600' :
-                    log.severity === 'Warning' ? 'bg-amber-100 text-amber-600' :
-                    'bg-emerald-100 text-emerald-600'
-                  )}>
-                    {log.severity}
+        <div className="space-y-4 font-mono text-xs min-h-[400px]">
+          {paginatedLogs.map((log) => (
+            <div key={log.id} className="flex flex-col lg:flex-row lg:items-center gap-4 p-4 rounded-2xl hover:bg-teal-50/50 transition-all group border border-transparent hover:border-teal-100 animate-in fade-in slide-in-from-left-4 duration-300">
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-slate-400 whitespace-nowrap font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
+                <span className={cn(
+                  "px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border shadow-sm",
+                  log.severity === 'Critical' ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' :
+                  log.severity === 'Warning' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                  'bg-emerald-50 text-emerald-600 border-emerald-100'
+                )}>
+                  {log.severity}
+                </span>
+              </div>
+              
+              <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
+                <div className="min-w-[140px]">
+                  <span className="text-teal-600 font-black uppercase text-[10px] flex items-center gap-2">
+                    <UserCheck size={12} /> {log.actor}
                   </span>
-                  <span className="text-slate-300 ml-auto text-[9px] font-bold">{log.ip}</span>
                 </div>
-                <p className="text-slate-600 font-medium">
-                  <span className="text-slate-400 uppercase text-[9px] font-black mr-2">[{log.module}]</span>
+                <div className="h-4 w-px bg-slate-200 hidden md:block" />
+                <p className="text-slate-600 font-medium flex-1">
+                  <span className="text-slate-400 uppercase text-[9px] font-black mr-2 opacity-50">[{log.module}]</span>
                   {log.action}
                 </p>
+                <div className="flex items-center gap-2 text-slate-300 text-[9px] font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                  <Globe size={10} /> {log.ip}
+                </div>
               </div>
             </div>
           ))}
-          {auditLogs.length === 0 && (
-            <div className="text-center py-20 text-slate-200">
-              <AlertCircle size={48} className="mx-auto mb-4 opacity-20" />
-              <p className="uppercase font-black tracking-widest text-xs">No hay registros de seguridad</p>
+          
+          {filteredLogs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
+                <Terminal className="text-slate-200" size={32} />
+              </div>
+              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-2">No se encontraron registros forenses</h4>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] max-w-xs">
+                Ajuste los parámetros de búsqueda o el rango de tiempo para localizar eventos específicos.
+              </p>
             </div>
           )}
         </div>
+
+        {/* Tactical Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-teal-600 disabled:opacity-20 transition-all shadow-lg shadow-slate-200 group"
+              >
+                <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+              
+              <div className="flex gap-2">
+                {[...Array(totalPages)].map((_, i) => {
+                  const p = i + 1;
+                  if (totalPages > 5 && Math.abs(p - currentPage) > 1 && p !== 1 && p !== totalPages) {
+                    if (p === 2 || p === totalPages - 1) return <span key={p} className="text-slate-300 px-1 font-black">...</span>;
+                    return null;
+                  }
+                  return (
+                    <button 
+                      key={p} 
+                      onClick={() => setCurrentPage(p)}
+                      className={cn("h-12 w-12 rounded-xl text-[10px] font-black uppercase transition-all", 
+                        currentPage === p ? "bg-teal-50 text-teal-600 border-2 border-teal-200 shadow-sm scale-110" : "bg-white text-slate-400 hover:bg-slate-50")}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-teal-600 disabled:opacity-20 transition-all shadow-lg shadow-slate-200 group"
+              >
+                <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Index de Auditoría</p>
+              <p className="text-[11px] font-bold text-slate-600 uppercase">
+                Mostrando <span className="text-teal-600">{paginatedLogs.length}</span> de <span className="text-teal-600">{filteredLogs.length}</span> trazas de integridad
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Security Tip */}

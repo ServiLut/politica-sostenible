@@ -22,7 +22,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function ExecutivePage() {
-  const { getExecutiveKPIs, contacts, logAction, territory } = useCRM();
+  const { getExecutiveKPIs, contacts, logAction, territory, team } = useCRM();
   const { success, info, error } = useToast();
   const [mounted, setMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -358,15 +358,15 @@ export default function ExecutivePage() {
             <div className="space-y-5">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nuevos Líderes</span>
-                <span className="text-lg font-black text-slate-900">12</span>
+                <span className="text-lg font-black text-slate-900">{team.filter(m => m.role.includes('Líder')).length.toString().padStart(2, '0')}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Eventos Hoy</span>
-                <span className="text-lg font-black text-slate-900">04</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Eventos de Campaña</span>
+                <span className="text-lg font-black text-slate-900">{territory.length > 0 ? getExecutiveKPIs().eventsCount || 0 : 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Conversión</span>
-                <span className="text-lg font-black text-emerald-600">8.4%</span>
+                <span className="text-lg font-black text-emerald-600">{(kpis.firmVotes / (kpis.totalContacts || 1) * 100).toFixed(1)}%</span>
               </div>
             </div>
           </div>

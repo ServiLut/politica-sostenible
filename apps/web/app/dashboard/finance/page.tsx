@@ -68,11 +68,18 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión Financiera</h1>
           <p className="text-slate-500 font-medium">Control de ingresos, gastos y cumplimiento Cuentas Claras.</p>
         </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-teal-600 transition-all shadow-xl hover:-translate-y-1 duration-300"
+        >
+          <Receipt size={18} />
+          Nuevo Registro
+        </button>
       </div>
 
       <div className={cn("p-8 rounded-[2.5rem] border flex items-center gap-8 shadow-sm transition-all", alertStatus.bg, alertStatus.border, alertStatus.color)}>
@@ -114,36 +121,54 @@ export default function FinancePage() {
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{finance.length} Registros</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-              <tr>
-                <th className="px-10 py-6">Detalle</th>
-                <th className="px-10 py-6">Identificación</th>
-                <th className="px-10 py-6">Estado CNE</th>
-                <th className="px-10 py-6 text-right">Monto</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {finance.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
-                  <td className="px-10 py-6">
-                    <p className="text-sm font-black text-slate-900 uppercase mb-1">{t.concept}</p>
-                    <div className="flex gap-2">
-                      <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-md border uppercase", t.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100')}>{t.type}</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">{t.date}</span>
-                    </div>
-                  </td>
-                  <td className="px-10 py-6 text-[11px] font-bold text-slate-500 uppercase">{t.vendorTaxId || 'N/A'}</td>
-                  <td className="px-10 py-6">
-                    <span className={cn("px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border", t.status === 'REPORTED_CNE' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-200')}>{t.status}</span>
-                  </td>
-                  <td className={cn("px-10 py-6 text-right font-black text-sm", t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900')}>
-                    {t.type === 'Gasto' ? '-' : '+'}{formatCOP(t.amount)}
-                  </td>
+          {finance.length === 0 ? (
+            <div className="p-16 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-sm">
+                <Receipt size={32} className="text-slate-300" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">No hay movimientos registrados</h3>
+              <p className="text-slate-500 font-medium max-w-sm mb-6">
+                Comienza a registrar los ingresos y gastos de la campaña para mantener el control legal y presupuestal.
+              </p>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="px-6 py-3 bg-teal-50 text-teal-700 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-teal-600 hover:text-white transition-colors"
+              >
+                Crear primer registro
+              </button>
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                <tr>
+                  <th className="px-10 py-6">Detalle</th>
+                  <th className="px-10 py-6">Identificación</th>
+                  <th className="px-10 py-6">Estado CNE</th>
+                  <th className="px-10 py-6 text-right">Monto</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {finance.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
+                    <td className="px-10 py-6">
+                      <p className="text-sm font-black text-slate-900 uppercase mb-1">{t.concept}</p>
+                      <div className="flex gap-2">
+                        <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-md border uppercase", t.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100')}>{t.type}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">{t.date}</span>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6 text-[11px] font-bold text-slate-500 uppercase">{t.vendorTaxId || 'N/A'}</td>
+                    <td className="px-10 py-6">
+                      <span className={cn("px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border", t.status === 'REPORTED_CNE' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-200')}>{t.status}</span>
+                    </td>
+                    <td className={cn("px-10 py-6 text-right font-black text-sm", t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900')}>
+                      {t.type === 'Gasto' ? '-' : '+'}{formatCOP(t.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
       
@@ -180,6 +205,18 @@ export default function FinancePage() {
                     </select>
                   </div>
                 </div>
+                {formData.type === 'Gasto' && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Código Legal CNE</label>
+                    <select className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white outline-none appearance-none" value={formData.cneCode} onChange={e => setFormData({...formData, cneCode: e.target.value as any})}>
+                      <option value="OTROS">199 - Otros Gastos / Operativos</option>
+                      <option value="PUBLICIDAD_VALLAS">108 - Publicidad en Vallas / Exterior</option>
+                      <option value="TRANSPORTE">110 - Transporte y Movilidad</option>
+                      <option value="SEDE_CAMPANA">102 - Arrendamiento de Sede</option>
+                      <option value="ACTOS_PUBLICOS">105 - Actos Públicos y Eventos</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="pt-6 flex gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500">Cancelar</button>
