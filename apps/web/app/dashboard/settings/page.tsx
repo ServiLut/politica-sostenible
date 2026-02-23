@@ -2,8 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { useCRM, TerritoryZone } from '@/context/CRMContext';
-import { MapPin, Plus, Trash2, Edit2, Target, Save, RotateCcw, Search, ChevronLeft, ChevronRight, Crosshair, Upload, FileSpreadsheet, LayoutDashboard } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit2, Target, Save, RotateCcw, Search, ChevronLeft, ChevronRight, Crosshair, Upload, FileSpreadsheet, LayoutDashboard, Database } from 'lucide-react';
 import { getCoordsForLocation } from '@/utils/geo';
+import { COLOMBIA_DATA } from '@/data/divipola';
 
 export default function SettingsPage() {
   const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal, pollingStations, importPollingStations, deletePollingStation } = useCRM();
@@ -11,6 +12,22 @@ export default function SettingsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState(campaignGoal.toString());
   const [form, setForm] = useState({ name: '', target: 0, leader: '', lat: '', lng: '' });
+  
+  // Territory Search & Pagination State
+  const [territorySearch, setTerritorySearch] = useState('');
+  const [currentTerritoryPage, setCurrentTerritoryPage] = useState(1);
+  const territoryItemsPerPage = 5;
+
+  const filteredTerritory = territory.filter(zone => 
+    zone.name.toLowerCase().includes(territorySearch.toLowerCase()) || 
+    (zone.leader && zone.leader.toLowerCase().includes(territorySearch.toLowerCase()))
+  );
+
+  const totalTerritoryPages = Math.ceil(filteredTerritory.length / territoryItemsPerPage);
+  const paginatedTerritory = filteredTerritory.slice(
+    (currentTerritoryPage - 1) * territoryItemsPerPage, 
+    currentTerritoryPage * territoryItemsPerPage
+  );
 
   const handleAutoGeocode = () => {
     if (!form.name) return;
@@ -48,6 +65,26 @@ export default function SettingsPage() {
     });
     // Scroll to form on mobile
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSeedDivipola = () => {
+    const allStations: any[] = [];
+    COLOMBIA_DATA.forEach(dept => {
+      dept.municipios.forEach(muni => {
+        muni.puestos.forEach(puesto => {
+          allStations.push({
+            name: `${puesto.name} (${muni.name}, ${dept.name})`,
+            totalTables: puesto.mesas,
+            witnessesCount: 0
+          });
+        });
+      });
+    });
+
+    if (allStations.length > 0) {
+      importPollingStations(allStations);
+      alert(`¡Éxito! Se han cargado ${allStations.length} puestos oficiales de la DIVIPOLA Colombia.`);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,15 +257,15 @@ export default function SettingsPage() {
                     type="text" 
                     placeholder="Buscar zona o líder..." 
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-transparent rounded-xl text-[11px] font-bold focus:border-teal-500 focus:bg-white outline-none transition-all"
-                    value={''} // Clear search
-                    onChange={(_e) => {}} // No-op
+                    value={territorySearch}
+                    onChange={(e) => { setTerritorySearch(e.target.value); setCurrentTerritoryPage(1); }}
                   />
                 </div>
               </div>
             </div>
 
             <div className="p-4 space-y-3 flex-1">
-              {territory.map(zone => (
+              {paginatedTerritory.map(zone => (
                 <div key={zone.id} className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[2rem] border-2 border-transparent hover:border-teal-100 hover:bg-teal-50/30 transition-all group">
                   <div className="flex items-center gap-5">
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-teal-600 border border-slate-100 shadow-sm group-hover:bg-teal-600 group-hover:text-white transition-all"><MapPin size={24} /></div>
@@ -244,7 +281,7 @@ export default function SettingsPage() {
                 </div>
               ))}
 
-              {territory.length === 0 && (
+              {paginatedTerritory.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-300">
                   <Search size={48} className="opacity-10 mb-4" />
                   <p className="text-xs font-black uppercase tracking-widest">No se encontraron resultados</p>
@@ -253,22 +290,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Controles de Paginación */}
-            {false && ( // Paginación deshabilitada ya que filteredTerritory y paginatedTerritory no existen
+            {totalTerritoryPages > 1 && (
               <div className="p-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Página <span className="text-teal-600">1</span> de 1
+                  Página <span className="text-teal-600">{currentTerritoryPage}</span> de {totalTerritoryPages}
                 </p>
                 <div className="flex gap-2">
                   <button 
-                    disabled={true}
-                    onClick={() => {}}
+                    disabled={currentTerritoryPage === 1}
+                    onClick={() => setCurrentTerritoryPage(p => p - 1)}
                     className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 hover:border-teal-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     <ChevronLeft size={18} />
                   </button>
                   <button 
-                    disabled={true}
-                    onClick={() => {}}
+                    disabled={currentTerritoryPage === totalTerritoryPages}
+                    onClick={() => setCurrentTerritoryPage(p => p + 1)}
                     className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 hover:border-teal-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     <ChevronRight size={18} />
@@ -291,6 +328,14 @@ export default function SettingsPage() {
           </div>
           
           <div className="flex items-center gap-4">
+            <button 
+              onClick={handleSeedDivipola}
+              className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-teal-600 transition-all shadow-xl group"
+            >
+              <Database size={18} className="group-hover:rotate-12 transition-transform" /> 
+              Sincronizar DIVIPOLA (Colombia)
+            </button>
+
             <input 
               type="file" 
               accept=".csv" 

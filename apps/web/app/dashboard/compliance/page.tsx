@@ -151,7 +151,7 @@ export default function CompliancePage() {
       dailyRunway,
       daysUntilElection
     };
-  }, [finance, projectedData, TOPE_LEGAL_CNE, CNE_CATEGORIES, ELECTION_DATE]);
+  }, [finance, projectedData, TOPE_LEGAL_CNE]);
 
   const { executionPercentage: realExecPercent, pieData, barData, dailyRunway, daysUntilElection } = complianceStats;
 
@@ -159,12 +159,15 @@ export default function CompliancePage() {
   const alertStatus = useMemo(() => {
     const hasCriticalPending = compliance.some(o => o.priority === 'Alta' && o.status !== 'Cumplido');
     const daysToNearestDeadline = compliance
-      .filter(o => o.status !== 'Cumplido')
+      .filter(o => o.status !== 'Cumplido' && o.deadline)
       .map(o => {
-        const diff = new Date(o.deadline).getTime() - new Date().getTime();
+        const deadline = new Date(o.deadline).getTime();
+        if (isNaN(deadline)) return null;
+        const diff = deadline - new Date().getTime();
         return Math.ceil(diff / (1000 * 3600 * 24));
       })
-      .sort((a, b) => a - b)[0] || 999;
+      .filter((d): d is number => d !== null)
+      .sort((a, b) => a - b)[0] ?? 999;
 
     if (realExecPercent > 95 || (hasCriticalPending && daysToNearestDeadline < 2)) {
       return { 

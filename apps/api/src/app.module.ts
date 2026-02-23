@@ -13,6 +13,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
+import { VotingPlacesModule } from './voting-places/voting-places.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CommonModule } from './common/common.module';
     FinanceModule,
     WitnessModule,
     LogisticsModule,
+    VotingPlacesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

@@ -256,6 +256,19 @@ exports.Prisma.InventoryMovementScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.VotingPlaceScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  departamento: 'departamento',
+  municipio: 'municipio',
+  direccion: 'direccion',
+  latitud: 'latitud',
+  longitud: 'longitud',
+  codigo: 'codigo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -340,7 +353,8 @@ exports.Prisma.ModelName = {
   CampaignEvent: 'CampaignEvent',
   PointLog: 'PointLog',
   InventoryItem: 'InventoryItem',
-  InventoryMovement: 'InventoryMovement'
+  InventoryMovement: 'InventoryMovement',
+  VotingPlace: 'VotingPlace'
 };
 
 /**

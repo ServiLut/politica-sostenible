@@ -13,8 +13,8 @@ model Tenant {
   name      String
   type      TenantType          @default(CANDIDACY)
   config    Json?
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
   finances  FinancialEntry[]
   divisions PoliticalDivision[] @relation("TenantDivisions")
   users     User[]
@@ -23,15 +23,19 @@ model Tenant {
   events    CampaignEvent[]
   inventory InventoryItem[]
   settings  CampaignSettings?
+
+  @@map("tenants")
 }
 
 model CampaignSettings {
   id                String   @id @default(cuid())
-  tenantId          String   @unique
-  maxTotalBudget    Decimal  @db.Decimal(15, 2)
-  maxPublicityLimit Decimal  @db.Decimal(15, 2)
-  updatedAt         DateTime @updatedAt
+  tenantId          String   @unique @map("tenant_id")
+  maxTotalBudget    Decimal  @map("max_total_budget") @db.Decimal(15, 2)
+  maxPublicityLimit Decimal  @map("max_publicity_limit") @db.Decimal(15, 2)
+  updatedAt         DateTime @updatedAt @map("updated_at")
   tenant            Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("campaign_settings")
 }
 
 model User {
@@ -40,13 +44,13 @@ model User {
   password         String
   name             String
   role             Role               @default(VOLUNTEER)
-  documentId       String
+  documentId       String             @map("document_id")
   phone            String?
   points           Int                @default(0)
-  tenantId         String
-  divisionId       String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  tenantId         String             @map("tenant_id")
+  divisionId       String?            @map("division_id")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
   financialEntries FinancialEntry[]
   division         PoliticalDivision? @relation(fields: [divisionId], references: [id])
   tenant           Tenant             @relation(fields: [tenantId], references: [id])
@@ -59,6 +63,7 @@ model User {
 
   @@unique([documentId, tenantId])
   @@index([tenantId])
+  @@map("users")
 }
 
 model PoliticalDivision {
@@ -66,8 +71,8 @@ model PoliticalDivision {
   code      String
   name      String
   type      DivisionType
-  parentId  String?
-  tenantId  String?
+  parentId  String?             @map("parent_id")
+  tenantId  String?             @map("tenant_id")
   parent    PoliticalDivision?  @relation("Hierarchy", fields: [parentId], references: [id])
   children  PoliticalDivision[] @relation("Hierarchy")
   tenant    Tenant?             @relation("TenantDivisions", fields: [tenantId], references: [id])
@@ -77,31 +82,32 @@ model PoliticalDivision {
 
   @@unique([code, type])
   @@index([type])
+  @@map("political_divisions")
 }
 
 model Voter {
   id                String    @id @default(cuid())
-  documentId        String
-  firstName         String
-  lastName          String
+  documentId        String    @map("document_id")
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
   phone             String?
   email             String?
-  tenantId          String
-  puestoId          String?
+  tenantId          String    @map("tenant_id")
+  puestoId          String?   @map("puesto_id")
   mesa              Int?
-  registrarId       String
-  psychographicData Json?
-  votingIntention   Int?
-  isSignatureValid  Boolean   @default(false)
-  signatureImageUrl String?
+  registrarId       String    @map("registrar_id")
+  psychographicData Json?     @map("psychographic_data")
+  votingIntention   Int?      @map("voting_intention")
+  isSignatureValid  Boolean   @default(false) @map("is_signature_valid")
+  signatureImageUrl String?   @map("signature_image_url")
   // Campos de Habeas Data (Sección 2.2)
-  consentAccepted   Boolean   @default(false)
-  consentIp         String?
-  consentTimestamp  DateTime?
-  termsVersion      String?   @default("2026.1")
+  consentAccepted   Boolean   @default(false) @map("consent_accepted")
+  consentIp         String?   @map("consent_ip")
+  consentTimestamp  DateTime? @map("consent_timestamp")
+  termsVersion      String?   @default("2026.1") @map("terms_version")
 
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
   puesto    PoliticalDivision? @relation("VoterPuesto", fields: [puestoId], references: [id])
   registrar User               @relation("Registrar", fields: [registrarId], references: [id])
   tenant    Tenant             @relation(fields: [tenantId], references: [id])
@@ -109,6 +115,7 @@ model Voter {
   @@unique([documentId, tenantId])
   @@index([tenantId])
   @@index([puestoId])
+  @@map("voters")
 }
 
 model FinancialEntry {
@@ -118,43 +125,45 @@ model FinancialEntry {
   date        DateTime
   cneCode     CneCode
   description String
-  tenantId    String
-  vendorName  String
-  vendorTaxId String
-  evidenceUrl String?
-  reporterId  String
+  tenantId    String        @map("tenant_id")
+  vendorName  String        @map("vendor_name")
+  vendorTaxId String        @map("vendor_tax_id")
+  evidenceUrl String?       @map("evidence_url")
+  reporterId  String        @map("reporter_id")
   status      FinanceStatus @default(PENDING)
-  auditLog    Json?
-  createdAt   DateTime      @default(now())
+  auditLog    Json?         @map("audit_log")
+  createdAt   DateTime      @default(now()) @map("created_at")
   reporter    User          @relation(fields: [reporterId], references: [id])
   tenant      Tenant        @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([cneCode])
+  @@map("financial_entries")
 }
 
 model WitnessReport {
   id              String    @id @default(cuid())
-  tenantId        String
-  witnessId       String
-  puestoId        String
+  tenantId        String    @map("tenant_id")
+  witnessId       String    @map("witness_id")
+  puestoId        String    @map("puesto_id")
   mesa            Int
-  e14ImageUrl     String
-  candidateVotes  Int
-  totalTableVotes Int
+  e14ImageUrl     String    @map("e14_image_url")
+  candidateVotes  Int       @map("candidate_votes")
+  totalTableVotes Int       @map("total_table_votes")
   observations    String?
   // Auditoría Forense (Sección 7.3)
-  blockchainHash  String?
-  timestampProof  DateTime? @default(now())
+  blockchainHash  String?   @map("blockchain_hash")
+  timestampProof  DateTime? @default(now()) @map("timestamp_proof")
 
-  isSynced  Boolean           @default(false)
-  createdAt DateTime          @default(now())
+  isSynced  Boolean           @default(false) @map("is_synced")
+  createdAt DateTime          @default(now()) @map("created_at")
   puesto    PoliticalDivision @relation(fields: [puestoId], references: [id])
   tenant    Tenant            @relation(fields: [tenantId], references: [id])
   witness   User              @relation(fields: [witnessId], references: [id])
 
   @@index([tenantId])
   @@index([puestoId, mesa])
+  @@map("witness_reports")
 }
 
 // Gamification & Logistics (Sección 5.2 y 7)
@@ -166,27 +175,29 @@ model CampaignEvent {
   date        DateTime
   location    String?
   points      Int      @default(0) // Puntos por asistir
-  tenantId    String
-  createdAt   DateTime @default(now())
+  tenantId    String   @map("tenant_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   attendees PointLog[]
 
   @@index([tenantId])
+  @@map("campaign_events")
 }
 
 model PointLog {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String   @map("user_id")
   amount    Int
   reason    String // ej. "Registro Votante", "Asistencia Evento"
-  eventId   String?
-  createdAt DateTime @default(now())
+  eventId   String?  @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user  User           @relation(fields: [userId], references: [id])
   event CampaignEvent? @relation(fields: [eventId], references: [id])
 
   @@index([userId])
+  @@map("point_logs")
 }
 
 model InventoryItem {
@@ -195,24 +206,44 @@ model InventoryItem {
   sku       String?
   quantity  Int     @default(0)
   warehouse String? // Ubicación física
-  tenantId  String
+  tenantId  String  @map("tenant_id")
 
   tenant    Tenant              @relation(fields: [tenantId], references: [id])
   movements InventoryMovement[]
 
   @@index([tenantId])
+  @@map("inventory_items")
 }
 
 model InventoryMovement {
   id        String       @id @default(cuid())
-  itemId    String
-  userId    String
+  itemId    String       @map("item_id")
+  userId    String       @map("user_id")
   quantity  Int // Positivo (entrada) o Negativo (salida)
   type      MovementType
-  createdAt DateTime     @default(now())
+  createdAt DateTime     @default(now()) @map("created_at")
 
   item InventoryItem @relation(fields: [itemId], references: [id])
   user User          @relation(fields: [userId], references: [id])
+
+  @@map("inventory_movements")
+}
+
+model VotingPlace {
+  id           String   @id @default(cuid())
+  nombre       String
+  departamento String
+  municipio    String
+  direccion    String
+  latitud      Float?
+  longitud     Float?
+  codigo       String?  @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([municipio])
+  @@index([departamento])
+  @@map("voting_places")
 }
 
 enum TenantType {

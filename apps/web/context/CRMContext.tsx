@@ -373,8 +373,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     eventsCount: events.length
   });
   const getTerritoryStats = () => enrichedTerritory;
-  const getFinanceSummary = () => ({ totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0), totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0), balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0) });
-  const getElectionResults = () => ({ myVotes: e14Reports.reduce((a, b) => a + b.votesCandidate, 0), opponentVotes: e14Reports.reduce((a, b) => a + b.votesOpponent, 0), tablesReported: e14Reports.length, totalTables: pollingStations.reduce((a, b) => a + b.totalTables, 0) });
+  const getFinanceSummary = () => ({ 
+    totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + Number(b.amount || 0), 0), 
+    totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + Number(b.amount || 0), 0), 
+    balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + Number(b.amount || 0), 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + Number(b.amount || 0), 0) 
+  });
+  const getElectionResults = () => ({ 
+    myVotes: e14Reports.reduce((a, b) => a + Number(b.votesCandidate || 0), 0), 
+    opponentVotes: e14Reports.reduce((a, b) => a + Number(b.votesOpponent || 0), 0), 
+    tablesReported: e14Reports.length, 
+    totalTables: pollingStations.reduce((a, b) => a + Number(b.totalTables || 0), 0) 
+  });
   const getTeamStats = () => ({ totalTasks: tasks.length, completedTasks: tasks.filter(t => t.status === 'Completada').length, teamEfficiency: tasks.length > 0 ? (tasks.filter(t => t.status === 'Completada').length / tasks.length) * 100 : 0 });
   const getComplianceScore = () => compliance.length > 0 ? (compliance.filter(o => o.status === 'Cumplido').length / compliance.length) * 100 : 0;
   
@@ -384,7 +393,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       // 1. Gastos Reales (Incluimos PENDING para que el usuario vea reflejados sus cambios en el prototipo)
       const actualExpenses = finance
         .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE' || f.status === 'PENDING'))
-        .reduce((a, b) => a + b.amount, 0);
+        .reduce((a, b) => a + Number(b.amount || 0), 0);
 
       // 2. Gastos Proyectados (Eventos sin transacción vinculada)
       // Asumimos un costo promedio por asistente si no hay estimado

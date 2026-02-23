@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/auth";
 import { CRMProvider } from "@/context/CRMContext";
 import { ToastProvider } from "@/context/ToastContext";
+import ReactQueryProvider from "@/context/ReactQueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,13 +31,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <CRMProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </CRMProvider>
-        </AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <CRMProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </CRMProvider>
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );
