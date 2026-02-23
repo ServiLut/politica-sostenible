@@ -37,7 +37,7 @@ export default function DashboardLayout({
     return (
       <div className="flex h-screen items-center justify-center bg-[#f8fafc]">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
           <p className="text-slate-500 font-black text-[10px] uppercase tracking-widest">Sincronizando Mando Táctico...</p>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function DashboardLayout({
             </div>
             <button 
               onClick={() => router.push('/dashboard/executive')}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+              className="flex items-center gap-2 bg-teal-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100"
             >
               <ArrowLeft size={16} /> Volver al Centro de Comando
             </button>
@@ -84,7 +84,7 @@ export default function DashboardLayout({
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-16 border-b border-indigo-100 bg-white flex items-center px-4 lg:px-8 justify-between shadow-sm z-30">
+        <header className="h-16 border-b border-slate-100 bg-white flex items-center px-4 lg:px-8 justify-between shadow-sm z-30">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -100,7 +100,7 @@ export default function DashboardLayout({
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <div className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full hidden md:block uppercase tracking-widest">
+            <div className="text-[10px] font-black text-teal-600 bg-teal-50 px-4 py-1.5 rounded-full hidden md:block uppercase tracking-widest">
               Colombia 2026
             </div>
             <UserNav />

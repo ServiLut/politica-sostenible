@@ -11,7 +11,7 @@ export const ALL_ROLES = Object.values(UserRole);
 
 export const dashboardConfig: NavItem[] = [
   {
-    title: 'Centro de Comando',
+    title: 'Dashboard',
     href: '/dashboard/executive',
     allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps],
   },

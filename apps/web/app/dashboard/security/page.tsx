@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react';
 import { useCRM } from '@/context/CRMContext';
+import { useToast } from '@/context/ToastContext';
 import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, Search, Filter, Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, FileDown, Activity, Globe, X } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
+import * as XLSX from 'xlsx';
 
 export default function SecurityPage() {
   const { auditLogs } = useCRM();
+  const { info, error: toastError } = useToast();
   const [panicMode, setPanicMode] = useState(false);
 
   // Advanced Filtering & Pagination States
@@ -44,6 +47,26 @@ export default function SecurityPage() {
     });
   }, [auditLogs, filterSeverity, filterModule, searchTerm, filterStartDate, filterEndDate]);
 
+  const handleExport = () => {
+    info('Generando reporte');
+    
+    const headers = ['ID', 'Fecha/Hora', 'Severidad', 'Modulo', 'Actor', 'Accion', 'IP'];
+    const rows = filteredLogs.map(log => [
+      log.id,
+      new Date(log.timestamp).toLocaleString(),
+      log.severity,
+      log.module,
+      log.actor,
+      log.action,
+      log.ip
+    ]);
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+    XLSX.writeFile(wb, `reporte_seguridad_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -52,7 +75,7 @@ export default function SecurityPage() {
     if (panicMode) return { label: 'MAXIMO', color: 'text-red-600', bg: 'bg-red-50', level: 100 };
     if (criticalCount > 5) return { label: 'ELEVADO', color: 'text-rose-500', bg: 'bg-rose-50', level: 75 };
     if (criticalCount > 0) return { label: 'MODERADO', color: 'text-amber-500', bg: 'bg-amber-50', level: 40 };
-    return { label: 'BAJO', color: 'text-emerald-500', bg: 'bg-emerald-50', level: 10 };
+    return { label: 'BAJO', color: 'text-teal-600', bg: 'bg-teal-50', level: 10 };
   }, [auditLogs, panicMode]);
 
   React.useEffect(() => { setCurrentPage(1); }, [filterSeverity, filterModule, searchTerm, filterStartDate, filterEndDate]);
@@ -72,7 +95,11 @@ export default function SecurityPage() {
           <button 
             onClick={() => {
               setPanicMode(!panicMode);
-              if(!panicMode) alert('MODO PÁNICO ACTIVADO: Bloqueando exportaciones y cerrando sesiones no autorizadas...');
+              if(!panicMode) {
+                toastError('PROTOCOLO DE SEGURIDAD NIVEL 5 ACTIVADO: Bloqueando exportaciones y restringiendo accesos por integridad de datos.');
+              } else {
+                info('SISTEMA RESTAURADO: Protocolos de seguridad normalizados.');
+              }
             }}
             className={cn(
               "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg",
@@ -161,16 +188,10 @@ export default function SecurityPage() {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={() => alert('Generando informe forense PDF...') }
-              className="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+              onClick={handleExport}
+              className="w-full h-14 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 flex items-center justify-center gap-2"
             >
               <FileDown size={18} /> Exportar Reporte
-            </button>
-            <button 
-              onClick={() => { setFilterSeverity('all'); setFilterModule('all'); setSearchTerm(''); setFilterStartDate(''); setFilterEndDate(''); }}
-              className="w-14 h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all"
-            >
-              <X size={20} />
             </button>
           </div>
         </div>
