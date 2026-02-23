@@ -1,14 +1,28 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useCRM, TerritoryZone } from '@/context/CRMContext';
-import { MapPin, Plus, Trash2, Edit2, Target, Save, RotateCcw, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit2, Target, Save, RotateCcw, Search, ChevronLeft, ChevronRight, Crosshair, Upload, FileSpreadsheet, LayoutDashboard } from 'lucide-react';
+import { getCoordsForLocation } from '@/utils/geo';
 
 export default function SettingsPage() {
-  const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
+  const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal, pollingStations, importPollingStations, deletePollingStation } = useCRM();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState(campaignGoal.toString());
   const [form, setForm] = useState({ name: '', target: 0, leader: '', lat: '', lng: '' });
+
+  const handleAutoGeocode = () => {
+    if (!form.name) return;
+    const coords = getCoordsForLocation(form.name);
+    if (coords) {
+      setForm(prev => ({
+        ...prev,
+        lat: coords.lat.toString(),
+        lng: coords.lng.toString()
+      }));
+    }
+  };
 
   const handleUpdateGoal = (_e: React.FormEvent) => {
     _e.preventDefault();
@@ -34,6 +48,58 @@ export default function SettingsPage() {
     });
     // Scroll to form on mobile
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+      
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) {
+        alert("El archivo está vacío o no tiene encabezados.");
+        return;
+      }
+
+      // Detect separator (comma or semicolon)
+      const separator = lines[0].includes(';') ? ';' : ',';
+
+      const stationsToImport = [];
+      // Skip header (line 0)
+      for (let i = 1; i < lines.length; i++) {
+        const columns = lines[i].split(separator);
+        if (columns.length >= 2) {
+          const name = columns[0].trim().replace(/^"|"$/g, '');
+          const totalTables = parseInt(columns[1].trim().replace(/^"|"$/g, ''), 10);
+          const witnessesCount = columns.length >= 3 ? parseInt(columns[2].trim().replace(/^"|"$/g, ''), 10) : 0;
+          
+          if (name && !isNaN(totalTables)) {
+            stationsToImport.push({
+              name,
+              totalTables,
+              witnessesCount: isNaN(witnessesCount) ? 0 : witnessesCount
+            });
+          }
+        }
+      }
+
+      if (stationsToImport.length > 0) {
+        importPollingStations(stationsToImport);
+        alert(`¡Éxito! Se han importado ${stationsToImport.length} puestos de votación.`);
+      } else {
+        alert("No se encontraron datos válidos. Asegúrate de que las columnas sean: Nombre, Mesas, Testigos.");
+      }
+      
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -88,6 +154,36 @@ export default function SettingsPage() {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">Líder Asignado</label>
                 <input type="text" placeholder="Nombre del líder" className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-teal-500 focus:bg-white transition-all outline-none" value={form.leader} onChange={e => setForm({...form, leader: e.target.value})} />
               </div>
+              
+              <div className="pt-2 border-t border-slate-50">
+                <div className="flex justify-between items-center mb-2 px-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coordenadas (Mapa)</label>
+                  <button 
+                    type="button" 
+                    onClick={handleAutoGeocode}
+                    className="flex items-center gap-1 text-[9px] font-black text-teal-600 uppercase hover:text-teal-700 transition-colors"
+                  >
+                    <Crosshair size={10} /> Auto-Georeferenciar
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input 
+                    type="text" 
+                    placeholder="Latitud" 
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-xl text-xs font-bold focus:border-teal-500 focus:bg-white transition-all outline-none" 
+                    value={form.lat} 
+                    onChange={e => setForm({...form, lat: e.target.value})} 
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Longitud" 
+                    className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-xl text-xs font-bold focus:border-teal-500 focus:bg-white transition-all outline-none" 
+                    value={form.lng} 
+                    onChange={e => setForm({...form, lng: e.target.value})} 
+                  />
+                </div>
+              </div>
+
               <button type="submit" className="w-full bg-teal-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100">
                 {editingId ? 'Guardar Cambios' : 'Registrar Territorio'}
               </button>
@@ -183,6 +279,109 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Puestos de Votación (Masivo) */}
+      <div className="mt-16 bg-white p-8 md:p-12 rounded-[3rem] border-2 border-slate-100 shadow-sm animate-in slide-in-from-bottom-8 duration-700">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-10">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+              <LayoutDashboard className="text-teal-600" /> Puestos de Votación y Mesas
+            </h2>
+            <p className="text-slate-500 font-medium text-sm mt-1">Importa el listado oficial (DIVIPOLA) o gestiona tus puntos electorales.</p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <input 
+              type="file" 
+              accept=".csv" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileUpload}
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-6 py-4 bg-teal-50 text-teal-700 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-teal-600 hover:text-white transition-all shadow-sm border border-teal-100 group"
+            >
+              <FileSpreadsheet size={18} className="group-hover:scale-110 transition-transform" /> 
+              Importar CSV / Excel
+            </button>
+          </div>
+        </div>
+
+        {/* Info Carga Masiva */}
+        {pollingStations.length === 0 && (
+          <div className="bg-slate-50 rounded-3xl p-8 border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 border shadow-sm">
+              <Upload size={24} />
+            </div>
+            <div>
+              <p className="font-bold text-slate-600">No hay puestos registrados.</p>
+              <p className="text-xs text-slate-400 mt-1">Sube un archivo Excel (guardado como .CSV) con las columnas:</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="px-3 py-1 bg-white border rounded text-xs font-black uppercase text-slate-500 tracking-widest">Nombre del Puesto</span>
+              <span className="px-3 py-1 bg-white border rounded text-xs font-black uppercase text-slate-500 tracking-widest">Mesas</span>
+              <span className="px-3 py-1 bg-white border rounded text-xs font-black uppercase text-slate-500 tracking-widest">Testigos Asignados</span>
+            </div>
+          </div>
+        )}
+
+        {/* Tabla Elegante */}
+        {pollingStations.length > 0 && (
+          <div className="overflow-hidden rounded-3xl border-2 border-slate-100 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b-2 border-slate-100">
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Puesto de Votación</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Cant. Mesas</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Testigos</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 bg-white">
+                  {pollingStations.map((station) => (
+                    <tr key={station.id} className="hover:bg-teal-50/30 transition-colors group">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                            <MapPin size={14} />
+                          </div>
+                          <span className="font-black text-slate-900">{station.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-xs border border-slate-200">
+                          {station.totalTables}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="text-sm font-bold text-slate-500">
+                          {station.witnessesCount}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <button 
+                          onClick={() => deletePollingStation(station.id)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          title="Eliminar Puesto"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 bg-slate-50 border-t-2 border-slate-100 text-center flex justify-between items-center px-8">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Puestos: <span className="text-teal-600">{pollingStations.length}</span></span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Mesas: <span className="text-teal-600">{pollingStations.reduce((acc, curr) => acc + curr.totalTables, 0)}</span></span>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

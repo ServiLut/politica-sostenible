@@ -55,6 +55,7 @@ export function getCoordsForLocation(locationName: string): Coordinate | null {
                                   );
 
     const winningZone = tieBreakers[0].zone;
+
     if (winningZone.lat !== undefined && winningZone.lng !== undefined) {
       return { lat: winningZone.lat, lng: winningZone.lng };
     }

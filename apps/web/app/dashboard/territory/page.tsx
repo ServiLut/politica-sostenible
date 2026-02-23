@@ -101,17 +101,33 @@ export default function TerritoryPage() {
     if (bounds.length > 0 && map && activeTab === 'map') {
       try {
         map.invalidateSize();
-        const latLngBounds = L.latLngBounds(bounds);
-        if (latLngBounds.isValid()) {
-          // Si solo hay un punto, centrar y hacer zoom, de lo contrario ajustar bounds
-          if (bounds.length === 1) {
-            map.setView(bounds[0], 15, { animate: true });
-          } else {
-            map.fitBounds(latLngBounds, { padding: [50, 50], animate: true });
+        
+        if (bounds.length === 1) {
+          map.setView(bounds[0], 14, { animate: true });
+        } else {
+          // Crear bounds manualmente para evitar errores de validación interna
+          const latLngBounds = L.latLngBounds(bounds[0], bounds[0]);
+          for (let i = 1; i < bounds.length; i++) {
+            if (bounds[i] && bounds[i].length === 2) {
+              latLngBounds.extend(bounds[i]);
+            }
+          }
+          
+          if (latLngBounds.isValid()) {
+            // Verificar si el área es muy pequeña (puntos casi idénticos)
+            const northEast = latLngBounds.getNorthEast();
+            const southWest = latLngBounds.getSouthWest();
+            
+            if (Math.abs(northEast.lat - southWest.lat) < 0.0001 && 
+                Math.abs(northEast.lng - southWest.lng) < 0.0001) {
+              map.setView(bounds[0], 14, { animate: true });
+            } else {
+              map.fitBounds(latLngBounds, { padding: [50, 50], animate: true });
+            }
           }
         }
       } catch (err) {
-        console.error('Error al ajustar límites del mapa:', err);
+        console.warn('Map bounds adjustment skipped:', err);
       }
     }
   }, [territory, selectedZoneId, activeTab]);

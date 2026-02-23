@@ -39,13 +39,18 @@ export default function EventsPage() {
   const [editingEvent, setEditingEvent] = useState<CampaignEvent | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState<string | null>(null);
 
-  // Map Filters State
-  const [mapFilterType, setMapFilterType] = useState<string>("all");
-  const [mapFilterStartDate, setMapFilterStartDate] = useState<string>("");
-  const [mapFilterEndDate, setMapFilterEndDate] = useState<string>("");
-  const [mapSearch, setMapSearch] = useState<string>("");
+  // Filters & Pagination State
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   const [isRangePickerOpen, setIsRangePickerOpen] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
   const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
   const [isModalPriorityOpen, setIsModalPriorityOpen] = useState(false);
   const [isModalCalendarOpen, setIsModalCalendarOpen] = useState(false);
@@ -107,33 +112,42 @@ export default function EventsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredEventsForMap = useMemo(() => {
+  const filteredEvents = useMemo(() => {
     return events.filter(event => {
-      const filterType = mapFilterType.trim().toLowerCase();
+      const typeF = filterType.trim().toLowerCase();
       const eventType = event.type.trim().toLowerCase();
+      const matchesType = typeF === "all" || (typeF === "otro" ? (eventType === "otro" || eventType === "otros") : eventType === typeF);
 
-      let matchesType = filterType === "all";
-      if (!matchesType) {
-        if (filterType === "otro" || filterType === "otros") {
-          matchesType = eventType === "otro" || eventType === "otros";
-        } else {
-          matchesType = eventType === filterType;
-        }
-      }
+      const priorityF = filterPriority.trim().toLowerCase();
+      const eventPriority = (event.priority || "Media").trim().toLowerCase();
+      const matchesPriority = priorityF === "all" || eventPriority === priorityF;
 
       const eventDateStr = event.date.includes('T') ? event.date.split('T')[0] : event.date;
-      const afterStart = !mapFilterStartDate || eventDateStr >= mapFilterStartDate;
-      const beforeEnd = !mapFilterEndDate || eventDateStr <= mapFilterEndDate;
-      const matchesDate = afterStart && beforeEnd;
+      const matchesDate = (!filterStartDate || eventDateStr >= filterStartDate) && 
+                        (!filterEndDate || eventDateStr <= filterEndDate);
 
-      const search = mapSearch.trim().toLowerCase();
-      const matchesSearch = !search ||
-        event.title.toLowerCase().includes(search) ||
+      const search = searchTerm.trim().toLowerCase();
+      const matchesSearch = !search || 
+        event.title.toLowerCase().includes(search) || 
         event.location.toLowerCase().includes(search);
 
-      return matchesType && matchesDate && matchesSearch;
+      return matchesType && matchesPriority && matchesDate && matchesSearch;
     });
-  }, [events, mapFilterType, mapFilterStartDate, mapFilterEndDate, mapSearch]);
+  }, [events, filterType, filterPriority, filterStartDate, filterEndDate, searchTerm]);
+
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const paginatedEvents = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredEvents.slice(start, start + itemsPerPage);
+  }, [filteredEvents, currentPage]);
+
+  // Sync map filters with main filters (reusing filteredEvents for the map too)
+  const filteredEventsForMap = filteredEvents;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterPriority, filterStartDate, filterEndDate, searchTerm]);
 
 
 
@@ -462,116 +476,301 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {events.map((event) => {
-          const eventDate = new Date(event.date);
-          const day = eventDate.getUTCDate();
-          const month = eventDate.toLocaleString('es', { month: 'short' }).toUpperCase();
-          const target = event.targetAttendees || 100;
-          const progress = Math.min((event.attendeesCount / target) * 100, 100);
+      {/* Tactical Filtering Bar */}
+      <div className="bg-white p-4 md:p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col xl:flex-row items-center gap-4">
+        <div className="relative flex-1 w-full group">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors" size={18} />
+          <input 
+            type="text" 
+            placeholder="Buscar por título o ubicación estratégica..." 
+            className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-[11px] font-black uppercase tracking-widest focus:bg-white focus:border-teal-500 outline-none transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
-          return (
-            <div key={event.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-2xl transition-all group relative">
-              <div className="absolute top-8 right-8 z-10">
-                <div className={cn(
-                  "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm",
-                  event.priority === 'Alta' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                  event.priority === 'Media' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                  'bg-slate-50 text-slate-500 border-slate-100'
-                )}>
-                  Prioridad {event.priority || 'Media'}
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          {/* Filter Type */}
+          <div className="relative flex-1 md:flex-none">
+            <button 
+              onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsPriorityDropdownOpen(false); setIsRangePickerOpen(false); }}
+              className="w-full md:w-48 h-14 px-6 bg-slate-50 border-2 border-transparent rounded-2xl flex items-center justify-between hover:bg-slate-100 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <Filter size={16} className="text-teal-600" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{filterType === 'all' ? 'Categoría' : filterType}</span>
+              </div>
+              <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isTypeDropdownOpen && "rotate-180")} />
+            </button>
+            {isTypeDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {["all", ...EVENT_TYPES].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => { setFilterType(type); setIsTypeDropdownOpen(false); }}
+                    className={cn(
+                      "w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors flex justify-between items-center",
+                      filterType === type ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    {type === 'all' ? 'Ver Todas' : type}
+                    {filterType === type && <Check size={14} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Filter Priority */}
+          <div className="relative flex-1 md:flex-none">
+            <button 
+              onClick={() => { setIsPriorityDropdownOpen(!isPriorityDropdownOpen); setIsTypeDropdownOpen(false); setIsRangePickerOpen(false); }}
+              className="w-full md:w-48 h-14 px-6 bg-slate-50 border-2 border-transparent rounded-2xl flex items-center justify-between hover:bg-slate-100 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle size={16} className="text-amber-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{filterPriority === 'all' ? 'Prioridad' : filterPriority}</span>
+              </div>
+              <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isPriorityDropdownOpen && "rotate-180")} />
+            </button>
+            {isPriorityDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {["all", ...PRIORITIES].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setFilterPriority(p); setIsPriorityDropdownOpen(false); }}
+                    className={cn(
+                      "w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors flex justify-between items-center",
+                      filterPriority === p ? "bg-amber-50 text-amber-600" : "text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    {p === 'all' ? 'Todas las Prioridades' : p}
+                    {filterPriority === p && <Check size={14} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Date Range */}
+          <div className="relative flex-1 md:flex-none">
+            <button 
+              onClick={() => { setIsRangePickerOpen(!isRangePickerOpen); setIsTypeDropdownOpen(false); setIsPriorityDropdownOpen(false); }}
+              className={cn(
+                "w-full md:w-48 h-14 px-6 rounded-2xl flex items-center justify-between transition-all group",
+                (filterStartDate || filterEndDate) ? "bg-teal-600 text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar size={16} className={(filterStartDate || filterEndDate) ? "text-white" : "text-teal-600"} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Calendario</span>
+              </div>
+              <ChevronDown size={14} className={cn(isRangePickerOpen && "rotate-180")} />
+            </button>
+            {isRangePickerOpen && (
+              <div className="absolute top-full right-0 mt-2 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rango de Operación</span>
+                    <button onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }} className="text-[9px] font-black text-teal-600 uppercase hover:underline">Limpiar</button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
+                    <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
+                    <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                  </div>
+                  <button onClick={() => setIsRangePickerOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all">Aplicar Filtro</button>
                 </div>
               </div>
-
-              <div className="p-10">
-                <div className="flex items-center gap-6 mb-8">
-                  <div className="bg-slate-50 text-slate-900 w-20 h-20 rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-500 transition-all duration-500 shadow-inner shrink-0">
-                    <span className="text-3xl font-black leading-none">{day || '??'}</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest">{month || '---'}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className={cn(
-                      "text-[9px] font-black uppercase tracking-widest mb-1 block",
-                      event.type === 'Marcha' ? 'text-rose-600' :
-                      event.type === 'Reunión' ? 'text-emerald-600' :
-                      'text-teal-600'
-                    )}>
-                      {event.type}
-                    </span>
-                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-[0.9] truncate">{event.title}</h3>
-                  </div>
-                </div>
-
-                <div className="space-y-6 mb-10">
-                  <button
-                    onClick={() => handleMapClick(event.location)}
-                    className="flex items-center gap-3 text-slate-400 text-[11px] font-bold uppercase hover:text-teal-600 transition-colors w-full group/loc"
-                  >
-                    <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/loc:bg-teal-50 transition-colors">
-                      <MapPin size={16} className="text-teal-500" />
-                    </div>
-                    <span className="truncate border-b border-transparent group-hover/loc:border-teal-200">
-                      {event.location}
-                    </span>
-                  </button>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-end">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Convocatoria ({event.attendeesCount}/{target})</p>
-                      <p className="text-[10px] font-black text-slate-900 uppercase">{progress.toFixed(0)}%</p>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full transition-all duration-1000",
-                          progress > 80 ? "bg-emerald-500" : progress > 40 ? "bg-teal-500" : "bg-amber-500"
-                        )}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => rsvpEvent(event.id)}
-                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 shadow-xl shadow-slate-100 hover:shadow-teal-100 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Users size={16} /> Confirmar Asistencia
-                  </button>
-                  <div className="relative group/more">
-                    <button
-                      onClick={() => handleGeneratePoster(event)}
-                      disabled={isGeneratingPoster === event.id}
-                      className="h-14 w-14 flex items-center justify-center bg-slate-50 text-slate-600 rounded-2xl border border-slate-100 hover:bg-white hover:border-teal-200 hover:text-teal-600 transition-all disabled:opacity-50"
-                      title="Generar Convocatoria PDF"
-                    >
-                      {isGeneratingPoster === event.id ? <Loader2 size={20} className="animate-spin" /> : <FileDown size={20} />}
-                    </button>
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end gap-2">
-                    <button
-                      onClick={() => handleEdit(event)}
-                      className="p-3 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(event.id)}
-                      className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+        </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[400px]">
+        {paginatedEvents.length > 0 ? (
+          paginatedEvents.map((event) => {
+            const eventDate = new Date(event.date);
+            const day = eventDate.getUTCDate();
+            const month = eventDate.toLocaleString('es', { month: 'short' }).toUpperCase();
+            const target = event.targetAttendees || 100;
+            const progress = Math.min((event.attendeesCount / target) * 100, 100);
+
+            return (
+              <div key={event.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-2xl transition-all group relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="absolute top-8 right-8 z-10">
+                  <div className={cn(
+                    "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm",
+                    event.priority === 'Alta' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                    event.priority === 'Media' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                    'bg-slate-50 text-slate-500 border-slate-100'
+                  )}>
+                    Prioridad {event.priority || 'Media'}
+                  </div>
+                </div>
+
+                <div className="p-10">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="bg-slate-50 text-slate-900 w-20 h-20 rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-500 transition-all duration-500 shadow-inner shrink-0">
+                      <span className="text-3xl font-black leading-none">{day || '??'}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{month || '---'}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest mb-1 block",
+                        event.type === 'Marcha' ? 'text-rose-600' :
+                        event.type === 'Reunión' ? 'text-emerald-600' :
+                        'text-teal-600'
+                      )}>
+                        {event.type}
+                      </span>
+                      <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-[0.9] truncate">{event.title}</h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 mb-10">
+                    <button
+                      onClick={() => handleMapClick(event.location)}
+                      className="flex items-center gap-3 text-slate-400 text-[11px] font-bold uppercase hover:text-teal-600 transition-colors w-full group/loc"
+                    >
+                      <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/loc:bg-teal-50 transition-colors">
+                        <MapPin size={16} className="text-teal-500" />
+                      </div>
+                      <span className="truncate border-b border-transparent group-hover/loc:border-teal-200">
+                        {event.location}
+                      </span>
+                    </button>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Convocatoria ({event.attendeesCount}/{target})</p>
+                        <p className="text-[10px] font-black text-slate-900 uppercase">{progress.toFixed(0)}%</p>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full transition-all duration-1000",
+                            progress > 80 ? "bg-emerald-500" : progress > 40 ? "bg-teal-500" : "bg-amber-500"
+                          )}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => rsvpEvent(event.id)}
+                      className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-teal-600 shadow-xl shadow-slate-100 hover:shadow-teal-100 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Users size={16} /> Confirmar Asistencia
+                    </button>
+                    <div className="relative group/more">
+                      <button
+                        onClick={() => handleGeneratePoster(event)}
+                        disabled={isGeneratingPoster === event.id}
+                        className="h-14 w-14 flex items-center justify-center bg-slate-50 text-slate-600 rounded-2xl border border-slate-100 hover:bg-white hover:border-teal-200 hover:text-teal-600 transition-all disabled:opacity-50"
+                        title="Generar Convocatoria PDF"
+                      >
+                        {isGeneratingPoster === event.id ? <Loader2 size={20} className="animate-spin" /> : <FileDown size={20} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end gap-2">
+                      <button
+                        onClick={() => handleEdit(event)}
+                        className="p-3 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(event.id)}
+                        className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="col-span-full py-20 bg-slate-50 rounded-[3rem] border-4 border-dashed border-slate-200 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+            <div className="w-24 h-24 bg-white rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-center mb-6">
+              <Filter className="text-slate-300" size={40} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Sin Operaciones Disponibles</h3>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] max-w-xs leading-relaxed">
+              Ajuste los filtros tácticos de búsqueda para visualizar eventos registrados en la agenda.
+            </p>
+            <button 
+              onClick={() => { setFilterType("all"); setFilterPriority("all"); setFilterStartDate(""); setFilterEndDate(""); setSearchTerm(""); }}
+              className="mt-8 px-8 py-4 bg-white border border-slate-200 text-teal-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-teal-50 hover:border-teal-200 transition-all"
+            >
+              Reiniciar Protocolos de Búsqueda
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Control de Paginación Avanzado */}
+      {totalPages > 1 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-slate-100 bg-white/50 backdrop-blur-sm p-8 rounded-[2.5rem] mt-6">
+          <div className="flex items-center gap-4 order-2 md:order-1">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-14 w-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-30 disabled:hover:bg-white disabled:hover:border-slate-200 disabled:hover:text-slate-600 transition-all shadow-sm group"
+            >
+              <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+            <div className="flex items-center gap-2">
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Mostrar solo algunas páginas si hay demasiadas
+                if (totalPages > 5 && Math.abs(pageNum - currentPage) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                  if (pageNum === 2 || pageNum === totalPages - 1) return <span key={pageNum} className="text-slate-300 px-1 font-black">...</span>;
+                  return null;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={cn(
+                      "h-14 w-14 rounded-2xl font-black text-[11px] uppercase transition-all shadow-sm",
+                      currentPage === pageNum 
+                        ? "bg-slate-900 text-white shadow-xl shadow-slate-200 scale-110" 
+                        : "bg-white border border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                    )}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="h-14 w-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-30 disabled:hover:bg-white disabled:hover:border-slate-200 disabled:hover:text-slate-600 transition-all shadow-sm group"
+            >
+              <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+
+          <div className="text-right order-1 md:order-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Registro de Operaciones</p>
+            <p className="text-[11px] font-bold text-slate-900 uppercase">
+              Visualizando <span className="text-teal-600">{paginatedEvents.length}</span> de <span className="text-teal-600">{filteredEvents.length}</span> objetivos tácticos
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Modal Nuevo Evento - Rediseñado */}
       {isModalOpen && (
@@ -885,8 +1084,8 @@ export default function EventsPage() {
                       type="text"
                       placeholder="Buscar en el mapa..."
                       className="bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder:text-slate-400 w-full"
-                      value={mapSearch}
-                      onChange={(e) => setMapSearch(e.target.value)}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
 
@@ -901,7 +1100,7 @@ export default function EventsPage() {
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 rounded-xl transition-all cursor-pointer min-w-[140px]"
                     >
                       <Filter size={14} className="text-teal-600" />
-                      <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest truncate max-w-[80px]">{mapFilterType === 'all' ? 'Tipos' : mapFilterType}</span>
+                      <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest truncate max-w-[80px]">{filterType === 'all' ? 'Tipos' : filterType}</span>
                       <ChevronDown className={cn("text-slate-400 transition-transform ml-auto", isTypeDropdownOpen && "rotate-180")} size={12} />
                     </button>
 
@@ -912,16 +1111,16 @@ export default function EventsPage() {
                             <button
                               key={type}
                               onClick={() => {
-                                setMapFilterType(type);
+                                setFilterType(type);
                                 setIsTypeDropdownOpen(false);
                               }}
                               className={cn(
                                 "w-full px-4 py-2 text-left text-[10px] font-black rounded-lg transition-all flex items-center justify-between group uppercase tracking-widest",
-                                mapFilterType === type ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
+                                filterType === type ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
                               )}
                             >
                               {type === 'all' ? 'Todos' : type}
-                              {mapFilterType === type && <Check size={12} className="text-teal-600" />}
+                              {filterType === type && <Check size={12} className="text-teal-600" />}
                             </button>
                           ))}
                         </div>
@@ -944,7 +1143,7 @@ export default function EventsPage() {
                     >
                       <Calendar size={14} className={cn("transition-colors", isRangePickerOpen ? "text-white" : "text-teal-600")} />
                       <span className="text-[10px] font-black uppercase tracking-widest">
-                        {mapFilterStartDate ? `${mapFilterStartDate.split('-')[2]}/${mapFilterStartDate.split('-')[1]}` : 'Fecha'}
+                        {filterStartDate ? `${filterStartDate.split('-')[2]}/${filterStartDate.split('-')[1]}` : 'Fecha'}
                       </span>
                       <ChevronDown size={12} className={cn("transition-transform ml-auto", isRangePickerOpen ? "text-white" : "text-slate-400", isRangePickerOpen && "rotate-180")} />
                     </button>
@@ -955,49 +1154,26 @@ export default function EventsPage() {
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Definir Período</span>
                           <button onClick={() => setIsRangePickerOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={14} /></button>
                         </div>
-                        
-                        <div className="flex items-center justify-between mb-2">
-                          <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
-                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
-                          >
-                            <ChevronLeft size={14} />
-                          </button>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
-                            {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
-                          </span>
-                          <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
-                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-teal-600 transition-all"
-                          >
-                            <ChevronRight size={14} />
-                          </button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Inicio</label>
+                            <input
+                              type="date"
+                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
+                              value={filterStartDate}
+                              onChange={(e) => setFilterStartDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Fin</label>
+                            <input
+                              type="date"
+                              className="w-full bg-slate-50 border border-transparent rounded-lg px-3 py-2 text-[10px] font-bold text-slate-700 outline-none focus:border-teal-500 transition-all [color-scheme:light]"
+                              value={filterEndDate}
+                              onChange={(e) => setFilterEndDate(e.target.value)}
+                            />
+                          </div>
                         </div>
-
-                        <div className="grid grid-cols-7 gap-1 mb-1">
-                          {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
-                            <div key={`${d}-${i}`} className="h-7 w-7 flex items-center justify-center text-[8px] font-black text-slate-300 uppercase">{d}</div>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-7 gap-1">
-                          {renderCalendar(mapFilterStartDate, (d) => setMapFilterStartDate(d))}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                          <button 
-                            onClick={() => { setMapFilterStartDate(""); setMapFilterEndDate(""); }}
-                            className="text-[9px] font-black uppercase text-slate-400 hover:text-rose-500"
-                          >
-                            Limpiar
-                          </button>
-                          <button
-                            onClick={() => setIsRangePickerOpen(false)}
-                            className="px-6 py-2 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100"
-                          >
-                            Aplicar
-                          </button>
                         </div>
                       </div>
                     )}

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth";
-import { CampaignProvider } from "@/context/CampaignContext";
 import { CRMProvider } from "@/context/CRMContext";
 import { ToastProvider } from "@/context/ToastContext";
 
@@ -32,13 +31,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <CampaignProvider>
-            <CRMProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </CRMProvider>
-          </CampaignProvider>
+          <CRMProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </CRMProvider>
         </AuthProvider>
       </body>
     </html>

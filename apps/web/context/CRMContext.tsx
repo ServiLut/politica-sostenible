@@ -89,6 +89,9 @@ interface CRMContextType {
   addTerritoryZone: (zone: Omit<TerritoryZone, 'id' | 'current'>) => void;
   updateTerritoryZone: (id: string, zone: Partial<TerritoryZone>) => void;
   deleteTerritoryZone: (id: string) => void;
+  addPollingStation: (station: Omit<PollingStation, 'id' | 'reportedTables'>) => void;
+  importPollingStations: (stations: Omit<PollingStation, 'id' | 'reportedTables'>[]) => void;
+  deletePollingStation: (id: string) => void;
   addFinanceTransaction: (transaction: Omit<FinanceTransaction, 'id'>) => void;
   updateFinanceTransaction: (id: string, transaction: Partial<FinanceTransaction>) => void;
   deleteFinanceTransaction: (id: string) => void;
@@ -106,6 +109,7 @@ interface CRMContextType {
   inviteMember: (member: Omit<TeamMember, 'id' | 'performance' | 'status'>) => void;
   updateMember: (id: string, member: Partial<TeamMember>) => void;
   toggleMemberStatus: (id: string) => void;
+  addComplianceObligation: (obligation: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => void;
   uploadEvidence: (id: string, file: string) => void;
   logAction: (actor: string, action: string, module: string, severity?: AuditLog['severity']) => void;
   getExecutiveKPIs: () => any;
@@ -252,6 +256,23 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setTerritory(prev => prev.filter(z => z.id !== id));
   }, []);
 
+  const addPollingStation = useCallback((s: Omit<PollingStation, 'id' | 'reportedTables'>) => {
+    setPollingStations(prev => [{ ...s, id: 'ps-' + Date.now(), reportedTables: 0 }, ...prev]);
+  }, []);
+
+  const importPollingStations = useCallback((stations: Omit<PollingStation, 'id' | 'reportedTables'>[]) => {
+    const newStations = stations.map((s, index) => ({
+      ...s,
+      id: 'ps-' + Date.now() + '-' + index,
+      reportedTables: 0
+    }));
+    setPollingStations(prev => [...newStations, ...prev]);
+  }, []);
+
+  const deletePollingStation = useCallback((id: string) => {
+    setPollingStations(prev => prev.filter(s => s.id !== id));
+  }, []);
+
   const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
     setFinance(prev => [{ ...t, id: 'tx-' + Date.now() }, ...prev]);
   }, []);
@@ -284,8 +305,23 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const deleteEvent = useCallback((id: string) => { setEvents(prev => prev.filter(e => e.id !== id)); }, []);
   const rsvpEvent = useCallback((id: string) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e)); }, []);
   const reportE14 = useCallback((r: Omit<E14Report, 'id' | 'timestamp'>) => { 
-    setE14Reports(prev => [...prev, {...r, id: 'rep-'+Date.now(), timestamp: new Date().toISOString()}]);
-    setPollingStations(prev => prev.map(s => s.id === r.stationId ? { ...s, reportedTables: s.reportedTables + 1 } : s));
+    let isNew = true;
+    setE14Reports(prev => {
+      const existingIndex = prev.findIndex(rep => rep.stationId === r.stationId && rep.tableNumber === r.tableNumber);
+      if (existingIndex >= 0) {
+        isNew = false;
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], ...r, timestamp: new Date().toISOString() };
+        return updated;
+      }
+      return [...prev, {...r, id: 'rep-'+Date.now(), timestamp: new Date().toISOString()}];
+    });
+    
+    setTimeout(() => {
+      if (isNew) {
+        setPollingStations(prev => prev.map(s => s.id === r.stationId ? { ...s, reportedTables: s.reportedTables + 1 } : s));
+      }
+    }, 0);
   }, []);
   const sendBroadcast = useCallback((d: Omit<Broadcast, 'id' | 'status' | 'sentCount' | 'deliveredCount' | 'date' | 'activeStatus'>) => {
     const id = 'br-'+Date.now();
@@ -305,6 +341,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [log, ...prev]);
   }, []);
   const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
+  const addComplianceObligation = useCallback((o: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => {
+    setCompliance(prev => [{...o, id: 'req-'+Date.now(), status: 'Pendiente'}, ...prev]);
+    logAction('Admin', `Nueva obligación creada: ${o.title}`, 'Compliance', 'Warning');
+  }, [logAction]);
   const uploadEvidence = useCallback((id: string, file: string) => {
     setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Cumplido', evidence: file } : o));
     logAction('Sistema', `Evidencia cargada: ${file}`, 'Compliance', 'Info');
@@ -329,7 +369,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     firmVotes: contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length, 
     coverageNeighborhoods: new Set(contacts.map(c => c.neighborhood)).size, 
     progressPercentage: (contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length / (campaignGoal || 1)) * 100,
-    campaignGoal
+    campaignGoal,
+    eventsCount: events.length
   });
   const getTerritoryStats = () => enrichedTerritory;
   const getFinanceSummary = () => ({ totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0), totalExpenses: finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0), balance: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + b.amount, 0) - finance.filter(f => f.type === 'Gasto').reduce((a, b) => a + b.amount, 0) });
@@ -375,7 +416,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   return (
     <CRMContext.Provider value={{ 
       contacts, territory: enrichedTerritory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
-      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, uploadEvidence, logAction,
+      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addPollingStation, importPollingStations, deletePollingStation, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, logAction,
       getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore
     }}>
       {children}
