@@ -14,7 +14,6 @@ import {
   UserPlus,
   Activity,
   Clock,
-  AlertCircle,
   DollarSign
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
@@ -26,7 +25,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function ExecutivePage() {
-  const { getExecutiveKPIs, contacts, logAction, territory, team, auditLogs } = useCRM();
+  const { getExecutiveKPIs, logAction, territory, team, auditLogs } = useCRM();
   const { success, info, error } = useToast();
   const [mounted, setMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);

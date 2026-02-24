@@ -13,10 +13,7 @@ import {
   Bell,
   X,
   Lock,
-  Mail,
-  UserCircle,
-  Eye,
-  EyeOff
+  Mail
 } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 

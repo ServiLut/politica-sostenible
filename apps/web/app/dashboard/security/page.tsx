@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useCRM } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
-import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, Search, Filter, Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, FileDown, Activity, Globe, X } from 'lucide-react';
+import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, Search, Filter, Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, FileDown, Activity, Globe } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import * as XLSX from 'xlsx';
 

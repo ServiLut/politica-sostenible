@@ -1,6 +1,9 @@
 import { PrismaClient } from './generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
+import * as pg from 'pg';
+import * as fs from 'fs';
+import * as path from 'path';
+import { parse } from 'csv-parse/sync'; // ← NUEVO: parser CSV correcto
 import 'dotenv/config';
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -21,6 +24,74 @@ async function main() {
       type: 'GSC',
     },
   });
+
+  // 1.1 Cargar Puestos de Votación desde CSV
+  console.log('🗳️ Cargando puestos de votación desde CSV...');
+  const csvPath = path.join(__dirname, '../../../puestos_de_votacion.csv');
+
+  if (fs.existsSync(csvPath)) {
+    // ✅ FIX: Leer con BOM strip + csv-parse para manejar comas dentro de campos
+    const rawContent = fs.readFileSync(csvPath, 'utf8');
+    // Remover BOM si existe (el CSV fue guardado con utf-8-sig)
+    const content = rawContent.replace(/^\uFEFF/, '');
+
+    // ✅ FIX: Usar csv-parse en lugar de line.split(',')
+    // Esto maneja correctamente campos con comas y campos entre comillas
+    const rows: string[][] = parse(content, {
+      skip_empty_lines: true,
+      from_line: 2, // saltar header
+      relax_column_count: true,
+      trim: true,
+    });
+
+    const batchSize = 1000;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+
+      const records = batch
+        .map((cols) => {
+          if (cols.length < 3) return null;
+
+          // ✅ FIX: columnas correctas del CSV
+          // Orden real: Departamento, Municipio, Puesto, Direccion
+          const [departamento, municipio, puesto, direccion] = cols;
+
+          if (!departamento || !municipio || !puesto) return null;
+
+          const safeCode = `${departamento}-${municipio}-${puesto}`
+            .replace(/\s+/g, '-')
+            .toUpperCase()
+            .substring(0, 255); // evitar overflow si el campo es muy largo
+
+          return {
+            codigo: safeCode,
+            departamento,
+            municipio,
+            nombre: puesto,
+            direccion: direccion || 'Sin dirección',
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+
+      if (records.length > 0) {
+        console.log(
+          `Subiendo lote ${Math.floor(i / batchSize) + 1}: ${records.length} puestos...`,
+        );
+        const result = await prisma.votingPlace.createMany({
+          data: records,
+          skipDuplicates: true,
+        });
+        console.log(`  → ${result.count} insertados.`);
+      }
+    }
+
+    const finalCount = await prisma.votingPlace.count();
+    console.log(
+      `✅ ${finalCount} puestos de votación totales en la base de datos.`,
+    );
+  } else {
+    console.warn(`⚠️  CSV no encontrado en: ${csvPath}`);
+  }
 
   // 2. Departamentos de Colombia (DIVIPOLA)
   const departamentos = [
@@ -86,7 +157,6 @@ async function main() {
     const parent = await prisma.politicalDivision.findUnique({
       where: { code_type: { code: mun.parentCode, type: 'DEPARTAMENTO' } },
     });
-
     const m = await prisma.politicalDivision.upsert({
       where: { code_type: { code: mun.code, type: 'MUNICIPIO' } },
       update: { name: mun.name },
@@ -102,13 +172,16 @@ async function main() {
   }
 
   // 4. Puestos de Votación (100 simulados)
-  console.log('🗳️ Generando 100 puestos de votación...');
+  console.log('🗳️ Generando 100 puestos de votación simulados...');
   const cities = ['BOGOTÁ, D.C.', 'MEDELLÍN', 'CALI'];
   for (let i = 1; i <= 100; i++) {
     const city = cities[i % 3];
-    await prisma.politicalDivision.create({
-      data: {
-        code: `PUESTO-${i.toString().padStart(3, '0')}`,
+    const code = `PUESTO-${i.toString().padStart(3, '0')}`;
+    await prisma.politicalDivision.upsert({
+      where: { code_type: { code, type: 'PUESTO' } },
+      update: { name: `Puesto ${i} - ${city}` },
+      create: {
+        code,
         name: `Puesto ${i} - ${city}`,
         type: 'PUESTO',
         parentId: munIds[city],
@@ -117,13 +190,13 @@ async function main() {
     });
   }
 
-  // 5. Usuario Voluntario (para registrar votantes)
+  // 5. Usuario Voluntario
   const volunteer = await prisma.user.upsert({
     where: { email: 'voluntario@victoria2026.com' },
     update: {},
     create: {
       email: 'voluntario@victoria2026.com',
-      password: 'hash_password_here', // En producción usar bcrypt
+      password: 'hash_password_here',
       name: 'Juan Voluntario',
       role: 'VOLUNTEER',
       documentId: '12345678',
@@ -133,8 +206,30 @@ async function main() {
 
   // 6. Votantes Simulados (50 Simpatizantes)
   console.log('👥 Creando 50 simpatizantes...');
-  const firstNames = ['Carlos', 'Maria', 'Jose', 'Ana', 'Luis', 'Paula', 'Jorge', 'Diana', 'Pedro', 'Sofia'];
-  const lastNames = ['Rodriguez', 'Gomez', 'Lopez', 'Garcia', 'Martinez', 'Perez', 'Sanchez', 'Ramirez', 'Torres', 'Diaz'];
+  const firstNames = [
+    'Carlos',
+    'Maria',
+    'Jose',
+    'Ana',
+    'Luis',
+    'Paula',
+    'Jorge',
+    'Diana',
+    'Pedro',
+    'Sofia',
+  ];
+  const lastNames = [
+    'Rodriguez',
+    'Gomez',
+    'Lopez',
+    'Garcia',
+    'Martinez',
+    'Perez',
+    'Sanchez',
+    'Ramirez',
+    'Torres',
+    'Diaz',
+  ];
   const tags = ['Líder Barrial', 'Indeciso', 'Voto Duro'];
 
   const puestos = await prisma.politicalDivision.findMany({
@@ -145,12 +240,18 @@ async function main() {
   for (let i = 0; i < 50; i++) {
     const firstName = firstNames[i % 10];
     const lastName = lastNames[Math.floor(i / 5) % 10];
-    const cedula = (1000000000 + i).toString();
+    const documentId = (1000000000 + i).toString();
     const tag = tags[i % 3];
 
-    await prisma.voter.create({
-      data: {
-        documentId: cedula,
+    await prisma.voter.upsert({
+      where: { documentId_tenantId: { documentId, tenantId: tenant.id } },
+      update: {
+        firstName,
+        lastName,
+        votingIntention: Math.floor(Math.random() * 5) + 1,
+      },
+      create: {
+        documentId,
         firstName,
         lastName,
         phone: `300${Math.floor(Math.random() * 9000000 + 1000000)}`,

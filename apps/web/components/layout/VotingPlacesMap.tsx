@@ -59,9 +59,10 @@ const COLOMBIA_CENTER: [number, number] = [4.5709, -74.2973];
 
 interface VotingPlacesMapProps {
   places: any[];
+  onSelect?: (place: any) => void;
 }
 
-export default function VotingPlacesMap({ places }: VotingPlacesMapProps) {
+export default function VotingPlacesMap({ places, onSelect }: VotingPlacesMapProps) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -108,6 +109,9 @@ export default function VotingPlacesMap({ places }: VotingPlacesMapProps) {
                 key={place.id} 
                 position={[place.latitud, place.longitud]} 
                 icon={tealIcon as any}
+                eventHandlers={{
+                  click: () => onSelect?.(place),
+                }}
               >
                 <Popup className="custom-popup">
                   <div className="p-5 min-w-[240px] bg-white rounded-3xl">
@@ -133,6 +137,13 @@ export default function VotingPlacesMap({ places }: VotingPlacesMapProps) {
                           {place.direccion}
                         </span>
                       </div>
+
+                      <button 
+                        onClick={() => onSelect?.(place)}
+                        className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-teal-600 transition-colors"
+                      >
+                        Gestionar Mesas
+                      </button>
                     </div>
                   </div>
                 </Popup>

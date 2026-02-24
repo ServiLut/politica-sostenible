@@ -26,11 +26,6 @@ export const dashboardConfig: NavItem[] = [
     allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador, UserRole.Lider],
   },
   {
-    title: 'Puestos Votación (Logística)',
-    href: '/dashboard/territory/voting-places',
-    allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador],
-  },
-  {
     title: 'Directorio CRM',
     href: '/dashboard/directory',
     allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador, UserRole.Lider, UserRole.Voluntario],

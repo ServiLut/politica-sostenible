@@ -262,10 +262,20 @@ exports.Prisma.VotingPlaceScalarFieldEnum = {
   departamento: 'departamento',
   municipio: 'municipio',
   direccion: 'direccion',
+  totalMesas: 'totalMesas',
   latitud: 'latitud',
   longitud: 'longitud',
   codigo: 'codigo',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TableResultScalarFieldEnum = {
+  id: 'id',
+  mesaNumero: 'mesaNumero',
+  votosCandidato: 'votosCandidato',
+  votosTotales: 'votosTotales',
+  votingPlaceId: 'votingPlaceId',
   updatedAt: 'updatedAt'
 };
 
@@ -354,7 +364,8 @@ exports.Prisma.ModelName = {
   PointLog: 'PointLog',
   InventoryItem: 'InventoryItem',
   InventoryMovement: 'InventoryMovement',
-  VotingPlace: 'VotingPlace'
+  VotingPlace: 'VotingPlace',
+  TableResult: 'TableResult'
 };
 
 /**

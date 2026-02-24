@@ -1,123 +1,161 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../../prisma/prisma.service';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class LogisticsVotingService implements OnModuleInit {
   private readonly logger = new Logger(LogisticsVotingService.name);
-  private readonly SOCRATA_API_URL =
-    'https://www.datos.gov.co/resource/u9sh-7v8v.json';
 
-  constructor(
-    private readonly httpService: HttpService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    // We could trigger a background sync here, but for now we'll just have it as a method.
-    // The user said "Usa el PrismaService para guardar/actualizar", which implies a sync process.
-  }
-
-  async syncFromSocrata() {
-    this.logger.log(
-      'Iniciando sincronización de puestos de votación desde Socrata...',
-    );
-    let offset = 0;
-    const limit = 5000;
-    let totalSynced = 0;
-
-    try {
-      while (true) {
-        const response = await firstValueFrom(
-          this.httpService.get(this.SOCRATA_API_URL, {
-            params: {
-              $limit: limit,
-              $offset: offset,
-              $order: ':id',
-            },
-          }),
-        );
-
-        const data = response.data;
-        if (!data || data.length === 0) break;
-
-        const operations = data.map((item: any) => {
-          const id =
-            item.cod_puesto ||
-            `${item.departamento}-${item.municipio}-${item.puesto}`;
-          return this.prisma.votingPlace.upsert({
-            where: { codigo: id },
-            update: {
-              nombre: item.puesto,
-              departamento: item.departamento,
-              municipio: item.municipio,
-              direccion: item.direccion,
-              latitud: item.latitud ? parseFloat(item.latitud) : null,
-              longitud: item.longitud ? parseFloat(item.longitud) : null,
-              updatedAt: new Date(),
-            },
-            create: {
-              codigo: id,
-              nombre: item.puesto,
-              departamento: item.departamento,
-              municipio: item.municipio,
-              direccion: item.direccion,
-              latitud: item.latitud ? parseFloat(item.latitud) : null,
-              longitud: item.longitud ? parseFloat(item.longitud) : null,
-            },
-          });
-        });
-
-        // Run in chunks to avoid overwhelming the database
-        await Promise.all(operations);
-
-        totalSynced += data.length;
-        this.logger.log(`Sincronizados ${totalSynced} puestos...`);
-        offset += limit;
-        if (data.length < limit) break;
-      }
-      this.logger.log('Sincronización de puestos completada exitosamente.');
-      return totalSynced;
-    } catch (error) {
-      this.logger.error(
-        'Error durante la sincronización de Socrata:',
-        error.stack,
-      );
-      throw error;
-    }
+    // Initialization logic if needed
   }
 
   async getVotingPlaces(
     page: number = 1,
     limit: number = 50,
     municipio?: string,
+    departamento?: string,
+    nombre?: string,
   ) {
-    const skip = (page - 1) * limit;
-    const where: any = {};
-    if (municipio) {
-      where.municipio = { contains: municipio, mode: 'insensitive' };
+    try {
+      const skip = (page - 1) * limit;
+      const where: any = {};
+
+      if (municipio) {
+        where.municipio = { equals: municipio, mode: 'insensitive' };
+      }
+      if (departamento) {
+        where.departamento = { equals: departamento, mode: 'insensitive' };
+      }
+      if (nombre) {
+        where.nombre = { contains: nombre, mode: 'insensitive' };
+      }
+
+      this.logger.log(
+        `Consultando puestos con filtro: ${JSON.stringify(where)}`,
+      );
+
+      const [items, total] = await Promise.all([
+        this.prisma.votingPlace.findMany({
+          where,
+          skip,
+          take: limit,
+          select: {
+            id: true,
+            nombre: true,
+            departamento: true,
+            municipio: true,
+            direccion: true,
+            latitud: true,
+            longitud: true,
+          },
+          orderBy: { departamento: 'asc' },
+        }),
+        this.prisma.votingPlace.count({ where }),
+      ]);
+
+      this.logger.log(
+        `Se encontraron ${items.length} resultados de un total de ${total}`,
+      );
+
+      // Adaptar la respuesta para que no falle si faltan campos
+      const itemsWithTotals = items.map((item) => {
+        return {
+          ...item,
+          totalMesas: 0,
+          totalMesasRegistradas: 0,
+          totalVotosCandidato: 0,
+          totalVotosMesa: 0,
+        };
+      });
+
+      return {
+        items: itemsWithTotals,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error al obtener puestos de votación de la DB:',
+        error,
+      );
+      throw error;
     }
+  }
 
-    const [items, total] = await Promise.all([
-      this.prisma.votingPlace.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { nombre: 'asc' },
-      }),
-      this.prisma.votingPlace.count({ where }),
-    ]);
+  async getUniqueDepartments() {
+    const departments = await this.prisma.votingPlace.findMany({
+      distinct: ['departamento'],
+      select: { departamento: true },
+      orderBy: { departamento: 'asc' },
+    });
+    return departments.map((d) => d.departamento);
+  }
 
-    // If there are no items in DB, we might want to suggest a sync or trigger one?
-    // For now we just return what we have.
+  async getUniqueMunicipalities(departamento: string) {
+    const municipalities = await this.prisma.votingPlace.findMany({
+      where: { departamento: { equals: departamento, mode: 'insensitive' } },
+      distinct: ['municipio'],
+      select: { municipio: true },
+      orderBy: { municipio: 'asc' },
+    });
+    return municipalities.map((m) => m.municipio);
+  }
 
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+  async addOrUpdateTableResult(
+    votingPlaceId: string,
+    mesaNumero: number,
+    votosCandidato: number,
+    votosTotales: number,
+  ) {
+    return this.prisma.tableResult.upsert({
+      where: {
+        votingPlaceId_mesaNumero: {
+          votingPlaceId,
+          mesaNumero,
+        },
+      },
+      update: {
+        votosCandidato,
+        votosTotales,
+      },
+      create: {
+        votingPlaceId,
+        mesaNumero,
+        votosCandidato,
+        votosTotales,
+      },
+    });
+  }
+
+  async createVotingPlace(data: {
+    nombre: string;
+    departamento: string;
+    municipio: string;
+    direccion: string;
+    totalMesas?: number;
+    latitud?: number;
+    longitud?: number;
+  }) {
+    const codigo = `${data.departamento}-${data.municipio}-${data.nombre}`
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+
+    return this.prisma.votingPlace.create({
+      data: {
+        ...data,
+        codigo,
+      },
+    });
+  }
+
+  async getTableResults(votingPlaceId: string) {
+    return this.prisma.tableResult.findMany({
+      where: { votingPlaceId },
+      orderBy: { mesaNumero: 'asc' },
+    });
   }
 }

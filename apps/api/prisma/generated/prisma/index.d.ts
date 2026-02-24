@@ -73,6 +73,11 @@ export type InventoryMovement = $Result.DefaultSelection<Prisma.$InventoryMoveme
  * 
  */
 export type VotingPlace = $Result.DefaultSelection<Prisma.$VotingPlacePayload>
+/**
+ * Model TableResult
+ * 
+ */
+export type TableResult = $Result.DefaultSelection<Prisma.$TableResultPayload>
 
 /**
  * Enums
@@ -412,6 +417,16 @@ export class PrismaClient<
     * ```
     */
   get votingPlace(): Prisma.VotingPlaceDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.tableResult`: Exposes CRUD operations for the **TableResult** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TableResults
+    * const tableResults = await prisma.tableResult.findMany()
+    * ```
+    */
+  get tableResult(): Prisma.TableResultDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -857,7 +872,8 @@ export namespace Prisma {
     PointLog: 'PointLog',
     InventoryItem: 'InventoryItem',
     InventoryMovement: 'InventoryMovement',
-    VotingPlace: 'VotingPlace'
+    VotingPlace: 'VotingPlace',
+    TableResult: 'TableResult'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -873,7 +889,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "user" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "votingPlace"
+      modelProps: "tenant" | "campaignSettings" | "user" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "votingPlace" | "tableResult"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1765,6 +1781,80 @@ export namespace Prisma {
           }
         }
       }
+      TableResult: {
+        payload: Prisma.$TableResultPayload<ExtArgs>
+        fields: Prisma.TableResultFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TableResultFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TableResultFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          findFirst: {
+            args: Prisma.TableResultFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TableResultFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          findMany: {
+            args: Prisma.TableResultFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>[]
+          }
+          create: {
+            args: Prisma.TableResultCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          createMany: {
+            args: Prisma.TableResultCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TableResultCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>[]
+          }
+          delete: {
+            args: Prisma.TableResultDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          update: {
+            args: Prisma.TableResultUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          deleteMany: {
+            args: Prisma.TableResultDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TableResultUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TableResultUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>[]
+          }
+          upsert: {
+            args: Prisma.TableResultUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TableResultPayload>
+          }
+          aggregate: {
+            args: Prisma.TableResultAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTableResult>
+          }
+          groupBy: {
+            args: Prisma.TableResultGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TableResultGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TableResultCountArgs<ExtArgs>
+            result: $Utils.Optional<TableResultCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1885,6 +1975,7 @@ export namespace Prisma {
     inventoryItem?: InventoryItemOmit
     inventoryMovement?: InventoryMovementOmit
     votingPlace?: VotingPlaceOmit
+    tableResult?: TableResultOmit
   }
 
   /* Types for Logging */
@@ -2229,6 +2320,37 @@ export namespace Prisma {
    */
   export type InventoryItemCountOutputTypeCountMovementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InventoryMovementWhereInput
+  }
+
+
+  /**
+   * Count Type VotingPlaceCountOutputType
+   */
+
+  export type VotingPlaceCountOutputType = {
+    tables: number
+  }
+
+  export type VotingPlaceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tables?: boolean | VotingPlaceCountOutputTypeCountTablesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * VotingPlaceCountOutputType without action
+   */
+  export type VotingPlaceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VotingPlaceCountOutputType
+     */
+    select?: VotingPlaceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * VotingPlaceCountOutputType without action
+   */
+  export type VotingPlaceCountOutputTypeCountTablesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TableResultWhereInput
   }
 
 
@@ -15507,11 +15629,13 @@ export namespace Prisma {
   }
 
   export type VotingPlaceAvgAggregateOutputType = {
+    totalMesas: number | null
     latitud: number | null
     longitud: number | null
   }
 
   export type VotingPlaceSumAggregateOutputType = {
+    totalMesas: number | null
     latitud: number | null
     longitud: number | null
   }
@@ -15522,6 +15646,7 @@ export namespace Prisma {
     departamento: string | null
     municipio: string | null
     direccion: string | null
+    totalMesas: number | null
     latitud: number | null
     longitud: number | null
     codigo: string | null
@@ -15535,6 +15660,7 @@ export namespace Prisma {
     departamento: string | null
     municipio: string | null
     direccion: string | null
+    totalMesas: number | null
     latitud: number | null
     longitud: number | null
     codigo: string | null
@@ -15548,6 +15674,7 @@ export namespace Prisma {
     departamento: number
     municipio: number
     direccion: number
+    totalMesas: number
     latitud: number
     longitud: number
     codigo: number
@@ -15558,11 +15685,13 @@ export namespace Prisma {
 
 
   export type VotingPlaceAvgAggregateInputType = {
+    totalMesas?: true
     latitud?: true
     longitud?: true
   }
 
   export type VotingPlaceSumAggregateInputType = {
+    totalMesas?: true
     latitud?: true
     longitud?: true
   }
@@ -15573,6 +15702,7 @@ export namespace Prisma {
     departamento?: true
     municipio?: true
     direccion?: true
+    totalMesas?: true
     latitud?: true
     longitud?: true
     codigo?: true
@@ -15586,6 +15716,7 @@ export namespace Prisma {
     departamento?: true
     municipio?: true
     direccion?: true
+    totalMesas?: true
     latitud?: true
     longitud?: true
     codigo?: true
@@ -15599,6 +15730,7 @@ export namespace Prisma {
     departamento?: true
     municipio?: true
     direccion?: true
+    totalMesas?: true
     latitud?: true
     longitud?: true
     codigo?: true
@@ -15699,6 +15831,7 @@ export namespace Prisma {
     departamento: string
     municipio: string
     direccion: string
+    totalMesas: number
     latitud: number | null
     longitud: number | null
     codigo: string | null
@@ -15731,11 +15864,14 @@ export namespace Prisma {
     departamento?: boolean
     municipio?: boolean
     direccion?: boolean
+    totalMesas?: boolean
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    tables?: boolean | VotingPlace$tablesArgs<ExtArgs>
+    _count?: boolean | VotingPlaceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["votingPlace"]>
 
   export type VotingPlaceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -15744,6 +15880,7 @@ export namespace Prisma {
     departamento?: boolean
     municipio?: boolean
     direccion?: boolean
+    totalMesas?: boolean
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
@@ -15757,6 +15894,7 @@ export namespace Prisma {
     departamento?: boolean
     municipio?: boolean
     direccion?: boolean
+    totalMesas?: boolean
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
@@ -15770,6 +15908,7 @@ export namespace Prisma {
     departamento?: boolean
     municipio?: boolean
     direccion?: boolean
+    totalMesas?: boolean
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
@@ -15777,17 +15916,26 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type VotingPlaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "departamento" | "municipio" | "direccion" | "latitud" | "longitud" | "codigo" | "createdAt" | "updatedAt", ExtArgs["result"]["votingPlace"]>
+  export type VotingPlaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "departamento" | "municipio" | "direccion" | "totalMesas" | "latitud" | "longitud" | "codigo" | "createdAt" | "updatedAt", ExtArgs["result"]["votingPlace"]>
+  export type VotingPlaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tables?: boolean | VotingPlace$tablesArgs<ExtArgs>
+    _count?: boolean | VotingPlaceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type VotingPlaceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type VotingPlaceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $VotingPlacePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "VotingPlace"
-    objects: {}
+    objects: {
+      tables: Prisma.$TableResultPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       nombre: string
       departamento: string
       municipio: string
       direccion: string
+      totalMesas: number
       latitud: number | null
       longitud: number | null
       codigo: string | null
@@ -16187,6 +16335,7 @@ export namespace Prisma {
    */
   export interface Prisma__VotingPlaceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    tables<T extends VotingPlace$tablesArgs<ExtArgs> = {}>(args?: Subset<T, VotingPlace$tablesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -16221,6 +16370,7 @@ export namespace Prisma {
     readonly departamento: FieldRef<"VotingPlace", 'String'>
     readonly municipio: FieldRef<"VotingPlace", 'String'>
     readonly direccion: FieldRef<"VotingPlace", 'String'>
+    readonly totalMesas: FieldRef<"VotingPlace", 'Int'>
     readonly latitud: FieldRef<"VotingPlace", 'Float'>
     readonly longitud: FieldRef<"VotingPlace", 'Float'>
     readonly codigo: FieldRef<"VotingPlace", 'String'>
@@ -16243,6 +16393,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * Filter, which VotingPlace to fetch.
      */
     where: VotingPlaceWhereUniqueInput
@@ -16261,6 +16415,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * Filter, which VotingPlace to fetch.
      */
     where: VotingPlaceWhereUniqueInput
@@ -16278,6 +16436,10 @@ export namespace Prisma {
      * Omit specific fields from the VotingPlace
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
     /**
      * Filter, which VotingPlace to fetch.
      */
@@ -16327,6 +16489,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * Filter, which VotingPlace to fetch.
      */
     where?: VotingPlaceWhereInput
@@ -16375,6 +16541,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * Filter, which VotingPlaces to fetch.
      */
     where?: VotingPlaceWhereInput
@@ -16417,6 +16587,10 @@ export namespace Prisma {
      * Omit specific fields from the VotingPlace
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
     /**
      * The data needed to create a VotingPlace.
      */
@@ -16465,6 +16639,10 @@ export namespace Prisma {
      * Omit specific fields from the VotingPlace
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
     /**
      * The data needed to update a VotingPlace.
      */
@@ -16532,6 +16710,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * The filter to search for the VotingPlace to update in case it exists.
      */
     where: VotingPlaceWhereUniqueInput
@@ -16558,6 +16740,10 @@ export namespace Prisma {
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+    /**
      * Filter which VotingPlace to delete.
      */
     where: VotingPlaceWhereUniqueInput
@@ -16578,6 +16764,30 @@ export namespace Prisma {
   }
 
   /**
+   * VotingPlace.tables
+   */
+  export type VotingPlace$tablesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    where?: TableResultWhereInput
+    orderBy?: TableResultOrderByWithRelationInput | TableResultOrderByWithRelationInput[]
+    cursor?: TableResultWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TableResultScalarFieldEnum | TableResultScalarFieldEnum[]
+  }
+
+  /**
    * VotingPlace without action
    */
   export type VotingPlaceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -16589,6 +16799,1123 @@ export namespace Prisma {
      * Omit specific fields from the VotingPlace
      */
     omit?: VotingPlaceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VotingPlaceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TableResult
+   */
+
+  export type AggregateTableResult = {
+    _count: TableResultCountAggregateOutputType | null
+    _avg: TableResultAvgAggregateOutputType | null
+    _sum: TableResultSumAggregateOutputType | null
+    _min: TableResultMinAggregateOutputType | null
+    _max: TableResultMaxAggregateOutputType | null
+  }
+
+  export type TableResultAvgAggregateOutputType = {
+    mesaNumero: number | null
+    votosCandidato: number | null
+    votosTotales: number | null
+  }
+
+  export type TableResultSumAggregateOutputType = {
+    mesaNumero: number | null
+    votosCandidato: number | null
+    votosTotales: number | null
+  }
+
+  export type TableResultMinAggregateOutputType = {
+    id: string | null
+    mesaNumero: number | null
+    votosCandidato: number | null
+    votosTotales: number | null
+    votingPlaceId: string | null
+    updatedAt: Date | null
+  }
+
+  export type TableResultMaxAggregateOutputType = {
+    id: string | null
+    mesaNumero: number | null
+    votosCandidato: number | null
+    votosTotales: number | null
+    votingPlaceId: string | null
+    updatedAt: Date | null
+  }
+
+  export type TableResultCountAggregateOutputType = {
+    id: number
+    mesaNumero: number
+    votosCandidato: number
+    votosTotales: number
+    votingPlaceId: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type TableResultAvgAggregateInputType = {
+    mesaNumero?: true
+    votosCandidato?: true
+    votosTotales?: true
+  }
+
+  export type TableResultSumAggregateInputType = {
+    mesaNumero?: true
+    votosCandidato?: true
+    votosTotales?: true
+  }
+
+  export type TableResultMinAggregateInputType = {
+    id?: true
+    mesaNumero?: true
+    votosCandidato?: true
+    votosTotales?: true
+    votingPlaceId?: true
+    updatedAt?: true
+  }
+
+  export type TableResultMaxAggregateInputType = {
+    id?: true
+    mesaNumero?: true
+    votosCandidato?: true
+    votosTotales?: true
+    votingPlaceId?: true
+    updatedAt?: true
+  }
+
+  export type TableResultCountAggregateInputType = {
+    id?: true
+    mesaNumero?: true
+    votosCandidato?: true
+    votosTotales?: true
+    votingPlaceId?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type TableResultAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TableResult to aggregate.
+     */
+    where?: TableResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TableResults to fetch.
+     */
+    orderBy?: TableResultOrderByWithRelationInput | TableResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TableResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TableResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TableResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TableResults
+    **/
+    _count?: true | TableResultCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TableResultAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TableResultSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TableResultMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TableResultMaxAggregateInputType
+  }
+
+  export type GetTableResultAggregateType<T extends TableResultAggregateArgs> = {
+        [P in keyof T & keyof AggregateTableResult]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTableResult[P]>
+      : GetScalarType<T[P], AggregateTableResult[P]>
+  }
+
+
+
+
+  export type TableResultGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TableResultWhereInput
+    orderBy?: TableResultOrderByWithAggregationInput | TableResultOrderByWithAggregationInput[]
+    by: TableResultScalarFieldEnum[] | TableResultScalarFieldEnum
+    having?: TableResultScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TableResultCountAggregateInputType | true
+    _avg?: TableResultAvgAggregateInputType
+    _sum?: TableResultSumAggregateInputType
+    _min?: TableResultMinAggregateInputType
+    _max?: TableResultMaxAggregateInputType
+  }
+
+  export type TableResultGroupByOutputType = {
+    id: string
+    mesaNumero: number
+    votosCandidato: number
+    votosTotales: number
+    votingPlaceId: string
+    updatedAt: Date
+    _count: TableResultCountAggregateOutputType | null
+    _avg: TableResultAvgAggregateOutputType | null
+    _sum: TableResultSumAggregateOutputType | null
+    _min: TableResultMinAggregateOutputType | null
+    _max: TableResultMaxAggregateOutputType | null
+  }
+
+  type GetTableResultGroupByPayload<T extends TableResultGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TableResultGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TableResultGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TableResultGroupByOutputType[P]>
+            : GetScalarType<T[P], TableResultGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TableResultSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mesaNumero?: boolean
+    votosCandidato?: boolean
+    votosTotales?: boolean
+    votingPlaceId?: boolean
+    updatedAt?: boolean
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["tableResult"]>
+
+  export type TableResultSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mesaNumero?: boolean
+    votosCandidato?: boolean
+    votosTotales?: boolean
+    votingPlaceId?: boolean
+    updatedAt?: boolean
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["tableResult"]>
+
+  export type TableResultSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mesaNumero?: boolean
+    votosCandidato?: boolean
+    votosTotales?: boolean
+    votingPlaceId?: boolean
+    updatedAt?: boolean
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["tableResult"]>
+
+  export type TableResultSelectScalar = {
+    id?: boolean
+    mesaNumero?: boolean
+    votosCandidato?: boolean
+    votosTotales?: boolean
+    votingPlaceId?: boolean
+    updatedAt?: boolean
+  }
+
+  export type TableResultOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "mesaNumero" | "votosCandidato" | "votosTotales" | "votingPlaceId" | "updatedAt", ExtArgs["result"]["tableResult"]>
+  export type TableResultInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }
+  export type TableResultIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }
+  export type TableResultIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    votingPlace?: boolean | VotingPlaceDefaultArgs<ExtArgs>
+  }
+
+  export type $TableResultPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TableResult"
+    objects: {
+      votingPlace: Prisma.$VotingPlacePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      mesaNumero: number
+      votosCandidato: number
+      votosTotales: number
+      votingPlaceId: string
+      updatedAt: Date
+    }, ExtArgs["result"]["tableResult"]>
+    composites: {}
+  }
+
+  type TableResultGetPayload<S extends boolean | null | undefined | TableResultDefaultArgs> = $Result.GetResult<Prisma.$TableResultPayload, S>
+
+  type TableResultCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<TableResultFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: TableResultCountAggregateInputType | true
+    }
+
+  export interface TableResultDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TableResult'], meta: { name: 'TableResult' } }
+    /**
+     * Find zero or one TableResult that matches the filter.
+     * @param {TableResultFindUniqueArgs} args - Arguments to find a TableResult
+     * @example
+     * // Get one TableResult
+     * const tableResult = await prisma.tableResult.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TableResultFindUniqueArgs>(args: SelectSubset<T, TableResultFindUniqueArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one TableResult that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {TableResultFindUniqueOrThrowArgs} args - Arguments to find a TableResult
+     * @example
+     * // Get one TableResult
+     * const tableResult = await prisma.tableResult.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TableResultFindUniqueOrThrowArgs>(args: SelectSubset<T, TableResultFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TableResult that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultFindFirstArgs} args - Arguments to find a TableResult
+     * @example
+     * // Get one TableResult
+     * const tableResult = await prisma.tableResult.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TableResultFindFirstArgs>(args?: SelectSubset<T, TableResultFindFirstArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TableResult that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultFindFirstOrThrowArgs} args - Arguments to find a TableResult
+     * @example
+     * // Get one TableResult
+     * const tableResult = await prisma.tableResult.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TableResultFindFirstOrThrowArgs>(args?: SelectSubset<T, TableResultFindFirstOrThrowArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more TableResults that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TableResults
+     * const tableResults = await prisma.tableResult.findMany()
+     * 
+     * // Get first 10 TableResults
+     * const tableResults = await prisma.tableResult.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const tableResultWithIdOnly = await prisma.tableResult.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TableResultFindManyArgs>(args?: SelectSubset<T, TableResultFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a TableResult.
+     * @param {TableResultCreateArgs} args - Arguments to create a TableResult.
+     * @example
+     * // Create one TableResult
+     * const TableResult = await prisma.tableResult.create({
+     *   data: {
+     *     // ... data to create a TableResult
+     *   }
+     * })
+     * 
+     */
+    create<T extends TableResultCreateArgs>(args: SelectSubset<T, TableResultCreateArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many TableResults.
+     * @param {TableResultCreateManyArgs} args - Arguments to create many TableResults.
+     * @example
+     * // Create many TableResults
+     * const tableResult = await prisma.tableResult.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TableResultCreateManyArgs>(args?: SelectSubset<T, TableResultCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TableResults and returns the data saved in the database.
+     * @param {TableResultCreateManyAndReturnArgs} args - Arguments to create many TableResults.
+     * @example
+     * // Create many TableResults
+     * const tableResult = await prisma.tableResult.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TableResults and only return the `id`
+     * const tableResultWithIdOnly = await prisma.tableResult.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TableResultCreateManyAndReturnArgs>(args?: SelectSubset<T, TableResultCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a TableResult.
+     * @param {TableResultDeleteArgs} args - Arguments to delete one TableResult.
+     * @example
+     * // Delete one TableResult
+     * const TableResult = await prisma.tableResult.delete({
+     *   where: {
+     *     // ... filter to delete one TableResult
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TableResultDeleteArgs>(args: SelectSubset<T, TableResultDeleteArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one TableResult.
+     * @param {TableResultUpdateArgs} args - Arguments to update one TableResult.
+     * @example
+     * // Update one TableResult
+     * const tableResult = await prisma.tableResult.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TableResultUpdateArgs>(args: SelectSubset<T, TableResultUpdateArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more TableResults.
+     * @param {TableResultDeleteManyArgs} args - Arguments to filter TableResults to delete.
+     * @example
+     * // Delete a few TableResults
+     * const { count } = await prisma.tableResult.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TableResultDeleteManyArgs>(args?: SelectSubset<T, TableResultDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TableResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TableResults
+     * const tableResult = await prisma.tableResult.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TableResultUpdateManyArgs>(args: SelectSubset<T, TableResultUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TableResults and returns the data updated in the database.
+     * @param {TableResultUpdateManyAndReturnArgs} args - Arguments to update many TableResults.
+     * @example
+     * // Update many TableResults
+     * const tableResult = await prisma.tableResult.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TableResults and only return the `id`
+     * const tableResultWithIdOnly = await prisma.tableResult.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TableResultUpdateManyAndReturnArgs>(args: SelectSubset<T, TableResultUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one TableResult.
+     * @param {TableResultUpsertArgs} args - Arguments to update or create a TableResult.
+     * @example
+     * // Update or create a TableResult
+     * const tableResult = await prisma.tableResult.upsert({
+     *   create: {
+     *     // ... data to create a TableResult
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TableResult we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TableResultUpsertArgs>(args: SelectSubset<T, TableResultUpsertArgs<ExtArgs>>): Prisma__TableResultClient<$Result.GetResult<Prisma.$TableResultPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of TableResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultCountArgs} args - Arguments to filter TableResults to count.
+     * @example
+     * // Count the number of TableResults
+     * const count = await prisma.tableResult.count({
+     *   where: {
+     *     // ... the filter for the TableResults we want to count
+     *   }
+     * })
+    **/
+    count<T extends TableResultCountArgs>(
+      args?: Subset<T, TableResultCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TableResultCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TableResult.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TableResultAggregateArgs>(args: Subset<T, TableResultAggregateArgs>): Prisma.PrismaPromise<GetTableResultAggregateType<T>>
+
+    /**
+     * Group by TableResult.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TableResultGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TableResultGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TableResultGroupByArgs['orderBy'] }
+        : { orderBy?: TableResultGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TableResultGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTableResultGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TableResult model
+   */
+  readonly fields: TableResultFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TableResult.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TableResultClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    votingPlace<T extends VotingPlaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VotingPlaceDefaultArgs<ExtArgs>>): Prisma__VotingPlaceClient<$Result.GetResult<Prisma.$VotingPlacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TableResult model
+   */
+  interface TableResultFieldRefs {
+    readonly id: FieldRef<"TableResult", 'String'>
+    readonly mesaNumero: FieldRef<"TableResult", 'Int'>
+    readonly votosCandidato: FieldRef<"TableResult", 'Int'>
+    readonly votosTotales: FieldRef<"TableResult", 'Int'>
+    readonly votingPlaceId: FieldRef<"TableResult", 'String'>
+    readonly updatedAt: FieldRef<"TableResult", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TableResult findUnique
+   */
+  export type TableResultFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter, which TableResult to fetch.
+     */
+    where: TableResultWhereUniqueInput
+  }
+
+  /**
+   * TableResult findUniqueOrThrow
+   */
+  export type TableResultFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter, which TableResult to fetch.
+     */
+    where: TableResultWhereUniqueInput
+  }
+
+  /**
+   * TableResult findFirst
+   */
+  export type TableResultFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter, which TableResult to fetch.
+     */
+    where?: TableResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TableResults to fetch.
+     */
+    orderBy?: TableResultOrderByWithRelationInput | TableResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TableResults.
+     */
+    cursor?: TableResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TableResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TableResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TableResults.
+     */
+    distinct?: TableResultScalarFieldEnum | TableResultScalarFieldEnum[]
+  }
+
+  /**
+   * TableResult findFirstOrThrow
+   */
+  export type TableResultFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter, which TableResult to fetch.
+     */
+    where?: TableResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TableResults to fetch.
+     */
+    orderBy?: TableResultOrderByWithRelationInput | TableResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TableResults.
+     */
+    cursor?: TableResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TableResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TableResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TableResults.
+     */
+    distinct?: TableResultScalarFieldEnum | TableResultScalarFieldEnum[]
+  }
+
+  /**
+   * TableResult findMany
+   */
+  export type TableResultFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter, which TableResults to fetch.
+     */
+    where?: TableResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TableResults to fetch.
+     */
+    orderBy?: TableResultOrderByWithRelationInput | TableResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TableResults.
+     */
+    cursor?: TableResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TableResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TableResults.
+     */
+    skip?: number
+    distinct?: TableResultScalarFieldEnum | TableResultScalarFieldEnum[]
+  }
+
+  /**
+   * TableResult create
+   */
+  export type TableResultCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TableResult.
+     */
+    data: XOR<TableResultCreateInput, TableResultUncheckedCreateInput>
+  }
+
+  /**
+   * TableResult createMany
+   */
+  export type TableResultCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TableResults.
+     */
+    data: TableResultCreateManyInput | TableResultCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TableResult createManyAndReturn
+   */
+  export type TableResultCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * The data used to create many TableResults.
+     */
+    data: TableResultCreateManyInput | TableResultCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TableResult update
+   */
+  export type TableResultUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TableResult.
+     */
+    data: XOR<TableResultUpdateInput, TableResultUncheckedUpdateInput>
+    /**
+     * Choose, which TableResult to update.
+     */
+    where: TableResultWhereUniqueInput
+  }
+
+  /**
+   * TableResult updateMany
+   */
+  export type TableResultUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TableResults.
+     */
+    data: XOR<TableResultUpdateManyMutationInput, TableResultUncheckedUpdateManyInput>
+    /**
+     * Filter which TableResults to update
+     */
+    where?: TableResultWhereInput
+    /**
+     * Limit how many TableResults to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TableResult updateManyAndReturn
+   */
+  export type TableResultUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * The data used to update TableResults.
+     */
+    data: XOR<TableResultUpdateManyMutationInput, TableResultUncheckedUpdateManyInput>
+    /**
+     * Filter which TableResults to update
+     */
+    where?: TableResultWhereInput
+    /**
+     * Limit how many TableResults to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TableResult upsert
+   */
+  export type TableResultUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TableResult to update in case it exists.
+     */
+    where: TableResultWhereUniqueInput
+    /**
+     * In case the TableResult found by the `where` argument doesn't exist, create a new TableResult with this data.
+     */
+    create: XOR<TableResultCreateInput, TableResultUncheckedCreateInput>
+    /**
+     * In case the TableResult was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TableResultUpdateInput, TableResultUncheckedUpdateInput>
+  }
+
+  /**
+   * TableResult delete
+   */
+  export type TableResultDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
+    /**
+     * Filter which TableResult to delete.
+     */
+    where: TableResultWhereUniqueInput
+  }
+
+  /**
+   * TableResult deleteMany
+   */
+  export type TableResultDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TableResults to delete
+     */
+    where?: TableResultWhereInput
+    /**
+     * Limit how many TableResults to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * TableResult without action
+   */
+  export type TableResultDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TableResult
+     */
+    select?: TableResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TableResult
+     */
+    omit?: TableResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableResultInclude<ExtArgs> | null
   }
 
 
@@ -16781,6 +18108,7 @@ export namespace Prisma {
     departamento: 'departamento',
     municipio: 'municipio',
     direccion: 'direccion',
+    totalMesas: 'totalMesas',
     latitud: 'latitud',
     longitud: 'longitud',
     codigo: 'codigo',
@@ -16789,6 +18117,18 @@ export namespace Prisma {
   };
 
   export type VotingPlaceScalarFieldEnum = (typeof VotingPlaceScalarFieldEnum)[keyof typeof VotingPlaceScalarFieldEnum]
+
+
+  export const TableResultScalarFieldEnum: {
+    id: 'id',
+    mesaNumero: 'mesaNumero',
+    votosCandidato: 'votosCandidato',
+    votosTotales: 'votosTotales',
+    votingPlaceId: 'votingPlaceId',
+    updatedAt: 'updatedAt'
+  };
+
+  export type TableResultScalarFieldEnum = (typeof TableResultScalarFieldEnum)[keyof typeof TableResultScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -17985,11 +19325,13 @@ export namespace Prisma {
     departamento?: StringFilter<"VotingPlace"> | string
     municipio?: StringFilter<"VotingPlace"> | string
     direccion?: StringFilter<"VotingPlace"> | string
+    totalMesas?: IntFilter<"VotingPlace"> | number
     latitud?: FloatNullableFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableFilter<"VotingPlace"> | number | null
     codigo?: StringNullableFilter<"VotingPlace"> | string | null
     createdAt?: DateTimeFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeFilter<"VotingPlace"> | Date | string
+    tables?: TableResultListRelationFilter
   }
 
   export type VotingPlaceOrderByWithRelationInput = {
@@ -17998,11 +19340,13 @@ export namespace Prisma {
     departamento?: SortOrder
     municipio?: SortOrder
     direccion?: SortOrder
+    totalMesas?: SortOrder
     latitud?: SortOrderInput | SortOrder
     longitud?: SortOrderInput | SortOrder
     codigo?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    tables?: TableResultOrderByRelationAggregateInput
   }
 
   export type VotingPlaceWhereUniqueInput = Prisma.AtLeast<{
@@ -18015,10 +19359,12 @@ export namespace Prisma {
     departamento?: StringFilter<"VotingPlace"> | string
     municipio?: StringFilter<"VotingPlace"> | string
     direccion?: StringFilter<"VotingPlace"> | string
+    totalMesas?: IntFilter<"VotingPlace"> | number
     latitud?: FloatNullableFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableFilter<"VotingPlace"> | number | null
     createdAt?: DateTimeFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeFilter<"VotingPlace"> | Date | string
+    tables?: TableResultListRelationFilter
   }, "id" | "codigo">
 
   export type VotingPlaceOrderByWithAggregationInput = {
@@ -18027,6 +19373,7 @@ export namespace Prisma {
     departamento?: SortOrder
     municipio?: SortOrder
     direccion?: SortOrder
+    totalMesas?: SortOrder
     latitud?: SortOrderInput | SortOrder
     longitud?: SortOrderInput | SortOrder
     codigo?: SortOrderInput | SortOrder
@@ -18048,11 +19395,75 @@ export namespace Prisma {
     departamento?: StringWithAggregatesFilter<"VotingPlace"> | string
     municipio?: StringWithAggregatesFilter<"VotingPlace"> | string
     direccion?: StringWithAggregatesFilter<"VotingPlace"> | string
+    totalMesas?: IntWithAggregatesFilter<"VotingPlace"> | number
     latitud?: FloatNullableWithAggregatesFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableWithAggregatesFilter<"VotingPlace"> | number | null
     codigo?: StringNullableWithAggregatesFilter<"VotingPlace"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"VotingPlace"> | Date | string
+  }
+
+  export type TableResultWhereInput = {
+    AND?: TableResultWhereInput | TableResultWhereInput[]
+    OR?: TableResultWhereInput[]
+    NOT?: TableResultWhereInput | TableResultWhereInput[]
+    id?: StringFilter<"TableResult"> | string
+    mesaNumero?: IntFilter<"TableResult"> | number
+    votosCandidato?: IntFilter<"TableResult"> | number
+    votosTotales?: IntFilter<"TableResult"> | number
+    votingPlaceId?: StringFilter<"TableResult"> | string
+    updatedAt?: DateTimeFilter<"TableResult"> | Date | string
+    votingPlace?: XOR<VotingPlaceScalarRelationFilter, VotingPlaceWhereInput>
+  }
+
+  export type TableResultOrderByWithRelationInput = {
+    id?: SortOrder
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+    votingPlaceId?: SortOrder
+    updatedAt?: SortOrder
+    votingPlace?: VotingPlaceOrderByWithRelationInput
+  }
+
+  export type TableResultWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    votingPlaceId_mesaNumero?: TableResultVotingPlaceIdMesaNumeroCompoundUniqueInput
+    AND?: TableResultWhereInput | TableResultWhereInput[]
+    OR?: TableResultWhereInput[]
+    NOT?: TableResultWhereInput | TableResultWhereInput[]
+    mesaNumero?: IntFilter<"TableResult"> | number
+    votosCandidato?: IntFilter<"TableResult"> | number
+    votosTotales?: IntFilter<"TableResult"> | number
+    votingPlaceId?: StringFilter<"TableResult"> | string
+    updatedAt?: DateTimeFilter<"TableResult"> | Date | string
+    votingPlace?: XOR<VotingPlaceScalarRelationFilter, VotingPlaceWhereInput>
+  }, "id" | "votingPlaceId_mesaNumero">
+
+  export type TableResultOrderByWithAggregationInput = {
+    id?: SortOrder
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+    votingPlaceId?: SortOrder
+    updatedAt?: SortOrder
+    _count?: TableResultCountOrderByAggregateInput
+    _avg?: TableResultAvgOrderByAggregateInput
+    _max?: TableResultMaxOrderByAggregateInput
+    _min?: TableResultMinOrderByAggregateInput
+    _sum?: TableResultSumOrderByAggregateInput
+  }
+
+  export type TableResultScalarWhereWithAggregatesInput = {
+    AND?: TableResultScalarWhereWithAggregatesInput | TableResultScalarWhereWithAggregatesInput[]
+    OR?: TableResultScalarWhereWithAggregatesInput[]
+    NOT?: TableResultScalarWhereWithAggregatesInput | TableResultScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TableResult"> | string
+    mesaNumero?: IntWithAggregatesFilter<"TableResult"> | number
+    votosCandidato?: IntWithAggregatesFilter<"TableResult"> | number
+    votosTotales?: IntWithAggregatesFilter<"TableResult"> | number
+    votingPlaceId?: StringWithAggregatesFilter<"TableResult"> | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TableResult"> | Date | string
   }
 
   export type TenantCreateInput = {
@@ -19070,11 +20481,13 @@ export namespace Prisma {
     departamento: string
     municipio: string
     direccion: string
+    totalMesas?: number
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    tables?: TableResultCreateNestedManyWithoutVotingPlaceInput
   }
 
   export type VotingPlaceUncheckedCreateInput = {
@@ -19083,11 +20496,13 @@ export namespace Prisma {
     departamento: string
     municipio: string
     direccion: string
+    totalMesas?: number
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    tables?: TableResultUncheckedCreateNestedManyWithoutVotingPlaceInput
   }
 
   export type VotingPlaceUpdateInput = {
@@ -19096,11 +20511,13 @@ export namespace Prisma {
     departamento?: StringFieldUpdateOperationsInput | string
     municipio?: StringFieldUpdateOperationsInput | string
     direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tables?: TableResultUpdateManyWithoutVotingPlaceNestedInput
   }
 
   export type VotingPlaceUncheckedUpdateInput = {
@@ -19109,11 +20526,13 @@ export namespace Prisma {
     departamento?: StringFieldUpdateOperationsInput | string
     municipio?: StringFieldUpdateOperationsInput | string
     direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tables?: TableResultUncheckedUpdateManyWithoutVotingPlaceNestedInput
   }
 
   export type VotingPlaceCreateManyInput = {
@@ -19122,6 +20541,7 @@ export namespace Prisma {
     departamento: string
     municipio: string
     direccion: string
+    totalMesas?: number
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
@@ -19135,6 +20555,7 @@ export namespace Prisma {
     departamento?: StringFieldUpdateOperationsInput | string
     municipio?: StringFieldUpdateOperationsInput | string
     direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19148,10 +20569,73 @@ export namespace Prisma {
     departamento?: StringFieldUpdateOperationsInput | string
     municipio?: StringFieldUpdateOperationsInput | string
     direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultCreateInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    updatedAt?: Date | string
+    votingPlace: VotingPlaceCreateNestedOneWithoutTablesInput
+  }
+
+  export type TableResultUncheckedCreateInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    votingPlaceId: string
+    updatedAt?: Date | string
+  }
+
+  export type TableResultUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    votingPlace?: VotingPlaceUpdateOneRequiredWithoutTablesNestedInput
+  }
+
+  export type TableResultUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    votingPlaceId?: StringFieldUpdateOperationsInput | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultCreateManyInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    votingPlaceId: string
+    updatedAt?: Date | string
+  }
+
+  export type TableResultUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    votingPlaceId?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20176,12 +21660,23 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
+  export type TableResultListRelationFilter = {
+    every?: TableResultWhereInput
+    some?: TableResultWhereInput
+    none?: TableResultWhereInput
+  }
+
+  export type TableResultOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type VotingPlaceCountOrderByAggregateInput = {
     id?: SortOrder
     nombre?: SortOrder
     departamento?: SortOrder
     municipio?: SortOrder
     direccion?: SortOrder
+    totalMesas?: SortOrder
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
@@ -20190,6 +21685,7 @@ export namespace Prisma {
   }
 
   export type VotingPlaceAvgOrderByAggregateInput = {
+    totalMesas?: SortOrder
     latitud?: SortOrder
     longitud?: SortOrder
   }
@@ -20200,6 +21696,7 @@ export namespace Prisma {
     departamento?: SortOrder
     municipio?: SortOrder
     direccion?: SortOrder
+    totalMesas?: SortOrder
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
@@ -20213,6 +21710,7 @@ export namespace Prisma {
     departamento?: SortOrder
     municipio?: SortOrder
     direccion?: SortOrder
+    totalMesas?: SortOrder
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
@@ -20221,6 +21719,7 @@ export namespace Prisma {
   }
 
   export type VotingPlaceSumOrderByAggregateInput = {
+    totalMesas?: SortOrder
     latitud?: SortOrder
     longitud?: SortOrder
   }
@@ -20239,6 +21738,55 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type VotingPlaceScalarRelationFilter = {
+    is?: VotingPlaceWhereInput
+    isNot?: VotingPlaceWhereInput
+  }
+
+  export type TableResultVotingPlaceIdMesaNumeroCompoundUniqueInput = {
+    votingPlaceId: string
+    mesaNumero: number
+  }
+
+  export type TableResultCountOrderByAggregateInput = {
+    id?: SortOrder
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+    votingPlaceId?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TableResultAvgOrderByAggregateInput = {
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+  }
+
+  export type TableResultMaxOrderByAggregateInput = {
+    id?: SortOrder
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+    votingPlaceId?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TableResultMinOrderByAggregateInput = {
+    id?: SortOrder
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
+    votingPlaceId?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TableResultSumOrderByAggregateInput = {
+    mesaNumero?: SortOrder
+    votosCandidato?: SortOrder
+    votosTotales?: SortOrder
   }
 
   export type FinancialEntryCreateNestedManyWithoutTenantInput = {
@@ -21377,12 +22925,68 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutInventoryMovesInput, UserUpdateWithoutInventoryMovesInput>, UserUncheckedUpdateWithoutInventoryMovesInput>
   }
 
+  export type TableResultCreateNestedManyWithoutVotingPlaceInput = {
+    create?: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput> | TableResultCreateWithoutVotingPlaceInput[] | TableResultUncheckedCreateWithoutVotingPlaceInput[]
+    connectOrCreate?: TableResultCreateOrConnectWithoutVotingPlaceInput | TableResultCreateOrConnectWithoutVotingPlaceInput[]
+    createMany?: TableResultCreateManyVotingPlaceInputEnvelope
+    connect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+  }
+
+  export type TableResultUncheckedCreateNestedManyWithoutVotingPlaceInput = {
+    create?: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput> | TableResultCreateWithoutVotingPlaceInput[] | TableResultUncheckedCreateWithoutVotingPlaceInput[]
+    connectOrCreate?: TableResultCreateOrConnectWithoutVotingPlaceInput | TableResultCreateOrConnectWithoutVotingPlaceInput[]
+    createMany?: TableResultCreateManyVotingPlaceInputEnvelope
+    connect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+  }
+
   export type NullableFloatFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type TableResultUpdateManyWithoutVotingPlaceNestedInput = {
+    create?: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput> | TableResultCreateWithoutVotingPlaceInput[] | TableResultUncheckedCreateWithoutVotingPlaceInput[]
+    connectOrCreate?: TableResultCreateOrConnectWithoutVotingPlaceInput | TableResultCreateOrConnectWithoutVotingPlaceInput[]
+    upsert?: TableResultUpsertWithWhereUniqueWithoutVotingPlaceInput | TableResultUpsertWithWhereUniqueWithoutVotingPlaceInput[]
+    createMany?: TableResultCreateManyVotingPlaceInputEnvelope
+    set?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    disconnect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    delete?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    connect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    update?: TableResultUpdateWithWhereUniqueWithoutVotingPlaceInput | TableResultUpdateWithWhereUniqueWithoutVotingPlaceInput[]
+    updateMany?: TableResultUpdateManyWithWhereWithoutVotingPlaceInput | TableResultUpdateManyWithWhereWithoutVotingPlaceInput[]
+    deleteMany?: TableResultScalarWhereInput | TableResultScalarWhereInput[]
+  }
+
+  export type TableResultUncheckedUpdateManyWithoutVotingPlaceNestedInput = {
+    create?: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput> | TableResultCreateWithoutVotingPlaceInput[] | TableResultUncheckedCreateWithoutVotingPlaceInput[]
+    connectOrCreate?: TableResultCreateOrConnectWithoutVotingPlaceInput | TableResultCreateOrConnectWithoutVotingPlaceInput[]
+    upsert?: TableResultUpsertWithWhereUniqueWithoutVotingPlaceInput | TableResultUpsertWithWhereUniqueWithoutVotingPlaceInput[]
+    createMany?: TableResultCreateManyVotingPlaceInputEnvelope
+    set?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    disconnect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    delete?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    connect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
+    update?: TableResultUpdateWithWhereUniqueWithoutVotingPlaceInput | TableResultUpdateWithWhereUniqueWithoutVotingPlaceInput[]
+    updateMany?: TableResultUpdateManyWithWhereWithoutVotingPlaceInput | TableResultUpdateManyWithWhereWithoutVotingPlaceInput[]
+    deleteMany?: TableResultScalarWhereInput | TableResultScalarWhereInput[]
+  }
+
+  export type VotingPlaceCreateNestedOneWithoutTablesInput = {
+    create?: XOR<VotingPlaceCreateWithoutTablesInput, VotingPlaceUncheckedCreateWithoutTablesInput>
+    connectOrCreate?: VotingPlaceCreateOrConnectWithoutTablesInput
+    connect?: VotingPlaceWhereUniqueInput
+  }
+
+  export type VotingPlaceUpdateOneRequiredWithoutTablesNestedInput = {
+    create?: XOR<VotingPlaceCreateWithoutTablesInput, VotingPlaceUncheckedCreateWithoutTablesInput>
+    connectOrCreate?: VotingPlaceCreateOrConnectWithoutTablesInput
+    upsert?: VotingPlaceUpsertWithoutTablesInput
+    connect?: VotingPlaceWhereUniqueInput
+    update?: XOR<XOR<VotingPlaceUpdateToOneWithWhereWithoutTablesInput, VotingPlaceUpdateWithoutTablesInput>, VotingPlaceUncheckedUpdateWithoutTablesInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -24442,6 +26046,132 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
+  export type TableResultCreateWithoutVotingPlaceInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    updatedAt?: Date | string
+  }
+
+  export type TableResultUncheckedCreateWithoutVotingPlaceInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    updatedAt?: Date | string
+  }
+
+  export type TableResultCreateOrConnectWithoutVotingPlaceInput = {
+    where: TableResultWhereUniqueInput
+    create: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput>
+  }
+
+  export type TableResultCreateManyVotingPlaceInputEnvelope = {
+    data: TableResultCreateManyVotingPlaceInput | TableResultCreateManyVotingPlaceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TableResultUpsertWithWhereUniqueWithoutVotingPlaceInput = {
+    where: TableResultWhereUniqueInput
+    update: XOR<TableResultUpdateWithoutVotingPlaceInput, TableResultUncheckedUpdateWithoutVotingPlaceInput>
+    create: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput>
+  }
+
+  export type TableResultUpdateWithWhereUniqueWithoutVotingPlaceInput = {
+    where: TableResultWhereUniqueInput
+    data: XOR<TableResultUpdateWithoutVotingPlaceInput, TableResultUncheckedUpdateWithoutVotingPlaceInput>
+  }
+
+  export type TableResultUpdateManyWithWhereWithoutVotingPlaceInput = {
+    where: TableResultScalarWhereInput
+    data: XOR<TableResultUpdateManyMutationInput, TableResultUncheckedUpdateManyWithoutVotingPlaceInput>
+  }
+
+  export type TableResultScalarWhereInput = {
+    AND?: TableResultScalarWhereInput | TableResultScalarWhereInput[]
+    OR?: TableResultScalarWhereInput[]
+    NOT?: TableResultScalarWhereInput | TableResultScalarWhereInput[]
+    id?: StringFilter<"TableResult"> | string
+    mesaNumero?: IntFilter<"TableResult"> | number
+    votosCandidato?: IntFilter<"TableResult"> | number
+    votosTotales?: IntFilter<"TableResult"> | number
+    votingPlaceId?: StringFilter<"TableResult"> | string
+    updatedAt?: DateTimeFilter<"TableResult"> | Date | string
+  }
+
+  export type VotingPlaceCreateWithoutTablesInput = {
+    id?: string
+    nombre: string
+    departamento: string
+    municipio: string
+    direccion: string
+    totalMesas?: number
+    latitud?: number | null
+    longitud?: number | null
+    codigo?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VotingPlaceUncheckedCreateWithoutTablesInput = {
+    id?: string
+    nombre: string
+    departamento: string
+    municipio: string
+    direccion: string
+    totalMesas?: number
+    latitud?: number | null
+    longitud?: number | null
+    codigo?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VotingPlaceCreateOrConnectWithoutTablesInput = {
+    where: VotingPlaceWhereUniqueInput
+    create: XOR<VotingPlaceCreateWithoutTablesInput, VotingPlaceUncheckedCreateWithoutTablesInput>
+  }
+
+  export type VotingPlaceUpsertWithoutTablesInput = {
+    update: XOR<VotingPlaceUpdateWithoutTablesInput, VotingPlaceUncheckedUpdateWithoutTablesInput>
+    create: XOR<VotingPlaceCreateWithoutTablesInput, VotingPlaceUncheckedCreateWithoutTablesInput>
+    where?: VotingPlaceWhereInput
+  }
+
+  export type VotingPlaceUpdateToOneWithWhereWithoutTablesInput = {
+    where?: VotingPlaceWhereInput
+    data: XOR<VotingPlaceUpdateWithoutTablesInput, VotingPlaceUncheckedUpdateWithoutTablesInput>
+  }
+
+  export type VotingPlaceUpdateWithoutTablesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    departamento?: StringFieldUpdateOperationsInput | string
+    municipio?: StringFieldUpdateOperationsInput | string
+    direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
+    latitud?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitud?: NullableFloatFieldUpdateOperationsInput | number | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VotingPlaceUncheckedUpdateWithoutTablesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    departamento?: StringFieldUpdateOperationsInput | string
+    municipio?: StringFieldUpdateOperationsInput | string
+    direccion?: StringFieldUpdateOperationsInput | string
+    totalMesas?: IntFieldUpdateOperationsInput | number
+    latitud?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitud?: NullableFloatFieldUpdateOperationsInput | number | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type FinancialEntryCreateManyTenantInput = {
     id?: string
     type: $Enums.EntryType
@@ -25428,6 +27158,38 @@ export namespace Prisma {
     quantity?: IntFieldUpdateOperationsInput | number
     type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultCreateManyVotingPlaceInput = {
+    id?: string
+    mesaNumero: number
+    votosCandidato?: number
+    votosTotales?: number
+    updatedAt?: Date | string
+  }
+
+  export type TableResultUpdateWithoutVotingPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultUncheckedUpdateWithoutVotingPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableResultUncheckedUpdateManyWithoutVotingPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesaNumero?: IntFieldUpdateOperationsInput | number
+    votosCandidato?: IntFieldUpdateOperationsInput | number
+    votosTotales?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

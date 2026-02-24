@@ -59,7 +59,6 @@ export interface CampaignEvent {
   priority?: 'Baja' | 'Media' | 'Alta';
   targetAttendees?: number;
 }
-export interface PollingStation { id: string; name: string; totalTables: number; reportedTables: number; witnessesCount: number; }
 export interface E14Report { id: string; stationId: string; tableNumber: string; votesCandidate: number; votesOpponent: number; imageUrl?: string; timestamp: string; }
 export interface Broadcast { id: string; name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; status: 'Procesando' | 'Enviado' | 'Error'; sentCount: number; deliveredCount: number; segment: string; message: string; date: string; activeStatus: 'active' | 'archived'; }
 export interface CampaignTask { id: string; title: string; type: 'Puerta a Puerta' | 'Llamadas' | 'Logística' | 'Pegar Publicidad'; assignedTo: string; status: 'Pendiente' | 'En Progreso' | 'Completada'; deadline: string; progress: number; description: string; }
@@ -73,7 +72,6 @@ interface CRMContextType {
   finance: FinanceTransaction[];
   witnesses: any[];
   events: CampaignEvent[];
-  pollingStations: PollingStation[];
   e14Reports: E14Report[];
   broadcasts: Broadcast[];
   tasks: CampaignTask[];
@@ -89,9 +87,6 @@ interface CRMContextType {
   addTerritoryZone: (zone: Omit<TerritoryZone, 'id' | 'current'>) => void;
   updateTerritoryZone: (id: string, zone: Partial<TerritoryZone>) => void;
   deleteTerritoryZone: (id: string) => void;
-  addPollingStation: (station: Omit<PollingStation, 'id' | 'reportedTables'>) => void;
-  importPollingStations: (stations: Omit<PollingStation, 'id' | 'reportedTables'>[]) => void;
-  deletePollingStation: (id: string) => void;
   addFinanceTransaction: (transaction: Omit<FinanceTransaction, 'id'>) => void;
   updateFinanceTransaction: (id: string, transaction: Partial<FinanceTransaction>) => void;
   deleteFinanceTransaction: (id: string) => void;
@@ -137,7 +132,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [finance, setFinance] = useState<FinanceTransaction[]>([]);
   const [witnesses, setWitnesses] = useState<any[]>([]);
   const [events, setEvents] = useState<CampaignEvent[]>([]);
-  const [pollingStations, setPollingStations] = useState<PollingStation[]>([]);
   const [e14Reports, setE14Reports] = useState<E14Report[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [tasks, setTasks] = useState<CampaignTask[]>([]);
@@ -160,7 +154,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const loadedFinance = parse('crm_finance', []);
     const loadedWitnesses = parse('crm_witnesses', []);
     const loadedEvents = parse('crm_events', []);
-    const loadedStations = parse('crm_stations', []);
     const loadedReports = parse('crm_reports', []);
     const loadedBroadcasts = parse('crm_broadcasts', []);
     const loadedTasks = parse('crm_tasks', []);
@@ -196,7 +189,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setFinance(loadedFinance);
     setWitnesses(loadedWitnesses);
     setEvents(loadedEvents);
-    setPollingStations(loadedStations);
     setE14Reports(loadedReports);
     setBroadcasts(loadedBroadcasts);
     setTasks(loadedTasks);
@@ -218,14 +210,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     save('crm_finance', finance);
     save('crm_witnesses', witnesses);
     save('crm_events', events);
-    save('crm_stations', pollingStations);
     save('crm_reports', e14Reports);
     save('crm_broadcasts', broadcasts);
     save('crm_tasks', tasks);
     save('crm_team', team);
     save('crm_compliance', compliance);
     save('crm_audit', auditLogs);
-  }, [isLoaded, contacts, territory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
+  }, [isLoaded, contacts, territory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
 
   // FUNCIONES
   const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
@@ -261,23 +252,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTerritoryZone = useCallback((id: string) => {
     setTerritory(prev => prev.filter(z => z.id !== id));
-  }, []);
-
-  const addPollingStation = useCallback((s: Omit<PollingStation, 'id' | 'reportedTables'>) => {
-    setPollingStations(prev => [{ ...s, id: 'ps-' + Date.now(), reportedTables: 0 }, ...prev]);
-  }, []);
-
-  const importPollingStations = useCallback((stations: Omit<PollingStation, 'id' | 'reportedTables'>[]) => {
-    const newStations = stations.map((s, index) => ({
-      ...s,
-      id: 'ps-' + Date.now() + '-' + index,
-      reportedTables: 0
-    }));
-    setPollingStations(prev => [...newStations, ...prev]);
-  }, []);
-
-  const deletePollingStation = useCallback((id: string) => {
-    setPollingStations(prev => prev.filter(s => s.id !== id));
   }, []);
 
   const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
@@ -316,23 +290,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const deleteEvent = useCallback((id: string) => { setEvents(prev => prev.filter(e => e.id !== id)); }, []);
   const rsvpEvent = useCallback((id: string) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e)); }, []);
   const reportE14 = useCallback((r: Omit<E14Report, 'id' | 'timestamp'>) => { 
-    let isNew = true;
     setE14Reports(prev => {
       const existingIndex = prev.findIndex(rep => rep.stationId === r.stationId && rep.tableNumber === r.tableNumber);
       if (existingIndex >= 0) {
-        isNew = false;
         const updated = [...prev];
         updated[existingIndex] = { ...updated[existingIndex], ...r, timestamp: new Date().toISOString() };
         return updated;
       }
       return [...prev, {...r, id: 'rep-'+Date.now(), timestamp: new Date().toISOString()}];
     });
-    
-    setTimeout(() => {
-      if (isNew) {
-        setPollingStations(prev => prev.map(s => s.id === r.stationId ? { ...s, reportedTables: s.reportedTables + 1 } : s));
-      }
-    }, 0);
   }, []);
   const sendBroadcast = useCallback((d: Omit<Broadcast, 'id' | 'status' | 'sentCount' | 'deliveredCount' | 'date' | 'activeStatus'>) => {
     const id = 'br-'+Date.now();
@@ -389,7 +355,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     myVotes: e14Reports.reduce((a, b) => a + Number(b.votesCandidate || 0), 0), 
     opponentVotes: e14Reports.reduce((a, b) => a + Number(b.votesOpponent || 0), 0), 
     tablesReported: e14Reports.length, 
-    totalTables: pollingStations.reduce((a, b) => a + Number(b.totalTables || 0), 0) 
+    totalTables: 0 // Se gestionará desde el API
   });
   const getTeamStats = () => ({ totalTasks: tasks.length, completedTasks: tasks.filter(t => t.status === 'Completada').length, teamEfficiency: tasks.length > 0 ? (tasks.filter(t => t.status === 'Completada').length / tasks.length) * 100 : 0 });
   const getComplianceScore = () => compliance.length > 0 ? (compliance.filter(o => o.status === 'Cumplido').length / compliance.length) * 100 : 0;
@@ -431,8 +397,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CRMContext.Provider value={{ 
-      contacts, territory: enrichedTerritory, finance, witnesses, events, pollingStations, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
-      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addPollingStation, importPollingStations, deletePollingStation, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, logAction,
+      contacts, territory: enrichedTerritory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
+      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, logAction,
       getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore
     }}>
       {children}

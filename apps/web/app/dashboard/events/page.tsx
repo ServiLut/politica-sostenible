@@ -911,7 +911,7 @@ export default function EventsPage() {
                               ))}
                             </div>
                             <div className="grid grid-cols-7 gap-1">
-                              {renderCalendar(newEvent.date, (d) => setNewEvent({...newEvent, date: d}))}
+                              {renderCalendar(newEvent.date, (d) => setNewEvent({...newEvent, date: d}), () => setIsModalCalendarOpen(false))}
                             </div>
                           </div>
                         )}

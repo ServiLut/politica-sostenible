@@ -230,20 +230,35 @@ model InventoryMovement {
 }
 
 model VotingPlace {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   nombre       String
   departamento String
   municipio    String
   direccion    String
+  totalMesas   Int           @default(0) @map("total_mesas")
   latitud      Float?
   longitud     Float?
-  codigo       String?  @unique
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  codigo       String?       @unique
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  tables       TableResult[]
 
   @@index([municipio])
   @@index([departamento])
   @@map("voting_places")
+}
+
+model TableResult {
+  id             String      @id @default(cuid())
+  mesaNumero     Int         @map("mesa_numero")
+  votosCandidato Int         @default(0) @map("votos_candidato")
+  votosTotales   Int         @default(0) @map("votos_totales")
+  votingPlaceId  String      @map("voting_place_id")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  votingPlace    VotingPlace @relation(fields: [votingPlaceId], references: [id], onDelete: Cascade)
+
+  @@unique([votingPlaceId, mesaNumero])
+  @@map("table_results")
 }
 
 enum TenantType {
