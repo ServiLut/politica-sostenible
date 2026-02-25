@@ -805,6 +805,25 @@ export default function EventsPage() {
             >
               <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
+
+            <div className="flex items-center gap-3 ml-2 md:ml-4 bg-white border border-slate-200 rounded-2xl px-5 h-14 shadow-sm">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:inline">Página</span>
+              <input 
+                key={currentPage}
+                type="number"
+                min="1"
+                max={totalPages}
+                defaultValue={currentPage}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt((e.target as HTMLInputElement).value);
+                    if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                  }
+                }}
+                className="w-10 text-center text-xs font-black text-teal-600 outline-none"
+              />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">/ {totalPages}</span>
+            </div>
           </div>
 
           <div className="text-right order-1 md:order-2">

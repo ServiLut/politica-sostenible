@@ -732,18 +732,26 @@ export default function CompliancePage() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <div className="flex items-center gap-1.5">
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button 
-                        key={i} 
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={cn("h-9 w-9 md:h-10 md:w-10 rounded-xl text-[9px] md:text-[10px] font-black transition-all shrink-0", 
-                          currentPage === i + 1 ? "bg-slate-900 text-white shadow-lg" : "bg-white border border-slate-100 text-slate-400 hover:bg-slate-50")}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                  
+                  <div className="flex items-center gap-3 bg-white border border-slate-100 px-3 py-1 rounded-xl shadow-sm">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:inline">Página</span>
+                    <input 
+                      key={currentPage}
+                      type="number"
+                      min="1"
+                      max={totalPages}
+                      defaultValue={currentPage}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseInt((e.target as HTMLInputElement).value);
+                          if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                        }
+                      }}
+                      className="w-10 text-center text-[11px] font-black text-teal-600 outline-none"
+                    />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">/ {totalPages}</span>
                   </div>
+
                   <button 
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
@@ -753,7 +761,7 @@ export default function CompliancePage() {
                   </button>
                </div>
                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sm:text-right">
-                  Pág {currentPage} de {totalPages} <span className="mx-1 opacity-30">•</span> {filteredObligations.length} Hitos
+                  Mostrando {paginatedObligations.length} de {filteredObligations.length} Hitos
                </p>
             </div>
           )}

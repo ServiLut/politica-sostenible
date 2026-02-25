@@ -11,6 +11,9 @@ export default function TasksPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Todas');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Refs for closing dropdowns on outside click
   const typeRef = useRef<HTMLDivElement>(null);
@@ -112,8 +115,16 @@ export default function TasksPage() {
     ? tasks 
     : tasks.filter(t => t.status === activeFilter);
 
+  const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
+
   return (
-    <div className="space-y-6 h-full flex flex-col p-4 sm:p-0">
+    <div className="space-y-6 flex flex-col p-4 sm:p-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">Misiones de Campo</h1>
@@ -153,10 +164,10 @@ export default function TasksPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
         {/* Mobile View: Cards */}
-        <div className="md:hidden divide-y divide-slate-100 overflow-y-auto">
-          {filteredTasks.map(task => (
+        <div className="md:hidden divide-y divide-slate-100">
+          {paginatedTasks.map(task => (
             <div key={task.id} className={cn(
               "p-5 space-y-4 transition-colors",
               task.status === 'Completada' ? "bg-slate-50/30" : "bg-white"
@@ -259,31 +270,31 @@ export default function TasksPage() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="overflow-x-auto custom-scrollbar hidden md:block">
-          <table className="w-full text-left border-collapse min-w-[800px]">
+        <div className="hidden md:block w-full">
+          <table className="w-full text-left border-collapse table-auto">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Misión / Detalles</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Categoría</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Responsable</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Plazo</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Progreso</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Misión / Detalles</th>
+                <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Categoría</th>
+                <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Responsable</th>
+                <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Plazo</th>
+                <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Progreso</th>
+                <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Estado</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredTasks.map(task => (
+              {paginatedTasks.map(task => (
                 <tr key={task.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="max-w-[280px]">
+                  <td className="px-6 py-6 align-top">
+                    <div>
                       <div className="font-black text-slate-900 text-sm leading-tight group-hover:text-teal-600 transition-colors">{task.title}</div>
-                      <div className="text-[11px] text-slate-500 mt-1 line-clamp-1 font-medium">{task.description}</div>
+                      <div className="text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">{task.description}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-center">
+                  <td className="px-4 py-6 text-center align-top">
                     <span className={cn(
-                      "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border inline-block",
+                      "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border inline-block whitespace-nowrap",
                       task.type === 'Puerta a Puerta' ? 'bg-red-50 text-red-600 border-red-100' :
                       task.type === 'Llamadas' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                       task.type === 'Logística' ? 'bg-teal-50 text-teal-600 border-teal-100' :
@@ -292,22 +303,22 @@ export default function TasksPage() {
                       {task.type}
                     </span>
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-4 py-6 align-top">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-[11px] font-black text-white border-2 border-white shadow-lg shadow-teal-100 ring-1 ring-teal-50">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-[11px] font-black text-white border-2 border-white shadow-lg shadow-teal-100 ring-1 ring-teal-50 shrink-0">
                         {task.assignedTo.charAt(0)}
                       </div>
-                      <span className="text-xs font-black text-slate-700">{task.assignedTo}</span>
+                      <span className="text-xs font-black text-slate-700 truncate">{task.assignedTo}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 bg-slate-100/50 px-3 py-1.5 rounded-full border border-slate-200/50 w-fit">
+                  <td className="px-4 py-6 whitespace-nowrap align-top text-center">
+                    <div className="inline-flex items-center gap-2 text-[10px] font-black text-slate-600 bg-slate-100/50 px-3 py-1.5 rounded-full border border-slate-200/50">
                       <Calendar size={12} className="text-teal-600" />
                       {task.deadline}
                     </div>
                   </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-col gap-2 min-w-[120px]">
+                  <td className="px-4 py-6 align-top">
+                    <div className="flex flex-col gap-2 min-w-[100px]">
                       <div className="flex justify-between items-center text-[9px] font-black text-slate-400">
                         <span className="text-teal-600">{task.progress}%</span>
                       </div>
@@ -322,8 +333,8 @@ export default function TasksPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-6 align-top text-center">
+                    <div className="inline-flex items-center gap-2">
                       <div className={cn(
                         "w-2 h-2 rounded-full",
                         task.status === 'Pendiente' ? 'bg-red-500 animate-pulse' :
@@ -333,7 +344,7 @@ export default function TasksPage() {
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{task.status}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-right">
+                  <td className="px-6 py-6 text-right align-top">
                     {task.status !== 'Completada' ? (
                       <button 
                         onClick={() => completeTask(task.id)}
@@ -363,6 +374,52 @@ export default function TasksPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-8 py-6 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Página
+              </p>
+              <input
+                key={currentPage}
+                type="number"
+                min="1"
+                max={totalPages}
+                defaultValue={currentPage}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt((e.target as HTMLInputElement).value);
+                    if (val >= 1 && val <= totalPages) {
+                      setCurrentPage(val);
+                    }
+                  }
+                }}
+                className="w-12 h-8 bg-white border-2 border-slate-100 rounded-lg text-center text-xs font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+              />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                de {totalPages}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCRM, PipelineStage, Contact } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { 
@@ -38,7 +38,9 @@ export default function PipelinePage() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [isDetailViewMobile, setIsDetailViewMobile] = useState(false);
   const [showTerritoryDropdown, setShowTerritoryDropdown] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(50);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   // AI Analysis States
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -54,18 +56,15 @@ export default function PipelinePage() {
     });
   }, [contacts, activeStage, searchTerm, selectedLeader]);
 
+  const totalPages = Math.ceil(filteredContacts.length / itemsPerPage);
   const displayedContacts = useMemo(() => {
-    return filteredContacts.slice(0, visibleCount);
-  }, [filteredContacts, visibleCount]);
+    return filteredContacts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredContacts, currentPage]);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
-      if (visibleCount < filteredContacts.length) {
-        setVisibleCount(prev => prev + 50);
-      }
-    }
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStage, searchTerm, selectedLeader]);
 
   const selectedContact = useMemo(() => 
     contacts.find(c => c.id === selectedContactId) || filteredContacts[0], 
@@ -292,7 +291,7 @@ export default function PipelinePage() {
           {funnelStats.map((stat, i) => (
             <button
               key={stat.stage}
-              onClick={() => { setActiveStage(stat.stage as PipelineStage); setVisibleCount(50); }}
+              onClick={() => { setActiveStage(stat.stage as PipelineStage); }}
               className={cn(
                 "flex-1 px-6 py-5 transition-all hover:bg-slate-50 text-left relative overflow-hidden group min-w-[140px]",
                 activeStage === stat.stage ? "bg-teal-50/30" : "bg-transparent"
@@ -405,7 +404,6 @@ export default function PipelinePage() {
         )}>
           <div 
             className="flex-1 overflow-y-auto custom-scrollbar"
-            onScroll={handleScroll}
           >
             {displayedContacts.map((contact) => (
               <button
@@ -446,13 +444,6 @@ export default function PipelinePage() {
               </button>
             ))}
             
-            {filteredContacts.length > displayedContacts.length && (
-              <div className="p-8 text-center bg-slate-50/20">
-                 <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                 <p className="text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Cargando registros tácticos...</p>
-              </div>
-            )}
-
             {filteredContacts.length === 0 && (
               <div className="p-20 text-center">
                 <Users size={48} className="text-slate-100 mx-auto mb-4" />
@@ -460,6 +451,48 @@ export default function PipelinePage() {
               </div>
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pág</p>
+                <input
+                  key={currentPage}
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  defaultValue={currentPage}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt((e.target as HTMLInputElement).value);
+                      if (val >= 1 && val <= totalPages) {
+                        setCurrentPage(val);
+                      }
+                    }
+                  }}
+                  className="w-10 h-7 bg-white border border-slate-200 rounded-lg text-center text-[10px] font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+                />
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">de {totalPages}</p>
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
             <span>{filteredContacts.length.toLocaleString()} Pax Registrados</span>
             <span className="text-teal-600">Sync Online</span>

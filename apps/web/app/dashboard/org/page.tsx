@@ -5,7 +5,7 @@ import { useCRM, TeamMember } from '@/context/CRMContext';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/context/ToastContext';
 import { AlertDialog } from '@/components/ui/AlertDialog';
-import { Users, UserPlus, MapPin, X, Mail, Edit, Ban, RotateCcw, ChevronDown, Check } from 'lucide-react';
+import { Users, UserPlus, MapPin, X, Mail, Edit, Ban, RotateCcw, ChevronDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 
 export default function OrgPage() {
@@ -13,6 +13,9 @@ export default function OrgPage() {
   const { role: currentUserRole } = useAuth();
   const { success: toastSuccess } = useToast();
   const { teamEfficiency } = getTeamStats();
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -92,6 +95,9 @@ export default function OrgPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  const totalPages = Math.ceil(team.length / itemsPerPage);
+  const paginatedTeam = team.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeModal();
@@ -143,7 +149,7 @@ export default function OrgPage() {
 
         {/* Mobile View: Cards */}
         <div className="md:hidden divide-y divide-slate-100">
-          {team.map((m) => (
+          {paginatedTeam.map((m) => (
             <div key={m.id} className={cn(
               "p-6 space-y-4",
               m.status === 'suspended' && "bg-slate-50/50 grayscale opacity-70"
@@ -249,7 +255,7 @@ export default function OrgPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {team.map((m) => (
+              {paginatedTeam.map((m) => (
                 <tr key={m.id} className={cn(
                   "hover:bg-slate-50/50 transition-colors group",
                   m.status === 'suspended' && "opacity-50 grayscale"
@@ -332,10 +338,56 @@ export default function OrgPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-8 py-6 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Página
+              </p>
+              <input
+                key={currentPage}
+                type="number"
+                min="1"
+                max={totalPages}
+                defaultValue={currentPage}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt((e.target as HTMLInputElement).value);
+                    if (val >= 1 && val <= totalPages) {
+                      setCurrentPage(val);
+                    }
+                  }
+                }}
+                className="w-12 h-8 bg-white border-2 border-slate-100 rounded-lg text-center text-xs font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+              />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                de {totalPages}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-      
-            {/* Invite Modal */}
-            {isModalOpen && (
+
+      {/* Invite Modal */}
+      {isModalOpen && (
               <div 
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 onClick={closeModal}

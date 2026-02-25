@@ -24,8 +24,52 @@ export default function SecurityPage() {
   const [isSeverityOpen, setIsSeverityOpen] = useState(false);
   const [isModuleOpen, setIsModuleOpen] = useState(false);
   const [isRangeOpen, setIsRangeOpen] = useState(false);
+  const [isStartCalendarOpen, setIsStartCalendarOpen] = useState(false);
+  const [isEndCalendarOpen, setIsEndCalendarOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
 
   const SEVERITIES = ["Critical", "Warning", "Info"];
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+  const renderCalendar = (currentDate: string, onSelect: (date: string) => void, closeFn: () => void) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = [];
+    const totalDays = daysInMonth(year, month);
+    const startDay = firstDayOfMonth(year, month);
+
+    for (let i = 0; i < startDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const isSelected = currentDate === dateStr;
+      
+      days.push(
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            onSelect(dateStr);
+            closeFn();
+          }}
+          className={cn(
+            "h-8 w-8 rounded-xl text-[10px] font-black transition-all flex items-center justify-center border-2",
+            isSelected 
+              ? "bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-200" 
+              : "bg-white border-transparent hover:bg-teal-50 hover:border-teal-100 text-slate-600"
+          )}
+        >
+          {i}
+        </button>
+      );
+    }
+    return days;
+  };
   const MODULES = Array.from(new Set(auditLogs.map(log => log.module)));
 
   const filteredLogs = React.useMemo(() => {
@@ -267,21 +311,76 @@ export default function SecurityPage() {
             <ChevronDown size={14} className={cn("shrink-0", isRangeOpen && "rotate-180")} />
           </button>
           {isRangeOpen && (
-            <div className="absolute top-full right-0 mt-2 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-50 w-72 max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-200 space-y-4">
+            <div className="absolute top-full right-0 mt-2 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-50 w-80 max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-200 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Audit Window</span>
                 <button onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }} className="text-[9px] font-black text-teal-600 uppercase hover:underline">Clear</button>
               </div>
-              <div className="space-y-3">
+              
+              <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">START_DATE</label>
-                  <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsStartCalendarOpen(!isStartCalendarOpen); setIsEndCalendarOpen(false); }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-[10px] font-bold text-slate-700 text-left flex items-center justify-between focus:border-teal-500 transition-all outline-none"
+                    >
+                      <span>{filterStartDate || "Seleccionar..."}</span>
+                      <Calendar size={14} className="text-teal-600" />
+                    </button>
+                    {isStartCalendarOpen && (
+                      <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[60] animate-in fade-in zoom-in-95 duration-200 w-full min-w-[240px]">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))} className="p-1 hover:bg-teal-50 rounded-lg text-teal-600"><ChevronLeft size={14} /></button>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-900">{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+                          <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))} className="p-1 hover:bg-teal-50 rounded-lg text-teal-600"><ChevronRight size={14} /></button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 mb-1">
+                          {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                            <div key={`${d}-${i}`} className="h-8 w-8 flex items-center justify-center text-[7px] font-black text-slate-300 uppercase">{d}</div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {renderCalendar(filterStartDate, (d) => setFilterStartDate(d), () => setIsStartCalendarOpen(false))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">END_DATE</label>
-                  <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold outline-none [color-scheme:light]" />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsEndCalendarOpen(!isEndCalendarOpen); setIsStartCalendarOpen(false); }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-[10px] font-bold text-slate-700 text-left flex items-center justify-between focus:border-teal-500 transition-all outline-none"
+                    >
+                      <span>{filterEndDate || "Seleccionar..."}</span>
+                      <Calendar size={14} className="text-teal-600" />
+                    </button>
+                    {isEndCalendarOpen && (
+                      <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[60] animate-in fade-in zoom-in-95 duration-200 w-full min-w-[240px]">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))} className="p-1 hover:bg-teal-50 rounded-lg text-teal-600"><ChevronLeft size={14} /></button>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-900">{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+                          <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))} className="p-1 hover:bg-teal-50 rounded-lg text-teal-600"><ChevronRight size={14} /></button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 mb-1">
+                          {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                            <div key={`${d}-${i}`} className="h-8 w-8 flex items-center justify-center text-[7px] font-black text-slate-300 uppercase">{d}</div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {renderCalendar(filterEndDate, (d) => setFilterEndDate(d), () => setIsEndCalendarOpen(false))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
               <button onClick={() => setIsRangeOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-teal-600 transition-all">Establecer Período</button>
             </div>
           )}
@@ -346,7 +445,7 @@ export default function SecurityPage() {
         {/* Tactical Pagination Controls */}
         {totalPages > 1 && (
           <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center justify-between gap-6">
-            <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-center">
+            <div className="flex items-center gap-4">
               <button 
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -355,24 +454,23 @@ export default function SecurityPage() {
                 <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               
-              <div className="flex gap-1.5 md:gap-2">
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  if (totalPages > 5 && Math.abs(p - currentPage) > 1 && p !== 1 && p !== totalPages) {
-                    if (p === 2 || p === totalPages - 1) return <span key={p} className="text-slate-300 px-1 font-black">...</span>;
-                    return null;
-                  }
-                  return (
-                    <button 
-                      key={p} 
-                      onClick={() => setCurrentPage(p)}
-                      className={cn("h-10 w-10 md:h-12 md:w-12 rounded-xl text-[9px] md:text-[10px] font-black uppercase transition-all", 
-                        currentPage === p ? "bg-teal-50 text-teal-600 border-2 border-teal-200 shadow-sm scale-110" : "bg-white text-slate-400 hover:bg-slate-50")}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:inline">Página</span>
+                <input 
+                  key={currentPage}
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  defaultValue={currentPage}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt((e.target as HTMLInputElement).value);
+                      if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                    }
+                  }}
+                  className="w-10 text-center text-xs font-black text-teal-600 outline-none"
+                />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">/ {totalPages}</span>
               </div>
 
               <button 
@@ -382,13 +480,6 @@ export default function SecurityPage() {
               >
                 <ChevronRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
-            </div>
-
-            <div className="text-center w-full">
-              <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Index de Auditoría</p>
-              <p className="text-[10px] md:text-[11px] font-bold text-slate-600 uppercase">
-                <span className="text-teal-600">{paginatedLogs.length}</span> de <span className="text-teal-600">{filteredLogs.length}</span> trazas
-              </p>
             </div>
           </div>
         )}

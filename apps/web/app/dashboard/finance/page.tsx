@@ -28,6 +28,9 @@ export default function FinancePage() {
   } = useCRM();
   const { success: toastSuccess } = useToast();
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isCneDropdownOpen, setIsCneDropdownOpen] = useState(false);
@@ -98,6 +101,9 @@ export default function FinancePage() {
   }, [finance, getProjectedCompliance]);
 
   const { totalIncome, totalExpenses, balance, executionPercentage } = complianceData;
+
+  const totalPages = Math.ceil(finance.length / itemsPerPage);
+  const paginatedFinance = finance.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const alertStatus = useMemo(() => {
     if (executionPercentage > 90) return { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', msg: '¡PELIGRO! Riesgo de sanción administrativa', icon: <AlertCircle className="animate-pulse" /> };
@@ -191,7 +197,7 @@ export default function FinancePage() {
           <>
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-slate-100">
-              {finance.map((t) => (
+              {paginatedFinance.map((t) => (
                 <div key={t.id} className="p-6 space-y-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1 min-w-0">
@@ -260,7 +266,7 @@ export default function FinancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {finance.map((t) => (
+                  {paginatedFinance.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
                       <td className="px-10 py-6">
                         <p className="text-sm font-black text-slate-900 uppercase mb-1">{t.concept}</p>
@@ -281,6 +287,52 @@ export default function FinancePage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Página
+                  </p>
+                  <input
+                    key={currentPage}
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    defaultValue={currentPage}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseInt((e.target as HTMLInputElement).value);
+                        if (val >= 1 && val <= totalPages) {
+                          setCurrentPage(val);
+                        }
+                      }
+                    }}
+                    className="w-12 h-8 bg-white border-2 border-slate-100 rounded-lg text-center text-xs font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+                  />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    de {totalPages}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

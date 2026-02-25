@@ -355,9 +355,30 @@ export default function SettingsPage() {
 
                 {totalTerritoryPages > 1 && (
                   <div className="p-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Página <span className="text-teal-600">{currentTerritoryPage}</span> de {totalTerritoryPages}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Página
+                      </p>
+                      <input
+                        key={currentTerritoryPage}
+                        type="number"
+                        min="1"
+                        max={totalTerritoryPages}
+                        defaultValue={currentTerritoryPage}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseInt((e.target as HTMLInputElement).value);
+                            if (val >= 1 && val <= totalTerritoryPages) {
+                              setCurrentTerritoryPage(val);
+                            }
+                          }
+                        }}
+                        className="w-12 h-8 bg-white border-2 border-slate-100 rounded-lg text-center text-xs font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+                      />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        de {totalTerritoryPages}
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <button disabled={currentTerritoryPage === 1} onClick={() => setCurrentTerritoryPage(p => p - 1)} className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all"><ChevronLeft size={18} /></button>
                       <button disabled={currentTerritoryPage === totalTerritoryPages} onClick={() => setCurrentTerritoryPage(p => p + 1)} className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-teal-600 disabled:opacity-30 transition-all"><ChevronRight size={18} /></button>
@@ -505,9 +526,30 @@ export default function SettingsPage() {
 
             {stationsTotalPages > 1 && (
               <div className="p-8 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Página <span className="text-teal-600">{currentStationPage}</span> de {stationsTotalPages}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Página
+                  </p>
+                  <input
+                    key={currentStationPage}
+                    type="number"
+                    min="1"
+                    max={stationsTotalPages}
+                    defaultValue={currentStationPage}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseInt((e.target as HTMLInputElement).value);
+                        if (val >= 1 && val <= stationsTotalPages) {
+                          updateStationsParams({ page: val });
+                        }
+                      }
+                    }}
+                    className="w-12 h-8 bg-white border-2 border-slate-100 rounded-lg text-center text-xs font-black text-teal-600 focus:border-teal-500 outline-none transition-all"
+                  />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    de {stationsTotalPages}
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <button
                     disabled={currentStationPage === 1}

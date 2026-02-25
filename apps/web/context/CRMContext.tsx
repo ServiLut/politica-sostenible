@@ -149,20 +149,34 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       return saved ? JSON.parse(saved) : def;
     };
 
-    const loadedContacts = parse('crm_contacts', []);
+    // Helper to ensure unique IDs across legacy data
+    const fixIds = (data: any[], prefix: string) => {
+      const seen = new Set();
+      return data.map((item, index) => {
+        if (!item.id || seen.has(item.id)) {
+          const newId = `${prefix}-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 9)}`;
+          seen.add(newId);
+          return { ...item, id: newId };
+        }
+        seen.add(item.id);
+        return item;
+      });
+    };
+
+    const loadedContacts = fixIds(parse('crm_contacts', []), 'contact');
     const loadedGoal = parse('crm_campaign_goal', 50000);
-    const loadedFinance = parse('crm_finance', []);
+    const loadedFinance = fixIds(parse('crm_finance', []), 'tx');
     const loadedWitnesses = parse('crm_witnesses', []);
-    const loadedEvents = parse('crm_events', []);
-    const loadedReports = parse('crm_reports', []);
-    const loadedBroadcasts = parse('crm_broadcasts', []);
-    const loadedTasks = parse('crm_tasks', []);
-    const loadedTeam = parse('crm_team', []);
-    const loadedCompliance = parse('crm_compliance', DEFAULT_COMPLIANCE);
-    const loadedAudit = parse('crm_audit', []);
+    const loadedEvents = fixIds(parse('crm_events', []), 'e');
+    const loadedReports = fixIds(parse('crm_reports', []), 'rep');
+    const loadedBroadcasts = fixIds(parse('crm_broadcasts', []), 'br');
+    const loadedTasks = fixIds(parse('crm_tasks', []), 'tk');
+    const loadedTeam = fixIds(parse('crm_team', []), 'u');
+    const loadedCompliance = fixIds(parse('crm_compliance', DEFAULT_COMPLIANCE), 'req');
+    const loadedAudit = fixIds(parse('crm_audit', []), 'log');
 
     // Mezclar Territorio
-    const savedTerritory = parse('crm_territory', []);
+    const savedTerritory = fixIds(parse('crm_territory', []), 'tz');
     const mergedMap = new Map();
     MEDELLIN_ZONES.forEach(z => mergedMap.set(z.name.toLowerCase(), { ...z }));
     
@@ -220,12 +234,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   // FUNCIONES
   const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
-    const log: AuditLog = { id: 'log-' + Date.now(), actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
+    const log: AuditLog = { id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
     setAuditLogs(prev => [log, ...prev]);
   }, []);
 
   const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
-    setContacts(prev => [{ ...c, id: 'contact-' + Date.now(), createdAt: new Date().toISOString(), status: 'active' } as Contact, ...prev]);
+    setContacts(prev => [{ ...c, id: `contact-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, createdAt: new Date().toISOString(), status: 'active' } as Contact, ...prev]);
     logAction('Sistema', `Nuevo registro: ${c.name} (${c.neighborhood})`, 'Votantes', 'Info');
   }, [logAction]);
 
@@ -243,7 +257,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, [contacts, logAction]);
   
   const addTerritoryZone = useCallback((z: Omit<TerritoryZone, 'id' | 'current'>) => {
-    setTerritory(prev => [...prev, { ...z, id: 'tz-' + Date.now(), current: 0 }]);
+    setTerritory(prev => [...prev, { ...z, id: `tz-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, current: 0 }]);
   }, []);
 
   const updateTerritoryZone = useCallback((id: string, z: Partial<TerritoryZone>) => {
@@ -255,7 +269,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
-    setFinance(prev => [{ ...t, id: 'tx-' + Date.now() }, ...prev]);
+    setFinance(prev => [{ ...t, id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` }, ...prev]);
     logAction('Tesorero', `${t.type}: ${t.concept} - $${t.amount.toLocaleString()}`, 'Finanzas', 'Info');
   }, [logAction]);
 
@@ -283,7 +297,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addEvent = useCallback((e: Omit<CampaignEvent, 'id'>) => { 
-    setEvents(prev => [{...e, id: 'e'+Date.now()}, ...prev]); 
+    setEvents(prev => [{...e, id: `e-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`}, ...prev]); 
     logAction('Operaciones', `Evento creado: ${e.title}`, 'Eventos', 'Info');
   }, [logAction]);
   const updateEvent = useCallback((id: string, f: Partial<CampaignEvent>) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, ...f } : e)); }, []);
@@ -297,25 +311,25 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         updated[existingIndex] = { ...updated[existingIndex], ...r, timestamp: new Date().toISOString() };
         return updated;
       }
-      return [...prev, {...r, id: 'rep-'+Date.now(), timestamp: new Date().toISOString()}];
+      return [...prev, {...r, id: `rep-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, timestamp: new Date().toISOString()}];
     });
   }, []);
   const sendBroadcast = useCallback((d: Omit<Broadcast, 'id' | 'status' | 'sentCount' | 'deliveredCount' | 'date' | 'activeStatus'>) => {
-    const id = 'br-'+Date.now();
+    const id = `br-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     setBroadcasts(prev => [{...d, id, status: 'Procesando', sentCount: 0, deliveredCount: 0, date: new Date().toISOString().split('T')[0], activeStatus: 'active'} as Broadcast, ...prev]);
     setTimeout(() => setBroadcasts(prev => prev.map(b => b.id === id ? {...b, status: 'Enviado', sentCount: 100, deliveredCount: 98} : b)), 2000);
   }, []);
   const updateBroadcast = useCallback((id: string, d: Partial<Broadcast>) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, ...d } : b)); }, []);
   const toggleBroadcastStatus = useCallback((id: string) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, activeStatus: b.activeStatus === 'active' ? 'archived' : 'active' } : b)); }, []);
-  const addTask = useCallback((t: Omit<CampaignTask, 'id' | 'status' | 'progress'>) => { setTasks(prev => [{...t, id: 'tk-'+Date.now(), status: 'Pendiente', progress: 0}, ...prev]); }, []);
+  const addTask = useCallback((t: Omit<CampaignTask, 'id' | 'status' | 'progress'>) => { setTasks(prev => [{...t, id: `tk-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, status: 'Pendiente', progress: 0}, ...prev]); }, []);
   const completeTask = useCallback((id: string) => { 
     setTasks(prev => prev.map(x => x.id === id ? {...x, status: 'Completada', progress: 100} : x));
   }, []);
-  const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: 'u-'+Date.now(), performance: 0, status: 'active'}, ...prev]); }, []);
+  const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, performance: 0, status: 'active'}, ...prev]); }, []);
   const updateMember = useCallback((id: string, m: Partial<TeamMember>) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
   const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
   const addComplianceObligation = useCallback((o: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => {
-    setCompliance(prev => [{...o, id: 'req-'+Date.now(), status: 'Pendiente'}, ...prev]);
+    setCompliance(prev => [{...o, id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, status: 'Pendiente'}, ...prev]);
     logAction('Admin', `Nueva obligación creada: ${o.title}`, 'Compliance', 'Warning');
   }, [logAction]);
   const uploadEvidence = useCallback((id: string, file: string) => {

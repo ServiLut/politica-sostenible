@@ -59,6 +59,10 @@ export class LogisticsVotingService implements OnModuleInit {
           (acc, t) => acc + t.votosCandidato,
           0,
         );
+        const totalVotosBlanco = item.tables.reduce(
+          (acc, t) => acc + t.votosBlanco,
+          0,
+        );
         const totalVotosMesa = item.tables.reduce(
           (acc, t) => acc + t.votosTotales,
           0,
@@ -74,6 +78,7 @@ export class LogisticsVotingService implements OnModuleInit {
           isComplete: item.isComplete,
           totalMesasRegistradas,
           totalVotosCandidato,
+          totalVotosBlanco,
           totalVotosMesa,
           tables: item.tables,
         };
@@ -118,26 +123,59 @@ export class LogisticsVotingService implements OnModuleInit {
     votingPlaceId: string,
     mesaNumero: number,
     votosCandidato: number,
+    votosBlanco: number,
     votosTotales: number,
   ) {
-    return this.prisma.tableResult.upsert({
-      where: {
-        votingPlaceId_mesaNumero: {
-          votingPlaceId,
-          mesaNumero,
-        },
-      },
-      update: {
-        votosCandidato,
-        votosTotales,
-      },
-      create: {
-        votingPlaceId,
-        mesaNumero,
-        votosCandidato,
-        votosTotales,
-      },
-    });
+    this.logger.log(
+      `Upserting table result: placeId=${votingPlaceId}, mesa=${mesaNumero}, votos=${votosCandidato}, blanco=${votosBlanco}, totales=${votosTotales}`,
+    );
+    try {
+      // Usar una transacción para asegurar consistencia
+      return await this.prisma.$transaction(async (tx) => {
+        const result = await tx.tableResult.upsert({
+          where: {
+            votingPlaceId_mesaNumero: {
+              votingPlaceId,
+              mesaNumero,
+            },
+          },
+          update: {
+            votosCandidato,
+            votosBlanco,
+            votosTotales,
+          },
+          create: {
+            votingPlaceId,
+            mesaNumero,
+            votosCandidato,
+            votosBlanco,
+            votosTotales,
+          },
+        });
+
+        // Actualizar el total de mesas del puesto si es 0 o menor al número reportado
+        const station = await tx.votingPlace.findUnique({
+          where: { id: votingPlaceId },
+          select: { totalMesas: true },
+        });
+
+        if (
+          station &&
+          (station.totalMesas === 0 || station.totalMesas < mesaNumero)
+        ) {
+          await tx.votingPlace.update({
+            where: { id: votingPlaceId },
+            data: { totalMesas: Math.max(station.totalMesas, mesaNumero) },
+          });
+        }
+
+        this.logger.log(`Upsert exitoso: ${result.id}`);
+        return result;
+      });
+    } catch (error) {
+      this.logger.error(`Error en addOrUpdateTableResult: ${error.message}`);
+      throw error;
+    }
   }
 
   async createVotingPlace(data: {
