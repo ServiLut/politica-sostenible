@@ -15650,6 +15650,7 @@ export namespace Prisma {
     latitud: number | null
     longitud: number | null
     codigo: string | null
+    isComplete: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -15664,6 +15665,7 @@ export namespace Prisma {
     latitud: number | null
     longitud: number | null
     codigo: string | null
+    isComplete: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -15678,6 +15680,7 @@ export namespace Prisma {
     latitud: number
     longitud: number
     codigo: number
+    isComplete: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -15706,6 +15709,7 @@ export namespace Prisma {
     latitud?: true
     longitud?: true
     codigo?: true
+    isComplete?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -15720,6 +15724,7 @@ export namespace Prisma {
     latitud?: true
     longitud?: true
     codigo?: true
+    isComplete?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -15734,6 +15739,7 @@ export namespace Prisma {
     latitud?: true
     longitud?: true
     codigo?: true
+    isComplete?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -15835,6 +15841,7 @@ export namespace Prisma {
     latitud: number | null
     longitud: number | null
     codigo: string | null
+    isComplete: boolean
     createdAt: Date
     updatedAt: Date
     _count: VotingPlaceCountAggregateOutputType | null
@@ -15868,6 +15875,7 @@ export namespace Prisma {
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
+    isComplete?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     tables?: boolean | VotingPlace$tablesArgs<ExtArgs>
@@ -15884,6 +15892,7 @@ export namespace Prisma {
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
+    isComplete?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["votingPlace"]>
@@ -15898,6 +15907,7 @@ export namespace Prisma {
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
+    isComplete?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["votingPlace"]>
@@ -15912,11 +15922,12 @@ export namespace Prisma {
     latitud?: boolean
     longitud?: boolean
     codigo?: boolean
+    isComplete?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type VotingPlaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "departamento" | "municipio" | "direccion" | "totalMesas" | "latitud" | "longitud" | "codigo" | "createdAt" | "updatedAt", ExtArgs["result"]["votingPlace"]>
+  export type VotingPlaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "departamento" | "municipio" | "direccion" | "totalMesas" | "latitud" | "longitud" | "codigo" | "isComplete" | "createdAt" | "updatedAt", ExtArgs["result"]["votingPlace"]>
   export type VotingPlaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tables?: boolean | VotingPlace$tablesArgs<ExtArgs>
     _count?: boolean | VotingPlaceCountOutputTypeDefaultArgs<ExtArgs>
@@ -15939,6 +15950,7 @@ export namespace Prisma {
       latitud: number | null
       longitud: number | null
       codigo: string | null
+      isComplete: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["votingPlace"]>
@@ -16374,6 +16386,7 @@ export namespace Prisma {
     readonly latitud: FieldRef<"VotingPlace", 'Float'>
     readonly longitud: FieldRef<"VotingPlace", 'Float'>
     readonly codigo: FieldRef<"VotingPlace", 'String'>
+    readonly isComplete: FieldRef<"VotingPlace", 'Boolean'>
     readonly createdAt: FieldRef<"VotingPlace", 'DateTime'>
     readonly updatedAt: FieldRef<"VotingPlace", 'DateTime'>
   }
@@ -18112,6 +18125,7 @@ export namespace Prisma {
     latitud: 'latitud',
     longitud: 'longitud',
     codigo: 'codigo',
+    isComplete: 'isComplete',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -19329,6 +19343,7 @@ export namespace Prisma {
     latitud?: FloatNullableFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableFilter<"VotingPlace"> | number | null
     codigo?: StringNullableFilter<"VotingPlace"> | string | null
+    isComplete?: BoolFilter<"VotingPlace"> | boolean
     createdAt?: DateTimeFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeFilter<"VotingPlace"> | Date | string
     tables?: TableResultListRelationFilter
@@ -19344,6 +19359,7 @@ export namespace Prisma {
     latitud?: SortOrderInput | SortOrder
     longitud?: SortOrderInput | SortOrder
     codigo?: SortOrderInput | SortOrder
+    isComplete?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     tables?: TableResultOrderByRelationAggregateInput
@@ -19362,6 +19378,7 @@ export namespace Prisma {
     totalMesas?: IntFilter<"VotingPlace"> | number
     latitud?: FloatNullableFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableFilter<"VotingPlace"> | number | null
+    isComplete?: BoolFilter<"VotingPlace"> | boolean
     createdAt?: DateTimeFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeFilter<"VotingPlace"> | Date | string
     tables?: TableResultListRelationFilter
@@ -19377,6 +19394,7 @@ export namespace Prisma {
     latitud?: SortOrderInput | SortOrder
     longitud?: SortOrderInput | SortOrder
     codigo?: SortOrderInput | SortOrder
+    isComplete?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: VotingPlaceCountOrderByAggregateInput
@@ -19399,6 +19417,7 @@ export namespace Prisma {
     latitud?: FloatNullableWithAggregatesFilter<"VotingPlace"> | number | null
     longitud?: FloatNullableWithAggregatesFilter<"VotingPlace"> | number | null
     codigo?: StringNullableWithAggregatesFilter<"VotingPlace"> | string | null
+    isComplete?: BoolWithAggregatesFilter<"VotingPlace"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"VotingPlace"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"VotingPlace"> | Date | string
   }
@@ -20485,6 +20504,7 @@ export namespace Prisma {
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
+    isComplete?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     tables?: TableResultCreateNestedManyWithoutVotingPlaceInput
@@ -20500,6 +20520,7 @@ export namespace Prisma {
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
+    isComplete?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     tables?: TableResultUncheckedCreateNestedManyWithoutVotingPlaceInput
@@ -20515,6 +20536,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tables?: TableResultUpdateManyWithoutVotingPlaceNestedInput
@@ -20530,6 +20552,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tables?: TableResultUncheckedUpdateManyWithoutVotingPlaceNestedInput
@@ -20545,6 +20568,7 @@ export namespace Prisma {
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
+    isComplete?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20559,6 +20583,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20573,6 +20598,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21680,6 +21706,7 @@ export namespace Prisma {
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
+    isComplete?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -21700,6 +21727,7 @@ export namespace Prisma {
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
+    isComplete?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -21714,6 +21742,7 @@ export namespace Prisma {
     latitud?: SortOrder
     longitud?: SortOrder
     codigo?: SortOrder
+    isComplete?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -26110,6 +26139,7 @@ export namespace Prisma {
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
+    isComplete?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26124,6 +26154,7 @@ export namespace Prisma {
     latitud?: number | null
     longitud?: number | null
     codigo?: string | null
+    isComplete?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26154,6 +26185,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26168,6 +26200,7 @@ export namespace Prisma {
     latitud?: NullableFloatFieldUpdateOperationsInput | number | null
     longitud?: NullableFloatFieldUpdateOperationsInput | number | null
     codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    isComplete?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

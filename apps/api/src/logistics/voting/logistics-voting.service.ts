@@ -41,14 +41,8 @@ export class LogisticsVotingService implements OnModuleInit {
           where,
           skip,
           take: limit,
-          select: {
-            id: true,
-            nombre: true,
-            departamento: true,
-            municipio: true,
-            direccion: true,
-            latitud: true,
-            longitud: true,
+          include: {
+            tables: true,
           },
           orderBy: { departamento: 'asc' },
         }),
@@ -59,14 +53,29 @@ export class LogisticsVotingService implements OnModuleInit {
         `Se encontraron ${items.length} resultados de un total de ${total}`,
       );
 
-      // Adaptar la respuesta para que no falle si faltan campos
       const itemsWithTotals = items.map((item) => {
+        const totalMesasRegistradas = item.tables.length;
+        const totalVotosCandidato = item.tables.reduce(
+          (acc, t) => acc + t.votosCandidato,
+          0,
+        );
+        const totalVotosMesa = item.tables.reduce(
+          (acc, t) => acc + t.votosTotales,
+          0,
+        );
+
         return {
-          ...item,
-          totalMesas: 0,
-          totalMesasRegistradas: 0,
-          totalVotosCandidato: 0,
-          totalVotosMesa: 0,
+          id: item.id,
+          nombre: item.nombre,
+          departamento: item.departamento,
+          municipio: item.municipio,
+          direccion: item.direccion,
+          totalMesas: item.totalMesas,
+          isComplete: item.isComplete,
+          totalMesasRegistradas,
+          totalVotosCandidato,
+          totalVotosMesa,
+          tables: item.tables,
         };
       });
 
@@ -156,6 +165,23 @@ export class LogisticsVotingService implements OnModuleInit {
     return this.prisma.tableResult.findMany({
       where: { votingPlaceId },
       orderBy: { mesaNumero: 'asc' },
+    });
+  }
+
+  async markAsComplete(votingPlaceId: string, isComplete: boolean) {
+    return this.prisma.votingPlace.update({
+      where: { id: votingPlaceId },
+      data: { isComplete },
+    });
+  }
+
+  async updateVotingPlace(
+    id: string,
+    data: { totalMesas?: number; nombre?: string; direccion?: string },
+  ) {
+    return this.prisma.votingPlace.update({
+      where: { id },
+      data,
     });
   }
 }

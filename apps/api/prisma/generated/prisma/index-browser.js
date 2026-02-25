@@ -266,6 +266,7 @@ exports.Prisma.VotingPlaceScalarFieldEnum = {
   latitud: 'latitud',
   longitud: 'longitud',
   codigo: 'codigo',
+  isComplete: 'isComplete',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
