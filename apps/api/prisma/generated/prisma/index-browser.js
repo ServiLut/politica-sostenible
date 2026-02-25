@@ -210,6 +210,7 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   mesa: 'mesa',
   e14ImageUrl: 'e14ImageUrl',
   candidateVotes: 'candidateVotes',
+  blankVotes: 'blankVotes',
   totalTableVotes: 'totalTableVotes',
   observations: 'observations',
   blockchainHash: 'blockchainHash',
@@ -275,6 +276,7 @@ exports.Prisma.TableResultScalarFieldEnum = {
   id: 'id',
   mesaNumero: 'mesaNumero',
   votosCandidato: 'votosCandidato',
+  votosBlanco: 'votosBlanco',
   votosTotales: 'votosTotales',
   votingPlaceId: 'votingPlaceId',
   updatedAt: 'updatedAt'

@@ -149,6 +149,7 @@ model WitnessReport {
   mesa            Int
   e14ImageUrl     String    @map("e14_image_url")
   candidateVotes  Int       @map("candidate_votes")
+  blankVotes      Int       @default(0) @map("blank_votes")
   totalTableVotes Int       @map("total_table_votes")
   observations    String?
   // Auditoría Forense (Sección 7.3)
@@ -253,6 +254,7 @@ model TableResult {
   id             String      @id @default(cuid())
   mesaNumero     Int         @map("mesa_numero")
   votosCandidato Int         @default(0) @map("votos_candidato")
+  votosBlanco    Int         @default(0) @map("votos_blanco")
   votosTotales   Int         @default(0) @map("votos_totales")
   votingPlaceId  String      @map("voting_place_id")
   updatedAt      DateTime    @updatedAt @map("updated_at")
