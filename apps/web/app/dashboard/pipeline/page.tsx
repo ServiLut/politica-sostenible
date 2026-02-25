@@ -11,6 +11,7 @@ import {
   Target, 
   ChevronRight, 
   ChevronLeft,
+  ChevronDown,
   Users,
   Filter,
   UserCheck,
@@ -35,6 +36,8 @@ export default function PipelinePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeader, setSelectedLeader] = useState('all');
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [isDetailViewMobile, setIsDetailViewMobile] = useState(false);
+  const [showTerritoryDropdown, setShowTerritoryDropdown] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
   
   // AI Analysis States
@@ -330,37 +333,76 @@ export default function PipelinePage() {
       </div>
 
       {/* 2. COMMAND BAR (Filters) */}
-      <div className="px-8 py-4 bg-white border-b border-slate-100 flex items-center gap-6 shrink-0 z-10 shadow-sm">
-        <div className="relative flex-1 max-w-xl">
+      <div className="px-4 md:px-8 py-4 bg-white border-b border-slate-100 flex flex-col md:flex-row items-center gap-4 md:gap-6 shrink-0 z-10 shadow-sm">
+        <div className="relative w-full md:flex-1 md:max-w-xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500" size={18} />
           <input 
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setIsDetailViewMobile(false); }}
             placeholder="Buscar por nombre, documento o teléfono..." 
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-teal-500/5 focus:border-teal-500 outline-none transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs md:text-sm font-medium focus:ring-4 focus:ring-teal-500/5 focus:border-teal-500 outline-none transition-all"
           />
         </div>
-        <div className="h-8 w-px bg-slate-100 shrink-0" />
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-teal-50 rounded-xl text-teal-600 border border-teal-100"><Filter size={16} /></div>
-          <select 
-            value={selectedLeader}
-            onChange={(e) => setSelectedLeader(e.target.value)}
-            className="bg-transparent text-[11px] font-black uppercase tracking-widest text-slate-500 focus:outline-none cursor-pointer truncate max-w-[200px]"
+        <div className="hidden md:block h-8 w-px bg-slate-100 shrink-0" />
+        <div className="relative w-full md:w-auto">
+          <button 
+            onClick={() => setShowTerritoryDropdown(!showTerritoryDropdown)}
+            onBlur={() => setTimeout(() => setShowTerritoryDropdown(false), 200)}
+            className="flex items-center gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl transition-all hover:bg-white hover:border-teal-500/30 hover:shadow-sm group w-full md:min-w-[180px] justify-between"
           >
-            <option value="all">Todo el Territorio</option>
-            {team.map(m => (
-              <option key={m.id} value={m.territory}>{m.territory}</option>
-            ))}
-          </select>
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-teal-500 transition-transform group-hover:scale-110" />
+              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-700 truncate max-w-[200px] md:max-w-[120px]">
+                {selectedLeader === 'all' ? 'Todo el Territorio' : selectedLeader}
+              </span>
+            </div>
+            <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-200", showTerritoryDropdown && "rotate-180")} />
+          </button>
+
+          {showTerritoryDropdown && (
+            <div className="absolute top-full right-0 mt-2 w-full min-w-[200px] bg-white rounded-[1.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5 z-50">
+              <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                <button
+                  onClick={() => {
+                    setSelectedLeader('all');
+                    setShowTerritoryDropdown(false);
+                  }}
+                  className={cn(
+                    "w-full px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                    selectedLeader === 'all' ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  Todo el Territorio
+                </button>
+                {Array.from(new Set(team.map(m => m.territory))).filter(Boolean).sort().map(territory => (
+                  <button
+                    key={territory}
+                    onClick={() => {
+                      setSelectedLeader(territory);
+                      setShowTerritoryDropdown(false);
+                    }}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                      selectedLeader === territory ? "bg-teal-50 text-teal-600" : "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
+                    )}
+                  >
+                    {territory}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 3. MAIN AREA (Master-Detail) */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         
         {/* LEFT: LIST */}
-        <div className="w-80 md:w-[400px] border-r border-slate-100 flex flex-col overflow-hidden bg-white shrink-0">
+        <div className={cn(
+          "w-full md:w-[400px] border-r border-slate-100 flex flex-col overflow-hidden bg-white shrink-0 absolute inset-0 md:relative z-10 transition-transform duration-300 md:translate-x-0",
+          isDetailViewMobile ? "-translate-x-full md:flex" : "translate-x-0 md:flex"
+        )}>
           <div 
             className="flex-1 overflow-y-auto custom-scrollbar"
             onScroll={handleScroll}
@@ -368,7 +410,10 @@ export default function PipelinePage() {
             {displayedContacts.map((contact) => (
               <button
                 key={contact.id}
-                onClick={() => setSelectedContactId(contact.id)}
+                onClick={() => {
+                  setSelectedContactId(contact.id);
+                  setIsDetailViewMobile(true);
+                }}
                 className={cn(
                   "w-full text-left px-8 py-6 border-b border-slate-50 transition-all flex items-center gap-5 group relative",
                   selectedContact?.id === contact.id ? "bg-teal-50/40" : "hover:bg-slate-50/80"
@@ -422,125 +467,141 @@ export default function PipelinePage() {
         </div>
 
         {/* RIGHT: DETAIL */}
-        <div className="flex-1 bg-white flex flex-col overflow-hidden">
+        <div className={cn(
+          "flex-1 bg-white flex flex-col overflow-hidden absolute inset-0 md:relative z-20 transition-transform duration-300 md:translate-x-0",
+          isDetailViewMobile ? "translate-x-0 md:flex" : "translate-x-full md:flex"
+        )}>
           {selectedContact ? (
-            <div className="flex-1 flex flex-col p-10 md:p-16 overflow-y-auto custom-scrollbar">
-              <div className="max-w-4xl mx-auto w-full space-y-10">
-                
-                {/* Profile Header */}
-                <div className="relative">
-                  <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-12">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="px-3 py-1 bg-teal-50 text-teal-700 text-[9px] font-black uppercase tracking-widest rounded-lg border border-teal-100 shadow-sm">Expediente de Campaña</span>
-                      </div>
-                      <h3 className="text-5xl font-black text-slate-900 tracking-tighter uppercase break-words leading-[0.85] mb-6">
-                        {selectedContact.name}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-8 text-slate-400">
-                        <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
-                          <IdCard size={18} className="text-teal-500" /> {selectedContact.cedula}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Mobile Back Button */}
+              <div className="md:hidden p-4 border-b border-slate-100 bg-white sticky top-0 z-30">
+                <button 
+                  onClick={() => setIsDetailViewMobile(false)}
+                  className="flex items-center gap-2 text-slate-500 font-black uppercase text-[10px] tracking-widest"
+                >
+                  <ChevronLeft size={16} className="text-teal-600" /> Volver al Listado
+                </button>
+              </div>
+
+              <div className="flex-1 flex flex-col p-6 md:p-16 overflow-y-auto custom-scrollbar">
+                <div className="max-w-4xl mx-auto w-full space-y-10">
+                  
+                  {/* Profile Header */}
+                  <div className="relative">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-8 mb-8 md:mb-12">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="px-3 py-1 bg-teal-50 text-teal-700 text-[9px] font-black uppercase tracking-widest rounded-lg border border-teal-100 shadow-sm">Expediente de Campaña</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
-                          <MapPin size={18} className="text-teal-500" /> {selectedContact.neighborhood}
+                        <h3 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase break-words leading-tight md:leading-[0.85] mb-4 md:mb-6">
+                          {selectedContact.name}
+                        </h3>
+                        <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center gap-4 md:gap-8 text-slate-400">
+                          <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
+                            <IdCard size={18} className="text-teal-500" /> {selectedContact.cedula}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs md:text-sm font-bold uppercase tracking-tight">
+                            <MapPin size={18} className="text-teal-500" /> {selectedContact.neighborhood}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-[0.3em] shrink-0 shadow-2xl">
-                      {selectedContact.stage}
-                    </div>
-                  </div>
-
-                  {/* Operational Actions */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                    <button onClick={() => window.open(`tel:${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-6 bg-slate-50 text-slate-600 rounded-[2rem] hover:bg-teal-600 hover:text-white transition-all transform hover:-translate-y-1 border border-slate-100 shadow-sm group">
-                      <PhoneCall size={24} className="mb-3 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Llamada</span>
-                    </button>
-                    <button onClick={() => window.open(`https://wa.me/${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-6 bg-emerald-50 text-emerald-700 rounded-[2rem] hover:bg-emerald-600 hover:text-white transition-all transform hover:-translate-y-1 border border-emerald-100 shadow-sm group">
-                      <MessageCircle size={24} className="mb-3 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">WhatsApp</span>
-                    </button>
-                    <button 
-                      onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) - 1])}
-                      disabled={STAGES.indexOf(selectedContact.stage) === 0}
-                      className="flex flex-col items-center justify-center p-6 bg-slate-50 text-slate-400 rounded-[2rem] hover:bg-rose-500 hover:text-white disabled:opacity-30 transition-all border border-slate-100 group"
-                    >
-                      <ChevronLeft size={24} className="mb-3" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Retroceder</span>
-                    </button>
-                    <button 
-                      onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) + 1])}
-                      disabled={STAGES.indexOf(selectedContact.stage) === STAGES.length - 1}
-                      className="flex flex-col items-center justify-center p-6 bg-teal-600 text-white rounded-[2rem] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 transform hover:-translate-y-1 group"
-                    >
-                      <ChevronRight size={24} className="mb-3 group-hover:translate-x-1 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Avanzar</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Grid Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-8">
-                    <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-teal-500" /> Localización
-                    </h4>
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Dirección</p>
-                        <p className="text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.address || 'No registrada'}</p>
+                      <div className="bg-slate-900 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[1.5rem] text-[10px] md:text-xs font-black uppercase tracking-[0.3em] shrink-0 shadow-2xl">
+                        {selectedContact.stage}
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Zona Electoral</p>
-                        <p className="text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.neighborhood}</p>
-                      </div>
+                    </div>
+
+                    {/* Operational Actions */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+                      <button onClick={() => window.open(`tel:${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-4 md:p-6 bg-slate-50 text-slate-600 rounded-2xl md:rounded-[2rem] hover:bg-teal-600 hover:text-white transition-all transform hover:-translate-y-1 border border-slate-100 shadow-sm group">
+                        <PhoneCall size={20} className="md:size-6 mb-2 md:mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center">Llamada</span>
+                      </button>
+                      <button onClick={() => window.open(`https://wa.me/${selectedContact.phone}`)} className="flex flex-col items-center justify-center p-4 md:p-6 bg-emerald-50 text-emerald-700 rounded-2xl md:rounded-[2rem] hover:bg-emerald-600 hover:text-white transition-all transform hover:-translate-y-1 border border-emerald-100 shadow-sm group">
+                        <MessageCircle size={20} className="md:size-6 mb-2 md:mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center">WhatsApp</span>
+                      </button>
+                      <button 
+                        onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) - 1])}
+                        disabled={STAGES.indexOf(selectedContact.stage) === 0}
+                        className="flex flex-col items-center justify-center p-4 md:p-6 bg-slate-50 text-slate-400 rounded-2xl md:rounded-[2rem] hover:bg-rose-500 hover:text-white disabled:opacity-30 transition-all border border-slate-100 group"
+                      >
+                        <ChevronLeft size={20} className="md:size-6 mb-2 md:mb-3" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center">Retroceder</span>
+                      </button>
+                      <button 
+                        onClick={() => moveContactStage(selectedContact.id, STAGES[STAGES.indexOf(selectedContact.stage) + 1])}
+                        disabled={STAGES.indexOf(selectedContact.stage) === STAGES.length - 1}
+                        className="flex flex-col items-center justify-center p-4 md:p-6 bg-teal-600 text-white rounded-2xl md:rounded-[2rem] hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 transform hover:-translate-y-1 group"
+                      >
+                        <ChevronRight size={20} className="md:size-6 mb-2 md:mb-3 group-hover:translate-x-1 transition-transform" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center">Avanzar</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-8">
-                    <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-teal-500" /> Trazabilidad
-                    </h4>
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Vinculación</p>
-                        <p className="text-md font-bold text-slate-700 font-mono">{new Date(selectedContact.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Legalidad</p>
-                        <div className="flex items-center gap-2 bg-emerald-100/50 w-fit px-4 py-2 rounded-2xl border border-emerald-200">
-                          <UserCheck size={14} className="text-emerald-600" />
-                          <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Habeas Data OK</p>
+                  {/* Grid Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                    <div className="bg-slate-50/50 p-8 md:p-10 rounded-3xl md:rounded-[2.5rem] border border-slate-100 space-y-6 md:space-y-8">
+                      <h4 className="text-[11px] md:text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-teal-500" /> Localización
+                      </h4>
+                      <div className="space-y-4 md:space-y-6">
+                        <div>
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 md:mb-2">Dirección</p>
+                          <p className="text-sm md:text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.address || 'No registrada'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 md:mb-2">Zona Electoral</p>
+                          <p className="text-sm md:text-md font-bold text-slate-700 uppercase leading-tight">{selectedContact.neighborhood}</p>
                         </div>
                       </div>
                     </div>
+
+                    <div className="bg-slate-50/50 p-8 md:p-10 rounded-3xl md:rounded-[2.5rem] border border-slate-100 space-y-6 md:space-y-8">
+                      <h4 className="text-[11px] md:text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-teal-500" /> Trazabilidad
+                      </h4>
+                      <div className="space-y-4 md:space-y-6">
+                        <div>
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 md:mb-2">Vinculación</p>
+                          <p className="text-sm md:text-md font-bold text-slate-700 font-mono">{new Date(selectedContact.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 md:mb-2">Legalidad</p>
+                          <div className="flex items-center gap-2 bg-emerald-100/50 w-fit px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl border border-emerald-200">
+                            <UserCheck size={14} className="text-emerald-600" />
+                            <p className="text-[9px] md:text-[10px] font-black text-emerald-700 uppercase tracking-widest">Habeas Data OK</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Bottom Analytics Strip */}
-                <div className="bg-teal-50 p-8 rounded-[2.5rem] flex items-center justify-between border border-teal-100 relative overflow-hidden group shadow-sm">
-                   <div className="absolute inset-0 bg-gradient-to-r from-teal-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                   <div className="flex items-center gap-6 relative z-10">
-                      <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 border border-teal-100 shadow-sm">
-                        {isAnalyzing ? <Loader2 size={32} className="animate-spin" /> : <Target size={32} />}
-                      </div>
-                      <div>
-                         <p className="text-md font-black text-slate-900 uppercase tracking-tight">Análisis de Intención de Voto</p>
-                         <p className="text-[11px] text-teal-600 font-bold uppercase tracking-[0.2em]">
-                           {isAnalyzing ? "IA Procesando Perfil Cognitivo..." : "Prioridad de contacto: Máxima Inmediata"}
-                         </p>
-                      </div>
-                   </div>
-                   <button 
-                    onClick={() => handleAiAnalysis(selectedContact)}
-                    disabled={isAnalyzing}
-                    className="bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-2xl transition-all shadow-lg shadow-teal-100 flex items-center justify-center relative z-10 hover:rotate-12 transform disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                      {isAnalyzing ? <Loader2 size={24} className="animate-spin" /> : <ExternalLink size={24} />}
-                   </button>
-                </div>
+                  {/* Bottom Analytics Strip */}
+                  <div className="bg-teal-50 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-teal-100 relative overflow-hidden group shadow-sm">
+                     <div className="absolute inset-0 bg-gradient-to-r from-teal-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                     <div className="flex items-center gap-4 md:gap-6 relative z-10">
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 border border-teal-100 shadow-sm shrink-0">
+                          {isAnalyzing ? <Loader2 size={24} className="animate-spin" /> : <Target size={28} className="md:size-8" />}
+                        </div>
+                        <div className="min-w-0">
+                           <p className="text-sm md:text-md font-black text-slate-900 uppercase tracking-tight truncate">Análisis de Intención de Voto</p>
+                           <p className="text-[10px] md:text-[11px] text-teal-600 font-bold uppercase tracking-[0.2em] truncate">
+                             {isAnalyzing ? "IA Procesando Perfil Cognitivo..." : "Prioridad de contacto: Máxima Inmediata"}
+                           </p>
+                        </div>
+                     </div>
+                     <button 
+                      onClick={() => handleAiAnalysis(selectedContact)}
+                      disabled={isAnalyzing}
+                      className="bg-teal-600 hover:bg-teal-700 text-white w-full md:w-14 h-12 md:h-14 rounded-xl md:rounded-2xl transition-all shadow-lg shadow-teal-100 flex items-center justify-center relative z-10 hover:rotate-6 transform disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                     >
+                        {isAnalyzing ? <Loader2 size={20} className="animate-spin" /> : <ExternalLink size={20} className="md:size-6" />}
+                        <span className="md:hidden ml-2 text-[10px] font-black uppercase tracking-widest">Generar Perfilado IA</span>
+                     </button>
+                  </div>
 
+                </div>
               </div>
             </div>
           ) : (

@@ -71,6 +71,7 @@ export default function CompliancePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewObligationModalOpen, setIsNewObligationModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedObligationId, setExpandedObligationId] = useState<string | null>(null);
   const [newObligation, setNewObligation] = useState({ title: '', deadline: '', priority: 'Media' as const, type: 'Cuentas Claras' as const });
 
   // Modal Dropdown States
@@ -285,15 +286,15 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="space-y-8 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 md:space-y-8 pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Módulo de Compliance</h1>
-          <p className="text-slate-500 font-medium">Control legal, topes de campaña y reportes CNE.</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase">Módulo de Compliance</h1>
+          <p className="text-sm md:text-base text-slate-500 font-medium">Control legal, topes de campaña y reportes CNE.</p>
         </div>
         <button 
           onClick={handleGenerateReport}
-          className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-2"
+          className="w-full lg:w-auto bg-teal-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] md:text-xs tracking-widest uppercase shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
         >
           <Download size={18} /> Descargar Reporte Consolidado
         </button>
@@ -301,41 +302,41 @@ export default function CompliancePage() {
 
       {/* MONITOR DE BLINDAJE LEGAL (REDESIGN) */}
       <div className={cn(
-        "p-10 rounded-[4rem] border-4 flex flex-col lg:flex-row items-center gap-10 transition-all duration-700 shadow-2xl relative overflow-hidden",
+        "p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] border-4 flex flex-col lg:flex-row items-center gap-8 md:gap-10 transition-all duration-700 shadow-2xl relative overflow-hidden",
         alertStatus.bg, alertStatus.border, alertStatus.color
       )}>
         {/* Decorative background element */}
-        <div className="absolute top-0 right-0 w-64 h-64 opacity-5 rotate-12 -translate-y-20 translate-x-20">
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-5 rotate-12 -translate-y-20 translate-x-20 hidden md:block">
           <ShieldCheck size={256} />
         </div>
 
-        <div className="w-28 h-28 rounded-[2.5rem] bg-white flex items-center justify-center shadow-xl border-4 border-white/50 animate-in zoom-in duration-500">
-          {alertStatus.icon}
+        <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl md:rounded-[2.5rem] bg-white flex items-center justify-center shadow-xl border-4 border-white/50 animate-in zoom-in duration-500 shrink-0">
+          <div className="scale-75 md:scale-100">{alertStatus.icon}</div>
         </div>
         
         <div className="flex-1 text-center lg:text-left">
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
-            <span className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border", alertStatus.border, "bg-white")}>
+            <span className={cn("px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] border", alertStatus.border, "bg-white")}>
               {alertStatus.status}
             </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Sistema de Control SIT</span>
+            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Sistema SIT</span>
           </div>
-          <h3 className="text-3xl font-black tracking-tighter leading-none mb-3">{alertStatus.msg}</h3>
-          <p className="text-sm font-bold opacity-70 max-w-xl leading-relaxed">
+          <h3 className="text-xl md:text-3xl font-black tracking-tighter leading-tight mb-3">{alertStatus.msg}</h3>
+          <p className="text-xs md:text-sm font-bold opacity-70 max-w-xl leading-relaxed">
             {alertStatus.description}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 px-10 border-l border-white/30">
+        <div className="grid grid-cols-2 gap-6 md:gap-8 px-0 lg:px-10 border-t lg:border-t-0 lg:border-l border-white/30 pt-6 lg:pt-0 w-full lg:w-auto">
           <div className="text-center">
-             <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Tope Ejecutado</p>
-             <h3 className="text-5xl font-black tabular-nums">{realExecPercent.toFixed(1)}%</h3>
-             <p className="text-[8px] font-bold opacity-50 mt-1">Disp/Día: {formatCOP(dailyRunway)}</p>
+             <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Tope Ejecutado</p>
+             <h3 className="text-3xl md:text-5xl font-black tabular-nums">{realExecPercent.toFixed(1)}%</h3>
+             <p className="text-[7px] md:text-[8px] font-bold opacity-50 mt-1">Disp/Día: {formatCOP(dailyRunway)}</p>
           </div>
           <div className="text-center">
-             <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Puntaje Hitos</p>
-             <h3 className="text-5xl font-black tabular-nums">{Math.round(weightedScore)}%</h3>
-             <p className="text-[8px] font-bold opacity-50 mt-1">{daysUntilElection} días para Día D</p>
+             <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Puntaje Hitos</p>
+             <h3 className="text-3xl md:text-5xl font-black tabular-nums">{Math.round(weightedScore)}%</h3>
+             <p className="text-[7px] md:text-[8px] font-bold opacity-50 mt-1">{daysUntilElection} d para D-Día</p>
           </div>
         </div>
       </div>
@@ -435,36 +436,39 @@ export default function CompliancePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* MATRIZ DE OBLIGACIONES */}
-        <div className="lg:col-span-2 bg-white border-2 border-slate-100 rounded-[3rem] overflow-hidden shadow-sm flex flex-col">
-          <div className="px-10 py-8 border-b border-slate-50 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="lg:col-span-2 bg-white border-2 border-slate-100 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-sm flex flex-col">
+          <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-50 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
             <div>
-              <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
+              <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-xs md:text-sm tracking-tighter">
                 <Scale size={20} className="text-teal-600" /> Matriz de Obligaciones Normativas
               </h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control de Blindaje Electoral CNE</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control de Blindaje Electoral CNE</p>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full xl:w-auto">
               {/* Search obligations */}
-              <div className="relative flex-1 md:flex-none md:min-w-[200px] group">
+              <div className="relative group">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
                 <input 
                   type="text" 
                   placeholder="Buscar hito legal..." 
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest focus:border-teal-500 focus:ring-4 focus:ring-teal-500/5 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest focus:border-teal-500 focus:ring-4 focus:ring-teal-500/5 outline-none transition-all"
                   value={obligationSearch}
                   onChange={(e) => setObligationSearch(e.target.value)}
                 />
               </div>
 
+              <div className="flex gap-3">
                 {/* Status filter */}
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-none">
                   <button 
                     onClick={() => { setIsStatusDropdownOpen(!isStatusDropdownOpen); setIsTypeDropdownOpen(false); }}
-                    className="px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3 hover:bg-slate-50 transition-all group"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between sm:justify-start gap-3 hover:bg-slate-50 transition-all group"
                   >
-                    <Filter size={14} className="text-teal-600" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{filterStatus === 'all' ? 'Estado' : filterStatus}</span>
+                    <div className="flex items-center gap-2">
+                      <Filter size={14} className="text-teal-600" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 truncate max-w-[60px]">{filterStatus === 'all' ? 'Estado' : filterStatus}</span>
+                    </div>
                     <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isStatusDropdownOpen && "rotate-180")} />
                   </button>
                   {isStatusDropdownOpen && (
@@ -485,13 +489,15 @@ export default function CompliancePage() {
                 </div>
 
                 {/* Type filter */}
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-none">
                   <button 
                     onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsStatusDropdownOpen(false); }}
-                    className="px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3 hover:bg-slate-50 transition-all group"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between sm:justify-start gap-3 hover:bg-slate-50 transition-all group"
                   >
-                    <Scale size={14} className="text-teal-600" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{filterType === 'all' ? 'Categoría' : filterType}</span>
+                    <div className="flex items-center gap-2">
+                      <Scale size={14} className="text-teal-600" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 truncate max-w-[80px]">{filterType === 'all' ? 'Categoría' : filterType}</span>
+                    </div>
                     <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isTypeDropdownOpen && "rotate-180")} />
                   </button>
                   {isTypeDropdownOpen && (
@@ -510,25 +516,105 @@ export default function CompliancePage() {
                     </div>
                   )}
                 </div>
+              </div>
 
-              <div className="h-8 w-px bg-slate-200 mx-1 hidden md:block" />
-
-              <div className="flex items-center gap-3">
-                <span className="bg-teal-50 text-teal-600 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-100 shadow-inner">
-                  Puntaje: {Math.round(score)}%
+              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0">
+                <span className="bg-teal-50 text-teal-600 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-teal-100 shadow-inner">
+                  Score: {Math.round(score)}%
                 </span>
                 <button 
                   onClick={() => setIsNewObligationModalOpen(true)}
-                  className="bg-slate-900 text-white p-3 md:px-5 md:py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group"
-                  title="Nueva Obligación CNE"
+                  className="flex-1 sm:flex-none bg-slate-900 text-white px-5 py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group"
                 >
-                  <Plus size={16} className="group-hover:rotate-90 transition-transform" /> <span className="hidden md:inline">Añadir Hito</span>
+                  <Plus size={16} className="group-hover:rotate-90 transition-transform" /> <span>Hito</span>
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto flex-1 min-h-[400px]">
+          {/* Mobile View: Cards */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {paginatedObligations.length > 0 ? (
+              paginatedObligations.map((o) => {
+                const daysDiff = Math.ceil((new Date(o.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                const isUrgent = daysDiff >= 0 && daysDiff <= 3 && o.status !== 'Cumplido';
+                const isOverdue = daysDiff < 0 && o.status !== 'Cumplido';
+
+                return (
+                  <div key={o.id} className={cn(
+                    "p-6 space-y-4",
+                    isOverdue ? "bg-red-50/20" : isUrgent ? "bg-amber-50/20" : "bg-white"
+                  )}>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <p className="text-sm font-black text-slate-900 uppercase leading-tight truncate">{o.title}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-[7px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100/50">{o.type}</span>
+                          <span className={cn(
+                            "text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border",
+                            o.priority === 'Alta' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                          )}>
+                            {o.priority}
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setExpandedObligationId(expandedObligationId === o.id ? null : o.id)}
+                        className="p-2 bg-slate-50 rounded-xl text-slate-400 border border-slate-100"
+                      >
+                        <ChevronDown size={16} className={cn("transition-transform duration-200", expandedObligationId === o.id && "rotate-180")} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm",
+                        o.status === 'Cumplido' ? "bg-emerald-600 text-white border-emerald-500" : 
+                        isOverdue ? "bg-red-600 text-white border-red-500" :
+                        isUrgent ? "bg-amber-500 text-white border-amber-400" : "bg-white text-slate-400 border-slate-200"
+                      )}>
+                        {o.status}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={12} className={cn(isUrgent ? "text-amber-500" : isOverdue ? "text-red-500" : "text-slate-300")} />
+                        <span className="text-[9px] font-black text-slate-700 uppercase">{o.deadline}</span>
+                      </div>
+                    </div>
+
+                    {expandedObligationId === o.id && (
+                      <div className="pt-2 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Status de Tiempo</p>
+                          <p className={cn("text-[9px] font-black uppercase text-center", 
+                            o.status === 'Cumplido' ? "text-emerald-500" :
+                            isOverdue ? "text-red-600" : 
+                            isUrgent ? "text-amber-600" : "text-slate-400")}>
+                            {o.status === 'Cumplido' ? '✓ DOCUMENTACIÓN VALIDADA' : 
+                             isOverdue ? `⚠ VENCIDO HACE ${Math.abs(daysDiff)} DÍAS` : 
+                             isUrgent ? `🔥 VENCE EN ${daysDiff} DÍAS` : `${daysDiff} DÍAS RESTANTES`}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
+                          className="w-full py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <Upload size={14} /> {o.status === 'Cumplido' ? 'Reemplazar Soportes' : 'Subir Soporte Legal'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-20 text-center opacity-20">
+                <Scale size={40} className="mx-auto mb-3" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Sin hitos</p>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto flex-1 min-h-[400px] hidden md:block">
             <table className="w-full text-left">
               <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-50">
                 <tr>
@@ -637,21 +723,21 @@ export default function CompliancePage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
-               <div className="flex items-center gap-4">
+            <div className="px-6 md:px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+               <div className="flex items-center gap-2 md:gap-4 overflow-x-auto w-full sm:w-auto no-scrollbar justify-center">
                   <button 
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-20 transition-all shadow-sm group"
+                    className="h-9 w-9 md:h-10 md:w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-20 transition-all shadow-sm shrink-0"
                   >
-                    <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                    <ChevronLeft size={16} />
                   </button>
                   <div className="flex items-center gap-1.5">
                     {[...Array(totalPages)].map((_, i) => (
                       <button 
                         key={i} 
                         onClick={() => setCurrentPage(i + 1)}
-                        className={cn("h-10 w-10 rounded-xl text-[10px] font-black transition-all", 
+                        className={cn("h-9 w-9 md:h-10 md:w-10 rounded-xl text-[9px] md:text-[10px] font-black transition-all shrink-0", 
                           currentPage === i + 1 ? "bg-slate-900 text-white shadow-lg" : "bg-white border border-slate-100 text-slate-400 hover:bg-slate-50")}
                       >
                         {i + 1}
@@ -661,13 +747,13 @@ export default function CompliancePage() {
                   <button 
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-20 transition-all shadow-sm group"
+                    className="h-9 w-9 md:h-10 md:w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 disabled:opacity-20 transition-all shadow-sm shrink-0"
                   >
-                    <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={16} />
                   </button>
                </div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Página {currentPage} de {totalPages} <span className="mx-2 opacity-30">•</span> {filteredObligations.length} Hitos Filtrados
+               <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sm:text-right">
+                  Pág {currentPage} de {totalPages} <span className="mx-1 opacity-30">•</span> {filteredObligations.length} Hitos
                </p>
             </div>
           )}
@@ -680,15 +766,17 @@ export default function CompliancePage() {
              <h3 className="font-black text-sm uppercase tracking-tighter">Bitácora Forense</h3>
           </div>
           <div className="flex-1 overflow-y-auto max-h-[500px] p-6 space-y-4 font-mono">
-             {auditLogs.slice(0, 8).map((log) => (
-                <div key={log.id} className="p-4 bg-teal-50/30 rounded-2xl border border-teal-100/50 hover:bg-white hover:border-teal-500 transition-all">
-                   <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-black text-slate-900 uppercase">{log.actor}</span>
-                      <span className="text-[8px] font-bold text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
+             {auditLogs.slice(0, 12).map((log) => (
+                <div key={log.id} className="p-4 bg-teal-50/30 rounded-2xl border border-teal-100/50 hover:bg-white hover:border-teal-500 transition-all group/log">
+                   <div className="flex justify-between items-start mb-2 gap-4">
+                      <span className="text-[10px] font-black text-slate-900 uppercase truncate flex-1">{log.actor}</span>
+                      <span className="text-[8px] font-bold text-slate-400 whitespace-nowrap">{new Date(log.timestamp).toLocaleTimeString()}</span>
                    </div>
-                   <p className="text-[10px] text-slate-600 leading-tight mb-2 font-medium">{log.action}</p>
+                   <p className="text-[10px] text-slate-600 leading-relaxed mb-3 font-medium break-words whitespace-normal">
+                      {log.action}
+                   </p>
                    <div className="flex items-center gap-1.5">
-                      <div className={cn("w-1.5 h-1.5 rounded-full", log.severity === 'Critical' ? "bg-red-500" : "bg-teal-500")} />
+                      <div className={cn("w-1.5 h-1.5 rounded-full", log.severity === 'Critical' ? "bg-red-500 animate-pulse" : "bg-teal-500")} />
                       <span className="text-[8px] font-black uppercase text-slate-400">{log.module}</span>
                    </div>
                 </div>

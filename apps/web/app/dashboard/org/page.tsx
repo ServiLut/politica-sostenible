@@ -20,6 +20,7 @@ export default function OrgPage() {
   const [showTerritoryDropdown, setShowTerritoryDropdown] = useState(false);
   const [memberToToggle, setMemberToToggle] = useState<TeamMember | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   
   const [newMember, setNewMember] = useState<Omit<TeamMember, 'id' | 'performance' | 'status'>>({
     name: '',
@@ -139,7 +140,104 @@ export default function OrgPage() {
           </h3>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{team.length} Integrantes</span>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {team.map((m) => (
+            <div key={m.id} className={cn(
+              "p-6 space-y-4",
+              m.status === 'suspended' && "bg-slate-50/50 grayscale opacity-70"
+            )}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black bg-teal-600/15 text-teal-600 border border-teal-600/20">
+                    {m.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black text-slate-900 uppercase truncate max-w-[150px]">{m.name}</p>
+                      {m.status === 'suspended' && (
+                        <span className="bg-amber-100 text-amber-700 text-[7px] font-black px-1 py-0.5 rounded uppercase">Susp.</span>
+                      )}
+                    </div>
+                    <span className={cn(
+                      "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border inline-block mt-1",
+                      m.role.includes('Admin') ? "bg-teal-50 text-teal-600 border-teal-100" :
+                      m.role.includes('Líder') ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      "bg-slate-50 text-slate-600 border-slate-100"
+                    )}>
+                      {m.role}
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setExpandedMemberId(expandedMemberId === m.id ? null : m.id)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-600 transition-all flex items-center gap-1.5"
+                >
+                  {expandedMemberId === m.id ? 'Ocultar' : 'Ver detalles'}
+                  <ChevronDown size={12} className={cn("transition-transform", expandedMemberId === m.id && "rotate-180")} />
+                </button>
+              </div>
+
+              {/* Expanded content */}
+              {expandedMemberId === m.id && (
+                <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Correo</p>
+                      <p className="text-[10px] font-bold text-slate-700 break-all">{m.email}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Territorio</p>
+                      <p className="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+                        <MapPin size={10} className="text-teal-500" /> {m.territory}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Rendimiento</p>
+                      <span className="text-[8px] font-black text-slate-600">{m.performance}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full transition-all duration-1000",
+                          m.performance > 80 ? "bg-emerald-500" : m.performance > 50 ? "bg-amber-500" : "bg-rose-500"
+                        )} 
+                        style={{ width: `${m.performance}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button 
+                      onClick={() => handleEdit(m)}
+                      className="flex-1 py-3 bg-teal-50 text-teal-600 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Edit size={14} /> Editar
+                    </button>
+                    {isAdmin && (
+                      <button 
+                        onClick={() => handleToggleStatusClick(m)}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2",
+                          m.status === 'active' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                        )}
+                      >
+                        {m.status === 'active' ? <><Ban size={14} /> Suspender</> : <><RotateCcw size={14} /> Reactivar</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
               <tr>

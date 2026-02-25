@@ -32,6 +32,7 @@ export default function FinancePage() {
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isCneDropdownOpen, setIsCneDropdownOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
   const [viewDate, setViewDate] = useState(new Date());
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -117,108 +118,171 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión Financiera</h1>
-          <p className="text-slate-500 font-medium">Control de ingresos, gastos y cumplimiento Cuentas Claras.</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión Financiera</h1>
+          <p className="text-sm md:text-base text-slate-500 font-medium">Control de ingresos, gastos y cumplimiento Cuentas Claras.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 hover:-translate-y-1 duration-300"
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 hover:-translate-y-1 duration-300"
         >
           <Receipt size={18} />
           Nuevo Registro
         </button>
       </div>
 
-      <div className={cn("p-8 rounded-[2.5rem] border flex items-center gap-8 shadow-sm transition-all", alertStatus.bg, alertStatus.border, alertStatus.color)}>
-        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-2xl">{alertStatus.icon}</div>
+      <div className={cn("p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8 shadow-sm transition-all", alertStatus.bg, alertStatus.border, alertStatus.color)}>
+        <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-xl md:text-2xl shrink-0">{alertStatus.icon}</div>
         <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monitor Legal CNE</p>
-          <h3 className="text-xl font-black tracking-tight">{alertStatus.msg}</h3>
+          <h3 className="text-lg md:text-xl font-black tracking-tight leading-tight">{alertStatus.msg}</h3>
         </div>
-        <div className="text-right">
+        <div className="w-full md:w-auto flex md:flex-col justify-between md:text-right border-t md:border-t-0 border-current/10 pt-4 md:pt-0">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Ejecución</p>
-          <h3 className="text-4xl font-black">{executionPercentage.toFixed(1)}%</h3>
+          <h3 className="text-3xl md:text-4xl font-black">{executionPercentage.toFixed(1)}%</h3>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700"><Wallet size={120} className="text-teal-600" /></div>
-          <Wallet className="text-teal-600 mb-4" size={32} />
+          <Wallet className="text-teal-600 mb-4" size={28} />
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Caja Disponible</p>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(balance)}</h3>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(balance)}</h3>
         </div>
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <TrendingUp className="text-emerald-500 mb-4" size={32} />
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <TrendingUp className="text-emerald-500 mb-4" size={28} />
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ingresos Registrados</p>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(totalIncome)}</h3>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(totalIncome)}</h3>
         </div>
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <TrendingDown className="text-rose-500 mb-4" size={32} />
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <TrendingDown className="text-rose-500 mb-4" size={28} />
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Egresos Reportables</p>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(totalExpenses)}</h3>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{formatCOP(totalExpenses)}</h3>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-[3rem] overflow-hidden shadow-sm">
-        <div className="px-10 py-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
+      <div className="bg-white border border-slate-200 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-xs md:text-sm tracking-tighter">
             <Receipt size={20} className="text-teal-600" /> Libro de Movimientos Legales
           </h3>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{finance.length} Registros</span>
+          <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">{finance.length} Registros</span>
         </div>
-        <div className="overflow-x-auto">
-          {finance.length === 0 ? (
-            <div className="p-16 flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-sm">
-                <Receipt size={32} className="text-slate-300" />
-              </div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">No hay movimientos registrados</h3>
-              <p className="text-slate-500 font-medium max-w-sm mb-6">
-                Comienza a registrar los ingresos y gastos de la campaña para mantener el control legal y presupuestal.
-              </p>
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="px-6 py-3 bg-teal-50 text-teal-700 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-teal-600 hover:text-white transition-colors"
-              >
-                Crear primer registro
-              </button>
+        
+        {finance.length === 0 ? (
+          <div className="p-12 md:p-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-sm">
+              <Receipt size={28} className="text-slate-300" />
             </div>
-          ) : (
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-                <tr>
-                  <th className="px-10 py-6">Detalle</th>
-                  <th className="px-10 py-6">Identificación</th>
-                  <th className="px-10 py-6">Estado CNE</th>
-                  <th className="px-10 py-6 text-right">Monto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {finance.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
-                    <td className="px-10 py-6">
-                      <p className="text-sm font-black text-slate-900 uppercase mb-1">{t.concept}</p>
+            <h3 className="text-lg md:text-xl font-black text-slate-900 mb-2">No hay movimientos registrados</h3>
+            <p className="text-xs md:text-sm text-slate-500 font-medium max-w-sm mb-6">
+              Comienza a registrar los ingresos y gastos de la campaña para mantener el control legal y presupuestal.
+            </p>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3 bg-teal-50 text-teal-700 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-teal-600 hover:text-white transition-colors"
+            >
+              Crear primer registro
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {finance.map((t) => (
+                <div key={t.id} className="p-6 space-y-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-sm font-black text-slate-900 uppercase truncate">{t.concept}</p>
                       <div className="flex gap-2">
-                        <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-md border uppercase", t.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100')}>{t.type}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">{t.date}</span>
+                        <span className={cn(
+                          "text-[7px] font-black px-1.5 py-0.5 rounded border uppercase", 
+                          t.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+                        )}>
+                          {t.type}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">{t.date}</span>
                       </div>
-                    </td>
-                    <td className="px-10 py-6 text-[11px] font-bold text-slate-500 uppercase">{t.vendorTaxId || 'N/A'}</td>
-                    <td className="px-10 py-6">
-                      <span className={cn("px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border", t.status === 'REPORTED_CNE' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-200')}>{t.status}</span>
-                    </td>
-                    <td className={cn("px-10 py-6 text-right font-black text-sm", t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900')}>
-                      {t.type === 'Gasto' ? '-' : '+'}{formatCOP(t.amount)}
-                    </td>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={cn("text-sm font-black", t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900')}>
+                        {t.type === 'Gasto' ? '-' : '+'}{formatCOP(t.amount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {expandedTransactionId === t.id && (
+                    <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Identificación</p>
+                        <p className="text-[10px] font-bold text-slate-600">{t.vendorTaxId || 'N/A'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Estado CNE</p>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border inline-block", 
+                          t.status === 'REPORTED_CNE' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-200'
+                        )}>
+                          {t.status}
+                        </span>
+                      </div>
+                      {t.cneCode && t.cneCode !== 'OTROS' && (
+                        <div className="col-span-2 space-y-1">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Código CNE</p>
+                          <p className="text-[9px] font-bold text-slate-500 uppercase">{t.cneCode}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => setExpandedTransactionId(expandedTransactionId === t.id ? null : t.id)}
+                    className="w-full py-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 transition-all flex items-center justify-center gap-1.5 border border-slate-100"
+                  >
+                    {expandedTransactionId === t.id ? 'Ocultar detalles' : 'Ver más detalles'}
+                    <ChevronDown size={12} className={cn("transition-transform duration-200", expandedTransactionId === t.id && "rotate-180")} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                  <tr>
+                    <th className="px-10 py-6">Detalle</th>
+                    <th className="px-10 py-6">Identificación</th>
+                    <th className="px-10 py-6">Estado CNE</th>
+                    <th className="px-10 py-6 text-right">Monto</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {finance.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
+                      <td className="px-10 py-6">
+                        <p className="text-sm font-black text-slate-900 uppercase mb-1">{t.concept}</p>
+                        <div className="flex gap-2">
+                          <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-md border uppercase", t.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100')}>{t.type}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{t.date}</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6 text-[11px] font-bold text-slate-500 uppercase">{t.vendorTaxId || 'N/A'}</td>
+                      <td className="px-10 py-6">
+                        <span className={cn("px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border", t.status === 'REPORTED_CNE' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-200')}>{t.status}</span>
+                      </td>
+                      <td className={cn("px-10 py-6 text-right font-black text-sm", t.type === 'Ingreso' ? 'text-emerald-600' : 'text-slate-900')}>
+                        {t.type === 'Gasto' ? '-' : '+'}{formatCOP(t.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
       
       {/* Modal Nuevo Movimiento */}

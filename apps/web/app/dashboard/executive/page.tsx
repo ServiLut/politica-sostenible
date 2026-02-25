@@ -36,6 +36,15 @@ export default function ExecutivePage() {
   
   const kpis = getExecutiveKPIs();
   
+  const daysLeft = React.useMemo(() => {
+    if (!mounted) return 0;
+    const targetDate = new Date(2026, 2, 8); // March 8, 2026
+    const now = new Date();
+    const diff = targetDate.getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : 0;
+  }, [mounted]);
+  
   const formatNum = (num: number) => {
     if (!mounted) return num.toString();
     return num.toLocaleString();
@@ -178,7 +187,9 @@ export default function ExecutivePage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Cuenta Regresiva</p>
-            <p className="text-sm font-black text-black">45 Días para la Victoria</p>
+            <p className="text-sm font-black text-black">
+              {mounted ? `${daysLeft} Días para la Victoria` : "... Días para la Victoria"}
+            </p>
           </div>
         </div>
       </div>

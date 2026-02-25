@@ -10,6 +10,7 @@ export default function TasksPage() {
   const { tasks, team, addTask, completeTask } = useCRM();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Todas');
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   
   // Refs for closing dropdowns on outside click
   const typeRef = useRef<HTMLDivElement>(null);
@@ -127,22 +128,22 @@ export default function TasksPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
+      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
         {filters.map(filter => (
           <button
             key={filter.id}
             onClick={() => setActiveFilter(filter.id)}
             className={cn(
-              "flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border",
+              "flex items-center justify-center sm:justify-start gap-2 px-4 sm:px-5 py-3 sm:py-2.5 rounded-2xl sm:rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border",
               activeFilter === filter.id 
-                ? "bg-white text-teal-600 border-teal-100 shadow-sm scale-[1.02]" 
+                ? "bg-white text-teal-600 border-teal-100 shadow-sm scale-[1.02] z-10" 
                 : "bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-500"
             )}
           >
             {filter.icon}
-            {filter.title}
+            <span className="truncate">{filter.title}</span>
             <span className={cn(
-              "ml-1 px-1.5 py-0.5 rounded-full text-[9px]",
+              "ml-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px]",
               activeFilter === filter.id ? "bg-teal-50 text-teal-600" : "bg-slate-200/50 text-slate-400"
             )}>
               {filter.id === 'Todas' ? tasks.length : tasks.filter(t => t.status === filter.id).length}
@@ -151,9 +152,114 @@ export default function TasksPage() {
         ))}
       </div>
 
-      {/* Main Table Content */}
+      {/* Main Content */}
       <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-x-auto custom-scrollbar">
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-slate-100 overflow-y-auto">
+          {filteredTasks.map(task => (
+            <div key={task.id} className={cn(
+              "p-5 space-y-4 transition-colors",
+              task.status === 'Completada' ? "bg-slate-50/30" : "bg-white"
+            )}>
+              <div className="flex justify-between items-start gap-3">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded border inline-block",
+                      task.type === 'Puerta a Puerta' ? 'bg-red-50 text-red-600 border-red-100' :
+                      task.type === 'Llamadas' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                      task.type === 'Logística' ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                      'bg-indigo-50 text-indigo-600 border-indigo-100'
+                    )}>
+                      {task.type}
+                    </span>
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      task.status === 'Pendiente' ? 'bg-red-500 animate-pulse' :
+                      task.status === 'En Progreso' ? 'bg-amber-500 animate-pulse' :
+                      'bg-emerald-500'
+                    )} />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-900 leading-tight truncate">{task.title}</h4>
+                </div>
+                <button 
+                  onClick={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-600 transition-all flex items-center gap-1.5 border border-slate-200/50"
+                >
+                  {expandedTaskId === task.id ? 'Ocultar' : 'Ver detalles'}
+                  <ChevronDown size={12} className={cn("transition-transform duration-200", expandedTaskId === task.id && "rotate-180")} />
+                </button>
+              </div>
+
+              {expandedTaskId === task.id && (
+                <div className="space-y-5 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="text-[11px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                    {task.description}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Responsable</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center text-[8px] font-black text-white">
+                          {task.assignedTo.charAt(0)}
+                        </div>
+                        <span className="text-[10px] font-black text-slate-700 truncate">{task.assignedTo}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fecha Límite</p>
+                      <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-600">
+                        <Calendar size={12} className="text-teal-600" />
+                        {task.deadline}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-slate-400">
+                      <span>Progreso de Misión</span>
+                      <span className="text-teal-600">{task.progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full transition-all duration-1000",
+                          task.status === 'Completada' ? 'bg-emerald-500' : 'bg-teal-600'
+                        )} 
+                        style={{ width: `${task.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    {task.status !== 'Completada' ? (
+                      <button 
+                        onClick={() => completeTask(task.id)}
+                        className="w-full bg-slate-900 hover:bg-emerald-600 text-white py-3.5 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+                      >
+                        <Check size={14} /> Marcar como Completada
+                      </button>
+                    ) : (
+                      <div className="w-full text-emerald-600 bg-emerald-50 py-3 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100 text-[10px] font-black uppercase tracking-widest">
+                        <CheckCircle size={14} /> Misión Cumplida
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          {filteredTasks.length === 0 && (
+            <div className="py-20 text-center opacity-20">
+              <ClipboardList size={40} className="mx-auto mb-3" />
+              <p className="text-[10px] font-black uppercase tracking-widest">No hay misiones</p>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="overflow-x-auto custom-scrollbar hidden md:block">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">

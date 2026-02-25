@@ -13,7 +13,11 @@ import {
   Bell,
   X,
   Lock,
-  Mail
+  Mail,
+  ShieldAlert,
+  AlertCircle,
+  Info,
+  Check
 } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 
@@ -21,10 +25,21 @@ export function UserNav() {
   const { user, role, signOut } = useAuth();
   const { success, error: toastError } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwords, setPasswords] = useState({ old: "", new: "", confirm: "" });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Mock Notifications Data
+  const notifications = [
+    { id: 1, title: "Alerta CNE", message: "Tope de gastos al 85%. Se requiere revisión inmediata.", time: "Hace 10m", type: "critical", date: "2026-02-24" },
+    { id: 2, title: "Nuevo Reporte SIT", message: "Puesto 'Liceo Antioqueño' ha completado el 100% de mesas.", time: "Hace 45m", type: "success", date: "2026-02-24" },
+    { id: 3, title: "Misión Asignada", message: "Tienes una nueva misión de campo en la Comuna 13.", time: "Hace 2h", type: "info", date: "2026-02-24" },
+    { id: 4, title: "Inteligencia Táctica", message: "Incremento del 15% en simpatizantes detectado en Zona Norte.", time: "Hace 5h", type: "warning", date: "2026-02-23" },
+  ];
 
   // Robust Scroll Lock for Dashboard
   useEffect(() => {
@@ -45,11 +60,14 @@ export function UserNav() {
     };
   }, [isProfileOpen]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -76,15 +94,78 @@ export function UserNav() {
   };
 
   return (
-    <div className="flex items-center gap-4">
-      <button className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors relative">
-        <Bell className="h-5 w-5" />
-        <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white" />
-      </button>
+    <div className="flex items-center gap-2 md:gap-4">
+      {/* Notifications Popover */}
+      <div className="relative" ref={notificationsRef}>
+        <button 
+          onClick={() => {
+            const newState = !isNotificationsOpen;
+            setIsNotificationsOpen(newState);
+            if (newState) setHasUnread(false);
+            setIsOpen(false);
+          }}
+          className={cn(
+            "h-10 w-10 flex items-center justify-center rounded-xl transition-all relative group",
+            isNotificationsOpen ? "bg-teal-50 text-teal-600 border border-teal-100 shadow-inner" : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+          )}
+        >
+          <Bell className={cn("h-5 w-5 transition-transform", isNotificationsOpen && "scale-110")} />
+          {hasUnread && (
+            <span className="absolute top-2 right-2 h-2 w-2 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
+          )}
+        </button>
+
+        {isNotificationsOpen && (
+          <div className="absolute right-0 mt-4 w-[320px] md:w-96 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter">Centro de Mensajes</h3>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5">Alertas de Campaña SIT</p>
+              </div>
+              <span className="bg-teal-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">4 Nuevas</span>
+            </div>
+
+            <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+              {notifications.map((n) => (
+                <div key={n.id} className="p-6 border-b border-slate-50 hover:bg-slate-50/50 transition-all group cursor-pointer relative">
+                  <div className="flex gap-4">
+                    <div className={cn(
+                      "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 border transition-all group-hover:scale-110 shadow-sm",
+                      n.type === 'critical' ? "bg-rose-50 text-rose-600 border-rose-100" :
+                      n.type === 'success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      n.type === 'warning' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                      "bg-teal-50 text-teal-600 border-teal-100"
+                    )}>
+                      {n.type === 'critical' ? <ShieldAlert size={18} /> : 
+                       n.type === 'success' ? <Check size={18} /> : 
+                       n.type === 'warning' ? <AlertCircle size={18} /> : <Info size={18} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1 gap-2">
+                        <p className="text-[10px] font-black text-slate-900 uppercase leading-none truncate">{n.title}</p>
+                        <span className="text-[8px] font-bold text-slate-400 whitespace-nowrap bg-white px-1.5 py-0.5 rounded border border-slate-100">{n.time}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium line-clamp-2">{n.message}</p>
+                      <p className="text-[7px] font-black text-slate-300 uppercase mt-2 tracking-widest">{n.date}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full py-4 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-teal-600 hover:bg-slate-50 transition-all border-t border-slate-50">
+              Ver todo el historial de misiones
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="relative" ref={dropdownRef}>
         <button 
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            setIsOpen(!isOpen);
+            setIsNotificationsOpen(false);
+          }}
           className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200"
         >
           <div className="h-9 w-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center font-black text-sm shadow-sm transition-all">
@@ -123,10 +204,10 @@ export function UserNav() {
                 <Settings className="h-4 w-4" />
                 Configuración
               </Link>
-              <button className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+              <Link href="/dashboard/security" className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
                 <Shield className="h-4 w-4" />
-                Seguridad del Dato
-              </button>
+                Integridad & Seguridad
+              </Link>
             </div>
             
             <div className="h-px bg-slate-100 my-2 mx-4" />
