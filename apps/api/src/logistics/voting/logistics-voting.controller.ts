@@ -3,6 +3,7 @@ import {
   Get,
   Query,
   Post,
+  Patch,
   Body,
   Param,
   Logger,
@@ -49,9 +50,25 @@ export class LogisticsVotingController {
     return this.logisticsVotingService.createVotingPlace(body);
   }
 
+  @Patch(':id')
+  async updateVotingPlace(
+    @Param('id') id: string,
+    @Body() body: { totalMesas?: number; nombre?: string; direccion?: string },
+  ) {
+    return this.logisticsVotingService.updateVotingPlace(id, body);
+  }
+
   @Get(':id/tables')
   async getTables(@Param('id') id: string) {
     return this.logisticsVotingService.getTableResults(id);
+  }
+
+  @Post(':id/complete')
+  async markAsComplete(
+    @Param('id') id: string,
+    @Body() body: { isComplete: boolean },
+  ) {
+    return this.logisticsVotingService.markAsComplete(id, body.isComplete);
   }
 
   @Post(':id/tables')

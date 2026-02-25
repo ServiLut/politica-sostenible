@@ -1,62 +1,71 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { lastValueFrom } from 'rxjs';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class VotingPlacesService {
-  private readonly API_URL = 'https://www.datos.gov.co/resource/u9sh-7v8v.json';
-
   constructor(
-    private readonly httpService: HttpService,
+    private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getVotingPlaces(
-    limit: number = 5000,
+    limit: number = 50,
     offset: number = 0,
     municipio?: string,
   ) {
-    const cacheKey = `voting_places_${limit}_${offset}_${municipio || 'all'}`;
+    const cacheKey = `voting_places_db_${limit}_${offset}_${municipio || 'all'}`;
     const cachedData = await this.cacheManager.get(cacheKey);
 
     if (cachedData) {
       return cachedData;
     }
 
-    const params: any = {
-      $limit: limit,
-      $offset: offset,
-    };
-
-    if (municipio) {
-      params.municipio = municipio.toUpperCase();
-    }
-
     try {
-      const response = await lastValueFrom(
-        this.httpService.get(this.API_URL, { params }),
-      );
+      const where: any = {};
+      if (municipio) {
+        where.municipio = {
+          contains: municipio,
+          mode: 'insensitive',
+        };
+      }
 
-      const mappedData = response.data
-        .map((item: any) => ({
+      const [total, data] = await Promise.all([
+        this.prisma.votingPlace.count({ where }),
+        this.prisma.votingPlace.findMany({
+          where,
+          take: limit,
+          skip: offset,
+          orderBy: { nombre: 'asc' },
+        }),
+      ]);
+
+      const result = {
+        total,
+        limit,
+        offset,
+        data: data.map((item) => ({
+          id: item.id,
           departamento: item.departamento,
           municipio: item.municipio,
-          puesto: item.puesto,
+          puesto: item.nombre,
           direccion: item.direccion,
-          mesas: parseInt(item.mesas, 10) || 0,
-          lat: parseFloat(item.latitud) || 0,
-          lng: parseFloat(item.longitud) || 0,
-        }))
-        .filter((item: any) => item.lat !== 0 && item.lng !== 0);
+          mesas: item.totalMesas,
+          lat: item.latitud || 0,
+          lng: item.longitud || 0,
+          codigo: item.codigo,
+        })),
+      };
 
       // Save to cache for an hour
-      await this.cacheManager.set(cacheKey, mappedData);
+      await this.cacheManager.set(cacheKey, result);
 
-      return mappedData;
+      return result;
     } catch (error: any) {
-      throw new Error(`Failed to fetch voting places: ${error.message}`);
+      throw new Error(
+        `Failed to fetch voting places from DB: ${error.message}`,
+      );
     }
   }
 }

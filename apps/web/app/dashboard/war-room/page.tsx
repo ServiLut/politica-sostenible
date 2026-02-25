@@ -36,16 +36,18 @@ export default function WarRoomPage() {
   // URL Params logic
   const deptFilter = searchParams.get('dept') || '';
   const muniFilter = searchParams.get('muni') || '';
+  const nameFilter = searchParams.get('nombre') || '';
   const activeTab = (searchParams.get('tab') || 'all') as 'all' | 'pending' | 'completed';
   const currentStationPage = Number(searchParams.get('page')) || 1;
   const stationsPerPage = 10;
 
-  const updateParams = (updates: { dept?: string; muni?: string; tab?: string; page?: number; clear?: boolean }) => {
+  const updateParams = (updates: { dept?: string; muni?: string; nombre?: string; tab?: string; page?: number; clear?: boolean }) => {
     const params = new URLSearchParams(searchParams.toString());
     
     if (updates.clear) {
       params.delete('dept');
       params.delete('muni');
+      params.delete('nombre');
       params.delete('tab');
       params.set('page', '1');
     } else {
@@ -56,6 +58,14 @@ export default function WarRoomPage() {
       }
       if (updates.muni !== undefined) {
         params.set('muni', updates.muni);
+        params.set('page', '1');
+      }
+      if (updates.nombre !== undefined) {
+        if (updates.nombre) {
+          params.set('nombre', updates.nombre);
+        } else {
+          params.delete('nombre');
+        }
         params.set('page', '1');
       }
       if (updates.tab !== undefined) {
@@ -78,13 +88,14 @@ export default function WarRoomPage() {
   });
 
   const { data: stationsData, isLoading: loadingStations } = useQuery({
-    queryKey: ['war-room-stations', deptFilter, muniFilter, currentStationPage],
+    queryKey: ['war-room-stations', deptFilter, muniFilter, nameFilter, currentStationPage],
     queryFn: async () => {
       const url = new URL('/api/logistics/voting-places', window.location.origin);
       url.searchParams.append('page', currentStationPage.toString());
       url.searchParams.append('limit', stationsPerPage.toString());
       if (deptFilter) url.searchParams.append('departamento', deptFilter.toUpperCase());
       if (muniFilter) url.searchParams.append('municipio', muniFilter.toUpperCase());
+      if (nameFilter) url.searchParams.append('nombre', nameFilter);
       
       console.log('WarRoom Fetching from:', url.toString());
       
@@ -138,6 +149,20 @@ export default function WarRoomPage() {
     }
   });
 
+  const completeMutation = useMutation({
+    mutationFn: async (data: { stationId: string; isComplete: boolean }) => {
+      const res = await fetch(`/api/logistics/voting-places/${data.stationId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isComplete: data.isComplete })
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['war-room-stations'] });
+    }
+  });
+
   const handleReport = (e: React.FormEvent) => {
     e.preventDefault();
     reportMutation.mutate({
@@ -176,9 +201,7 @@ export default function WarRoomPage() {
   const filteredStations = useMemo(() => {
     return pollingStations
       .filter((s: any) => {
-        const totalMesasNum = s.totalMesas || 0;
-        const registradasNum = s.totalMesasRegistradas || 0;
-        const isComplete = registradasNum >= totalMesasNum && totalMesasNum > 0;
+        const isComplete = s.isComplete || false;
         if (activeTab === 'pending') return !isComplete;
         if (activeTab === 'completed') return isComplete;
         return true;
@@ -402,6 +425,18 @@ export default function WarRoomPage() {
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-3 w-full">
+              {/* Filtro Nombre */}
+              <div className="w-full md:w-64 relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors" size={16} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre..."
+                  value={nameFilter}
+                  onChange={(e) => updateParams({ nombre: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:border-teal-500 focus:bg-white outline-none transition-all shadow-inner"
+                />
+              </div>
+
               {/* Filtro Departamento */}
               <div className="w-full md:w-56">
                 <SearchableSelect
@@ -449,7 +484,7 @@ export default function WarRoomPage() {
             </div>
           ) : (
             filteredStations.map((station: any) => {
-              const isComplete = station.totalMesasRegistradas >= station.totalMesas && station.totalMesas > 0;
+              const isComplete = station.isComplete || false;
               const percentage = station.totalMesas > 0 ? Math.round((station.totalMesasRegistradas / station.totalMesas) * 100) : 0;
               const stationMyVotes = station.totalVotosCandidato || 0;
               const stationTotal = station.totalVotosMesa || 0;
@@ -457,7 +492,10 @@ export default function WarRoomPage() {
               const stationDiff = stationMyVotes - stationOpponentVotes;
 
               return (
-                <div key={station.id} className="bg-white rounded-[2rem] md:rounded-[3.5rem] border-2 border-slate-100 shadow-sm overflow-hidden group hover:border-teal-500/20 transition-all duration-500">
+                <div key={station.id} className={cn(
+                  "bg-white rounded-[2rem] md:rounded-[3.5rem] border-2 shadow-sm overflow-hidden group transition-all duration-500",
+                  isComplete ? "border-emerald-500/30" : "border-slate-100 hover:border-teal-500/20"
+                )}>
                   <div className="flex flex-col lg:grid lg:grid-cols-12 items-stretch">
                     <div className="lg:col-span-3 p-8 md:p-10 flex flex-col justify-center bg-slate-50/30 border-b lg:border-b-0 lg:border-r border-slate-100">
                        <div className="flex items-center gap-4 md:gap-5 mb-6">
@@ -521,36 +559,76 @@ export default function WarRoomPage() {
                              <Inbox size={16} />
                              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]">Control E-14</p>
                           </div>
+
+                          <button 
+                            onClick={() => completeMutation.mutate({ stationId: station.id, isComplete: !isComplete })}
+                            disabled={completeMutation.isPending}
+                            className={cn(
+                              "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm border-2",
+                              isComplete 
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100" 
+                                : "bg-slate-900 text-white border-slate-900 hover:bg-emerald-600 hover:border-emerald-500"
+                            )}
+                          >
+                            {isComplete ? (
+                              <><X size={14} /> Reabrir Puesto</>
+                            ) : (
+                              <><CheckCircle2 size={14} /> Marcar Completo</>
+                            )}
+                          </button>
                        </div>
                        <div className="flex-1 overflow-y-auto pr-2 md:pr-4 custom-scrollbar max-h-[180px] md:max-h-[200px]">
                           <div className="flex flex-wrap gap-2 md:gap-2.5">
-                            {Array.from({ length: station.totalMesas || 0 }).map((_, i) => {
-                              const tableNum = i + 1;
-                              const isReported = tableNum <= station.totalMesasRegistradas;
-                              return (
+                            {station.totalMesas === 0 ? (
+                              <div className="flex flex-col items-center justify-center w-full py-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Sin mesas configuradas</p>
                                 <button 
-                                  key={tableNum}
                                   onClick={() => {
-                                    setSelectedStation(station.id);
-                                    setNewReport({
-                                      tableNumber: tableNum.toString(),
-                                      votesCandidate: 0,
-                                      votesOpponent: 0
-                                    });
-                                    setIsModalOpen(true);
+                                    const num = prompt("¿Cuántas mesas tiene este puesto?", "20");
+                                    if (num) {
+                                      fetch(`/api/logistics/voting-places/${station.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ totalMesas: parseInt(num, 10) })
+                                      }).then(() => queryClient.invalidateQueries({ queryKey: ['war-room-stations'] }));
+                                    }
                                   }}
-                                  className={cn(
-                                    "w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-[1rem] flex items-center justify-center transition-all border-2 shrink-0 relative",
-                                    isReported 
-                                      ? "bg-slate-900 text-white border-slate-900 shadow-lg" 
-                                      : "bg-white text-slate-400 border-slate-100 hover:border-teal-500 hover:text-teal-600"
-                                  )}
+                                  className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase text-teal-600 hover:border-teal-500 transition-all"
                                 >
-                                  <span className="text-[10px] md:text-[11px] font-black">{tableNum}</span>
-                                  {isReported && <CheckCircle2 size={8} className="absolute bottom-0.5 md:bottom-1 right-0.5 md:right-1 text-teal-400" />}
+                                  Configurar Mesas
                                 </button>
-                              );
-                            })}
+                              </div>
+                            ) : (
+                              Array.from({ length: station.totalMesas || 0 }).map((_, i) => {
+                                const tableNum = i + 1;
+                                const existingTable = station.tables?.find((t: any) => t.mesaNumero === tableNum);
+                                const isReported = !!existingTable;
+                                
+                                return (
+                                  <button 
+                                    key={tableNum}
+                                    onClick={() => {
+                                      setSelectedStation(station.id);
+                                      setNewReport({
+                                        tableNumber: tableNum.toString(),
+                                        votesCandidate: existingTable?.votosCandidato || 0,
+                                        votesOpponent: (existingTable?.votosTotales || 0) - (existingTable?.votosCandidato || 0)
+                                      });
+                                      setIsModalOpen(true);
+                                    }}
+                                    className={cn(
+                                      "w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-[1rem] flex items-center justify-center transition-all border-2 shrink-0 relative",
+                                      isReported 
+                                        ? "bg-slate-900 text-white border-slate-900 shadow-lg" 
+                                        : "bg-white text-slate-400 border-slate-100 hover:border-teal-500 hover:text-teal-600"
+                                    )}
+                                  >
+                                    <span className="text-[10px] md:text-[11px] font-black">{tableNum}</span>
+                                    {isReported && <CheckCircle2 size={8} className="absolute bottom-0.5 md:bottom-1 right-0.5 md:right-1 text-teal-400" />}
+                                  </button>
+                                );
+                              })
+                            )}
                           </div>
                        </div>
                        <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-50 flex justify-end">

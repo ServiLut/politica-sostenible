@@ -239,6 +239,7 @@ model VotingPlace {
   latitud      Float?
   longitud     Float?
   codigo       String?       @unique
+  isComplete   Boolean       @default(false) @map("is_complete")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
   tables       TableResult[]
