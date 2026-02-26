@@ -79,6 +79,8 @@ export default function CompliancePage() {
   const score = getComplianceScore();
   const projectedData = getProjectedCompliance();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pendingFile, setPendingFile] = useState<{ name: string; data: string } | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isNewObligationModalOpen, setIsNewObligationModalOpen] = useState(false);
@@ -409,6 +411,16 @@ export default function CompliancePage() {
     setIsNewObligationModalOpen(false);
   };
 
+  const handleConfirmUpload = () => {
+    if (pendingFile && selectedId) {
+      uploadEvidence(selectedId, pendingFile.name, pendingFile.data);
+      logAction('Admin', `Confirmó carga de evidencia: ${pendingFile.name} para hito: ${selectedId}`, 'Compliance', 'Info');
+      setPendingFile(null);
+      setIsModalOpen(false);
+      toastSuccess("Documento vinculado correctamente");
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8 pb-20 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -564,8 +576,8 @@ export default function CompliancePage() {
           <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-50 bg-slate-50/50 space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm md:text-base tracking-tighter">
-                  <Scale size={24} className="text-teal-600" /> Matriz de Obligaciones Normativas
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight leading-tight">
+                  <Scale size={24} className="text-slate-900" /> Matriz de Obligaciones Normativas
                 </h3>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control de Blindaje Electoral CNE</p>
               </div>
@@ -1135,50 +1147,114 @@ export default function CompliancePage() {
 
       {/* MODAL DE CARGA DE EVIDENCIA */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-10 text-center">
-              <div className="w-24 h-24 bg-teal-50 text-teal-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                <Lock size={40} />
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => { setIsModalOpen(false); setPendingFile(null); }}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {pendingFile ? (
+              <div className="p-10 text-center animate-in slide-in-from-bottom-4 duration-300">
+                <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-emerald-100 shadow-xl">
+                  <FileText size={40} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Archivo Listo</h3>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-8">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre del documento</p>
+                  <p className="text-sm font-bold text-slate-700 truncate">{pendingFile.name}</p>
+                </div>
+                
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={handleConfirmUpload}
+                    className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Check size={16} /> Confirmar y Cargar
+                  </button>
+                  <button 
+                    onClick={() => setPendingFile(null)}
+                    className="w-full py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    Elegir otro archivo
+                  </button>
+                </div>
               </div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tighter mb-4">Cargar Soporte Legal</h3>
-              <p className="text-slate-500 text-sm mb-8 font-medium">
-                El archivo debe ser una factura o documento oficial que respalde el cumplimiento ante el CNE.
-              </p>
-              
-              <div className="relative border-2 border-dashed border-teal-100 p-12 rounded-[2.5rem] bg-teal-50/30 mb-8 flex flex-col items-center group hover:border-teal-500 hover:bg-white transition-all cursor-pointer">
-                <input 
-                  type="file" 
-                  accept=".pdf,.jpg,.png,.jpeg"
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
+            ) : (
+              <div className="p-10 text-center">
+                <div className="w-24 h-24 bg-teal-50 text-teal-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                  <Lock size={40} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tighter mb-4">Cargar Soporte Legal</h3>
+                <p className="text-slate-500 text-sm mb-8 font-medium">
+                  El archivo debe ser una factura o documento oficial que respalde el cumplimiento ante el CNE.
+                </p>
+                
+                <div 
+                  className={cn(
+                    "relative border-2 border-dashed p-12 rounded-[2.5rem] mb-8 flex flex-col items-center group transition-all cursor-pointer",
+                    isDragging 
+                      ? "border-teal-500 bg-teal-50 scale-[1.02] shadow-xl shadow-teal-100/50" 
+                      : "border-teal-100 bg-teal-50/30 hover:border-teal-500 hover:bg-white"
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
                     if (file && selectedId) {
                       const reader = new FileReader();
                       reader.onload = async (event) => {
                         let fileData = event.target?.result as string;
-                        
-                        // Procesamiento de seguridad para imágenes (Sharp)
                         if (file.type.startsWith('image/')) {
                           fileData = await processImageAction(fileData);
                         }
-                        
-                        uploadEvidence(selectedId, file.name, fileData);
-                        logAction('Admin', `Cargó evidencia: ${file.name}${file.type.startsWith('image/') ? ' (procesada y segura)' : ''} para hito: ${selectedId}`, 'Compliance', 'Info');
-                        setIsModalOpen(false);
+                        setPendingFile({ name: file.name, data: fileData });
+                        logAction('Admin', `Preparó evidencia vía Drag&Drop: ${file.name} (pendiente de confirmación)`, 'Compliance', 'Info');
                       };
                       reader.readAsDataURL(file);
                     }
                   }}
-                />
-                <Upload size={32} className="text-teal-300 mb-2 group-hover:text-teal-600 transition-colors" />
-                <p className="text-[9px] font-black uppercase text-teal-400 tracking-widest">Haz clic para seleccionar soporte</p>
-              </div>
+                >
+                  <input 
+                    type="file" 
+                    accept=".pdf,.jpg,.png,.jpeg"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && selectedId) {
+                        const reader = new FileReader();
+                        reader.onload = async (event) => {
+                          let fileData = event.target?.result as string;
+                          if (file.type.startsWith('image/')) {
+                            fileData = await processImageAction(fileData);
+                          }
+                          setPendingFile({ name: file.name, data: fileData });
+                          logAction('Admin', `Seleccionó evidencia: ${file.name} (pendiente de confirmación)`, 'Compliance', 'Info');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <Upload size={32} className={cn("mb-2 transition-colors", isDragging ? "text-teal-600" : "text-teal-300 group-hover:text-teal-600")} />
+                  <p className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", isDragging ? "text-teal-600" : "text-teal-400")}>
+                    {isDragging ? "Suelta el archivo aquí" : "Arrastra o selecciona el soporte"}
+                  </p>
+                </div>
 
-              <div className="flex gap-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Cancelar</button>
+                <div className="flex gap-4">
+                  <button onClick={() => { setIsModalOpen(false); setPendingFile(null); }} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Cancelar</button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
