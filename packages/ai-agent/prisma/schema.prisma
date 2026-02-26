@@ -131,6 +131,7 @@ model WitnessReport {
   mesa            Int
   e14ImageUrl     String
   candidateVotes  Int
+  blankVotes      Int               @default(0)
   totalTableVotes Int
   observations    String?
   // Auditoría Forense (Sección 7.3)

@@ -30,7 +30,15 @@ export interface TerritoryZone {
 }
 
 export type FinanceStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REPORTED_CNE';
-export type CneCode = 'PUBLICIDAD_VALLAS' | 'TRANSPORTE' | 'SEDE_CAMPANA' | 'ACTOS_PUBLICOS' | 'OTROS';
+export type CneCode = 
+  | 'PUBLICIDAD_VALLAS' 
+  | 'TRANSPORTE' 
+  | 'SEDE_CAMPANA' 
+  | 'ACTOS_PUBLICOS' 
+  | 'MATERIAL_POP' 
+  | 'INVERSION_ESTADISTICA' 
+  | 'GASTOS_FINANCIEROS' 
+  | 'OTROS';
 
 export interface FinanceTransaction {
   id: string;
@@ -63,7 +71,19 @@ export interface E14Report { id: string; stationId: string; tableNumber: string;
 export interface Broadcast { id: string; name: string; channel: 'WhatsApp' | 'SMS' | 'Email'; status: 'Procesando' | 'Enviado' | 'Error'; sentCount: number; deliveredCount: number; segment: string; message: string; date: string; activeStatus: 'active' | 'archived'; }
 export interface CampaignTask { id: string; title: string; type: 'Puerta a Puerta' | 'Llamadas' | 'Logística' | 'Pegar Publicidad'; assignedTo: string; status: 'Pendiente' | 'En Progreso' | 'Completada'; deadline: string; progress: number; description: string; }
 export interface TeamMember { id: string; name: string; role: string; territory: string; performance: number; email: string; status: 'active' | 'suspended'; }
-export interface ComplianceObligation { id: string; title: string; deadline: string; status: 'Pendiente' | 'En Revisión' | 'Cumplido' | 'Vencido'; priority: 'Alta' | 'Media' | 'Baja'; type: 'Cuentas Claras' | 'Registro Libros' | 'Publicidad Exterior'; evidence?: string; }
+export interface ComplianceObligation { 
+  id: string; 
+  title: string; 
+  deadline: string; 
+  status: 'Pendiente' | 'En Revisión' | 'Cumplido' | 'Vencido'; 
+  priority: 'Alta' | 'Media' | 'Baja'; 
+  type: 'Cuentas Claras' | 'Registro Libros' | 'Publicidad Exterior' | 'Laboral / Contratos' | 'Otros'; 
+  evidence?: string; 
+  evidenceData?: string; 
+  lastValidated?: string; // Fecha en que se subió/validó
+  validityDays?: number; // Cuánto tiempo es válido el documento (ej. 30 días para certificados)
+  periodicity?: 'Única' | 'Semanal' | 'Quincenal' | 'Mensual'; // Para reportes recurrentes
+}
 export interface AuditLog { id: string; actor: string; action: string; timestamp: string; module: string; severity: 'Info' | 'Warning' | 'Critical'; ip: string; }
 
 interface CRMContextType {
@@ -105,7 +125,8 @@ interface CRMContextType {
   updateMember: (id: string, member: Partial<TeamMember>) => void;
   toggleMemberStatus: (id: string) => void;
   addComplianceObligation: (obligation: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => void;
-  uploadEvidence: (id: string, file: string) => void;
+  uploadEvidence: (id: string, fileName: string, fileData?: string) => void;
+  removeEvidence: (id: string) => void;
   logAction: (actor: string, action: string, module: string, severity?: AuditLog['severity']) => void;
   getExecutiveKPIs: () => any;
   getTerritoryStats: () => TerritoryZone[];
@@ -119,11 +140,25 @@ interface CRMContextType {
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
 const DEFAULT_COMPLIANCE: ComplianceObligation[] = [
-  { id: 'cne-1', title: 'Registro de Libros y Cuenta Única', deadline: '2026-03-01', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
-  { id: 'cne-2', title: 'Designación Gerente y Contador', deadline: '2026-03-05', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
-  { id: 'cne-3', title: 'Reporte Semanal de Ingresos/Gastos', deadline: '2026-03-10', status: 'Pendiente', priority: 'Media', type: 'Cuentas Claras' },
-  { id: 'cne-4', title: 'Registro de Publicidad Exterior (Vallas)', deadline: '2026-03-15', status: 'Pendiente', priority: 'Media', type: 'Publicidad Exterior' },
-  { id: 'cne-5', title: 'Informe Final de Campaña (Cuentas Claras)', deadline: '2026-06-25', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras' },
+  { id: 'cne-1', title: 'Apertura de Cuenta Única Bancaria', deadline: '2025-11-01', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'cert_bancaria_bbva.pdf', validityDays: 365, periodicity: 'Única' },
+  { id: 'cne-2', title: 'Registro de Libros ante el CNE', deadline: '2025-11-15', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'resolucion_libros_001.pdf', periodicity: 'Única' },
+  { id: 'cne-3', title: 'Designación de Gerente y Contador', deadline: '2025-12-01', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'acta_nombramiento.pdf', periodicity: 'Única' },
+  { id: 'cne-4', title: 'Registro de Propaganda Electoral (Vallas)', deadline: '2026-01-15', status: 'Cumplido', priority: 'Alta', type: 'Publicidad Exterior', evidence: 'resolucion_vallas_medellin.pdf', validityDays: 60, periodicity: 'Única' },
+  { id: 'cne-5', title: 'Reporte Semanal de Ingresos y Gastos #10', deadline: '2026-03-01', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras', validityDays: 7, periodicity: 'Semanal' },
+  { id: 'cne-6', title: 'Contrato de Arrendamiento Sede Campaña', deadline: '2025-12-10', status: 'Cumplido', priority: 'Media', type: 'Laboral / Contratos', evidence: 'contrato_sede.pdf', validityDays: 180, periodicity: 'Única' },
+  { id: 'cne-7', title: 'Permiso de Publicidad Móvil (Perifoneo)', deadline: '2026-03-05', status: 'Pendiente', priority: 'Media', type: 'Publicidad Exterior', validityDays: 15, periodicity: 'Quincenal' },
+  { id: 'cne-8', title: 'Certificación de No Superación de Topes Individuales', deadline: '2026-03-10', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras', periodicity: 'Única' },
+  { id: 'cne-9', title: 'Contrato Equipo de Logística (Día D)', deadline: '2026-03-05', status: 'Pendiente', priority: 'Media', type: 'Laboral / Contratos', periodicity: 'Única' },
+];
+
+const DEFAULT_FINANCE: FinanceTransaction[] = [
+  { id: 'tx-1', concept: 'Aporte Partido Político - Anticipo', amount: 150000000, type: 'Ingreso', category: 'Aportes', date: '2025-12-05', status: 'REPORTED_CNE', vendorTaxId: '800.123.456-1' },
+  { id: 'tx-2', concept: 'Arrendamiento Sede Principal Medellín', amount: 12000000, type: 'Gasto', category: 'Administración', date: '2026-01-05', status: 'REPORTED_CNE', cneCode: 'SEDE_CAMPANA', vendorTaxId: '900.555.444-2' },
+  { id: 'tx-3', concept: 'Producción de 20 Vallas Publicitarias', amount: 45000000, type: 'Gasto', category: 'Publicidad', date: '2026-01-15', status: 'REPORTED_CNE', cneCode: 'PUBLICIDAD_VALLAS', vendorTaxId: '860.000.111-9' },
+  { id: 'tx-4', concept: 'Kit de Volanteo y Material P.O.P.', amount: 18000000, type: 'Gasto', category: 'Publicidad', date: '2026-02-01', status: 'APPROVED', cneCode: 'MATERIAL_POP', vendorTaxId: '700.111.222-3' },
+  { id: 'tx-5', concept: 'Asesoría Estratégica y Encuestas', amount: 35000000, type: 'Gasto', category: 'Estrategia', date: '2026-02-10', status: 'APPROVED', cneCode: 'INVERSION_ESTADISTICA', vendorTaxId: '901.222.333-5' },
+  { id: 'tx-6', concept: 'Transporte Giras Municipales (Antioquia)', amount: 8500000, type: 'Gasto', category: 'Logística', date: '2026-02-15', status: 'PENDING', cneCode: 'TRANSPORTE', vendorTaxId: '800.999.888-0' },
+  { id: 'tx-7', concept: 'Evento Gran Lanzamiento (Plaza Mayor)', amount: 55000000, type: 'Gasto', category: 'Eventos', date: '2026-02-20', status: 'PENDING', cneCode: 'ACTOS_PUBLICOS', vendorTaxId: '890.333.444-1' },
 ];
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
@@ -146,7 +181,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const parse = (key: string, def: any) => {
       if (typeof window === 'undefined') return def;
       const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : def;
+      if (!saved) return def;
+      try {
+        const parsed = JSON.parse(saved);
+        // Si es un array vacío en localStorage, usamos el default
+        // para asegurar que las obligaciones base aparezcan la primera vez
+        return Array.isArray(parsed) && parsed.length === 0 ? def : parsed;
+      } catch {
+        return def;
+      }
     };
 
     // Helper to ensure unique IDs across legacy data
@@ -165,14 +208,18 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
     const loadedContacts = fixIds(parse('crm_contacts', []), 'contact');
     const loadedGoal = parse('crm_campaign_goal', 50000);
-    const loadedFinance = fixIds(parse('crm_finance', []), 'tx');
+    const loadedFinance = fixIds(parse('crm_finance', DEFAULT_FINANCE), 'tx');
     const loadedWitnesses = parse('crm_witnesses', []);
     const loadedEvents = fixIds(parse('crm_events', []), 'e');
     const loadedReports = fixIds(parse('crm_reports', []), 'rep');
     const loadedBroadcasts = fixIds(parse('crm_broadcasts', []), 'br');
     const loadedTasks = fixIds(parse('crm_tasks', []), 'tk');
     const loadedTeam = fixIds(parse('crm_team', []), 'u');
-    const loadedCompliance = fixIds(parse('crm_compliance', DEFAULT_COMPLIANCE), 'req');
+    const loadedCompliance = fixIds(parse('crm_compliance', DEFAULT_COMPLIANCE), 'req').map((o: any) => ({
+      ...o,
+      periodicity: o.periodicity || 'Única',
+      validityDays: o.validityDays || (o.periodicity === 'Semanal' ? 7 : o.periodicity === 'Quincenal' ? 15 : o.periodicity === 'Mensual' ? 30 : 365)
+    }));
     const loadedAudit = fixIds(parse('crm_audit', []), 'log');
 
     // Mezclar Territorio
@@ -332,9 +379,85 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setCompliance(prev => [{...o, id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, status: 'Pendiente'}, ...prev]);
     logAction('Admin', `Nueva obligación creada: ${o.title}`, 'Compliance', 'Warning');
   }, [logAction]);
-  const uploadEvidence = useCallback((id: string, file: string) => {
-    setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Cumplido', evidence: file } : o));
-    logAction('Sistema', `Evidencia cargada: ${file}`, 'Compliance', 'Info');
+  const uploadEvidence = useCallback((id: string, fileName: string, fileData?: string) => {
+    setCompliance(prev => {
+      const newCompliance = [...prev];
+      const index = newCompliance.findIndex(o => o.id === id);
+      
+      if (index === -1) return prev;
+      
+      const o = { ...newCompliance[index] };
+      const now = new Date();
+      // Generar string YYYY-MM-DD local
+      const getLocalDateStr = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      
+      const todayStr = getLocalDateStr(now);
+      
+      // 2. Detección forzada de periodicidad (Mejorada para Cuentas Claras)
+      let p = o.periodicity;
+      const t = o.title.toLowerCase();
+      if (!p || p === 'Única') {
+        if (t.includes('semanal') || t.includes('ingresos') || t.includes('gastos') || o.type === 'Cuentas Claras') p = 'Semanal';
+        else if (t.includes('quincenal') || t.includes('permiso')) p = 'Quincenal';
+        else if (t.includes('mensual') || t.includes('contrato') || t.includes('valla')) p = 'Mensual';
+        else p = 'Única';
+      }
+
+      // 3. Lógica de Salto de Fecha (Bulletproof)
+      if (p !== 'Única') {
+        // Usar T12:00:00 para evitar errores de zona horaria al parsear
+        let dateObj = new Date(o.deadline + 'T12:00:00');
+        if (isNaN(dateObj.getTime())) dateObj = new Date();
+
+        const advance = (d: Date) => {
+          const res = new Date(d.getTime());
+          if (p === 'Semanal') res.setDate(res.getDate() + 7);
+          else if (p === 'Quincenal') res.setDate(res.getDate() + 15);
+          else if (p === 'Mensual') res.setMonth(res.getMonth() + 1);
+          return res;
+        };
+
+        // Salto inicial obligatorio: estamos cumpliendo el hito de ESTA fecha
+        dateObj = advance(dateObj);
+
+        // Si la nueva fecha aún está en el pasado o es hoy, seguimos saltando hasta el futuro
+        let limit = 0;
+        while (getLocalDateStr(dateObj) <= todayStr && limit < 52) {
+          dateObj = advance(dateObj);
+          limit++;
+        }
+        
+        o.deadline = getLocalDateStr(dateObj);
+      }
+
+      // 4. REEMPLAZO SEGURO Y TOTAL
+      // Limpiamos explícitamente cualquier rastro del archivo anterior
+      o.evidence = undefined;
+      o.evidenceData = undefined;
+
+      o.status = 'Cumplido';
+      o.evidence = fileName;
+      o.evidenceData = fileData;
+      o.lastValidated = now.toISOString();
+      o.periodicity = p;
+      // Validez según periodicidad para el semáforo
+      o.validityDays = o.validityDays || (p === 'Semanal' ? 7 : p === 'Quincenal' ? 15 : p === 'Mensual' ? 30 : 365);
+      
+      newCompliance[index] = o;
+      return newCompliance;
+    });
+    
+    logAction('Sistema', 'Soporte legal reemplazado y archivo anterior eliminado permanentemente.', 'Compliance', 'Info');
+  }, [logAction]);
+
+  const removeEvidence = useCallback((id: string) => {
+    setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Pendiente', evidence: undefined, evidenceData: undefined } : o));
+    logAction('Sistema', `Evidencia eliminada para hito: ${id}`, 'Compliance', 'Warning');
   }, [logAction]);
 
   // ENRIQUECIMIENTO (Reactivo a contacts)
@@ -374,45 +497,45 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const getTeamStats = () => ({ totalTasks: tasks.length, completedTasks: tasks.filter(t => t.status === 'Completada').length, teamEfficiency: tasks.length > 0 ? (tasks.filter(t => t.status === 'Completada').length / tasks.length) * 100 : 0 });
   const getComplianceScore = () => compliance.length > 0 ? (compliance.filter(o => o.status === 'Cumplido').length / compliance.length) * 100 : 0;
   
-  const TOPE_LEGAL_CNE = 50000000;
+  const TOPE_LEGAL_CNE = 850000000;
 
   const getProjectedCompliance = useCallback(() => {
-      // 1. Gastos Reales (Incluimos PENDING para que el usuario vea reflejados sus cambios en el prototipo)
+      // 1. Gastos Reales (Aprobados y Reportados)
       const actualExpenses = finance
-        .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE' || f.status === 'PENDING'))
+        .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
         .reduce((a, b) => a + Number(b.amount || 0), 0);
 
-      // 2. Gastos Proyectados (Eventos sin transacción vinculada)
-      // Asumimos un costo promedio por asistente si no hay estimado
+      // 2. Gastos en Proceso (Pendientes)
+      const pendingExpenses = finance
+        .filter(f => f.type === 'Gasto' && f.status === 'PENDING')
+        .reduce((a, b) => a + Number(b.amount || 0), 0);
+
+      // 3. Gastos Proyectados (Eventos sin transacción vinculada)
       const projectedEventsCost = events.reduce((acc, event) => {
-         // Si ya existe una transacción vinculada a este evento, no lo sumamos (evitar doble conteo)
          const hasTransaction = finance.some(f => f.relatedEntityId === event.id);
          if (hasTransaction) return acc;
          
-         const estimated = Number(event.estimatedCost || 0) || (Number(event.attendeesCount || 0) * 5000); // 5000 COP por persona (refrigerio simple)
+         const estimated = Number(event.estimatedCost || 0) || (Number(event.attendeesCount || 0) * 8000); // 8000 COP por persona (ajuste logística)
          return acc + (isNaN(estimated) ? 0 : estimated);
       }, 0);
 
-      // 3. Inventario (Simulación: Asumimos que cada "Salida" de inventario es un gasto de publicidad no registrado si no tiene ID)
-      // Para este MVP, asumiremos un valor fijo de proyección de inventario
-      const projectedInventoryCost = 0; 
-
-      const totalProjected = actualExpenses + projectedEventsCost + projectedInventoryCost;
+      const totalProjected = actualExpenses + pendingExpenses + projectedEventsCost;
       
       return {
           actualExpenses,
+          pendingExpenses,
           projectedEventsCost,
           totalProjected,
           topeLegal: TOPE_LEGAL_CNE,
           executionPercentage: (totalProjected / TOPE_LEGAL_CNE) * 100,
-          isAtRisk: (totalProjected / TOPE_LEGAL_CNE) > 0.9
+          isAtRisk: (totalProjected / TOPE_LEGAL_CNE) > 0.85
       };
   }, [finance, events, TOPE_LEGAL_CNE]);
 
   return (
     <CRMContext.Provider value={{ 
       contacts, territory: enrichedTerritory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
-      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, logAction,
+      addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, removeEvidence, logAction,
       getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore
     }}>
       {children}

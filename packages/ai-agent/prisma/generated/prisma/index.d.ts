@@ -8432,12 +8432,14 @@ export namespace Prisma {
   export type WitnessReportAvgAggregateOutputType = {
     mesa: number | null
     candidateVotes: number | null
+    blankVotes: number | null
     totalTableVotes: number | null
   }
 
   export type WitnessReportSumAggregateOutputType = {
     mesa: number | null
     candidateVotes: number | null
+    blankVotes: number | null
     totalTableVotes: number | null
   }
 
@@ -8449,6 +8451,7 @@ export namespace Prisma {
     mesa: number | null
     e14ImageUrl: string | null
     candidateVotes: number | null
+    blankVotes: number | null
     totalTableVotes: number | null
     observations: string | null
     blockchainHash: string | null
@@ -8465,6 +8468,7 @@ export namespace Prisma {
     mesa: number | null
     e14ImageUrl: string | null
     candidateVotes: number | null
+    blankVotes: number | null
     totalTableVotes: number | null
     observations: string | null
     blockchainHash: string | null
@@ -8481,6 +8485,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: number
     candidateVotes: number
+    blankVotes: number
     totalTableVotes: number
     observations: number
     blockchainHash: number
@@ -8494,12 +8499,14 @@ export namespace Prisma {
   export type WitnessReportAvgAggregateInputType = {
     mesa?: true
     candidateVotes?: true
+    blankVotes?: true
     totalTableVotes?: true
   }
 
   export type WitnessReportSumAggregateInputType = {
     mesa?: true
     candidateVotes?: true
+    blankVotes?: true
     totalTableVotes?: true
   }
 
@@ -8511,6 +8518,7 @@ export namespace Prisma {
     mesa?: true
     e14ImageUrl?: true
     candidateVotes?: true
+    blankVotes?: true
     totalTableVotes?: true
     observations?: true
     blockchainHash?: true
@@ -8527,6 +8535,7 @@ export namespace Prisma {
     mesa?: true
     e14ImageUrl?: true
     candidateVotes?: true
+    blankVotes?: true
     totalTableVotes?: true
     observations?: true
     blockchainHash?: true
@@ -8543,6 +8552,7 @@ export namespace Prisma {
     mesa?: true
     e14ImageUrl?: true
     candidateVotes?: true
+    blankVotes?: true
     totalTableVotes?: true
     observations?: true
     blockchainHash?: true
@@ -8646,6 +8656,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes: number
     totalTableVotes: number
     observations: string | null
     blockchainHash: string | null
@@ -8681,6 +8692,7 @@ export namespace Prisma {
     mesa?: boolean
     e14ImageUrl?: boolean
     candidateVotes?: boolean
+    blankVotes?: boolean
     totalTableVotes?: boolean
     observations?: boolean
     blockchainHash?: boolean
@@ -8700,6 +8712,7 @@ export namespace Prisma {
     mesa?: boolean
     e14ImageUrl?: boolean
     candidateVotes?: boolean
+    blankVotes?: boolean
     totalTableVotes?: boolean
     observations?: boolean
     blockchainHash?: boolean
@@ -8719,6 +8732,7 @@ export namespace Prisma {
     mesa?: boolean
     e14ImageUrl?: boolean
     candidateVotes?: boolean
+    blankVotes?: boolean
     totalTableVotes?: boolean
     observations?: boolean
     blockchainHash?: boolean
@@ -8738,6 +8752,7 @@ export namespace Prisma {
     mesa?: boolean
     e14ImageUrl?: boolean
     candidateVotes?: boolean
+    blankVotes?: boolean
     totalTableVotes?: boolean
     observations?: boolean
     blockchainHash?: boolean
@@ -8746,7 +8761,7 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "totalTableVotes" | "observations" | "blockchainHash" | "timestampProof" | "isSynced" | "createdAt", ExtArgs["result"]["witnessReport"]>
+  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "blankVotes" | "totalTableVotes" | "observations" | "blockchainHash" | "timestampProof" | "isSynced" | "createdAt", ExtArgs["result"]["witnessReport"]>
   export type WitnessReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -8778,6 +8793,7 @@ export namespace Prisma {
       mesa: number
       e14ImageUrl: string
       candidateVotes: number
+      blankVotes: number
       totalTableVotes: number
       observations: string | null
       blockchainHash: string | null
@@ -9217,6 +9233,7 @@ export namespace Prisma {
     readonly mesa: FieldRef<"WitnessReport", 'Int'>
     readonly e14ImageUrl: FieldRef<"WitnessReport", 'String'>
     readonly candidateVotes: FieldRef<"WitnessReport", 'Int'>
+    readonly blankVotes: FieldRef<"WitnessReport", 'Int'>
     readonly totalTableVotes: FieldRef<"WitnessReport", 'Int'>
     readonly observations: FieldRef<"WitnessReport", 'String'>
     readonly blockchainHash: FieldRef<"WitnessReport", 'String'>
@@ -14289,6 +14306,7 @@ export namespace Prisma {
     mesa: 'mesa',
     e14ImageUrl: 'e14ImageUrl',
     candidateVotes: 'candidateVotes',
+    blankVotes: 'blankVotes',
     totalTableVotes: 'totalTableVotes',
     observations: 'observations',
     blockchainHash: 'blockchainHash',
@@ -15099,6 +15117,7 @@ export namespace Prisma {
     mesa?: IntFilter<"WitnessReport"> | number
     e14ImageUrl?: StringFilter<"WitnessReport"> | string
     candidateVotes?: IntFilter<"WitnessReport"> | number
+    blankVotes?: IntFilter<"WitnessReport"> | number
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
@@ -15118,6 +15137,7 @@ export namespace Prisma {
     mesa?: SortOrder
     e14ImageUrl?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
     observations?: SortOrderInput | SortOrder
     blockchainHash?: SortOrderInput | SortOrder
@@ -15140,6 +15160,7 @@ export namespace Prisma {
     mesa?: IntFilter<"WitnessReport"> | number
     e14ImageUrl?: StringFilter<"WitnessReport"> | string
     candidateVotes?: IntFilter<"WitnessReport"> | number
+    blankVotes?: IntFilter<"WitnessReport"> | number
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
@@ -15159,6 +15180,7 @@ export namespace Prisma {
     mesa?: SortOrder
     e14ImageUrl?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
     observations?: SortOrderInput | SortOrder
     blockchainHash?: SortOrderInput | SortOrder
@@ -15183,6 +15205,7 @@ export namespace Prisma {
     mesa?: IntWithAggregatesFilter<"WitnessReport"> | number
     e14ImageUrl?: StringWithAggregatesFilter<"WitnessReport"> | string
     candidateVotes?: IntWithAggregatesFilter<"WitnessReport"> | number
+    blankVotes?: IntWithAggregatesFilter<"WitnessReport"> | number
     totalTableVotes?: IntWithAggregatesFilter<"WitnessReport"> | number
     observations?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
@@ -16039,6 +16062,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -16058,6 +16082,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -16071,6 +16096,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16090,6 +16116,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16106,6 +16133,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -16119,6 +16147,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16135,6 +16164,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -17140,6 +17170,7 @@ export namespace Prisma {
     mesa?: SortOrder
     e14ImageUrl?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
     observations?: SortOrder
     blockchainHash?: SortOrder
@@ -17151,6 +17182,7 @@ export namespace Prisma {
   export type WitnessReportAvgOrderByAggregateInput = {
     mesa?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
   }
 
@@ -17162,6 +17194,7 @@ export namespace Prisma {
     mesa?: SortOrder
     e14ImageUrl?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
     observations?: SortOrder
     blockchainHash?: SortOrder
@@ -17178,6 +17211,7 @@ export namespace Prisma {
     mesa?: SortOrder
     e14ImageUrl?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
     observations?: SortOrder
     blockchainHash?: SortOrder
@@ -17189,6 +17223,7 @@ export namespace Prisma {
   export type WitnessReportSumOrderByAggregateInput = {
     mesa?: SortOrder
     candidateVotes?: SortOrder
+    blankVotes?: SortOrder
     totalTableVotes?: SortOrder
   }
 
@@ -18987,6 +19022,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -19004,6 +19040,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -19249,6 +19286,7 @@ export namespace Prisma {
     mesa?: IntFilter<"WitnessReport"> | number
     e14ImageUrl?: StringFilter<"WitnessReport"> | string
     candidateVotes?: IntFilter<"WitnessReport"> | number
+    blankVotes?: IntFilter<"WitnessReport"> | number
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
@@ -19482,6 +19520,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -19499,6 +19538,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -19958,6 +19998,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -19975,6 +20016,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -21386,6 +21428,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -21615,6 +21658,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21632,6 +21676,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21647,6 +21692,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21758,6 +21804,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -21901,6 +21948,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21918,6 +21966,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21933,6 +21982,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22040,6 +22090,7 @@ export namespace Prisma {
     mesa: number
     e14ImageUrl: string
     candidateVotes: number
+    blankVotes?: number
     totalTableVotes: number
     observations?: string | null
     blockchainHash?: string | null
@@ -22203,6 +22254,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22220,6 +22272,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22235,6 +22288,7 @@ export namespace Prisma {
     mesa?: IntFieldUpdateOperationsInput | number
     e14ImageUrl?: StringFieldUpdateOperationsInput | string
     candidateVotes?: IntFieldUpdateOperationsInput | number
+    blankVotes?: IntFieldUpdateOperationsInput | number
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null

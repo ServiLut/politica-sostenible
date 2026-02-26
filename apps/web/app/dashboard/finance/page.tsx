@@ -486,11 +486,14 @@ export default function FinancePage() {
                         className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
                       >
                         <span className="truncate">
-                          {formData.cneCode === 'OTROS' ? '199 - Otros Gastos / Operativos' :
-                           formData.cneCode === 'PUBLICIDAD_VALLAS' ? '108 - Publicidad en Vallas / Exterior' :
+                          {formData.cneCode === 'OTROS' ? '199 - Otros Gastos Operativos' :
+                           formData.cneCode === 'PUBLICIDAD_VALLAS' ? '108 - Propaganda Electoral (Vallas/Murales)' :
                            formData.cneCode === 'TRANSPORTE' ? '110 - Transporte y Movilidad' :
                            formData.cneCode === 'SEDE_CAMPANA' ? '102 - Arrendamiento de Sede' :
-                           formData.cneCode === 'ACTOS_PUBLICOS' ? '105 - Actos Públicos y Eventos' : formData.cneCode}
+                           formData.cneCode === 'ACTOS_PUBLICOS' ? '105 - Actos Públicos y Eventos' : 
+                           formData.cneCode === 'MATERIAL_POP' ? '112 - Material P.O.P. y Volanteo' :
+                           formData.cneCode === 'INVERSION_ESTADISTICA' ? '104 - Asesoría y Encuestas' :
+                           formData.cneCode === 'GASTOS_FINANCIEROS' ? '115 - Gastos Financieros' : formData.cneCode}
                         </span>
                         <ChevronDown className={cn("text-slate-400 transition-transform", isCneDropdownOpen && "rotate-180")} size={18} />
                       </button>
@@ -498,11 +501,14 @@ export default function FinancePage() {
                       {isCneDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                           {[
-                            { value: 'OTROS', label: '199 - Otros Gastos / Operativos' },
-                            { value: 'PUBLICIDAD_VALLAS', label: '108 - Publicidad en Vallas / Exterior' },
+                            { value: 'PUBLICIDAD_VALLAS', label: '108 - Propaganda Electoral (Vallas/Murales)' },
                             { value: 'TRANSPORTE', label: '110 - Transporte y Movilidad' },
                             { value: 'SEDE_CAMPANA', label: '102 - Arrendamiento de Sede' },
-                            { value: 'ACTOS_PUBLICOS', label: '105 - Actos Públicos y Eventos' }
+                            { value: 'ACTOS_PUBLICOS', label: '105 - Actos Públicos y Eventos' },
+                            { value: 'MATERIAL_POP', label: '112 - Material P.O.P. y Volanteo' },
+                            { value: 'INVERSION_ESTADISTICA', label: '104 - Asesoría y Encuestas' },
+                            { value: 'GASTOS_FINANCIEROS', label: '115 - Gastos Financieros' },
+                            { value: 'OTROS', label: '199 - Otros Gastos Operativos' }
                           ].map(item => (
                             <div
                               key={item.value}

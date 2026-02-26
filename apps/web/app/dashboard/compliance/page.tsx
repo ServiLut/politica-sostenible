@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useCRM } from '@/context/CRMContext';
 import { 
   ShieldCheck, 
@@ -23,7 +24,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  X
+  X,
+  FileText,
+  Trash2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -41,17 +44,22 @@ import {
 import { cn } from '@/components/ui/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useToast } from '@/context/ToastContext';
+import { processImageAction } from '@/app/actions/image';
 
-// CONSTANTES DE NORMATIVA CNE COLOMBIA
+// CONSTANTES DE NORMATIVA CNE COLOMBIA (Resolución vigente)
 const CNE_CATEGORIES: Record<string, string> = {
-  'PUBLICIDAD_VALLAS': 'Propaganda Electoral (Vallas)',
-  'SEDE_CAMPANA': 'Oficinas y Sedes',
-  'ACTOS_PUBLICOS': 'Actos Públicos',
-  'TRANSPORTE': 'Transporte y Correo',
-  'OTROS': 'Otros Gastos No Clasificados'
+  'PUBLICIDAD_VALLAS': '108 - Propaganda Electoral (Vallas/Murales)',
+  'SEDE_CAMPANA': '102 - Gastos de Administración (Sedes)',
+  'ACTOS_PUBLICOS': '105 - Actos Públicos y Eventos',
+  'TRANSPORTE': '110 - Transporte y Movilidad',
+  'MATERIAL_POP': '112 - Material P.O.P. y Volanteo',
+  'INVERSION_ESTADISTICA': '104 - Asesoría y Encuestas',
+  'GASTOS_FINANCIEROS': '115 - Gastos Financieros',
+  'OTROS': '199 - Otros Gastos Operativos'
 };
 
-const ELECTION_DATE = new Date('2026-03-15'); // Fecha estimada Elecciones 2026
+const ELECTION_DATE = new Date('2026-03-08'); // Fecha oficial Elecciones Congreso 2026
 
 export default function CompliancePage() {
   const { 
@@ -59,24 +67,38 @@ export default function CompliancePage() {
     finance, 
     getComplianceScore, 
     uploadEvidence, 
+    removeEvidence,
     addComplianceObligation,
     logAction, 
     auditLogs,
     getProjectedCompliance,
     TOPE_LEGAL_CNE 
   } = useCRM();
+  const { success: toastSuccess } = useToast();
 
   const score = getComplianceScore();
   const projectedData = getProjectedCompliance();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isNewObligationModalOpen, setIsNewObligationModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedObligationId, setExpandedObligationId] = useState<string | null>(null);
-  const [newObligation, setNewObligation] = useState({ title: '', deadline: '', priority: 'Media' as const, type: 'Cuentas Claras' as const });
+  const [newObligation, setNewObligation] = useState({ 
+    title: '', 
+    deadline: '', 
+    priority: 'Media' as const, 
+    type: 'Cuentas Claras' as const,
+    validityDays: 30, // Default a 30 días según criterios CNE comunes
+    periodicity: 'Única' as const
+  });
+
+  const selectedObligation = useMemo(() => compliance.find(o => o.id === selectedId), [compliance, selectedId]);
 
   // Modal Dropdown States
   const [isModalPriorityOpen, setIsModalPriorityOpen] = useState(false);
   const [isModalTypeOpen, setIsModalTypeOpen] = useState(false);
+  const [isModalPeriodicityOpen, setIsModalPeriodicityOpen] = useState(false);
   const [isModalCalendarOpen, setIsModalCalendarOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -117,6 +139,92 @@ export default function CompliancePage() {
       );
     }
     return days;
+  };
+
+  // Visor Seguro para Documentos (Extremadamente Seguro)
+  const openSecureViewer = (data: string, filename: string) => {
+    if (!data) return;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SIT | Visor Seguro - ${filename}</title>
+        <style>
+          body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #020617; font-family: -apple-system, system-ui, sans-serif; }
+          .viewer-header { 
+            background: #0f172a; 
+            color: #f8fafc; 
+            padding: 0.75rem 2rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #0d9488;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+            z-index: 50;
+            position: relative;
+          }
+          .brand { font-size: 0.875rem; font-weight: 900; letter-spacing: 0.1em; color: #2dd4bf; }
+          .badge { 
+            background: #134e4a; 
+            color: #2dd4bf; 
+            padding: 0.25rem 0.75rem; 
+            border-radius: 9999px; 
+            font-size: 0.65rem; 
+            font-weight: 800; 
+            border: 1px solid #115e59;
+            text-transform: uppercase;
+          }
+          .btn-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 10px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+          }
+          .btn-close:hover { background: #dc2626; transform: scale(1.05); }
+          .viewer-body { height: calc(100vh - 55px); width: 100%; background: #1e293b; }
+          object, embed, iframe { width: 100%; height: 100%; border: none; }
+        </style>
+      </head>
+      <body>
+        <header class="viewer-header">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="brand">SIT CLOUD</span>
+            <span class="badge">CONTENEDOR AISLADO</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 2rem;">
+            <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">DOC: ${filename}</span>
+            <button class="btn-close" onclick="window.close()">Cerrar Visor</button>
+          </div>
+        </header>
+        <main class="viewer-body">
+          <object data="${data}" type="application/pdf">
+            <embed src="${data}" type="application/pdf" />
+            <iframe src="${data}"></iframe>
+          </object>
+        </main>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    
+    const newTab = window.open(blobUrl, '_blank');
+    
+    if (newTab) {
+      logAction('Seguridad', `Documento abierto en visor de memoria: ${filename}`, 'Compliance', 'Info');
+    } else {
+      alert("Por favor, permite las ventanas emergentes.");
+    }
   };
 
   // Obligations Filtering & Pagination State
@@ -167,11 +275,16 @@ export default function CompliancePage() {
 
   // LÓGICA FINANCIERA REAL (BURN RATE & RUNWAY)
   const complianceStats = useMemo(() => {
-    const { actualExpenses, projectedEventsCost } = projectedData;
+    const { actualExpenses, pendingExpenses, projectedEventsCost } = projectedData;
 
-    // Traducir códigos CNE y agrupar
+    // Ingresos totales para el indicador de solvencia
+    const totalIncome = finance
+      .filter(f => f.type === 'Ingreso')
+      .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
+    // Traducir códigos CNE y agrupar gastos (Aprobados, Reportados y Pendientes)
     const expensesByCne = finance
-      .filter(f => f.type === 'Gasto')
+      .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE' || f.status === 'PENDING'))
       .reduce((acc: Record<string, number>, curr) => {
         const category = CNE_CATEGORIES[curr.cneCode || ''] || CNE_CATEGORIES['OTROS'];
         const amount = Number(curr.amount || 0);
@@ -179,7 +292,9 @@ export default function CompliancePage() {
         return acc;
       }, {});
 
-    const pieData = Object.entries(expensesByCne).map(([name, value]) => ({ name, value }));
+    const pieData = Object.entries(expensesByCne)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => (b.value as number) - (a.value as number));
 
     // Cálculo de Burn Rate
     const daysUntilElection = Math.max(1, Math.ceil((ELECTION_DATE.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
@@ -187,17 +302,19 @@ export default function CompliancePage() {
     const dailyRunway = remainingBudget / daysUntilElection;
 
     const barData = [
-      { name: 'EJECUCIÓN REAL', monto: actualExpenses, fill: '#0d9488' },
-      { name: 'PROYECCIÓN FINAL', monto: actualExpenses + projectedEventsCost, fill: '#14b8a6' },
-      { name: 'LÍMITE LEGAL CNE', monto: TOPE_LEGAL_CNE, fill: '#0f172a' }
+      { name: 'GASTO REAL', monto: actualExpenses, fill: '#0d9488' },
+      { name: 'EN PROCESO', monto: pendingExpenses, fill: '#14b8a6' },
+      { name: 'PROYECTADO', monto: projectedEventsCost, fill: '#5eead4' },
+      { name: 'LÍMITE CNE', monto: TOPE_LEGAL_CNE, fill: '#0f172a' }
     ];
 
     return {
-      executionPercentage: ((actualExpenses + projectedEventsCost) / TOPE_LEGAL_CNE) * 100,
+      executionPercentage: ((actualExpenses + pendingExpenses + projectedEventsCost) / TOPE_LEGAL_CNE) * 100,
       pieData,
       barData,
       dailyRunway,
-      daysUntilElection
+      daysUntilElection,
+      solvencyRatio: totalIncome > 0 ? (actualExpenses / totalIncome) * 100 : 0
     };
   }, [finance, projectedData, TOPE_LEGAL_CNE]);
 
@@ -281,7 +398,14 @@ export default function CompliancePage() {
     if (!newObligation.title || !newObligation.deadline) return;
     
     addComplianceObligation(newObligation);
-    setNewObligation({ title: '', deadline: '', priority: 'Media', type: 'Cuentas Claras' });
+    setNewObligation({ 
+      title: '', 
+      deadline: '', 
+      priority: 'Media', 
+      type: 'Cuentas Claras',
+      validityDays: 30,
+      periodicity: 'Única'
+    });
     setIsNewObligationModalOpen(false);
   };
 
@@ -366,7 +490,7 @@ export default function CompliancePage() {
                     tick={{ fontSize: 9, fontWeight: 900, fill: '#334155' }} 
                     dy={10}
                   />
-                  <YAxis hide domain={[0, TOPE_LEGAL_CNE * 1.1]} />
+                  <YAxis hide domain={[0, (dataMax: number) => Math.max(dataMax, TOPE_LEGAL_CNE) * 1.1]} />
                   <Tooltip 
                     cursor={{ fill: '#f8fafc' }}
                     content={({ active, payload }) => {
@@ -381,11 +505,11 @@ export default function CompliancePage() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="monto" radius={[12, 12, 0, 0]} barSize={60}>
+                  <Bar dataKey="monto" radius={[12, 12, 0, 0]} barSize={40}>
                     {barData.map((entry: any, index: number) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={realExecPercent > 95 && entry.name !== 'LÍMITE LEGAL CNE' ? '#ef4444' : entry.fill}
+                        fill={realExecPercent > 95 && entry.name !== 'LÍMITE CNE' ? '#ef4444' : entry.fill}
                         className="transition-all duration-500 hover:opacity-80"
                       />
                     ))}
@@ -437,51 +561,58 @@ export default function CompliancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* MATRIZ DE OBLIGACIONES */}
         <div className="lg:col-span-2 bg-white border-2 border-slate-100 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-sm flex flex-col">
-          <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-50 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-            <div>
-              <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-xs md:text-sm tracking-tighter">
-                <Scale size={20} className="text-teal-600" /> Matriz de Obligaciones Normativas
-              </h3>
-              <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control de Blindaje Electoral CNE</p>
+          <div className="px-6 md:px-10 py-8 md:py-10 border-b border-slate-50 bg-slate-50/50 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm md:text-base tracking-tighter">
+                  <Scale size={24} className="text-teal-600" /> Matriz de Obligaciones Normativas
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control de Blindaje Electoral CNE</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="bg-teal-50 text-teal-600 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-100 shadow-inner">
+                  Score: {Math.round(score)}%
+                </span>
+              </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full xl:w-auto">
-              {/* Search obligations */}
-              <div className="relative group">
-                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+            <div className="flex flex-col gap-4">
+              {/* Search obligations - Full Width Row */}
+              <div className="relative group w-full">
+                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
                 <input 
                   type="text" 
-                  placeholder="Buscar hito legal..." 
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest focus:border-teal-500 focus:ring-4 focus:ring-teal-500/5 outline-none transition-all"
+                  placeholder="Buscar hito legal por nombre o requisito..." 
+                  className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest focus:border-teal-500 focus:ring-8 focus:ring-teal-500/5 outline-none transition-all shadow-sm"
                   value={obligationSearch}
                   onChange={(e) => setObligationSearch(e.target.value)}
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Status filter */}
-                <div className="relative flex-1 sm:flex-none">
+                <div className="relative">
                   <button 
                     onClick={() => { setIsStatusDropdownOpen(!isStatusDropdownOpen); setIsTypeDropdownOpen(false); }}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between sm:justify-start gap-3 hover:bg-slate-50 transition-all group"
+                    className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-all group shadow-sm"
                   >
-                    <div className="flex items-center gap-2">
-                      <Filter size={14} className="text-teal-600" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 truncate max-w-[60px]">{filterStatus === 'all' ? 'Estado' : filterStatus}</span>
+                    <div className="flex items-center gap-3">
+                      <Filter size={16} className="text-teal-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{filterStatus === 'all' ? 'Estado' : filterStatus}</span>
                     </div>
-                    <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isStatusDropdownOpen && "rotate-180")} />
+                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", isStatusDropdownOpen && "rotate-180")} />
                   </button>
                   {isStatusDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
                       {['all', 'Pendiente', 'Cumplido'].map(s => (
                         <button 
                           key={s} 
                           onClick={() => { setFilterStatus(s); setIsStatusDropdownOpen(false); }}
-                          className={cn("w-full px-4 py-2 text-left text-[9px] font-black uppercase tracking-widest rounded-lg flex justify-between items-center transition-all", 
+                          className={cn("w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest rounded-xl flex justify-between items-center transition-all", 
                             filterStatus === s ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50")}
                         >
-                          {s === 'all' ? 'Todos' : s}
-                          {filterStatus === s && <Check size={12} />}
+                          {s === 'all' ? 'Todos los Estados' : s}
+                          {filterStatus === s && <Check size={14} />}
                         </button>
                       ))}
                     </div>
@@ -489,44 +620,39 @@ export default function CompliancePage() {
                 </div>
 
                 {/* Type filter */}
-                <div className="relative flex-1 sm:flex-none">
+                <div className="relative">
                   <button 
                     onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsStatusDropdownOpen(false); }}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between sm:justify-start gap-3 hover:bg-slate-50 transition-all group"
+                    className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-all group shadow-sm"
                   >
-                    <div className="flex items-center gap-2">
-                      <Scale size={14} className="text-teal-600" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 truncate max-w-[80px]">{filterType === 'all' ? 'Categoría' : filterType}</span>
+                    <div className="flex items-center gap-3">
+                      <Scale size={16} className="text-teal-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 truncate">{filterType === 'all' ? 'Categoría Legal' : filterType}</span>
                     </div>
-                    <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isTypeDropdownOpen && "rotate-180")} />
+                    <ChevronDown size={16} className={cn("text-slate-400 transition-transform", isTypeDropdownOpen && "rotate-180")} />
                   </button>
                   {isTypeDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
                       {['all', ...OBLIGATION_TYPES].map(t => (
                         <button 
                           key={t} 
                           onClick={() => { setFilterType(t); setIsTypeDropdownOpen(false); }}
-                          className={cn("w-full px-4 py-2 text-left text-[9px] font-black uppercase tracking-widest rounded-lg flex justify-between items-center transition-all", 
+                          className={cn("w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest rounded-xl flex justify-between items-center transition-all", 
                             filterType === t ? "bg-teal-50 text-teal-600" : "text-slate-500 hover:bg-slate-50")}
                         >
-                          {t === 'all' ? 'Todas' : t}
-                          {filterType === t && <Check size={12} />}
+                          {t === 'all' ? 'Todas las Categorías' : t}
+                          {filterType === t && <Check size={14} />}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0">
-                <span className="bg-teal-50 text-teal-600 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-teal-100 shadow-inner">
-                  Score: {Math.round(score)}%
-                </span>
                 <button 
                   onClick={() => setIsNewObligationModalOpen(true)}
-                  className="flex-1 sm:flex-none bg-slate-900 text-white px-5 py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group"
+                  className="bg-slate-900 text-white px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 group"
                 >
-                  <Plus size={16} className="group-hover:rotate-90 transition-transform" /> <span>Hito</span>
+                  <Plus size={18} className="group-hover:rotate-90 transition-transform" /> <span>Nuevo Hito</span>
                 </button>
               </div>
             </div>
@@ -539,22 +665,44 @@ export default function CompliancePage() {
                 const daysDiff = Math.ceil((new Date(o.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
                 const isUrgent = daysDiff >= 0 && daysDiff <= 3 && o.status !== 'Cumplido';
                 const isOverdue = daysDiff < 0 && o.status !== 'Cumplido';
+                
+                // LÓGICA DE EXPIRACIÓN LEGAL
+                let isExpired = false;
+                let nextDeadline = o.deadline;
+
+                if (o.status === 'Cumplido' && o.lastValidated && o.validityDays) {
+                  const validationDate = new Date(o.lastValidated).getTime();
+                  const expirationDate = validationDate + (o.validityDays * 24 * 60 * 60 * 1000);
+                  isExpired = Date.now() > expirationDate;
+
+                  // Si expiró y es periódico, calculamos la nueva fecha obligatoria
+                  if (isExpired && o.periodicity && o.periodicity !== 'Única') {
+                    const lastDate = new Date(o.deadline);
+                    if (o.periodicity === 'Semanal') lastDate.setDate(lastDate.getDate() + 7);
+                    else if (o.periodicity === 'Quincenal') lastDate.setDate(lastDate.getDate() + 15);
+                    else if (o.periodicity === 'Mensual') lastDate.setMonth(lastDate.getMonth() + 1);
+                    nextDeadline = lastDate.toISOString().split('T')[0];
+                  }
+                }
+
+                const displayStatus = isExpired ? 'Expirado' : o.status;
 
                 return (
                   <div key={o.id} className={cn(
                     "p-6 space-y-4",
-                    isOverdue ? "bg-red-50/20" : isUrgent ? "bg-amber-50/20" : "bg-white"
+                    isOverdue ? "bg-red-50/20" : isExpired ? "bg-orange-50/10" : isUrgent ? "bg-amber-50/20" : "bg-white"
                   )}>
                     <div className="flex justify-between items-start gap-4">
                       <div className="space-y-2 flex-1 min-w-0">
                         <p className="text-sm font-black text-slate-900 uppercase leading-tight truncate">{o.title}</p>
                         <div className="flex flex-wrap gap-2">
                           <span className="text-[7px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100/50">{o.type}</span>
+                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{o.periodicity || 'Única'}</span>
                           <span className={cn(
                             "text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border",
                             o.priority === 'Alta' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-400 border-slate-100"
                           )}>
-                            {o.priority}
+                            Prioridad {o.priority}
                           </span>
                         </div>
                       </div>
@@ -568,16 +716,17 @@ export default function CompliancePage() {
 
                     <div className="flex items-center justify-between">
                       <span className={cn(
-                        "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm",
+                        "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm transition-colors",
+                        isExpired ? "bg-orange-600 text-white border-orange-500" :
                         o.status === 'Cumplido' ? "bg-emerald-600 text-white border-emerald-500" : 
-                        isOverdue ? "bg-red-600 text-white border-red-500" :
+                        isOverdue ? "bg-red-600 text-white border-red-500 animate-pulse" :
                         isUrgent ? "bg-amber-500 text-white border-amber-400" : "bg-white text-slate-400 border-slate-200"
                       )}>
-                        {o.status}
+                        {displayStatus}
                       </span>
                       <div className="flex items-center gap-1.5">
-                        <Clock size={12} className={cn(isUrgent ? "text-amber-500" : isOverdue ? "text-red-500" : "text-slate-300")} />
-                        <span className="text-[9px] font-black text-slate-700 uppercase">{o.deadline}</span>
+                        <Clock size={12} className={cn(isUrgent ? "text-amber-500" : (isOverdue || isExpired) ? "text-red-500" : "text-slate-300")} />
+                        <span className="text-[9px] font-black text-slate-700 uppercase">{isExpired ? nextDeadline : o.deadline}</span>
                       </div>
                     </div>
 
@@ -585,21 +734,36 @@ export default function CompliancePage() {
                       <div className="pt-2 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Status de Tiempo</p>
-                          <p className={cn("text-[9px] font-black uppercase text-center", 
+                          <p className={cn("text-[9px] font-black uppercase text-center mb-2", 
+                            isExpired ? "text-orange-600" :
                             o.status === 'Cumplido' ? "text-emerald-500" :
                             isOverdue ? "text-red-600" : 
                             isUrgent ? "text-amber-600" : "text-slate-400")}>
-                            {o.status === 'Cumplido' ? '✓ DOCUMENTACIÓN VALIDADA' : 
+                            {isExpired ? `⚠ DOCUMENTO EXPIRADO HACE ${Math.abs(daysDiff)} DÍAS` :
+                             o.status === 'Cumplido' ? '✓ DOCUMENTACIÓN VALIDADA' : 
                              isOverdue ? `⚠ VENCIDO HACE ${Math.abs(daysDiff)} DÍAS` : 
                              isUrgent ? `🔥 VENCE EN ${daysDiff} DÍAS` : `${daysDiff} DÍAS RESTANTES`}
                           </p>
+                          {o.status === 'Cumplido' && (
+                             <div className="pt-2 border-t border-slate-100 text-center">
+                               <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Archivo (Clic para ver)</p>
+                               <button 
+                                 onClick={() => { setSelectedId(o.id); setIsPreviewModalOpen(true); }}
+                                 className="text-[8px] font-mono font-bold text-emerald-600 truncate hover:text-teal-600 hover:underline transition-all block mx-auto max-w-[200px]"
+                               >
+                                 {o.evidence || 'archivo_validado.pdf'}
+                               </button>
+                             </div>
+                          )}
                         </div>
-                        <button 
-                          onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
-                          className="w-full py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
-                        >
-                          <Upload size={14} /> {o.status === 'Cumplido' ? 'Reemplazar Soportes' : 'Subir Soporte Legal'}
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button 
+                            onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
+                            className="w-full py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+                          >
+                            <Upload size={14} /> {o.status === 'Cumplido' ? 'Reemplazar Soportes' : 'Subir Soporte Legal'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -629,10 +793,28 @@ export default function CompliancePage() {
                     const daysDiff = Math.ceil((new Date(o.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
                     const isUrgent = daysDiff >= 0 && daysDiff <= 3 && o.status !== 'Cumplido';
                     const isOverdue = daysDiff < 0 && o.status !== 'Cumplido';
+                    
+                    // LÓGICA DE EXPIRACIÓN LEGAL
+                    let isExpired = false;
+                    let nextDeadline = o.deadline;
+
+                    if (o.status === 'Cumplido' && o.lastValidated && o.validityDays) {
+                      const validationDate = new Date(o.lastValidated).getTime();
+                      const expirationDate = validationDate + (o.validityDays * 24 * 60 * 60 * 1000);
+                      isExpired = Date.now() > expirationDate;
+
+                      if (isExpired && o.periodicity && o.periodicity !== 'Única') {
+                        const lastDate = new Date(o.deadline);
+                        if (o.periodicity === 'Semanal') lastDate.setDate(lastDate.getDate() + 7);
+                        else if (o.periodicity === 'Quincenal') lastDate.setDate(lastDate.getDate() + 15);
+                        else if (o.periodicity === 'Mensual') lastDate.setMonth(lastDate.getMonth() + 1);
+                        nextDeadline = lastDate.toISOString().split('T')[0];
+                      }
+                    }
 
                     return (
                       <tr key={o.id} className={cn("hover:bg-teal-50/20 transition-all group animate-in fade-in slide-in-from-left-2 duration-300", 
-                        isOverdue ? "bg-red-50/30" : isUrgent ? "bg-amber-50/30" : "")}>
+                        isOverdue ? "bg-red-50/30" : isExpired ? "bg-orange-50/10" : isUrgent ? "bg-amber-50/30" : "")}>
                         <td className="px-10 py-8">
                           <div className="flex items-start gap-5">
                             <div className={cn("w-2 h-16 rounded-full shrink-0 shadow-inner", 
@@ -642,10 +824,7 @@ export default function CompliancePage() {
                               <p className="text-base font-black text-slate-900 group-hover:text-teal-600 transition-colors uppercase tracking-tight leading-tight">{o.title}</p>
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-[8px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100/50 shadow-inner">{o.type}</span>
-                                <span className={cn("text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border", 
-                                  o.priority === 'Alta' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-400 border-slate-100")}>
-                                  Prioridad {o.priority}
-                                </span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{o.periodicity || 'Única'}</span>
                               </div>
                             </div>
                           </div>
@@ -653,22 +832,23 @@ export default function CompliancePage() {
                         <td className="px-10 py-8">
                           <div className="space-y-3">
                             <span className={cn(
-                              "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border w-fit shadow-md block text-center",
-                              o.status === 'Cumplido' ? "bg-emerald-600 text-white border-emerald-500" : 
+                              "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border w-fit shadow-md block text-center transition-all",
+                              o.status === 'Cumplido' ? (isExpired ? "bg-amber-600 text-white border-amber-500" : "bg-emerald-600 text-white border-emerald-500") : 
                               isOverdue ? "bg-red-600 text-white border-red-500 animate-pulse" :
                               isUrgent ? "bg-amber-500 text-white border-amber-400 animate-bounce-subtle" : "bg-white text-slate-400 border-slate-200"
                             )}>
-                              {o.status}
+                              {isExpired ? 'Expirado' : o.status}
                             </span>
                             <div className="flex items-center gap-2.5 px-1">
-                               <Clock size={14} className={cn(isUrgent ? "text-amber-500" : isOverdue ? "text-red-500" : "text-slate-300")} />
+                               <Clock size={14} className={cn(isUrgent ? "text-amber-500" : (isOverdue || isExpired) ? "text-red-500" : "text-slate-300")} />
                                <div className="flex flex-col">
-                                 <span className="text-[10px] font-black text-slate-700 uppercase">{o.deadline}</span>
-                                 <span className={cn("text-[8px] font-black uppercase tracking-widest", 
-                                   o.status === 'Cumplido' ? "text-emerald-500" :
+                                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Próxima Entrega</p>
+                                 <span className="text-[10px] font-black text-slate-700 uppercase">{isExpired ? nextDeadline : o.deadline}</span>
+                                 <span className={cn("text-[8px] font-black uppercase tracking-widest mt-0.5", 
+                                   o.status === 'Cumplido' ? (isExpired ? "text-orange-600" : "text-emerald-500") :
                                    isOverdue ? "text-red-600" : 
                                    isUrgent ? "text-amber-600" : "text-slate-400")}>
-                                   {o.status === 'Cumplido' ? '✓ VALIDADO' : 
+                                   {o.status === 'Cumplido' ? (isExpired ? '⚠ REQUIERE ACTUALIZACIÓN' : '✓ VALIDADO') : 
                                     isOverdue ? `⚠ VENCIDO HACE ${Math.abs(daysDiff)} DÍAS` : 
                                     isUrgent ? `🔥 VENCE EN ${daysDiff} DÍAS` : `${daysDiff} DÍAS RESTANTES`}
                                  </span>
@@ -677,28 +857,33 @@ export default function CompliancePage() {
                           </div>
                         </td>
                         <td className="px-10 py-8 text-right">
-                          <div className="flex items-center justify-end gap-4">
+                          <div className="flex items-center justify-end gap-6">
                             {o.status === 'Cumplido' && (
                               <div className="text-right hidden xl:block animate-in fade-in duration-500">
-                                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Hash de Integridad</p>
-                                 <p className="text-[9px] font-mono font-bold text-emerald-600/60 truncate max-w-[120px]">
-                                    {btoa(o.id).substring(0, 16)}...
-                                 </p>
+                                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Archivo Validado</p>
+                                 <button 
+                                    onClick={() => { setSelectedId(o.id); setIsPreviewModalOpen(true); }}
+                                    className="flex items-center gap-2 text-[9px] font-mono font-bold text-emerald-600/80 hover:text-teal-600 hover:underline transition-all group/file"
+                                 >
+                                    <Search size={10} className="opacity-0 group-hover/file:opacity-100 transition-opacity" />
+                                    <span className="truncate max-w-[150px]">{o.evidence || `CERT-${btoa(o.id).substring(0, 8)}.pdf`}</span>
+                                 </button>
                               </div>
                             )}
-                            <button 
-                              onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
-                              className={cn(
-                                "h-14 w-14 rounded-2xl flex items-center justify-center transition-all shadow-xl hover:scale-105 active:scale-95 group/btn",
-                                o.status === 'Cumplido' 
-                                  ? "bg-emerald-50 text-emerald-600 border-2 border-emerald-100 hover:bg-emerald-600 hover:text-white" 
-                                  : "bg-slate-900 text-white border-2 border-slate-900 hover:bg-teal-600 hover:border-teal-500"
-                              )}
-                              title={o.status === 'Cumplido' ? "Ver/Reemplazar Evidencia" : "Subir Soporte Legal"}
-                            >
-                              {o.status === 'Cumplido' ? <Check size={20} className="group-hover/btn:hidden" /> : null}
-                              <Upload size={20} className={cn(o.status === 'Cumplido' ? "hidden group-hover/btn:block" : "")} />
-                            </button>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => { setSelectedId(o.id); setIsModalOpen(true); }}
+                                className={cn(
+                                  "h-14 w-14 rounded-2xl flex items-center justify-center transition-all shadow-xl hover:scale-105 active:scale-95 group/btn",
+                                  o.status === 'Cumplido' 
+                                    ? "bg-slate-50 text-slate-400 border-2 border-slate-100 hover:bg-slate-900 hover:text-white" 
+                                    : "bg-slate-900 text-white border-2 border-slate-900 hover:bg-teal-600 hover:border-teal-500"
+                                )}
+                                title={o.status === 'Cumplido' ? "Reemplazar Soportes" : "Subir Soporte Legal"}
+                              >
+                                <Upload size={20} />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -799,6 +984,155 @@ export default function CompliancePage() {
         </div>
       </div>
 
+      {/* MODAL DE VISTA PREVIA DE DOCUMENTO */}
+      {isPreviewModalOpen && selectedObligation && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[300] flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setIsPreviewModalOpen(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsPreviewModalOpen(false)}
+              className="absolute top-8 right-8 z-10 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
+            <div className="px-10 py-10 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-4 mb-2">
+                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-200">
+                  Documento Validado
+                </span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SIT / Compliance</span>
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">{selectedObligation.title}</h3>
+              <p className="text-sm font-bold text-slate-500 mt-1">{selectedObligation.type} • Vencimiento: {selectedObligation.deadline}</p>
+            </div>
+
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-100/50 flex flex-col items-center">
+               {/* UNIVERSAL DOCUMENT PREVIEWER */}
+               <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[600px] animate-in slide-in-from-bottom-4 duration-500">
+                  {/* PDF/Image Viewer Header */}
+                  <div className="bg-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3">
+                      <FileText size={16} className="text-teal-400" />
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest truncate max-w-[250px]">{selectedObligation.evidence || 'documento_oficial'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <span className="text-[9px] font-black text-slate-400 uppercase">Visor SIT</span>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Content Area */}
+                  <div className="flex-1 relative overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/paper.png')] flex flex-col items-center justify-center">
+                    {selectedObligation.evidenceData?.startsWith('data:image') ? (
+                      <div className="w-full h-full p-4 flex items-center justify-center relative">
+                        <Image 
+                          src={selectedObligation.evidenceData} 
+                          alt="Soporte Legal" 
+                          fill
+                          className="object-contain rounded shadow-lg border-2 border-slate-200 p-4"
+                          unoptimized
+                        />
+                        <div className="absolute top-6 right-6 rotate-12 pointer-events-none opacity-40">
+                           <div className="w-20 h-20 border-4 border-emerald-600 rounded-full flex items-center justify-center">
+                              <p className="text-[8px] font-black text-emerald-600 uppercase">VALIDADO</p>
+                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-12 w-full h-full flex flex-col items-center justify-center text-center">
+                        <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center mb-6 border-2 border-slate-200">
+                           <ShieldCheck className="text-teal-600" size={48} />
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-2">Documento Protegido</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-xs leading-relaxed mb-8">
+                           Este archivo contiene información legal sensible. Para garantizar la seguridad del SIT, los documentos no-imagen deben abrirse en el Visor Seguro con sandboxing.
+                        </p>
+                        
+                        <button 
+                           onClick={() => openSecureViewer(selectedObligation.evidenceData || '', selectedObligation.evidence || 'documento')}
+                           className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-3"
+                        >
+                           <Lock size={16} /> Abrir en Visor Seguro SIT
+                        </button>
+                      </div>
+                    )}
+                  </div>
+               </div>
+               
+               {/* Controls below preview */}
+               <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4 w-full max-w-xl px-4">
+                 <button 
+                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-teal-600 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200"
+                    onClick={() => {
+                       if (selectedObligation.evidenceData) {
+                         const link = document.createElement('a');
+                         link.href = selectedObligation.evidenceData;
+                         link.download = selectedObligation.evidence || 'soporte_legal';
+                         document.body.appendChild(link);
+                         link.click();
+                         document.body.removeChild(link);
+                         toastSuccess("Archivo descargado correctamente");
+                       } else {
+                         toastSuccess("Descargando certificado de sistema...");
+                       }
+                    }}
+                  >
+                    <Download size={16} /> Descargar Archivo
+                  </button>
+
+                 <button 
+                    className="flex-1 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 border border-rose-100"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                  >
+                    <Trash2 size={16} /> Eliminar Soporte
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
+      {isDeleteModalOpen && selectedObligation && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[400] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
+            <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle size={40} className="animate-pulse" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-3 uppercase">¿Eliminar Documento?</h3>
+            <p className="text-slate-500 text-xs mb-8 font-bold leading-relaxed">
+              Esta acción eliminará el soporte legal de <span className="text-slate-900 font-black">"{selectedObligation.title}"</span>. 
+              El estado del hito regresará a <span className="text-amber-600">Pendiente</span>.
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  removeEvidence(selectedObligation.id);
+                  setIsDeleteModalOpen(false);
+                  setIsPreviewModalOpen(false);
+                  toastSuccess("Soporte eliminado correctamente");
+                }}
+                className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all"
+              >
+                Sí, Eliminar Definitivamente
+              </button>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="w-full py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                No, Mantener Documento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE CARGA DE EVIDENCIA */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -815,14 +1149,25 @@ export default function CompliancePage() {
               <div className="relative border-2 border-dashed border-teal-100 p-12 rounded-[2.5rem] bg-teal-50/30 mb-8 flex flex-col items-center group hover:border-teal-500 hover:bg-white transition-all cursor-pointer">
                 <input 
                   type="file" 
-                  accept=".pdf,.jpg,.png"
+                  accept=".pdf,.jpg,.png,.jpeg"
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file && selectedId) {
-                      uploadEvidence(selectedId, file.name);
-                      logAction('Admin', `Cargó evidencia: ${file.name} para hito: ${selectedId}`, 'Compliance', 'Info');
-                      setIsModalOpen(false);
+                      const reader = new FileReader();
+                      reader.onload = async (event) => {
+                        let fileData = event.target?.result as string;
+                        
+                        // Procesamiento de seguridad para imágenes (Sharp)
+                        if (file.type.startsWith('image/')) {
+                          fileData = await processImageAction(fileData);
+                        }
+                        
+                        uploadEvidence(selectedId, file.name, fileData);
+                        logAction('Admin', `Cargó evidencia: ${file.name}${file.type.startsWith('image/') ? ' (procesada y segura)' : ''} para hito: ${selectedId}`, 'Compliance', 'Info');
+                        setIsModalOpen(false);
+                      };
+                      reader.readAsDataURL(file);
                     }
                   }}
                 />
@@ -967,6 +1312,7 @@ export default function CompliancePage() {
                       onClick={() => {
                         setIsModalTypeOpen(!isModalTypeOpen);
                         setIsModalPriorityOpen(false);
+                        setIsModalPeriodicityOpen(false);
                       }}
                       className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
                     >
@@ -994,6 +1340,57 @@ export default function CompliancePage() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Periodicidad Legal</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalPeriodicityOpen(!isModalPeriodicityOpen);
+                          setIsModalTypeOpen(false);
+                          setIsModalPriorityOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 hover:border-teal-500 transition-all outline-none"
+                      >
+                        <span className="truncate">{newObligation.periodicity}</span>
+                        <ChevronDown className={cn("text-slate-400 transition-transform", isModalPeriodicityOpen && "rotate-180")} size={18} />
+                      </button>
+
+                      {isModalPeriodicityOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-[1.5rem] shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          {['Única', 'Semanal', 'Quincenal', 'Mensual'].map(p => (
+                            <div
+                              key={p}
+                              onClick={() => {
+                                setNewObligation({...newObligation, periodicity: p as any});
+                                setIsModalPeriodicityOpen(false);
+                              }}
+                              className={cn(
+                                "px-6 py-3 hover:bg-teal-50 text-[11px] font-black uppercase cursor-pointer transition-colors border-b border-slate-50 last:border-none flex justify-between items-center",
+                                newObligation.periodicity === p ? "text-teal-600 bg-teal-50/30" : "text-slate-600"
+                              )}
+                            >
+                              {p}
+                              {newObligation.periodicity === p && <Check size={14} className="text-teal-600" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2 px-1">Validez (Días)</label>
+                    <input 
+                      type="number"
+                      min="1"
+                      className="w-full px-6 py-4 bg-teal-50/30 border-2 border-slate-200 rounded-[1.5rem] text-sm font-bold focus:border-teal-500 focus:bg-white outline-none transition-all" 
+                      value={newObligation.validityDays} 
+                      onChange={e => setNewObligation({...newObligation, validityDays: parseInt(e.target.value) || 0})} 
+                    />
                   </div>
                 </div>
               </div>

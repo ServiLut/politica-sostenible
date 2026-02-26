@@ -202,6 +202,7 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   mesa: 'mesa',
   e14ImageUrl: 'e14ImageUrl',
   candidateVotes: 'candidateVotes',
+  blankVotes: 'blankVotes',
   totalTableVotes: 'totalTableVotes',
   observations: 'observations',
   blockchainHash: 'blockchainHash',
