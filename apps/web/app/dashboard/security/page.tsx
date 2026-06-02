@@ -1,16 +1,29 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useCRM } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
 import { Shield, Terminal, ShieldAlert, UserCheck, Eye, Zap, Search, Filter, Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, FileDown, Activity, Globe } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import * as XLSX from 'xlsx';
+import { AUTH_TOKEN_KEY } from '@/lib/auth-token';
+
+interface SecurityAuditLog {
+  id: string;
+  actor: string;
+  action: string;
+  timestamp: string;
+  module: string;
+  severity: 'Info' | 'Warning' | 'Critical';
+  ip: string;
+}
 
 export default function SecurityPage() {
-  const { auditLogs } = useCRM();
   const { info, error: toastError } = useToast();
   const [panicMode, setPanicMode] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>([]);
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // Advanced Filtering & Pagination States
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
@@ -70,49 +83,110 @@ export default function SecurityPage() {
     }
     return days;
   };
-  const MODULES = Array.from(new Set(auditLogs.map(log => log.module)));
+  const MODULES = availableModules;
 
-  const filteredLogs = React.useMemo(() => {
-    return auditLogs.filter(log => {
-      const matchesSeverity = filterSeverity === "all" || log.severity === filterSeverity;
-      const matchesModule = filterModule === "all" || log.module === filterModule;
-      
-      const logDate = log.timestamp.split('T')[0];
-      const matchesDate = (!filterStartDate || logDate >= filterStartDate) && 
-                         (!filterEndDate || logDate <= filterEndDate);
-      
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = !search || 
-        log.action.toLowerCase().includes(search) || 
-        log.actor.toLowerCase().includes(search) ||
-        log.ip.toLowerCase().includes(search);
+  const fetchAuditLogs = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) {
+        setAuditLogs([]);
+        setTotalItems(0);
+        return;
+      }
 
-      return matchesSeverity && matchesModule && matchesDate && matchesSearch;
-    });
-  }, [auditLogs, filterSeverity, filterModule, searchTerm, filterStartDate, filterEndDate]);
+      const params = new URLSearchParams();
+      if (filterSeverity !== 'all') params.set('severity', filterSeverity);
+      if (filterModule !== 'all') params.set('module', filterModule);
+      if (searchTerm.trim()) params.set('q', searchTerm.trim());
+      if (filterStartDate) params.set('startDate', filterStartDate);
+      if (filterEndDate) params.set('endDate', filterEndDate);
+      params.set('page', String(currentPage));
+      params.set('pageSize', String(itemsPerPage));
+
+      const res = await fetch(`/api/files/audit-logs?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('No se pudo cargar auditoría');
+      }
+
+      const payload = await res.json();
+      const data = payload?.data ?? payload;
+      setAuditLogs(Array.isArray(data?.items) ? data.items : []);
+      setTotalItems(Number(data?.total || 0));
+      setAvailableModules(Array.isArray(data?.availableModules) ? data.availableModules : []);
+    } catch {
+      setAuditLogs([]);
+      setTotalItems(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filterEndDate, filterModule, filterSeverity, filterStartDate, searchTerm]);
+
+  React.useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
 
   const handleExport = () => {
-    info('Generando reporte');
-    
-    const headers = ['ID', 'Fecha/Hora', 'Severidad', 'Modulo', 'Actor', 'Accion', 'IP'];
-    const rows = filteredLogs.map(log => [
-      log.id,
-      new Date(log.timestamp).toLocaleString(),
-      log.severity,
-      log.module,
-      log.actor,
-      log.action,
-      log.ip
-    ]);
-    
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, `reporte_seguridad_${new Date().toISOString().split('T')[0]}.xlsx`);
+    void (async () => {
+      info('Generando reporte');
+      try {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (filterSeverity !== 'all') params.set('severity', filterSeverity);
+        if (filterModule !== 'all') params.set('module', filterModule);
+        if (searchTerm.trim()) params.set('q', searchTerm.trim());
+        if (filterStartDate) params.set('startDate', filterStartDate);
+        if (filterEndDate) params.set('endDate', filterEndDate);
+        params.set('page', '1');
+        params.set('pageSize', '5000');
+
+        const res = await fetch(`/api/files/audit-logs?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const data = payload?.data ?? payload;
+        const exportLogs = Array.isArray(data?.items) ? data.items : [];
+
+        const headers = ['ID', 'Fecha/Hora', 'Severidad', 'Modulo', 'Actor', 'Accion', 'IP'];
+        const rows = exportLogs.map((log: SecurityAuditLog) => [
+          log.id,
+          new Date(log.timestamp).toLocaleString(),
+          log.severity,
+          log.module,
+          log.actor,
+          log.action,
+          log.ip,
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Auditoria');
+        XLSX.writeFile(wb, `reporte_seguridad_${new Date().toISOString().split('T')[0]}.xlsx`);
+      } catch {
+        // no-op
+      }
+    })();
   };
 
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
-  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const filteredLogs = auditLogs;
+  const paginatedLogs = auditLogs;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const today = new Date().toISOString().split('T')[0];
+  const accessesToday = auditLogs.filter((l) => (l.timestamp || '').startsWith(today)).length;
+  const exportsCount = auditLogs.filter((l) => l.action.toLowerCase().includes('export')).length;
+  const failedAttempts = auditLogs.filter((l) =>
+    l.severity === 'Critical' || l.action.toLowerCase().includes('unauthorized'),
+  ).length;
 
   const threatLevel = React.useMemo(() => {
     const criticalCount = auditLogs.filter(l => l.severity === 'Critical').length;
@@ -163,7 +237,7 @@ export default function SecurityPage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Accesos Hoy</p>
-            <h3 className="text-2xl md:text-3xl font-black text-slate-900">24</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900">{accessesToday}</h3>
           </div>
         </div>
         
@@ -173,7 +247,7 @@ export default function SecurityPage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Exportaciones</p>
-            <h3 className="text-2xl md:text-3xl font-black text-slate-900">02</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900">{exportsCount}</h3>
           </div>
           <div className="absolute top-0 right-0 p-4">
             <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
@@ -186,7 +260,7 @@ export default function SecurityPage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Intentos Fallidos</p>
-            <h3 className="text-2xl md:text-3xl font-black text-slate-900">0</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900">{failedAttempts}</h3>
           </div>
         </div>
       </div>
@@ -429,7 +503,16 @@ export default function SecurityPage() {
             </div>
           ))}
           
-          {filteredLogs.length === 0 && (
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100 animate-pulse">
+                <Terminal className="text-slate-300" size={32} />
+              </div>
+              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-2">Cargando auditoría</h4>
+            </div>
+          )}
+
+          {!loading && filteredLogs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
                 <Terminal className="text-slate-200" size={32} />

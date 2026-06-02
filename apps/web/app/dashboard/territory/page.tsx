@@ -8,12 +8,13 @@ import { cn } from '@/components/ui/utils';
 export default function TerritoryPage() {
   const { territory } = useCRM();
   const [activeTab, setActiveTab] = useState<'map' | 'zones'>('map');
+  const [viewMode, setViewMode] = useState<'markers' | 'heatmap'>('markers');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('all');
   const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<any>(null);
-   
+  const heatLayerRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
   // Cerrar dropdown al hacer click fuera
@@ -28,15 +29,38 @@ export default function TerritoryPage() {
   }, []);
 
   const updateMarkers = useCallback(() => {
-     
     const L = (window as any).L;
     const map = leafletRef.current;
     if (!L || !map || !mapRef.current) return;
 
+    // Limpiar capas previas
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
+    if (heatLayerRef.current) {
+       map.removeLayer(heatLayerRef.current);
+       heatLayerRef.current = null;
+    }
 
-     
+    if (viewMode === 'heatmap') {
+       // Datos de calor basados en el territorio actual
+       const heatPoints = territory.map(zone => [
+         parseFloat(zone.lat as any),
+         parseFloat(zone.lng as any),
+         zone.current / 100 // Intensidad relativa
+       ]).filter(p => !isNaN(p[0] as number));
+
+       if ((L as any).heatLayer) {
+         heatLayerRef.current = (L as any).heatLayer(heatPoints, {
+           radius: 35,
+           blur: 20,
+           maxZoom: 17,
+           gradient: { 0.4: 'blue', 0.65: 'lime', 1: 'red' }
+         }).addTo(map);
+       }
+       return;
+    }
+
+    // Modo Marcadores
     const bounds: any[] = [];
     const zonesToDisplay = selectedZoneId === 'all' 
       ? territory 
@@ -53,7 +77,6 @@ export default function TerritoryPage() {
         const pos: [number, number] = [lat, lng];
         bounds.push(pos);
 
-        // Crear Icono Personalizado con Número
         const customIcon = L.divIcon({
           className: 'custom-marker',
           html: `<div style="
@@ -76,94 +99,36 @@ export default function TerritoryPage() {
         });
 
         const marker = L.marker(pos, { icon: customIcon }).addTo(map);
-
         marker.bindPopup(`
           <div style="font-family: sans-serif; padding: 10px; min-width: 180px;">
             <b style="display: block; margin-bottom: 8px; font-size: 16px; color: #1e293b;">${zone.name}</b>
             <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f1f5f9; pt: 8px;">
-              <span style="font-size: 13px; color: #1e293b;"><b>Registrados:</b> ${zone.current} personas</span>
+              <span style="font-size: 13px; color: #1e293b;"><b>Registrados:</b> ${zone.current}</span>
               <span style="font-size: 12px; color: #64748b;"><b>Líder:</b> ${zone.leader || 'Sin asignar'}</span>
-              <span style="font-size: 12px; color: #64748b;"><b>Meta:</b> ${zone.target.toLocaleString()}</span>
               <div style="margin-top: 5px; height: 6px; width: 100%; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
                 <div style="height: 100%; width: ${Math.min(percentage, 100)}%; background: ${color};"></div>
               </div>
-              <span style="font-size: 11px; font-weight: 900; color: ${color}; text-align: right;">${percentage}%</span>
             </div>
           </div>
-        `, {
-          className: 'custom-popup'
-        });
-
+        `);
         markersRef.current.push(marker);
       }
     });
 
     if (bounds.length > 0 && map && activeTab === 'map') {
       try {
-        map.invalidateSize();
-        
-        if (bounds.length === 1) {
-          map.setView(bounds[0], 14, { animate: true });
-        } else {
-          // Crear bounds manualmente para evitar errores de validación interna
-          const latLngBounds = L.latLngBounds(bounds[0], bounds[0]);
-          for (let i = 1; i < bounds.length; i++) {
-            if (bounds[i] && bounds[i].length === 2) {
-              latLngBounds.extend(bounds[i]);
-            }
-          }
-          
-          if (latLngBounds.isValid()) {
-            // Verificar si el área es muy pequeña (puntos casi idénticos)
-            const northEast = latLngBounds.getNorthEast();
-            const southWest = latLngBounds.getSouthWest();
-            
-            if (Math.abs(northEast.lat - southWest.lat) < 0.0001 && 
-                Math.abs(northEast.lng - southWest.lng) < 0.0001) {
-              map.setView(bounds[0], 14, { animate: true });
-            } else {
-              map.fitBounds(latLngBounds, { padding: [50, 50], animate: true });
-            }
-          }
+        const latLngBounds = L.latLngBounds(bounds);
+        if (latLngBounds.isValid()) {
+           map.fitBounds(latLngBounds, { padding: [50, 50], animate: true });
         }
       } catch (err) {
-        console.warn('Map bounds adjustment skipped:', err);
+        console.warn('Map adjustment skipped:', err);
       }
     }
-  }, [territory, selectedZoneId, activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'map' && leafletRef.current) {
-      const timer = setTimeout(() => {
-        leafletRef.current.invalidateSize();
-        updateMarkers();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, updateMarkers]);
+  }, [territory, selectedZoneId, activeTab, viewMode]);
 
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return;
-
-    const initMap = () => {
-       
-      const L = (window as any).L;
-      if (!L || !mapRef.current || leafletRef.current) return;
-
-      const map = L.map(mapRef.current).setView([6.2442, -75.5812], 12);
-      leafletRef.current = map;
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
-
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 500);
-
-      updateMarkers();
-    };
 
     const loadLeaflet = async () => {
       if (!document.getElementById('leaflet-css')) {
@@ -178,11 +143,29 @@ export default function TerritoryPage() {
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         script.async = true;
-        script.onload = () => initMap();
+        script.onload = () => {
+           const heatScript = document.createElement('script');
+           heatScript.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js';
+           heatScript.async = true;
+           heatScript.onload = () => initMap();
+           document.body.appendChild(heatScript);
+        };
         document.body.appendChild(script);
       } else {
         initMap();
       }
+    };
+
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L || !mapRef.current || leafletRef.current) return;
+      const map = L.map(mapRef.current).setView([6.2442, -75.5812], 12);
+      leafletRef.current = map;
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19 
+      }).addTo(map);
+      updateMarkers();
     };
 
     loadLeaflet();
@@ -192,7 +175,7 @@ export default function TerritoryPage() {
     if (leafletRef.current) {
       updateMarkers();
     }
-  }, [updateMarkers]);
+  }, [updateMarkers, viewMode, selectedZoneId, activeTab]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -202,38 +185,47 @@ export default function TerritoryPage() {
           <p className="text-slate-500 font-medium">Análisis de fuerza electoral georreferenciada en tiempo real.</p>
         </div>
 
-        {/* Tabs Navigation */}
         <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
           <button
             onClick={() => setActiveTab('map')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === 'map'
-                ? 'bg-white text-teal-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className={cn("flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              activeTab === 'map' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            )}
           >
             <MapIcon size={16} /> Mapa
           </button>
           <button
             onClick={() => setActiveTab('zones')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === 'zones'
-                ? 'bg-white text-teal-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className={cn("flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              activeTab === 'zones' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            )}
           >
             <LayoutGrid size={16} /> Zonas
           </button>
         </div>
       </div>
 
-      {/* Map Tab Content */}
       <div className={`space-y-8 ${activeTab === 'map' ? 'block' : 'hidden'}`}>
         <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 px-4 pt-2">
-            <div className="flex items-center gap-2">
-              <Globe className="text-teal-600" size={20} />
-              <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Mapa Metropolitano de Medellín</h2>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Globe className="text-teal-600" size={20} />
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Mapa Medellín</h2>
+              </div>
+              
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner scale-90 origin-left">
+                <button 
+                  onClick={() => setViewMode('markers')}
+                  className={cn("px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all", 
+                  viewMode === 'markers' ? "bg-white text-teal-600 shadow-sm" : "text-slate-500")}
+                >Marcadores</button>
+                <button 
+                  onClick={() => setViewMode('heatmap')}
+                  className={cn("px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all", 
+                  viewMode === 'heatmap' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500")}
+                >Densidad (Heat)</button>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -295,7 +287,7 @@ export default function TerritoryPage() {
           <div className="mt-4 px-4 pb-2 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col gap-1">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                Visualización: Número de votantes registrados por zona
+                Visualización: {viewMode === 'heatmap' ? 'Densidad de simpatizantes' : 'Marcadores de meta por zona'}
               </p>
             </div>
             <div className="flex gap-6">
@@ -316,7 +308,6 @@ export default function TerritoryPage() {
         </div>
       </div>
 
-      {/* Zones Tab Content */}
       <div className={`${activeTab === 'zones' ? 'block' : 'hidden'}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in slide-in-from-bottom-4 duration-500">
           {territory.map((zone) => {
@@ -358,4 +349,3 @@ export default function TerritoryPage() {
     </div>
   );
 }
-

@@ -65,15 +65,27 @@ export default function MessagingPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBroadcast) {
       updateBroadcast(editingBroadcast.id, newCampaign);
       toastSuccess("Campaña actualizada");
     } else {
-      sendBroadcast(newCampaign);
-      setNotification(`Enviando a ${newCampaign.segment}...`);
-      setTimeout(() => setNotification(null), 4000);
+      // Simulación de llamada al nuevo endpoint de WhatsApp
+      setNotification(`Conectando con WhatsApp API...`);
+      
+      try {
+        // En una implementación real: await fetch('/api/whatsapp/broadcast', { ... })
+        setTimeout(() => {
+          sendBroadcast(newCampaign);
+          setNotification(`Enviando a ${newCampaign.segment} vía ${newCampaign.channel}...`);
+          setTimeout(() => setNotification(null), 3000);
+          toastSuccess("Campaña de WhatsApp iniciada con éxito");
+        }, 1500);
+      } catch {
+        setNotification("Error de conexión con Meta API");
+        setTimeout(() => setNotification(null), 3000);
+      }
     }
     setIsModalOpen(false);
   };

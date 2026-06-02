@@ -1,39 +1,12 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/auth';
-import { UserRole } from '@/types/saas-schema';
-import { Shield, MapPin, Eye, Zap, Lock, Database } from 'lucide-react';
+import { Zap, Lock, Database } from 'lucide-react';
 
 export default function LandingPage() {
-  const { loginAs } = useAuth();
-
-  const demoRoles = [
-    {
-      role: UserRole.AdminCampana,
-      title: 'Admin Campaña',
-      description: 'Acceso total: Finanzas, Estrategia, CRM y Control Territorial.',
-      icon: <Shield className="text-blue-500" size={40} />,
-      color: 'hover:border-blue-500',
-      btnColor: 'bg-blue-600 hover:bg-blue-700'
-    },
-    {
-      role: UserRole.Lider,
-      title: 'Líder Territorial',
-      description: 'Gestión de bases, misiones en barrio y reporte de simpatizantes.',
-      icon: <MapPin className="text-emerald-500" size={40} />,
-      color: 'hover:border-emerald-500',
-      btnColor: 'bg-emerald-600 hover:bg-emerald-700'
-    },
-    {
-      role: UserRole.Testigo,
-      title: 'Testigo Día D',
-      description: 'Módulo de escrutinio, reporte de E14 y alertas de fraude.',
-      icon: <Eye className="text-red-500" size={40} />,
-      color: 'hover:border-red-500',
-      btnColor: 'bg-red-600 hover:bg-red-700'
-    }
-  ];
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
@@ -51,28 +24,31 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* Demo Access Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {demoRoles.map((demo) => (
-            <div 
-              key={demo.role}
-              className={`bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm transition-all duration-300 transform hover:-translate-y-2 ${demo.color} group`}
-            >
-              <div className="mb-6 bg-slate-50 w-20 h-20 rounded-3xl flex items-center justify-center transition-transform group-hover:scale-110">
-                {demo.icon}
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">{demo.title}</h3>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-                {demo.description}
-              </p>
-              <button 
-                onClick={() => loginAs(demo.role)}
-                className={`w-full py-4 rounded-2xl text-white font-black text-sm transition-all shadow-lg active:scale-95 ${demo.btnColor}`}
-              >
-                Acceder como {demo.title.split(' ')[0]}
-              </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Link
+            href={user ? '/dashboard/executive' : '/iniciar-sesion'}
+            className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm transition-all duration-300 transform hover:-translate-y-2 hover:border-blue-500 group"
+          >
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Entrar al CRM</h3>
+            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+              Acceso seguro con autenticación JWT y aislamiento por tenant.
+            </p>
+            <div className="w-full py-4 rounded-2xl text-white text-center font-black text-sm transition-all shadow-lg active:scale-95 bg-blue-600 hover:bg-blue-700">
+              {user ? 'Ir al panel' : 'Iniciar sesión'}
             </div>
-          ))}
+          </Link>
+          <Link
+            href="/registro"
+            className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm transition-all duration-300 transform hover:-translate-y-2 hover:border-emerald-500 group"
+          >
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Crear campaña</h3>
+            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+              Registra tu equipo y empieza operación territorial y financiera.
+            </p>
+            <div className="w-full py-4 rounded-2xl text-white text-center font-black text-sm transition-all shadow-lg active:scale-95 bg-emerald-600 hover:bg-emerald-700">
+              Registrarme
+            </div>
+          </Link>
         </div>
 
         {/* Footer Info */}

@@ -215,6 +215,9 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   observations: 'observations',
   blockchainHash: 'blockchainHash',
   timestampProof: 'timestampProof',
+  e14OcrData: 'e14OcrData',
+  ocrConfidence: 'ocrConfidence',
+  auditStatus: 'auditStatus',
   isSynced: 'isSynced',
   createdAt: 'createdAt'
 };
@@ -280,6 +283,28 @@ exports.Prisma.TableResultScalarFieldEnum = {
   votosTotales: 'votosTotales',
   votingPlaceId: 'votingPlaceId',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WhatsAppMessageScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  fromPhone: 'fromPhone',
+  toPhone: 'toPhone',
+  body: 'body',
+  direction: 'direction',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CampaignBroadcastScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  name: 'name',
+  message: 'message',
+  targetCount: 'targetCount',
+  sentCount: 'sentCount',
+  status: 'status',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -349,10 +374,36 @@ exports.FinanceStatus = exports.$Enums.FinanceStatus = {
   REPORTED_CNE: 'REPORTED_CNE'
 };
 
+exports.AuditStatus = exports.$Enums.AuditStatus = {
+  PENDING: 'PENDING',
+  MATCHED: 'MATCHED',
+  DISCREPANCY: 'DISCREPANCY',
+  MANUAL_REVIEW_REQUIRED: 'MANUAL_REVIEW_REQUIRED'
+};
+
 exports.MovementType = exports.$Enums.MovementType = {
   IN: 'IN',
   OUT: 'OUT',
   ADJUSTMENT: 'ADJUSTMENT'
+};
+
+exports.MessageDirection = exports.$Enums.MessageDirection = {
+  INBOUND: 'INBOUND',
+  OUTBOUND: 'OUTBOUND'
+};
+
+exports.MessageStatus = exports.$Enums.MessageStatus = {
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  FAILED: 'FAILED'
+};
+
+exports.BroadcastStatus = exports.$Enums.BroadcastStatus = {
+  DRAFT: 'DRAFT',
+  SENDING: 'SENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
 };
 
 exports.Prisma.ModelName = {
@@ -368,7 +419,9 @@ exports.Prisma.ModelName = {
   InventoryItem: 'InventoryItem',
   InventoryMovement: 'InventoryMovement',
   VotingPlace: 'VotingPlace',
-  TableResult: 'TableResult'
+  TableResult: 'TableResult',
+  WhatsAppMessage: 'WhatsAppMessage',
+  CampaignBroadcast: 'CampaignBroadcast'
 };
 
 /**

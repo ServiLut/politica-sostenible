@@ -78,6 +78,16 @@ export type VotingPlace = $Result.DefaultSelection<Prisma.$VotingPlacePayload>
  * 
  */
 export type TableResult = $Result.DefaultSelection<Prisma.$TableResultPayload>
+/**
+ * Model WhatsAppMessage
+ * 
+ */
+export type WhatsAppMessage = $Result.DefaultSelection<Prisma.$WhatsAppMessagePayload>
+/**
+ * Model CampaignBroadcast
+ * 
+ */
+export type CampaignBroadcast = $Result.DefaultSelection<Prisma.$CampaignBroadcastPayload>
 
 /**
  * Enums
@@ -151,6 +161,44 @@ export const CneCode: {
 
 export type CneCode = (typeof CneCode)[keyof typeof CneCode]
 
+
+export const AuditStatus: {
+  PENDING: 'PENDING',
+  MATCHED: 'MATCHED',
+  DISCREPANCY: 'DISCREPANCY',
+  MANUAL_REVIEW_REQUIRED: 'MANUAL_REVIEW_REQUIRED'
+};
+
+export type AuditStatus = (typeof AuditStatus)[keyof typeof AuditStatus]
+
+
+export const MessageDirection: {
+  INBOUND: 'INBOUND',
+  OUTBOUND: 'OUTBOUND'
+};
+
+export type MessageDirection = (typeof MessageDirection)[keyof typeof MessageDirection]
+
+
+export const MessageStatus: {
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  FAILED: 'FAILED'
+};
+
+export type MessageStatus = (typeof MessageStatus)[keyof typeof MessageStatus]
+
+
+export const BroadcastStatus: {
+  DRAFT: 'DRAFT',
+  SENDING: 'SENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+export type BroadcastStatus = (typeof BroadcastStatus)[keyof typeof BroadcastStatus]
+
 }
 
 export type TenantType = $Enums.TenantType
@@ -180,6 +228,22 @@ export const MovementType: typeof $Enums.MovementType
 export type CneCode = $Enums.CneCode
 
 export const CneCode: typeof $Enums.CneCode
+
+export type AuditStatus = $Enums.AuditStatus
+
+export const AuditStatus: typeof $Enums.AuditStatus
+
+export type MessageDirection = $Enums.MessageDirection
+
+export const MessageDirection: typeof $Enums.MessageDirection
+
+export type MessageStatus = $Enums.MessageStatus
+
+export const MessageStatus: typeof $Enums.MessageStatus
+
+export type BroadcastStatus = $Enums.BroadcastStatus
+
+export const BroadcastStatus: typeof $Enums.BroadcastStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -427,6 +491,26 @@ export class PrismaClient<
     * ```
     */
   get tableResult(): Prisma.TableResultDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.whatsAppMessage`: Exposes CRUD operations for the **WhatsAppMessage** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WhatsAppMessages
+    * const whatsAppMessages = await prisma.whatsAppMessage.findMany()
+    * ```
+    */
+  get whatsAppMessage(): Prisma.WhatsAppMessageDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.campaignBroadcast`: Exposes CRUD operations for the **CampaignBroadcast** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CampaignBroadcasts
+    * const campaignBroadcasts = await prisma.campaignBroadcast.findMany()
+    * ```
+    */
+  get campaignBroadcast(): Prisma.CampaignBroadcastDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -873,7 +957,9 @@ export namespace Prisma {
     InventoryItem: 'InventoryItem',
     InventoryMovement: 'InventoryMovement',
     VotingPlace: 'VotingPlace',
-    TableResult: 'TableResult'
+    TableResult: 'TableResult',
+    WhatsAppMessage: 'WhatsAppMessage',
+    CampaignBroadcast: 'CampaignBroadcast'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -889,7 +975,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "user" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "votingPlace" | "tableResult"
+      modelProps: "tenant" | "campaignSettings" | "user" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "votingPlace" | "tableResult" | "whatsAppMessage" | "campaignBroadcast"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1855,6 +1941,154 @@ export namespace Prisma {
           }
         }
       }
+      WhatsAppMessage: {
+        payload: Prisma.$WhatsAppMessagePayload<ExtArgs>
+        fields: Prisma.WhatsAppMessageFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WhatsAppMessageFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WhatsAppMessageFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          findFirst: {
+            args: Prisma.WhatsAppMessageFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WhatsAppMessageFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          findMany: {
+            args: Prisma.WhatsAppMessageFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+          }
+          create: {
+            args: Prisma.WhatsAppMessageCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          createMany: {
+            args: Prisma.WhatsAppMessageCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WhatsAppMessageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+          }
+          delete: {
+            args: Prisma.WhatsAppMessageDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          update: {
+            args: Prisma.WhatsAppMessageUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          deleteMany: {
+            args: Prisma.WhatsAppMessageDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WhatsAppMessageUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WhatsAppMessageUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+          }
+          upsert: {
+            args: Prisma.WhatsAppMessageUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+          }
+          aggregate: {
+            args: Prisma.WhatsAppMessageAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWhatsAppMessage>
+          }
+          groupBy: {
+            args: Prisma.WhatsAppMessageGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WhatsAppMessageGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WhatsAppMessageCountArgs<ExtArgs>
+            result: $Utils.Optional<WhatsAppMessageCountAggregateOutputType> | number
+          }
+        }
+      }
+      CampaignBroadcast: {
+        payload: Prisma.$CampaignBroadcastPayload<ExtArgs>
+        fields: Prisma.CampaignBroadcastFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CampaignBroadcastFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CampaignBroadcastFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          findFirst: {
+            args: Prisma.CampaignBroadcastFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CampaignBroadcastFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          findMany: {
+            args: Prisma.CampaignBroadcastFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>[]
+          }
+          create: {
+            args: Prisma.CampaignBroadcastCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          createMany: {
+            args: Prisma.CampaignBroadcastCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CampaignBroadcastCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>[]
+          }
+          delete: {
+            args: Prisma.CampaignBroadcastDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          update: {
+            args: Prisma.CampaignBroadcastUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          deleteMany: {
+            args: Prisma.CampaignBroadcastDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CampaignBroadcastUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CampaignBroadcastUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>[]
+          }
+          upsert: {
+            args: Prisma.CampaignBroadcastUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CampaignBroadcastPayload>
+          }
+          aggregate: {
+            args: Prisma.CampaignBroadcastAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCampaignBroadcast>
+          }
+          groupBy: {
+            args: Prisma.CampaignBroadcastGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CampaignBroadcastGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CampaignBroadcastCountArgs<ExtArgs>
+            result: $Utils.Optional<CampaignBroadcastCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1976,6 +2210,8 @@ export namespace Prisma {
     inventoryMovement?: InventoryMovementOmit
     votingPlace?: VotingPlaceOmit
     tableResult?: TableResultOmit
+    whatsAppMessage?: WhatsAppMessageOmit
+    campaignBroadcast?: CampaignBroadcastOmit
   }
 
   /* Types for Logging */
@@ -2063,6 +2299,8 @@ export namespace Prisma {
     witnesses: number
     events: number
     inventory: number
+    whatsappMessages: number
+    campaignBroadcasts: number
   }
 
   export type TenantCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2073,6 +2311,8 @@ export namespace Prisma {
     witnesses?: boolean | TenantCountOutputTypeCountWitnessesArgs
     events?: boolean | TenantCountOutputTypeCountEventsArgs
     inventory?: boolean | TenantCountOutputTypeCountInventoryArgs
+    whatsappMessages?: boolean | TenantCountOutputTypeCountWhatsappMessagesArgs
+    campaignBroadcasts?: boolean | TenantCountOutputTypeCountCampaignBroadcastsArgs
   }
 
   // Custom InputTypes
@@ -2133,6 +2373,20 @@ export namespace Prisma {
    */
   export type TenantCountOutputTypeCountInventoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InventoryItemWhereInput
+  }
+
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountWhatsappMessagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WhatsAppMessageWhereInput
+  }
+
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountCampaignBroadcastsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CampaignBroadcastWhereInput
   }
 
 
@@ -2542,6 +2796,8 @@ export namespace Prisma {
     events?: boolean | Tenant$eventsArgs<ExtArgs>
     inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
     settings?: boolean | Tenant$settingsArgs<ExtArgs>
+    whatsappMessages?: boolean | Tenant$whatsappMessagesArgs<ExtArgs>
+    campaignBroadcasts?: boolean | Tenant$campaignBroadcastsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
@@ -2585,6 +2841,8 @@ export namespace Prisma {
     events?: boolean | Tenant$eventsArgs<ExtArgs>
     inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
     settings?: boolean | Tenant$settingsArgs<ExtArgs>
+    whatsappMessages?: boolean | Tenant$whatsappMessagesArgs<ExtArgs>
+    campaignBroadcasts?: boolean | Tenant$campaignBroadcastsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2601,6 +2859,8 @@ export namespace Prisma {
       events: Prisma.$CampaignEventPayload<ExtArgs>[]
       inventory: Prisma.$InventoryItemPayload<ExtArgs>[]
       settings: Prisma.$CampaignSettingsPayload<ExtArgs> | null
+      whatsappMessages: Prisma.$WhatsAppMessagePayload<ExtArgs>[]
+      campaignBroadcasts: Prisma.$CampaignBroadcastPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3012,6 +3272,8 @@ export namespace Prisma {
     events<T extends Tenant$eventsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventory<T extends Tenant$inventoryArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$inventoryArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     settings<T extends Tenant$settingsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$settingsArgs<ExtArgs>>): Prisma__CampaignSettingsClient<$Result.GetResult<Prisma.$CampaignSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    whatsappMessages<T extends Tenant$whatsappMessagesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$whatsappMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    campaignBroadcasts<T extends Tenant$campaignBroadcastsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$campaignBroadcastsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3620,6 +3882,54 @@ export namespace Prisma {
      */
     include?: CampaignSettingsInclude<ExtArgs> | null
     where?: CampaignSettingsWhereInput
+  }
+
+  /**
+   * Tenant.whatsappMessages
+   */
+  export type Tenant$whatsappMessagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    where?: WhatsAppMessageWhereInput
+    orderBy?: WhatsAppMessageOrderByWithRelationInput | WhatsAppMessageOrderByWithRelationInput[]
+    cursor?: WhatsAppMessageWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WhatsAppMessageScalarFieldEnum | WhatsAppMessageScalarFieldEnum[]
+  }
+
+  /**
+   * Tenant.campaignBroadcasts
+   */
+  export type Tenant$campaignBroadcastsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    where?: CampaignBroadcastWhereInput
+    orderBy?: CampaignBroadcastOrderByWithRelationInput | CampaignBroadcastOrderByWithRelationInput[]
+    cursor?: CampaignBroadcastWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CampaignBroadcastScalarFieldEnum | CampaignBroadcastScalarFieldEnum[]
   }
 
   /**
@@ -9872,6 +10182,7 @@ export namespace Prisma {
     candidateVotes: number | null
     blankVotes: number | null
     totalTableVotes: number | null
+    ocrConfidence: number | null
   }
 
   export type WitnessReportSumAggregateOutputType = {
@@ -9879,6 +10190,7 @@ export namespace Prisma {
     candidateVotes: number | null
     blankVotes: number | null
     totalTableVotes: number | null
+    ocrConfidence: number | null
   }
 
   export type WitnessReportMinAggregateOutputType = {
@@ -9894,6 +10206,8 @@ export namespace Prisma {
     observations: string | null
     blockchainHash: string | null
     timestampProof: Date | null
+    ocrConfidence: number | null
+    auditStatus: $Enums.AuditStatus | null
     isSynced: boolean | null
     createdAt: Date | null
   }
@@ -9911,6 +10225,8 @@ export namespace Prisma {
     observations: string | null
     blockchainHash: string | null
     timestampProof: Date | null
+    ocrConfidence: number | null
+    auditStatus: $Enums.AuditStatus | null
     isSynced: boolean | null
     createdAt: Date | null
   }
@@ -9928,6 +10244,9 @@ export namespace Prisma {
     observations: number
     blockchainHash: number
     timestampProof: number
+    e14OcrData: number
+    ocrConfidence: number
+    auditStatus: number
     isSynced: number
     createdAt: number
     _all: number
@@ -9939,6 +10258,7 @@ export namespace Prisma {
     candidateVotes?: true
     blankVotes?: true
     totalTableVotes?: true
+    ocrConfidence?: true
   }
 
   export type WitnessReportSumAggregateInputType = {
@@ -9946,6 +10266,7 @@ export namespace Prisma {
     candidateVotes?: true
     blankVotes?: true
     totalTableVotes?: true
+    ocrConfidence?: true
   }
 
   export type WitnessReportMinAggregateInputType = {
@@ -9961,6 +10282,8 @@ export namespace Prisma {
     observations?: true
     blockchainHash?: true
     timestampProof?: true
+    ocrConfidence?: true
+    auditStatus?: true
     isSynced?: true
     createdAt?: true
   }
@@ -9978,6 +10301,8 @@ export namespace Prisma {
     observations?: true
     blockchainHash?: true
     timestampProof?: true
+    ocrConfidence?: true
+    auditStatus?: true
     isSynced?: true
     createdAt?: true
   }
@@ -9995,6 +10320,9 @@ export namespace Prisma {
     observations?: true
     blockchainHash?: true
     timestampProof?: true
+    e14OcrData?: true
+    ocrConfidence?: true
+    auditStatus?: true
     isSynced?: true
     createdAt?: true
     _all?: true
@@ -10099,6 +10427,9 @@ export namespace Prisma {
     observations: string | null
     blockchainHash: string | null
     timestampProof: Date | null
+    e14OcrData: JsonValue | null
+    ocrConfidence: number | null
+    auditStatus: $Enums.AuditStatus
     isSynced: boolean
     createdAt: Date
     _count: WitnessReportCountAggregateOutputType | null
@@ -10135,6 +10466,9 @@ export namespace Prisma {
     observations?: boolean
     blockchainHash?: boolean
     timestampProof?: boolean
+    e14OcrData?: boolean
+    ocrConfidence?: boolean
+    auditStatus?: boolean
     isSynced?: boolean
     createdAt?: boolean
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
@@ -10155,6 +10489,9 @@ export namespace Prisma {
     observations?: boolean
     blockchainHash?: boolean
     timestampProof?: boolean
+    e14OcrData?: boolean
+    ocrConfidence?: boolean
+    auditStatus?: boolean
     isSynced?: boolean
     createdAt?: boolean
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
@@ -10175,6 +10512,9 @@ export namespace Prisma {
     observations?: boolean
     blockchainHash?: boolean
     timestampProof?: boolean
+    e14OcrData?: boolean
+    ocrConfidence?: boolean
+    auditStatus?: boolean
     isSynced?: boolean
     createdAt?: boolean
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
@@ -10195,11 +10535,14 @@ export namespace Prisma {
     observations?: boolean
     blockchainHash?: boolean
     timestampProof?: boolean
+    e14OcrData?: boolean
+    ocrConfidence?: boolean
+    auditStatus?: boolean
     isSynced?: boolean
     createdAt?: boolean
   }
 
-  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "blankVotes" | "totalTableVotes" | "observations" | "blockchainHash" | "timestampProof" | "isSynced" | "createdAt", ExtArgs["result"]["witnessReport"]>
+  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "blankVotes" | "totalTableVotes" | "observations" | "blockchainHash" | "timestampProof" | "e14OcrData" | "ocrConfidence" | "auditStatus" | "isSynced" | "createdAt", ExtArgs["result"]["witnessReport"]>
   export type WitnessReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -10236,6 +10579,9 @@ export namespace Prisma {
       observations: string | null
       blockchainHash: string | null
       timestampProof: Date | null
+      e14OcrData: Prisma.JsonValue | null
+      ocrConfidence: number | null
+      auditStatus: $Enums.AuditStatus
       isSynced: boolean
       createdAt: Date
     }, ExtArgs["result"]["witnessReport"]>
@@ -10676,6 +11022,9 @@ export namespace Prisma {
     readonly observations: FieldRef<"WitnessReport", 'String'>
     readonly blockchainHash: FieldRef<"WitnessReport", 'String'>
     readonly timestampProof: FieldRef<"WitnessReport", 'DateTime'>
+    readonly e14OcrData: FieldRef<"WitnessReport", 'Json'>
+    readonly ocrConfidence: FieldRef<"WitnessReport", 'Float'>
+    readonly auditStatus: FieldRef<"WitnessReport", 'AuditStatus'>
     readonly isSynced: FieldRef<"WitnessReport", 'Boolean'>
     readonly createdAt: FieldRef<"WitnessReport", 'DateTime'>
   }
@@ -17967,6 +18316,2238 @@ export namespace Prisma {
 
 
   /**
+   * Model WhatsAppMessage
+   */
+
+  export type AggregateWhatsAppMessage = {
+    _count: WhatsAppMessageCountAggregateOutputType | null
+    _min: WhatsAppMessageMinAggregateOutputType | null
+    _max: WhatsAppMessageMaxAggregateOutputType | null
+  }
+
+  export type WhatsAppMessageMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    fromPhone: string | null
+    toPhone: string | null
+    body: string | null
+    direction: $Enums.MessageDirection | null
+    status: $Enums.MessageStatus | null
+    createdAt: Date | null
+  }
+
+  export type WhatsAppMessageMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    fromPhone: string | null
+    toPhone: string | null
+    body: string | null
+    direction: $Enums.MessageDirection | null
+    status: $Enums.MessageStatus | null
+    createdAt: Date | null
+  }
+
+  export type WhatsAppMessageCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    fromPhone: number
+    toPhone: number
+    body: number
+    direction: number
+    status: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type WhatsAppMessageMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    fromPhone?: true
+    toPhone?: true
+    body?: true
+    direction?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type WhatsAppMessageMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    fromPhone?: true
+    toPhone?: true
+    body?: true
+    direction?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type WhatsAppMessageCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    fromPhone?: true
+    toPhone?: true
+    body?: true
+    direction?: true
+    status?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type WhatsAppMessageAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WhatsAppMessage to aggregate.
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WhatsAppMessages to fetch.
+     */
+    orderBy?: WhatsAppMessageOrderByWithRelationInput | WhatsAppMessageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WhatsAppMessageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WhatsAppMessages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WhatsAppMessages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WhatsAppMessages
+    **/
+    _count?: true | WhatsAppMessageCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WhatsAppMessageMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WhatsAppMessageMaxAggregateInputType
+  }
+
+  export type GetWhatsAppMessageAggregateType<T extends WhatsAppMessageAggregateArgs> = {
+        [P in keyof T & keyof AggregateWhatsAppMessage]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWhatsAppMessage[P]>
+      : GetScalarType<T[P], AggregateWhatsAppMessage[P]>
+  }
+
+
+
+
+  export type WhatsAppMessageGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WhatsAppMessageWhereInput
+    orderBy?: WhatsAppMessageOrderByWithAggregationInput | WhatsAppMessageOrderByWithAggregationInput[]
+    by: WhatsAppMessageScalarFieldEnum[] | WhatsAppMessageScalarFieldEnum
+    having?: WhatsAppMessageScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WhatsAppMessageCountAggregateInputType | true
+    _min?: WhatsAppMessageMinAggregateInputType
+    _max?: WhatsAppMessageMaxAggregateInputType
+  }
+
+  export type WhatsAppMessageGroupByOutputType = {
+    id: string
+    tenantId: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status: $Enums.MessageStatus
+    createdAt: Date
+    _count: WhatsAppMessageCountAggregateOutputType | null
+    _min: WhatsAppMessageMinAggregateOutputType | null
+    _max: WhatsAppMessageMaxAggregateOutputType | null
+  }
+
+  type GetWhatsAppMessageGroupByPayload<T extends WhatsAppMessageGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WhatsAppMessageGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WhatsAppMessageGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WhatsAppMessageGroupByOutputType[P]>
+            : GetScalarType<T[P], WhatsAppMessageGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WhatsAppMessageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    fromPhone?: boolean
+    toPhone?: boolean
+    body?: boolean
+    direction?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["whatsAppMessage"]>
+
+  export type WhatsAppMessageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    fromPhone?: boolean
+    toPhone?: boolean
+    body?: boolean
+    direction?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["whatsAppMessage"]>
+
+  export type WhatsAppMessageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    fromPhone?: boolean
+    toPhone?: boolean
+    body?: boolean
+    direction?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["whatsAppMessage"]>
+
+  export type WhatsAppMessageSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    fromPhone?: boolean
+    toPhone?: boolean
+    body?: boolean
+    direction?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }
+
+  export type WhatsAppMessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "fromPhone" | "toPhone" | "body" | "direction" | "status" | "createdAt", ExtArgs["result"]["whatsAppMessage"]>
+  export type WhatsAppMessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+  export type WhatsAppMessageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+  export type WhatsAppMessageIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+
+  export type $WhatsAppMessagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WhatsAppMessage"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      fromPhone: string
+      toPhone: string
+      body: string
+      direction: $Enums.MessageDirection
+      status: $Enums.MessageStatus
+      createdAt: Date
+    }, ExtArgs["result"]["whatsAppMessage"]>
+    composites: {}
+  }
+
+  type WhatsAppMessageGetPayload<S extends boolean | null | undefined | WhatsAppMessageDefaultArgs> = $Result.GetResult<Prisma.$WhatsAppMessagePayload, S>
+
+  type WhatsAppMessageCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WhatsAppMessageFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WhatsAppMessageCountAggregateInputType | true
+    }
+
+  export interface WhatsAppMessageDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WhatsAppMessage'], meta: { name: 'WhatsAppMessage' } }
+    /**
+     * Find zero or one WhatsAppMessage that matches the filter.
+     * @param {WhatsAppMessageFindUniqueArgs} args - Arguments to find a WhatsAppMessage
+     * @example
+     * // Get one WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WhatsAppMessageFindUniqueArgs>(args: SelectSubset<T, WhatsAppMessageFindUniqueArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WhatsAppMessage that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WhatsAppMessageFindUniqueOrThrowArgs} args - Arguments to find a WhatsAppMessage
+     * @example
+     * // Get one WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WhatsAppMessageFindUniqueOrThrowArgs>(args: SelectSubset<T, WhatsAppMessageFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WhatsAppMessage that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageFindFirstArgs} args - Arguments to find a WhatsAppMessage
+     * @example
+     * // Get one WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WhatsAppMessageFindFirstArgs>(args?: SelectSubset<T, WhatsAppMessageFindFirstArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WhatsAppMessage that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageFindFirstOrThrowArgs} args - Arguments to find a WhatsAppMessage
+     * @example
+     * // Get one WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WhatsAppMessageFindFirstOrThrowArgs>(args?: SelectSubset<T, WhatsAppMessageFindFirstOrThrowArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WhatsAppMessages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WhatsAppMessages
+     * const whatsAppMessages = await prisma.whatsAppMessage.findMany()
+     * 
+     * // Get first 10 WhatsAppMessages
+     * const whatsAppMessages = await prisma.whatsAppMessage.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const whatsAppMessageWithIdOnly = await prisma.whatsAppMessage.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WhatsAppMessageFindManyArgs>(args?: SelectSubset<T, WhatsAppMessageFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WhatsAppMessage.
+     * @param {WhatsAppMessageCreateArgs} args - Arguments to create a WhatsAppMessage.
+     * @example
+     * // Create one WhatsAppMessage
+     * const WhatsAppMessage = await prisma.whatsAppMessage.create({
+     *   data: {
+     *     // ... data to create a WhatsAppMessage
+     *   }
+     * })
+     * 
+     */
+    create<T extends WhatsAppMessageCreateArgs>(args: SelectSubset<T, WhatsAppMessageCreateArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WhatsAppMessages.
+     * @param {WhatsAppMessageCreateManyArgs} args - Arguments to create many WhatsAppMessages.
+     * @example
+     * // Create many WhatsAppMessages
+     * const whatsAppMessage = await prisma.whatsAppMessage.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WhatsAppMessageCreateManyArgs>(args?: SelectSubset<T, WhatsAppMessageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WhatsAppMessages and returns the data saved in the database.
+     * @param {WhatsAppMessageCreateManyAndReturnArgs} args - Arguments to create many WhatsAppMessages.
+     * @example
+     * // Create many WhatsAppMessages
+     * const whatsAppMessage = await prisma.whatsAppMessage.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WhatsAppMessages and only return the `id`
+     * const whatsAppMessageWithIdOnly = await prisma.whatsAppMessage.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WhatsAppMessageCreateManyAndReturnArgs>(args?: SelectSubset<T, WhatsAppMessageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WhatsAppMessage.
+     * @param {WhatsAppMessageDeleteArgs} args - Arguments to delete one WhatsAppMessage.
+     * @example
+     * // Delete one WhatsAppMessage
+     * const WhatsAppMessage = await prisma.whatsAppMessage.delete({
+     *   where: {
+     *     // ... filter to delete one WhatsAppMessage
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WhatsAppMessageDeleteArgs>(args: SelectSubset<T, WhatsAppMessageDeleteArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WhatsAppMessage.
+     * @param {WhatsAppMessageUpdateArgs} args - Arguments to update one WhatsAppMessage.
+     * @example
+     * // Update one WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WhatsAppMessageUpdateArgs>(args: SelectSubset<T, WhatsAppMessageUpdateArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WhatsAppMessages.
+     * @param {WhatsAppMessageDeleteManyArgs} args - Arguments to filter WhatsAppMessages to delete.
+     * @example
+     * // Delete a few WhatsAppMessages
+     * const { count } = await prisma.whatsAppMessage.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WhatsAppMessageDeleteManyArgs>(args?: SelectSubset<T, WhatsAppMessageDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WhatsAppMessages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WhatsAppMessages
+     * const whatsAppMessage = await prisma.whatsAppMessage.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WhatsAppMessageUpdateManyArgs>(args: SelectSubset<T, WhatsAppMessageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WhatsAppMessages and returns the data updated in the database.
+     * @param {WhatsAppMessageUpdateManyAndReturnArgs} args - Arguments to update many WhatsAppMessages.
+     * @example
+     * // Update many WhatsAppMessages
+     * const whatsAppMessage = await prisma.whatsAppMessage.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WhatsAppMessages and only return the `id`
+     * const whatsAppMessageWithIdOnly = await prisma.whatsAppMessage.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WhatsAppMessageUpdateManyAndReturnArgs>(args: SelectSubset<T, WhatsAppMessageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WhatsAppMessage.
+     * @param {WhatsAppMessageUpsertArgs} args - Arguments to update or create a WhatsAppMessage.
+     * @example
+     * // Update or create a WhatsAppMessage
+     * const whatsAppMessage = await prisma.whatsAppMessage.upsert({
+     *   create: {
+     *     // ... data to create a WhatsAppMessage
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WhatsAppMessage we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WhatsAppMessageUpsertArgs>(args: SelectSubset<T, WhatsAppMessageUpsertArgs<ExtArgs>>): Prisma__WhatsAppMessageClient<$Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WhatsAppMessages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageCountArgs} args - Arguments to filter WhatsAppMessages to count.
+     * @example
+     * // Count the number of WhatsAppMessages
+     * const count = await prisma.whatsAppMessage.count({
+     *   where: {
+     *     // ... the filter for the WhatsAppMessages we want to count
+     *   }
+     * })
+    **/
+    count<T extends WhatsAppMessageCountArgs>(
+      args?: Subset<T, WhatsAppMessageCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WhatsAppMessageCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WhatsAppMessage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WhatsAppMessageAggregateArgs>(args: Subset<T, WhatsAppMessageAggregateArgs>): Prisma.PrismaPromise<GetWhatsAppMessageAggregateType<T>>
+
+    /**
+     * Group by WhatsAppMessage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WhatsAppMessageGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WhatsAppMessageGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WhatsAppMessageGroupByArgs['orderBy'] }
+        : { orderBy?: WhatsAppMessageGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WhatsAppMessageGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWhatsAppMessageGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WhatsAppMessage model
+   */
+  readonly fields: WhatsAppMessageFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WhatsAppMessage.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WhatsAppMessageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WhatsAppMessage model
+   */
+  interface WhatsAppMessageFieldRefs {
+    readonly id: FieldRef<"WhatsAppMessage", 'String'>
+    readonly tenantId: FieldRef<"WhatsAppMessage", 'String'>
+    readonly fromPhone: FieldRef<"WhatsAppMessage", 'String'>
+    readonly toPhone: FieldRef<"WhatsAppMessage", 'String'>
+    readonly body: FieldRef<"WhatsAppMessage", 'String'>
+    readonly direction: FieldRef<"WhatsAppMessage", 'MessageDirection'>
+    readonly status: FieldRef<"WhatsAppMessage", 'MessageStatus'>
+    readonly createdAt: FieldRef<"WhatsAppMessage", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WhatsAppMessage findUnique
+   */
+  export type WhatsAppMessageFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter, which WhatsAppMessage to fetch.
+     */
+    where: WhatsAppMessageWhereUniqueInput
+  }
+
+  /**
+   * WhatsAppMessage findUniqueOrThrow
+   */
+  export type WhatsAppMessageFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter, which WhatsAppMessage to fetch.
+     */
+    where: WhatsAppMessageWhereUniqueInput
+  }
+
+  /**
+   * WhatsAppMessage findFirst
+   */
+  export type WhatsAppMessageFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter, which WhatsAppMessage to fetch.
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WhatsAppMessages to fetch.
+     */
+    orderBy?: WhatsAppMessageOrderByWithRelationInput | WhatsAppMessageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WhatsAppMessages.
+     */
+    cursor?: WhatsAppMessageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WhatsAppMessages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WhatsAppMessages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WhatsAppMessages.
+     */
+    distinct?: WhatsAppMessageScalarFieldEnum | WhatsAppMessageScalarFieldEnum[]
+  }
+
+  /**
+   * WhatsAppMessage findFirstOrThrow
+   */
+  export type WhatsAppMessageFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter, which WhatsAppMessage to fetch.
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WhatsAppMessages to fetch.
+     */
+    orderBy?: WhatsAppMessageOrderByWithRelationInput | WhatsAppMessageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WhatsAppMessages.
+     */
+    cursor?: WhatsAppMessageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WhatsAppMessages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WhatsAppMessages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WhatsAppMessages.
+     */
+    distinct?: WhatsAppMessageScalarFieldEnum | WhatsAppMessageScalarFieldEnum[]
+  }
+
+  /**
+   * WhatsAppMessage findMany
+   */
+  export type WhatsAppMessageFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter, which WhatsAppMessages to fetch.
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WhatsAppMessages to fetch.
+     */
+    orderBy?: WhatsAppMessageOrderByWithRelationInput | WhatsAppMessageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WhatsAppMessages.
+     */
+    cursor?: WhatsAppMessageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WhatsAppMessages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WhatsAppMessages.
+     */
+    skip?: number
+    distinct?: WhatsAppMessageScalarFieldEnum | WhatsAppMessageScalarFieldEnum[]
+  }
+
+  /**
+   * WhatsAppMessage create
+   */
+  export type WhatsAppMessageCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WhatsAppMessage.
+     */
+    data: XOR<WhatsAppMessageCreateInput, WhatsAppMessageUncheckedCreateInput>
+  }
+
+  /**
+   * WhatsAppMessage createMany
+   */
+  export type WhatsAppMessageCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WhatsAppMessages.
+     */
+    data: WhatsAppMessageCreateManyInput | WhatsAppMessageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WhatsAppMessage createManyAndReturn
+   */
+  export type WhatsAppMessageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * The data used to create many WhatsAppMessages.
+     */
+    data: WhatsAppMessageCreateManyInput | WhatsAppMessageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WhatsAppMessage update
+   */
+  export type WhatsAppMessageUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WhatsAppMessage.
+     */
+    data: XOR<WhatsAppMessageUpdateInput, WhatsAppMessageUncheckedUpdateInput>
+    /**
+     * Choose, which WhatsAppMessage to update.
+     */
+    where: WhatsAppMessageWhereUniqueInput
+  }
+
+  /**
+   * WhatsAppMessage updateMany
+   */
+  export type WhatsAppMessageUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WhatsAppMessages.
+     */
+    data: XOR<WhatsAppMessageUpdateManyMutationInput, WhatsAppMessageUncheckedUpdateManyInput>
+    /**
+     * Filter which WhatsAppMessages to update
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * Limit how many WhatsAppMessages to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WhatsAppMessage updateManyAndReturn
+   */
+  export type WhatsAppMessageUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * The data used to update WhatsAppMessages.
+     */
+    data: XOR<WhatsAppMessageUpdateManyMutationInput, WhatsAppMessageUncheckedUpdateManyInput>
+    /**
+     * Filter which WhatsAppMessages to update
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * Limit how many WhatsAppMessages to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WhatsAppMessage upsert
+   */
+  export type WhatsAppMessageUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WhatsAppMessage to update in case it exists.
+     */
+    where: WhatsAppMessageWhereUniqueInput
+    /**
+     * In case the WhatsAppMessage found by the `where` argument doesn't exist, create a new WhatsAppMessage with this data.
+     */
+    create: XOR<WhatsAppMessageCreateInput, WhatsAppMessageUncheckedCreateInput>
+    /**
+     * In case the WhatsAppMessage was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WhatsAppMessageUpdateInput, WhatsAppMessageUncheckedUpdateInput>
+  }
+
+  /**
+   * WhatsAppMessage delete
+   */
+  export type WhatsAppMessageDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+    /**
+     * Filter which WhatsAppMessage to delete.
+     */
+    where: WhatsAppMessageWhereUniqueInput
+  }
+
+  /**
+   * WhatsAppMessage deleteMany
+   */
+  export type WhatsAppMessageDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WhatsAppMessages to delete
+     */
+    where?: WhatsAppMessageWhereInput
+    /**
+     * Limit how many WhatsAppMessages to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WhatsAppMessage without action
+   */
+  export type WhatsAppMessageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WhatsAppMessage
+     */
+    select?: WhatsAppMessageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WhatsAppMessage
+     */
+    omit?: WhatsAppMessageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WhatsAppMessageInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CampaignBroadcast
+   */
+
+  export type AggregateCampaignBroadcast = {
+    _count: CampaignBroadcastCountAggregateOutputType | null
+    _avg: CampaignBroadcastAvgAggregateOutputType | null
+    _sum: CampaignBroadcastSumAggregateOutputType | null
+    _min: CampaignBroadcastMinAggregateOutputType | null
+    _max: CampaignBroadcastMaxAggregateOutputType | null
+  }
+
+  export type CampaignBroadcastAvgAggregateOutputType = {
+    targetCount: number | null
+    sentCount: number | null
+  }
+
+  export type CampaignBroadcastSumAggregateOutputType = {
+    targetCount: number | null
+    sentCount: number | null
+  }
+
+  export type CampaignBroadcastMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    name: string | null
+    message: string | null
+    targetCount: number | null
+    sentCount: number | null
+    status: $Enums.BroadcastStatus | null
+    createdAt: Date | null
+  }
+
+  export type CampaignBroadcastMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    name: string | null
+    message: string | null
+    targetCount: number | null
+    sentCount: number | null
+    status: $Enums.BroadcastStatus | null
+    createdAt: Date | null
+  }
+
+  export type CampaignBroadcastCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    name: number
+    message: number
+    targetCount: number
+    sentCount: number
+    status: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CampaignBroadcastAvgAggregateInputType = {
+    targetCount?: true
+    sentCount?: true
+  }
+
+  export type CampaignBroadcastSumAggregateInputType = {
+    targetCount?: true
+    sentCount?: true
+  }
+
+  export type CampaignBroadcastMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    name?: true
+    message?: true
+    targetCount?: true
+    sentCount?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type CampaignBroadcastMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    name?: true
+    message?: true
+    targetCount?: true
+    sentCount?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type CampaignBroadcastCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    name?: true
+    message?: true
+    targetCount?: true
+    sentCount?: true
+    status?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CampaignBroadcastAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CampaignBroadcast to aggregate.
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CampaignBroadcasts to fetch.
+     */
+    orderBy?: CampaignBroadcastOrderByWithRelationInput | CampaignBroadcastOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CampaignBroadcastWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CampaignBroadcasts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CampaignBroadcasts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CampaignBroadcasts
+    **/
+    _count?: true | CampaignBroadcastCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CampaignBroadcastAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CampaignBroadcastSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CampaignBroadcastMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CampaignBroadcastMaxAggregateInputType
+  }
+
+  export type GetCampaignBroadcastAggregateType<T extends CampaignBroadcastAggregateArgs> = {
+        [P in keyof T & keyof AggregateCampaignBroadcast]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCampaignBroadcast[P]>
+      : GetScalarType<T[P], AggregateCampaignBroadcast[P]>
+  }
+
+
+
+
+  export type CampaignBroadcastGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CampaignBroadcastWhereInput
+    orderBy?: CampaignBroadcastOrderByWithAggregationInput | CampaignBroadcastOrderByWithAggregationInput[]
+    by: CampaignBroadcastScalarFieldEnum[] | CampaignBroadcastScalarFieldEnum
+    having?: CampaignBroadcastScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CampaignBroadcastCountAggregateInputType | true
+    _avg?: CampaignBroadcastAvgAggregateInputType
+    _sum?: CampaignBroadcastSumAggregateInputType
+    _min?: CampaignBroadcastMinAggregateInputType
+    _max?: CampaignBroadcastMaxAggregateInputType
+  }
+
+  export type CampaignBroadcastGroupByOutputType = {
+    id: string
+    tenantId: string
+    name: string
+    message: string
+    targetCount: number
+    sentCount: number
+    status: $Enums.BroadcastStatus
+    createdAt: Date
+    _count: CampaignBroadcastCountAggregateOutputType | null
+    _avg: CampaignBroadcastAvgAggregateOutputType | null
+    _sum: CampaignBroadcastSumAggregateOutputType | null
+    _min: CampaignBroadcastMinAggregateOutputType | null
+    _max: CampaignBroadcastMaxAggregateOutputType | null
+  }
+
+  type GetCampaignBroadcastGroupByPayload<T extends CampaignBroadcastGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CampaignBroadcastGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CampaignBroadcastGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CampaignBroadcastGroupByOutputType[P]>
+            : GetScalarType<T[P], CampaignBroadcastGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CampaignBroadcastSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    name?: boolean
+    message?: boolean
+    targetCount?: boolean
+    sentCount?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["campaignBroadcast"]>
+
+  export type CampaignBroadcastSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    name?: boolean
+    message?: boolean
+    targetCount?: boolean
+    sentCount?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["campaignBroadcast"]>
+
+  export type CampaignBroadcastSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    name?: boolean
+    message?: boolean
+    targetCount?: boolean
+    sentCount?: boolean
+    status?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["campaignBroadcast"]>
+
+  export type CampaignBroadcastSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    name?: boolean
+    message?: boolean
+    targetCount?: boolean
+    sentCount?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }
+
+  export type CampaignBroadcastOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "name" | "message" | "targetCount" | "sentCount" | "status" | "createdAt", ExtArgs["result"]["campaignBroadcast"]>
+  export type CampaignBroadcastInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+  export type CampaignBroadcastIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+  export type CampaignBroadcastIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+  }
+
+  export type $CampaignBroadcastPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CampaignBroadcast"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      name: string
+      message: string
+      targetCount: number
+      sentCount: number
+      status: $Enums.BroadcastStatus
+      createdAt: Date
+    }, ExtArgs["result"]["campaignBroadcast"]>
+    composites: {}
+  }
+
+  type CampaignBroadcastGetPayload<S extends boolean | null | undefined | CampaignBroadcastDefaultArgs> = $Result.GetResult<Prisma.$CampaignBroadcastPayload, S>
+
+  type CampaignBroadcastCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CampaignBroadcastFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CampaignBroadcastCountAggregateInputType | true
+    }
+
+  export interface CampaignBroadcastDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CampaignBroadcast'], meta: { name: 'CampaignBroadcast' } }
+    /**
+     * Find zero or one CampaignBroadcast that matches the filter.
+     * @param {CampaignBroadcastFindUniqueArgs} args - Arguments to find a CampaignBroadcast
+     * @example
+     * // Get one CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CampaignBroadcastFindUniqueArgs>(args: SelectSubset<T, CampaignBroadcastFindUniqueArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CampaignBroadcast that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CampaignBroadcastFindUniqueOrThrowArgs} args - Arguments to find a CampaignBroadcast
+     * @example
+     * // Get one CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CampaignBroadcastFindUniqueOrThrowArgs>(args: SelectSubset<T, CampaignBroadcastFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CampaignBroadcast that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastFindFirstArgs} args - Arguments to find a CampaignBroadcast
+     * @example
+     * // Get one CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CampaignBroadcastFindFirstArgs>(args?: SelectSubset<T, CampaignBroadcastFindFirstArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CampaignBroadcast that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastFindFirstOrThrowArgs} args - Arguments to find a CampaignBroadcast
+     * @example
+     * // Get one CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CampaignBroadcastFindFirstOrThrowArgs>(args?: SelectSubset<T, CampaignBroadcastFindFirstOrThrowArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CampaignBroadcasts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CampaignBroadcasts
+     * const campaignBroadcasts = await prisma.campaignBroadcast.findMany()
+     * 
+     * // Get first 10 CampaignBroadcasts
+     * const campaignBroadcasts = await prisma.campaignBroadcast.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const campaignBroadcastWithIdOnly = await prisma.campaignBroadcast.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CampaignBroadcastFindManyArgs>(args?: SelectSubset<T, CampaignBroadcastFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CampaignBroadcast.
+     * @param {CampaignBroadcastCreateArgs} args - Arguments to create a CampaignBroadcast.
+     * @example
+     * // Create one CampaignBroadcast
+     * const CampaignBroadcast = await prisma.campaignBroadcast.create({
+     *   data: {
+     *     // ... data to create a CampaignBroadcast
+     *   }
+     * })
+     * 
+     */
+    create<T extends CampaignBroadcastCreateArgs>(args: SelectSubset<T, CampaignBroadcastCreateArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CampaignBroadcasts.
+     * @param {CampaignBroadcastCreateManyArgs} args - Arguments to create many CampaignBroadcasts.
+     * @example
+     * // Create many CampaignBroadcasts
+     * const campaignBroadcast = await prisma.campaignBroadcast.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CampaignBroadcastCreateManyArgs>(args?: SelectSubset<T, CampaignBroadcastCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CampaignBroadcasts and returns the data saved in the database.
+     * @param {CampaignBroadcastCreateManyAndReturnArgs} args - Arguments to create many CampaignBroadcasts.
+     * @example
+     * // Create many CampaignBroadcasts
+     * const campaignBroadcast = await prisma.campaignBroadcast.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CampaignBroadcasts and only return the `id`
+     * const campaignBroadcastWithIdOnly = await prisma.campaignBroadcast.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CampaignBroadcastCreateManyAndReturnArgs>(args?: SelectSubset<T, CampaignBroadcastCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CampaignBroadcast.
+     * @param {CampaignBroadcastDeleteArgs} args - Arguments to delete one CampaignBroadcast.
+     * @example
+     * // Delete one CampaignBroadcast
+     * const CampaignBroadcast = await prisma.campaignBroadcast.delete({
+     *   where: {
+     *     // ... filter to delete one CampaignBroadcast
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CampaignBroadcastDeleteArgs>(args: SelectSubset<T, CampaignBroadcastDeleteArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CampaignBroadcast.
+     * @param {CampaignBroadcastUpdateArgs} args - Arguments to update one CampaignBroadcast.
+     * @example
+     * // Update one CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CampaignBroadcastUpdateArgs>(args: SelectSubset<T, CampaignBroadcastUpdateArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CampaignBroadcasts.
+     * @param {CampaignBroadcastDeleteManyArgs} args - Arguments to filter CampaignBroadcasts to delete.
+     * @example
+     * // Delete a few CampaignBroadcasts
+     * const { count } = await prisma.campaignBroadcast.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CampaignBroadcastDeleteManyArgs>(args?: SelectSubset<T, CampaignBroadcastDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CampaignBroadcasts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CampaignBroadcasts
+     * const campaignBroadcast = await prisma.campaignBroadcast.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CampaignBroadcastUpdateManyArgs>(args: SelectSubset<T, CampaignBroadcastUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CampaignBroadcasts and returns the data updated in the database.
+     * @param {CampaignBroadcastUpdateManyAndReturnArgs} args - Arguments to update many CampaignBroadcasts.
+     * @example
+     * // Update many CampaignBroadcasts
+     * const campaignBroadcast = await prisma.campaignBroadcast.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CampaignBroadcasts and only return the `id`
+     * const campaignBroadcastWithIdOnly = await prisma.campaignBroadcast.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CampaignBroadcastUpdateManyAndReturnArgs>(args: SelectSubset<T, CampaignBroadcastUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CampaignBroadcast.
+     * @param {CampaignBroadcastUpsertArgs} args - Arguments to update or create a CampaignBroadcast.
+     * @example
+     * // Update or create a CampaignBroadcast
+     * const campaignBroadcast = await prisma.campaignBroadcast.upsert({
+     *   create: {
+     *     // ... data to create a CampaignBroadcast
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CampaignBroadcast we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CampaignBroadcastUpsertArgs>(args: SelectSubset<T, CampaignBroadcastUpsertArgs<ExtArgs>>): Prisma__CampaignBroadcastClient<$Result.GetResult<Prisma.$CampaignBroadcastPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CampaignBroadcasts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastCountArgs} args - Arguments to filter CampaignBroadcasts to count.
+     * @example
+     * // Count the number of CampaignBroadcasts
+     * const count = await prisma.campaignBroadcast.count({
+     *   where: {
+     *     // ... the filter for the CampaignBroadcasts we want to count
+     *   }
+     * })
+    **/
+    count<T extends CampaignBroadcastCountArgs>(
+      args?: Subset<T, CampaignBroadcastCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CampaignBroadcastCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CampaignBroadcast.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CampaignBroadcastAggregateArgs>(args: Subset<T, CampaignBroadcastAggregateArgs>): Prisma.PrismaPromise<GetCampaignBroadcastAggregateType<T>>
+
+    /**
+     * Group by CampaignBroadcast.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CampaignBroadcastGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CampaignBroadcastGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CampaignBroadcastGroupByArgs['orderBy'] }
+        : { orderBy?: CampaignBroadcastGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CampaignBroadcastGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCampaignBroadcastGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CampaignBroadcast model
+   */
+  readonly fields: CampaignBroadcastFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CampaignBroadcast.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CampaignBroadcastClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CampaignBroadcast model
+   */
+  interface CampaignBroadcastFieldRefs {
+    readonly id: FieldRef<"CampaignBroadcast", 'String'>
+    readonly tenantId: FieldRef<"CampaignBroadcast", 'String'>
+    readonly name: FieldRef<"CampaignBroadcast", 'String'>
+    readonly message: FieldRef<"CampaignBroadcast", 'String'>
+    readonly targetCount: FieldRef<"CampaignBroadcast", 'Int'>
+    readonly sentCount: FieldRef<"CampaignBroadcast", 'Int'>
+    readonly status: FieldRef<"CampaignBroadcast", 'BroadcastStatus'>
+    readonly createdAt: FieldRef<"CampaignBroadcast", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CampaignBroadcast findUnique
+   */
+  export type CampaignBroadcastFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter, which CampaignBroadcast to fetch.
+     */
+    where: CampaignBroadcastWhereUniqueInput
+  }
+
+  /**
+   * CampaignBroadcast findUniqueOrThrow
+   */
+  export type CampaignBroadcastFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter, which CampaignBroadcast to fetch.
+     */
+    where: CampaignBroadcastWhereUniqueInput
+  }
+
+  /**
+   * CampaignBroadcast findFirst
+   */
+  export type CampaignBroadcastFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter, which CampaignBroadcast to fetch.
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CampaignBroadcasts to fetch.
+     */
+    orderBy?: CampaignBroadcastOrderByWithRelationInput | CampaignBroadcastOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CampaignBroadcasts.
+     */
+    cursor?: CampaignBroadcastWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CampaignBroadcasts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CampaignBroadcasts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CampaignBroadcasts.
+     */
+    distinct?: CampaignBroadcastScalarFieldEnum | CampaignBroadcastScalarFieldEnum[]
+  }
+
+  /**
+   * CampaignBroadcast findFirstOrThrow
+   */
+  export type CampaignBroadcastFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter, which CampaignBroadcast to fetch.
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CampaignBroadcasts to fetch.
+     */
+    orderBy?: CampaignBroadcastOrderByWithRelationInput | CampaignBroadcastOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CampaignBroadcasts.
+     */
+    cursor?: CampaignBroadcastWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CampaignBroadcasts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CampaignBroadcasts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CampaignBroadcasts.
+     */
+    distinct?: CampaignBroadcastScalarFieldEnum | CampaignBroadcastScalarFieldEnum[]
+  }
+
+  /**
+   * CampaignBroadcast findMany
+   */
+  export type CampaignBroadcastFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter, which CampaignBroadcasts to fetch.
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CampaignBroadcasts to fetch.
+     */
+    orderBy?: CampaignBroadcastOrderByWithRelationInput | CampaignBroadcastOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CampaignBroadcasts.
+     */
+    cursor?: CampaignBroadcastWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CampaignBroadcasts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CampaignBroadcasts.
+     */
+    skip?: number
+    distinct?: CampaignBroadcastScalarFieldEnum | CampaignBroadcastScalarFieldEnum[]
+  }
+
+  /**
+   * CampaignBroadcast create
+   */
+  export type CampaignBroadcastCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CampaignBroadcast.
+     */
+    data: XOR<CampaignBroadcastCreateInput, CampaignBroadcastUncheckedCreateInput>
+  }
+
+  /**
+   * CampaignBroadcast createMany
+   */
+  export type CampaignBroadcastCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CampaignBroadcasts.
+     */
+    data: CampaignBroadcastCreateManyInput | CampaignBroadcastCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CampaignBroadcast createManyAndReturn
+   */
+  export type CampaignBroadcastCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * The data used to create many CampaignBroadcasts.
+     */
+    data: CampaignBroadcastCreateManyInput | CampaignBroadcastCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CampaignBroadcast update
+   */
+  export type CampaignBroadcastUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CampaignBroadcast.
+     */
+    data: XOR<CampaignBroadcastUpdateInput, CampaignBroadcastUncheckedUpdateInput>
+    /**
+     * Choose, which CampaignBroadcast to update.
+     */
+    where: CampaignBroadcastWhereUniqueInput
+  }
+
+  /**
+   * CampaignBroadcast updateMany
+   */
+  export type CampaignBroadcastUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CampaignBroadcasts.
+     */
+    data: XOR<CampaignBroadcastUpdateManyMutationInput, CampaignBroadcastUncheckedUpdateManyInput>
+    /**
+     * Filter which CampaignBroadcasts to update
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * Limit how many CampaignBroadcasts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CampaignBroadcast updateManyAndReturn
+   */
+  export type CampaignBroadcastUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * The data used to update CampaignBroadcasts.
+     */
+    data: XOR<CampaignBroadcastUpdateManyMutationInput, CampaignBroadcastUncheckedUpdateManyInput>
+    /**
+     * Filter which CampaignBroadcasts to update
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * Limit how many CampaignBroadcasts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CampaignBroadcast upsert
+   */
+  export type CampaignBroadcastUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CampaignBroadcast to update in case it exists.
+     */
+    where: CampaignBroadcastWhereUniqueInput
+    /**
+     * In case the CampaignBroadcast found by the `where` argument doesn't exist, create a new CampaignBroadcast with this data.
+     */
+    create: XOR<CampaignBroadcastCreateInput, CampaignBroadcastUncheckedCreateInput>
+    /**
+     * In case the CampaignBroadcast was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CampaignBroadcastUpdateInput, CampaignBroadcastUncheckedUpdateInput>
+  }
+
+  /**
+   * CampaignBroadcast delete
+   */
+  export type CampaignBroadcastDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+    /**
+     * Filter which CampaignBroadcast to delete.
+     */
+    where: CampaignBroadcastWhereUniqueInput
+  }
+
+  /**
+   * CampaignBroadcast deleteMany
+   */
+  export type CampaignBroadcastDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CampaignBroadcasts to delete
+     */
+    where?: CampaignBroadcastWhereInput
+    /**
+     * Limit how many CampaignBroadcasts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CampaignBroadcast without action
+   */
+  export type CampaignBroadcastDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CampaignBroadcast
+     */
+    select?: CampaignBroadcastSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CampaignBroadcast
+     */
+    omit?: CampaignBroadcastOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CampaignBroadcastInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -18093,6 +20674,9 @@ export namespace Prisma {
     observations: 'observations',
     blockchainHash: 'blockchainHash',
     timestampProof: 'timestampProof',
+    e14OcrData: 'e14OcrData',
+    ocrConfidence: 'ocrConfidence',
+    auditStatus: 'auditStatus',
     isSynced: 'isSynced',
     createdAt: 'createdAt'
   };
@@ -18179,6 +20763,34 @@ export namespace Prisma {
   };
 
   export type TableResultScalarFieldEnum = (typeof TableResultScalarFieldEnum)[keyof typeof TableResultScalarFieldEnum]
+
+
+  export const WhatsAppMessageScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    fromPhone: 'fromPhone',
+    toPhone: 'toPhone',
+    body: 'body',
+    direction: 'direction',
+    status: 'status',
+    createdAt: 'createdAt'
+  };
+
+  export type WhatsAppMessageScalarFieldEnum = (typeof WhatsAppMessageScalarFieldEnum)[keyof typeof WhatsAppMessageScalarFieldEnum]
+
+
+  export const CampaignBroadcastScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    name: 'name',
+    message: 'message',
+    targetCount: 'targetCount',
+    sentCount: 'sentCount',
+    status: 'status',
+    createdAt: 'createdAt'
+  };
+
+  export type CampaignBroadcastScalarFieldEnum = (typeof CampaignBroadcastScalarFieldEnum)[keyof typeof CampaignBroadcastScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -18389,6 +21001,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AuditStatus'
+   */
+  export type EnumAuditStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AuditStatus[]'
+   */
+  export type ListEnumAuditStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'MovementType'
    */
   export type EnumMovementTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MovementType'>
@@ -18403,16 +21043,44 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Float'
+   * Reference to a field of type 'MessageDirection'
    */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+  export type EnumMessageDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageDirection'>
     
 
 
   /**
-   * Reference to a field of type 'Float[]'
+   * Reference to a field of type 'MessageDirection[]'
    */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+  export type ListEnumMessageDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageDirection[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'MessageStatus'
+   */
+  export type EnumMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'MessageStatus[]'
+   */
+  export type ListEnumMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BroadcastStatus'
+   */
+  export type EnumBroadcastStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BroadcastStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'BroadcastStatus[]'
+   */
+  export type ListEnumBroadcastStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BroadcastStatus[]'>
     
   /**
    * Deep Input Types
@@ -18438,6 +21106,8 @@ export namespace Prisma {
     events?: CampaignEventListRelationFilter
     inventory?: InventoryItemListRelationFilter
     settings?: XOR<CampaignSettingsNullableScalarRelationFilter, CampaignSettingsWhereInput> | null
+    whatsappMessages?: WhatsAppMessageListRelationFilter
+    campaignBroadcasts?: CampaignBroadcastListRelationFilter
   }
 
   export type TenantOrderByWithRelationInput = {
@@ -18456,6 +21126,8 @@ export namespace Prisma {
     events?: CampaignEventOrderByRelationAggregateInput
     inventory?: InventoryItemOrderByRelationAggregateInput
     settings?: CampaignSettingsOrderByWithRelationInput
+    whatsappMessages?: WhatsAppMessageOrderByRelationAggregateInput
+    campaignBroadcasts?: CampaignBroadcastOrderByRelationAggregateInput
   }
 
   export type TenantWhereUniqueInput = Prisma.AtLeast<{
@@ -18477,6 +21149,8 @@ export namespace Prisma {
     events?: CampaignEventListRelationFilter
     inventory?: InventoryItemListRelationFilter
     settings?: XOR<CampaignSettingsNullableScalarRelationFilter, CampaignSettingsWhereInput> | null
+    whatsappMessages?: WhatsAppMessageListRelationFilter
+    campaignBroadcasts?: CampaignBroadcastListRelationFilter
   }, "id" | "slug">
 
   export type TenantOrderByWithAggregationInput = {
@@ -19009,6 +21683,9 @@ export namespace Prisma {
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
     timestampProof?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    e14OcrData?: JsonNullableFilter<"WitnessReport">
+    ocrConfidence?: FloatNullableFilter<"WitnessReport"> | number | null
+    auditStatus?: EnumAuditStatusFilter<"WitnessReport"> | $Enums.AuditStatus
     isSynced?: BoolFilter<"WitnessReport"> | boolean
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
     puesto?: XOR<PoliticalDivisionScalarRelationFilter, PoliticalDivisionWhereInput>
@@ -19029,6 +21706,9 @@ export namespace Prisma {
     observations?: SortOrderInput | SortOrder
     blockchainHash?: SortOrderInput | SortOrder
     timestampProof?: SortOrderInput | SortOrder
+    e14OcrData?: SortOrderInput | SortOrder
+    ocrConfidence?: SortOrderInput | SortOrder
+    auditStatus?: SortOrder
     isSynced?: SortOrder
     createdAt?: SortOrder
     puesto?: PoliticalDivisionOrderByWithRelationInput
@@ -19052,6 +21732,9 @@ export namespace Prisma {
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
     timestampProof?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    e14OcrData?: JsonNullableFilter<"WitnessReport">
+    ocrConfidence?: FloatNullableFilter<"WitnessReport"> | number | null
+    auditStatus?: EnumAuditStatusFilter<"WitnessReport"> | $Enums.AuditStatus
     isSynced?: BoolFilter<"WitnessReport"> | boolean
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
     puesto?: XOR<PoliticalDivisionScalarRelationFilter, PoliticalDivisionWhereInput>
@@ -19072,6 +21755,9 @@ export namespace Prisma {
     observations?: SortOrderInput | SortOrder
     blockchainHash?: SortOrderInput | SortOrder
     timestampProof?: SortOrderInput | SortOrder
+    e14OcrData?: SortOrderInput | SortOrder
+    ocrConfidence?: SortOrderInput | SortOrder
+    auditStatus?: SortOrder
     isSynced?: SortOrder
     createdAt?: SortOrder
     _count?: WitnessReportCountOrderByAggregateInput
@@ -19097,6 +21783,9 @@ export namespace Prisma {
     observations?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
     timestampProof?: DateTimeNullableWithAggregatesFilter<"WitnessReport"> | Date | string | null
+    e14OcrData?: JsonNullableWithAggregatesFilter<"WitnessReport">
+    ocrConfidence?: FloatNullableWithAggregatesFilter<"WitnessReport"> | number | null
+    auditStatus?: EnumAuditStatusWithAggregatesFilter<"WitnessReport"> | $Enums.AuditStatus
     isSynced?: BoolWithAggregatesFilter<"WitnessReport"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"WitnessReport"> | Date | string
   }
@@ -19531,6 +22220,148 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"TableResult"> | Date | string
   }
 
+  export type WhatsAppMessageWhereInput = {
+    AND?: WhatsAppMessageWhereInput | WhatsAppMessageWhereInput[]
+    OR?: WhatsAppMessageWhereInput[]
+    NOT?: WhatsAppMessageWhereInput | WhatsAppMessageWhereInput[]
+    id?: StringFilter<"WhatsAppMessage"> | string
+    tenantId?: StringFilter<"WhatsAppMessage"> | string
+    fromPhone?: StringFilter<"WhatsAppMessage"> | string
+    toPhone?: StringFilter<"WhatsAppMessage"> | string
+    body?: StringFilter<"WhatsAppMessage"> | string
+    direction?: EnumMessageDirectionFilter<"WhatsAppMessage"> | $Enums.MessageDirection
+    status?: EnumMessageStatusFilter<"WhatsAppMessage"> | $Enums.MessageStatus
+    createdAt?: DateTimeFilter<"WhatsAppMessage"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+  }
+
+  export type WhatsAppMessageOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    fromPhone?: SortOrder
+    toPhone?: SortOrder
+    body?: SortOrder
+    direction?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+  }
+
+  export type WhatsAppMessageWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WhatsAppMessageWhereInput | WhatsAppMessageWhereInput[]
+    OR?: WhatsAppMessageWhereInput[]
+    NOT?: WhatsAppMessageWhereInput | WhatsAppMessageWhereInput[]
+    tenantId?: StringFilter<"WhatsAppMessage"> | string
+    fromPhone?: StringFilter<"WhatsAppMessage"> | string
+    toPhone?: StringFilter<"WhatsAppMessage"> | string
+    body?: StringFilter<"WhatsAppMessage"> | string
+    direction?: EnumMessageDirectionFilter<"WhatsAppMessage"> | $Enums.MessageDirection
+    status?: EnumMessageStatusFilter<"WhatsAppMessage"> | $Enums.MessageStatus
+    createdAt?: DateTimeFilter<"WhatsAppMessage"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+  }, "id">
+
+  export type WhatsAppMessageOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    fromPhone?: SortOrder
+    toPhone?: SortOrder
+    body?: SortOrder
+    direction?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    _count?: WhatsAppMessageCountOrderByAggregateInput
+    _max?: WhatsAppMessageMaxOrderByAggregateInput
+    _min?: WhatsAppMessageMinOrderByAggregateInput
+  }
+
+  export type WhatsAppMessageScalarWhereWithAggregatesInput = {
+    AND?: WhatsAppMessageScalarWhereWithAggregatesInput | WhatsAppMessageScalarWhereWithAggregatesInput[]
+    OR?: WhatsAppMessageScalarWhereWithAggregatesInput[]
+    NOT?: WhatsAppMessageScalarWhereWithAggregatesInput | WhatsAppMessageScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WhatsAppMessage"> | string
+    tenantId?: StringWithAggregatesFilter<"WhatsAppMessage"> | string
+    fromPhone?: StringWithAggregatesFilter<"WhatsAppMessage"> | string
+    toPhone?: StringWithAggregatesFilter<"WhatsAppMessage"> | string
+    body?: StringWithAggregatesFilter<"WhatsAppMessage"> | string
+    direction?: EnumMessageDirectionWithAggregatesFilter<"WhatsAppMessage"> | $Enums.MessageDirection
+    status?: EnumMessageStatusWithAggregatesFilter<"WhatsAppMessage"> | $Enums.MessageStatus
+    createdAt?: DateTimeWithAggregatesFilter<"WhatsAppMessage"> | Date | string
+  }
+
+  export type CampaignBroadcastWhereInput = {
+    AND?: CampaignBroadcastWhereInput | CampaignBroadcastWhereInput[]
+    OR?: CampaignBroadcastWhereInput[]
+    NOT?: CampaignBroadcastWhereInput | CampaignBroadcastWhereInput[]
+    id?: StringFilter<"CampaignBroadcast"> | string
+    tenantId?: StringFilter<"CampaignBroadcast"> | string
+    name?: StringFilter<"CampaignBroadcast"> | string
+    message?: StringFilter<"CampaignBroadcast"> | string
+    targetCount?: IntFilter<"CampaignBroadcast"> | number
+    sentCount?: IntFilter<"CampaignBroadcast"> | number
+    status?: EnumBroadcastStatusFilter<"CampaignBroadcast"> | $Enums.BroadcastStatus
+    createdAt?: DateTimeFilter<"CampaignBroadcast"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+  }
+
+  export type CampaignBroadcastOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    name?: SortOrder
+    message?: SortOrder
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+  }
+
+  export type CampaignBroadcastWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CampaignBroadcastWhereInput | CampaignBroadcastWhereInput[]
+    OR?: CampaignBroadcastWhereInput[]
+    NOT?: CampaignBroadcastWhereInput | CampaignBroadcastWhereInput[]
+    tenantId?: StringFilter<"CampaignBroadcast"> | string
+    name?: StringFilter<"CampaignBroadcast"> | string
+    message?: StringFilter<"CampaignBroadcast"> | string
+    targetCount?: IntFilter<"CampaignBroadcast"> | number
+    sentCount?: IntFilter<"CampaignBroadcast"> | number
+    status?: EnumBroadcastStatusFilter<"CampaignBroadcast"> | $Enums.BroadcastStatus
+    createdAt?: DateTimeFilter<"CampaignBroadcast"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+  }, "id">
+
+  export type CampaignBroadcastOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    name?: SortOrder
+    message?: SortOrder
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    _count?: CampaignBroadcastCountOrderByAggregateInput
+    _avg?: CampaignBroadcastAvgOrderByAggregateInput
+    _max?: CampaignBroadcastMaxOrderByAggregateInput
+    _min?: CampaignBroadcastMinOrderByAggregateInput
+    _sum?: CampaignBroadcastSumOrderByAggregateInput
+  }
+
+  export type CampaignBroadcastScalarWhereWithAggregatesInput = {
+    AND?: CampaignBroadcastScalarWhereWithAggregatesInput | CampaignBroadcastScalarWhereWithAggregatesInput[]
+    OR?: CampaignBroadcastScalarWhereWithAggregatesInput[]
+    NOT?: CampaignBroadcastScalarWhereWithAggregatesInput | CampaignBroadcastScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CampaignBroadcast"> | string
+    tenantId?: StringWithAggregatesFilter<"CampaignBroadcast"> | string
+    name?: StringWithAggregatesFilter<"CampaignBroadcast"> | string
+    message?: StringWithAggregatesFilter<"CampaignBroadcast"> | string
+    targetCount?: IntWithAggregatesFilter<"CampaignBroadcast"> | number
+    sentCount?: IntWithAggregatesFilter<"CampaignBroadcast"> | number
+    status?: EnumBroadcastStatusWithAggregatesFilter<"CampaignBroadcast"> | $Enums.BroadcastStatus
+    createdAt?: DateTimeWithAggregatesFilter<"CampaignBroadcast"> | Date | string
+  }
+
   export type TenantCreateInput = {
     id?: string
     slug: string
@@ -19547,6 +22378,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateInput = {
@@ -19565,6 +22398,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUpdateInput = {
@@ -19583,6 +22418,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateInput = {
@@ -19601,6 +22438,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateManyInput = {
@@ -20173,6 +23012,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
@@ -20193,6 +23035,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -20207,6 +23052,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
@@ -20227,6 +23075,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20244,6 +23095,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -20258,6 +23112,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20275,6 +23132,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20725,6 +23585,158 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WhatsAppMessageCreateInput = {
+    id?: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutWhatsappMessagesInput
+  }
+
+  export type WhatsAppMessageUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+  }
+
+  export type WhatsAppMessageUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutWhatsappMessagesNestedInput
+  }
+
+  export type WhatsAppMessageUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WhatsAppMessageCreateManyInput = {
+    id?: string
+    tenantId: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+  }
+
+  export type WhatsAppMessageUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WhatsAppMessageUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastCreateInput = {
+    id?: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutCampaignBroadcastsInput
+  }
+
+  export type CampaignBroadcastUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
+  }
+
+  export type CampaignBroadcastUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutCampaignBroadcastsNestedInput
+  }
+
+  export type CampaignBroadcastUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastCreateManyInput = {
+    id?: string
+    tenantId: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
+  }
+
+  export type CampaignBroadcastUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -20828,6 +23840,18 @@ export namespace Prisma {
     isNot?: CampaignSettingsWhereInput | null
   }
 
+  export type WhatsAppMessageListRelationFilter = {
+    every?: WhatsAppMessageWhereInput
+    some?: WhatsAppMessageWhereInput
+    none?: WhatsAppMessageWhereInput
+  }
+
+  export type CampaignBroadcastListRelationFilter = {
+    every?: CampaignBroadcastWhereInput
+    some?: CampaignBroadcastWhereInput
+    none?: CampaignBroadcastWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -20858,6 +23882,14 @@ export namespace Prisma {
   }
 
   export type InventoryItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WhatsAppMessageOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CampaignBroadcastOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -21497,6 +24529,24 @@ export namespace Prisma {
     _max?: NestedEnumFinanceStatusFilter<$PrismaModel>
   }
 
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type EnumAuditStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditStatus | EnumAuditStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditStatusFilter<$PrismaModel> | $Enums.AuditStatus
+  }
+
   export type PoliticalDivisionScalarRelationFilter = {
     is?: PoliticalDivisionWhereInput
     isNot?: PoliticalDivisionWhereInput
@@ -21515,6 +24565,9 @@ export namespace Prisma {
     observations?: SortOrder
     blockchainHash?: SortOrder
     timestampProof?: SortOrder
+    e14OcrData?: SortOrder
+    ocrConfidence?: SortOrder
+    auditStatus?: SortOrder
     isSynced?: SortOrder
     createdAt?: SortOrder
   }
@@ -21524,6 +24577,7 @@ export namespace Prisma {
     candidateVotes?: SortOrder
     blankVotes?: SortOrder
     totalTableVotes?: SortOrder
+    ocrConfidence?: SortOrder
   }
 
   export type WitnessReportMaxOrderByAggregateInput = {
@@ -21539,6 +24593,8 @@ export namespace Prisma {
     observations?: SortOrder
     blockchainHash?: SortOrder
     timestampProof?: SortOrder
+    ocrConfidence?: SortOrder
+    auditStatus?: SortOrder
     isSynced?: SortOrder
     createdAt?: SortOrder
   }
@@ -21556,6 +24612,8 @@ export namespace Prisma {
     observations?: SortOrder
     blockchainHash?: SortOrder
     timestampProof?: SortOrder
+    ocrConfidence?: SortOrder
+    auditStatus?: SortOrder
     isSynced?: SortOrder
     createdAt?: SortOrder
   }
@@ -21565,6 +24623,33 @@ export namespace Prisma {
     candidateVotes?: SortOrder
     blankVotes?: SortOrder
     totalTableVotes?: SortOrder
+    ocrConfidence?: SortOrder
+  }
+
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type EnumAuditStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditStatus | EnumAuditStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditStatusWithAggregatesFilter<$PrismaModel> | $Enums.AuditStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAuditStatusFilter<$PrismaModel>
+    _max?: NestedEnumAuditStatusFilter<$PrismaModel>
   }
 
   export type CampaignEventCountOrderByAggregateInput = {
@@ -21740,17 +24825,6 @@ export namespace Prisma {
     _max?: NestedEnumMovementTypeFilter<$PrismaModel>
   }
 
-  export type FloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
   export type TableResultListRelationFilter = {
     every?: TableResultWhereInput
     some?: TableResultWhereInput
@@ -21818,22 +24892,6 @@ export namespace Prisma {
     longitud?: SortOrder
   }
 
-  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedFloatNullableFilter<$PrismaModel>
-    _min?: NestedFloatNullableFilter<$PrismaModel>
-    _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
   export type VotingPlaceScalarRelationFilter = {
     is?: VotingPlaceWhereInput
     isNot?: VotingPlaceWhereInput
@@ -21886,6 +24944,133 @@ export namespace Prisma {
     votosCandidato?: SortOrder
     votosBlanco?: SortOrder
     votosTotales?: SortOrder
+  }
+
+  export type EnumMessageDirectionFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageDirection | EnumMessageDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageDirectionFilter<$PrismaModel> | $Enums.MessageDirection
+  }
+
+  export type EnumMessageStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageStatus | EnumMessageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageStatusFilter<$PrismaModel> | $Enums.MessageStatus
+  }
+
+  export type WhatsAppMessageCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    fromPhone?: SortOrder
+    toPhone?: SortOrder
+    body?: SortOrder
+    direction?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WhatsAppMessageMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    fromPhone?: SortOrder
+    toPhone?: SortOrder
+    body?: SortOrder
+    direction?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WhatsAppMessageMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    fromPhone?: SortOrder
+    toPhone?: SortOrder
+    body?: SortOrder
+    direction?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumMessageDirectionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageDirection | EnumMessageDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageDirectionWithAggregatesFilter<$PrismaModel> | $Enums.MessageDirection
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMessageDirectionFilter<$PrismaModel>
+    _max?: NestedEnumMessageDirectionFilter<$PrismaModel>
+  }
+
+  export type EnumMessageStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageStatus | EnumMessageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageStatusWithAggregatesFilter<$PrismaModel> | $Enums.MessageStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMessageStatusFilter<$PrismaModel>
+    _max?: NestedEnumMessageStatusFilter<$PrismaModel>
+  }
+
+  export type EnumBroadcastStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.BroadcastStatus | EnumBroadcastStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumBroadcastStatusFilter<$PrismaModel> | $Enums.BroadcastStatus
+  }
+
+  export type CampaignBroadcastCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    name?: SortOrder
+    message?: SortOrder
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CampaignBroadcastAvgOrderByAggregateInput = {
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+  }
+
+  export type CampaignBroadcastMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    name?: SortOrder
+    message?: SortOrder
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CampaignBroadcastMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    name?: SortOrder
+    message?: SortOrder
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CampaignBroadcastSumOrderByAggregateInput = {
+    targetCount?: SortOrder
+    sentCount?: SortOrder
+  }
+
+  export type EnumBroadcastStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.BroadcastStatus | EnumBroadcastStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumBroadcastStatusWithAggregatesFilter<$PrismaModel> | $Enums.BroadcastStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumBroadcastStatusFilter<$PrismaModel>
+    _max?: NestedEnumBroadcastStatusFilter<$PrismaModel>
   }
 
   export type FinancialEntryCreateNestedManyWithoutTenantInput = {
@@ -21943,6 +25128,20 @@ export namespace Prisma {
     connect?: CampaignSettingsWhereUniqueInput
   }
 
+  export type WhatsAppMessageCreateNestedManyWithoutTenantInput = {
+    create?: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput> | WhatsAppMessageCreateWithoutTenantInput[] | WhatsAppMessageUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: WhatsAppMessageCreateOrConnectWithoutTenantInput | WhatsAppMessageCreateOrConnectWithoutTenantInput[]
+    createMany?: WhatsAppMessageCreateManyTenantInputEnvelope
+    connect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+  }
+
+  export type CampaignBroadcastCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput> | CampaignBroadcastCreateWithoutTenantInput[] | CampaignBroadcastUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CampaignBroadcastCreateOrConnectWithoutTenantInput | CampaignBroadcastCreateOrConnectWithoutTenantInput[]
+    createMany?: CampaignBroadcastCreateManyTenantInputEnvelope
+    connect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+  }
+
   export type FinancialEntryUncheckedCreateNestedManyWithoutTenantInput = {
     create?: XOR<FinancialEntryCreateWithoutTenantInput, FinancialEntryUncheckedCreateWithoutTenantInput> | FinancialEntryCreateWithoutTenantInput[] | FinancialEntryUncheckedCreateWithoutTenantInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutTenantInput | FinancialEntryCreateOrConnectWithoutTenantInput[]
@@ -21996,6 +25195,20 @@ export namespace Prisma {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
     connect?: CampaignSettingsWhereUniqueInput
+  }
+
+  export type WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput> | WhatsAppMessageCreateWithoutTenantInput[] | WhatsAppMessageUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: WhatsAppMessageCreateOrConnectWithoutTenantInput | WhatsAppMessageCreateOrConnectWithoutTenantInput[]
+    createMany?: WhatsAppMessageCreateManyTenantInputEnvelope
+    connect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+  }
+
+  export type CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput> | CampaignBroadcastCreateWithoutTenantInput[] | CampaignBroadcastUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CampaignBroadcastCreateOrConnectWithoutTenantInput | CampaignBroadcastCreateOrConnectWithoutTenantInput[]
+    createMany?: CampaignBroadcastCreateManyTenantInputEnvelope
+    connect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -22118,6 +25331,34 @@ export namespace Prisma {
     update?: XOR<XOR<CampaignSettingsUpdateToOneWithWhereWithoutTenantInput, CampaignSettingsUpdateWithoutTenantInput>, CampaignSettingsUncheckedUpdateWithoutTenantInput>
   }
 
+  export type WhatsAppMessageUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput> | WhatsAppMessageCreateWithoutTenantInput[] | WhatsAppMessageUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: WhatsAppMessageCreateOrConnectWithoutTenantInput | WhatsAppMessageCreateOrConnectWithoutTenantInput[]
+    upsert?: WhatsAppMessageUpsertWithWhereUniqueWithoutTenantInput | WhatsAppMessageUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: WhatsAppMessageCreateManyTenantInputEnvelope
+    set?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    disconnect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    delete?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    connect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    update?: WhatsAppMessageUpdateWithWhereUniqueWithoutTenantInput | WhatsAppMessageUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: WhatsAppMessageUpdateManyWithWhereWithoutTenantInput | WhatsAppMessageUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: WhatsAppMessageScalarWhereInput | WhatsAppMessageScalarWhereInput[]
+  }
+
+  export type CampaignBroadcastUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput> | CampaignBroadcastCreateWithoutTenantInput[] | CampaignBroadcastUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CampaignBroadcastCreateOrConnectWithoutTenantInput | CampaignBroadcastCreateOrConnectWithoutTenantInput[]
+    upsert?: CampaignBroadcastUpsertWithWhereUniqueWithoutTenantInput | CampaignBroadcastUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CampaignBroadcastCreateManyTenantInputEnvelope
+    set?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    disconnect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    delete?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    connect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    update?: CampaignBroadcastUpdateWithWhereUniqueWithoutTenantInput | CampaignBroadcastUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CampaignBroadcastUpdateManyWithWhereWithoutTenantInput | CampaignBroadcastUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CampaignBroadcastScalarWhereInput | CampaignBroadcastScalarWhereInput[]
+  }
+
   export type FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput = {
     create?: XOR<FinancialEntryCreateWithoutTenantInput, FinancialEntryUncheckedCreateWithoutTenantInput> | FinancialEntryCreateWithoutTenantInput[] | FinancialEntryUncheckedCreateWithoutTenantInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutTenantInput | FinancialEntryCreateOrConnectWithoutTenantInput[]
@@ -22224,6 +25465,34 @@ export namespace Prisma {
     delete?: CampaignSettingsWhereInput | boolean
     connect?: CampaignSettingsWhereUniqueInput
     update?: XOR<XOR<CampaignSettingsUpdateToOneWithWhereWithoutTenantInput, CampaignSettingsUpdateWithoutTenantInput>, CampaignSettingsUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput> | WhatsAppMessageCreateWithoutTenantInput[] | WhatsAppMessageUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: WhatsAppMessageCreateOrConnectWithoutTenantInput | WhatsAppMessageCreateOrConnectWithoutTenantInput[]
+    upsert?: WhatsAppMessageUpsertWithWhereUniqueWithoutTenantInput | WhatsAppMessageUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: WhatsAppMessageCreateManyTenantInputEnvelope
+    set?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    disconnect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    delete?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    connect?: WhatsAppMessageWhereUniqueInput | WhatsAppMessageWhereUniqueInput[]
+    update?: WhatsAppMessageUpdateWithWhereUniqueWithoutTenantInput | WhatsAppMessageUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: WhatsAppMessageUpdateManyWithWhereWithoutTenantInput | WhatsAppMessageUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: WhatsAppMessageScalarWhereInput | WhatsAppMessageScalarWhereInput[]
+  }
+
+  export type CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput> | CampaignBroadcastCreateWithoutTenantInput[] | CampaignBroadcastUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CampaignBroadcastCreateOrConnectWithoutTenantInput | CampaignBroadcastCreateOrConnectWithoutTenantInput[]
+    upsert?: CampaignBroadcastUpsertWithWhereUniqueWithoutTenantInput | CampaignBroadcastUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CampaignBroadcastCreateManyTenantInputEnvelope
+    set?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    disconnect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    delete?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    connect?: CampaignBroadcastWhereUniqueInput | CampaignBroadcastWhereUniqueInput[]
+    update?: CampaignBroadcastUpdateWithWhereUniqueWithoutTenantInput | CampaignBroadcastUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CampaignBroadcastUpdateManyWithWhereWithoutTenantInput | CampaignBroadcastUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CampaignBroadcastScalarWhereInput | CampaignBroadcastScalarWhereInput[]
   }
 
   export type TenantCreateNestedOneWithoutSettingsInput = {
@@ -22826,6 +26095,18 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type EnumAuditStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AuditStatus
+  }
+
   export type PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput = {
     create?: XOR<PoliticalDivisionCreateWithoutWitnessesInput, PoliticalDivisionUncheckedCreateWithoutWitnessesInput>
     connectOrCreate?: PoliticalDivisionCreateOrConnectWithoutWitnessesInput
@@ -23038,14 +26319,6 @@ export namespace Prisma {
     connect?: TableResultWhereUniqueInput | TableResultWhereUniqueInput[]
   }
 
-  export type NullableFloatFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type TableResultUpdateManyWithoutVotingPlaceNestedInput = {
     create?: XOR<TableResultCreateWithoutVotingPlaceInput, TableResultUncheckedCreateWithoutVotingPlaceInput> | TableResultCreateWithoutVotingPlaceInput[] | TableResultUncheckedCreateWithoutVotingPlaceInput[]
     connectOrCreate?: TableResultCreateOrConnectWithoutVotingPlaceInput | TableResultCreateOrConnectWithoutVotingPlaceInput[]
@@ -23086,6 +26359,46 @@ export namespace Prisma {
     upsert?: VotingPlaceUpsertWithoutTablesInput
     connect?: VotingPlaceWhereUniqueInput
     update?: XOR<XOR<VotingPlaceUpdateToOneWithWhereWithoutTablesInput, VotingPlaceUpdateWithoutTablesInput>, VotingPlaceUncheckedUpdateWithoutTablesInput>
+  }
+
+  export type TenantCreateNestedOneWithoutWhatsappMessagesInput = {
+    create?: XOR<TenantCreateWithoutWhatsappMessagesInput, TenantUncheckedCreateWithoutWhatsappMessagesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutWhatsappMessagesInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type EnumMessageDirectionFieldUpdateOperationsInput = {
+    set?: $Enums.MessageDirection
+  }
+
+  export type EnumMessageStatusFieldUpdateOperationsInput = {
+    set?: $Enums.MessageStatus
+  }
+
+  export type TenantUpdateOneRequiredWithoutWhatsappMessagesNestedInput = {
+    create?: XOR<TenantCreateWithoutWhatsappMessagesInput, TenantUncheckedCreateWithoutWhatsappMessagesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutWhatsappMessagesInput
+    upsert?: TenantUpsertWithoutWhatsappMessagesInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutWhatsappMessagesInput, TenantUpdateWithoutWhatsappMessagesInput>, TenantUncheckedUpdateWithoutWhatsappMessagesInput>
+  }
+
+  export type TenantCreateNestedOneWithoutCampaignBroadcastsInput = {
+    create?: XOR<TenantCreateWithoutCampaignBroadcastsInput, TenantUncheckedCreateWithoutCampaignBroadcastsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutCampaignBroadcastsInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type EnumBroadcastStatusFieldUpdateOperationsInput = {
+    set?: $Enums.BroadcastStatus
+  }
+
+  export type TenantUpdateOneRequiredWithoutCampaignBroadcastsNestedInput = {
+    create?: XOR<TenantCreateWithoutCampaignBroadcastsInput, TenantUncheckedCreateWithoutCampaignBroadcastsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutCampaignBroadcastsInput
+    upsert?: TenantUpsertWithoutCampaignBroadcastsInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutCampaignBroadcastsInput, TenantUpdateWithoutCampaignBroadcastsInput>, TenantUncheckedUpdateWithoutCampaignBroadcastsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -23441,6 +26754,39 @@ export namespace Prisma {
     _max?: NestedEnumFinanceStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumAuditStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditStatus | EnumAuditStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditStatusFilter<$PrismaModel> | $Enums.AuditStatus
+  }
+
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAuditStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AuditStatus | EnumAuditStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AuditStatus[] | ListEnumAuditStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAuditStatusWithAggregatesFilter<$PrismaModel> | $Enums.AuditStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAuditStatusFilter<$PrismaModel>
+    _max?: NestedEnumAuditStatusFilter<$PrismaModel>
+  }
+
   export type NestedEnumMovementTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.MovementType | EnumMovementTypeFieldRefInput<$PrismaModel>
     in?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
@@ -23458,20 +26804,55 @@ export namespace Prisma {
     _max?: NestedEnumMovementTypeFilter<$PrismaModel>
   }
 
-  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedFloatNullableFilter<$PrismaModel>
-    _min?: NestedFloatNullableFilter<$PrismaModel>
-    _max?: NestedFloatNullableFilter<$PrismaModel>
+  export type NestedEnumMessageDirectionFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageDirection | EnumMessageDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageDirectionFilter<$PrismaModel> | $Enums.MessageDirection
+  }
+
+  export type NestedEnumMessageStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageStatus | EnumMessageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageStatusFilter<$PrismaModel> | $Enums.MessageStatus
+  }
+
+  export type NestedEnumMessageDirectionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageDirection | EnumMessageDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageDirection[] | ListEnumMessageDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageDirectionWithAggregatesFilter<$PrismaModel> | $Enums.MessageDirection
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMessageDirectionFilter<$PrismaModel>
+    _max?: NestedEnumMessageDirectionFilter<$PrismaModel>
+  }
+
+  export type NestedEnumMessageStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MessageStatus | EnumMessageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MessageStatus[] | ListEnumMessageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMessageStatusWithAggregatesFilter<$PrismaModel> | $Enums.MessageStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMessageStatusFilter<$PrismaModel>
+    _max?: NestedEnumMessageStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumBroadcastStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.BroadcastStatus | EnumBroadcastStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumBroadcastStatusFilter<$PrismaModel> | $Enums.BroadcastStatus
+  }
+
+  export type NestedEnumBroadcastStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.BroadcastStatus | EnumBroadcastStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.BroadcastStatus[] | ListEnumBroadcastStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumBroadcastStatusWithAggregatesFilter<$PrismaModel> | $Enums.BroadcastStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumBroadcastStatusFilter<$PrismaModel>
+    _max?: NestedEnumBroadcastStatusFilter<$PrismaModel>
   }
 
   export type FinancialEntryCreateWithoutTenantInput = {
@@ -23662,6 +27043,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
@@ -23680,6 +27064,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -23771,6 +27158,66 @@ export namespace Prisma {
   export type CampaignSettingsCreateOrConnectWithoutTenantInput = {
     where: CampaignSettingsWhereUniqueInput
     create: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageCreateWithoutTenantInput = {
+    id?: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+  }
+
+  export type WhatsAppMessageUncheckedCreateWithoutTenantInput = {
+    id?: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+  }
+
+  export type WhatsAppMessageCreateOrConnectWithoutTenantInput = {
+    where: WhatsAppMessageWhereUniqueInput
+    create: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageCreateManyTenantInputEnvelope = {
+    data: WhatsAppMessageCreateManyTenantInput | WhatsAppMessageCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CampaignBroadcastCreateWithoutTenantInput = {
+    id?: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
+  }
+
+  export type CampaignBroadcastUncheckedCreateWithoutTenantInput = {
+    id?: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
+  }
+
+  export type CampaignBroadcastCreateOrConnectWithoutTenantInput = {
+    where: CampaignBroadcastWhereUniqueInput
+    create: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CampaignBroadcastCreateManyTenantInputEnvelope = {
+    data: CampaignBroadcastCreateManyTenantInput | CampaignBroadcastCreateManyTenantInput[]
+    skipDuplicates?: boolean
   }
 
   export type FinancialEntryUpsertWithWhereUniqueWithoutTenantInput = {
@@ -23945,6 +27392,9 @@ export namespace Prisma {
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     blockchainHash?: StringNullableFilter<"WitnessReport"> | string | null
     timestampProof?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    e14OcrData?: JsonNullableFilter<"WitnessReport">
+    ocrConfidence?: FloatNullableFilter<"WitnessReport"> | number | null
+    auditStatus?: EnumAuditStatusFilter<"WitnessReport"> | $Enums.AuditStatus
     isSynced?: BoolFilter<"WitnessReport"> | boolean
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
   }
@@ -24032,6 +27482,66 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WhatsAppMessageUpsertWithWhereUniqueWithoutTenantInput = {
+    where: WhatsAppMessageWhereUniqueInput
+    update: XOR<WhatsAppMessageUpdateWithoutTenantInput, WhatsAppMessageUncheckedUpdateWithoutTenantInput>
+    create: XOR<WhatsAppMessageCreateWithoutTenantInput, WhatsAppMessageUncheckedCreateWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageUpdateWithWhereUniqueWithoutTenantInput = {
+    where: WhatsAppMessageWhereUniqueInput
+    data: XOR<WhatsAppMessageUpdateWithoutTenantInput, WhatsAppMessageUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageUpdateManyWithWhereWithoutTenantInput = {
+    where: WhatsAppMessageScalarWhereInput
+    data: XOR<WhatsAppMessageUpdateManyMutationInput, WhatsAppMessageUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type WhatsAppMessageScalarWhereInput = {
+    AND?: WhatsAppMessageScalarWhereInput | WhatsAppMessageScalarWhereInput[]
+    OR?: WhatsAppMessageScalarWhereInput[]
+    NOT?: WhatsAppMessageScalarWhereInput | WhatsAppMessageScalarWhereInput[]
+    id?: StringFilter<"WhatsAppMessage"> | string
+    tenantId?: StringFilter<"WhatsAppMessage"> | string
+    fromPhone?: StringFilter<"WhatsAppMessage"> | string
+    toPhone?: StringFilter<"WhatsAppMessage"> | string
+    body?: StringFilter<"WhatsAppMessage"> | string
+    direction?: EnumMessageDirectionFilter<"WhatsAppMessage"> | $Enums.MessageDirection
+    status?: EnumMessageStatusFilter<"WhatsAppMessage"> | $Enums.MessageStatus
+    createdAt?: DateTimeFilter<"WhatsAppMessage"> | Date | string
+  }
+
+  export type CampaignBroadcastUpsertWithWhereUniqueWithoutTenantInput = {
+    where: CampaignBroadcastWhereUniqueInput
+    update: XOR<CampaignBroadcastUpdateWithoutTenantInput, CampaignBroadcastUncheckedUpdateWithoutTenantInput>
+    create: XOR<CampaignBroadcastCreateWithoutTenantInput, CampaignBroadcastUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CampaignBroadcastUpdateWithWhereUniqueWithoutTenantInput = {
+    where: CampaignBroadcastWhereUniqueInput
+    data: XOR<CampaignBroadcastUpdateWithoutTenantInput, CampaignBroadcastUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type CampaignBroadcastUpdateManyWithWhereWithoutTenantInput = {
+    where: CampaignBroadcastScalarWhereInput
+    data: XOR<CampaignBroadcastUpdateManyMutationInput, CampaignBroadcastUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type CampaignBroadcastScalarWhereInput = {
+    AND?: CampaignBroadcastScalarWhereInput | CampaignBroadcastScalarWhereInput[]
+    OR?: CampaignBroadcastScalarWhereInput[]
+    NOT?: CampaignBroadcastScalarWhereInput | CampaignBroadcastScalarWhereInput[]
+    id?: StringFilter<"CampaignBroadcast"> | string
+    tenantId?: StringFilter<"CampaignBroadcast"> | string
+    name?: StringFilter<"CampaignBroadcast"> | string
+    message?: StringFilter<"CampaignBroadcast"> | string
+    targetCount?: IntFilter<"CampaignBroadcast"> | number
+    sentCount?: IntFilter<"CampaignBroadcast"> | number
+    status?: EnumBroadcastStatusFilter<"CampaignBroadcast"> | $Enums.BroadcastStatus
+    createdAt?: DateTimeFilter<"CampaignBroadcast"> | Date | string
+  }
+
   export type TenantCreateWithoutSettingsInput = {
     id?: string
     slug: string
@@ -24047,6 +27557,8 @@ export namespace Prisma {
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutSettingsInput = {
@@ -24064,6 +27576,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutSettingsInput = {
@@ -24097,6 +27611,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutSettingsInput = {
@@ -24114,6 +27630,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type FinancialEntryCreateWithoutReporterInput = {
@@ -24202,6 +27720,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutUsersInput = {
@@ -24219,6 +27739,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutUsersInput = {
@@ -24290,6 +27812,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
@@ -24308,6 +27833,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -24451,6 +27979,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutUsersInput = {
@@ -24468,6 +27998,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithWhereUniqueWithoutRegistrarInput = {
@@ -24636,6 +28168,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutDivisionsInput = {
@@ -24653,6 +28187,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutDivisionsInput = {
@@ -24772,6 +28308,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutWitnessesInput
@@ -24790,6 +28329,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -24881,6 +28423,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutDivisionsInput = {
@@ -24898,6 +28442,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithWhereUniqueWithoutDivisionInput = {
@@ -25035,6 +28581,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutVotersInput = {
@@ -25052,6 +28600,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutVotersInput = {
@@ -25169,6 +28719,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutVotersInput = {
@@ -25186,6 +28738,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserCreateWithoutFinancialEntriesInput = {
@@ -25246,6 +28800,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutFinancesInput = {
@@ -25263,6 +28819,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutFinancesInput = {
@@ -25345,6 +28903,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutFinancesInput = {
@@ -25362,6 +28922,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionCreateWithoutWitnessesInput = {
@@ -25408,6 +28970,8 @@ export namespace Prisma {
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutWitnessesInput = {
@@ -25425,6 +28989,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutWitnessesInput = {
@@ -25536,6 +29102,8 @@ export namespace Prisma {
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutWitnessesInput = {
@@ -25553,6 +29121,8 @@ export namespace Prisma {
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutWitnessReportsInput = {
@@ -25619,6 +29189,8 @@ export namespace Prisma {
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutEventsInput = {
@@ -25636,6 +29208,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutEventsInput = {
@@ -25695,6 +29269,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutEventsInput = {
@@ -25712,6 +29288,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PointLogUpsertWithWhereUniqueWithoutEventInput = {
@@ -25897,6 +29475,8 @@ export namespace Prisma {
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryInput = {
@@ -25914,6 +29494,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryInput = {
@@ -25973,6 +29555,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryInput = {
@@ -25990,6 +29574,8 @@ export namespace Prisma {
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryMovementUpsertWithWhereUniqueWithoutItemInput = {
@@ -26285,6 +29871,190 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type TenantCreateWithoutWhatsappMessagesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutWhatsappMessagesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutWhatsappMessagesInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutWhatsappMessagesInput, TenantUncheckedCreateWithoutWhatsappMessagesInput>
+  }
+
+  export type TenantUpsertWithoutWhatsappMessagesInput = {
+    update: XOR<TenantUpdateWithoutWhatsappMessagesInput, TenantUncheckedUpdateWithoutWhatsappMessagesInput>
+    create: XOR<TenantCreateWithoutWhatsappMessagesInput, TenantUncheckedCreateWithoutWhatsappMessagesInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutWhatsappMessagesInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutWhatsappMessagesInput, TenantUncheckedUpdateWithoutWhatsappMessagesInput>
+  }
+
+  export type TenantUpdateWithoutWhatsappMessagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutWhatsappMessagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    campaignBroadcasts?: CampaignBroadcastUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantCreateWithoutCampaignBroadcastsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutCampaignBroadcastsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    whatsappMessages?: WhatsAppMessageUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutCampaignBroadcastsInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutCampaignBroadcastsInput, TenantUncheckedCreateWithoutCampaignBroadcastsInput>
+  }
+
+  export type TenantUpsertWithoutCampaignBroadcastsInput = {
+    update: XOR<TenantUpdateWithoutCampaignBroadcastsInput, TenantUncheckedUpdateWithoutCampaignBroadcastsInput>
+    create: XOR<TenantCreateWithoutCampaignBroadcastsInput, TenantUncheckedCreateWithoutCampaignBroadcastsInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutCampaignBroadcastsInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutCampaignBroadcastsInput, TenantUncheckedUpdateWithoutCampaignBroadcastsInput>
+  }
+
+  export type TenantUpdateWithoutCampaignBroadcastsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutCampaignBroadcastsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    whatsappMessages?: WhatsAppMessageUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
   export type FinancialEntryCreateManyTenantInput = {
     id?: string
     type: $Enums.EntryType
@@ -26357,6 +30127,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -26377,6 +30150,26 @@ export namespace Prisma {
     sku?: string | null
     quantity?: number
     warehouse?: string | null
+  }
+
+  export type WhatsAppMessageCreateManyTenantInput = {
+    id?: string
+    fromPhone: string
+    toPhone: string
+    body: string
+    direction: $Enums.MessageDirection
+    status?: $Enums.MessageStatus
+    createdAt?: Date | string
+  }
+
+  export type CampaignBroadcastCreateManyTenantInput = {
+    id?: string
+    name: string
+    message: string
+    targetCount?: number
+    sentCount?: number
+    status?: $Enums.BroadcastStatus
+    createdAt?: Date | string
   }
 
   export type FinancialEntryUpdateWithoutTenantInput = {
@@ -26587,6 +30380,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
@@ -26605,6 +30401,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26621,6 +30420,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26683,6 +30485,66 @@ export namespace Prisma {
     warehouse?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type WhatsAppMessageUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WhatsAppMessageUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WhatsAppMessageUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPhone?: StringFieldUpdateOperationsInput | string
+    toPhone?: StringFieldUpdateOperationsInput | string
+    body?: StringFieldUpdateOperationsInput | string
+    direction?: EnumMessageDirectionFieldUpdateOperationsInput | $Enums.MessageDirection
+    status?: EnumMessageStatusFieldUpdateOperationsInput | $Enums.MessageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CampaignBroadcastUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    targetCount?: IntFieldUpdateOperationsInput | number
+    sentCount?: IntFieldUpdateOperationsInput | number
+    status?: EnumBroadcastStatusFieldUpdateOperationsInput | $Enums.BroadcastStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type FinancialEntryCreateManyReporterInput = {
     id?: string
     type: $Enums.EntryType
@@ -26733,6 +30595,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -26877,6 +30742,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
@@ -26895,6 +30763,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26911,6 +30782,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27019,6 +30893,9 @@ export namespace Prisma {
     observations?: string | null
     blockchainHash?: string | null
     timestampProof?: Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: number | null
+    auditStatus?: $Enums.AuditStatus
     isSynced?: boolean
     createdAt?: Date | string
   }
@@ -27183,6 +31060,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
@@ -27201,6 +31081,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27217,6 +31100,9 @@ export namespace Prisma {
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     blockchainHash?: NullableStringFieldUpdateOperationsInput | string | null
     timestampProof?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    e14OcrData?: NullableJsonNullValueInput | InputJsonValue
+    ocrConfidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    auditStatus?: EnumAuditStatusFieldUpdateOperationsInput | $Enums.AuditStatus
     isSynced?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

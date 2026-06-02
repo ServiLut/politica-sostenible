@@ -2,54 +2,89 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
+  Delete,
   Body,
   Headers,
-  UnauthorizedException,
+  Param,
   Res,
+  UseGuards,
 } from '@nestjs/common';
-import { FinanceService, CreateFinanceDto } from './finance.service';
+import {
+  FinanceService,
+  CreateFinanceDto,
+  UpdateFinanceDto,
+} from './finance.service';
 import { ApiTags, ApiHeader } from '@nestjs/swagger';
+import { JwtIdentityService } from '../common/services/jwt-identity.service';
+import { CneLimitGuard } from './guards/cne-limit.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../../prisma/generated/prisma';
 
 @ApiTags('Finance')
 @Controller('finance')
+@UseGuards(RolesGuard)
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly jwtIdentityService: JwtIdentityService,
+  ) {}
 
   @Post()
-  @ApiHeader({ name: 'x-tenant-id', required: true })
-  @ApiHeader({ name: 'x-user-id', required: true })
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
+  @UseGuards(CneLimitGuard)
+  @ApiHeader({ name: 'authorization', required: true })
   async create(
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-user-id') userId: string,
+    @Headers('authorization') authorization: string | undefined,
     @Body() dto: CreateFinanceDto,
   ) {
-    if (!tenantId || !userId) throw new UnauthorizedException();
-    return this.financeService.create(tenantId, userId, dto);
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.financeService.create(identity.tenantId, identity.userId, dto);
   }
 
   @Get()
-  @ApiHeader({ name: 'x-tenant-id', required: true })
-  async findAll(@Headers('x-tenant-id') tenantId: string) {
-    return this.financeService.findAll(tenantId);
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
+  @ApiHeader({ name: 'authorization', required: true })
+  async findAll(@Headers('authorization') authorization: string | undefined) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.financeService.findAll(identity.tenantId);
   }
 
   @Get('summary')
-  @ApiHeader({ name: 'x-tenant-id', required: true })
-  async getSummary(@Headers('x-tenant-id') tenantId: string) {
-    return this.financeService.getSummary(tenantId);
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
+  @ApiHeader({ name: 'authorization', required: true })
+  async getSummary(
+    @Headers('authorization') authorization: string | undefined,
+  ) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.financeService.getSummary(identity.tenantId);
   }
 
   @Post('validate')
-  async validateExpense(@Body() data: Partial<CreateFinanceDto>) {
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
+  @ApiHeader({ name: 'authorization', required: true })
+  async validateExpense(
+    @Headers('authorization') authorization: string | undefined,
+    @Body() data: Partial<CreateFinanceDto>,
+  ) {
+    await this.jwtIdentityService.fromAuthorizationHeader(authorization);
     return this.financeService.validateExpense(data);
   }
 
   @Get('cne-report')
-  @ApiHeader({ name: 'x-tenant-id', required: true })
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
+  @ApiHeader({ name: 'authorization', required: true })
   async getCneReport(
-    @Headers('x-tenant-id') tenantId: string,
+    @Headers('authorization') authorization: string | undefined,
     @Res() res: any,
   ) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    const tenantId = identity.tenantId;
     const csv = await this.financeService.generateCneReport(tenantId);
     res.header('Content-Type', 'text/csv');
     res.header(
@@ -57,5 +92,30 @@ export class FinanceController {
       `attachment; filename=cne_report_${tenantId}.csv`,
     );
     return res.send(csv);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
+  @ApiHeader({ name: 'authorization', required: true })
+  async update(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id') id: string,
+    @Body() dto: UpdateFinanceDto,
+  ) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.financeService.update(identity.tenantId, id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
+  @ApiHeader({ name: 'authorization', required: true })
+  async remove(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id') id: string,
+  ) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.financeService.remove(identity.tenantId, id);
   }
 }

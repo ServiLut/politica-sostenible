@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sparkles, Send, X, Bot, Zap } from 'lucide-react';
 import { Card, Button, Input } from '@/components/ui';
+import { requireAuthHeaders } from '@/lib/auth-headers';
 
 interface Message {
   role: string;
@@ -14,11 +15,12 @@ export function AiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', text: 'Hola, soy Gemini. Estoy analizando los datos de tu campaña Colombia 2026. ¿En qué puedo ayudarte hoy?' }
+    {
+      role: 'assistant',
+      text: 'Hola, soy tu asistente estratégico. Puedo ayudarte a interpretar la operación de la campaña y priorizar acciones.',
+    },
   ]);
   const [loading, setLoading] = useState(false);
-
-  const TENANT_ID = 'cmlmfdxyt0000ccv1luccbi99';
 
   const handleChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +34,8 @@ export function AiAssistant() {
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMsg, tenantId: TENANT_ID }),
+        headers: requireAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ prompt: userMsg }),
       });
       const json = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', text: json.data.answer, actionable: json.data.actionable }]);
@@ -62,7 +64,7 @@ export function AiAssistant() {
               </div>
               <div>
                 <p className="text-sm font-black uppercase tracking-widest">Estratega IA</p>
-                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Gemini-1.5-Pro Online</p>
+                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Contexto Seguro de Campaña</p>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-lg">

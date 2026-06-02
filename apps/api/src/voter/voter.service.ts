@@ -1,6 +1,8 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
+import { UpdateVoterDto } from './dto/update-voter.dto';
+import { Prisma } from '../../prisma/generated/prisma';
 
 @Injectable()
 export class VoterService {
@@ -26,10 +28,18 @@ export class VoterService {
       );
     }
 
+    const { psychographicData, ...restDto } = dto;
+
     // 2. Crear el registro
     const voter = await this.prisma.voter.create({
       data: {
-        ...dto,
+        ...restDto,
+        ...(psychographicData !== undefined
+          ? {
+              psychographicData:
+                psychographicData as unknown as Prisma.InputJsonValue,
+            }
+          : {}),
         tenantId,
         registrarId,
       },
@@ -66,6 +76,30 @@ export class VoterService {
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async update(tenantId: string, voterId: string, dto: UpdateVoterDto) {
+    const data: Record<string, unknown> = {};
+    if (dto.documentId !== undefined) data.documentId = dto.documentId;
+    if (dto.firstName !== undefined) data.firstName = dto.firstName;
+    if (dto.lastName !== undefined) data.lastName = dto.lastName;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.puestoId !== undefined) data.puestoId = dto.puestoId;
+    if (dto.mesa !== undefined) data.mesa = dto.mesa;
+    if (dto.isSignatureValid !== undefined)
+      data.isSignatureValid = dto.isSignatureValid;
+    if (dto.psychographicData !== undefined)
+      data.psychographicData =
+        dto.psychographicData as unknown as Prisma.InputJsonValue;
+
+    return this.prisma.voter.updateMany({
+      where: {
+        id: voterId,
+        tenantId,
+      },
+      data,
     });
   }
 

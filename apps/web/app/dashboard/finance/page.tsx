@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useCRM, FinanceTransaction } from '@/context/CRMContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/auth';
 import { 
   Wallet, 
   TrendingUp, 
@@ -27,6 +28,9 @@ export default function FinancePage() {
     getProjectedCompliance
   } = useCRM();
   const { success: toastSuccess } = useToast();
+  const { can } = useAuth();
+  const canReadFinance = can('finance:read');
+  const canWriteFinance = can('finance:write');
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -115,6 +119,7 @@ export default function FinancePage() {
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWriteFinance) return;
     addFinanceTransaction(formData);
     logAction('Tesorero', `Agregó ${formData.type} legal: ${formData.concept}`, 'Finanzas');
     toastSuccess("Movimiento registrado");
@@ -123,6 +128,16 @@ export default function FinancePage() {
   };
 
   return (
+    !canReadFinance ? (
+      <div className="space-y-8 pb-20 animate-in fade-in duration-700">
+        <div className="bg-white border border-slate-200 rounded-[2rem] p-10 text-center">
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Acceso Restringido</h2>
+          <p className="text-sm text-slate-500 mt-3 font-medium">
+            Tu rol no tiene permisos para consultar el módulo financiero.
+          </p>
+        </div>
+      </div>
+    ) : (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-4">
         <div>
@@ -131,10 +146,11 @@ export default function FinancePage() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
+          disabled={!canWriteFinance}
           className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 hover:-translate-y-1 duration-300"
         >
           <Receipt size={18} />
-          Nuevo Registro
+          {canWriteFinance ? 'Nuevo Registro' : 'Solo lectura'}
         </button>
       </div>
 
@@ -188,6 +204,7 @@ export default function FinancePage() {
             </p>
             <button 
               onClick={() => setIsModalOpen(true)}
+              disabled={!canWriteFinance}
               className="px-6 py-3 bg-teal-50 text-teal-700 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-teal-600 hover:text-white transition-colors"
             >
               Crear primer registro
@@ -338,7 +355,7 @@ export default function FinancePage() {
       </div>
       
       {/* Modal Nuevo Movimiento */}
-      {isModalOpen && (
+      {isModalOpen && canWriteFinance && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={() => setIsModalOpen(false)}
@@ -552,5 +569,6 @@ export default function FinancePage() {
         </div>
       )}
     </div>
+    )
   );
 }

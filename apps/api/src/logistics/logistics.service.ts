@@ -8,15 +8,13 @@ export class LogisticsService {
   /**
    * Sincroniza un acta E-14. Implementa resolución de conflictos básica.
    */
-  async syncE14(data: any) {
+  async syncE14(tenantId: string, witnessId: string, data: any) {
     const {
       puestoId,
       mesa,
       candidateVotes,
       totalTableVotes,
       e14ImageUrl,
-      tenantId,
-      witnessId,
       observations,
     } = data;
 
@@ -60,15 +58,13 @@ export class LogisticsService {
   /**
    * Sincroniza un nuevo simpatizante recolectado offline.
    */
-  async syncVoter(data: any) {
+  async syncVoter(tenantId: string, registrarId: string, data: any) {
     const {
       documentId,
       firstName,
       lastName,
       phone,
       email,
-      tenantId,
-      registrarId,
       puestoId,
     } = data;
 

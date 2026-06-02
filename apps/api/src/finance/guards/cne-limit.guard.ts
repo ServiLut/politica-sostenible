@@ -6,21 +6,29 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CneCode, EntryType } from '../../../prisma/generated/prisma';
+import { JwtIdentityService } from '../../common/services/jwt-identity.service';
 
 @Injectable()
 export class CneLimitGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly jwtIdentityService: JwtIdentityService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const { tenantId, amount, cneCode, type } = request.body;
+    const { amount, cneCode, type } = request.body;
+    const identity = await this.jwtIdentityService.fromAuthorizationHeader(
+      request.headers?.authorization,
+    );
+    const tenantId = identity.tenantId;
 
     // Solo aplicamos la lógica a los gastos (EXPENSE)
     if (type !== EntryType.EXPENSE) {
       return true;
     }
 
-    if (!tenantId || !amount || !cneCode) {
+    if (!amount || !cneCode) {
       return true; // Dejar que el ValidationPipe maneje los datos faltantes
     }
 

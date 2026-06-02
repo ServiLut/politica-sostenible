@@ -14,6 +14,17 @@ export interface CreateFinanceDto {
   evidenceUrl?: string;
 }
 
+export interface UpdateFinanceDto {
+  amount?: number | string;
+  date?: string;
+  cneCode?: CneCode;
+  description?: string;
+  vendorName?: string;
+  vendorTaxId?: string;
+  evidenceUrl?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REPORTED_CNE';
+}
+
 @Injectable()
 export class FinanceService {
   private readonly logger = new Logger(FinanceService.name);
@@ -72,6 +83,38 @@ export class FinanceService {
       console.error('❌ Error in FinanceService.findAll:', error);
       throw error;
     }
+  }
+
+  async update(tenantId: string, entryId: string, data: UpdateFinanceDto) {
+    const updateData: Record<string, unknown> = {};
+    if (data.amount !== undefined) updateData.amount = data.amount.toString();
+    if (data.date !== undefined) updateData.date = new Date(data.date);
+    if (data.cneCode !== undefined) updateData.cneCode = data.cneCode;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.vendorName !== undefined) updateData.vendorName = data.vendorName;
+    if (data.vendorTaxId !== undefined)
+      updateData.vendorTaxId = data.vendorTaxId;
+    if (data.evidenceUrl !== undefined)
+      updateData.evidenceUrl = data.evidenceUrl;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    return this.prisma.financialEntry.updateMany({
+      where: {
+        id: entryId,
+        tenantId,
+      },
+      data: updateData,
+    });
+  }
+
+  async remove(tenantId: string, entryId: string) {
+    return this.prisma.financialEntry.deleteMany({
+      where: {
+        id: entryId,
+        tenantId,
+      },
+    });
   }
 
   async getSummary(tenantId: string) {

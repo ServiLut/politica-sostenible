@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsInt,
   IsBoolean,
+  IsObject,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -47,4 +48,9 @@ export class CreateVoterDto {
   @IsBoolean()
   @IsOptional()
   isSignatureValid?: boolean;
+
+  @ApiProperty({ required: false, type: Object })
+  @IsObject()
+  @IsOptional()
+  psychographicData?: Record<string, unknown>;
 }

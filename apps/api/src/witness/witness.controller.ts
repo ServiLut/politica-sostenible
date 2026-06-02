@@ -4,31 +4,52 @@ import {
   Get,
   Body,
   Headers,
-  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { WitnessService } from './witness.service';
 import { ApiTags, ApiHeader } from '@nestjs/swagger';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../../prisma/generated/prisma';
+import { JwtIdentityService } from '../common/services/jwt-identity.service';
 
 @ApiTags('Witnesses')
 @Controller('witnesses')
+@UseGuards(RolesGuard)
 export class WitnessController {
-  constructor(private readonly witnessService: WitnessService) {}
+  constructor(
+    private readonly witnessService: WitnessService,
+    private readonly jwtIdentityService: JwtIdentityService,
+  ) {}
 
   @Post()
-  @ApiHeader({ name: 'x-tenant-id', required: true })
-  @ApiHeader({ name: 'x-user-id', required: true })
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
+  @ApiHeader({ name: 'authorization', required: true })
   async create(
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-user-id') userId: string,
+    @Headers('authorization') authorization: string | undefined,
     @Body() dto: any,
   ) {
-    if (!tenantId || !userId) throw new UnauthorizedException();
-    return this.witnessService.create(tenantId, userId, dto);
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.witnessService.create(identity.tenantId, identity.userId, dto);
   }
 
   @Get()
-  @ApiHeader({ name: 'x-tenant-id', required: true })
-  async findAll(@Headers('x-tenant-id') tenantId: string) {
-    return this.witnessService.findAll(tenantId);
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
+  @ApiHeader({ name: 'authorization', required: true })
+  async findAll(@Headers('authorization') authorization: string | undefined) {
+    const identity =
+      await this.jwtIdentityService.fromAuthorizationHeader(authorization);
+    return this.witnessService.findAll(identity.tenantId);
   }
 }

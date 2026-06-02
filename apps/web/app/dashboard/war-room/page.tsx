@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { requireAuthHeaders } from '@/lib/auth-headers';
 
 export default function WarRoomPage() {
   const queryClient = useQueryClient();
@@ -103,7 +104,9 @@ export default function WarRoomPage() {
       if (muniFilter) url.searchParams.append('municipio', muniFilter.toUpperCase());
       if (nameFilter) url.searchParams.append('nombre', nameFilter);
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) throw new Error('Error en SIT: ' + res.statusText);
       return res.json();
     }
@@ -112,7 +115,9 @@ export default function WarRoomPage() {
   const { data: deptsData } = useQuery({
     queryKey: ['voting-departments'],
     queryFn: async () => {
-      const res = await fetch('/api/logistics/voting-places/departments');
+      const res = await fetch('/api/logistics/voting-places/departments', {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) return { data: [] };
       return res.json();
     }
@@ -122,7 +127,9 @@ export default function WarRoomPage() {
     queryKey: ['voting-municipalities', deptFilter],
     queryFn: async () => {
       if (!deptFilter) return { data: [] };
-      const res = await fetch(`/api/logistics/voting-places/municipalities?departamento=${deptFilter}`);
+      const res = await fetch(`/api/logistics/voting-places/municipalities?departamento=${deptFilter}`, {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) return { data: [] };
       return res.json();
     },
@@ -136,7 +143,7 @@ export default function WarRoomPage() {
     mutationFn: async (data: { stationId: string; mesaNumero: number; votosCandidato: number; votosBlanco: number; votosTotales: number }) => {
       const res = await fetch(`/api/logistics/voting-places/${data.stationId}/tables`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: requireAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           mesaNumero: data.mesaNumero,
           votosCandidato: data.votosCandidato,
@@ -157,7 +164,7 @@ export default function WarRoomPage() {
     mutationFn: async (data: { stationId: string; isComplete: boolean }) => {
       const res = await fetch(`/api/logistics/voting-places/${data.stationId}/complete`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: requireAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ isComplete: data.isComplete })
       });
       return res.json();
@@ -557,6 +564,26 @@ export default function WarRoomPage() {
                               {station.municipio}
                             </span>
                             <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{station.departamento}</p>
+                          </div>
+                          
+                          {/* Nuevo: Indicador de Auditoría OCR */}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {station.auditStatus === 'MATCHED' ? (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100 animate-in zoom-in duration-300">
+                                <ShieldCheck size={14} />
+                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Auditado OK</span>
+                              </div>
+                            ) : station.auditStatus === 'DISCREPANCY' ? (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 text-white rounded-xl shadow-lg shadow-rose-200 animate-pulse">
+                                <AlertCircle size={14} />
+                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Discrepancia</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-teal-400 rounded-xl border border-slate-800">
+                                <RotateCcw size={14} className="animate-spin-slow" />
+                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">IA Procesando</span>
+                              </div>
+                            )}
                           </div>
                        </div>
                        <div className="space-y-4 md:space-y-5 shrink-0">

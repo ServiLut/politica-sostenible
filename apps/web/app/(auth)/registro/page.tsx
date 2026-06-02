@@ -8,7 +8,6 @@ import {
   Mail,
   Lock,
   Phone,
-  CreditCard,
   Sparkles,
   CheckCircle2,
   ArrowRight,
@@ -24,7 +23,7 @@ export default function RegisterPage() {
     nombre: "",
     apellido: "",
     telefono: "",
-    tipoDocumento: "",
+    tipoDocumento: "CC",
     numeroDocumento: "",
   });
   const [loading, setLoading] = useState(false);
@@ -76,26 +75,42 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: `${formData.nombre} ${formData.apellido}`.trim(),
+          phone: formData.telefono || undefined,
+          documentId: formData.numeroDocumento,
+        }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Error al registrar usuario");
+      const payload = await res.json();
+      if (!res.ok) {
+        const backendMessage =
+          payload?.error?.message ||
+          payload?.message ||
+          "Error al registrar usuario";
+        throw new Error(
+          Array.isArray(backendMessage)
+            ? backendMessage.join(", ")
+            : backendMessage,
+        );
+      }
+
+      const data = payload?.data ?? payload;
+      if (!data?.userId) {
+        throw new Error("Registro incompleto: no se recibió userId");
       }
 
       setSuccess(true);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Ocurrió un error inesperado");
-      }
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setError(err.message || "Error al registrar usuario");
     } finally {
       setLoading(false);
     }
@@ -276,13 +291,14 @@ export default function RegisterPage() {
                     <Input
                       id="nombre"
                       name="nombre"
-                      placeholder="Juan"
+                      placeholder="Tu nombre"
                       value={formData.nombre}
                       onChange={handleChange}
+                      className="h-12 rounded-2xl"
                       required
-                      className="rounded-2xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label
                       htmlFor="apellido"
@@ -293,68 +309,67 @@ export default function RegisterPage() {
                     <Input
                       id="apellido"
                       name="apellido"
-                      placeholder="Pérez"
+                      placeholder="Tu apellido"
                       value={formData.apellido}
                       onChange={handleChange}
+                      className="h-12 rounded-2xl"
                       required
-                      className="rounded-2xl"
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label
                       htmlFor="tipoDocumento"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Documento
+                      Tipo documento
                     </Label>
                     <Select
                       id="tipoDocumento"
                       name="tipoDocumento"
                       value={formData.tipoDocumento}
                       onChange={handleChange}
-                      showIcon={false}
-                      className="rounded-2xl appearance-none bg-none"
-                      style={{
-                        appearance: "none",
-                        WebkitAppearance: "none",
-                        MozAppearance: "none",
-                        backgroundImage: "none",
-                      }}
+                      className="h-12 rounded-2xl"
                     >
-                      <option value="">Seleccione...</option>
-                      <option value="CC">C.C.</option>
-                      <option value="CE">C.E.</option>
-                      <option value="NIT">NIT</option>
-                      <option value="PP">Pasaporte</option>
+                      <option value="CC">CC</option>
+                      <option value="CE">CE</option>
+                      <option value="TI">TI</option>
+                      <option value="PP">PP</option>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label
                       htmlFor="numeroDocumento"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Número
+                      Número documento
                     </Label>
-                    <div className="relative group">
-                      <CreditCard className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
-                      <Input
-                        id="numeroDocumento"
-                        name="numeroDocumento"
-                        placeholder="12345678"
-                        value={formData.numeroDocumento}
-                        onChange={handleChange}
-                        className="pl-14 rounded-2xl"
-                      />
-                    </div>
+                    <Input
+                      id="numeroDocumento"
+                      name="numeroDocumento"
+                      placeholder="Ej: 1012345678"
+                      value={formData.numeroDocumento}
+                      onChange={handleChange}
+                      className="h-12 rounded-2xl"
+                      required
+                    />
                   </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="rounded-2xl px-8"
+                  >
+                    Continuar
+                  </Button>
                 </div>
               </section>
             )}
 
-            {/* Sección: Acceso */}
+            {/* Sección: Seguridad */}
             {step === 2 && (
               <section className="space-y-6">
                 <div className="flex items-center gap-4">
@@ -372,147 +387,97 @@ export default function RegisterPage() {
                       htmlFor="email"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Email Corporativo
+                      Email
                     </Label>
-                    <div className="relative group">
-                      <Mail className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                       <Input
                         id="email"
                         name="email"
                         type="email"
-                        placeholder="hola@empresa.com"
+                        placeholder="tu@correo.com"
                         value={formData.email}
                         onChange={handleChange}
+                        className="h-12 rounded-2xl pl-11"
                         required
-                        className="pl-14 rounded-2xl"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="telefono"
-                        className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
-                      >
-                        Teléfono
-                      </Label>
-                      <div className="relative group">
-                        <Phone className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
-                        <Input
-                          id="telefono"
-                          name="telefono"
-                          type="tel"
-                          placeholder="+57..."
-                          value={formData.telefono}
-                          onChange={handleChange}
-                          className="pl-14 rounded-2xl"
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="password"
+                      className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    >
+                      Contraseña
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="h-12 rounded-2xl pl-11"
+                        minLength={6}
+                        required
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="password"
-                        className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
-                      >
-                        Password
-                      </Label>
-                      <div className="relative group">
-                        <Lock className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
-                        <Input
-                          id="password"
-                          name="password"
-                          type="password"
-                          placeholder="••••••••"
-                          value={formData.password}
-                          onChange={handleChange}
-                          required
-                          className="pl-14 rounded-2xl"
-                        />
-                      </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="telefono"
+                      className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    >
+                      Teléfono (opcional)
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                      <Input
+                        id="telefono"
+                        name="telefono"
+                        placeholder="3001234567"
+                        value={formData.telefono}
+                        onChange={handleChange}
+                        className="h-12 rounded-2xl pl-11"
+                      />
                     </div>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevStep}
+                    className="rounded-2xl px-8"
+                  >
+                    Volver
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="rounded-2xl px-8"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" />
+                        Crear cuenta
+                      </>
+                    )}
+                  </Button>
+                </div>
               </section>
             )}
-
-            <div className="flex items-center justify-end gap-4 pt-4">
-              {step === 2 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  className="rounded-2xl px-10 h-14"
-                >
-                  Volver
-                </Button>
-              )}
-
-              {step === 1 ? (
-                <Button
-                  type="button"
-                  onClick={handleNextStep}
-                  size="lg"
-                  className="group rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-white shadow-xl px-12"
-                >
-                  <span className="flex items-center gap-3">
-                    Continuar
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  size="lg"
-                  className="group rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-white shadow-xl px-12"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Creando...</span>
-                    </div>
-                  ) : (
-                    <span className="flex items-center gap-3">
-                      Empezar ahora
-                      <UserPlus className="h-5 w-5" />
-                    </span>
-                  )}
-                </Button>
-              )}
-            </div>
-
-            <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 leading-relaxed max-w-xs mx-auto">
-              Al registrarte, aceptas los{" "}
-              <Link
-                href="/terminos"
-                className="text-zinc-900 dark:text-zinc-100 underline"
-              >
-                Términos
-              </Link>{" "}
-              y la{" "}
-              <Link
-                href="/privacidad"
-                className="text-zinc-900 dark:text-zinc-100 underline"
-              >
-                Privacidad
-              </Link>
-              .
-            </p>
           </form>
-
-          <div className="border-t border-zinc-200 pt-8 text-center dark:border-zinc-800">
-            <p className="text-zinc-400 font-bold text-lg">
-              ¿Ya estás dentro?{" "}
-              <Button
-                asChild
-                variant="link"
-                className="p-0 h-auto font-black text-zinc-900 dark:text-zinc-50 hover:no-underline underline underline-offset-[12px] decoration-4"
-              >
-                <Link href="/iniciar-sesion">Inicia sesión</Link>
-              </Button>
-            </p>
-          </div>
         </div>
       </div>
     </div>

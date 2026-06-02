@@ -9,12 +9,17 @@ import {
   Logger,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { LogisticsVotingService } from './logistics-voting.service';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { UpdateVotingPlaceDto } from './dto/update-voting-place.dto';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '../../../prisma/generated/prisma';
 
 @Controller('logistics/voting-places')
+@UseGuards(RolesGuard)
 export class LogisticsVotingController {
   private readonly logger = new Logger(LogisticsVotingController.name);
 
@@ -23,6 +28,12 @@ export class LogisticsVotingController {
   ) {}
 
   @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async getVotingPlaces(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -43,22 +54,36 @@ export class LogisticsVotingController {
   }
 
   @Get('departments')
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async getDepartments() {
     return this.logisticsVotingService.getUniqueDepartments();
   }
 
   @Get('municipalities')
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async getMunicipalities(@Query('departamento') departamento: string) {
     return this.logisticsVotingService.getUniqueMunicipalities(departamento);
   }
 
   @Post()
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
   async createVotingPlace(@Body() body: any) {
     this.logger.log(`Creando puesto de votación: ${JSON.stringify(body)}`);
     return this.logisticsVotingService.createVotingPlace(body);
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
   async updateVotingPlace(
     @Param('id') id: string,
     @Body() body: UpdateVotingPlaceDto,
@@ -68,11 +93,23 @@ export class LogisticsVotingController {
   }
 
   @Get(':id/tables')
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async getTables(@Param('id') id: string) {
     return this.logisticsVotingService.getTableResults(id);
   }
 
   @Post(':id/complete')
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async markAsComplete(
     @Param('id') id: string,
     @Body() body: { isComplete: boolean },
@@ -82,6 +119,12 @@ export class LogisticsVotingController {
   }
 
   @Post(':id/tables')
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.WITNESS,
+  )
   async updateTable(@Param('id') id: string, @Body() body: UpdateTableDto) {
     this.logger.log(`RECIBIDO Post tables - ID: ${id}`);
     this.logger.log(`BODY RECIBIDO: ${JSON.stringify(body)}`);

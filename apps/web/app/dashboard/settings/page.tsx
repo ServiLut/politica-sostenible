@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Plus, Trash2, Edit2, Target, Save, RotateCcw, Search, ChevronLeft, ChevronRight, Crosshair, LayoutGrid, AlertCircle } from 'lucide-react';
 import { getCoordsForLocation } from '@/utils/geo';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { requireAuthHeaders } from '@/lib/auth-headers';
 
 export default function SettingsPage() {
   const { territory, campaignGoal, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, updateCampaignGoal } = useCRM();
@@ -81,7 +82,9 @@ export default function SettingsPage() {
       
       console.log('Fetching from URL:', url.toString());
       
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) throw new Error('Error al cargar puestos: ' + res.statusText);
       const json = await res.json();
       return json;
@@ -91,7 +94,9 @@ export default function SettingsPage() {
   const { data: deptsData } = useQuery({
     queryKey: ['voting-departments'],
     queryFn: async () => {
-      const res = await fetch('/api/logistics/voting-places/departments');
+      const res = await fetch('/api/logistics/voting-places/departments', {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) return { data: [] };
       return res.json();
     }
@@ -101,7 +106,9 @@ export default function SettingsPage() {
     queryKey: ['voting-municipalities', deptFilter],
     queryFn: async () => {
       if (!deptFilter) return { data: [] };
-      const res = await fetch(`/api/logistics/voting-places/municipalities?departamento=${deptFilter}`);
+      const res = await fetch(`/api/logistics/voting-places/municipalities?departamento=${deptFilter}`, {
+        headers: requireAuthHeaders(),
+      });
       if (!res.ok) return { data: [] };
       return res.json();
     },

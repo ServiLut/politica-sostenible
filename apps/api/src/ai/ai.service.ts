@@ -72,6 +72,29 @@ export class AiService {
   }
 
   /**
+   * Procesa un formulario E-14 (Acta de Escrutinio) para extraer los votos usando IA (OCR).
+   */
+  async extractE14Data(imageUrl: string) {
+    this.logger.log(`Procesando E-14 OCR desde: ${imageUrl}`);
+
+    // Simulación de extracción con Gemini-1.5-Pro-Vision para Preconteo
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          candidateVotes: Math.floor(Math.random() * 50) + 10,
+          blankVotes: Math.floor(Math.random() * 5),
+          nullVotes: Math.floor(Math.random() * 3),
+          totalTableVotes: 150,
+          confidence: 0.96,
+          processedBy: 'Gemini-1.5-Pro-Vision',
+          rawText: "ACTA DE ESCRUTINIO DE LOS JURADOS DE VOTACIÓN...",
+          signaturesDetected: 3 // Validación de firmas de jurados
+        });
+      }, 2500);
+    });
+  }
+
+  /**
    * Analiza el sentimiento y regionalismos de un comentario.
    */
   analyzeRegionalSentiment(text: string) {

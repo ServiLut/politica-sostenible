@@ -23,6 +23,8 @@ model Tenant {
   events    CampaignEvent[]
   inventory InventoryItem[]
   settings  CampaignSettings?
+  whatsappMessages WhatsAppMessage[]
+  campaignBroadcasts CampaignBroadcast[]
 
   @@map("tenants")
 }
@@ -155,6 +157,11 @@ model WitnessReport {
   // Auditoría Forense (Sección 7.3)
   blockchainHash  String?           @map("blockchain_hash")
   timestampProof  DateTime?         @default(now()) @map("timestamp_proof")
+  
+  // E-14 OCR & Preconteo Paralelo
+  e14OcrData      Json?             @map("e14_ocr_data") // Stores JSON of extracted votes
+  ocrConfidence   Float?            @map("ocr_confidence") // 0.0 to 1.0
+  auditStatus     AuditStatus       @default(PENDING) @map("audit_status")
 
   isSynced Boolean           @default(false) @map("is_synced")
   createdAt DateTime          @default(now()) @map("created_at")
@@ -304,10 +311,69 @@ enum MovementType {
   ADJUSTMENT
 }
 
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  tenantId  String   @map("tenant_id")
+  fromPhone String   @map("from_phone")
+  toPhone   String   @map("to_phone")
+  body      String
+  direction MessageDirection
+  status    MessageStatus @default(SENT)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([fromPhone])
+  @@map("whatsapp_messages")
+}
+
+model CampaignBroadcast {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  message     String
+  targetCount Int      @default(0) @map("target_count")
+  sentCount   Int      @default(0) @map("sent_count")
+  status      BroadcastStatus @default(DRAFT)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("campaign_broadcasts")
+}
+
 enum CneCode {
   PUBLICIDAD_VALLAS // 108
   TRANSPORTE // 110
   SEDE_CAMPANA // 102
   ACTOS_PUBLICOS // 105
   OTROS
+}
+
+enum AuditStatus {
+  PENDING
+  MATCHED
+  DISCREPANCY
+  MANUAL_REVIEW_REQUIRED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SENDING
+  COMPLETED
+  FAILED
 }

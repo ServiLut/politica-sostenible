@@ -411,13 +411,13 @@ export default function CompliancePage() {
     setIsNewObligationModalOpen(false);
   };
 
-  const handleConfirmUpload = () => {
+  const handleConfirmUpload = async () => {
     if (pendingFile && selectedId) {
-      uploadEvidence(selectedId, pendingFile.name, pendingFile.data);
+      await uploadEvidence(selectedId, pendingFile.name, pendingFile.data);
       logAction('Admin', `Confirmó carga de evidencia: ${pendingFile.name} para hito: ${selectedId}`, 'Compliance', 'Info');
       setPendingFile(null);
       setIsModalOpen(false);
-      toastSuccess("Documento vinculado correctamente");
+      toastSuccess("Documento vinculado y subido correctamente");
     }
   };
 

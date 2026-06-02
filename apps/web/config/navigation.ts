@@ -58,7 +58,7 @@ export const dashboardConfig: NavItem[] = [
   {
     title: 'Finanzas',
     href: '/dashboard/finance',
-    allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteFinanzas, UserRole.Auditor],
+    allowedRoles: [UserRole.SuperAdmin, UserRole.AdminCampana, UserRole.GerenteFinanzas, UserRole.GerenteOps, UserRole.Coordinador, UserRole.Auditor],
   },
   {
     title: 'Día D / E14',

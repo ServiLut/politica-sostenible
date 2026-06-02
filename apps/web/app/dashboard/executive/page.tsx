@@ -14,7 +14,14 @@ import {
   UserPlus,
   Activity,
   Clock,
-  DollarSign
+  DollarSign,
+  AlertTriangle,
+  Siren,
+  CheckCircle2,
+  Circle,
+  Flag,
+  Gauge,
+  UserCheck
 } from "lucide-react";
 import { useCRM } from "@/context/CRMContext";
 import { useToast } from "@/context/ToastContext";
@@ -25,7 +32,19 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function ExecutivePage() {
-  const { getExecutiveKPIs, logAction, territory, team, auditLogs } = useCRM();
+  const {
+    getExecutiveKPIs,
+    getOperationalAlerts,
+    getOperationalIntelligence,
+    getOnboardingProgress,
+    setOnboardingRole,
+    toggleOnboardingStep,
+    onboarding,
+    logAction,
+    territory,
+    team,
+    auditLogs,
+  } = useCRM();
   const { success, info, error } = useToast();
   const [mounted, setMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -35,6 +54,10 @@ export default function ExecutivePage() {
   }, []);
   
   const kpis = getExecutiveKPIs();
+  const intelligence = getOperationalIntelligence();
+  const operationalAlerts = getOperationalAlerts();
+  const mainAlert = operationalAlerts[0];
+  const onboardingProgress = getOnboardingProgress();
   
   const daysLeft = React.useMemo(() => {
     if (!mounted) return 0;
@@ -81,6 +104,12 @@ export default function ExecutivePage() {
       case 'Estrategia': return 'text-rose-600 bg-rose-50 border-rose-100';
       default: return 'text-slate-600 bg-slate-50 border-slate-100';
     }
+  };
+
+  const getAlertAccent = (severity: "Critical" | "Warning" | "Info") => {
+    if (severity === "Critical") return "text-rose-700 bg-rose-50 border-rose-200";
+    if (severity === "Warning") return "text-amber-700 bg-amber-50 border-amber-200";
+    return "text-teal-700 bg-teal-50 border-teal-200";
   };
 
   const handleGenerateReport = async () => {
@@ -365,19 +394,113 @@ export default function ExecutivePage() {
 
         {/* Secondary Info Column */}
         <div className="space-y-8">
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center">
+                  <Flag size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Onboarding</p>
+                  <h4 className="text-base font-black text-slate-900">Arranque Operativo</h4>
+                </div>
+              </div>
+              <span className="text-[10px] font-black px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                {onboardingProgress.completed}/{onboardingProgress.total}
+              </span>
+            </div>
+
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-600 transition-all duration-700"
+                style={{ width: `${Math.min(onboardingProgress.percentage, 100)}%` }}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              {(["Candidato", "Coordinador", "Tesorero"] as const).map((role) => (
+                <button
+                  key={role}
+                  onClick={() => setOnboardingRole(role)}
+                  className={cn(
+                    "text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border transition-all",
+                    onboarding.role === role
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-200",
+                  )}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              {onboarding.steps.map((step) => (
+                <div key={step.id} className="rounded-xl border border-slate-100 p-3">
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => toggleOnboardingStep(step.id)}
+                      className="mt-0.5 text-indigo-600"
+                      aria-label={`Marcar paso ${step.title}`}
+                    >
+                      {step.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-black text-slate-900">{step.title}</p>
+                      <p className="text-[11px] text-slate-500 mt-1">{step.description}</p>
+                    </div>
+                    <Link
+                      href={step.actionHref}
+                      className="text-[10px] font-black uppercase tracking-widest text-indigo-600"
+                    >
+                      Ir
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Strategic Action Card */}
           <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
               <Target size={180} className="text-teal-600" />
             </div>
             <div className="relative z-10">
-              <div className="h-10 w-10 md:h-12 md:w-12 bg-teal-50 text-teal-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6">
-                <Target size={20} className="md:w-6 md:h-6" />
+              <div className={cn(
+                "h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 border",
+                mainAlert?.severity === "Critical"
+                  ? "bg-rose-50 text-rose-600 border-rose-100"
+                  : mainAlert?.severity === "Warning"
+                    ? "bg-amber-50 text-amber-600 border-amber-100"
+                    : "bg-teal-50 text-teal-600 border-teal-100",
+              )}>
+                {mainAlert?.severity === "Critical" ? <Siren size={20} className="md:w-6 md:h-6" /> : <AlertTriangle size={20} className="md:w-6 md:h-6" />}
               </div>
-              <h4 className="text-lg md:text-xl font-black text-slate-900 mb-2 leading-tight">Acción Sugerida</h4>
+              <h4 className="text-lg md:text-xl font-black text-slate-900 mb-2 leading-tight">Centro de Alertas</h4>
               <p className="text-slate-500 text-xs md:text-sm mb-6 md:mb-8 font-medium leading-relaxed">
-                Detectamos un crecimiento del 15% en la zona norte. Se recomienda reforzar con líderes locales.
+                {mainAlert
+                  ? `${mainAlert.title}: ${mainAlert.description}`
+                  : "Sin alertas críticas en este momento."}
               </p>
+              <div className="space-y-2 mb-6">
+                {operationalAlerts.slice(0, 3).map((alert) => (
+                  <Link
+                    key={alert.id}
+                    href={alert.actionHref}
+                    className={cn(
+                      "block rounded-xl border px-3 py-2 transition-all hover:shadow-sm",
+                      getAlertAccent(alert.severity),
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest">{alert.module}</span>
+                      <span className="text-[10px] font-black">{alert.metric}</span>
+                    </div>
+                    <p className="text-xs font-bold mt-1 leading-tight">{alert.title}</p>
+                  </Link>
+                ))}
+              </div>
               <button 
                 onClick={handleGenerateReport}
                 disabled={isGenerating}
@@ -419,6 +542,57 @@ export default function ExecutivePage() {
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Conversión</span>
                 <span className="text-lg font-black text-emerald-600">{(kpis.firmVotes / (kpis.totalContacts || 1) * 100).toFixed(1)}%</span>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+                  <Gauge size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Adopción Real</p>
+                  <h4 className="text-base font-black text-slate-900">Salud Operativa</h4>
+                </div>
+              </div>
+              <span className="text-[10px] font-black px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                7 días
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-100 p-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuarios Activos</p>
+                <p className="text-xl font-black text-slate-900 mt-1">{intelligence?.adoption.activeUsers7d ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 p-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eventos Sistema</p>
+                <p className="text-xl font-black text-slate-900 mt-1">{intelligence?.adoption.events7d ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-100 p-3">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Módulo Más Usado</p>
+              <p className="text-sm font-black text-slate-900 mt-1">
+                {intelligence?.adoption.moduleBreakdown?.[0]?.module ?? "Sin actividad"}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {(intelligence?.adoption.moduleBreakdown?.[0]?.events ?? 0).toLocaleString()} eventos en la semana
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-100 p-3">
+              <div className="flex items-center gap-2">
+                <UserCheck size={14} className="text-emerald-600" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Operador</p>
+              </div>
+              <p className="text-sm font-black text-slate-900 mt-1">
+                {intelligence?.adoption.topActors?.[0]?.name ?? "Sin datos"}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {intelligence?.adoption.topActors?.[0]?.events ?? 0} acciones registradas (14 días)
+              </p>
             </div>
           </div>
         </div>

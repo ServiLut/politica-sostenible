@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth';
 import { dashboardConfig } from '@/config/navigation';
-import { UserRole } from '@/types/saas-schema';
 import { X } from 'lucide-react';
 
 interface SidebarProps {
@@ -15,7 +14,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, loginAs, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const filteredNav = dashboardConfig.filter((item) => {
     if (!user) return false;
@@ -79,22 +78,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="p-6 border-t border-slate-100 space-y-6 bg-slate-50/50">
-          {/* Role Switcher */}
           <div className="space-y-3">
             <label className="text-[10px] uppercase font-black text-slate-400 px-1 tracking-widest">
               Autorización
             </label>
-            <select
-              className="w-full bg-white text-[11px] font-black uppercase tracking-widest border border-slate-200 rounded-xl px-4 py-2.5 text-slate-600 focus:ring-1 focus:ring-teal-500 outline-none cursor-pointer shadow-sm"
-              value={user?.role || ''}
-              onChange={(e) => loginAs(e.target.value as UserRole)}
-            >
-              {Object.values(UserRole).map((role) => (
-                <option key={role} value={role}>
-                  {role.replace(/([A-Z])/g, ' $1').trim()}
-                </option>
-              ))}
-            </select>
+            <div className="w-full bg-white text-[11px] font-black uppercase tracking-widest border border-slate-200 rounded-xl px-4 py-2.5 text-slate-600 shadow-sm">
+              {user?.role || 'Sin rol'}
+            </div>
           </div>
 
           <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">

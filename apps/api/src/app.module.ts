@@ -14,6 +14,10 @@ import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
 import { VotingPlacesModule } from './voting-places/voting-places.module';
+import { FilesModule } from './files/files.module';
+import { OperationsModule } from './operations/operations.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { GisModule } from './gis/gis.module';
 
 @Module({
   imports: [
@@ -28,6 +32,10 @@ import { VotingPlacesModule } from './voting-places/voting-places.module';
     WitnessModule,
     LogisticsModule,
     VotingPlacesModule,
+    FilesModule,
+    OperationsModule,
+    WhatsappModule,
+    GisModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

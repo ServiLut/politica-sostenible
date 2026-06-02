@@ -17,9 +17,7 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      
-      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -60,7 +58,7 @@ export default function ForgotPasswordPage() {
       {/* Right: Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
         <div className="absolute top-8 left-8">
-          <Link href="/login" className="flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors font-medium">
+          <Link href="/iniciar-sesion" className="flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors font-medium">
             <ArrowLeft className="w-4 h-4" />
             Volver al inicio de sesión
           </Link>
@@ -72,7 +70,7 @@ export default function ForgotPasswordPage() {
               ¿Olvidaste tu contraseña?
             </h1>
             <p className="mt-3 text-muted text-lg">
-              Ingresa tu correo electrónico y te enviaremos un enlace para restablecerla.
+              Ingresa tu correo electrónico para registrar la solicitud de recuperación con soporte o administración de campaña.
             </p>
           </div>
 
@@ -83,12 +81,12 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-bold text-body">¡Correo enviado!</h2>
               <p className="text-muted">
-                Hemos enviado un enlace de recuperación a <strong>{email}</strong>. 
-                Por favor revisa tu bandeja de entrada y sigue las instrucciones.
+                La solicitud para restablecer el acceso de <strong>{email}</strong> fue registrada.
+                En esta versión el proceso se gestiona desde soporte o administración de campaña.
               </p>
               <div className="pt-4">
                 <Link
-                  href="/login"
+                  href="/iniciar-sesion"
                   className="inline-block font-bold text-primary hover:underline"
                 >
                   Regresar al inicio de sesión
@@ -144,7 +142,7 @@ export default function ForgotPasswordPage() {
             <p className="text-muted">
               ¿Recordaste tu contraseña?{' '}
               <Link
-                href="/login"
+                href="/iniciar-sesion"
                 className="font-bold text-primary hover:underline"
               >
                 Inicia sesión

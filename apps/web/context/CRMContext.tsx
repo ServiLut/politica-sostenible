@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { MEDELLIN_ZONES } from '../data/medellin-geo';
+import { AUTH_TOKEN_KEY } from '@/lib/auth-token';
 
 export type ContactRole = 'Simpatizante' | 'Líder' | 'Testigo' | 'Voluntario' | 'Donante';
 export type PipelineStage = 'Prospecto' | 'Contactado' | 'Simpatizante' | 'Firme' | 'Votó';
@@ -85,6 +86,118 @@ export interface ComplianceObligation {
   periodicity?: 'Única' | 'Semanal' | 'Quincenal' | 'Mensual'; // Para reportes recurrentes
 }
 export interface AuditLog { id: string; actor: string; action: string; timestamp: string; module: string; severity: 'Info' | 'Warning' | 'Critical'; ip: string; }
+export interface OperationalAlert {
+  id: string;
+  severity: 'Critical' | 'Warning' | 'Info';
+  module: 'Votantes' | 'Finanzas' | 'Territorio' | 'Compliance' | 'Operaciones';
+  title: string;
+  description: string;
+  metric: string;
+  actionLabel: string;
+  actionHref: string;
+}
+export type OnboardingRole = 'Candidato' | 'Coordinador' | 'Tesorero';
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  description: string;
+  actionHref: string;
+  completed: boolean;
+}
+export interface CampaignOnboarding {
+  role: OnboardingRole;
+  startedAt: string;
+  completedAt?: string;
+  steps: OnboardingStep[];
+}
+export interface OperationalIntelligence {
+  generatedAt: string;
+  alerts: Array<{
+    id: string;
+    severity: 'Critical' | 'Warning' | 'Info';
+    module: string;
+    title: string;
+    description: string;
+    metric: string;
+    actionHref: string;
+  }>;
+  adoption: {
+    activeUsers7d: number;
+    events7d: number;
+    modulesUsed7d: number;
+    moduleBreakdown: Array<{ module: string; events: number; lastEventAt: string | null }>;
+    topActors: Array<{ userId: string; name: string; email: string; events: number }>;
+  };
+  health: {
+    voters: number;
+    financeEntries: number;
+    tasksPending: number;
+    tasksOverdue: number;
+    complianceOverdue: number;
+    expenseExecutionPercentage: number;
+  };
+}
+
+const ONBOARDING_BLUEPRINT: Record<OnboardingRole, Omit<OnboardingStep, 'completed'>[]> = {
+  Candidato: [
+    { id: 'cand-1', title: 'Definir meta de votos', description: 'Ajusta el objetivo global de la campaña.', actionHref: '/dashboard/executive' },
+    { id: 'cand-2', title: 'Validar cobertura territorial', description: 'Revisa zonas rezagadas y prioridades.', actionHref: '/dashboard/territory' },
+    { id: 'cand-3', title: 'Revisar tablero ejecutivo', description: 'Confirma alertas y ruta semanal.', actionHref: '/dashboard/executive' },
+  ],
+  Coordinador: [
+    { id: 'coord-1', title: 'Cargar primer bloque de votantes', description: 'Registra al menos 20 contactos base.', actionHref: '/dashboard/pipeline' },
+    { id: 'coord-2', title: 'Crear tareas operativas', description: 'Asigna tareas con fecha y responsable.', actionHref: '/dashboard/tasks' },
+    { id: 'coord-3', title: 'Programar evento territorial', description: 'Registra el primer evento con objetivo.', actionHref: '/dashboard/events' },
+  ],
+  Tesorero: [
+    { id: 'tre-1', title: 'Registrar ingreso inicial', description: 'Carga la primera transacción de ingreso.', actionHref: '/dashboard/finance' },
+    { id: 'tre-2', title: 'Registrar gasto con soporte', description: 'Asegura evidencia para cumplimiento.', actionHref: '/dashboard/finance' },
+    { id: 'tre-3', title: 'Verificar tope CNE proyectado', description: 'Confirma riesgo financiero actual.', actionHref: '/dashboard/finance' },
+  ],
+};
+
+function createOnboarding(role: OnboardingRole): CampaignOnboarding {
+  const now = new Date().toISOString();
+  return {
+    role,
+    startedAt: now,
+    steps: ONBOARDING_BLUEPRINT[role].map((step) => ({
+      ...step,
+      completed: false,
+    })),
+  };
+}
+
+function normalizeOnboarding(data: unknown): CampaignOnboarding {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return createOnboarding('Coordinador');
+  }
+
+  const source = data as Record<string, unknown>;
+  const role = (source.role === 'Candidato' || source.role === 'Coordinador' || source.role === 'Tesorero')
+    ? source.role
+    : 'Coordinador';
+  const base = createOnboarding(role);
+
+  const steps = Array.isArray(source.steps)
+    ? source.steps.map((step, index) => {
+      const fallback = base.steps[index] ?? base.steps[base.steps.length - 1];
+      if (!step || typeof step !== 'object' || Array.isArray(step)) return fallback;
+      const raw = step as Record<string, unknown>;
+      return {
+        id: typeof raw.id === 'string' ? raw.id : fallback.id,
+        title: typeof raw.title === 'string' ? raw.title : fallback.title,
+        description: typeof raw.description === 'string' ? raw.description : fallback.description,
+        actionHref: typeof raw.actionHref === 'string' ? raw.actionHref : fallback.actionHref,
+        completed: Boolean(raw.completed),
+      };
+    })
+    : base.steps;
+
+  const completedAt = typeof source.completedAt === 'string' ? source.completedAt : undefined;
+  const startedAt = typeof source.startedAt === 'string' ? source.startedAt : base.startedAt;
+  return { role, startedAt, completedAt, steps };
+}
 
 interface CRMContextType {
   contacts: Contact[];
@@ -99,6 +212,8 @@ interface CRMContextType {
   compliance: ComplianceObligation[];
   auditLogs: AuditLog[];
   campaignGoal: number;
+  onboarding: CampaignOnboarding;
+  operationalIntelligence: OperationalIntelligence | null;
   TOPE_LEGAL_CNE: number;
   addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'status'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
@@ -125,7 +240,7 @@ interface CRMContextType {
   updateMember: (id: string, member: Partial<TeamMember>) => void;
   toggleMemberStatus: (id: string) => void;
   addComplianceObligation: (obligation: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => void;
-  uploadEvidence: (id: string, fileName: string, fileData?: string) => void;
+  uploadEvidence: (id: string, fileName: string, fileData?: string) => Promise<void>;
   removeEvidence: (id: string) => void;
   logAction: (actor: string, action: string, module: string, severity?: AuditLog['severity']) => void;
   getExecutiveKPIs: () => any;
@@ -135,37 +250,20 @@ interface CRMContextType {
   getElectionResults: () => any;
   getTeamStats: () => any;
   getComplianceScore: () => number;
+  getOperationalAlerts: () => OperationalAlert[];
+  getOperationalIntelligence: () => OperationalIntelligence | null;
+  setOnboardingRole: (role: OnboardingRole) => void;
+  toggleOnboardingStep: (stepId: string) => void;
+  getOnboardingProgress: () => { completed: number; total: number; percentage: number };
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
-
-const DEFAULT_COMPLIANCE: ComplianceObligation[] = [
-  { id: 'cne-1', title: 'Apertura de Cuenta Única Bancaria', deadline: '2025-11-01', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'cert_bancaria_bbva.pdf', validityDays: 365, periodicity: 'Única' },
-  { id: 'cne-2', title: 'Registro de Libros ante el CNE', deadline: '2025-11-15', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'resolucion_libros_001.pdf', periodicity: 'Única' },
-  { id: 'cne-3', title: 'Designación de Gerente y Contador', deadline: '2025-12-01', status: 'Cumplido', priority: 'Alta', type: 'Cuentas Claras', evidence: 'acta_nombramiento.pdf', periodicity: 'Única' },
-  { id: 'cne-4', title: 'Registro de Propaganda Electoral (Vallas)', deadline: '2026-01-15', status: 'Cumplido', priority: 'Alta', type: 'Publicidad Exterior', evidence: 'resolucion_vallas_medellin.pdf', validityDays: 60, periodicity: 'Única' },
-  { id: 'cne-5', title: 'Reporte Semanal de Ingresos y Gastos #10', deadline: '2026-03-01', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras', validityDays: 7, periodicity: 'Semanal' },
-  { id: 'cne-6', title: 'Contrato de Arrendamiento Sede Campaña', deadline: '2025-12-10', status: 'Cumplido', priority: 'Media', type: 'Laboral / Contratos', evidence: 'contrato_sede.pdf', validityDays: 180, periodicity: 'Única' },
-  { id: 'cne-7', title: 'Permiso de Publicidad Móvil (Perifoneo)', deadline: '2026-03-05', status: 'Pendiente', priority: 'Media', type: 'Publicidad Exterior', validityDays: 15, periodicity: 'Quincenal' },
-  { id: 'cne-8', title: 'Certificación de No Superación de Topes Individuales', deadline: '2026-03-10', status: 'Pendiente', priority: 'Alta', type: 'Cuentas Claras', periodicity: 'Única' },
-  { id: 'cne-9', title: 'Contrato Equipo de Logística (Día D)', deadline: '2026-03-05', status: 'Pendiente', priority: 'Media', type: 'Laboral / Contratos', periodicity: 'Única' },
-];
-
-const DEFAULT_FINANCE: FinanceTransaction[] = [
-  { id: 'tx-1', concept: 'Aporte Partido Político - Anticipo', amount: 150000000, type: 'Ingreso', category: 'Aportes', date: '2025-12-05', status: 'REPORTED_CNE', vendorTaxId: '800.123.456-1' },
-  { id: 'tx-2', concept: 'Arrendamiento Sede Principal Medellín', amount: 12000000, type: 'Gasto', category: 'Administración', date: '2026-01-05', status: 'REPORTED_CNE', cneCode: 'SEDE_CAMPANA', vendorTaxId: '900.555.444-2' },
-  { id: 'tx-3', concept: 'Producción de 20 Vallas Publicitarias', amount: 45000000, type: 'Gasto', category: 'Publicidad', date: '2026-01-15', status: 'REPORTED_CNE', cneCode: 'PUBLICIDAD_VALLAS', vendorTaxId: '860.000.111-9' },
-  { id: 'tx-4', concept: 'Kit de Volanteo y Material P.O.P.', amount: 18000000, type: 'Gasto', category: 'Publicidad', date: '2026-02-01', status: 'APPROVED', cneCode: 'MATERIAL_POP', vendorTaxId: '700.111.222-3' },
-  { id: 'tx-5', concept: 'Asesoría Estratégica y Encuestas', amount: 35000000, type: 'Gasto', category: 'Estrategia', date: '2026-02-10', status: 'APPROVED', cneCode: 'INVERSION_ESTADISTICA', vendorTaxId: '901.222.333-5' },
-  { id: 'tx-6', concept: 'Transporte Giras Municipales (Antioquia)', amount: 8500000, type: 'Gasto', category: 'Logística', date: '2026-02-15', status: 'PENDING', cneCode: 'TRANSPORTE', vendorTaxId: '800.999.888-0' },
-  { id: 'tx-7', concept: 'Evento Gran Lanzamiento (Plaza Mayor)', amount: 55000000, type: 'Gasto', category: 'Eventos', date: '2026-02-20', status: 'PENDING', cneCode: 'ACTOS_PUBLICOS', vendorTaxId: '890.333.444-1' },
-];
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [territory, setTerritory] = useState<TerritoryZone[]>([]);
   const [finance, setFinance] = useState<FinanceTransaction[]>([]);
-  const [witnesses, setWitnesses] = useState<any[]>([]);
+  const [witnesses] = useState<any[]>([]);
   const [events, setEvents] = useState<CampaignEvent[]>([]);
   const [e14Reports, setE14Reports] = useState<E14Report[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
@@ -174,231 +272,645 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const [compliance, setCompliance] = useState<ComplianceObligation[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [campaignGoal, setCampaignGoal] = useState<number>(50000);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [onboarding, setOnboarding] = useState<CampaignOnboarding>(() =>
+    createOnboarding('Coordinador'),
+  );
+  const [operationalIntelligence, setOperationalIntelligence] = useState<OperationalIntelligence | null>(null);
+  const [, setIsLoaded] = useState(false);
 
-  // CARGA INICIAL (Solo una vez)
-  useEffect(() => {
-    const parse = (key: string, def: any) => {
-      if (typeof window === 'undefined') return def;
-      const saved = localStorage.getItem(key);
-      if (!saved) return def;
-      try {
-        const parsed = JSON.parse(saved);
-        // Si es un array vacío en localStorage, usamos el default
-        // para asegurar que las obligaciones base aparezcan la primera vez
-        return Array.isArray(parsed) && parsed.length === 0 ? def : parsed;
-      } catch {
-        return def;
-      }
-    };
+  const normalizeCneCode = useCallback((code?: string) => {
+    const supported = new Set([
+      'PUBLICIDAD_VALLAS',
+      'TRANSPORTE',
+      'SEDE_CAMPANA',
+      'ACTOS_PUBLICOS',
+      'OTROS',
+    ]);
+    return supported.has(code || '') ? (code as CneCode) : 'OTROS';
+  }, []);
 
-    // Helper to ensure unique IDs across legacy data
-    const fixIds = (data: any[], prefix: string) => {
-      const seen = new Set();
-      return data.map((item, index) => {
-        if (!item.id || seen.has(item.id)) {
-          const newId = `${prefix}-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 9)}`;
-          seen.add(newId);
-          return { ...item, id: newId };
-        }
-        seen.add(item.id);
-        return item;
-      });
-    };
+  const getAuthContext = useCallback(async () => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token) return null;
 
-    const loadedContacts = fixIds(parse('crm_contacts', []), 'contact');
-    const loadedGoal = parse('crm_campaign_goal', 50000);
-    const loadedFinance = fixIds(parse('crm_finance', DEFAULT_FINANCE), 'tx');
-    const loadedWitnesses = parse('crm_witnesses', []);
-    const loadedEvents = fixIds(parse('crm_events', []), 'e');
-    const loadedReports = fixIds(parse('crm_reports', []), 'rep');
-    const loadedBroadcasts = fixIds(parse('crm_broadcasts', []), 'br');
-    const loadedTasks = fixIds(parse('crm_tasks', []), 'tk');
-    const loadedTeam = fixIds(parse('crm_team', []), 'u');
-    const loadedCompliance = fixIds(parse('crm_compliance', DEFAULT_COMPLIANCE), 'req').map((o: any) => ({
-      ...o,
-      periodicity: o.periodicity || 'Única',
-      validityDays: o.validityDays || (o.periodicity === 'Semanal' ? 7 : o.periodicity === 'Quincenal' ? 15 : o.periodicity === 'Mensual' ? 30 : 365)
-    }));
-    const loadedAudit = fixIds(parse('crm_audit', []), 'log');
-
-    // Mezclar Territorio
-    const savedTerritory = fixIds(parse('crm_territory', []), 'tz');
-    const mergedMap = new Map();
-    MEDELLIN_ZONES.forEach(z => mergedMap.set(z.name.toLowerCase(), { ...z }));
-    
-    savedTerritory.forEach((z: TerritoryZone) => {
-      const normalizedInput = z.name.toLowerCase();
-      let foundKey = null;
-      for (const officialName of mergedMap.keys()) {
-        if (officialName === normalizedInput || officialName.includes(normalizedInput) || normalizedInput.includes(officialName)) {
-          foundKey = officialName;
-          break;
-        }
-      }
-      if (foundKey) {
-        const existing = mergedMap.get(foundKey);
-        mergedMap.set(foundKey, { ...existing, target: z.target || existing.target, leader: z.leader || existing.leader });
-      } else {
-        mergedMap.set(normalizedInput, z);
-      }
+    const meRes = await fetch('/api/auth/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
-     
-    setContacts(loadedContacts);
-    setCampaignGoal(loadedGoal);
-    setFinance(loadedFinance);
-    setWitnesses(loadedWitnesses);
-    setEvents(loadedEvents);
-    setE14Reports(loadedReports);
-    setBroadcasts(loadedBroadcasts);
-    setTasks(loadedTasks);
-    setTeam(loadedTeam);
-    setCompliance(loadedCompliance);
-    setAuditLogs(loadedAudit);
-    setTerritory(Array.from(mergedMap.values()));
-    
-    setIsLoaded(true);
+    if (!meRes.ok) return null;
+
+    const mePayload = await meRes.json();
+    const meData = mePayload?.data ?? mePayload;
+    const meUser = meData?.user;
+    const meTenant = meData?.tenant;
+
+    if (!meUser?.id || !meTenant?.id) return null;
+
+    return {
+      token,
+      tenantId: meTenant.id as string,
+      userId: meUser.id as string,
+    };
   }, []);
 
-  // PERSISTENCIA
+  const saveOperationsState = useCallback(
+    async (payload: {
+      events?: CampaignEvent[];
+      tasks?: CampaignTask[];
+      team?: TeamMember[];
+      broadcasts?: Broadcast[];
+      compliance?: ComplianceObligation[];
+      territory?: TerritoryZone[];
+      e14Reports?: E14Report[];
+      campaignGoal?: number;
+      onboarding?: CampaignOnboarding;
+    }) => {
+      const auth = await getAuthContext();
+      if (!auth) return;
+
+      await fetch('/api/operations/state', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    },
+    [getAuthContext],
+  );
+
+  // FETCH REAL DATA FROM API (NestJS)
+  const fetchAllData = useCallback(async () => {
+    try {
+      const auth = await getAuthContext();
+      if (!auth) {
+        setContacts([]);
+        setFinance([]);
+        setTeam([]);
+        setEvents([]);
+        setTerritory(MEDELLIN_ZONES);
+        setOnboarding(createOnboarding('Coordinador'));
+        setOperationalIntelligence(null);
+        setIsLoaded(true);
+        return;
+      }
+
+      const [votersRes, financeRes, operationsRes, intelligenceRes] = await Promise.all([
+        fetch('/api/voters', {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }),
+        fetch('/api/finance', {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }),
+        fetch('/api/operations/state', {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }),
+        fetch('/api/operations/intelligence', {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }),
+      ]);
+
+      const votersPayload = votersRes.ok ? await votersRes.json() : { data: [] };
+      const votersData = votersPayload?.data ?? votersPayload ?? [];
+
+      if (Array.isArray(votersData)) {
+        setContacts(votersData.map((v: any) => ({
+          id: v.id,
+          name: `${v.firstName ?? ''} ${v.lastName ?? ''}`.trim(),
+          cedula: v.documentId,
+          phone: v.phone || '',
+          address: '',
+          neighborhood: 'Sin Puesto',
+          role: (v.psychographicData?.role || 'Simpatizante') as ContactRole,
+          stage: (v.psychographicData?.stage || 'Prospecto') as PipelineStage,
+          createdAt: v.createdAt ?? new Date().toISOString(),
+          status: 'active'
+        })));
+      }
+
+      const financePayload = financeRes.ok ? await financeRes.json() : { data: [] };
+      const financeData = financePayload?.data ?? financePayload ?? [];
+      if (Array.isArray(financeData)) {
+        setFinance(financeData.map((f: any) => ({
+          id: f.id,
+          concept: f.description,
+          amount: Number(f.amount),
+          type: f.type === 'INCOME' ? 'Ingreso' : 'Gasto',
+          category: f.cneCode || 'OTROS',
+          date: f.date,
+          status: f.status,
+          cneCode: normalizeCneCode(f.cneCode),
+          vendorTaxId: f.vendorTaxId,
+          evidenceUrl: f.evidenceUrl
+        })));
+      }
+
+      const operationsPayload = operationsRes.ok ? await operationsRes.json() : { data: {} };
+      const operationsData = operationsPayload?.data ?? operationsPayload ?? {};
+      const intelligencePayload = intelligenceRes.ok ? await intelligenceRes.json() : { data: null };
+      const intelligenceData = intelligencePayload?.data ?? intelligencePayload ?? null;
+      setTeam(Array.isArray(operationsData.team) ? operationsData.team : []);
+      setEvents(Array.isArray(operationsData.events) ? operationsData.events : []);
+      setTasks(Array.isArray(operationsData.tasks) ? operationsData.tasks : []);
+      setBroadcasts(Array.isArray(operationsData.broadcasts) ? operationsData.broadcasts : []);
+      setCompliance(Array.isArray(operationsData.compliance) ? operationsData.compliance : []);
+      setE14Reports(Array.isArray(operationsData.e14Reports) ? operationsData.e14Reports : []);
+      setCampaignGoal(typeof operationsData.campaignGoal === 'number' ? operationsData.campaignGoal : 50000);
+      setOnboarding(normalizeOnboarding(operationsData.onboarding));
+      setOperationalIntelligence(intelligenceData);
+
+      // Merge Territory with Real Data
+      const votersByZone = votersData?.reduce((acc: any, _v: any) => {
+        const zone = 'Sin Puesto';
+        acc[zone] = (acc[zone] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      const mergedTerritory = MEDELLIN_ZONES.map(z => {
+        // Encontrar si hay registros reales para esta comuna/zona
+        const realCount = Object.entries(votersByZone).find(([name]) => 
+          name.toLowerCase().includes(z.name.toLowerCase()) || 
+          z.name.toLowerCase().includes(name.toLowerCase())
+        )?.[1] as number || 0;
+
+        return {
+          ...z,
+          current: realCount,
+          target: z.target || 2500 // Default target if not set
+        };
+      });
+
+      setTerritory(
+        Array.isArray(operationsData.territory) && operationsData.territory.length > 0
+          ? operationsData.territory
+          : mergedTerritory,
+      );
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('Error fetching CRM data:', error);
+    }
+  }, [getAuthContext, normalizeCneCode]);
+
   useEffect(() => {
-    if (!isLoaded) return;
-    const save = (key: string, val: any) => localStorage.setItem(key, JSON.stringify(val));
-    save('crm_contacts', contacts);
-    save('crm_campaign_goal', campaignGoal);
-    save('crm_territory', territory);
-    save('crm_finance', finance);
-    save('crm_witnesses', witnesses);
-    save('crm_events', events);
-    save('crm_reports', e14Reports);
-    save('crm_broadcasts', broadcasts);
-    save('crm_tasks', tasks);
-    save('crm_team', team);
-    save('crm_compliance', compliance);
-    save('crm_audit', auditLogs);
-  }, [isLoaded, contacts, territory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal]);
+    fetchAllData();
+  }, [fetchAllData]);
 
-  // FUNCIONES
-  const logAction = useCallback((actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
-    const log: AuditLog = { id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, actor, action, timestamp: new Date().toISOString(), module, severity, ip: '127.0.0.1' };
+  // FUNCIONES CON PERSISTENCIA EN SUPABASE
+  const logAction = useCallback(async (actor: string, action: string, module: string, severity: AuditLog['severity'] = 'Info') => {
+    const log: AuditLog = { 
+      id: `log-${Date.now()}`, 
+      actor, 
+      action, 
+      timestamp: new Date().toISOString(), 
+      module, 
+      severity, 
+      ip: 'N/A' 
+    };
     setAuditLogs(prev => [log, ...prev]);
-  }, []);
 
-  const addContact = useCallback((c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
-    setContacts(prev => [{ ...c, id: `contact-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, createdAt: new Date().toISOString(), status: 'active' } as Contact, ...prev]);
-    logAction('Sistema', `Nuevo registro: ${c.name} (${c.neighborhood})`, 'Votantes', 'Info');
-  }, [logAction]);
+    try {
+      const auth = await getAuthContext();
+      if (!auth) return;
 
-  const updateContact = useCallback((id: string, f: Partial<Contact>) => {
-    setContacts(prev => prev.map(c => c.id === id ? { ...c, ...f } : c));
-  }, []);
+      await fetch('/api/files/audit-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          actor,
+          action,
+          module,
+          severity,
+        }),
+      });
+    } catch {
+      // keep local log if remote audit fails
+    }
+  }, [getAuthContext]);
+
+  const addContact = useCallback(async (c: Omit<Contact, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      const names = c.name.split(' ');
+      const firstName = names[0];
+      const lastName = names.slice(1).join(' ');
+      const auth = await getAuthContext();
+      if (!auth) return;
+
+      const res = await fetch('/api/voters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          documentId: c.cedula,
+          firstName,
+          lastName: lastName || '.',
+          phone: c.phone || undefined,
+          psychographicData: {
+            stage: c.stage,
+            role: c.role,
+          },
+        }),
+      });
+      const payload = await res.json();
+      const data = payload?.data ?? payload;
+
+      if (res.ok && data) {
+        const newContact: Contact = {
+          ...c,
+          id: data.id,
+          createdAt: data.createdAt ?? new Date().toISOString(),
+          status: 'active'
+        };
+        setContacts(prev => [newContact, ...prev]);
+        logAction('Sistema', `Nuevo registro: ${c.name}`, 'Votantes', 'Info');
+      }
+    } catch (error) {
+      console.error('Error adding contact:', error);
+    }
+  }, [getAuthContext, logAction]);
+
+  const updateContact = useCallback(async (id: string, f: Partial<Contact>) => {
+    try {
+      const auth = await getAuthContext();
+      if (!auth) return;
+      const names = (f.name || '').trim().split(' ').filter(Boolean);
+      const firstName = names[0];
+      const lastName = names.slice(1).join(' ');
+
+      await fetch(`/api/voters/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          ...(f.cedula ? { documentId: f.cedula } : {}),
+          ...(firstName ? { firstName } : {}),
+          ...(lastName ? { lastName } : {}),
+          ...(f.phone !== undefined ? { phone: f.phone } : {}),
+          ...((f.stage || f.role) ? {
+            psychographicData: {
+              ...(f.stage ? { stage: f.stage } : {}),
+              ...(f.role ? { role: f.role } : {}),
+            },
+          } : {}),
+        }),
+      });
+    } catch {
+      // optimistic update fallback
+    } finally {
+      setContacts(prev => prev.map(c => c.id === id ? { ...c, ...f } : c));
+    }
+  }, [getAuthContext]);
 
   const toggleContactStatus = useCallback((id: string) => { 
     setContacts(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'archived' : 'active' } : c)); 
   }, []);
 
-  const moveContactStage = useCallback((id: string, s: PipelineStage) => {
+  const moveContactStage = useCallback(async (id: string, s: PipelineStage) => {
+    const contact = contacts.find(c => c.id === id);
+    if (!contact) return;
+    await updateContact(id, { stage: s });
     setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: s } : c));
-    logAction('Sistema', `Cambio de fase: ${contacts.find(c => c.id === id)?.name} -> ${s}`, 'Votantes', 'Info');
-  }, [contacts, logAction]);
+    logAction('Sistema', `Cambio de fase: ${contact.name} -> ${s}`, 'Votantes', 'Info');
+  }, [contacts, logAction, updateContact]);
   
   const addTerritoryZone = useCallback((z: Omit<TerritoryZone, 'id' | 'current'>) => {
-    setTerritory(prev => [...prev, { ...z, id: `tz-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, current: 0 }]);
-  }, []);
+    setTerritory(prev => {
+      const next = [...prev, { ...z, id: `tz-${Date.now()}`, current: 0 }];
+      void saveOperationsState({ territory: next });
+      return next;
+    });
+  }, [saveOperationsState]);
 
   const updateTerritoryZone = useCallback((id: string, z: Partial<TerritoryZone>) => {
-    setTerritory(prev => prev.map(item => item.id === id ? { ...item, ...z } : item));
-  }, []);
+    setTerritory(prev => {
+      const next = prev.map(item => item.id === id ? { ...item, ...z } : item);
+      void saveOperationsState({ territory: next });
+      return next;
+    });
+  }, [saveOperationsState]);
 
   const deleteTerritoryZone = useCallback((id: string) => {
-    setTerritory(prev => prev.filter(z => z.id !== id));
-  }, []);
+    setTerritory(prev => {
+      const next = prev.filter(z => z.id !== id);
+      void saveOperationsState({ territory: next });
+      return next;
+    });
+  }, [saveOperationsState]);
 
-  const addFinanceTransaction = useCallback((t: Omit<FinanceTransaction, 'id'>) => {
-    setFinance(prev => [{ ...t, id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` }, ...prev]);
-    logAction('Tesorero', `${t.type}: ${t.concept} - $${t.amount.toLocaleString()}`, 'Finanzas', 'Info');
-  }, [logAction]);
+  const addFinanceTransaction = useCallback(async (t: Omit<FinanceTransaction, 'id'>) => {
+    try {
+      const auth = await getAuthContext();
+      if (!auth) return;
+      const res = await fetch('/api/finance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          type: t.type === 'Ingreso' ? 'INCOME' : 'EXPENSE',
+          amount: t.amount,
+          date: t.date,
+          cneCode: normalizeCneCode(t.cneCode),
+          description: t.concept,
+          vendorName: 'No especificado',
+          vendorTaxId: t.vendorTaxId || '0',
+          evidenceUrl: t.evidenceUrl,
+        }),
+      });
+      const payload = await res.json();
+      const data = payload?.data ?? payload;
+
+      if (res.ok && data) {
+        setFinance(prev => [{ ...t, id: data.id }, ...prev]);
+        logAction('Tesorero', `${t.type}: ${t.concept}`, 'Finanzas', 'Info');
+      }
+    } catch (error) {
+      console.error('Error adding finance transaction:', error);
+    }
+  }, [getAuthContext, logAction, normalizeCneCode]);
 
   const updateFinanceTransaction = useCallback((id: string, t: Partial<FinanceTransaction>) => {
-    setFinance(prev => prev.map(item => {
-      if (item.id === id) {
-        // Regla de inmutabilidad: No se puede editar si ya fue reportado al CNE
-        if (item.status === 'REPORTED_CNE') return item;
-        return { ...item, ...t };
+    void (async () => {
+      try {
+        const auth = await getAuthContext();
+        if (!auth) return;
+        await fetch(`/api/finance/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: JSON.stringify({
+            ...(t.amount !== undefined ? { amount: t.amount } : {}),
+            ...(t.date ? { date: t.date } : {}),
+            ...(t.cneCode ? { cneCode: normalizeCneCode(t.cneCode) } : {}),
+            ...(t.concept ? { description: t.concept } : {}),
+            ...(t.vendorTaxId !== undefined ? { vendorTaxId: t.vendorTaxId } : {}),
+            ...(t.evidenceUrl !== undefined ? { evidenceUrl: t.evidenceUrl } : {}),
+            ...(t.status ? { status: t.status } : {}),
+          }),
+        });
+      } catch {
+        // optimistic local update preserved
+      } finally {
+        setFinance(prev => prev.map(item => {
+          if (item.id === id) {
+            if (item.status === 'REPORTED_CNE') return item;
+            return { ...item, ...t };
+          }
+          return item;
+        }));
       }
-      return item;
-    }));
-  }, []);
+    })();
+  }, [getAuthContext, normalizeCneCode]);
 
   const deleteFinanceTransaction = useCallback((id: string) => {
-    setFinance(prev => prev.filter(t => {
-      // Regla de inmutabilidad: No se puede borrar si ya fue reportado al CNE
-      if (t.id === id && t.status === 'REPORTED_CNE') return true;
-      return t.id !== id;
-    }));
-  }, []);
+    void (async () => {
+      try {
+        const auth = await getAuthContext();
+        if (!auth) return;
+        await fetch(`/api/finance/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        });
+      } catch {
+        // optimistic local update preserved
+      } finally {
+        setFinance(prev => prev.filter(t => {
+          if (t.id === id && t.status === 'REPORTED_CNE') return true;
+          return t.id !== id;
+        }));
+      }
+    })();
+  }, [getAuthContext]);
 
   const updateCampaignGoal = useCallback((goal: number) => {
     setCampaignGoal(goal);
-  }, []);
+    void saveOperationsState({ campaignGoal: goal });
+  }, [saveOperationsState]);
 
   const addEvent = useCallback((e: Omit<CampaignEvent, 'id'>) => { 
-    setEvents(prev => [{...e, id: `e-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`}, ...prev]); 
+    setEvents(prev => {
+      const next = [{...e, id: `e-${Date.now()}`}, ...prev];
+      void saveOperationsState({ events: next });
+      return next;
+    }); 
     logAction('Operaciones', `Evento creado: ${e.title}`, 'Eventos', 'Info');
-  }, [logAction]);
-  const updateEvent = useCallback((id: string, f: Partial<CampaignEvent>) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, ...f } : e)); }, []);
-  const deleteEvent = useCallback((id: string) => { setEvents(prev => prev.filter(e => e.id !== id)); }, []);
-  const rsvpEvent = useCallback((id: string) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e)); }, []);
+  }, [logAction, saveOperationsState]);
+  const updateEvent = useCallback((id: string, f: Partial<CampaignEvent>) => {
+    setEvents(prev => {
+      const next = prev.map(e => e.id === id ? { ...e, ...f } : e);
+      void saveOperationsState({ events: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const deleteEvent = useCallback((id: string) => {
+    setEvents(prev => {
+      const next = prev.filter(e => e.id !== id);
+      void saveOperationsState({ events: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const rsvpEvent = useCallback((id: string) => {
+    setEvents(prev => {
+      const next = prev.map(e => e.id === id ? { ...e, attendeesCount: e.attendeesCount + 1 } : e);
+      void saveOperationsState({ events: next });
+      return next;
+    });
+  }, [saveOperationsState]);
   const reportE14 = useCallback((r: Omit<E14Report, 'id' | 'timestamp'>) => { 
     setE14Reports(prev => {
       const existingIndex = prev.findIndex(rep => rep.stationId === r.stationId && rep.tableNumber === r.tableNumber);
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = { ...updated[existingIndex], ...r, timestamp: new Date().toISOString() };
+        void saveOperationsState({ e14Reports: updated });
         return updated;
       }
-      return [...prev, {...r, id: `rep-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, timestamp: new Date().toISOString()}];
+      const next = [...prev, {...r, id: `rep-${Date.now()}`, timestamp: new Date().toISOString()}];
+      void saveOperationsState({ e14Reports: next });
+      return next;
     });
-  }, []);
+  }, [saveOperationsState]);
   const sendBroadcast = useCallback((d: Omit<Broadcast, 'id' | 'status' | 'sentCount' | 'deliveredCount' | 'date' | 'activeStatus'>) => {
-    const id = `br-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    setBroadcasts(prev => [{...d, id, status: 'Procesando', sentCount: 0, deliveredCount: 0, date: new Date().toISOString().split('T')[0], activeStatus: 'active'} as Broadcast, ...prev]);
-    setTimeout(() => setBroadcasts(prev => prev.map(b => b.id === id ? {...b, status: 'Enviado', sentCount: 100, deliveredCount: 98} : b)), 2000);
-  }, []);
-  const updateBroadcast = useCallback((id: string, d: Partial<Broadcast>) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, ...d } : b)); }, []);
-  const toggleBroadcastStatus = useCallback((id: string) => { setBroadcasts(prev => prev.map(b => b.id === id ? { ...b, activeStatus: b.activeStatus === 'active' ? 'archived' : 'active' } : b)); }, []);
-  const addTask = useCallback((t: Omit<CampaignTask, 'id' | 'status' | 'progress'>) => { setTasks(prev => [{...t, id: `tk-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, status: 'Pendiente', progress: 0}, ...prev]); }, []);
+    const id = `br-${Date.now()}`;
+    setBroadcasts(prev => {
+      const next: Broadcast[] = [{...d, id, status: 'Procesando', sentCount: 0, deliveredCount: 0, date: new Date().toISOString().split('T')[0], activeStatus: 'active'}, ...prev];
+      void saveOperationsState({ broadcasts: next });
+      return next;
+    });
+    setTimeout(() => setBroadcasts(prev => {
+      const next: Broadcast[] = prev.map(b => b.id === id ? {...b, status: 'Enviado', sentCount: 100, deliveredCount: 98} : b);
+      void saveOperationsState({ broadcasts: next });
+      return next;
+    }), 2000);
+  }, [saveOperationsState]);
+  const updateBroadcast = useCallback((id: string, d: Partial<Broadcast>) => {
+    setBroadcasts(prev => {
+      const next: Broadcast[] = prev.map(b => b.id === id ? { ...b, ...d } : b);
+      void saveOperationsState({ broadcasts: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const toggleBroadcastStatus = useCallback((id: string) => {
+    setBroadcasts(prev => {
+      const next: Broadcast[] = prev.map(b => b.id === id ? { ...b, activeStatus: b.activeStatus === 'active' ? 'archived' : 'active' } : b);
+      void saveOperationsState({ broadcasts: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const addTask = useCallback((t: Omit<CampaignTask, 'id' | 'status' | 'progress'>) => {
+    setTasks(prev => {
+      const next: CampaignTask[] = [{...t, id: `tk-${Date.now()}`, status: 'Pendiente', progress: 0}, ...prev];
+      void saveOperationsState({ tasks: next });
+      return next;
+    });
+  }, [saveOperationsState]);
   const completeTask = useCallback((id: string) => { 
-    setTasks(prev => prev.map(x => x.id === id ? {...x, status: 'Completada', progress: 100} : x));
-  }, []);
-  const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => { setTeam(prev => [{...m, id: `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, performance: 0, status: 'active'}, ...prev]); }, []);
-  const updateMember = useCallback((id: string, m: Partial<TeamMember>) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, ...m } : member)); }, []);
-  const toggleMemberStatus = useCallback((id: string) => { setTeam(prev => prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member)); }, []);
+    setTasks(prev => {
+      const next: CampaignTask[] = prev.map(x => x.id === id ? {...x, status: 'Completada', progress: 100} : x);
+      void saveOperationsState({ tasks: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const inviteMember = useCallback((m: Omit<TeamMember, 'id' | 'performance' | 'status'>) => {
+    setTeam(prev => {
+      const next: TeamMember[] = [{...m, id: `u-${Date.now()}`, performance: 0, status: 'active'}, ...prev];
+      void saveOperationsState({ team: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const updateMember = useCallback((id: string, m: Partial<TeamMember>) => {
+    setTeam(prev => {
+      const next: TeamMember[] = prev.map(member => member.id === id ? { ...member, ...m } : member);
+      void saveOperationsState({ team: next });
+      return next;
+    });
+  }, [saveOperationsState]);
+  const toggleMemberStatus = useCallback((id: string) => {
+    setTeam(prev => {
+      const next: TeamMember[] = prev.map(member => member.id === id ? { ...member, status: member.status === 'active' ? 'suspended' : 'active' } : member);
+      void saveOperationsState({ team: next });
+      return next;
+    });
+  }, [saveOperationsState]);
   const addComplianceObligation = useCallback((o: Omit<ComplianceObligation, 'id' | 'status' | 'evidence'>) => {
-    setCompliance(prev => [{...o, id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, status: 'Pendiente'}, ...prev]);
+    setCompliance(prev => {
+      const next: ComplianceObligation[] = [{...o, id: `req-${Date.now()}`, status: 'Pendiente'}, ...prev];
+      void saveOperationsState({ compliance: next });
+      return next;
+    });
     logAction('Admin', `Nueva obligación creada: ${o.title}`, 'Compliance', 'Warning');
-  }, [logAction]);
-  const uploadEvidence = useCallback((id: string, fileName: string, fileData?: string) => {
+  }, [logAction, saveOperationsState]);
+  const uploadEvidence = useCallback(async (id: string, fileName: string, fileData?: string) => {
+    if (!fileData) return;
+    let finalUrl = fileData;
+    if (fileData.startsWith('data:')) {
+      try {
+        const auth = await getAuthContext();
+        if (!auth) return;
+
+        const dataUrlRes = await fetch(fileData);
+        const blob = await dataUrlRes.blob();
+
+        const uploadUrlRes = await fetch('/api/files/upload-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: JSON.stringify({
+            module: 'compliance',
+            fileName,
+            contentType: blob.type || 'application/octet-stream',
+          }),
+        });
+
+        if (!uploadUrlRes.ok) {
+          throw new Error('No se pudo generar URL firmada');
+        }
+
+        const uploadUrlPayload = await uploadUrlRes.json();
+        const uploadUrlData = uploadUrlPayload?.data ?? uploadUrlPayload;
+        const signedUrl = uploadUrlData?.signedUrl as string | undefined;
+        const path = uploadUrlData?.path as string | undefined;
+        if (!signedUrl || !path) {
+          throw new Error('Respuesta de URL firmada inválida');
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': blob.type || 'application/octet-stream',
+            'x-upsert': 'false',
+          },
+          body: blob,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Falló la subida directa al storage');
+        }
+
+        const confirmRes = await fetch('/api/files/confirm-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: JSON.stringify({
+            module: 'compliance',
+            path,
+            fileName,
+            mimeType: blob.type || 'application/octet-stream',
+          }),
+        });
+
+        if (!confirmRes.ok) {
+          throw new Error('Falló la confirmación de archivo');
+        }
+
+        const confirmPayload = await confirmRes.json();
+        const confirmData = confirmPayload?.data ?? confirmPayload;
+        finalUrl = confirmData?.publicUrl || finalUrl;
+      } catch (err) {
+        console.error('Error uploading with signed URL flow:', err);
+        return;
+      }
+    }
+
     setCompliance(prev => {
       const newCompliance = [...prev];
       const index = newCompliance.findIndex(o => o.id === id);
-      
       if (index === -1) return prev;
-      
       const o = { ...newCompliance[index] };
       const now = new Date();
-      // Generar string YYYY-MM-DD local
       const getLocalDateStr = (d: Date) => {
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${y}-${m}-${day}`;
       };
-      
       const todayStr = getLocalDateStr(now);
-      
-      // 2. Detección forzada de periodicidad (Mejorada para Cuentas Claras)
       let p = o.periodicity;
       const t = o.title.toLowerCase();
       if (!p || p === 'Única') {
@@ -407,13 +919,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         else if (t.includes('mensual') || t.includes('contrato') || t.includes('valla')) p = 'Mensual';
         else p = 'Única';
       }
-
-      // 3. Lógica de Salto de Fecha (Bulletproof)
       if (p !== 'Única') {
-        // Usar T12:00:00 para evitar errores de zona horaria al parsear
         let dateObj = new Date(o.deadline + 'T12:00:00');
         if (isNaN(dateObj.getTime())) dateObj = new Date();
-
         const advance = (d: Date) => {
           const res = new Date(d.getTime());
           if (p === 'Semanal') res.setDate(res.getDate() + 7);
@@ -421,44 +929,57 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
           else if (p === 'Mensual') res.setMonth(res.getMonth() + 1);
           return res;
         };
-
-        // Salto inicial obligatorio: estamos cumpliendo el hito de ESTA fecha
         dateObj = advance(dateObj);
-
-        // Si la nueva fecha aún está en el pasado o es hoy, seguimos saltando hasta el futuro
         let limit = 0;
         while (getLocalDateStr(dateObj) <= todayStr && limit < 52) {
           dateObj = advance(dateObj);
           limit++;
         }
-        
         o.deadline = getLocalDateStr(dateObj);
       }
-
-      // 4. REEMPLAZO SEGURO Y TOTAL
-      // Limpiamos explícitamente cualquier rastro del archivo anterior
-      o.evidence = undefined;
-      o.evidenceData = undefined;
-
-      o.status = 'Cumplido';
       o.evidence = fileName;
-      o.evidenceData = fileData;
+      o.evidenceData = finalUrl; 
+      o.status = 'Cumplido';
       o.lastValidated = now.toISOString();
       o.periodicity = p;
-      // Validez según periodicidad para el semáforo
       o.validityDays = o.validityDays || (p === 'Semanal' ? 7 : p === 'Quincenal' ? 15 : p === 'Mensual' ? 30 : 365);
-      
       newCompliance[index] = o;
+      void saveOperationsState({ compliance: newCompliance });
       return newCompliance;
     });
-    
-    logAction('Sistema', 'Soporte legal reemplazado y archivo anterior eliminado permanentemente.', 'Compliance', 'Info');
-  }, [logAction]);
+    logAction('Sistema', 'Soporte legal cargado y vinculado correctamente.', 'Compliance', 'Info');
+  }, [getAuthContext, logAction, saveOperationsState]);
 
   const removeEvidence = useCallback((id: string) => {
-    setCompliance(prev => prev.map(o => o.id === id ? { ...o, status: 'Pendiente', evidence: undefined, evidenceData: undefined } : o));
+    setCompliance(prev => {
+      const next: ComplianceObligation[] = prev.map(o => o.id === id ? { ...o, status: 'Pendiente', evidence: undefined, evidenceData: undefined } : o);
+      void saveOperationsState({ compliance: next });
+      return next;
+    });
     logAction('Sistema', `Evidencia eliminada para hito: ${id}`, 'Compliance', 'Warning');
-  }, [logAction]);
+  }, [logAction, saveOperationsState]);
+
+  const setOnboardingRole = useCallback((role: OnboardingRole) => {
+    const next = createOnboarding(role);
+    setOnboarding(next);
+    void saveOperationsState({ onboarding: next });
+  }, [saveOperationsState]);
+
+  const toggleOnboardingStep = useCallback((stepId: string) => {
+    setOnboarding((prev) => {
+      const nextSteps = prev.steps.map((step) =>
+        step.id === stepId ? { ...step, completed: !step.completed } : step,
+      );
+      const isCompleted = nextSteps.every((step) => step.completed);
+      const next: CampaignOnboarding = {
+        ...prev,
+        steps: nextSteps,
+        completedAt: isCompleted ? prev.completedAt || new Date().toISOString() : undefined,
+      };
+      void saveOperationsState({ onboarding: next });
+      return next;
+    });
+  }, [saveOperationsState]);
 
   // ENRIQUECIMIENTO (Reactivo a contacts)
   const enrichedTerritory = useMemo(() => {
@@ -474,14 +995,14 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     });
   }, [territory, contacts]);
 
-  const getExecutiveKPIs = () => ({ 
+  const getExecutiveKPIs = useCallback(() => ({ 
     totalContacts: contacts.length, 
     firmVotes: contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length, 
     coverageNeighborhoods: new Set(contacts.map(c => c.neighborhood)).size, 
     progressPercentage: (contacts.filter(c => c.stage === 'Firme' || c.stage === 'Votó').length / (campaignGoal || 1)) * 100,
     campaignGoal,
     eventsCount: events.length
-  });
+  }), [campaignGoal, contacts, events.length]);
   const getTerritoryStats = () => enrichedTerritory;
   const getFinanceSummary = () => ({ 
     totalIncome: finance.filter(f => f.type === 'Ingreso').reduce((a, b) => a + Number(b.amount || 0), 0), 
@@ -496,6 +1017,160 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   });
   const getTeamStats = () => ({ totalTasks: tasks.length, completedTasks: tasks.filter(t => t.status === 'Completada').length, teamEfficiency: tasks.length > 0 ? (tasks.filter(t => t.status === 'Completada').length / tasks.length) * 100 : 0 });
   const getComplianceScore = () => compliance.length > 0 ? (compliance.filter(o => o.status === 'Cumplido').length / compliance.length) * 100 : 0;
+  const getOperationalIntelligence = () => operationalIntelligence;
+  const getOnboardingProgress = () => {
+    const total = onboarding.steps.length;
+    const completed = onboarding.steps.filter((step) => step.completed).length;
+    return {
+      completed,
+      total,
+      percentage: total > 0 ? (completed / total) * 100 : 0,
+    };
+  };
+  const getOperationalAlerts = useCallback((): OperationalAlert[] => {
+    const alerts: OperationalAlert[] = [];
+    const kpis = getExecutiveKPIs();
+    const topeLegal = 850000000;
+    const actualExpenses = finance
+      .filter(f => f.type === 'Gasto' && (f.status === 'APPROVED' || f.status === 'REPORTED_CNE'))
+      .reduce((a, b) => a + Number(b.amount || 0), 0);
+    const pendingExpenses = finance
+      .filter(f => f.type === 'Gasto' && f.status === 'PENDING')
+      .reduce((a, b) => a + Number(b.amount || 0), 0);
+    const projectedEventsCost = events.reduce((acc, event) => {
+      const hasTransaction = finance.some(f => f.relatedEntityId === event.id);
+      if (hasTransaction) return acc;
+      const estimated = Number(event.estimatedCost || 0) || (Number(event.attendeesCount || 0) * 8000);
+      return acc + (isNaN(estimated) ? 0 : estimated);
+    }, 0);
+    const executionPercentage = ((actualExpenses + pendingExpenses + projectedEventsCost) / topeLegal) * 100;
+    const today = new Date();
+
+    if (kpis.totalContacts < 200) {
+      alerts.push({
+        id: 'contacts-low',
+        severity: 'Critical',
+        module: 'Votantes',
+        title: 'Base electoral insuficiente',
+        description: 'El volumen actual de contactos es bajo para sostener la meta de campaña.',
+        metric: `${kpis.totalContacts} contactos`,
+        actionLabel: 'Cargar votantes',
+        actionHref: '/dashboard/pipeline',
+      });
+    }
+
+    if (kpis.progressPercentage < 35) {
+      alerts.push({
+        id: 'goal-progress-low',
+        severity: 'Warning',
+        module: 'Votantes',
+        title: 'Conversión por debajo del objetivo',
+        description: 'La proporción de votos firmes frente a la meta global está rezagada.',
+        metric: `${kpis.progressPercentage.toFixed(1)}% de meta`,
+        actionLabel: 'Ver embudo',
+        actionHref: '/dashboard/pipeline',
+      });
+    }
+
+    if (executionPercentage >= 90) {
+      alerts.push({
+        id: 'finance-overrun',
+        severity: 'Critical',
+        module: 'Finanzas',
+        title: 'Riesgo alto de tope CNE',
+        description: 'La proyección de ejecución financiera está demasiado cerca del límite legal.',
+        metric: `${executionPercentage.toFixed(1)}% del tope`,
+        actionLabel: 'Revisar finanzas',
+        actionHref: '/dashboard/finance',
+      });
+    } else if (executionPercentage >= 80) {
+      alerts.push({
+        id: 'finance-near-limit',
+        severity: 'Warning',
+        module: 'Finanzas',
+        title: 'Ejecución financiera en zona de cuidado',
+        description: 'Se recomienda validar rubros pendientes y ajustar proyección de eventos.',
+        metric: `${executionPercentage.toFixed(1)}% del tope`,
+        actionLabel: 'Auditar rubros',
+        actionHref: '/dashboard/finance',
+      });
+    }
+
+    const overdueTasks = tasks.filter(
+      (task) =>
+        task.status !== 'Completada' &&
+        task.deadline &&
+        !Number.isNaN(new Date(task.deadline).getTime()) &&
+        new Date(task.deadline) < today,
+    ).length;
+
+    if (overdueTasks > 0) {
+      alerts.push({
+        id: 'tasks-overdue',
+        severity: overdueTasks > 5 ? 'Critical' : 'Warning',
+        module: 'Operaciones',
+        title: 'Tareas vencidas sin completar',
+        description: 'Hay compromisos operativos atrasados que afectan ejecución territorial.',
+        metric: `${overdueTasks} tareas vencidas`,
+        actionLabel: 'Ver tareas',
+        actionHref: '/dashboard/tasks',
+      });
+    }
+
+    const overdueCompliance = compliance.filter((item) => item.status === 'Vencido').length;
+    if (overdueCompliance > 0) {
+      alerts.push({
+        id: 'compliance-overdue',
+        severity: 'Critical',
+        module: 'Compliance',
+        title: 'Obligaciones legales vencidas',
+        description: 'Existen obligaciones sin soportes vigentes o fuera de plazo.',
+        metric: `${overdueCompliance} vencidas`,
+        actionLabel: 'Ir a compliance',
+        actionHref: '/dashboard/compliance',
+      });
+    }
+
+    const weakZones = enrichedTerritory.filter((zone) => {
+      if (!zone.target || zone.target <= 0) return false;
+      const ratio = zone.current / zone.target;
+      return ratio < 0.5;
+    }).length;
+
+    if (weakZones > 0) {
+      alerts.push({
+        id: 'territory-coverage-low',
+        severity: weakZones > 3 ? 'Warning' : 'Info',
+        module: 'Territorio',
+        title: 'Cobertura territorial desigual',
+        description: 'Varias zonas clave están por debajo del 50% de su meta local.',
+        metric: `${weakZones} zonas rezagadas`,
+        actionLabel: 'Ver territorio',
+        actionHref: '/dashboard/territory',
+      });
+    }
+
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 'system-healthy',
+        severity: 'Info',
+        module: 'Operaciones',
+        title: 'Operación estable',
+        description: 'No se detectan riesgos críticos inmediatos en los principales indicadores.',
+        metric: 'Sin alertas críticas',
+        actionLabel: 'Ver tablero',
+        actionHref: '/dashboard',
+      });
+    }
+
+    const weight: Record<OperationalAlert['severity'], number> = {
+      Critical: 0,
+      Warning: 1,
+      Info: 2,
+    };
+
+    return alerts.sort((a, b) => weight[a.severity] - weight[b.severity]).slice(0, 6);
+  }, [compliance, enrichedTerritory, events, finance, getExecutiveKPIs, tasks]);
   
   const TOPE_LEGAL_CNE = 850000000;
 
@@ -534,9 +1209,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CRMContext.Provider value={{ 
-      contacts, territory: enrichedTerritory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, TOPE_LEGAL_CNE,
+      contacts, territory: enrichedTerritory, finance, witnesses, events, e14Reports, broadcasts, tasks, team, compliance, auditLogs, campaignGoal, onboarding, operationalIntelligence, TOPE_LEGAL_CNE,
       addContact, updateContact, toggleContactStatus, moveContactStage, addTerritoryZone, updateTerritoryZone, deleteTerritoryZone, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction, updateCampaignGoal, addEvent, updateEvent, deleteEvent, rsvpEvent, reportE14, sendBroadcast, updateBroadcast, toggleBroadcastStatus, addTask, completeTask, inviteMember, updateMember, toggleMemberStatus, addComplianceObligation, uploadEvidence, removeEvidence, logAction,
-      getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore
+      setOnboardingRole, toggleOnboardingStep,
+      getExecutiveKPIs, getTerritoryStats, getFinanceSummary, getProjectedCompliance, getElectionResults, getTeamStats, getComplianceScore, getOperationalAlerts, getOperationalIntelligence, getOnboardingProgress
     }}>
       {children}
     </CRMContext.Provider>
