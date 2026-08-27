@@ -1,0 +1,227 @@
+import { expect, test } from "@playwright/test";
+
+const jwt = [
+  Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
+    "base64url",
+  ),
+  Buffer.from(JSON.stringify({ exp: 1_893_456_000 })).toString("base64url"),
+  "test-signature",
+].join(".");
+
+function sessionFor(
+  backendRole: "ADMIN" | "AUDITOR",
+  role: "AdminCampana" | "Auditor",
+) {
+  return {
+    accessToken: jwt,
+    expiresAt: null,
+    tenant: {
+      id: "tenant-e2e",
+      name: "Campaña verificable",
+      slug: "campana-verificable",
+      type: "CANDIDACY",
+    },
+    user: {
+      id: `user-${backendRole.toLowerCase()}`,
+      email: `${backendRole.toLowerCase()}@example.test`,
+      name: backendRole === "ADMIN" ? "Dirección financiera" : "Auditoría",
+      role,
+      backendRole,
+    },
+  };
+}
+
+function successful<T>(data: T, statusCode = 200) {
+  return { statusCode, message: "Success", data };
+}
+
+test("configura topes auditables y descarga el informe preparatorio", async ({
+  page,
+}) => {
+  const settingsBodies: Record<string, unknown>[] = [];
+  const authorizationHeaders: string[] = [];
+  let settings = {
+    limitsConfigured: false,
+    maxTotalBudget: null as number | null,
+    maxPublicityLimit: null as number | null,
+    remainingBudget: null as number | null,
+  };
+
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: sessionFor("ADMIN", "AdminCampana"),
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (pathname === "/api/finance" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful([])),
+      });
+      return;
+    }
+
+    if (pathname === "/api/finance/summary" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            totalExpenses: 100_000_000,
+            totalIncome: 250_000_000,
+            balance: 150_000_000,
+            ...settings,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (pathname === "/api/finance/settings" && request.method() === "PUT") {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      settingsBodies.push(body);
+      settings = {
+        limitsConfigured: true,
+        maxTotalBudget: Number(body.maxTotalBudget),
+        maxPublicityLimit: Number(body.maxPublicityLimit),
+        remainingBudget: Number(body.maxTotalBudget) - 100_000_000,
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            id: "settings-e2e",
+            maxTotalBudget: settings.maxTotalBudget,
+            maxPublicityLimit: settings.maxPublicityLimit,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (pathname === "/api/finance/cne-report" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/csv; charset=utf-8",
+        body: "Fecha,Concepto,Monto\n2026-08-21,Transporte,100000000",
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ message: `Ruta no simulada: ${pathname}` }),
+    });
+  });
+
+  await page.goto("/dashboard/finance");
+  await expect(
+    page.getByRole("heading", { name: "Finanzas de campaña" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Configura los topes de esta elección"),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Configurar topes" }).click();
+  await page.getByLabel("Tope total de gastos (COP)").fill("500000000");
+  await page.getByLabel("Tope de publicidad exterior (COP)").fill("120000000");
+  await page.getByRole("button", { name: "Guardar topes" }).click();
+
+  await expect(
+    page.getByText("Topes actualizados y registrados en la auditoría."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Topes configurados para esta elección"),
+  ).toBeVisible();
+  expect(settingsBodies).toEqual([
+    { maxTotalBudget: 500_000_000, maxPublicityLimit: 120_000_000 },
+  ]);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar CSV" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(
+    /^reporte-cuentas-claras-\d{4}-\d{2}-\d{2}\.csv$/,
+  );
+  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(6);
+  expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
+    true,
+  );
+});
+
+test("auditoría consulta y exporta sin controles de escritura", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: sessionFor("AUDITOR", "Auditor"),
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === "/api/finance") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful([])),
+      });
+      return;
+    }
+    if (pathname === "/api/finance/summary") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            totalExpenses: 0,
+            totalIncome: 0,
+            balance: 0,
+            limitsConfigured: false,
+            maxTotalBudget: null,
+            maxPublicityLimit: null,
+            remainingBudget: null,
+          }),
+        ),
+      });
+      return;
+    }
+    if (pathname === "/api/finance/cne-report") {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/csv; charset=utf-8",
+        body: "Fecha,Concepto,Monto",
+      });
+      return;
+    }
+    await route.fulfill({ status: 403, body: "Forbidden" });
+  });
+
+  await page.goto("/dashboard/finance");
+  await expect(
+    page.getByRole("button", { name: "Exportar CSV" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Registrar movimiento" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Configurar topes" }),
+  ).toHaveCount(0);
+});

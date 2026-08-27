@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  # Prototipo inseguro: no instalar, compilar ni desplegar hasta implementar
+  # cifrado local, autenticación, cola idempotente y resolución de conflictos.
+  - "!apps/pwa-field"
+  - "packages/*"
+  # Cliente IA heredado con contratos no implementados; queda fuera hasta tener
+  # proveedor aprobado, evaluaciones y endpoints NestJS reales.
+  - "!packages/ai-agent"
+
+autoInstallPeers: false

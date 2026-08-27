@@ -1,0 +1,52 @@
+name: Verificación
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: politica_sostenible_test
+          POSTGRES_USER: politica_test
+          POSTGRES_PASSWORD: local_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U politica_test -d politica_sostenible_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api generate
+      - name: Preparar PostgreSQL de integración
+        run: pnpm --filter api exec prisma db push
+        env:
+          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
+      - name: Probar Prisma contra PostgreSQL real
+        run: pnpm --filter api test:integration
+        env:
+          TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
+      - run: pnpm --filter api test --runInBand
+      - run: pnpm test:web-unit
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

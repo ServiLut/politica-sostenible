@@ -1,0 +1,82 @@
+import { Body, Controller, Get, Post, Put, Res } from '@nestjs/common';
+import { FinanceService } from './finance.service';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';
+import { ValidateExpenseDto } from './dto/validate-expense.dto';
+import { Role } from '../../prisma/generated/prisma';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
+
+const FINANCE_WRITE_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+];
+const FINANCE_READ_ROLES = [
+  ...FINANCE_WRITE_ROLES,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+];
+
+@ApiTags('Finance')
+@ApiBearerAuth()
+@Controller('finance')
+export class FinanceController {
+  constructor(private readonly financeService: FinanceService) {}
+
+  @Post()
+  @Roles(...FINANCE_WRITE_ROLES)
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateFinancialEntryDto,
+  ) {
+    return this.financeService.create(user.tenantId, user.userId, dto);
+  }
+
+  @Get()
+  @Roles(...FINANCE_READ_ROLES)
+  async findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.financeService.findAll(user.tenantId);
+  }
+
+  @Get('summary')
+  @Roles(...FINANCE_READ_ROLES)
+  async getSummary(@CurrentUser() user: AuthenticatedUser) {
+    return this.financeService.getSummary(user.tenantId);
+  }
+
+  @Post('validate')
+  @Roles(...FINANCE_WRITE_ROLES)
+  validateExpense(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() data: ValidateExpenseDto,
+  ) {
+    return this.financeService.validateExpense(user.tenantId, data);
+  }
+
+  @Put('settings')
+  @Roles(...FINANCE_WRITE_ROLES)
+  updateSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpsertFinanceSettingsDto,
+  ) {
+    return this.financeService.updateSettings(user.tenantId, user.userId, dto);
+  }
+
+  @Get('cne-report')
+  @Roles(...FINANCE_READ_ROLES)
+  async getCneReport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const csv = await this.financeService.generateCneReport(user.tenantId);
+    res.header('Content-Type', 'text/csv; charset=utf-8');
+    res.header('Content-Disposition', 'attachment; filename=cne_report.csv');
+    res.header('Cache-Control', 'private, no-store');
+    res.header('X-Content-Type-Options', 'nosniff');
+    return res.send(csv);
+  }
+}
