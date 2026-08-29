@@ -291,3 +291,88 @@ describe('AuthService current session', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
+
+describe('AuthService password change', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('updates only the active tenant-scoped user and writes an audit event', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
+    const transactionClient = {
+      user: { updateMany },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-a',
+          password: 'stored-password-hash',
+          tenant: { defaultMode: PoliticalOperationMode.CAMPAIGN },
+        }),
+      },
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+    jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    jest.mocked(bcrypt.hash).mockResolvedValue('new-password-hash' as never);
+
+    await expect(
+      service.changePassword(
+        { userId: 'user-a', tenantId: 'tenant-a', role: Role.VOLUNTEER },
+        {
+          currentPassword: 'clave-segura-2026',
+          newPassword: 'otra-clave-segura-2026',
+        },
+      ),
+    ).resolves.toEqual({ message: 'Contraseña actualizada correctamente' });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'user-a', tenantId: 'tenant-a', isActive: true },
+      data: { password: 'new-password-hash' },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        actorUserId: 'user-a',
+        action: 'ACCOUNT_PASSWORD_CHANGED',
+        resourceId: 'user-a',
+      }),
+    });
+  });
+
+  it('does not update when the current password is incorrect', async () => {
+    const prisma = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-a',
+          password: 'stored-password-hash',
+          tenant: { defaultMode: PoliticalOperationMode.CAMPAIGN },
+        }),
+      },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+    jest.mocked(bcrypt.compare).mockResolvedValue(false as never);
+
+    await expect(
+      service.changePassword(
+        { userId: 'user-a', tenantId: 'tenant-a', role: Role.ADMIN },
+        {
+          currentPassword: 'clave-equivocada',
+          newPassword: 'otra-clave-segura-2026',
+        },
+      ),
+    ).rejects.toEqual(
+      new UnauthorizedException('La contraseña actual no es correcta'),
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

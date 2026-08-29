@@ -19,6 +19,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
+import type { ChangePasswordDto } from './dto/change-password.dto';
 
 // Mantiene un costo de bcrypt equivalente cuando el correo no existe y reduce
 // la utilidad de las diferencias de tiempo para enumerar cuentas.
@@ -219,6 +220,69 @@ export class AuthService {
     }
 
     return { user: currentUser };
+  }
+
+  async changePassword(user: AuthenticatedUser, dto: ChangePasswordDto) {
+    this.assertBcryptPasswordSize(dto.currentPassword);
+    this.assertBcryptPasswordSize(dto.newPassword);
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'La nueva contraseña debe ser diferente de la actual',
+      );
+    }
+
+    const currentUser = await this.prisma.user.findFirst({
+      where: {
+        id: user.userId,
+        tenantId: user.tenantId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        password: true,
+        tenant: { select: { defaultMode: true } },
+      },
+    });
+    const passwordMatches = await bcrypt.compare(
+      dto.currentPassword,
+      currentUser?.password ?? DUMMY_PASSWORD_HASH,
+    );
+
+    if (!currentUser || !passwordMatches) {
+      throw new UnauthorizedException('La contraseña actual no es correcta');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.updateMany({
+        where: {
+          id: user.userId,
+          tenantId: user.tenantId,
+          isActive: true,
+        },
+        data: { password: passwordHash },
+      });
+
+      if (updated.count !== 1) {
+        throw new UnauthorizedException('La cuenta ya no está activa');
+      }
+
+      await tx.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode: currentUser.tenant.defaultMode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'ACCOUNT_PASSWORD_CHANGED',
+          resourceType: 'User',
+          resourceId: user.userId,
+          metadata: { initiatedBy: 'SELF_SERVICE' },
+        },
+      });
+    });
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 
   private assertBcryptPasswordSize(password: string): void {

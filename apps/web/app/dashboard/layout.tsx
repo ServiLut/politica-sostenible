@@ -27,11 +27,13 @@ export default function DashboardLayout({
   const currentRouteConfig = dashboardConfig.find((item) =>
     matchesNavigationPath(pathname, item.href),
   );
+  const isPersonalAccountRoute = pathname === "/dashboard/profile";
   const hasPermission = Boolean(
-    currentRouteConfig &&
-      user &&
-      tenant &&
-      canAccessNavigationItem(currentRouteConfig, user, tenant),
+    user &&
+    tenant &&
+    (isPersonalAccountRoute ||
+      (currentRouteConfig &&
+        canAccessNavigationItem(currentRouteConfig, user, tenant))),
   );
 
   useEffect(() => {
@@ -94,8 +96,8 @@ export default function DashboardLayout({
                 Acceso restringido
               </h1>
               <p className="mt-3 font-medium leading-relaxed text-slate-600">
-                El rol <strong>{getRoleLabel(user.backendRole)}</strong> no tiene
-                permiso para consultar esta sección de la organización.
+                El rol <strong>{getRoleLabel(user.backendRole)}</strong> no
+                tiene permiso para consultar esta sección de la organización.
               </p>
             </div>
             <button
@@ -132,7 +134,9 @@ export default function DashboardLayout({
                 {tenant?.name ?? "Organización"}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                {currentRouteConfig?.title ?? "Panel"}
+                {isPersonalAccountRoute
+                  ? "Mi cuenta y seguridad"
+                  : (currentRouteConfig?.title ?? "Panel")}
                 {tenant ? ` · ${getTenantTypeLabel(tenant.type)}` : ""}
               </p>
             </div>

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from './decorators/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -28,5 +29,16 @@ export class AuthController {
   @Get('me')
   currentSession(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.currentSession(user);
+  }
+
+  @Post('change-password')
+  @Throttle({
+    default: { limit: 5, ttl: 15 * 60_000, blockDuration: 15 * 60_000 },
+  })
+  changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user, dto);
   }
 }

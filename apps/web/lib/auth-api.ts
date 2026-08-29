@@ -63,3 +63,13 @@ export async function getCurrentAuthUser(signal?: AbortSignal) {
   });
   return response.user;
 }
+
+export function changeOwnPassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  return apiRequest<{ message: string }>("/auth/change-password", {
+    body: JSON.stringify(data),
+    method: "POST",
+  });
+}

@@ -6,6 +6,7 @@ import {
   Building2,
   ChevronDown,
   LogOut,
+  ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
@@ -118,6 +119,14 @@ export function UserNav() {
           )}
 
           <div className="space-y-1 p-2">
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setIsOpen(false)}
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              <ShieldCheck aria-hidden="true" size={17} />
+              Mi cuenta y seguridad
+            </Link>
             {user?.backendRole === "ADMIN" && (
               <Link
                 href="/dashboard/team"
