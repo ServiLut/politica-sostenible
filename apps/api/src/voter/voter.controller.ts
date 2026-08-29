@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Ip, Param, Post, Query } from '@nestjs/common';
-import { VoterService } from './voter.service';
+import { VOTER_READ_ROLES, VoterService } from './voter.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -14,13 +14,6 @@ const VOTER_WRITE_ROLES = [
   Role.CAMPAIGN_MANAGER,
   Role.ZONE_COORDINATOR,
   Role.VOLUNTEER,
-];
-const VOTER_READ_ROLES = [
-  Role.ADMIN,
-  Role.CAMPAIGN_MANAGER,
-  Role.COMPLIANCE_OFFICER,
-  Role.AUDITOR,
-  Role.ZONE_COORDINATOR,
 ];
 const VOTER_CONSENT_REVOKE_ROLES = [
   Role.ADMIN,
@@ -42,7 +35,7 @@ export class VoterController {
     @Body() dto: CreateVoterDto,
     @Ip() consentIp: string,
   ) {
-    return this.voterService.create(user.tenantId, user.userId, consentIp, dto);
+    return this.voterService.create(user, consentIp, dto);
   }
 
   @Get()
@@ -52,14 +45,14 @@ export class VoterController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListVotersQueryDto,
   ) {
-    return this.voterService.findAll(user.tenantId, query);
+    return this.voterService.findAll(user, query);
   }
 
   @Get('stats')
   @Roles(...VOTER_READ_ROLES)
   @ApiOperation({ summary: 'Obtiene estadísticas de la campaña' })
   async getStats(@CurrentUser() user: AuthenticatedUser) {
-    return this.voterService.getStats(user.tenantId);
+    return this.voterService.getStats(user);
   }
 
   @Post(':id/consents/revoke')

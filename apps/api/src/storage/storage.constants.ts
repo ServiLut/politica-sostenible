@@ -1,8 +1,6 @@
 export enum StorageModuleName {
   FINANCE = 'finance',
   E14 = 'e14',
-  EVIDENCE = 'evidence',
-  AVATARS = 'avatars',
 }
 
 export interface StorageUploadPolicy {
@@ -40,21 +38,6 @@ export const STORAGE_UPLOAD_POLICIES: Readonly<
       ...IMAGE_MIME_TYPES,
       ...DOCUMENT_MIME_TYPES,
     },
-  },
-  [StorageModuleName.EVIDENCE]: {
-    maxBytes: 100 * 1024 * 1024,
-    mimeTypes: {
-      ...IMAGE_MIME_TYPES,
-      ...DOCUMENT_MIME_TYPES,
-      'video/mp4': ['mp4'],
-      'video/quicktime': ['mov'],
-      'audio/mpeg': ['mp3'],
-      'audio/mp4': ['m4a'],
-    },
-  },
-  [StorageModuleName.AVATARS]: {
-    maxBytes: 5 * 1024 * 1024,
-    mimeTypes: IMAGE_MIME_TYPES,
   },
 };
 

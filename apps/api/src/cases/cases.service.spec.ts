@@ -18,7 +18,7 @@ describe('CasesService tenant and mode isolation', () => {
   const currentUser: AuthenticatedUser = {
     userId: 'agent-a',
     tenantId: 'tenant-a',
-    role: Role.CONSTITUENT_SERVICES_MANAGER,
+    role: Role.ADMIN,
   };
 
   let prisma: {
@@ -292,6 +292,9 @@ describe('CasesService tenant and mode isolation', () => {
 
   it('scopes CASE_WORKER lists to cases assigned to the authenticated worker', async () => {
     const caseWorker = { ...currentUser, role: Role.CASE_WORKER };
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
     let capturedFindMany: unknown;
     prisma.issueCase.findMany.mockImplementation((args: unknown) => {
       capturedFindMany = args;
@@ -303,13 +306,17 @@ describe('CasesService tenant and mode isolation', () => {
     expect(capturedFindMany).toMatchObject({
       where: {
         tenantId: 'tenant-a',
-        mode: PoliticalOperationMode.CAMPAIGN,
+        mode: PoliticalOperationMode.PUBLIC_OFFICE,
         assigneeId: 'agent-a',
       },
     });
   });
 
   it('returns 403 when CASE_WORKER tries to list another assignee', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+
     await expect(
       service.findAll(
         { ...currentUser, role: Role.CASE_WORKER },
@@ -322,6 +329,9 @@ describe('CasesService tenant and mode isolation', () => {
   });
 
   it('hides an unassigned or cross-user case from CASE_WORKER reads', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
     prisma.issueCase.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -338,13 +348,16 @@ describe('CasesService tenant and mode isolation', () => {
     expect(findFirstCalls[0]?.[0]?.where).toEqual({
       id: 'case-assigned-to-agent-b',
       tenantId: 'tenant-a',
-      mode: PoliticalOperationMode.CAMPAIGN,
+      mode: PoliticalOperationMode.PUBLIC_OFFICE,
       assigneeId: 'agent-a',
     });
     expect(findFirstCalls[0]?.[0]?.include).toBeDefined();
   });
 
   it('hides an unassigned or cross-user case from CASE_WORKER updates', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
     prisma.issueCase.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -360,7 +373,7 @@ describe('CasesService tenant and mode isolation', () => {
         where: {
           id: 'case-assigned-to-agent-b',
           tenantId: 'tenant-a',
-          mode: PoliticalOperationMode.CAMPAIGN,
+          mode: PoliticalOperationMode.PUBLIC_OFFICE,
           assigneeId: 'agent-a',
         },
       }),
@@ -370,6 +383,9 @@ describe('CasesService tenant and mode isolation', () => {
 
   it('forces CASE_WORKER as assignee when creating a case', async () => {
     const caseWorker = { ...currentUser, role: Role.CASE_WORKER };
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
     prisma.issueCase.findFirst.mockResolvedValue(null);
     prisma.user.findFirst.mockResolvedValue({ id: caseWorker.userId });
     prisma.issueCase.create.mockResolvedValue({
@@ -398,6 +414,10 @@ describe('CasesService tenant and mode isolation', () => {
   });
 
   it('returns 403 when CASE_WORKER attempts to assign a new case to another user', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+
     await expect(
       service.create(
         { ...currentUser, role: Role.CASE_WORKER },
@@ -416,6 +436,9 @@ describe('CasesService tenant and mode isolation', () => {
   });
 
   it('returns 403 when CASE_WORKER attempts to reassign an owned case', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
     prisma.issueCase.findFirst.mockResolvedValue({
       id: 'case-a',
       reference: 'PQRS-CAM-2026-001',
@@ -439,6 +462,10 @@ describe('CasesService tenant and mode isolation', () => {
   });
 
   it('only lists the authenticated worker as an assignable user', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+
     await service.listAssignees({ ...currentUser, role: Role.CASE_WORKER });
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
@@ -448,17 +475,54 @@ describe('CasesService tenant and mode isolation', () => {
     });
   });
 
-  it('does not let CAMPAIGN_MANAGER administer cases in public-office mode', async () => {
-    prisma.tenant.findUnique.mockResolvedValue({
-      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
-    });
+  it.each([
+    [PoliticalOperationMode.CAMPAIGN, Role.CONSTITUENT_SERVICES_MANAGER],
+    [PoliticalOperationMode.CAMPAIGN, Role.CASE_WORKER],
+    [PoliticalOperationMode.PUBLIC_OFFICE, Role.CAMPAIGN_MANAGER],
+  ])(
+    'fails closed for incompatible role %s/%s on both reads and writes',
+    async (mode, role) => {
+      prisma.tenant.findUnique.mockResolvedValue({ defaultMode: mode });
+      const incompatibleUser = { ...currentUser, role };
 
-    await expect(
-      service.findAll(
-        { ...currentUser, role: Role.CAMPAIGN_MANAGER },
-        { page: 1, limit: 20 },
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(prisma.issueCase.findMany).not.toHaveBeenCalled();
-  });
+      await expect(
+        service.findAll(incompatibleUser, { page: 1, limit: 20 }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.create(incompatibleUser, {
+          title: 'Solicitud fuera de modo',
+          description: 'No debe atravesar la matriz de autorización',
+          category: 'Servicios',
+          sourceChannel: CommunicationChannel.WEB,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(prisma.issueCase.findMany).not.toHaveBeenCalled();
+      expect(prisma.issueCase.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [PoliticalOperationMode.CAMPAIGN, [Role.ADMIN, Role.CAMPAIGN_MANAGER]],
+    [
+      PoliticalOperationMode.PUBLIC_OFFICE,
+      [Role.ADMIN, Role.CONSTITUENT_SERVICES_MANAGER, Role.CASE_WORKER],
+    ],
+  ])(
+    'only lists write-compatible assignees for mode %s',
+    async (mode, roles) => {
+      prisma.tenant.findUnique.mockResolvedValue({ defaultMode: mode });
+
+      await service.listAssignees(currentUser);
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          tenantId: 'tenant-a',
+          role: { in: roles },
+        },
+        select: { id: true, name: true, role: true },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      });
+    },
+  );
 });

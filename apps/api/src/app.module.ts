@@ -25,6 +25,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
+import { CommandCenterModule } from './command-center/command-center.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { CommonModule } from './common/common.module';
     TeamModule,
     AuditEventsModule,
     EventsModule,
+    CommandCenterModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

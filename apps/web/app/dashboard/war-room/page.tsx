@@ -25,7 +25,10 @@ import {
   X,
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
+import { useAuth } from "@/context/auth";
 import { uploadFileDirectly } from "@/lib/direct-storage-upload";
+import { openPrivateResource } from "@/lib/private-storage";
+import type { BackendUserRole } from "@/types/saas-schema";
 import {
   createWitnessReport,
   listVotingPlaces,
@@ -42,6 +45,15 @@ const EMPTY_FORM = {
   totalTableVotes: "",
   observations: "",
 };
+
+const E14_READ_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
+  "CAMPAIGN_MANAGER",
+  "COMPLIANCE_OFFICER",
+  "AUDITOR",
+  "ZONE_COORDINATOR",
+  "WITNESS",
+]);
 
 function readableError(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -75,6 +87,8 @@ function placeName(
 }
 
 export default function WarRoomPage() {
+  const { user } = useAuth();
+  const canReadE14 = user !== null && E14_READ_ROLES.has(user.backendRole);
   const [placesPage, setPlacesPage] = useState<VotingPlacePage | null>(null);
   const [reports, setReports] = useState<WitnessReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +101,22 @@ export default function WarRoomPage() {
   >(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [e14File, setE14File] = useState<File | null>(null);
+  const [openingReportId, setOpeningReportId] = useState<string | null>(null);
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+
+  async function handleOpenReport(reportId: string) {
+    setOpeningReportId(reportId);
+    setLoadError(null);
+    try {
+      await openPrivateResource("e14", reportId);
+    } catch (error) {
+      setLoadError(
+        readableError(error, "No fue posible abrir el acta privada."),
+      );
+    } finally {
+      setOpeningReportId(null);
+    }
+  }
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -617,10 +646,31 @@ export default function WarRoomPage() {
                           {formatNumber(report.totalTableVotes)}
                         </td>
                         <td className="px-6 py-5">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
-                            <FileCheck2 aria-hidden="true" size={14} /> Privado
-                            confirmado
-                          </span>
+                          <div className="flex flex-col items-start gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+                              <FileCheck2 aria-hidden="true" size={14} />{" "}
+                              Privado confirmado
+                            </span>
+                            {canReadE14 && (
+                              <button
+                                type="button"
+                                disabled={openingReportId === report.id}
+                                onClick={() => void handleOpenReport(report.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-800 hover:bg-blue-100 disabled:opacity-60"
+                              >
+                                {openingReportId === report.id ? (
+                                  <Loader2
+                                    aria-hidden="true"
+                                    className="animate-spin"
+                                    size={12}
+                                  />
+                                ) : (
+                                  <FileText aria-hidden="true" size={12} />
+                                )}
+                                Ver acta
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-5 text-xs text-slate-500">
                           {formatDate(report.createdAt)}

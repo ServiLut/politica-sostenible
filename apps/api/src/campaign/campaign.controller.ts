@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   ForbiddenException,
   Get,
@@ -12,6 +13,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { Role } from '../../prisma/generated/prisma';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
+import { CreatePoliticalDivisionDto } from './dto/create-political-division.dto';
 
 const CAMPAIGN_DIVISION_READ_ROLES = [
   Role.ADMIN,
@@ -57,6 +59,16 @@ export class CampaignController {
     @Query() query: ListDivisionsQueryDto,
   ) {
     return this.campaignService.findDivisions(user.tenantId, query);
+  }
+
+  @Post('divisions')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Crea una zona o puesto dentro del tenant activo' })
+  async createDivision(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePoliticalDivisionDto,
+  ) {
+    return this.campaignService.createDivision(user, dto);
   }
 
   @Get()

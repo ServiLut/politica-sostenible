@@ -179,9 +179,18 @@ test("administración invita y copia un enlace secreto sin enviar tenantId", asy
   await expect(
     page.getByRole("heading", { name: "Equipo y accesos" }),
   ).toBeVisible();
+  const moreNavigation = page.getByRole("button", {
+    name: /Abrir .* opciones/i,
+  });
+  if (await moreNavigation.isVisible()) {
+    await moreNavigation.click();
+  }
   await expect(
     page.getByRole("link", { name: "Equipo y accesos" }),
   ).toBeVisible();
+  if (await moreNavigation.isVisible()) {
+    await page.getByRole("button", { name: /Cerrar men/i }).click();
+  }
   await expect(
     page.locator("main").getByText("Dirección de equipo").first(),
   ).toBeVisible();

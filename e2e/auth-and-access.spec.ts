@@ -140,14 +140,60 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
 
     authorizationHeaders.push(request.headers().authorization ?? "");
     const dataByPath: Record<string, unknown> = {
-      "/api/voters/stats": { total: 3, signatures: 2, consented: 3 },
-      "/api/finance/summary": {
-        totalExpenses: 100_000,
-        totalIncome: 500_000,
-        balance: 400_000,
+      "/api/command-center/briefing": {
+        generatedAt: "2026-08-27T14:00:00.000Z",
+        tenant: {
+          id: "tenant-e2e",
+          name: "Campaña verificable",
+          type: "CANDIDACY",
+          mode: "CAMPAIGN",
+        },
+        activation: {
+          ready: true,
+          completedSteps: 5,
+          totalSteps: 5,
+          steps: [
+            {
+              code: "TERRITORY_BASE",
+              title: "Cargar la base territorial",
+              detail: "Sincroniza departamentos y municipios desde DANE.",
+              href: "/dashboard/territory",
+              complete: true,
+            },
+          ],
+        },
+        metrics: {
+          people: { total: 3, consented: 3, consentCoverage: 100 },
+          team: { active: 4, pendingInvitations: 0 },
+          territory: {
+            departments: 1,
+            municipalities: 5,
+            zones: 2,
+            pollingPlaces: 4,
+          },
+          tasks: { open: 1, overdue: 0 },
+          events: { upcoming: 1 },
+          finance: {
+            income: "500000.00",
+            expenses: "100000.00",
+            balance: "400000.00",
+            pending: 0,
+            overdue: 0,
+          },
+          electionDay: { reports: 0, syncedReports: 0 },
+          communications: { pendingApproval: 0 },
+        },
+        alerts: [
+          {
+            code: "NO_CRITICAL_ALERTS",
+            severity: "ok",
+            title: "Controles críticos al día",
+            detail: "No hay vencimientos ni decisiones críticas en este corte.",
+            href: "/dashboard/tasks",
+          },
+        ],
+        agenda: { upcomingEvents: [], priorityTasks: [] },
       },
-      "/api/finance": [],
-      "/api/witnesses": [],
     };
 
     await route.fulfill({
@@ -170,8 +216,8 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
   await expect(
     page.getByRole("heading", { name: "Campaña verificable" }),
   ).toBeVisible();
-  await expect(page.getByText("3 registros totales")).toBeVisible();
-  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(4);
+  await expect(page.getByText("3 relaciones totales")).toBeVisible();
+  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(1);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
   );

@@ -23,6 +23,7 @@ import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
+import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
@@ -33,6 +34,27 @@ const CONSENT_REVOKE_ROLES = [
   Role.CAMPAIGN_MANAGER,
   Role.COMPLIANCE_OFFICER,
 ] as const;
+
+export const VOTER_READ_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+  Role.ZONE_COORDINATOR,
+] as const;
+
+const VOTER_TERRITORIALLY_SCOPED_ROLES = [Role.ZONE_COORDINATOR] as const;
+const VOTER_WRITE_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.ZONE_COORDINATOR,
+  Role.VOLUNTEER,
+] as const;
+const VOTER_WRITE_TERRITORIALLY_SCOPED_ROLES = [
+  Role.ZONE_COORDINATOR,
+  Role.VOLUNTEER,
+] as const;
+const VOTER_CAPTURE_RECEIPT = { received: true } as const;
 
 const VOTER_LIST_SELECT = {
   id: true,
@@ -61,8 +83,7 @@ export class VoterService {
   ) {}
 
   async create(
-    tenantId: string,
-    registrarId: string,
+    user: AuthenticatedUser,
     consentIp: string,
     dto: CreateVoterDto,
   ) {
@@ -73,99 +94,125 @@ export class VoterService {
     }
 
     const { consentAccepted, termsVersion, ...voterData } = dto;
-    const grantedAt = new Date();
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
 
-    return this.prisma.$transaction(async (transaction) => {
-      const tenant = await transaction.tenant.findUnique({
-        where: { id: tenantId },
-        select: CAMPAIGN_TENANT_SELECT,
-      });
-      assertCampaignTenant(tenant);
-      const sourceIpHash = this.consentEvidence.hashIp(consentIp);
+        const { divisionIds } = await resolveTerritorialAccess({
+          client: transaction,
+          tenantId: user.tenantId,
+          userId: user.userId,
+          allowedRoles: VOTER_WRITE_ROLES,
+          territoriallyScopedRoles: VOTER_WRITE_TERRITORIALLY_SCOPED_ROLES,
+        });
 
-      if (voterData.puestoId) {
-        const puesto = await transaction.politicalDivision.findFirst({
+        if (divisionIds !== null) {
+          if (!voterData.puestoId) {
+            throw new BadRequestException(
+              'El registro requiere un puesto dentro de la asignación territorial',
+            );
+          }
+          if (!divisionIds.includes(voterData.puestoId)) {
+            throw new ForbiddenException(
+              'El puesto no pertenece a la asignación territorial del usuario',
+            );
+          }
+        }
+
+        if (voterData.puestoId) {
+          const puesto = await transaction.politicalDivision.findFirst({
+            where: {
+              id: voterData.puestoId,
+              tenantId: user.tenantId,
+              type: DivisionType.PUESTO,
+            },
+            select: { id: true },
+          });
+
+          if (!puesto) {
+            throw new BadRequestException(
+              'Puesto de votación inválido para la campaña autenticada',
+            );
+          }
+        }
+
+        const existingVoter = await transaction.voter.findUnique({
           where: {
-            id: voterData.puestoId,
-            tenantId,
-            type: DivisionType.PUESTO,
+            documentId_tenantId: {
+              documentId: dto.documentId,
+              tenantId: user.tenantId,
+            },
           },
           select: { id: true },
         });
 
-        if (!puesto) {
-          throw new BadRequestException(
-            'Puesto de votación inválido para la campaña autenticada',
-          );
-        }
-      }
+        if (existingVoter) return VOTER_CAPTURE_RECEIPT;
 
-      const existingVoter = await transaction.voter.findUnique({
-        where: {
-          documentId_tenantId: {
-            documentId: dto.documentId,
-            tenantId,
+        const grantedAt = new Date();
+        const sourceIpHash = this.consentEvidence.hashIp(consentIp);
+        const voter = await transaction.voter.create({
+          data: {
+            ...voterData,
+            tenantId: user.tenantId,
+            registrarId: user.userId,
+            consentAccepted,
+            consentIp: sourceIpHash,
+            consentTimestamp: grantedAt,
+            termsVersion,
           },
-        },
+          select: { id: true },
+        });
+
+        await transaction.consentRecord.create({
+          data: {
+            tenantId: user.tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            subjectType: ConsentSubjectType.VOTER,
+            subjectRef: voter.id,
+            voterId: voter.id,
+            purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+            legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
+            status: ConsentStatus.GRANTED,
+            collectionChannel: ConsentCollectionChannel.IN_PERSON,
+            noticeVersion: termsVersion,
+            sourceIpHash,
+            capturedById: user.userId,
+            grantedAt,
+          },
+        });
+
+        return VOTER_CAPTURE_RECEIPT;
       });
-
-      if (existingVoter) {
-        throw new ConflictException(
-          'Este ciudadano ya está registrado en la campaña.',
-        );
-      }
-
-      const voter = await transaction.voter.create({
-        data: {
-          ...voterData,
-          tenantId,
-          registrarId,
-          consentAccepted,
-          consentIp: sourceIpHash,
-          consentTimestamp: grantedAt,
-          termsVersion,
-        },
-      });
-
-      await transaction.consentRecord.create({
-        data: {
-          tenantId,
-          mode: PoliticalOperationMode.CAMPAIGN,
-          subjectType: ConsentSubjectType.VOTER,
-          subjectRef: voter.id,
-          voterId: voter.id,
-          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
-          legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
-          status: ConsentStatus.GRANTED,
-          collectionChannel: ConsentCollectionChannel.IN_PERSON,
-          noticeVersion: termsVersion,
-          sourceIpHash,
-          capturedById: registrarId,
-          grantedAt,
-        },
-      });
-
-      return {
-        id: voter.id,
-        consentAccepted: voter.consentAccepted,
-      };
-    });
+    } catch (error: unknown) {
+      if (this.isPrismaError(error, 'P2002')) return VOTER_CAPTURE_RECEIPT;
+      throw error;
+    }
   }
 
-  async findAll(tenantId: string, query: ListVotersQueryDto) {
-    await this.assertCampaignMode(tenantId);
+  async findAll(user: AuthenticatedUser, query: ListVotersQueryDto) {
+    await this.assertCampaignMode(user.tenantId);
+    const { divisionIds } = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: VOTER_READ_ROLES,
+      territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
+    });
     const page = query.page ?? 1;
     const limit = query.limit ?? 25;
     const search = query.search?.trim();
     const where: Prisma.VoterWhereInput = {
-      tenantId,
+      tenantId: user.tenantId,
+      ...(divisionIds ? { puestoId: { in: divisionIds } } : {}),
       ...(search
         ? {
             OR: [
               { firstName: { contains: search, mode: 'insensitive' } },
               { lastName: { contains: search, mode: 'insensitive' } },
-              { documentId: { contains: search, mode: 'insensitive' } },
-              { phone: { contains: search, mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -314,12 +361,23 @@ export class VoterService {
     }
   }
 
-  async getStats(tenantId: string) {
-    await this.assertCampaignMode(tenantId);
+  async getStats(user: AuthenticatedUser) {
+    await this.assertCampaignMode(user.tenantId);
+    const { divisionIds } = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: VOTER_READ_ROLES,
+      territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
+    });
+    const where: Prisma.VoterWhereInput = {
+      tenantId: user.tenantId,
+      ...(divisionIds ? { puestoId: { in: divisionIds } } : {}),
+    };
     const [total, signatures, consented] = await Promise.all([
-      this.prisma.voter.count({ where: { tenantId } }),
-      this.prisma.voter.count({ where: { tenantId, isSignatureValid: true } }),
-      this.prisma.voter.count({ where: { tenantId, consentAccepted: true } }),
+      this.prisma.voter.count({ where }),
+      this.prisma.voter.count({ where: { ...where, isSignatureValid: true } }),
+      this.prisma.voter.count({ where: { ...where, consentAccepted: true } }),
     ]);
 
     return { total, signatures, consented };

@@ -38,7 +38,6 @@ const EVENT_WRITE_ROLES = [
   Role.CAMPAIGN_MANAGER,
   Role.COMMUNICATIONS_MANAGER,
   Role.CONSTITUENT_SERVICES_MANAGER,
-  Role.ZONE_COORDINATOR,
 ] as const;
 
 @ApiTags('Operational events')

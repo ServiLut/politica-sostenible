@@ -1,259 +1,121 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  AlertCircle,
   AlertTriangle,
   ArrowRight,
   BriefcaseBusiness,
+  CalendarClock,
+  Check,
   CheckCircle2,
   ClipboardCheck,
-  Clock3,
   FileText,
-  Loader2,
+  Landmark,
+  ListChecks,
+  LoaderCircle,
   RefreshCw,
   ShieldCheck,
   Siren,
   Target,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
-import { ApiError } from "@/lib/api-client";
-import { IssueCase, IssueCaseStatus, listIssueCases } from "@/lib/cases-api";
-import {
-  Commitment,
-  CommitmentStatus,
-  listCommitments,
-  listTasks,
-  Task,
-  TaskStatus,
-  WorkPriority,
-} from "@/lib/work-api";
+import { ApiError, apiRequest } from "@/lib/api-client";
 
-interface DashboardMetrics {
-  totalCases: number;
-  openCases: number;
-  inProgressCases: number;
-  pendingTasks: number;
-  overdueTasks: number;
-  publicCommitments: number;
+type AlertSeverity = "critical" | "attention" | "ok";
+
+interface PublicOfficeBriefing {
+  generatedAt: string;
+  tenant: {
+    id: string;
+    name: string;
+    type: string;
+    mode: "PUBLIC_OFFICE";
+  };
+  activation: {
+    ready: boolean;
+    completedSteps: number;
+    totalSteps: number;
+    steps: Array<{
+      code: string;
+      title: string;
+      detail: string;
+      href: string;
+      complete: boolean;
+    }>;
+  };
+  metrics: {
+    team: { active: number; pendingInvitations: number };
+    cases: { open: number; overdue: number; urgent: number };
+    tasks: { open: number; overdue: number };
+    commitments: {
+      open: number;
+      atRisk: number;
+      overdue: number;
+      public: number;
+    };
+    events: { upcoming: number };
+    communications: { pendingApproval: number };
+  };
+  alerts: Array<{
+    code: string;
+    severity: AlertSeverity;
+    title: string;
+    detail: string;
+    href: string;
+    count?: number;
+  }>;
+  agenda: {
+    upcomingEvents: Array<{
+      id: string;
+      name: string;
+      startsAt: string;
+      endsAt: string;
+      status: string;
+    }>;
+    priorityTasks: Array<{
+      id: string;
+      title: string;
+      status: string;
+      priority: "URGENT" | "HIGH";
+      dueAt: string | null;
+    }>;
+  };
 }
 
-interface DashboardSnapshot {
-  metrics: DashboardMetrics;
-  recentCases: IssueCase[];
-  urgentCases: IssueCase[];
-  urgentCasesTotal: number;
-  recentTasks: Task[];
-  publicCommitments: Commitment[];
-}
-
-const PENDING_TASK_STATUSES: readonly TaskStatus[] = [
-  "TODO",
-  "IN_PROGRESS",
-  "BLOCKED",
-];
-
-const CASE_STATUS_LABELS: Record<IssueCaseStatus, string> = {
-  OPEN: "Abierto",
-  TRIAGED: "Clasificado",
-  IN_PROGRESS: "En gestión",
-  WAITING_ON_CITIZEN: "Esperando ciudadano",
-  WAITING_ON_EXTERNAL_ENTITY: "Esperando entidad",
-  RESOLVED: "Resuelto",
-  CLOSED: "Cerrado",
-  CANCELLED: "Cancelado",
-};
-
-const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  TODO: "Por hacer",
-  IN_PROGRESS: "En progreso",
-  BLOCKED: "Bloqueada",
-  DONE: "Terminada",
-  CANCELLED: "Cancelada",
-};
-
-const COMMITMENT_STATUS_LABELS: Record<CommitmentStatus, string> = {
-  PROPOSED: "Propuesto",
-  PLANNED: "Planificado",
-  IN_PROGRESS: "En progreso",
-  AT_RISK: "En riesgo",
-  FULFILLED: "Cumplido",
-  NOT_FULFILLED: "No cumplido",
-  CANCELLED: "Cancelado",
-};
-
-const PRIORITY_LABELS: Record<WorkPriority, string> = {
-  LOW: "Baja",
-  MEDIUM: "Media",
-  HIGH: "Alta",
-  URGENT: "Urgente",
-};
-
-function readableError(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error && error.message) return error.message;
-  return "No fue posible consultar el centro de gestión pública.";
-}
-
-function formatNumber(value: number): string {
+function formatNumber(value: number) {
   return new Intl.NumberFormat("es-CO").format(value);
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return "Sin fecha";
+function formatDate(value: string | null) {
+  if (!value) return "Sin fecha definida";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
 
   return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
+    day: "numeric",
     month: "short",
-    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 }
 
-function isOverdue(value: string | null): boolean {
-  if (!value) return false;
-  const timestamp = new Date(value).getTime();
-  return !Number.isNaN(timestamp) && timestamp < Date.now();
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-  icon,
-  testId,
-  href,
-}: {
-  label: string;
-  value: number;
-  detail: string;
-  icon: ReactNode;
-  testId: string;
-  href: string;
-}) {
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-wider text-slate-400">
-            {label}
-          </p>
-          <p
-            data-testid={testId}
-            className="mt-2 text-3xl font-black tracking-tight text-slate-950"
-          >
-            {formatNumber(value)}
-          </p>
-        </div>
-        <span
-          className="rounded-2xl bg-blue-50 p-3 text-blue-700"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
-        <p className="text-xs leading-5 text-slate-500">{detail}</p>
-        <Link
-          href={href}
-          aria-label={`Abrir ${label.toLowerCase()}`}
-          className="shrink-0 rounded-lg p-1.5 text-blue-700 transition hover:bg-blue-50"
-        >
-          <ArrowRight aria-hidden="true" size={16} />
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function EmptyList({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-      {message}
-    </div>
-  );
-}
-
 export default function PublicOfficePage() {
-  const { tenant } = useAuth();
-  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const { tenant, user } = useAuth();
+  const [briefing, setBriefing] = useState<PublicOfficeBriefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboard = useCallback(async (signal?: AbortSignal) => {
+  const loadBriefing = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-
     try {
-      const overdueCutoff = new Date().toISOString();
-      const [
-        recentCases,
-        openCases,
-        inProgressCases,
-        urgentCases,
-        recentTasks,
-        publicCommitments,
-        todoTasks,
-        inProgressTasks,
-        blockedTasks,
-        overdueTodoTasks,
-        overdueInProgressTasks,
-        overdueBlockedTasks,
-      ] = await Promise.all([
-        listIssueCases({ page: 1, limit: 5 }, signal),
-        listIssueCases({ page: 1, limit: 1, status: "OPEN" }, signal),
-        listIssueCases({ page: 1, limit: 1, status: "IN_PROGRESS" }, signal),
-        listIssueCases({ page: 1, limit: 5, priority: "URGENT" }, signal),
-        listTasks({ page: 1, limit: 5 }, signal),
-        listCommitments({ page: 1, limit: 5, isPublic: "true" }, signal),
-        listTasks({ page: 1, limit: 1, status: "TODO" }, signal),
-        listTasks({ page: 1, limit: 1, status: "IN_PROGRESS" }, signal),
-        listTasks({ page: 1, limit: 1, status: "BLOCKED" }, signal),
-        listTasks(
-          { page: 1, limit: 1, status: "TODO", dueTo: overdueCutoff },
-          signal,
-        ),
-        listTasks(
-          {
-            page: 1,
-            limit: 1,
-            status: "IN_PROGRESS",
-            dueTo: overdueCutoff,
-          },
-          signal,
-        ),
-        listTasks(
-          { page: 1, limit: 1, status: "BLOCKED", dueTo: overdueCutoff },
-          signal,
-        ),
-      ]);
-
-      const pendingTasks =
-        todoTasks.pagination.total +
-        inProgressTasks.pagination.total +
-        blockedTasks.pagination.total;
-      const overdueTasks =
-        overdueTodoTasks.pagination.total +
-        overdueInProgressTasks.pagination.total +
-        overdueBlockedTasks.pagination.total;
-
-      setSnapshot({
-        metrics: {
-          totalCases: recentCases.pagination.total,
-          openCases: openCases.pagination.total,
-          inProgressCases: inProgressCases.pagination.total,
-          pendingTasks,
-          overdueTasks,
-          publicCommitments: publicCommitments.pagination.total,
-        },
-        recentCases: recentCases.items,
-        urgentCases: urgentCases.items,
-        urgentCasesTotal: urgentCases.pagination.total,
-        recentTasks: recentTasks.items,
-        publicCommitments: publicCommitments.items,
-      });
+      const result = await apiRequest<PublicOfficeBriefing>(
+        "command-center/briefing",
+        { signal },
+      );
+      setBriefing(result);
     } catch (requestError) {
       if (
         requestError instanceof DOMException &&
@@ -261,7 +123,11 @@ export default function PublicOfficePage() {
       ) {
         return;
       }
-      setError(readableError(requestError));
+      setError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : "No fue posible consultar el centro de gestión pública.",
+      );
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -269,408 +135,409 @@ export default function PublicOfficePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadDashboard(controller.signal);
+    void loadBriefing(controller.signal);
     return () => controller.abort();
-  }, [loadDashboard]);
+  }, [loadBriefing]);
 
-  const hasOperationalData = snapshot
-    ? Object.values(snapshot.metrics).some((value) => value > 0)
-    : false;
+  const progress = briefing
+    ? Math.round(
+        (briefing.activation.completedSteps /
+          Math.max(briefing.activation.totalSteps, 1)) *
+          100,
+      )
+    : 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-700">
-            <ShieldCheck aria-hidden="true" size={14} /> Gestión pública
-          </div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            Centro de gestión pública
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Seguimiento operativo de {tenant?.name ?? "la organización"} basado
-            exclusivamente en casos, tareas y compromisos registrados.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => void loadDashboard()}
-            disabled={loading}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-blue-300 disabled:opacity-50"
-          >
-            <RefreshCw
-              aria-hidden="true"
-              className={loading ? "animate-spin" : ""}
-              size={17}
-            />
-            Actualizar
-          </button>
-          <Link
-            href="/dashboard/cases"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-black text-white transition hover:bg-blue-800"
-          >
-            <FileText aria-hidden="true" size={17} /> Gestionar casos
-          </Link>
-        </div>
-      </header>
-
-      {loading ? (
-        <div
-          role="status"
-          className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-semibold text-slate-500"
-        >
-          <Loader2
-            aria-hidden="true"
-            className="animate-spin text-blue-700"
-            size={30}
-          />
-          Calculando indicadores desde la API…
-        </div>
-      ) : error ? (
-        <div
-          role="alert"
-          className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
-        >
-          <AlertCircle aria-hidden="true" className="text-red-600" size={34} />
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.22),transparent_62%)]" />
+        <div className="relative grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
           <div>
-            <h2 className="font-black text-slate-950">
-              No pudimos cargar el centro de gestión
-            </h2>
-            <p className="mt-1 max-w-xl text-sm text-slate-600">{error}</p>
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-300">
+              <Landmark size={15} aria-hidden="true" /> Gestión pública ·
+              Espacio separado
+            </p>
+            <p className="mt-5 text-sm font-medium text-slate-400">
+              Hola, {user?.name?.split(" ")[0] ?? "equipo"}. Este es el corte de
+              atención y cumplimiento.
+            </p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+              Centro de gestión pública
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+              Seguimiento de{" "}
+              {briefing?.tenant.name ?? tenant?.name ?? "la organización"},
+              calculado con casos, tareas y compromisos del modo autenticado.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadDashboard()}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-800"
-          >
-            <RefreshCw aria-hidden="true" size={16} /> Reintentar
-          </button>
-        </div>
-      ) : snapshot ? (
-        <>
-          <section
-            aria-label="Indicadores operativos"
-            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-          >
-            <MetricCard
-              label="Casos totales"
-              value={snapshot.metrics.totalCases}
-              detail="Total exacto informado por la paginación"
-              icon={<BriefcaseBusiness size={21} />}
-              testId="total-cases-metric"
-              href="/dashboard/cases"
-            />
-            <MetricCard
-              label="Casos abiertos"
-              value={snapshot.metrics.openCases}
-              detail="Consulta exacta con estado OPEN"
-              icon={<FileText size={21} />}
-              testId="open-cases-metric"
-              href="/dashboard/cases"
-            />
-            <MetricCard
-              label="Casos en gestión"
-              value={snapshot.metrics.inProgressCases}
-              detail="Consulta exacta con estado IN_PROGRESS"
-              icon={<Clock3 size={21} />}
-              testId="in-progress-cases-metric"
-              href="/dashboard/cases"
-            />
-            <MetricCard
-              label="Tareas pendientes"
-              value={snapshot.metrics.pendingTasks}
-              detail="Por hacer, en progreso o bloqueadas"
-              icon={<ClipboardCheck size={21} />}
-              testId="pending-tasks-metric"
-              href="/dashboard/tasks"
-            />
-            <MetricCard
-              label="Tareas vencidas"
-              value={snapshot.metrics.overdueTasks}
-              detail="Pendientes con fecha límite anterior a hoy"
-              icon={<AlertTriangle size={21} />}
-              testId="overdue-tasks-metric"
-              href="/dashboard/tasks"
-            />
-            <MetricCard
-              label="Compromisos públicos"
-              value={snapshot.metrics.publicCommitments}
-              detail="Total exacto con visibilidad pública"
-              icon={<Target size={21} />}
-              testId="public-commitments-metric"
-              href="/dashboard/tasks"
-            />
-          </section>
 
-          {!hasOperationalData && (
-            <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <CheckCircle2
-                aria-hidden="true"
-                className="mx-auto text-slate-300"
-                size={42}
-              />
-              <h2 className="mt-4 text-lg font-black text-slate-950">
-                Aún no hay actividad registrada
-              </h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Los indicadores permanecerán en cero hasta que se radiquen
-                casos, se creen tareas o se publiquen compromisos reales.
-              </p>
-              <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link
-                  href="/dashboard/cases"
-                  className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white"
-                >
-                  Ir a casos
-                </Link>
-                <Link
-                  href="/dashboard/tasks"
-                  className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700"
-                >
-                  Ir a tareas y compromisos
-                </Link>
-              </div>
-            </section>
-          )}
-
-          <section className="grid gap-5 xl:grid-cols-3">
-            <article className="rounded-3xl border border-red-200 bg-white p-5 shadow-sm">
-              <header className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="inline-flex items-center gap-2 font-black text-slate-950">
-                    <Siren
-                      aria-hidden="true"
-                      className="text-red-600"
-                      size={18}
-                    />{" "}
-                    Casos urgentes
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {formatNumber(snapshot.urgentCasesTotal)} casos con
-                    prioridad URGENT
-                  </p>
-                </div>
-                <Link
-                  href="/dashboard/cases"
-                  className="text-blue-700"
-                  aria-label="Abrir casos urgentes"
-                >
-                  <ArrowRight aria-hidden="true" size={18} />
-                </Link>
-              </header>
-              <div className="mt-5 space-y-3">
-                {snapshot.urgentCases.length === 0 ? (
-                  <EmptyList message="No hay casos urgentes registrados." />
-                ) : (
-                  snapshot.urgentCases.map((issueCase) => (
-                    <div
-                      key={issueCase.id}
-                      data-testid={`urgent-case-${issueCase.id}`}
-                      className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-mono text-[10px] font-black text-blue-700">
-                          {issueCase.reference}
-                        </p>
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-800">
-                          Urgente
-                        </span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-black text-slate-900">
-                        {issueCase.title}
-                      </h3>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {CASE_STATUS_LABELS[issueCase.status]} · vence{" "}
-                        {formatDate(issueCase.dueAt)}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </article>
-
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <header className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-black text-slate-950">
-                    Tareas recientes
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Últimas tareas del modo activo
-                  </p>
-                </div>
-                <Link
-                  href="/dashboard/tasks"
-                  className="text-blue-700"
-                  aria-label="Abrir tareas"
-                >
-                  <ArrowRight aria-hidden="true" size={18} />
-                </Link>
-              </header>
-              <div className="mt-5 space-y-3">
-                {snapshot.recentTasks.length === 0 ? (
-                  <EmptyList message="No hay tareas registradas." />
-                ) : (
-                  snapshot.recentTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      data-testid={`recent-task-${task.id}`}
-                      className="rounded-2xl border border-slate-100 p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[10px] font-black uppercase text-amber-800">
-                          {PRIORITY_LABELS[task.priority]}
-                        </span>
-                        {isOverdue(task.dueAt) &&
-                          PENDING_TASK_STATUSES.includes(task.status) && (
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-black text-red-700">
-                              Vencida
-                            </span>
-                          )}
-                      </div>
-                      <h3 className="mt-2 text-sm font-black text-slate-900">
-                        {task.title}
-                      </h3>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {TASK_STATUS_LABELS[task.status]} ·{" "}
-                        {task.assignee?.name ?? "Sin asignar"}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </article>
-
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <header className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-black text-slate-950">
-                    Compromisos públicos
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Avance registrado individualmente
-                  </p>
-                </div>
-                <Link
-                  href="/dashboard/tasks"
-                  className="text-blue-700"
-                  aria-label="Abrir compromisos"
-                >
-                  <ArrowRight aria-hidden="true" size={18} />
-                </Link>
-              </header>
-              <div className="mt-5 space-y-3">
-                {snapshot.publicCommitments.length === 0 ? (
-                  <EmptyList message="No hay compromisos públicos registrados." />
-                ) : (
-                  snapshot.publicCommitments.map((commitment) => (
-                    <div
-                      key={commitment.id}
-                      data-testid={`public-commitment-${commitment.id}`}
-                      className="rounded-2xl border border-slate-100 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-mono text-[10px] font-black text-blue-700">
-                          {commitment.reference}
-                        </p>
-                        <span className="text-xs font-black text-slate-700">
-                          {commitment.progress}%
-                        </span>
-                      </div>
-                      <h3 className="mt-2 text-sm font-black text-slate-900">
-                        {commitment.title}
-                      </h3>
-                      <div
-                        role="progressbar"
-                        aria-label={`Avance de ${commitment.title}`}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={commitment.progress}
-                        className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"
-                      >
-                        <div
-                          className="h-full rounded-full bg-blue-700"
-                          style={{ width: `${commitment.progress}%` }}
-                        />
-                      </div>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {COMMITMENT_STATUS_LABELS[commitment.status]}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </article>
-          </section>
-
-          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <header className="flex items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+          <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-black text-slate-950">Casos recientes</h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Últimos registros informados por la API
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Activación del servicio
+                </p>
+                <p className="mt-1 text-2xl font-black">
+                  {briefing
+                    ? `${briefing.activation.completedSteps}/${briefing.activation.totalSteps}`
+                    : "—"}
                 </p>
               </div>
-              <Link
-                href="/dashboard/cases"
-                className="inline-flex items-center gap-2 text-sm font-black text-blue-700"
+              <button
+                type="button"
+                onClick={() => void loadBriefing()}
+                disabled={loading}
+                aria-label="Actualizar centro de gestión"
+                className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 transition hover:bg-white/20 disabled:opacity-50"
               >
-                Ver todos <ArrowRight aria-hidden="true" size={16} />
+                {loading ? (
+                  <LoaderCircle className="animate-spin" size={18} />
+                ) : (
+                  <RefreshCw size={18} />
+                )}
+              </button>
+            </div>
+            <div
+              className="mt-4 h-1.5 overflow-hidden bg-white/10"
+              role="progressbar"
+              aria-label="Progreso de activación de gestión pública"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
+              <div
+                className="h-full bg-blue-400 transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-400">
+              {briefing?.activation.ready
+                ? "Onboarding operativo completo para los controles medidos."
+                : "Completa la ruta para asegurar responsables y evidencia."}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+        >
+          <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+          <div>
+            <p className="font-black">No se pudo actualizar el centro</p>
+            <p className="mt-1">{error}</p>
+          </div>
+        </div>
+      )}
+
+      <section
+        aria-label="Indicadores de gestión pública"
+        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <MetricCard
+          label="Casos abiertos"
+          value={briefing?.metrics.cases.open ?? 0}
+          detail={`${briefing?.metrics.cases.urgent ?? 0} urgentes`}
+          icon={BriefcaseBusiness}
+          testId="open-cases-metric"
+          href="/dashboard/cases"
+        />
+        <MetricCard
+          label="Casos vencidos"
+          value={briefing?.metrics.cases.overdue ?? 0}
+          detail="Superaron la fecha de atención"
+          icon={Siren}
+          testId="overdue-cases-metric"
+          href="/dashboard/cases"
+          accent="red"
+        />
+        <MetricCard
+          label="Tareas vencidas"
+          value={briefing?.metrics.tasks.overdue ?? 0}
+          detail={`${briefing?.metrics.tasks.open ?? 0} tareas abiertas`}
+          icon={ClipboardCheck}
+          testId="overdue-tasks-metric"
+          href="/dashboard/tasks"
+          accent="amber"
+        />
+        <MetricCard
+          label="Compromisos públicos"
+          value={briefing?.metrics.commitments.public ?? 0}
+          detail={`${briefing?.metrics.commitments.atRisk ?? 0} en riesgo`}
+          icon={Target}
+          testId="public-commitments-metric"
+          href="/dashboard/tasks"
+          accent="emerald"
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+        <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+            Decisiones del corte
+          </p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            Riesgos que necesitan responsable
+          </h2>
+          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+            {(briefing?.alerts ?? []).map((alert) => (
+              <Link
+                key={alert.code}
+                href={alert.href}
+                className="group grid grid-cols-[40px_1fr_auto] gap-3 py-5"
+              >
+                <span
+                  className={`grid h-10 w-10 place-items-center ${
+                    alert.severity === "critical"
+                      ? "bg-red-50 text-red-700"
+                      : alert.severity === "attention"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {alert.severity === "ok" ? (
+                    <CheckCircle2 size={19} />
+                  ) : (
+                    <AlertTriangle size={19} />
+                  )}
+                </span>
+                <span>
+                  <span className="block text-sm font-black text-slate-900">
+                    {alert.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    {alert.detail}
+                  </span>
+                </span>
+                <ArrowRight
+                  className="mt-3 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-800"
+                  size={17}
+                />
               </Link>
-            </header>
-            {snapshot.recentCases.length === 0 ? (
-              <div className="p-6">
-                <EmptyList message="No hay casos recientes para mostrar." />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead className="text-xs font-black uppercase tracking-wider text-slate-400">
-                    <tr>
-                      <th className="px-6 py-4">Referencia / asunto</th>
-                      <th className="px-6 py-4">Categoría</th>
-                      <th className="px-6 py-4">Estado</th>
-                      <th className="px-6 py-4">Prioridad</th>
-                      <th className="px-6 py-4">Responsable</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {snapshot.recentCases.map((issueCase) => (
-                      <tr
-                        key={issueCase.id}
-                        data-testid={`recent-case-${issueCase.id}`}
-                        className="hover:bg-slate-50/70"
-                      >
-                        <td className="px-6 py-5">
-                          <p className="font-mono text-[10px] font-black text-blue-700">
-                            {issueCase.reference}
-                          </p>
-                          <p className="mt-1 font-black text-slate-900">
-                            {issueCase.title}
-                          </p>
-                        </td>
-                        <td className="px-6 py-5 font-semibold text-slate-600">
-                          {issueCase.category}
-                        </td>
-                        <td className="px-6 py-5 text-slate-600">
-                          {CASE_STATUS_LABELS[issueCase.status]}
-                        </td>
-                        <td className="px-6 py-5 font-black text-slate-700">
-                          {PRIORITY_LABELS[issueCase.priority]}
-                        </td>
-                        <td className="px-6 py-5 text-slate-600">
-                          {issueCase.assignee?.name ?? "Sin asignar"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            ))}
+            {loading && (
+              <div className="flex items-center gap-3 py-8 text-sm font-semibold text-slate-500">
+                <LoaderCircle className="animate-spin" size={18} />
+                Consolidando casos, tareas y compromisos…
               </div>
             )}
-          </section>
-        </>
-      ) : null}
+          </div>
+        </article>
+
+        <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+            Ruta de activación
+          </p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            Del primer caso a la rendición
+          </h2>
+          <div className="mt-6">
+            {(briefing?.activation.steps ?? []).map((step, index) => (
+              <Link
+                key={step.code}
+                href={step.href}
+                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
+              >
+                <span
+                  className={`grid h-8 w-8 place-items-center text-xs font-black ${
+                    step.complete
+                      ? "bg-blue-700 text-white"
+                      : "border border-slate-300 text-slate-500"
+                  }`}
+                >
+                  {step.complete ? <Check size={15} /> : index + 1}
+                </span>
+                <span>
+                  <span className="block text-sm font-black text-slate-900">
+                    {step.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    {step.detail}
+                  </span>
+                </span>
+                <ArrowRight
+                  className="mt-2 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
+                  size={16}
+                />
+              </Link>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <AgendaPanel
+          title="Agenda pública próxima"
+          icon={CalendarClock}
+          empty="No hay actividades programadas para las próximas dos semanas."
+        >
+          {(briefing?.agenda.upcomingEvents ?? []).map((event) => (
+            <Link
+              key={event.id}
+              href="/dashboard/events"
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {event.name}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {formatDate(event.startsAt)}
+                </span>
+              </span>
+              <ArrowRight className="shrink-0 text-slate-300" size={16} />
+            </Link>
+          ))}
+        </AgendaPanel>
+
+        <AgendaPanel
+          title="Tareas de alta prioridad"
+          icon={ListChecks}
+          empty="No hay tareas urgentes o de alta prioridad abiertas."
+        >
+          {(briefing?.agenda.priorityTasks ?? []).map((task) => (
+            <Link
+              key={task.id}
+              href="/dashboard/tasks"
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {task.title}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {task.priority === "URGENT" ? "Urgente" : "Alta"} ·{" "}
+                  {formatDate(task.dueAt)}
+                </span>
+              </span>
+              <ArrowRight className="shrink-0 text-slate-300" size={16} />
+            </Link>
+          ))}
+        </AgendaPanel>
+      </section>
+
+      <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              Operación conectada
+            </p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">
+              Atender, ejecutar, demostrar
+            </h2>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/dashboard/cases"
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-blue-700 px-5 text-sm font-black text-white transition hover:bg-blue-800"
+            >
+              <FileText size={17} /> Gestionar casos
+            </Link>
+            <Link
+              href="/dashboard/tasks"
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+            >
+              <ListChecks size={17} /> Tareas y compromisos
+            </Link>
+            <Link
+              href="/dashboard/team"
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+            >
+              <Users size={17} /> Equipo
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {briefing?.generatedAt && (
+        <p className="text-right text-[11px] font-semibold text-slate-400">
+          Corte generado {formatDate(briefing.generatedAt)}
+        </p>
+      )}
     </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  testId,
+  href,
+  accent = "blue",
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  icon: typeof ShieldCheck;
+  testId: string;
+  href: string;
+  accent?: "blue" | "red" | "amber" | "emerald";
+}) {
+  const accents = {
+    blue: "bg-blue-50 text-blue-700",
+    red: "bg-red-50 text-red-700",
+    amber: "bg-amber-50 text-amber-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+  };
+
+  return (
+    <article className="bg-white p-5 sm:p-6">
+      <div className={`grid h-10 w-10 place-items-center ${accents[accent]}`}>
+        <Icon size={20} aria-hidden="true" />
+      </div>
+      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+        {label}
+      </p>
+      <p
+        data-testid={testId}
+        className="mt-1 text-3xl font-black tracking-tight text-slate-950"
+      >
+        {formatNumber(value)}
+      </p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-slate-500">{detail}</p>
+        <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`}>
+          <ArrowRight className="text-slate-300" size={15} />
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function AgendaPanel({
+  title,
+  icon: Icon,
+  empty,
+  children,
+}: {
+  title: string;
+  icon: typeof CalendarClock;
+  empty: string;
+  children: React.ReactNode;
+}) {
+  const hasChildren = Array.isArray(children)
+    ? children.length > 0
+    : Boolean(children);
+
+  return (
+    <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <div className="flex items-center gap-3">
+        <Icon className="text-blue-700" size={20} aria-hidden="true" />
+        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      </div>
+      <div className="mt-4">
+        {hasChildren ? (
+          children
+        ) : (
+          <p className="border-t border-slate-100 py-5 text-sm leading-6 text-slate-500">
+            {empty}
+          </p>
+        )}
+      </div>
+    </article>
   );
 }

@@ -24,6 +24,11 @@ export type Tenant = $Result.DefaultSelection<Prisma.$TenantPayload>
  */
 export type CampaignSettings = $Result.DefaultSelection<Prisma.$CampaignSettingsPayload>
 /**
+ * Model StoredObject
+ * 
+ */
+export type StoredObject = $Result.DefaultSelection<Prisma.$StoredObjectPayload>
+/**
  * Model User
  * 
  */
@@ -189,6 +194,24 @@ export const MovementType: {
 };
 
 export type MovementType = (typeof MovementType)[keyof typeof MovementType]
+
+
+export const StorageObjectModule: {
+  FINANCE: 'FINANCE',
+  E14: 'E14'
+};
+
+export type StorageObjectModule = (typeof StorageObjectModule)[keyof typeof StorageObjectModule]
+
+
+export const StoredObjectStatus: {
+  ISSUED: 'ISSUED',
+  CONFIRMED: 'CONFIRMED',
+  CONSUMED: 'CONSUMED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type StoredObjectStatus = (typeof StoredObjectStatus)[keyof typeof StoredObjectStatus]
 
 
 export const CneCode: {
@@ -411,6 +434,14 @@ export type MovementType = $Enums.MovementType
 
 export const MovementType: typeof $Enums.MovementType
 
+export type StorageObjectModule = $Enums.StorageObjectModule
+
+export const StorageObjectModule: typeof $Enums.StorageObjectModule
+
+export type StoredObjectStatus = $Enums.StoredObjectStatus
+
+export const StoredObjectStatus: typeof $Enums.StoredObjectStatus
+
 export type CneCode = $Enums.CneCode
 
 export const CneCode: typeof $Enums.CneCode
@@ -619,6 +650,16 @@ export class PrismaClient<
     * ```
     */
   get campaignSettings(): Prisma.CampaignSettingsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.storedObject`: Exposes CRUD operations for the **StoredObject** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more StoredObjects
+    * const storedObjects = await prisma.storedObject.findMany()
+    * ```
+    */
+  get storedObject(): Prisma.StoredObjectDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.user`: Exposes CRUD operations for the **User** model.
@@ -1238,6 +1279,7 @@ export namespace Prisma {
   export const ModelName: {
     Tenant: 'Tenant',
     CampaignSettings: 'CampaignSettings',
+    StoredObject: 'StoredObject',
     User: 'User',
     TeamInvitation: 'TeamInvitation',
     PoliticalDivision: 'PoliticalDivision',
@@ -1270,7 +1312,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent"
+      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1419,6 +1461,80 @@ export namespace Prisma {
           count: {
             args: Prisma.CampaignSettingsCountArgs<ExtArgs>
             result: $Utils.Optional<CampaignSettingsCountAggregateOutputType> | number
+          }
+        }
+      }
+      StoredObject: {
+        payload: Prisma.$StoredObjectPayload<ExtArgs>
+        fields: Prisma.StoredObjectFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.StoredObjectFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.StoredObjectFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          findFirst: {
+            args: Prisma.StoredObjectFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.StoredObjectFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          findMany: {
+            args: Prisma.StoredObjectFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>[]
+          }
+          create: {
+            args: Prisma.StoredObjectCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          createMany: {
+            args: Prisma.StoredObjectCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.StoredObjectCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>[]
+          }
+          delete: {
+            args: Prisma.StoredObjectDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          update: {
+            args: Prisma.StoredObjectUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          deleteMany: {
+            args: Prisma.StoredObjectDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.StoredObjectUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.StoredObjectUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>[]
+          }
+          upsert: {
+            args: Prisma.StoredObjectUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StoredObjectPayload>
+          }
+          aggregate: {
+            args: Prisma.StoredObjectAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateStoredObject>
+          }
+          groupBy: {
+            args: Prisma.StoredObjectGroupByArgs<ExtArgs>
+            result: $Utils.Optional<StoredObjectGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.StoredObjectCountArgs<ExtArgs>
+            result: $Utils.Optional<StoredObjectCountAggregateOutputType> | number
           }
         }
       }
@@ -2805,6 +2921,7 @@ export namespace Prisma {
   export type GlobalOmitConfig = {
     tenant?: TenantOmit
     campaignSettings?: CampaignSettingsOmit
+    storedObject?: StoredObjectOmit
     user?: UserOmit
     teamInvitation?: TeamInvitationOmit
     politicalDivision?: PoliticalDivisionOmit
@@ -2919,6 +3036,7 @@ export namespace Prisma {
     communicationApprovals: number
     teamInvitations: number
     auditEvents: number
+    storedObjects: number
   }
 
   export type TenantCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2939,6 +3057,7 @@ export namespace Prisma {
     communicationApprovals?: boolean | TenantCountOutputTypeCountCommunicationApprovalsArgs
     teamInvitations?: boolean | TenantCountOutputTypeCountTeamInvitationsArgs
     auditEvents?: boolean | TenantCountOutputTypeCountAuditEventsArgs
+    storedObjects?: boolean | TenantCountOutputTypeCountStoredObjectsArgs
   }
 
   // Custom InputTypes
@@ -3071,13 +3190,21 @@ export namespace Prisma {
     where?: AuditEventWhereInput
   }
 
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountStoredObjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StoredObjectWhereInput
+  }
+
 
   /**
    * Count Type UserCountOutputType
    */
 
   export type UserCountOutputType = {
-    financialEntries: number
+    financialEntriesReported: number
+    financialEntriesReviewed: number
     registeredVoters: number
     witnessReports: number
     pointLogs: number
@@ -3094,10 +3221,12 @@ export namespace Prisma {
     invitationsSent: number
     eventsResponsible: number
     auditEvents: number
+    storedObjects: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    financialEntries?: boolean | UserCountOutputTypeCountFinancialEntriesArgs
+    financialEntriesReported?: boolean | UserCountOutputTypeCountFinancialEntriesReportedArgs
+    financialEntriesReviewed?: boolean | UserCountOutputTypeCountFinancialEntriesReviewedArgs
     registeredVoters?: boolean | UserCountOutputTypeCountRegisteredVotersArgs
     witnessReports?: boolean | UserCountOutputTypeCountWitnessReportsArgs
     pointLogs?: boolean | UserCountOutputTypeCountPointLogsArgs
@@ -3114,6 +3243,7 @@ export namespace Prisma {
     invitationsSent?: boolean | UserCountOutputTypeCountInvitationsSentArgs
     eventsResponsible?: boolean | UserCountOutputTypeCountEventsResponsibleArgs
     auditEvents?: boolean | UserCountOutputTypeCountAuditEventsArgs
+    storedObjects?: boolean | UserCountOutputTypeCountStoredObjectsArgs
   }
 
   // Custom InputTypes
@@ -3130,7 +3260,14 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
-  export type UserCountOutputTypeCountFinancialEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type UserCountOutputTypeCountFinancialEntriesReportedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FinancialEntryWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountFinancialEntriesReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FinancialEntryWhereInput
   }
 
@@ -3244,6 +3381,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountAuditEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AuditEventWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountStoredObjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StoredObjectWhereInput
   }
 
 
@@ -3751,6 +3895,7 @@ export namespace Prisma {
     communicationApprovals?: boolean | Tenant$communicationApprovalsArgs<ExtArgs>
     teamInvitations?: boolean | Tenant$teamInvitationsArgs<ExtArgs>
     auditEvents?: boolean | Tenant$auditEventsArgs<ExtArgs>
+    storedObjects?: boolean | Tenant$storedObjectsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
@@ -3807,6 +3952,7 @@ export namespace Prisma {
     communicationApprovals?: boolean | Tenant$communicationApprovalsArgs<ExtArgs>
     teamInvitations?: boolean | Tenant$teamInvitationsArgs<ExtArgs>
     auditEvents?: boolean | Tenant$auditEventsArgs<ExtArgs>
+    storedObjects?: boolean | Tenant$storedObjectsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3833,6 +3979,7 @@ export namespace Prisma {
       communicationApprovals: Prisma.$CommunicationApprovalPayload<ExtArgs>[]
       teamInvitations: Prisma.$TeamInvitationPayload<ExtArgs>[]
       auditEvents: Prisma.$AuditEventPayload<ExtArgs>[]
+      storedObjects: Prisma.$StoredObjectPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4255,6 +4402,7 @@ export namespace Prisma {
     communicationApprovals<T extends Tenant$communicationApprovalsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$communicationApprovalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CommunicationApprovalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     teamInvitations<T extends Tenant$teamInvitationsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$teamInvitationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TeamInvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditEvents<T extends Tenant$auditEventsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$auditEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    storedObjects<T extends Tenant$storedObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$storedObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5109,6 +5257,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AuditEventScalarFieldEnum | AuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * Tenant.storedObjects
+   */
+  export type Tenant$storedObjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    where?: StoredObjectWhereInput
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    cursor?: StoredObjectWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: StoredObjectScalarFieldEnum | StoredObjectScalarFieldEnum[]
   }
 
   /**
@@ -6245,6 +6417,1271 @@ export namespace Prisma {
 
 
   /**
+   * Model StoredObject
+   */
+
+  export type AggregateStoredObject = {
+    _count: StoredObjectCountAggregateOutputType | null
+    _avg: StoredObjectAvgAggregateOutputType | null
+    _sum: StoredObjectSumAggregateOutputType | null
+    _min: StoredObjectMinAggregateOutputType | null
+    _max: StoredObjectMaxAggregateOutputType | null
+  }
+
+  export type StoredObjectAvgAggregateOutputType = {
+    expectedSize: number | null
+    actualSize: number | null
+  }
+
+  export type StoredObjectSumAggregateOutputType = {
+    expectedSize: number | null
+    actualSize: number | null
+  }
+
+  export type StoredObjectMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    uploaderId: string | null
+    path: string | null
+    module: $Enums.StorageObjectModule | null
+    contentType: string | null
+    expectedSize: number | null
+    actualSize: number | null
+    etag: string | null
+    status: $Enums.StoredObjectStatus | null
+    expiresAt: Date | null
+    confirmedAt: Date | null
+    consumedAt: Date | null
+    consumedByType: string | null
+    consumedById: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type StoredObjectMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    uploaderId: string | null
+    path: string | null
+    module: $Enums.StorageObjectModule | null
+    contentType: string | null
+    expectedSize: number | null
+    actualSize: number | null
+    etag: string | null
+    status: $Enums.StoredObjectStatus | null
+    expiresAt: Date | null
+    confirmedAt: Date | null
+    consumedAt: Date | null
+    consumedByType: string | null
+    consumedById: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type StoredObjectCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    uploaderId: number
+    path: number
+    module: number
+    contentType: number
+    expectedSize: number
+    actualSize: number
+    etag: number
+    status: number
+    expiresAt: number
+    confirmedAt: number
+    consumedAt: number
+    consumedByType: number
+    consumedById: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type StoredObjectAvgAggregateInputType = {
+    expectedSize?: true
+    actualSize?: true
+  }
+
+  export type StoredObjectSumAggregateInputType = {
+    expectedSize?: true
+    actualSize?: true
+  }
+
+  export type StoredObjectMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    uploaderId?: true
+    path?: true
+    module?: true
+    contentType?: true
+    expectedSize?: true
+    actualSize?: true
+    etag?: true
+    status?: true
+    expiresAt?: true
+    confirmedAt?: true
+    consumedAt?: true
+    consumedByType?: true
+    consumedById?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type StoredObjectMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    uploaderId?: true
+    path?: true
+    module?: true
+    contentType?: true
+    expectedSize?: true
+    actualSize?: true
+    etag?: true
+    status?: true
+    expiresAt?: true
+    confirmedAt?: true
+    consumedAt?: true
+    consumedByType?: true
+    consumedById?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type StoredObjectCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    uploaderId?: true
+    path?: true
+    module?: true
+    contentType?: true
+    expectedSize?: true
+    actualSize?: true
+    etag?: true
+    status?: true
+    expiresAt?: true
+    confirmedAt?: true
+    consumedAt?: true
+    consumedByType?: true
+    consumedById?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type StoredObjectAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StoredObject to aggregate.
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StoredObjects to fetch.
+     */
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: StoredObjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StoredObjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StoredObjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned StoredObjects
+    **/
+    _count?: true | StoredObjectCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: StoredObjectAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: StoredObjectSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: StoredObjectMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: StoredObjectMaxAggregateInputType
+  }
+
+  export type GetStoredObjectAggregateType<T extends StoredObjectAggregateArgs> = {
+        [P in keyof T & keyof AggregateStoredObject]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateStoredObject[P]>
+      : GetScalarType<T[P], AggregateStoredObject[P]>
+  }
+
+
+
+
+  export type StoredObjectGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StoredObjectWhereInput
+    orderBy?: StoredObjectOrderByWithAggregationInput | StoredObjectOrderByWithAggregationInput[]
+    by: StoredObjectScalarFieldEnum[] | StoredObjectScalarFieldEnum
+    having?: StoredObjectScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: StoredObjectCountAggregateInputType | true
+    _avg?: StoredObjectAvgAggregateInputType
+    _sum?: StoredObjectSumAggregateInputType
+    _min?: StoredObjectMinAggregateInputType
+    _max?: StoredObjectMaxAggregateInputType
+  }
+
+  export type StoredObjectGroupByOutputType = {
+    id: string
+    tenantId: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize: number | null
+    etag: string | null
+    status: $Enums.StoredObjectStatus
+    expiresAt: Date
+    confirmedAt: Date | null
+    consumedAt: Date | null
+    consumedByType: string | null
+    consumedById: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: StoredObjectCountAggregateOutputType | null
+    _avg: StoredObjectAvgAggregateOutputType | null
+    _sum: StoredObjectSumAggregateOutputType | null
+    _min: StoredObjectMinAggregateOutputType | null
+    _max: StoredObjectMaxAggregateOutputType | null
+  }
+
+  type GetStoredObjectGroupByPayload<T extends StoredObjectGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<StoredObjectGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof StoredObjectGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], StoredObjectGroupByOutputType[P]>
+            : GetScalarType<T[P], StoredObjectGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type StoredObjectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    uploaderId?: boolean
+    path?: boolean
+    module?: boolean
+    contentType?: boolean
+    expectedSize?: boolean
+    actualSize?: boolean
+    etag?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    consumedAt?: boolean
+    consumedByType?: boolean
+    consumedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["storedObject"]>
+
+  export type StoredObjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    uploaderId?: boolean
+    path?: boolean
+    module?: boolean
+    contentType?: boolean
+    expectedSize?: boolean
+    actualSize?: boolean
+    etag?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    consumedAt?: boolean
+    consumedByType?: boolean
+    consumedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["storedObject"]>
+
+  export type StoredObjectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    uploaderId?: boolean
+    path?: boolean
+    module?: boolean
+    contentType?: boolean
+    expectedSize?: boolean
+    actualSize?: boolean
+    etag?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    consumedAt?: boolean
+    consumedByType?: boolean
+    consumedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["storedObject"]>
+
+  export type StoredObjectSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    uploaderId?: boolean
+    path?: boolean
+    module?: boolean
+    contentType?: boolean
+    expectedSize?: boolean
+    actualSize?: boolean
+    etag?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    confirmedAt?: boolean
+    consumedAt?: boolean
+    consumedByType?: boolean
+    consumedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type StoredObjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "uploaderId" | "path" | "module" | "contentType" | "expectedSize" | "actualSize" | "etag" | "status" | "expiresAt" | "confirmedAt" | "consumedAt" | "consumedByType" | "consumedById" | "createdAt" | "updatedAt", ExtArgs["result"]["storedObject"]>
+  export type StoredObjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type StoredObjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type StoredObjectIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    uploader?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $StoredObjectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "StoredObject"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+      uploader: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      uploaderId: string
+      path: string
+      module: $Enums.StorageObjectModule
+      contentType: string
+      expectedSize: number
+      actualSize: number | null
+      etag: string | null
+      status: $Enums.StoredObjectStatus
+      expiresAt: Date
+      confirmedAt: Date | null
+      consumedAt: Date | null
+      consumedByType: string | null
+      consumedById: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["storedObject"]>
+    composites: {}
+  }
+
+  type StoredObjectGetPayload<S extends boolean | null | undefined | StoredObjectDefaultArgs> = $Result.GetResult<Prisma.$StoredObjectPayload, S>
+
+  type StoredObjectCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<StoredObjectFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: StoredObjectCountAggregateInputType | true
+    }
+
+  export interface StoredObjectDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['StoredObject'], meta: { name: 'StoredObject' } }
+    /**
+     * Find zero or one StoredObject that matches the filter.
+     * @param {StoredObjectFindUniqueArgs} args - Arguments to find a StoredObject
+     * @example
+     * // Get one StoredObject
+     * const storedObject = await prisma.storedObject.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends StoredObjectFindUniqueArgs>(args: SelectSubset<T, StoredObjectFindUniqueArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one StoredObject that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {StoredObjectFindUniqueOrThrowArgs} args - Arguments to find a StoredObject
+     * @example
+     * // Get one StoredObject
+     * const storedObject = await prisma.storedObject.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends StoredObjectFindUniqueOrThrowArgs>(args: SelectSubset<T, StoredObjectFindUniqueOrThrowArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first StoredObject that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectFindFirstArgs} args - Arguments to find a StoredObject
+     * @example
+     * // Get one StoredObject
+     * const storedObject = await prisma.storedObject.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends StoredObjectFindFirstArgs>(args?: SelectSubset<T, StoredObjectFindFirstArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first StoredObject that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectFindFirstOrThrowArgs} args - Arguments to find a StoredObject
+     * @example
+     * // Get one StoredObject
+     * const storedObject = await prisma.storedObject.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends StoredObjectFindFirstOrThrowArgs>(args?: SelectSubset<T, StoredObjectFindFirstOrThrowArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more StoredObjects that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all StoredObjects
+     * const storedObjects = await prisma.storedObject.findMany()
+     * 
+     * // Get first 10 StoredObjects
+     * const storedObjects = await prisma.storedObject.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const storedObjectWithIdOnly = await prisma.storedObject.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends StoredObjectFindManyArgs>(args?: SelectSubset<T, StoredObjectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a StoredObject.
+     * @param {StoredObjectCreateArgs} args - Arguments to create a StoredObject.
+     * @example
+     * // Create one StoredObject
+     * const StoredObject = await prisma.storedObject.create({
+     *   data: {
+     *     // ... data to create a StoredObject
+     *   }
+     * })
+     * 
+     */
+    create<T extends StoredObjectCreateArgs>(args: SelectSubset<T, StoredObjectCreateArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many StoredObjects.
+     * @param {StoredObjectCreateManyArgs} args - Arguments to create many StoredObjects.
+     * @example
+     * // Create many StoredObjects
+     * const storedObject = await prisma.storedObject.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends StoredObjectCreateManyArgs>(args?: SelectSubset<T, StoredObjectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many StoredObjects and returns the data saved in the database.
+     * @param {StoredObjectCreateManyAndReturnArgs} args - Arguments to create many StoredObjects.
+     * @example
+     * // Create many StoredObjects
+     * const storedObject = await prisma.storedObject.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many StoredObjects and only return the `id`
+     * const storedObjectWithIdOnly = await prisma.storedObject.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends StoredObjectCreateManyAndReturnArgs>(args?: SelectSubset<T, StoredObjectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a StoredObject.
+     * @param {StoredObjectDeleteArgs} args - Arguments to delete one StoredObject.
+     * @example
+     * // Delete one StoredObject
+     * const StoredObject = await prisma.storedObject.delete({
+     *   where: {
+     *     // ... filter to delete one StoredObject
+     *   }
+     * })
+     * 
+     */
+    delete<T extends StoredObjectDeleteArgs>(args: SelectSubset<T, StoredObjectDeleteArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one StoredObject.
+     * @param {StoredObjectUpdateArgs} args - Arguments to update one StoredObject.
+     * @example
+     * // Update one StoredObject
+     * const storedObject = await prisma.storedObject.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends StoredObjectUpdateArgs>(args: SelectSubset<T, StoredObjectUpdateArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more StoredObjects.
+     * @param {StoredObjectDeleteManyArgs} args - Arguments to filter StoredObjects to delete.
+     * @example
+     * // Delete a few StoredObjects
+     * const { count } = await prisma.storedObject.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends StoredObjectDeleteManyArgs>(args?: SelectSubset<T, StoredObjectDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StoredObjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many StoredObjects
+     * const storedObject = await prisma.storedObject.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends StoredObjectUpdateManyArgs>(args: SelectSubset<T, StoredObjectUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StoredObjects and returns the data updated in the database.
+     * @param {StoredObjectUpdateManyAndReturnArgs} args - Arguments to update many StoredObjects.
+     * @example
+     * // Update many StoredObjects
+     * const storedObject = await prisma.storedObject.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more StoredObjects and only return the `id`
+     * const storedObjectWithIdOnly = await prisma.storedObject.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends StoredObjectUpdateManyAndReturnArgs>(args: SelectSubset<T, StoredObjectUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one StoredObject.
+     * @param {StoredObjectUpsertArgs} args - Arguments to update or create a StoredObject.
+     * @example
+     * // Update or create a StoredObject
+     * const storedObject = await prisma.storedObject.upsert({
+     *   create: {
+     *     // ... data to create a StoredObject
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the StoredObject we want to update
+     *   }
+     * })
+     */
+    upsert<T extends StoredObjectUpsertArgs>(args: SelectSubset<T, StoredObjectUpsertArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of StoredObjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectCountArgs} args - Arguments to filter StoredObjects to count.
+     * @example
+     * // Count the number of StoredObjects
+     * const count = await prisma.storedObject.count({
+     *   where: {
+     *     // ... the filter for the StoredObjects we want to count
+     *   }
+     * })
+    **/
+    count<T extends StoredObjectCountArgs>(
+      args?: Subset<T, StoredObjectCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], StoredObjectCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a StoredObject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends StoredObjectAggregateArgs>(args: Subset<T, StoredObjectAggregateArgs>): Prisma.PrismaPromise<GetStoredObjectAggregateType<T>>
+
+    /**
+     * Group by StoredObject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StoredObjectGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends StoredObjectGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: StoredObjectGroupByArgs['orderBy'] }
+        : { orderBy?: StoredObjectGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, StoredObjectGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetStoredObjectGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the StoredObject model
+   */
+  readonly fields: StoredObjectFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for StoredObject.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__StoredObjectClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    uploader<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the StoredObject model
+   */
+  interface StoredObjectFieldRefs {
+    readonly id: FieldRef<"StoredObject", 'String'>
+    readonly tenantId: FieldRef<"StoredObject", 'String'>
+    readonly uploaderId: FieldRef<"StoredObject", 'String'>
+    readonly path: FieldRef<"StoredObject", 'String'>
+    readonly module: FieldRef<"StoredObject", 'StorageObjectModule'>
+    readonly contentType: FieldRef<"StoredObject", 'String'>
+    readonly expectedSize: FieldRef<"StoredObject", 'Int'>
+    readonly actualSize: FieldRef<"StoredObject", 'Int'>
+    readonly etag: FieldRef<"StoredObject", 'String'>
+    readonly status: FieldRef<"StoredObject", 'StoredObjectStatus'>
+    readonly expiresAt: FieldRef<"StoredObject", 'DateTime'>
+    readonly confirmedAt: FieldRef<"StoredObject", 'DateTime'>
+    readonly consumedAt: FieldRef<"StoredObject", 'DateTime'>
+    readonly consumedByType: FieldRef<"StoredObject", 'String'>
+    readonly consumedById: FieldRef<"StoredObject", 'String'>
+    readonly createdAt: FieldRef<"StoredObject", 'DateTime'>
+    readonly updatedAt: FieldRef<"StoredObject", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * StoredObject findUnique
+   */
+  export type StoredObjectFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter, which StoredObject to fetch.
+     */
+    where: StoredObjectWhereUniqueInput
+  }
+
+  /**
+   * StoredObject findUniqueOrThrow
+   */
+  export type StoredObjectFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter, which StoredObject to fetch.
+     */
+    where: StoredObjectWhereUniqueInput
+  }
+
+  /**
+   * StoredObject findFirst
+   */
+  export type StoredObjectFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter, which StoredObject to fetch.
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StoredObjects to fetch.
+     */
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StoredObjects.
+     */
+    cursor?: StoredObjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StoredObjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StoredObjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StoredObjects.
+     */
+    distinct?: StoredObjectScalarFieldEnum | StoredObjectScalarFieldEnum[]
+  }
+
+  /**
+   * StoredObject findFirstOrThrow
+   */
+  export type StoredObjectFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter, which StoredObject to fetch.
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StoredObjects to fetch.
+     */
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StoredObjects.
+     */
+    cursor?: StoredObjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StoredObjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StoredObjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StoredObjects.
+     */
+    distinct?: StoredObjectScalarFieldEnum | StoredObjectScalarFieldEnum[]
+  }
+
+  /**
+   * StoredObject findMany
+   */
+  export type StoredObjectFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter, which StoredObjects to fetch.
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StoredObjects to fetch.
+     */
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing StoredObjects.
+     */
+    cursor?: StoredObjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StoredObjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StoredObjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StoredObjects.
+     */
+    distinct?: StoredObjectScalarFieldEnum | StoredObjectScalarFieldEnum[]
+  }
+
+  /**
+   * StoredObject create
+   */
+  export type StoredObjectCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * The data needed to create a StoredObject.
+     */
+    data: XOR<StoredObjectCreateInput, StoredObjectUncheckedCreateInput>
+  }
+
+  /**
+   * StoredObject createMany
+   */
+  export type StoredObjectCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many StoredObjects.
+     */
+    data: StoredObjectCreateManyInput | StoredObjectCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StoredObject createManyAndReturn
+   */
+  export type StoredObjectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * The data used to create many StoredObjects.
+     */
+    data: StoredObjectCreateManyInput | StoredObjectCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * StoredObject update
+   */
+  export type StoredObjectUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * The data needed to update a StoredObject.
+     */
+    data: XOR<StoredObjectUpdateInput, StoredObjectUncheckedUpdateInput>
+    /**
+     * Choose, which StoredObject to update.
+     */
+    where: StoredObjectWhereUniqueInput
+  }
+
+  /**
+   * StoredObject updateMany
+   */
+  export type StoredObjectUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update StoredObjects.
+     */
+    data: XOR<StoredObjectUpdateManyMutationInput, StoredObjectUncheckedUpdateManyInput>
+    /**
+     * Filter which StoredObjects to update
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * Limit how many StoredObjects to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * StoredObject updateManyAndReturn
+   */
+  export type StoredObjectUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * The data used to update StoredObjects.
+     */
+    data: XOR<StoredObjectUpdateManyMutationInput, StoredObjectUncheckedUpdateManyInput>
+    /**
+     * Filter which StoredObjects to update
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * Limit how many StoredObjects to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * StoredObject upsert
+   */
+  export type StoredObjectUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * The filter to search for the StoredObject to update in case it exists.
+     */
+    where: StoredObjectWhereUniqueInput
+    /**
+     * In case the StoredObject found by the `where` argument doesn't exist, create a new StoredObject with this data.
+     */
+    create: XOR<StoredObjectCreateInput, StoredObjectUncheckedCreateInput>
+    /**
+     * In case the StoredObject was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<StoredObjectUpdateInput, StoredObjectUncheckedUpdateInput>
+  }
+
+  /**
+   * StoredObject delete
+   */
+  export type StoredObjectDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    /**
+     * Filter which StoredObject to delete.
+     */
+    where: StoredObjectWhereUniqueInput
+  }
+
+  /**
+   * StoredObject deleteMany
+   */
+  export type StoredObjectDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StoredObjects to delete
+     */
+    where?: StoredObjectWhereInput
+    /**
+     * Limit how many StoredObjects to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * StoredObject without action
+   */
+  export type StoredObjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model User
    */
 
@@ -6508,7 +7945,8 @@ export namespace Prisma {
     updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     division?: boolean | User$divisionArgs<ExtArgs>
-    financialEntries?: boolean | User$financialEntriesArgs<ExtArgs>
+    financialEntriesReported?: boolean | User$financialEntriesReportedArgs<ExtArgs>
+    financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
@@ -6525,6 +7963,7 @@ export namespace Prisma {
     invitationsSent?: boolean | User$invitationsSentArgs<ExtArgs>
     eventsResponsible?: boolean | User$eventsResponsibleArgs<ExtArgs>
     auditEvents?: boolean | User$auditEventsArgs<ExtArgs>
+    storedObjects?: boolean | User$storedObjectsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -6584,7 +8023,8 @@ export namespace Prisma {
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     division?: boolean | User$divisionArgs<ExtArgs>
-    financialEntries?: boolean | User$financialEntriesArgs<ExtArgs>
+    financialEntriesReported?: boolean | User$financialEntriesReportedArgs<ExtArgs>
+    financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
@@ -6601,6 +8041,7 @@ export namespace Prisma {
     invitationsSent?: boolean | User$invitationsSentArgs<ExtArgs>
     eventsResponsible?: boolean | User$eventsResponsibleArgs<ExtArgs>
     auditEvents?: boolean | User$auditEventsArgs<ExtArgs>
+    storedObjects?: boolean | User$storedObjectsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6617,7 +8058,8 @@ export namespace Prisma {
     objects: {
       tenant: Prisma.$TenantPayload<ExtArgs>
       division: Prisma.$PoliticalDivisionPayload<ExtArgs> | null
-      financialEntries: Prisma.$FinancialEntryPayload<ExtArgs>[]
+      financialEntriesReported: Prisma.$FinancialEntryPayload<ExtArgs>[]
+      financialEntriesReviewed: Prisma.$FinancialEntryPayload<ExtArgs>[]
       registeredVoters: Prisma.$VoterPayload<ExtArgs>[]
       witnessReports: Prisma.$WitnessReportPayload<ExtArgs>[]
       pointLogs: Prisma.$PointLogPayload<ExtArgs>[]
@@ -6634,6 +8076,7 @@ export namespace Prisma {
       invitationsSent: Prisma.$TeamInvitationPayload<ExtArgs>[]
       eventsResponsible: Prisma.$CampaignEventPayload<ExtArgs>[]
       auditEvents: Prisma.$AuditEventPayload<ExtArgs>[]
+      storedObjects: Prisma.$StoredObjectPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7045,7 +8488,8 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     division<T extends User$divisionArgs<ExtArgs> = {}>(args?: Subset<T, User$divisionArgs<ExtArgs>>): Prisma__PoliticalDivisionClient<$Result.GetResult<Prisma.$PoliticalDivisionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    financialEntries<T extends User$financialEntriesArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    financialEntriesReported<T extends User$financialEntriesReportedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesReportedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    financialEntriesReviewed<T extends User$financialEntriesReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     registeredVoters<T extends User$registeredVotersArgs<ExtArgs> = {}>(args?: Subset<T, User$registeredVotersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VoterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReports<T extends User$witnessReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pointLogs<T extends User$pointLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$pointLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -7062,6 +8506,7 @@ export namespace Prisma {
     invitationsSent<T extends User$invitationsSentArgs<ExtArgs> = {}>(args?: Subset<T, User$invitationsSentArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TeamInvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     eventsResponsible<T extends User$eventsResponsibleArgs<ExtArgs> = {}>(args?: Subset<T, User$eventsResponsibleArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditEvents<T extends User$auditEventsArgs<ExtArgs> = {}>(args?: Subset<T, User$auditEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    storedObjects<T extends User$storedObjectsArgs<ExtArgs> = {}>(args?: Subset<T, User$storedObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7524,9 +8969,33 @@ export namespace Prisma {
   }
 
   /**
-   * User.financialEntries
+   * User.financialEntriesReported
    */
-  export type User$financialEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type User$financialEntriesReportedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FinancialEntry
+     */
+    select?: FinancialEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FinancialEntry
+     */
+    omit?: FinancialEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FinancialEntryInclude<ExtArgs> | null
+    where?: FinancialEntryWhereInput
+    orderBy?: FinancialEntryOrderByWithRelationInput | FinancialEntryOrderByWithRelationInput[]
+    cursor?: FinancialEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FinancialEntryScalarFieldEnum | FinancialEntryScalarFieldEnum[]
+  }
+
+  /**
+   * User.financialEntriesReviewed
+   */
+  export type User$financialEntriesReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the FinancialEntry
      */
@@ -7929,6 +9398,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AuditEventScalarFieldEnum | AuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * User.storedObjects
+   */
+  export type User$storedObjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObject
+     */
+    select?: StoredObjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StoredObject
+     */
+    omit?: StoredObjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StoredObjectInclude<ExtArgs> | null
+    where?: StoredObjectWhereInput
+    orderBy?: StoredObjectOrderByWithRelationInput | StoredObjectOrderByWithRelationInput[]
+    cursor?: StoredObjectWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: StoredObjectScalarFieldEnum | StoredObjectScalarFieldEnum[]
   }
 
   /**
@@ -11750,6 +13243,9 @@ export namespace Prisma {
     vendorTaxId: string | null
     evidenceUrl: string | null
     reporterId: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
+    reviewReason: string | null
     status: $Enums.FinanceStatus | null
     createdAt: Date | null
   }
@@ -11766,6 +13262,9 @@ export namespace Prisma {
     vendorTaxId: string | null
     evidenceUrl: string | null
     reporterId: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
+    reviewReason: string | null
     status: $Enums.FinanceStatus | null
     createdAt: Date | null
   }
@@ -11782,6 +13281,9 @@ export namespace Prisma {
     vendorTaxId: number
     evidenceUrl: number
     reporterId: number
+    reviewedById: number
+    reviewedAt: number
+    reviewReason: number
     status: number
     auditLog: number
     createdAt: number
@@ -11809,6 +13311,9 @@ export namespace Prisma {
     vendorTaxId?: true
     evidenceUrl?: true
     reporterId?: true
+    reviewedById?: true
+    reviewedAt?: true
+    reviewReason?: true
     status?: true
     createdAt?: true
   }
@@ -11825,6 +13330,9 @@ export namespace Prisma {
     vendorTaxId?: true
     evidenceUrl?: true
     reporterId?: true
+    reviewedById?: true
+    reviewedAt?: true
+    reviewReason?: true
     status?: true
     createdAt?: true
   }
@@ -11841,6 +13349,9 @@ export namespace Prisma {
     vendorTaxId?: true
     evidenceUrl?: true
     reporterId?: true
+    reviewedById?: true
+    reviewedAt?: true
+    reviewReason?: true
     status?: true
     auditLog?: true
     createdAt?: true
@@ -11945,6 +13456,9 @@ export namespace Prisma {
     vendorTaxId: string
     evidenceUrl: string | null
     reporterId: string
+    reviewedById: string | null
+    reviewedAt: Date | null
+    reviewReason: string | null
     status: $Enums.FinanceStatus
     auditLog: JsonValue | null
     createdAt: Date
@@ -11981,11 +13495,15 @@ export namespace Prisma {
     vendorTaxId?: boolean
     evidenceUrl?: boolean
     reporterId?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    reviewReason?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -12000,11 +13518,15 @@ export namespace Prisma {
     vendorTaxId?: boolean
     evidenceUrl?: boolean
     reporterId?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    reviewReason?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -12019,11 +13541,15 @@ export namespace Prisma {
     vendorTaxId?: boolean
     evidenceUrl?: boolean
     reporterId?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    reviewReason?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectScalar = {
@@ -12038,23 +13564,29 @@ export namespace Prisma {
     vendorTaxId?: boolean
     evidenceUrl?: boolean
     reporterId?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    reviewReason?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
   }
 
-  export type FinancialEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "amount" | "date" | "cneCode" | "description" | "tenantId" | "vendorName" | "vendorTaxId" | "evidenceUrl" | "reporterId" | "status" | "auditLog" | "createdAt", ExtArgs["result"]["financialEntry"]>
+  export type FinancialEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "amount" | "date" | "cneCode" | "description" | "tenantId" | "vendorName" | "vendorTaxId" | "evidenceUrl" | "reporterId" | "reviewedById" | "reviewedAt" | "reviewReason" | "status" | "auditLog" | "createdAt", ExtArgs["result"]["financialEntry"]>
   export type FinancialEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }
   export type FinancialEntryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }
   export type FinancialEntryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
+    reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
   }
 
   export type $FinancialEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12062,6 +13594,7 @@ export namespace Prisma {
     objects: {
       tenant: Prisma.$TenantPayload<ExtArgs>
       reporter: Prisma.$UserPayload<ExtArgs>
+      reviewedBy: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12075,6 +13608,9 @@ export namespace Prisma {
       vendorTaxId: string
       evidenceUrl: string | null
       reporterId: string
+      reviewedById: string | null
+      reviewedAt: Date | null
+      reviewReason: string | null
       status: $Enums.FinanceStatus
       auditLog: Prisma.JsonValue | null
       createdAt: Date
@@ -12474,6 +14010,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     reporter<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    reviewedBy<T extends FinancialEntry$reviewedByArgs<ExtArgs> = {}>(args?: Subset<T, FinancialEntry$reviewedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12514,6 +14051,9 @@ export namespace Prisma {
     readonly vendorTaxId: FieldRef<"FinancialEntry", 'String'>
     readonly evidenceUrl: FieldRef<"FinancialEntry", 'String'>
     readonly reporterId: FieldRef<"FinancialEntry", 'String'>
+    readonly reviewedById: FieldRef<"FinancialEntry", 'String'>
+    readonly reviewedAt: FieldRef<"FinancialEntry", 'DateTime'>
+    readonly reviewReason: FieldRef<"FinancialEntry", 'String'>
     readonly status: FieldRef<"FinancialEntry", 'FinanceStatus'>
     readonly auditLog: FieldRef<"FinancialEntry", 'Json'>
     readonly createdAt: FieldRef<"FinancialEntry", 'DateTime'>
@@ -12915,6 +14455,25 @@ export namespace Prisma {
      * Limit how many FinancialEntries to delete.
      */
     limit?: number
+  }
+
+  /**
+   * FinancialEntry.reviewedBy
+   */
+  export type FinancialEntry$reviewedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
   }
 
   /**
@@ -28166,6 +29725,29 @@ export namespace Prisma {
   export type CampaignSettingsScalarFieldEnum = (typeof CampaignSettingsScalarFieldEnum)[keyof typeof CampaignSettingsScalarFieldEnum]
 
 
+  export const StoredObjectScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    uploaderId: 'uploaderId',
+    path: 'path',
+    module: 'module',
+    contentType: 'contentType',
+    expectedSize: 'expectedSize',
+    actualSize: 'actualSize',
+    etag: 'etag',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    confirmedAt: 'confirmedAt',
+    consumedAt: 'consumedAt',
+    consumedByType: 'consumedByType',
+    consumedById: 'consumedById',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type StoredObjectScalarFieldEnum = (typeof StoredObjectScalarFieldEnum)[keyof typeof StoredObjectScalarFieldEnum]
+
+
   export const UserScalarFieldEnum: {
     id: 'id',
     email: 'email',
@@ -28249,6 +29831,9 @@ export namespace Prisma {
     vendorTaxId: 'vendorTaxId',
     evidenceUrl: 'evidenceUrl',
     reporterId: 'reporterId',
+    reviewedById: 'reviewedById',
+    reviewedAt: 'reviewedAt',
+    reviewReason: 'reviewReason',
     status: 'status',
     auditLog: 'auditLog',
     createdAt: 'createdAt'
@@ -28635,6 +30220,48 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'StorageObjectModule'
+   */
+  export type EnumStorageObjectModuleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageObjectModule'>
+    
+
+
+  /**
+   * Reference to a field of type 'StorageObjectModule[]'
+   */
+  export type ListEnumStorageObjectModuleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageObjectModule[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int'
+   */
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int[]'
+   */
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'StoredObjectStatus'
+   */
+  export type EnumStoredObjectStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StoredObjectStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'StoredObjectStatus[]'
+   */
+  export type ListEnumStoredObjectStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StoredObjectStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Role'
    */
   export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
@@ -28652,20 +30279,6 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int'
-   */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -29010,6 +30623,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalListRelationFilter
     teamInvitations?: TeamInvitationListRelationFilter
     auditEvents?: AuditEventListRelationFilter
+    storedObjects?: StoredObjectListRelationFilter
   }
 
   export type TenantOrderByWithRelationInput = {
@@ -29039,6 +30653,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalOrderByRelationAggregateInput
     teamInvitations?: TeamInvitationOrderByRelationAggregateInput
     auditEvents?: AuditEventOrderByRelationAggregateInput
+    storedObjects?: StoredObjectOrderByRelationAggregateInput
   }
 
   export type TenantWhereUniqueInput = Prisma.AtLeast<{
@@ -29071,6 +30686,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalListRelationFilter
     teamInvitations?: TeamInvitationListRelationFilter
     auditEvents?: AuditEventListRelationFilter
+    storedObjects?: StoredObjectListRelationFilter
   }, "id" | "slug">
 
   export type TenantOrderByWithAggregationInput = {
@@ -29163,6 +30779,127 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"CampaignSettings"> | Date | string
   }
 
+  export type StoredObjectWhereInput = {
+    AND?: StoredObjectWhereInput | StoredObjectWhereInput[]
+    OR?: StoredObjectWhereInput[]
+    NOT?: StoredObjectWhereInput | StoredObjectWhereInput[]
+    id?: StringFilter<"StoredObject"> | string
+    tenantId?: StringFilter<"StoredObject"> | string
+    uploaderId?: StringFilter<"StoredObject"> | string
+    path?: StringFilter<"StoredObject"> | string
+    module?: EnumStorageObjectModuleFilter<"StoredObject"> | $Enums.StorageObjectModule
+    contentType?: StringFilter<"StoredObject"> | string
+    expectedSize?: IntFilter<"StoredObject"> | number
+    actualSize?: IntNullableFilter<"StoredObject"> | number | null
+    etag?: StringNullableFilter<"StoredObject"> | string | null
+    status?: EnumStoredObjectStatusFilter<"StoredObject"> | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFilter<"StoredObject"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedByType?: StringNullableFilter<"StoredObject"> | string | null
+    consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    createdAt?: DateTimeFilter<"StoredObject"> | Date | string
+    updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    uploader?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type StoredObjectOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    uploaderId?: SortOrder
+    path?: SortOrder
+    module?: SortOrder
+    contentType?: SortOrder
+    expectedSize?: SortOrder
+    actualSize?: SortOrderInput | SortOrder
+    etag?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    consumedByType?: SortOrderInput | SortOrder
+    consumedById?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+    uploader?: UserOrderByWithRelationInput
+  }
+
+  export type StoredObjectWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    path?: string
+    id_tenantId?: StoredObjectIdTenantIdCompoundUniqueInput
+    AND?: StoredObjectWhereInput | StoredObjectWhereInput[]
+    OR?: StoredObjectWhereInput[]
+    NOT?: StoredObjectWhereInput | StoredObjectWhereInput[]
+    tenantId?: StringFilter<"StoredObject"> | string
+    uploaderId?: StringFilter<"StoredObject"> | string
+    module?: EnumStorageObjectModuleFilter<"StoredObject"> | $Enums.StorageObjectModule
+    contentType?: StringFilter<"StoredObject"> | string
+    expectedSize?: IntFilter<"StoredObject"> | number
+    actualSize?: IntNullableFilter<"StoredObject"> | number | null
+    etag?: StringNullableFilter<"StoredObject"> | string | null
+    status?: EnumStoredObjectStatusFilter<"StoredObject"> | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFilter<"StoredObject"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedByType?: StringNullableFilter<"StoredObject"> | string | null
+    consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    createdAt?: DateTimeFilter<"StoredObject"> | Date | string
+    updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    uploader?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "path" | "id_tenantId">
+
+  export type StoredObjectOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    uploaderId?: SortOrder
+    path?: SortOrder
+    module?: SortOrder
+    contentType?: SortOrder
+    expectedSize?: SortOrder
+    actualSize?: SortOrderInput | SortOrder
+    etag?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    consumedByType?: SortOrderInput | SortOrder
+    consumedById?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: StoredObjectCountOrderByAggregateInput
+    _avg?: StoredObjectAvgOrderByAggregateInput
+    _max?: StoredObjectMaxOrderByAggregateInput
+    _min?: StoredObjectMinOrderByAggregateInput
+    _sum?: StoredObjectSumOrderByAggregateInput
+  }
+
+  export type StoredObjectScalarWhereWithAggregatesInput = {
+    AND?: StoredObjectScalarWhereWithAggregatesInput | StoredObjectScalarWhereWithAggregatesInput[]
+    OR?: StoredObjectScalarWhereWithAggregatesInput[]
+    NOT?: StoredObjectScalarWhereWithAggregatesInput | StoredObjectScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"StoredObject"> | string
+    tenantId?: StringWithAggregatesFilter<"StoredObject"> | string
+    uploaderId?: StringWithAggregatesFilter<"StoredObject"> | string
+    path?: StringWithAggregatesFilter<"StoredObject"> | string
+    module?: EnumStorageObjectModuleWithAggregatesFilter<"StoredObject"> | $Enums.StorageObjectModule
+    contentType?: StringWithAggregatesFilter<"StoredObject"> | string
+    expectedSize?: IntWithAggregatesFilter<"StoredObject"> | number
+    actualSize?: IntNullableWithAggregatesFilter<"StoredObject"> | number | null
+    etag?: StringNullableWithAggregatesFilter<"StoredObject"> | string | null
+    status?: EnumStoredObjectStatusWithAggregatesFilter<"StoredObject"> | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeWithAggregatesFilter<"StoredObject"> | Date | string
+    confirmedAt?: DateTimeNullableWithAggregatesFilter<"StoredObject"> | Date | string | null
+    consumedAt?: DateTimeNullableWithAggregatesFilter<"StoredObject"> | Date | string | null
+    consumedByType?: StringNullableWithAggregatesFilter<"StoredObject"> | string | null
+    consumedById?: StringNullableWithAggregatesFilter<"StoredObject"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"StoredObject"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"StoredObject"> | Date | string
+  }
+
   export type UserWhereInput = {
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
@@ -29182,7 +30919,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"User"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     division?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
-    financialEntries?: FinancialEntryListRelationFilter
+    financialEntriesReported?: FinancialEntryListRelationFilter
+    financialEntriesReviewed?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
@@ -29199,6 +30937,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationListRelationFilter
     eventsResponsible?: CampaignEventListRelationFilter
     auditEvents?: AuditEventListRelationFilter
+    storedObjects?: StoredObjectListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -29217,7 +30956,8 @@ export namespace Prisma {
     updatedAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     division?: PoliticalDivisionOrderByWithRelationInput
-    financialEntries?: FinancialEntryOrderByRelationAggregateInput
+    financialEntriesReported?: FinancialEntryOrderByRelationAggregateInput
+    financialEntriesReviewed?: FinancialEntryOrderByRelationAggregateInput
     registeredVoters?: VoterOrderByRelationAggregateInput
     witnessReports?: WitnessReportOrderByRelationAggregateInput
     pointLogs?: PointLogOrderByRelationAggregateInput
@@ -29234,6 +30974,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationOrderByRelationAggregateInput
     eventsResponsible?: CampaignEventOrderByRelationAggregateInput
     auditEvents?: AuditEventOrderByRelationAggregateInput
+    storedObjects?: StoredObjectOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -29257,7 +30998,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"User"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     division?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
-    financialEntries?: FinancialEntryListRelationFilter
+    financialEntriesReported?: FinancialEntryListRelationFilter
+    financialEntriesReviewed?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
@@ -29274,6 +31016,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationListRelationFilter
     eventsResponsible?: CampaignEventListRelationFilter
     auditEvents?: AuditEventListRelationFilter
+    storedObjects?: StoredObjectListRelationFilter
   }, "id" | "email" | "id_tenantId" | "documentId_tenantId">
 
   export type UserOrderByWithAggregationInput = {
@@ -29634,11 +31377,15 @@ export namespace Prisma {
     vendorTaxId?: StringFilter<"FinancialEntry"> | string
     evidenceUrl?: StringNullableFilter<"FinancialEntry"> | string | null
     reporterId?: StringFilter<"FinancialEntry"> | string
+    reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     reporter?: XOR<UserScalarRelationFilter, UserWhereInput>
+    reviewedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }
 
   export type FinancialEntryOrderByWithRelationInput = {
@@ -29653,15 +31400,20 @@ export namespace Prisma {
     vendorTaxId?: SortOrder
     evidenceUrl?: SortOrderInput | SortOrder
     reporterId?: SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewReason?: SortOrderInput | SortOrder
     status?: SortOrder
     auditLog?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     reporter?: UserOrderByWithRelationInput
+    reviewedBy?: UserOrderByWithRelationInput
   }
 
   export type FinancialEntryWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    evidenceUrl?: string
     id_tenantId?: FinancialEntryIdTenantIdCompoundUniqueInput
     AND?: FinancialEntryWhereInput | FinancialEntryWhereInput[]
     OR?: FinancialEntryWhereInput[]
@@ -29674,14 +31426,17 @@ export namespace Prisma {
     tenantId?: StringFilter<"FinancialEntry"> | string
     vendorName?: StringFilter<"FinancialEntry"> | string
     vendorTaxId?: StringFilter<"FinancialEntry"> | string
-    evidenceUrl?: StringNullableFilter<"FinancialEntry"> | string | null
     reporterId?: StringFilter<"FinancialEntry"> | string
+    reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     reporter?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id" | "id_tenantId">
+    reviewedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "evidenceUrl" | "id_tenantId">
 
   export type FinancialEntryOrderByWithAggregationInput = {
     id?: SortOrder
@@ -29695,6 +31450,9 @@ export namespace Prisma {
     vendorTaxId?: SortOrder
     evidenceUrl?: SortOrderInput | SortOrder
     reporterId?: SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewReason?: SortOrderInput | SortOrder
     status?: SortOrder
     auditLog?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -29720,6 +31478,9 @@ export namespace Prisma {
     vendorTaxId?: StringWithAggregatesFilter<"FinancialEntry"> | string
     evidenceUrl?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
     reporterId?: StringWithAggregatesFilter<"FinancialEntry"> | string
+    reviewedById?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"FinancialEntry"> | Date | string | null
+    reviewReason?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusWithAggregatesFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableWithAggregatesFilter<"FinancialEntry">
     createdAt?: DateTimeWithAggregatesFilter<"FinancialEntry"> | Date | string
@@ -29764,6 +31525,7 @@ export namespace Prisma {
 
   export type WitnessReportWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    e14ImageUrl?: string
     id_tenantId?: WitnessReportIdTenantIdCompoundUniqueInput
     tenantId_puestoId_mesa?: WitnessReportTenantIdPuestoIdMesaCompoundUniqueInput
     AND?: WitnessReportWhereInput | WitnessReportWhereInput[]
@@ -29773,7 +31535,6 @@ export namespace Prisma {
     witnessId?: StringFilter<"WitnessReport"> | string
     puestoId?: StringFilter<"WitnessReport"> | string
     mesa?: IntFilter<"WitnessReport"> | number
-    e14ImageUrl?: StringFilter<"WitnessReport"> | string
     candidateVotes?: IntFilter<"WitnessReport"> | number
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
@@ -29782,7 +31543,7 @@ export namespace Prisma {
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     puesto?: XOR<PoliticalDivisionScalarRelationFilter, PoliticalDivisionWhereInput>
     witness?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id" | "id_tenantId" | "tenantId_puestoId_mesa">
+  }, "id" | "e14ImageUrl" | "id_tenantId" | "tenantId_puestoId_mesa">
 
   export type WitnessReportOrderByWithAggregationInput = {
     id?: SortOrder
@@ -31079,6 +32840,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateInput = {
@@ -31108,6 +32870,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUpdateInput = {
@@ -31137,6 +32900,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateInput = {
@@ -31166,6 +32930,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateManyInput = {
@@ -31263,6 +33028,144 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type StoredObjectCreateInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutStoredObjectsInput
+    uploader: UserCreateNestedOneWithoutStoredObjectsInput
+  }
+
+  export type StoredObjectUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type StoredObjectUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutStoredObjectsNestedInput
+    uploader?: UserUpdateOneRequiredWithoutStoredObjectsNestedInput
+  }
+
+  export type StoredObjectUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    uploaderId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StoredObjectCreateManyInput = {
+    id?: string
+    tenantId: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type StoredObjectUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StoredObjectUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    uploaderId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -31277,7 +33180,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -31294,6 +33198,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -31310,7 +33215,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -31327,6 +33233,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUpdateInput = {
@@ -31343,7 +33250,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -31360,6 +33268,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -31376,7 +33285,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -31393,6 +33303,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -31777,11 +33688,14 @@ export namespace Prisma {
     vendorName: string
     vendorTaxId: string
     evidenceUrl?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutFinancesInput
-    reporter: UserCreateNestedOneWithoutFinancialEntriesInput
+    reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
+    reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
   }
 
   export type FinancialEntryUncheckedCreateInput = {
@@ -31796,6 +33710,9 @@ export namespace Prisma {
     vendorTaxId: string
     evidenceUrl?: string | null
     reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -31811,11 +33728,14 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
-    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesNestedInput
+    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
+    reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateInput = {
@@ -31830,6 +33750,9 @@ export namespace Prisma {
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31847,6 +33770,9 @@ export namespace Prisma {
     vendorTaxId: string
     evidenceUrl?: string | null
     reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -31862,6 +33788,8 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31879,6 +33807,9 @@ export namespace Prisma {
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33475,6 +35406,12 @@ export namespace Prisma {
     none?: AuditEventWhereInput
   }
 
+  export type StoredObjectListRelationFilter = {
+    every?: StoredObjectWhereInput
+    some?: StoredObjectWhereInput
+    none?: StoredObjectWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -33545,6 +35482,10 @@ export namespace Prisma {
   }
 
   export type AuditEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type StoredObjectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -33726,16 +35667,33 @@ export namespace Prisma {
     _max?: NestedDecimalFilter<$PrismaModel>
   }
 
-  export type EnumRoleFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
+  export type EnumStorageObjectModuleFilter<$PrismaModel = never> = {
+    equals?: $Enums.StorageObjectModule | EnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    in?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    not?: NestedEnumStorageObjectModuleFilter<$PrismaModel> | $Enums.StorageObjectModule
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type StringNullableFilter<$PrismaModel = never> = {
@@ -33753,7 +35711,115 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type IntFilter<$PrismaModel = never> = {
+  export type EnumStoredObjectStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumStoredObjectStatusFilter<$PrismaModel> | $Enums.StoredObjectStatus
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type UserScalarRelationFilter = {
+    is?: UserWhereInput
+    isNot?: UserWhereInput
+  }
+
+  export type StoredObjectIdTenantIdCompoundUniqueInput = {
+    id: string
+    tenantId: string
+  }
+
+  export type StoredObjectCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    uploaderId?: SortOrder
+    path?: SortOrder
+    module?: SortOrder
+    contentType?: SortOrder
+    expectedSize?: SortOrder
+    actualSize?: SortOrder
+    etag?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    consumedAt?: SortOrder
+    consumedByType?: SortOrder
+    consumedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type StoredObjectAvgOrderByAggregateInput = {
+    expectedSize?: SortOrder
+    actualSize?: SortOrder
+  }
+
+  export type StoredObjectMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    uploaderId?: SortOrder
+    path?: SortOrder
+    module?: SortOrder
+    contentType?: SortOrder
+    expectedSize?: SortOrder
+    actualSize?: SortOrder
+    etag?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    consumedAt?: SortOrder
+    consumedByType?: SortOrder
+    consumedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type StoredObjectMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    uploaderId?: SortOrder
+    path?: SortOrder
+    module?: SortOrder
+    contentType?: SortOrder
+    expectedSize?: SortOrder
+    actualSize?: SortOrder
+    etag?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    confirmedAt?: SortOrder
+    consumedAt?: SortOrder
+    consumedByType?: SortOrder
+    consumedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type StoredObjectSumOrderByAggregateInput = {
+    expectedSize?: SortOrder
+    actualSize?: SortOrder
+  }
+
+  export type EnumStorageObjectModuleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.StorageObjectModule | EnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    in?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    not?: NestedEnumStorageObjectModuleWithAggregatesFilter<$PrismaModel> | $Enums.StorageObjectModule
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumStorageObjectModuleFilter<$PrismaModel>
+    _max?: NestedEnumStorageObjectModuleFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
     notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -33761,7 +35827,82 @@ export namespace Prisma {
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type EnumStoredObjectStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumStoredObjectStatusWithAggregatesFilter<$PrismaModel> | $Enums.StoredObjectStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumStoredObjectStatusFilter<$PrismaModel>
+    _max?: NestedEnumStoredObjectStatusFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type PoliticalDivisionNullableScalarRelationFilter = {
@@ -33853,56 +35994,6 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type UserScalarRelationFilter = {
-    is?: UserWhereInput
-    isNot?: UserWhereInput
-  }
-
   export type TeamInvitationIdTenantIdCompoundUniqueInput = {
     id: string
     tenantId: string
@@ -33945,20 +36036,6 @@ export namespace Prisma {
     invitedById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type EnumDivisionTypeFilter<$PrismaModel = never> = {
@@ -34014,17 +36091,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDivisionTypeFilter<$PrismaModel>
     _max?: NestedEnumDivisionTypeFilter<$PrismaModel>
-  }
-
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type VoterIdTenantIdCompoundUniqueInput = {
@@ -34108,22 +36174,6 @@ export namespace Prisma {
     mesa?: SortOrder
   }
 
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
   export type EnumEntryTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.EntryType | EnumEntryTypeFieldRefInput<$PrismaModel>
     in?: $Enums.EntryType[] | ListEnumEntryTypeFieldRefInput<$PrismaModel>
@@ -34145,6 +36195,11 @@ export namespace Prisma {
     not?: NestedEnumFinanceStatusFilter<$PrismaModel> | $Enums.FinanceStatus
   }
 
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
   export type FinancialEntryIdTenantIdCompoundUniqueInput = {
     id: string
     tenantId: string
@@ -34162,6 +36217,9 @@ export namespace Prisma {
     vendorTaxId?: SortOrder
     evidenceUrl?: SortOrder
     reporterId?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    reviewReason?: SortOrder
     status?: SortOrder
     auditLog?: SortOrder
     createdAt?: SortOrder
@@ -34183,6 +36241,9 @@ export namespace Prisma {
     vendorTaxId?: SortOrder
     evidenceUrl?: SortOrder
     reporterId?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    reviewReason?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -34199,6 +36260,9 @@ export namespace Prisma {
     vendorTaxId?: SortOrder
     evidenceUrl?: SortOrder
     reporterId?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    reviewReason?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -34312,11 +36376,6 @@ export namespace Prisma {
     in?: $Enums.CampaignEventStatus[] | ListEnumCampaignEventStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.CampaignEventStatus[] | ListEnumCampaignEventStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumCampaignEventStatusFilter<$PrismaModel> | $Enums.CampaignEventStatus
-  }
-
-  export type UserNullableScalarRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
   }
 
   export type CampaignEventIdTenantIdCompoundUniqueInput = {
@@ -35450,6 +37509,13 @@ export namespace Prisma {
     connect?: AuditEventWhereUniqueInput | AuditEventWhereUniqueInput[]
   }
 
+  export type StoredObjectCreateNestedManyWithoutTenantInput = {
+    create?: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput> | StoredObjectCreateWithoutTenantInput[] | StoredObjectUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutTenantInput | StoredObjectCreateOrConnectWithoutTenantInput[]
+    createMany?: StoredObjectCreateManyTenantInputEnvelope
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+  }
+
   export type CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -35573,6 +37639,13 @@ export namespace Prisma {
     connectOrCreate?: AuditEventCreateOrConnectWithoutTenantInput | AuditEventCreateOrConnectWithoutTenantInput[]
     createMany?: AuditEventCreateManyTenantInputEnvelope
     connect?: AuditEventWhereUniqueInput | AuditEventWhereUniqueInput[]
+  }
+
+  export type StoredObjectUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput> | StoredObjectCreateWithoutTenantInput[] | StoredObjectUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutTenantInput | StoredObjectCreateOrConnectWithoutTenantInput[]
+    createMany?: StoredObjectCreateManyTenantInputEnvelope
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -35839,6 +37912,20 @@ export namespace Prisma {
     deleteMany?: AuditEventScalarWhereInput | AuditEventScalarWhereInput[]
   }
 
+  export type StoredObjectUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput> | StoredObjectCreateWithoutTenantInput[] | StoredObjectUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutTenantInput | StoredObjectCreateOrConnectWithoutTenantInput[]
+    upsert?: StoredObjectUpsertWithWhereUniqueWithoutTenantInput | StoredObjectUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: StoredObjectCreateManyTenantInputEnvelope
+    set?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    disconnect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    delete?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    update?: StoredObjectUpdateWithWhereUniqueWithoutTenantInput | StoredObjectUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: StoredObjectUpdateManyWithWhereWithoutTenantInput | StoredObjectUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+  }
+
   export type CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -36087,6 +38174,20 @@ export namespace Prisma {
     deleteMany?: AuditEventScalarWhereInput | AuditEventScalarWhereInput[]
   }
 
+  export type StoredObjectUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput> | StoredObjectCreateWithoutTenantInput[] | StoredObjectUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutTenantInput | StoredObjectCreateOrConnectWithoutTenantInput[]
+    upsert?: StoredObjectUpsertWithWhereUniqueWithoutTenantInput | StoredObjectUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: StoredObjectCreateManyTenantInputEnvelope
+    set?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    disconnect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    delete?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    update?: StoredObjectUpdateWithWhereUniqueWithoutTenantInput | StoredObjectUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: StoredObjectUpdateManyWithWhereWithoutTenantInput | StoredObjectUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+  }
+
   export type TenantCreateNestedOneWithoutSettingsInput = {
     create?: XOR<TenantCreateWithoutSettingsInput, TenantUncheckedCreateWithoutSettingsInput>
     connectOrCreate?: TenantCreateOrConnectWithoutSettingsInput
@@ -36109,6 +38210,66 @@ export namespace Prisma {
     update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutSettingsInput, TenantUpdateWithoutSettingsInput>, TenantUncheckedUpdateWithoutSettingsInput>
   }
 
+  export type TenantCreateNestedOneWithoutStoredObjectsInput = {
+    create?: XOR<TenantCreateWithoutStoredObjectsInput, TenantUncheckedCreateWithoutStoredObjectsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutStoredObjectsInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutStoredObjectsInput = {
+    create?: XOR<UserCreateWithoutStoredObjectsInput, UserUncheckedCreateWithoutStoredObjectsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutStoredObjectsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type EnumStorageObjectModuleFieldUpdateOperationsInput = {
+    set?: $Enums.StorageObjectModule
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type EnumStoredObjectStatusFieldUpdateOperationsInput = {
+    set?: $Enums.StoredObjectStatus
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type TenantUpdateOneRequiredWithoutStoredObjectsNestedInput = {
+    create?: XOR<TenantCreateWithoutStoredObjectsInput, TenantUncheckedCreateWithoutStoredObjectsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutStoredObjectsInput
+    upsert?: TenantUpsertWithoutStoredObjectsInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutStoredObjectsInput, TenantUpdateWithoutStoredObjectsInput>, TenantUncheckedUpdateWithoutStoredObjectsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutStoredObjectsNestedInput = {
+    create?: XOR<UserCreateWithoutStoredObjectsInput, UserUncheckedCreateWithoutStoredObjectsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutStoredObjectsInput
+    upsert?: UserUpsertWithoutStoredObjectsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutStoredObjectsInput, UserUpdateWithoutStoredObjectsInput>, UserUncheckedUpdateWithoutStoredObjectsInput>
+  }
+
   export type TenantCreateNestedOneWithoutUsersInput = {
     create?: XOR<TenantCreateWithoutUsersInput, TenantUncheckedCreateWithoutUsersInput>
     connectOrCreate?: TenantCreateOrConnectWithoutUsersInput
@@ -36125,6 +38286,13 @@ export namespace Prisma {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
     createMany?: FinancialEntryCreateManyReporterInputEnvelope
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+  }
+
+  export type FinancialEntryCreateNestedManyWithoutReviewedByInput = {
+    create?: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput> | FinancialEntryCreateWithoutReviewedByInput[] | FinancialEntryUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutReviewedByInput | FinancialEntryCreateOrConnectWithoutReviewedByInput[]
+    createMany?: FinancialEntryCreateManyReviewedByInputEnvelope
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
   }
 
@@ -36240,10 +38408,24 @@ export namespace Prisma {
     connect?: AuditEventWhereUniqueInput | AuditEventWhereUniqueInput[]
   }
 
+  export type StoredObjectCreateNestedManyWithoutUploaderInput = {
+    create?: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput> | StoredObjectCreateWithoutUploaderInput[] | StoredObjectUncheckedCreateWithoutUploaderInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutUploaderInput | StoredObjectCreateOrConnectWithoutUploaderInput[]
+    createMany?: StoredObjectCreateManyUploaderInputEnvelope
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+  }
+
   export type FinancialEntryUncheckedCreateNestedManyWithoutReporterInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
     createMany?: FinancialEntryCreateManyReporterInputEnvelope
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+  }
+
+  export type FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput = {
+    create?: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput> | FinancialEntryCreateWithoutReviewedByInput[] | FinancialEntryUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutReviewedByInput | FinancialEntryCreateOrConnectWithoutReviewedByInput[]
+    createMany?: FinancialEntryCreateManyReviewedByInputEnvelope
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
   }
 
@@ -36359,24 +38541,19 @@ export namespace Prisma {
     connect?: AuditEventWhereUniqueInput | AuditEventWhereUniqueInput[]
   }
 
+  export type StoredObjectUncheckedCreateNestedManyWithoutUploaderInput = {
+    create?: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput> | StoredObjectCreateWithoutUploaderInput[] | StoredObjectUncheckedCreateWithoutUploaderInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutUploaderInput | StoredObjectCreateOrConnectWithoutUploaderInput[]
+    createMany?: StoredObjectCreateManyUploaderInputEnvelope
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+  }
+
   export type EnumRoleFieldUpdateOperationsInput = {
     set?: $Enums.Role
   }
 
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type TenantUpdateOneRequiredWithoutUsersNestedInput = {
@@ -36408,6 +38585,20 @@ export namespace Prisma {
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
     update?: FinancialEntryUpdateWithWhereUniqueWithoutReporterInput | FinancialEntryUpdateWithWhereUniqueWithoutReporterInput[]
     updateMany?: FinancialEntryUpdateManyWithWhereWithoutReporterInput | FinancialEntryUpdateManyWithWhereWithoutReporterInput[]
+    deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
+  }
+
+  export type FinancialEntryUpdateManyWithoutReviewedByNestedInput = {
+    create?: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput> | FinancialEntryCreateWithoutReviewedByInput[] | FinancialEntryUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutReviewedByInput | FinancialEntryCreateOrConnectWithoutReviewedByInput[]
+    upsert?: FinancialEntryUpsertWithWhereUniqueWithoutReviewedByInput | FinancialEntryUpsertWithWhereUniqueWithoutReviewedByInput[]
+    createMany?: FinancialEntryCreateManyReviewedByInputEnvelope
+    set?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    disconnect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    delete?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    update?: FinancialEntryUpdateWithWhereUniqueWithoutReviewedByInput | FinancialEntryUpdateWithWhereUniqueWithoutReviewedByInput[]
+    updateMany?: FinancialEntryUpdateManyWithWhereWithoutReviewedByInput | FinancialEntryUpdateManyWithWhereWithoutReviewedByInput[]
     deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
   }
 
@@ -36635,6 +38826,20 @@ export namespace Prisma {
     deleteMany?: AuditEventScalarWhereInput | AuditEventScalarWhereInput[]
   }
 
+  export type StoredObjectUpdateManyWithoutUploaderNestedInput = {
+    create?: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput> | StoredObjectCreateWithoutUploaderInput[] | StoredObjectUncheckedCreateWithoutUploaderInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutUploaderInput | StoredObjectCreateOrConnectWithoutUploaderInput[]
+    upsert?: StoredObjectUpsertWithWhereUniqueWithoutUploaderInput | StoredObjectUpsertWithWhereUniqueWithoutUploaderInput[]
+    createMany?: StoredObjectCreateManyUploaderInputEnvelope
+    set?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    disconnect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    delete?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    update?: StoredObjectUpdateWithWhereUniqueWithoutUploaderInput | StoredObjectUpdateWithWhereUniqueWithoutUploaderInput[]
+    updateMany?: StoredObjectUpdateManyWithWhereWithoutUploaderInput | StoredObjectUpdateManyWithWhereWithoutUploaderInput[]
+    deleteMany?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+  }
+
   export type FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
@@ -36646,6 +38851,20 @@ export namespace Prisma {
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
     update?: FinancialEntryUpdateWithWhereUniqueWithoutReporterInput | FinancialEntryUpdateWithWhereUniqueWithoutReporterInput[]
     updateMany?: FinancialEntryUpdateManyWithWhereWithoutReporterInput | FinancialEntryUpdateManyWithWhereWithoutReporterInput[]
+    deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
+  }
+
+  export type FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput = {
+    create?: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput> | FinancialEntryCreateWithoutReviewedByInput[] | FinancialEntryUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutReviewedByInput | FinancialEntryCreateOrConnectWithoutReviewedByInput[]
+    upsert?: FinancialEntryUpsertWithWhereUniqueWithoutReviewedByInput | FinancialEntryUpsertWithWhereUniqueWithoutReviewedByInput[]
+    createMany?: FinancialEntryCreateManyReviewedByInputEnvelope
+    set?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    disconnect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    delete?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    update?: FinancialEntryUpdateWithWhereUniqueWithoutReviewedByInput | FinancialEntryUpdateWithWhereUniqueWithoutReviewedByInput[]
+    updateMany?: FinancialEntryUpdateManyWithWhereWithoutReviewedByInput | FinancialEntryUpdateManyWithWhereWithoutReviewedByInput[]
     deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
   }
 
@@ -36873,6 +39092,20 @@ export namespace Prisma {
     deleteMany?: AuditEventScalarWhereInput | AuditEventScalarWhereInput[]
   }
 
+  export type StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput = {
+    create?: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput> | StoredObjectCreateWithoutUploaderInput[] | StoredObjectUncheckedCreateWithoutUploaderInput[]
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutUploaderInput | StoredObjectCreateOrConnectWithoutUploaderInput[]
+    upsert?: StoredObjectUpsertWithWhereUniqueWithoutUploaderInput | StoredObjectUpsertWithWhereUniqueWithoutUploaderInput[]
+    createMany?: StoredObjectCreateManyUploaderInputEnvelope
+    set?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    disconnect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    delete?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
+    update?: StoredObjectUpdateWithWhereUniqueWithoutUploaderInput | StoredObjectUpdateWithWhereUniqueWithoutUploaderInput[]
+    updateMany?: StoredObjectUpdateManyWithWhereWithoutUploaderInput | StoredObjectUpdateManyWithWhereWithoutUploaderInput[]
+    deleteMany?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+  }
+
   export type TenantCreateNestedOneWithoutTeamInvitationsInput = {
     create?: XOR<TenantCreateWithoutTeamInvitationsInput, TenantUncheckedCreateWithoutTeamInvitationsInput>
     connectOrCreate?: TenantCreateOrConnectWithoutTeamInvitationsInput
@@ -36883,10 +39116,6 @@ export namespace Prisma {
     create?: XOR<UserCreateWithoutInvitationsSentInput, UserUncheckedCreateWithoutInvitationsSentInput>
     connectOrCreate?: UserCreateOrConnectWithoutInvitationsSentInput
     connect?: UserWhereUniqueInput
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type TenantUpdateOneRequiredWithoutTeamInvitationsNestedInput = {
@@ -37209,14 +39438,6 @@ export namespace Prisma {
     connect?: InteractionWhereUniqueInput | InteractionWhereUniqueInput[]
   }
 
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type TenantUpdateOneRequiredWithoutVotersNestedInput = {
     create?: XOR<TenantCreateWithoutVotersInput, TenantUncheckedCreateWithoutVotersInput>
     connectOrCreate?: TenantCreateOrConnectWithoutVotersInput
@@ -37333,9 +39554,15 @@ export namespace Prisma {
     connect?: TenantWhereUniqueInput
   }
 
-  export type UserCreateNestedOneWithoutFinancialEntriesInput = {
-    create?: XOR<UserCreateWithoutFinancialEntriesInput, UserUncheckedCreateWithoutFinancialEntriesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesInput
+  export type UserCreateNestedOneWithoutFinancialEntriesReportedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesReportedInput, UserUncheckedCreateWithoutFinancialEntriesReportedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesReportedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutFinancialEntriesReviewedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesReviewedInput, UserUncheckedCreateWithoutFinancialEntriesReviewedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesReviewedInput
     connect?: UserWhereUniqueInput
   }
 
@@ -37359,12 +39586,22 @@ export namespace Prisma {
     update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutFinancesInput, TenantUpdateWithoutFinancesInput>, TenantUncheckedUpdateWithoutFinancesInput>
   }
 
-  export type UserUpdateOneRequiredWithoutFinancialEntriesNestedInput = {
-    create?: XOR<UserCreateWithoutFinancialEntriesInput, UserUncheckedCreateWithoutFinancialEntriesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesInput
-    upsert?: UserUpsertWithoutFinancialEntriesInput
+  export type UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesReportedInput, UserUncheckedCreateWithoutFinancialEntriesReportedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesReportedInput
+    upsert?: UserUpsertWithoutFinancialEntriesReportedInput
     connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutFinancialEntriesInput, UserUpdateWithoutFinancialEntriesInput>, UserUncheckedUpdateWithoutFinancialEntriesInput>
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutFinancialEntriesReportedInput, UserUpdateWithoutFinancialEntriesReportedInput>, UserUncheckedUpdateWithoutFinancialEntriesReportedInput>
+  }
+
+  export type UserUpdateOneWithoutFinancialEntriesReviewedNestedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesReviewedInput, UserUncheckedCreateWithoutFinancialEntriesReviewedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesReviewedInput
+    upsert?: UserUpsertWithoutFinancialEntriesReviewedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutFinancialEntriesReviewedInput, UserUpdateWithoutFinancialEntriesReviewedInput>, UserUncheckedUpdateWithoutFinancialEntriesReviewedInput>
   }
 
   export type TenantCreateNestedOneWithoutWitnessesInput = {
@@ -38519,16 +40756,11 @@ export namespace Prisma {
     _max?: NestedDecimalFilter<$PrismaModel>
   }
 
-  export type NestedEnumRoleFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
-  }
-
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+  export type NestedEnumStorageObjectModuleFilter<$PrismaModel = never> = {
+    equals?: $Enums.StorageObjectModule | EnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    in?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    not?: NestedEnumStorageObjectModuleFilter<$PrismaModel> | $Enums.StorageObjectModule
   }
 
   export type NestedStringNullableFilter<$PrismaModel = never> = {
@@ -38545,39 +40777,32 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type NestedEnumRoleWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleWithAggregatesFilter<$PrismaModel> | $Enums.Role
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumRoleFilter<$PrismaModel>
-    _max?: NestedEnumRoleFilter<$PrismaModel>
+  export type NestedEnumStoredObjectStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumStoredObjectStatusFilter<$PrismaModel> | $Enums.StoredObjectStatus
   }
 
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+  export type NestedEnumStorageObjectModuleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.StorageObjectModule | EnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    in?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StorageObjectModule[] | ListEnumStorageObjectModuleFieldRefInput<$PrismaModel>
+    not?: NestedEnumStorageObjectModuleWithAggregatesFilter<$PrismaModel> | $Enums.StorageObjectModule
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumStorageObjectModuleFilter<$PrismaModel>
+    _max?: NestedEnumStorageObjectModuleFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -38607,48 +40832,6 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
-  export type NestedEnumDivisionTypeFilter<$PrismaModel = never> = {
-    equals?: $Enums.DivisionType | EnumDivisionTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumDivisionTypeFilter<$PrismaModel> | $Enums.DivisionType
-  }
-
-  export type NestedEnumDivisionTypeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DivisionType | EnumDivisionTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumDivisionTypeWithAggregatesFilter<$PrismaModel> | $Enums.DivisionType
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDivisionTypeFilter<$PrismaModel>
-    _max?: NestedEnumDivisionTypeFilter<$PrismaModel>
-  }
-
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -38674,6 +40857,94 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumStoredObjectStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumStoredObjectStatusWithAggregatesFilter<$PrismaModel> | $Enums.StoredObjectStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumStoredObjectStatusFilter<$PrismaModel>
+    _max?: NestedEnumStoredObjectStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedEnumRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoleWithAggregatesFilter<$PrismaModel> | $Enums.Role
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoleFilter<$PrismaModel>
+    _max?: NestedEnumRoleFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDivisionTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.DivisionType | EnumDivisionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDivisionTypeFilter<$PrismaModel> | $Enums.DivisionType
+  }
+
+  export type NestedEnumDivisionTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DivisionType | EnumDivisionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DivisionType[] | ListEnumDivisionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDivisionTypeWithAggregatesFilter<$PrismaModel> | $Enums.DivisionType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDivisionTypeFilter<$PrismaModel>
+    _max?: NestedEnumDivisionTypeFilter<$PrismaModel>
   }
 
   export type NestedEnumEntryTypeFilter<$PrismaModel = never> = {
@@ -39073,7 +41344,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -39090,6 +41362,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutTenantInput = {
@@ -39105,7 +41378,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -39122,6 +41396,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutTenantInput = {
@@ -39236,10 +41511,13 @@ export namespace Prisma {
     vendorName: string
     vendorTaxId: string
     evidenceUrl?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
-    reporter: UserCreateNestedOneWithoutFinancialEntriesInput
+    reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
+    reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
   }
 
   export type FinancialEntryUncheckedCreateWithoutTenantInput = {
@@ -39253,6 +41531,9 @@ export namespace Prisma {
     vendorTaxId: string
     evidenceUrl?: string | null
     reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -39822,6 +42103,54 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type StoredObjectCreateWithoutTenantInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    uploader: UserCreateNestedOneWithoutStoredObjectsInput
+  }
+
+  export type StoredObjectUncheckedCreateWithoutTenantInput = {
+    id?: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type StoredObjectCreateOrConnectWithoutTenantInput = {
+    where: StoredObjectWhereUniqueInput
+    create: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput>
+  }
+
+  export type StoredObjectCreateManyTenantInputEnvelope = {
+    data: StoredObjectCreateManyTenantInput | StoredObjectCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
   export type CampaignSettingsUpsertWithoutTenantInput = {
     update: XOR<CampaignSettingsUpdateWithoutTenantInput, CampaignSettingsUncheckedUpdateWithoutTenantInput>
     create: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
@@ -39983,6 +42312,9 @@ export namespace Prisma {
     vendorTaxId?: StringFilter<"FinancialEntry"> | string
     evidenceUrl?: StringNullableFilter<"FinancialEntry"> | string | null
     reporterId?: StringFilter<"FinancialEntry"> | string
+    reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
@@ -40452,6 +42784,45 @@ export namespace Prisma {
     occurredAt?: DateTimeFilter<"AuditEvent"> | Date | string
   }
 
+  export type StoredObjectUpsertWithWhereUniqueWithoutTenantInput = {
+    where: StoredObjectWhereUniqueInput
+    update: XOR<StoredObjectUpdateWithoutTenantInput, StoredObjectUncheckedUpdateWithoutTenantInput>
+    create: XOR<StoredObjectCreateWithoutTenantInput, StoredObjectUncheckedCreateWithoutTenantInput>
+  }
+
+  export type StoredObjectUpdateWithWhereUniqueWithoutTenantInput = {
+    where: StoredObjectWhereUniqueInput
+    data: XOR<StoredObjectUpdateWithoutTenantInput, StoredObjectUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type StoredObjectUpdateManyWithWhereWithoutTenantInput = {
+    where: StoredObjectScalarWhereInput
+    data: XOR<StoredObjectUpdateManyMutationInput, StoredObjectUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type StoredObjectScalarWhereInput = {
+    AND?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+    OR?: StoredObjectScalarWhereInput[]
+    NOT?: StoredObjectScalarWhereInput | StoredObjectScalarWhereInput[]
+    id?: StringFilter<"StoredObject"> | string
+    tenantId?: StringFilter<"StoredObject"> | string
+    uploaderId?: StringFilter<"StoredObject"> | string
+    path?: StringFilter<"StoredObject"> | string
+    module?: EnumStorageObjectModuleFilter<"StoredObject"> | $Enums.StorageObjectModule
+    contentType?: StringFilter<"StoredObject"> | string
+    expectedSize?: IntFilter<"StoredObject"> | number
+    actualSize?: IntNullableFilter<"StoredObject"> | number | null
+    etag?: StringNullableFilter<"StoredObject"> | string | null
+    status?: EnumStoredObjectStatusFilter<"StoredObject"> | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFilter<"StoredObject"> | Date | string
+    confirmedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
+    consumedByType?: StringNullableFilter<"StoredObject"> | string | null
+    consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    createdAt?: DateTimeFilter<"StoredObject"> | Date | string
+    updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
+  }
+
   export type TenantCreateWithoutSettingsInput = {
     id?: string
     slug: string
@@ -40478,6 +42849,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutSettingsInput = {
@@ -40506,6 +42878,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutSettingsInput = {
@@ -40550,6 +42923,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutSettingsInput = {
@@ -40578,6 +42952,291 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantCreateWithoutStoredObjectsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutStoredObjectsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutStoredObjectsInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutStoredObjectsInput, TenantUncheckedCreateWithoutStoredObjectsInput>
+  }
+
+  export type UserCreateWithoutStoredObjectsInput = {
+    id?: string
+    email: string
+    password: string
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId: string
+    phone?: string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+  }
+
+  export type UserUncheckedCreateWithoutStoredObjectsInput = {
+    id?: string
+    email: string
+    password: string
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId: string
+    phone?: string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+  }
+
+  export type UserCreateOrConnectWithoutStoredObjectsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutStoredObjectsInput, UserUncheckedCreateWithoutStoredObjectsInput>
+  }
+
+  export type TenantUpsertWithoutStoredObjectsInput = {
+    update: XOR<TenantUpdateWithoutStoredObjectsInput, TenantUncheckedUpdateWithoutStoredObjectsInput>
+    create: XOR<TenantCreateWithoutStoredObjectsInput, TenantUncheckedCreateWithoutStoredObjectsInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutStoredObjectsInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutStoredObjectsInput, TenantUncheckedUpdateWithoutStoredObjectsInput>
+  }
+
+  export type TenantUpdateWithoutStoredObjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutStoredObjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type UserUpsertWithoutStoredObjectsInput = {
+    update: XOR<UserUpdateWithoutStoredObjectsInput, UserUncheckedUpdateWithoutStoredObjectsInput>
+    create: XOR<UserCreateWithoutStoredObjectsInput, UserUncheckedCreateWithoutStoredObjectsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutStoredObjectsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutStoredObjectsInput, UserUncheckedUpdateWithoutStoredObjectsInput>
+  }
+
+  export type UserUpdateWithoutStoredObjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutStoredObjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
   }
 
   export type TenantCreateWithoutUsersInput = {
@@ -40606,6 +43265,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutUsersInput = {
@@ -40634,6 +43294,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutUsersInput = {
@@ -40682,10 +43343,13 @@ export namespace Prisma {
     vendorName: string
     vendorTaxId: string
     evidenceUrl?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutFinancesInput
+    reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
   }
 
   export type FinancialEntryUncheckedCreateWithoutReporterInput = {
@@ -40698,6 +43362,9 @@ export namespace Prisma {
     vendorName: string
     vendorTaxId: string
     evidenceUrl?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -40710,6 +43377,53 @@ export namespace Prisma {
 
   export type FinancialEntryCreateManyReporterInputEnvelope = {
     data: FinancialEntryCreateManyReporterInput | FinancialEntryCreateManyReporterInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FinancialEntryCreateWithoutReviewedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutFinancesInput
+    reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
+  }
+
+  export type FinancialEntryUncheckedCreateWithoutReviewedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reporterId: string
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type FinancialEntryCreateOrConnectWithoutReviewedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    create: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput>
+  }
+
+  export type FinancialEntryCreateManyReviewedByInputEnvelope = {
+    data: FinancialEntryCreateManyReviewedByInput | FinancialEntryCreateManyReviewedByInput[]
     skipDuplicates?: boolean
   }
 
@@ -41433,6 +44147,53 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type StoredObjectCreateWithoutUploaderInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutStoredObjectsInput
+  }
+
+  export type StoredObjectUncheckedCreateWithoutUploaderInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type StoredObjectCreateOrConnectWithoutUploaderInput = {
+    where: StoredObjectWhereUniqueInput
+    create: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput>
+  }
+
+  export type StoredObjectCreateManyUploaderInputEnvelope = {
+    data: StoredObjectCreateManyUploaderInput | StoredObjectCreateManyUploaderInput[]
+    skipDuplicates?: boolean
+  }
+
   export type TenantUpsertWithoutUsersInput = {
     update: XOR<TenantUpdateWithoutUsersInput, TenantUncheckedUpdateWithoutUsersInput>
     create: XOR<TenantCreateWithoutUsersInput, TenantUncheckedCreateWithoutUsersInput>
@@ -41470,6 +44231,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutUsersInput = {
@@ -41498,6 +44260,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutUsersInput = {
@@ -41551,6 +44314,22 @@ export namespace Prisma {
   export type FinancialEntryUpdateManyWithWhereWithoutReporterInput = {
     where: FinancialEntryScalarWhereInput
     data: XOR<FinancialEntryUpdateManyMutationInput, FinancialEntryUncheckedUpdateManyWithoutReporterInput>
+  }
+
+  export type FinancialEntryUpsertWithWhereUniqueWithoutReviewedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    update: XOR<FinancialEntryUpdateWithoutReviewedByInput, FinancialEntryUncheckedUpdateWithoutReviewedByInput>
+    create: XOR<FinancialEntryCreateWithoutReviewedByInput, FinancialEntryUncheckedCreateWithoutReviewedByInput>
+  }
+
+  export type FinancialEntryUpdateWithWhereUniqueWithoutReviewedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    data: XOR<FinancialEntryUpdateWithoutReviewedByInput, FinancialEntryUncheckedUpdateWithoutReviewedByInput>
+  }
+
+  export type FinancialEntryUpdateManyWithWhereWithoutReviewedByInput = {
+    where: FinancialEntryScalarWhereInput
+    data: XOR<FinancialEntryUpdateManyMutationInput, FinancialEntryUncheckedUpdateManyWithoutReviewedByInput>
   }
 
   export type VoterUpsertWithWhereUniqueWithoutRegistrarInput = {
@@ -41809,6 +44588,22 @@ export namespace Prisma {
     data: XOR<AuditEventUpdateManyMutationInput, AuditEventUncheckedUpdateManyWithoutActorUserInput>
   }
 
+  export type StoredObjectUpsertWithWhereUniqueWithoutUploaderInput = {
+    where: StoredObjectWhereUniqueInput
+    update: XOR<StoredObjectUpdateWithoutUploaderInput, StoredObjectUncheckedUpdateWithoutUploaderInput>
+    create: XOR<StoredObjectCreateWithoutUploaderInput, StoredObjectUncheckedCreateWithoutUploaderInput>
+  }
+
+  export type StoredObjectUpdateWithWhereUniqueWithoutUploaderInput = {
+    where: StoredObjectWhereUniqueInput
+    data: XOR<StoredObjectUpdateWithoutUploaderInput, StoredObjectUncheckedUpdateWithoutUploaderInput>
+  }
+
+  export type StoredObjectUpdateManyWithWhereWithoutUploaderInput = {
+    where: StoredObjectScalarWhereInput
+    data: XOR<StoredObjectUpdateManyMutationInput, StoredObjectUncheckedUpdateManyWithoutUploaderInput>
+  }
+
   export type TenantCreateWithoutTeamInvitationsInput = {
     id?: string
     slug: string
@@ -41835,6 +44630,7 @@ export namespace Prisma {
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTeamInvitationsInput = {
@@ -41863,6 +44659,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTeamInvitationsInput = {
@@ -41884,7 +44681,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -41900,6 +44698,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutInvitationsSentInput = {
@@ -41916,7 +44715,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -41932,6 +44732,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutInvitationsSentInput = {
@@ -41976,6 +44777,7 @@ export namespace Prisma {
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTeamInvitationsInput = {
@@ -42004,6 +44806,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutInvitationsSentInput = {
@@ -42031,7 +44834,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -42047,6 +44851,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInvitationsSentInput = {
@@ -42063,7 +44868,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -42079,6 +44885,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutDivisionsInput = {
@@ -42107,6 +44914,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutDivisionsInput = {
@@ -42135,6 +44943,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutDivisionsInput = {
@@ -42221,7 +45030,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -42238,6 +45048,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutDivisionInput = {
@@ -42252,7 +45063,8 @@ export namespace Prisma {
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -42269,6 +45081,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutDivisionInput = {
@@ -42471,6 +45284,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutDivisionsInput = {
@@ -42499,6 +45313,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutChildrenInput = {
@@ -42644,6 +45459,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutVotersInput = {
@@ -42672,6 +45488,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutVotersInput = {
@@ -42724,7 +45541,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
@@ -42740,6 +45558,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutRegisteredVotersInput = {
@@ -42756,7 +45575,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
@@ -42772,6 +45592,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutRegisteredVotersInput = {
@@ -42975,6 +45796,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutVotersInput = {
@@ -43003,6 +45825,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutVotersInput = {
@@ -43067,7 +45890,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
@@ -43083,6 +45907,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRegisteredVotersInput = {
@@ -43099,7 +45924,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
@@ -43115,6 +45941,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutVoterInput = {
@@ -43191,6 +46018,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutFinancesInput = {
@@ -43219,6 +46047,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutFinancesInput = {
@@ -43226,7 +46055,7 @@ export namespace Prisma {
     create: XOR<TenantCreateWithoutFinancesInput, TenantUncheckedCreateWithoutFinancesInput>
   }
 
-  export type UserCreateWithoutFinancialEntriesInput = {
+  export type UserCreateWithoutFinancialEntriesReportedInput = {
     id?: string
     email: string
     password: string
@@ -43240,6 +46069,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -43256,9 +46086,10 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
-  export type UserUncheckedCreateWithoutFinancialEntriesInput = {
+  export type UserUncheckedCreateWithoutFinancialEntriesReportedInput = {
     id?: string
     email: string
     password: string
@@ -43272,6 +46103,7 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -43288,11 +46120,85 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
-  export type UserCreateOrConnectWithoutFinancialEntriesInput = {
+  export type UserCreateOrConnectWithoutFinancialEntriesReportedInput = {
     where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutFinancialEntriesInput, UserUncheckedCreateWithoutFinancialEntriesInput>
+    create: XOR<UserCreateWithoutFinancialEntriesReportedInput, UserUncheckedCreateWithoutFinancialEntriesReportedInput>
+  }
+
+  export type UserCreateWithoutFinancialEntriesReviewedInput = {
+    id?: string
+    email: string
+    password: string
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId: string
+    phone?: string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserUncheckedCreateWithoutFinancialEntriesReviewedInput = {
+    id?: string
+    email: string
+    password: string
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId: string
+    phone?: string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserCreateOrConnectWithoutFinancialEntriesReviewedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutFinancialEntriesReviewedInput, UserUncheckedCreateWithoutFinancialEntriesReviewedInput>
   }
 
   export type TenantUpsertWithoutFinancesInput = {
@@ -43332,6 +46238,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutFinancesInput = {
@@ -43360,20 +46267,21 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
-  export type UserUpsertWithoutFinancialEntriesInput = {
-    update: XOR<UserUpdateWithoutFinancialEntriesInput, UserUncheckedUpdateWithoutFinancialEntriesInput>
-    create: XOR<UserCreateWithoutFinancialEntriesInput, UserUncheckedCreateWithoutFinancialEntriesInput>
+  export type UserUpsertWithoutFinancialEntriesReportedInput = {
+    update: XOR<UserUpdateWithoutFinancialEntriesReportedInput, UserUncheckedUpdateWithoutFinancialEntriesReportedInput>
+    create: XOR<UserCreateWithoutFinancialEntriesReportedInput, UserUncheckedCreateWithoutFinancialEntriesReportedInput>
     where?: UserWhereInput
   }
 
-  export type UserUpdateToOneWithWhereWithoutFinancialEntriesInput = {
+  export type UserUpdateToOneWithWhereWithoutFinancialEntriesReportedInput = {
     where?: UserWhereInput
-    data: XOR<UserUpdateWithoutFinancialEntriesInput, UserUncheckedUpdateWithoutFinancialEntriesInput>
+    data: XOR<UserUpdateWithoutFinancialEntriesReportedInput, UserUncheckedUpdateWithoutFinancialEntriesReportedInput>
   }
 
-  export type UserUpdateWithoutFinancialEntriesInput = {
+  export type UserUpdateWithoutFinancialEntriesReportedInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
@@ -43387,6 +46295,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -43403,9 +46312,10 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
-  export type UserUncheckedUpdateWithoutFinancialEntriesInput = {
+  export type UserUncheckedUpdateWithoutFinancialEntriesReportedInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
@@ -43419,6 +46329,7 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -43435,6 +46346,86 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUpsertWithoutFinancialEntriesReviewedInput = {
+    update: XOR<UserUpdateWithoutFinancialEntriesReviewedInput, UserUncheckedUpdateWithoutFinancialEntriesReviewedInput>
+    create: XOR<UserCreateWithoutFinancialEntriesReviewedInput, UserUncheckedCreateWithoutFinancialEntriesReviewedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutFinancialEntriesReviewedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutFinancialEntriesReviewedInput, UserUncheckedUpdateWithoutFinancialEntriesReviewedInput>
+  }
+
+  export type UserUpdateWithoutFinancialEntriesReviewedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutFinancialEntriesReviewedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutWitnessesInput = {
@@ -43463,6 +46454,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutWitnessesInput = {
@@ -43491,6 +46483,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutWitnessesInput = {
@@ -43543,7 +46536,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
@@ -43559,6 +46553,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutWitnessReportsInput = {
@@ -43575,7 +46570,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
@@ -43591,6 +46587,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutWitnessReportsInput = {
@@ -43635,6 +46632,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutWitnessesInput = {
@@ -43663,6 +46661,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutWitnessesInput = {
@@ -43727,7 +46726,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
@@ -43743,6 +46743,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWitnessReportsInput = {
@@ -43759,7 +46760,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
@@ -43775,6 +46777,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutEventsInput = {
@@ -43803,6 +46806,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutEventsInput = {
@@ -43831,6 +46835,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutEventsInput = {
@@ -43852,7 +46857,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -43868,6 +46874,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutEventsResponsibleInput = {
@@ -43884,7 +46891,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -43900,6 +46908,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutEventsResponsibleInput = {
@@ -43971,6 +46980,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutEventsInput = {
@@ -43999,6 +47009,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutEventsResponsibleInput = {
@@ -44026,7 +47037,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -44042,6 +47054,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEventsResponsibleInput = {
@@ -44058,7 +47071,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -44074,6 +47088,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type PointLogUpsertWithWhereUniqueWithoutEventInput = {
@@ -44118,6 +47133,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutPointLogsInput = {
@@ -44146,6 +47162,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutPointLogsInput = {
@@ -44167,7 +47184,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
@@ -44183,6 +47201,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutPointLogsInput = {
@@ -44199,7 +47218,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
@@ -44215,6 +47235,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutPointLogsInput = {
@@ -44298,6 +47319,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutPointLogsInput = {
@@ -44326,6 +47348,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutPointLogsInput = {
@@ -44353,7 +47376,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
@@ -44369,6 +47393,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPointLogsInput = {
@@ -44385,7 +47410,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
@@ -44401,6 +47427,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type CampaignEventUpsertWithoutAttendeesInput = {
@@ -44474,6 +47501,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryInput = {
@@ -44502,6 +47530,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryInput = {
@@ -44575,6 +47604,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryInput = {
@@ -44603,6 +47633,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryMovementUpsertWithWhereUniqueWithoutItemInput = {
@@ -44647,6 +47678,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryMovementsInput = {
@@ -44675,6 +47707,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryMovementsInput = {
@@ -44723,7 +47756,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -44739,6 +47773,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutInventoryMovesInput = {
@@ -44755,7 +47790,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -44771,6 +47807,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutInventoryMovesInput = {
@@ -44815,6 +47852,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryMovementsInput = {
@@ -44843,6 +47881,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryItemUpsertWithoutMovementsInput = {
@@ -44903,7 +47942,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -44919,6 +47959,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInventoryMovesInput = {
@@ -44935,7 +47976,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -44951,6 +47993,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutConsentRecordsInput = {
@@ -44979,6 +48022,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutConsentRecordsInput = {
@@ -45007,6 +48051,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutConsentRecordsInput = {
@@ -45079,7 +48124,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -45095,6 +48141,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutConsentsCapturedInput = {
@@ -45111,7 +48158,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -45127,6 +48175,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutConsentsCapturedInput = {
@@ -45214,6 +48263,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutConsentRecordsInput = {
@@ -45242,6 +48292,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutConsentRecordsInput = {
@@ -45326,7 +48377,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -45342,6 +48394,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConsentsCapturedInput = {
@@ -45358,7 +48411,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -45374,6 +48428,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutConsentRecordInput = {
@@ -45418,6 +48473,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutIssueCasesInput = {
@@ -45446,6 +48502,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutIssueCasesInput = {
@@ -45549,7 +48606,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -45565,6 +48623,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutCasesAssignedInput = {
@@ -45581,7 +48640,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -45597,6 +48657,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutCasesAssignedInput = {
@@ -45618,7 +48679,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -45634,6 +48696,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutCasesCreatedInput = {
@@ -45650,7 +48713,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -45666,6 +48730,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutCasesCreatedInput = {
@@ -45892,6 +48957,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutIssueCasesInput = {
@@ -45920,6 +48986,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutIssueCasesInput = {
@@ -46041,7 +49108,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -46057,6 +49125,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesAssignedInput = {
@@ -46073,7 +49142,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -46089,6 +49159,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUpsertWithoutCasesCreatedInput = {
@@ -46116,7 +49187,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -46132,6 +49204,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesCreatedInput = {
@@ -46148,7 +49221,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -46164,6 +49238,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutIssueCaseInput = {
@@ -46256,6 +49331,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInteractionsInput = {
@@ -46284,6 +49360,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInteractionsInput = {
@@ -46415,7 +49492,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -46431,6 +49509,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutInteractionsInput = {
@@ -46447,7 +49526,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -46463,6 +49543,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutInteractionsInput = {
@@ -46556,6 +49637,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInteractionsInput = {
@@ -46584,6 +49666,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutInteractionsInput = {
@@ -46733,7 +49816,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -46749,6 +49833,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInteractionsInput = {
@@ -46765,7 +49850,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -46781,6 +49867,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type ConsentRecordUpsertWithoutInteractionsInput = {
@@ -46864,6 +49951,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTasksInput = {
@@ -46892,6 +49980,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTasksInput = {
@@ -47015,7 +50104,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -47031,6 +50121,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutTasksAssignedInput = {
@@ -47047,7 +50138,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -47063,6 +50155,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutTasksAssignedInput = {
@@ -47084,7 +50177,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -47100,6 +50194,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutTasksCreatedInput = {
@@ -47116,7 +50211,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -47132,6 +50228,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutTasksCreatedInput = {
@@ -47176,6 +50273,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTasksInput = {
@@ -47204,6 +50302,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutTasksInput = {
@@ -47345,7 +50444,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -47361,6 +50461,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksAssignedInput = {
@@ -47377,7 +50478,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -47393,6 +50495,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUpsertWithoutTasksCreatedInput = {
@@ -47420,7 +50523,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -47436,6 +50540,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksCreatedInput = {
@@ -47452,7 +50557,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -47468,6 +50574,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutCommitmentsInput = {
@@ -47496,6 +50603,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommitmentsInput = {
@@ -47524,6 +50632,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommitmentsInput = {
@@ -47545,7 +50654,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -47561,6 +50671,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutCommitmentsOwnedInput = {
@@ -47577,7 +50688,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -47593,6 +50705,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutCommitmentsOwnedInput = {
@@ -47739,6 +50852,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommitmentsInput = {
@@ -47767,6 +50881,7 @@ export namespace Prisma {
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutCommitmentsOwnedInput = {
@@ -47794,7 +50909,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -47810,6 +50926,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommitmentsOwnedInput = {
@@ -47826,7 +50943,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -47842,6 +50960,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommitmentsInput = {
@@ -47951,6 +51070,7 @@ export namespace Prisma {
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommunicationApprovalsInput = {
@@ -47979,6 +51099,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommunicationApprovalsInput = {
@@ -48059,7 +51180,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -48075,6 +51197,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsRequestedInput = {
@@ -48091,7 +51214,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -48107,6 +51231,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsRequestedInput = {
@@ -48128,7 +51253,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -48144,6 +51270,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsDecidedInput = {
@@ -48160,7 +51287,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -48176,6 +51304,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsDecidedInput = {
@@ -48220,6 +51349,7 @@ export namespace Prisma {
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommunicationApprovalsInput = {
@@ -48248,6 +51378,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommunicationApprovalsInput = {
@@ -48340,7 +51471,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -48356,6 +51488,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsRequestedInput = {
@@ -48372,7 +51505,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -48388,6 +51522,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUpsertWithoutCommunicationsDecidedInput = {
@@ -48415,7 +51550,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -48431,6 +51567,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsDecidedInput = {
@@ -48447,7 +51584,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -48463,6 +51601,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type TenantCreateWithoutAuditEventsInput = {
@@ -48491,6 +51630,7 @@ export namespace Prisma {
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
     communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutAuditEventsInput = {
@@ -48519,6 +51659,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
     communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutAuditEventsInput = {
@@ -48540,7 +51681,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntries?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
@@ -48556,6 +51698,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
     invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
   }
 
   export type UserUncheckedCreateWithoutAuditEventsInput = {
@@ -48572,7 +51715,8 @@ export namespace Prisma {
     divisionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    financialEntries?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
@@ -48588,6 +51732,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
     invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
     eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
   }
 
   export type UserCreateOrConnectWithoutAuditEventsInput = {
@@ -48632,6 +51777,7 @@ export namespace Prisma {
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
     communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutAuditEventsInput = {
@@ -48660,6 +51806,7 @@ export namespace Prisma {
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
     communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutAuditEventsInput = {
@@ -48687,7 +51834,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -48703,6 +51851,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditEventsInput = {
@@ -48719,7 +51868,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -48735,6 +51885,7 @@ export namespace Prisma {
     communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserCreateManyTenantInput = {
@@ -48791,6 +51942,9 @@ export namespace Prisma {
     vendorTaxId: string
     evidenceUrl?: string | null
     reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -49000,6 +52154,25 @@ export namespace Prisma {
     occurredAt?: Date | string
   }
 
+  export type StoredObjectCreateManyTenantInput = {
+    id?: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type UserUpdateWithoutTenantInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -49013,7 +52186,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -49030,6 +52204,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTenantInput = {
@@ -49045,7 +52220,8 @@ export namespace Prisma {
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -49062,6 +52238,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutTenantInput = {
@@ -49189,10 +52366,13 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesNestedInput
+    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
+    reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateWithoutTenantInput = {
@@ -49206,6 +52386,9 @@ export namespace Prisma {
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49222,6 +52405,9 @@ export namespace Prisma {
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49855,6 +53041,63 @@ export namespace Prisma {
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type StoredObjectUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    uploader?: UserUpdateOneRequiredWithoutStoredObjectsNestedInput
+  }
+
+  export type StoredObjectUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StoredObjectUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type FinancialEntryCreateManyReporterInput = {
     id?: string
     type: $Enums.EntryType
@@ -49865,6 +53108,27 @@ export namespace Prisma {
     vendorName: string
     vendorTaxId: string
     evidenceUrl?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type FinancialEntryCreateManyReviewedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reporterId: string
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -50128,6 +53392,24 @@ export namespace Prisma {
     occurredAt?: Date | string
   }
 
+  export type StoredObjectCreateManyUploaderInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type FinancialEntryUpdateWithoutReporterInput = {
     id?: StringFieldUpdateOperationsInput | string
     type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
@@ -50138,10 +53420,13 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
+    reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateWithoutReporterInput = {
@@ -50154,6 +53439,9 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50169,6 +53457,64 @@ export namespace Prisma {
     vendorName?: StringFieldUpdateOperationsInput | string
     vendorTaxId?: StringFieldUpdateOperationsInput | string
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FinancialEntryUpdateWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
+    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
+  }
+
+  export type FinancialEntryUncheckedUpdateWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FinancialEntryUncheckedUpdateManyWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50992,6 +54338,61 @@ export namespace Prisma {
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type StoredObjectUpdateWithoutUploaderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutStoredObjectsNestedInput
+  }
+
+  export type StoredObjectUncheckedUpdateWithoutUploaderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StoredObjectUncheckedUpdateManyWithoutUploaderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PoliticalDivisionCreateManyParentInput = {
     id?: string
     code: string
@@ -51111,7 +54512,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
-    financialEntries?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
@@ -51128,6 +54530,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateWithoutDivisionInput = {
@@ -51142,7 +54545,8 @@ export namespace Prisma {
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntries?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
@@ -51159,6 +54563,7 @@ export namespace Prisma {
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutDivisionInput = {

@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 describe('JwtAuthGuard', () => {
-  const buildContext = (request: Record<string, unknown>) =>
+  const buildContext = (request: object) =>
     ({
       getHandler: () => function protectedHandler() {},
       getClass: () => class ProtectedController {},

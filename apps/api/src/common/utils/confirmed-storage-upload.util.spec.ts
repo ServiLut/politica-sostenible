@@ -1,39 +1,84 @@
 import { BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { assertConfirmedStorageUpload } from './confirmed-storage-upload.util';
+import {
+  StoredObjectStatus,
+  StorageObjectModule,
+} from '../../../prisma/generated/prisma';
+import {
+  assertConfirmedStorageUpload,
+  consumeConfirmedStorageUpload,
+} from './confirmed-storage-upload.util';
 
-describe('assertConfirmedStorageUpload', () => {
-  const path = 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000-acta.pdf';
+describe('confirmed storage upload authorization', () => {
+  const path = 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf';
 
-  it('accepts only a successful receipt scoped to the JWT tenant and exact path', async () => {
-    const findFirst = jest.fn().mockResolvedValue({ id: 'receipt-a' });
-    const prisma = { auditEvent: { findFirst } } as unknown as PrismaService;
+  it('validates an unconsumed row scoped to tenant, module and exact path', async () => {
+    const findFirst = jest.fn().mockResolvedValue({ id: 'stored-a' });
+    const client = { storedObject: { findFirst } } as never;
 
     await expect(
-      assertConfirmedStorageUpload(prisma, 'tenant-a', path),
+      assertConfirmedStorageUpload(
+        client,
+        'tenant-a',
+        path,
+        StorageObjectModule.E14,
+      ),
     ).resolves.toBeUndefined();
     expect(findFirst).toHaveBeenCalledWith({
       where: {
         tenantId: 'tenant-a',
-        action: 'STORAGE_UPLOAD_CONFIRMED',
-        resourceType: 'StorageObject',
-        resourceId: path,
-        outcome: 'SUCCESS',
+        path,
+        module: StorageObjectModule.E14,
+        status: StoredObjectStatus.CONFIRMED,
+        consumedAt: null,
       },
       select: { id: true },
     });
   });
 
-  it('rejects when a matching path has a receipt only in another tenant', async () => {
-    const findFirst = jest
-      .fn()
-      .mockImplementation(({ where }: { where: { tenantId: string } }) =>
-        where.tenantId === 'tenant-b' ? { id: 'receipt-b' } : null,
-      );
-    const prisma = { auditEvent: { findFirst } } as unknown as PrismaService;
+  it('atomically consumes and links a confirmed upload exactly once', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const client = { storedObject: { updateMany } } as never;
+
+    await consumeConfirmedStorageUpload(
+      client,
+      'tenant-a',
+      path,
+      StorageObjectModule.E14,
+      'WitnessReport',
+      'report-a',
+    );
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        path,
+        module: StorageObjectModule.E14,
+        status: StoredObjectStatus.CONFIRMED,
+        consumedAt: null,
+      },
+      data: {
+        status: StoredObjectStatus.CONSUMED,
+        consumedAt: expect.any(Date) as Date,
+        consumedByType: 'WitnessReport',
+        consumedById: 'report-a',
+      },
+    });
+  });
+
+  it('rejects reuse, another tenant or a concurrent consumption winner', async () => {
+    const client = {
+      storedObject: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    } as never;
 
     await expect(
-      assertConfirmedStorageUpload(prisma, 'tenant-a', path),
+      consumeConfirmedStorageUpload(
+        client,
+        'tenant-a',
+        path,
+        StorageObjectModule.E14,
+        'WitnessReport',
+        'report-a',
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

@@ -9,6 +9,7 @@ import {
   DatabaseZap,
   Loader2,
   MapPin,
+  Plus,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -51,6 +52,13 @@ interface SyncResult {
   synchronizedAt: string;
 }
 
+interface CreateDivisionInput {
+  type: "ZONA" | "PUESTO";
+  code: string;
+  name: string;
+  parentId: string;
+}
+
 const TYPE_OPTIONS: Array<{ value: DivisionType; label: string }> = [
   { value: "MUNICIPIO", label: "Municipios" },
   { value: "ZONA", label: "Zonas" },
@@ -74,6 +82,14 @@ export default function TerritoryPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [createType, setCreateType] = useState<"ZONA" | "PUESTO">("ZONA");
+  const [divisionCode, setDivisionCode] = useState("");
+  const [divisionName, setDivisionName] = useState("");
+  const [parentSearch, setParentSearch] = useState("");
+  const [parentOptions, setParentOptions] = useState<Division[]>([]);
+  const [parentId, setParentId] = useState("");
+  const [loadingParents, setLoadingParents] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const canSynchronize =
     user?.role === UserRole.AdminCampana || user?.role === UserRole.SuperAdmin;
@@ -104,6 +120,60 @@ export default function TerritoryPage() {
     void loadDivisions();
   }, [loadDivisions]);
 
+  useEffect(() => {
+    if (!canSynchronize) return;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      setLoadingParents(true);
+      const parentTypes: DivisionType[] =
+        createType === "ZONA" ? ["MUNICIPIO"] : ["MUNICIPIO", "ZONA"];
+
+      void Promise.all(
+        parentTypes.map((parentType) => {
+          const params = new URLSearchParams({
+            type: parentType,
+            page: "1",
+            limit: "30",
+          });
+          if (parentSearch.trim()) params.set("search", parentSearch.trim());
+          return apiRequest<DivisionResult>(`campaigns/divisions?${params}`, {
+            signal: controller.signal,
+          });
+        }),
+      )
+        .then((responses) => {
+          const unique = new Map<string, Division>();
+          for (const response of responses) {
+            for (const division of response.items)
+              unique.set(division.id, division);
+          }
+          const options = [...unique.values()];
+          setParentOptions(options);
+          setParentId((current) =>
+            options.some((option) => option.id === current) ? current : "",
+          );
+        })
+        .catch((requestError: unknown) => {
+          if (
+            requestError instanceof DOMException &&
+            requestError.name === "AbortError"
+          ) {
+            return;
+          }
+          setError(messageFrom(requestError));
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoadingParents(false);
+        });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [canSynchronize, createType, parentSearch]);
+
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
@@ -130,6 +200,43 @@ export default function TerritoryPage() {
       setError(messageFrom(requestError));
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function createOperationalDivision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!parentId) {
+      setError("Selecciona un territorio padre válido.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+    setNotice(null);
+    const input: CreateDivisionInput = {
+      type: createType,
+      code: divisionCode.trim(),
+      name: divisionName.trim(),
+      parentId,
+    };
+
+    try {
+      const created = await apiRequest<Division>("campaigns/divisions", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+      setDivisionCode("");
+      setDivisionName("");
+      setParentId("");
+      setType(created.type);
+      setPage(1);
+      setSearch("");
+      setSearchDraft("");
+      setNotice(`${created.name} quedó disponible para asignaciones.`);
+    } catch (requestError) {
+      setError(messageFrom(requestError));
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -193,6 +300,105 @@ export default function TerritoryPage() {
         >
           <AlertCircle className="mt-0.5 shrink-0" size={18} /> {error}
         </div>
+      )}
+
+      {canSynchronize && (
+        <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-950 via-slate-950 to-slate-900 p-6 text-white shadow-xl shadow-blue-950/10">
+          <div className="grid gap-6 xl:grid-cols-[18rem_1fr] xl:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+                <Plus size={15} aria-hidden="true" /> Estructura operativa
+              </div>
+              <h2 className="mt-3 text-2xl font-black">Crear zona o puesto</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Construye la jerarquía real y luego asigna cada miembro desde
+                Equipo y accesos.
+              </p>
+            </div>
+            <form
+              onSubmit={createOperationalDivision}
+              className="grid gap-3 md:grid-cols-2 xl:grid-cols-[10rem_11rem_1fr_1.3fr_auto]"
+            >
+              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-300">
+                Nivel
+                <select
+                  value={createType}
+                  onChange={(event) => {
+                    setCreateType(event.target.value as "ZONA" | "PUESTO");
+                    setParentId("");
+                  }}
+                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
+                >
+                  <option value="ZONA">Zona</option>
+                  <option value="PUESTO">Puesto</option>
+                </select>
+              </label>
+              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-300">
+                Código
+                <input
+                  required
+                  maxLength={50}
+                  value={divisionCode}
+                  onChange={(event) => setDivisionCode(event.target.value)}
+                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
+                />
+              </label>
+              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-300">
+                Nombre
+                <input
+                  required
+                  maxLength={160}
+                  value={divisionName}
+                  onChange={(event) => setDivisionName(event.target.value)}
+                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
+                />
+              </label>
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                  Buscar territorio padre
+                  <input
+                    maxLength={100}
+                    value={parentSearch}
+                    onChange={(event) => setParentSearch(event.target.value)}
+                    placeholder="Municipio o zona"
+                    className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
+                  />
+                </label>
+                <label className="sr-only" htmlFor="division-parent">
+                  Territorio padre
+                </label>
+                <select
+                  id="division-parent"
+                  required
+                  value={parentId}
+                  onChange={(event) => setParentId(event.target.value)}
+                  disabled={loadingParents}
+                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  <option value="">
+                    {loadingParents
+                      ? "Consultando…"
+                      : parentOptions.length
+                        ? "Selecciona el padre"
+                        : "Sin resultados"}
+                  </option>
+                  {parentOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.type} · {option.name} · {option.code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={creating || loadingParents || !parentId}
+                className="min-h-12 self-end rounded-xl bg-blue-500 px-5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-blue-400 disabled:opacity-50"
+              >
+                {creating ? "Creando…" : "Crear"}
+              </button>
+            </form>
+          </div>
+        </section>
       )}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">

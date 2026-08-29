@@ -1,93 +1,138 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
-  BadgeCheck,
-  CalendarDays,
+  CalendarClock,
+  Check,
   CheckCircle2,
   CircleDollarSign,
-  ClipboardCheck,
   FileCheck2,
-  Loader2,
+  ListChecks,
+  LoaderCircle,
   MapPinned,
   RefreshCw,
-  Scale,
   ShieldCheck,
   Users,
 } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { useAuth } from "@/context/auth";
 
-interface VoterStats {
-  total: number;
-  signatures: number;
-  consented?: number;
+type AlertSeverity = "critical" | "attention" | "ok";
+
+interface ActivationStep {
+  code: string;
+  title: string;
+  detail: string;
+  href: string;
+  complete: boolean;
 }
 
-interface FinanceSummary {
-  totalExpenses: number;
-  totalIncome: number;
-  balance: number;
+interface BriefingAlert {
+  code: string;
+  severity: AlertSeverity;
+  title: string;
+  detail: string;
+  href: string;
+  count?: number;
 }
 
-interface FinancialEntry {
+interface AgendaEvent {
   id: string;
-  date: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "REPORTED_CNE";
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  status: string;
 }
 
-interface WitnessReport {
+interface PriorityTask {
   id: string;
-  isSynced: boolean;
-  createdAt: string;
+  title: string;
+  status: string;
+  priority: "URGENT" | "HIGH";
+  dueAt: string | null;
 }
 
-interface Overview {
-  voters: VoterStats;
-  finance: FinanceSummary;
-  financialEntries: FinancialEntry[];
-  witnessReports: WitnessReport[];
+interface CommandCenterBriefing {
+  generatedAt: string;
+  tenant: {
+    id: string;
+    name: string;
+    type: string;
+    mode: "CAMPAIGN";
+  };
+  activation: {
+    ready: boolean;
+    completedSteps: number;
+    totalSteps: number;
+    steps: ActivationStep[];
+  };
+  metrics: {
+    people: { total: number; consented: number; consentCoverage: number };
+    team: { active: number; pendingInvitations: number };
+    territory: {
+      departments: number;
+      municipalities: number;
+      zones: number;
+      pollingPlaces: number;
+    };
+    tasks: { open: number; overdue: number };
+    events: { upcoming: number };
+    finance: {
+      income: string;
+      expenses: string;
+      balance: string;
+      pending: number;
+      overdue: number;
+    };
+    electionDay: { reports: number; syncedReports: number };
+    communications: { pendingApproval: number };
+  };
+  alerts: BriefingAlert[];
+  agenda: {
+    upcomingEvents: AgendaEvent[];
+    priorityTasks: PriorityTask[];
+  };
 }
 
-const EMPTY_OVERVIEW: Overview = {
-  voters: { total: 0, signatures: 0, consented: 0 },
-  finance: { totalExpenses: 0, totalIncome: 0, balance: 0 },
-  financialEntries: [],
-  witnessReports: [],
-};
+function formatCop(value: string) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "$0";
 
-function formatCop(value: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
-    notation: Math.abs(value) >= 1_000_000 ? "compact" : "standard",
+    notation: Math.abs(amount) >= 1_000_000 ? "compact" : "standard",
     maximumFractionDigits: 1,
-  }).format(value);
+  }).format(amount);
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Sin fecha definida";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export default function ExecutivePage() {
   const { tenant, user } = useAuth();
-  const [overview, setOverview] = useState<Overview>(EMPTY_OVERVIEW);
+  const [briefing, setBriefing] = useState<CommandCenterBriefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  const loadOverview = useCallback(async () => {
+  const loadBriefing = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [voters, finance, financialEntries, witnessReports] =
-        await Promise.all([
-          apiRequest<VoterStats>("voters/stats"),
-          apiRequest<FinanceSummary>("finance/summary"),
-          apiRequest<FinancialEntry[]>("finance"),
-          apiRequest<WitnessReport[]>("witnesses"),
-        ]);
-      setOverview({ voters, finance, financialEntries, witnessReports });
-      setUpdatedAt(new Date());
+      const result = await apiRequest<CommandCenterBriefing>(
+        "command-center/briefing",
+      );
+      setBriefing(result);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
@@ -100,118 +145,84 @@ export default function ExecutivePage() {
   }, []);
 
   useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
+    void loadBriefing();
+  }, [loadBriefing]);
 
-  const compliance = useMemo(() => {
-    const now = Date.now();
-    const week = 7 * 24 * 60 * 60 * 1000;
-    const overdueFinance = overview.financialEntries.filter(
-      (entry) =>
-        entry.status === "PENDING" &&
-        now - new Date(entry.date).getTime() > week,
-    ).length;
-    const consented = overview.voters.consented ?? 0;
-    const consentCoverage = overview.voters.total
-      ? Math.round((consented / overview.voters.total) * 100)
-      : 100;
-    const syncedReports = overview.witnessReports.filter(
-      (report) => report.isSynced,
-    ).length;
-
-    return { overdueFinance, consented, consentCoverage, syncedReports };
-  }, [overview]);
-
-  const priorities = useMemo(() => {
-    const items: Array<{
-      title: string;
-      detail: string;
-      href: string;
-      tone: "critical" | "attention" | "ok";
-    }> = [];
-
-    if (compliance.overdueFinance > 0) {
-      items.push({
-        title: "Cierre financiero semanal pendiente",
-        detail: `${compliance.overdueFinance} movimientos superan siete días sin aprobación.`,
-        href: "/dashboard/finance",
-        tone: "critical",
-      });
-    }
-
-    if (compliance.consentCoverage < 100) {
-      items.push({
-        title: "Consentimientos por completar",
-        detail: `La cobertura verificable es ${compliance.consentCoverage}%. No uses registros incompletos en comunicaciones.`,
-        href: "/dashboard/votantes",
-        tone: "critical",
-      });
-    }
-
-    if (overview.voters.total === 0) {
-      items.push({
-        title: "Activa el relacionamiento territorial",
-        detail:
-          "Registra la primera persona únicamente después de obtener autorización explícita.",
-        href: "/dashboard/votantes",
-        tone: "attention",
-      });
-    }
-
-    if (items.length === 0) {
-      items.push({
-        title: "Controles críticos al día",
-        detail:
-          "No se detectan vencimientos semanales ni consentimientos incompletos en los datos disponibles.",
-        href: "/dashboard/tasks",
-        tone: "ok",
-      });
-    }
-
-    return items.slice(0, 3);
-  }, [compliance, overview.voters.total]);
+  const progress = briefing
+    ? Math.round(
+        (briefing.activation.completedSteps /
+          Math.max(briefing.activation.totalSteps, 1)) *
+          100,
+      )
+    : 0;
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl md:p-9">
-        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-emerald-500/15 blur-3xl" />
-        <div className="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
-          <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
-              <ShieldCheck size={13} /> Modo campaña · entorno aislado
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-400">
-                Buenos días, {user?.name?.split(" ")[0] ?? "equipo"}
-              </p>
-              <h1 className="text-4xl font-black tracking-tight md:text-5xl">
-                {tenant?.name ?? "Centro de mando"}
-              </h1>
-            </div>
-            <p className="max-w-2xl text-sm leading-6 text-slate-300">
-              Prioridades operativas sustentadas en datos reales del tenant.
-              Este tablero no muestra predicciones de voto ni métricas
-              inventadas.
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_62%)]" />
+        <div className="relative grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
+          <div>
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
+              <ShieldCheck size={15} aria-hidden="true" /> Centro de mando ·
+              Campaña
+            </p>
+            <p className="mt-5 text-sm font-medium text-slate-400">
+              Hola, {user?.name?.split(" ")[0] ?? "equipo"}. Esto requiere tu
+              atención.
+            </p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+              {briefing?.tenant.name ?? tenant?.name ?? "Operación política"}
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+              Decisiones calculadas con datos agregados del espacio autenticado.
+              Sin predicciones de voto, puntajes opacos ni cifras de
+              demostración.
             </p>
           </div>
-          <div className="flex flex-col items-start gap-3 lg:items-end">
-            <button
-              type="button"
-              onClick={() => void loadOverview()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-black uppercase tracking-wider text-slate-950 disabled:opacity-60"
+
+          <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Activación operativa
+                </p>
+                <p className="mt-1 text-2xl font-black">
+                  {briefing
+                    ? `${briefing.activation.completedSteps}/${briefing.activation.totalSteps}`
+                    : "—"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void loadBriefing()}
+                disabled={loading}
+                aria-label="Actualizar centro de mando"
+                className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-50"
+              >
+                {loading ? (
+                  <LoaderCircle className="animate-spin" size={18} />
+                ) : (
+                  <RefreshCw size={18} />
+                )}
+              </button>
+            </div>
+            <div
+              className="mt-4 h-1.5 overflow-hidden bg-white/10"
+              role="progressbar"
+              aria-label="Progreso de activación"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
             >
-              {loading ? (
-                <Loader2 className="animate-spin" size={15} />
-              ) : (
-                <RefreshCw size={15} />
-              )}
-              Actualizar operación
-            </button>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              {updatedAt
-                ? `Último corte ${updatedAt.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}`
-                : "Esperando primer corte"}
+              <div
+                className="h-full bg-emerald-400 transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-400">
+              {briefing?.activation.ready
+                ? "Onboarding operativo completo; mantén los controles medidos al día."
+                : "Completa la ruta para pasar de configuración a ejecución."}
             </p>
           </div>
         </div>
@@ -220,171 +231,229 @@ export default function ExecutivePage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700"
+          className="flex items-start gap-3 border border-red-200 bg-red-50 p-5 text-sm text-red-800"
         >
           <AlertTriangle className="mt-0.5 shrink-0" size={19} />
           <div>
             <p className="font-black">No se pudo actualizar el tablero</p>
-            <p className="mt-1 font-medium">{error}</p>
+            <p className="mt-1">{error}</p>
           </div>
         </div>
       )}
 
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="Indicadores principales"
+        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+      >
         <MetricCard
           icon={Users}
-          label="Personas consentidas"
-          value={String(compliance.consented)}
-          hint={`${overview.voters.total} registros totales`}
-          tone="emerald"
+          label="Personas autorizadas"
+          value={String(briefing?.metrics.people.consented ?? 0)}
+          hint={`${briefing?.metrics.people.total ?? 0} relaciones totales`}
           loading={loading}
         />
         <MetricCard
-          icon={BadgeCheck}
+          icon={ShieldCheck}
           label="Cobertura de consentimiento"
-          value={`${compliance.consentCoverage}%`}
-          hint="Objetivo obligatorio: 100%"
-          tone={compliance.consentCoverage === 100 ? "emerald" : "amber"}
+          value={`${briefing?.metrics.people.consentCoverage ?? 0}%`}
+          hint="La meta obligatoria es 100%"
           loading={loading}
+          accent={
+            briefing?.metrics.people.consentCoverage === 100
+              ? "emerald"
+              : "amber"
+          }
         />
         <MetricCard
           icon={CircleDollarSign}
           label="Balance registrado"
-          value={formatCop(overview.finance.balance)}
-          hint={`${overview.financialEntries.length} movimientos`}
-          tone="blue"
+          value={formatCop(briefing?.metrics.finance.balance ?? "0")}
+          hint={`${briefing?.metrics.finance.pending ?? 0} movimientos pendientes`}
           loading={loading}
+          accent="blue"
         />
         <MetricCard
           icon={FileCheck2}
-          label="Actas E-14 sincronizadas"
-          value={String(compliance.syncedReports)}
-          hint={`${overview.witnessReports.length} reportes recibidos`}
-          tone="violet"
+          label="Actas sincronizadas"
+          value={String(briefing?.metrics.electionDay.syncedReports ?? 0)}
+          hint={`${briefing?.metrics.electionDay.reports ?? 0} reportes recibidos`}
           loading={loading}
+          accent="violet"
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-          <div className="mb-6 flex items-center justify-between">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+        <div className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
                 Decisiones de hoy
               </p>
-              <h2 className="mt-1 text-xl font-black text-slate-950">
-                Prioridades verificables
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+                Lo que necesita tu decisión
               </h2>
             </div>
-            <ClipboardCheck className="text-slate-400" />
+            <ListChecks className="text-slate-400" aria-hidden="true" />
           </div>
-          <div className="space-y-3">
-            {priorities.map((priority) => (
+
+          <div className="divide-y divide-slate-100 border-y border-slate-100">
+            {(briefing?.alerts ?? []).map((alert) => (
+              <AlertLink key={alert.code} alert={alert} />
+            ))}
+            {!loading && !briefing && (
+              <p className="py-6 text-sm text-slate-500">
+                Actualiza el tablero para obtener prioridades verificables.
+              </p>
+            )}
+            {loading && (
+              <div className="flex items-center gap-3 py-8 text-sm font-semibold text-slate-500">
+                <LoaderCircle className="animate-spin" size={18} />
+                Consolidando controles y vencimientos…
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
+            Ruta de activación
+          </p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            De cero a una operación útil
+          </h2>
+          <div className="mt-6 space-y-1">
+            {(briefing?.activation.steps ?? []).map((step, index) => (
               <Link
-                key={priority.title}
-                href={priority.href}
-                className="group flex items-start gap-4 rounded-2xl border border-slate-100 p-5 transition hover:border-slate-300 hover:bg-slate-50"
+                key={step.code}
+                href={step.href}
+                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
               >
                 <span
-                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${priority.tone === "critical" ? "bg-red-50 text-red-600" : priority.tone === "attention" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}
+                  className={`grid h-8 w-8 place-items-center text-xs font-black ${
+                    step.complete
+                      ? "bg-emerald-600 text-white"
+                      : "border border-slate-300 text-slate-500"
+                  }`}
                 >
-                  {priority.tone === "ok" ? (
-                    <CheckCircle2 size={18} />
-                  ) : (
-                    <AlertTriangle size={18} />
-                  )}
+                  {step.complete ? <Check size={15} /> : index + 1}
                 </span>
-                <span className="min-w-0 flex-1">
+                <span>
                   <span className="block text-sm font-black text-slate-900">
-                    {priority.title}
+                    {step.title}
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    {priority.detail}
+                    {step.detail}
                   </span>
                 </span>
                 <ArrowRight
                   className="mt-2 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
-                  size={17}
+                  size={16}
                 />
               </Link>
             ))}
-          </div>
-        </div>
-
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Separación de finalidades
-          </p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">
-            Dos operaciones, cero mezclas
-          </h2>
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
-              <div className="flex items-center gap-3">
-                <MapPinned className="text-emerald-700" size={20} />
-                <p className="font-black text-emerald-950">Campaña electoral</p>
+            {loading && (
+              <div className="flex items-center gap-3 py-8 text-sm text-slate-500">
+                <LoaderCircle className="animate-spin" size={18} /> Cargando
+                ruta…
               </div>
-              <p className="mt-2 text-xs leading-5 text-emerald-800">
-                Territorio, equipo, finanzas, comunicaciones consentidas y Día
-                D.
-              </p>
-              <span className="mt-3 inline-flex rounded-full bg-emerald-700 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-white">
-                Activo
-              </span>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <div className="flex items-center gap-3">
-                <Scale className="text-slate-600" size={20} />
-                <p className="font-black text-slate-900">Ejercicio del cargo</p>
-              </div>
-              <p className="mt-2 text-xs leading-5 text-slate-600">
-                PQRS, agenda pública, compromisos e indicadores en un almacén y
-                finalidad independientes.
-              </p>
-              <span className="mt-3 inline-flex rounded-full bg-slate-200 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-slate-600">
-                Aislado por diseño
-              </span>
-            </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-        <div className="mb-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Frentes de operación
+      <section className="grid gap-6 lg:grid-cols-2">
+        <AgendaPanel
+          title="Próximas acciones"
+          icon={CalendarClock}
+          empty="No hay actividades programadas para las próximas dos semanas."
+        >
+          {(briefing?.agenda.upcomingEvents ?? []).map((event) => (
+            <Link
+              key={event.id}
+              href="/dashboard/events"
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {event.name}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {formatDate(event.startsAt)}
+                </span>
+              </span>
+              <ArrowRight className="shrink-0 text-slate-300" size={16} />
+            </Link>
+          ))}
+        </AgendaPanel>
+
+        <AgendaPanel
+          title="Tareas de alta prioridad"
+          icon={ListChecks}
+          empty="No hay tareas urgentes o de alta prioridad abiertas."
+        >
+          {(briefing?.agenda.priorityTasks ?? []).map((task) => (
+            <Link
+              key={task.id}
+              href="/dashboard/tasks"
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {task.title}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {task.priority === "URGENT" ? "Urgente" : "Alta"} ·{" "}
+                  {formatDate(task.dueAt)}
+                </span>
+              </span>
+              <ArrowRight className="shrink-0 text-slate-300" size={16} />
+            </Link>
+          ))}
+        </AgendaPanel>
+      </section>
+
+      <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <div className="mb-5">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Flujo de trabajo
           </p>
           <h2 className="mt-1 text-xl font-black text-slate-950">
-            Del territorio a la rendición de cuentas
+            Escuchar, organizar, movilizar y rendir cuentas
           </h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <ActionLink
+        <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+          <QuickAction
             href="/dashboard/votantes"
             icon={Users}
             title="Relacionamiento"
-            detail="Consentimiento y registro territorial"
+            detail="Consentimiento y trazabilidad"
           />
-          <ActionLink
-            href="/dashboard/finance"
-            icon={CircleDollarSign}
-            title="Finanzas"
-            detail="Libro y control semanal CNE"
+          <QuickAction
+            href="/dashboard/territory"
+            icon={MapPinned}
+            title="Territorio"
+            detail={`${briefing?.metrics.territory.municipalities ?? 0} municipios configurados`}
           />
-          <ActionLink
+          <QuickAction
             href="/dashboard/tasks"
-            icon={CalendarDays}
-            title="Agenda y equipo"
-            detail="Responsables, rutas y compromisos"
+            icon={ListChecks}
+            title="Ejecución"
+            detail={`${briefing?.metrics.tasks.open ?? 0} tareas abiertas`}
           />
-          <ActionLink
+          <QuickAction
             href="/dashboard/war-room"
             icon={FileCheck2}
             title="Día D"
-            detail="Testigos, incidentes y actas"
+            detail="Cobertura, incidentes y actas"
           />
         </div>
       </section>
+
+      {briefing?.generatedAt && (
+        <p className="text-right text-[11px] font-semibold text-slate-400">
+          Corte generado {formatDate(briefing.generatedAt)}
+        </p>
+      )}
     </div>
   );
 }
@@ -394,41 +463,115 @@ function MetricCard({
   label,
   value,
   hint,
-  tone,
   loading,
+  accent = "emerald",
 }: {
   icon: typeof ShieldCheck;
   label: string;
   value: string;
   hint: string;
-  tone: "emerald" | "amber" | "blue" | "violet";
   loading: boolean;
+  accent?: "emerald" | "amber" | "blue" | "violet";
 }) {
-  const tones = {
-    emerald: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    blue: "bg-blue-50 text-blue-700",
-    violet: "bg-violet-50 text-violet-700",
+  const accents = {
+    emerald: "text-emerald-700 bg-emerald-50",
+    amber: "text-amber-700 bg-amber-50",
+    blue: "text-blue-700 bg-blue-50",
+    violet: "text-violet-700 bg-violet-50",
   };
+
   return (
-    <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div
-        className={`mb-5 flex h-11 w-11 items-center justify-center rounded-2xl ${tones[tone]}`}
-      >
-        <Icon size={21} />
+    <article className="bg-white p-5 sm:p-6">
+      <div className={`grid h-10 w-10 place-items-center ${accents[accent]}`}>
+        <Icon size={20} aria-hidden="true" />
       </div>
-      <p className="text-[10px] font-black uppercase tracking-[0.17em] text-slate-400">
+      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
         {label}
       </p>
-      <p className="mt-2 min-h-9 text-3xl font-black tracking-tight text-slate-950">
-        {loading ? <Loader2 className="animate-spin text-slate-300" /> : value}
+      <p className="mt-1 min-h-10 text-3xl font-black tracking-tight text-slate-950">
+        {loading ? (
+          <LoaderCircle className="animate-spin text-slate-300" />
+        ) : (
+          value
+        )}
       </p>
-      <p className="mt-2 text-xs font-semibold text-slate-500">{hint}</p>
+      <p className="mt-1 text-xs font-medium text-slate-500">{hint}</p>
     </article>
   );
 }
 
-function ActionLink({
+function AlertLink({ alert }: { alert: BriefingAlert }) {
+  const styles: Record<AlertSeverity, string> = {
+    critical: "bg-red-50 text-red-700",
+    attention: "bg-amber-50 text-amber-700",
+    ok: "bg-emerald-50 text-emerald-700",
+  };
+
+  return (
+    <Link
+      href={alert.href}
+      className="group grid grid-cols-[40px_1fr_auto] gap-3 py-5"
+    >
+      <span
+        className={`grid h-10 w-10 place-items-center ${styles[alert.severity]}`}
+      >
+        {alert.severity === "ok" ? (
+          <CheckCircle2 size={19} />
+        ) : (
+          <AlertTriangle size={19} />
+        )}
+      </span>
+      <span>
+        <span className="block text-sm font-black text-slate-900">
+          {alert.title}
+        </span>
+        <span className="mt-1 block text-xs leading-5 text-slate-500">
+          {alert.detail}
+        </span>
+      </span>
+      <ArrowRight
+        className="mt-3 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-800"
+        size={17}
+      />
+    </Link>
+  );
+}
+
+function AgendaPanel({
+  title,
+  icon: Icon,
+  empty,
+  children,
+}: {
+  title: string;
+  icon: typeof CalendarClock;
+  empty: string;
+  children: React.ReactNode;
+}) {
+  const hasChildren = Array.isArray(children)
+    ? children.length > 0
+    : Boolean(children);
+
+  return (
+    <div className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <div className="flex items-center gap-3">
+        <Icon className="text-emerald-700" size={20} aria-hidden="true" />
+        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      </div>
+      <div className="mt-4">
+        {hasChildren ? (
+          children
+        ) : (
+          <p className="border-t border-slate-100 py-5 text-sm leading-6 text-slate-500">
+            {empty}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuickAction({
   href,
   icon: Icon,
   title,
@@ -442,13 +585,13 @@ function ActionLink({
   return (
     <Link
       href={href}
-      className="group rounded-2xl border border-slate-100 p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+      className="group bg-white p-5 transition hover:bg-slate-50"
     >
-      <Icon className="mb-4 text-slate-700" size={21} />
-      <p className="font-black text-slate-900">{title}</p>
+      <Icon className="text-slate-700" size={20} aria-hidden="true" />
+      <p className="mt-4 text-sm font-black text-slate-900">{title}</p>
       <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
-      <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-700">
-        Abrir{" "}
+      <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
+        Abrir
         <ArrowRight
           className="transition group-hover:translate-x-1"
           size={13}

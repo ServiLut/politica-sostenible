@@ -1,7 +1,15 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import {
+  ConsentPurpose,
+  ConsentStatus,
+  ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
+  Role,
   TenantType,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
@@ -10,7 +18,10 @@ import { LogisticsService } from './logistics.service';
 
 describe('LogisticsService tenant isolation', () => {
   it('rejects an E-14 voting place from another tenant', async () => {
-    const userFindFirst = jest.fn().mockResolvedValue({ id: 'witness-a' });
+    const userFindFirst = jest.fn().mockResolvedValue({
+      role: Role.ADMIN,
+      divisionId: null,
+    });
     const divisionFindFirst = jest.fn().mockResolvedValue(null);
     const reportCreate = jest.fn();
     const service = new LogisticsService(
@@ -37,8 +48,7 @@ describe('LogisticsService tenant isolation', () => {
         mesa: 1,
         candidateVotes: 10,
         totalTableVotes: 100,
-        e14ImageUrl:
-          'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000-acta.pdf',
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(divisionFindFirst).toHaveBeenCalledWith({
@@ -60,9 +70,20 @@ describe('LogisticsService tenant isolation', () => {
           type: TenantType.CANDIDACY,
         }),
       },
-      user: { findFirst: jest.fn().mockResolvedValue({ id: 'registrar-a' }) },
-      politicalDivision: { findFirst: jest.fn().mockResolvedValue(null) },
-      voter: { upsert: jest.fn() },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: {
+        findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      voter: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
       consentRecord: { create: jest.fn() },
     };
     const runTransaction = jest.fn(
@@ -77,18 +98,26 @@ describe('LogisticsService tenant isolation', () => {
     );
 
     await expect(
-      service.syncVoter('tenant-a', 'registrar-a', '203.0.113.42', {
-        documentId: '1012345678',
-        firstName: 'María',
-        lastName: 'Pérez',
-        puestoId: 'puesto-from-tenant-b',
-        consentAccepted: true,
-        termsVersion: '2026.1',
-      }),
+      service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'registrar-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          puestoId: 'puesto-from-tenant-b',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+        },
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(transaction.user.findFirst).toHaveBeenCalledWith({
-      where: { id: 'registrar-a', tenantId: 'tenant-a' },
-      select: { id: true },
+      where: {
+        id: 'registrar-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { role: true, divisionId: true },
     });
     expect(transaction.politicalDivision.findFirst).toHaveBeenCalledWith({
       where: {
@@ -98,7 +127,8 @@ describe('LogisticsService tenant isolation', () => {
       },
       select: { id: true },
     });
-    expect(transaction.voter.upsert).not.toHaveBeenCalled();
+    expect(transaction.voter.findUnique).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 
   it('blocks E-14 synchronization in public-office mode', async () => {
@@ -124,8 +154,7 @@ describe('LogisticsService tenant isolation', () => {
         mesa: 1,
         candidateVotes: 10,
         totalTableVotes: 100,
-        e14ImageUrl:
-          'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000-acta.pdf',
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(userFindFirst).not.toHaveBeenCalled();
@@ -153,8 +182,7 @@ describe('LogisticsService tenant isolation', () => {
         mesa: 1,
         candidateVotes: 101,
         totalTableVotes: 100,
-        e14ImageUrl:
-          'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000-acta.pdf',
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(userFindFirst).not.toHaveBeenCalled();
@@ -168,7 +196,7 @@ describe('LogisticsService tenant isolation', () => {
           type: TenantType.PUBLIC_OFFICE,
         }),
       },
-      voter: { upsert: jest.fn() },
+      voter: { create: jest.fn() },
     };
     const hashIp = jest.fn();
     const service = new LogisticsService(
@@ -182,16 +210,20 @@ describe('LogisticsService tenant isolation', () => {
     );
 
     await expect(
-      service.syncVoter('tenant-a', 'volunteer-a', '203.0.113.42', {
-        documentId: '1012345678',
-        firstName: 'María',
-        lastName: 'Pérez',
-        consentAccepted: true,
-        termsVersion: '2026.1',
-      }),
+      service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'volunteer-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+        },
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(hashIp).not.toHaveBeenCalled();
-    expect(transaction.voter.upsert).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 
   it('does not expose the private E-14 object path for an idempotent sync', async () => {
@@ -219,7 +251,12 @@ describe('LogisticsService tenant isolation', () => {
         auditEvent: {
           findFirst: jest.fn().mockResolvedValue({ id: 'upload-receipt-a' }),
         },
-        user: { findFirst: jest.fn().mockResolvedValue({ id: 'witness-a' }) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ADMIN,
+            divisionId: null,
+          }),
+        },
         politicalDivision: {
           findFirst: jest.fn().mockResolvedValue({ id: 'puesto-a' }),
         },
@@ -233,7 +270,7 @@ describe('LogisticsService tenant isolation', () => {
       mesa: 1,
       candidateVotes: 10,
       totalTableVotes: 100,
-      e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000-acta.pdf',
+      e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
     });
 
     expect(result).not.toHaveProperty('e14ImageUrl');
@@ -244,8 +281,55 @@ describe('LogisticsService tenant isolation', () => {
     );
   });
 
-  it('returns only minimal consent state after synchronizing a voter', async () => {
-    const voterUpsert = jest.fn().mockResolvedValue({
+  it('denies offline E-14 synchronization outside the current witness territory', async () => {
+    const uploadFindFirst = jest.fn();
+    const divisionFindFirst = jest.fn();
+    const reportCreate = jest.fn();
+    const service = new LogisticsService(
+      {
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type: TenantType.CANDIDACY,
+          }),
+        },
+        auditEvent: { findFirst: uploadFindFirst },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.WITNESS,
+            divisionId: 'zone-a',
+          }),
+        },
+        politicalDivision: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'zone-a', parentId: null },
+            { id: 'puesto-a', parentId: 'zone-a' },
+            { id: 'puesto-b', parentId: null },
+          ]),
+          findFirst: divisionFindFirst,
+        },
+        witnessReport: { findFirst: jest.fn(), create: reportCreate },
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.syncE14('tenant-a', 'witness-a', {
+        puestoId: 'puesto-b',
+        mesa: 1,
+        candidateVotes: 10,
+        totalTableVotes: 100,
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(uploadFindFirst).not.toHaveBeenCalled();
+    expect(divisionFindFirst).not.toHaveBeenCalled();
+    expect(reportCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates a new voter and consent record inside the authenticated tenant', async () => {
+    const voterCreate = jest.fn().mockResolvedValue({
       id: 'voter-a',
       consentAccepted: true,
       consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
@@ -257,9 +341,17 @@ describe('LogisticsService tenant isolation', () => {
           type: TenantType.CANDIDACY,
         }),
       },
-      user: { findFirst: jest.fn().mockResolvedValue({ id: 'volunteer-a' }) },
-      politicalDivision: { findFirst: jest.fn() },
-      voter: { upsert: voterUpsert },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany: jest.fn(), findFirst: jest.fn() },
+      voter: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: voterCreate,
+      },
       consentRecord: {
         create: jest.fn().mockResolvedValue({ id: 'consent-a' }),
       },
@@ -277,8 +369,7 @@ describe('LogisticsService tenant isolation', () => {
     );
 
     const result = await service.syncVoter(
-      'tenant-a',
-      'volunteer-a',
+      { tenantId: 'tenant-a', userId: 'volunteer-a' },
       '203.0.113.42',
       {
         documentId: '1012345678',
@@ -291,22 +382,333 @@ describe('LogisticsService tenant isolation', () => {
       },
     );
 
-    expect(result).toEqual({
-      id: 'voter-a',
-      consentAccepted: true,
-      consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
-    });
+    expect(result).toEqual({ received: true });
+    expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('documentId');
     expect(result).not.toHaveProperty('phone');
     expect(result).not.toHaveProperty('email');
-    expect(voterUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: {
-          id: true,
-          consentAccepted: true,
-          consentTimestamp: true,
+    expect(transaction.voter.findUnique).toHaveBeenCalledWith({
+      where: {
+        documentId_tenantId: {
+          documentId: '1012345678',
+          tenantId: 'tenant-a',
         },
+      },
+      select: { id: true },
+    });
+    expect(voterCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          documentId: '1012345678',
+          tenantId: 'tenant-a',
+          registrarId: 'volunteer-a',
+          consentAccepted: true,
+          consentIp: 'hashed-ip',
+        }) as object,
+        select: { id: true },
       }),
     );
+    expect(transaction.consentRecord.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        voterId: 'voter-a',
+        subjectRef: 'voter-a',
+        status: ConsentStatus.GRANTED,
+      }) as object,
+    });
+  });
+
+  it('returns a generic receipt for an existing voter after validating scope', async () => {
+    const existingVoter = {
+      id: 'voter-a',
+      consentAccepted: true,
+      consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
+    };
+    const voterCreate = jest.fn();
+    const voterUpdate = jest.fn();
+    const voterUpsert = jest.fn();
+    const consentCreate = jest.fn();
+    const consentFindFirst = jest.fn().mockResolvedValue({
+      status: ConsentStatus.GRANTED,
+      expiresAt: null,
+    });
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: {
+        findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue({ id: 'puesto-a' }),
+      },
+      voter: {
+        findUnique: jest.fn().mockResolvedValue(existingVoter),
+        create: voterCreate,
+        update: voterUpdate,
+        upsert: voterUpsert,
+      },
+      consentRecord: {
+        findFirst: consentFindFirst,
+        create: consentCreate,
+      },
+    };
+    const hashIp = jest.fn();
+    const service = new LogisticsService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      { hashIp } as unknown as ConsentEvidenceService,
+    );
+
+    const result = await service.syncVoter(
+      { tenantId: 'tenant-a', userId: 'volunteer-a' },
+      '203.0.113.42',
+      {
+        documentId: '1012345678',
+        firstName: 'Nombre que no debe reemplazarse',
+        lastName: 'Apellido que no debe reemplazarse',
+        phone: '3009999999',
+        email: 'otro@example.com',
+        puestoId: 'puesto-a',
+        consentAccepted: true,
+        termsVersion: '2026.1',
+      },
+    );
+
+    expect(result).toEqual({ received: true });
+    expect(result).not.toHaveProperty('id');
+    expect(transaction.voter.findUnique).toHaveBeenCalledWith({
+      where: {
+        documentId_tenantId: {
+          documentId: '1012345678',
+          tenantId: 'tenant-a',
+        },
+      },
+      select: { id: true },
+    });
+    expect(consentFindFirst).not.toHaveBeenCalled();
+    expect(transaction.politicalDivision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'puesto-a',
+        tenantId: 'tenant-a',
+        type: DivisionType.PUESTO,
+      },
+      select: { id: true },
+    });
+    expect(hashIp).not.toHaveBeenCalled();
+    expect(voterCreate).not.toHaveBeenCalled();
+    expect(voterUpdate).not.toHaveBeenCalled();
+    expect(voterUpsert).not.toHaveBeenCalled();
+    expect(consentCreate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['revoked', { status: ConsentStatus.REVOKED, expiresAt: null }],
+    [
+      'expired',
+      {
+        status: ConsentStatus.GRANTED,
+        expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+      },
+    ],
+  ])(
+    'returns the same non-disclosing receipt when prior consent is %s',
+    async (_state, latestConsent) => {
+      const voterCreate = jest.fn();
+      const voterUpdate = jest.fn();
+      const consentCreate = jest.fn();
+      const transaction = {
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type: TenantType.CANDIDACY,
+          }),
+        },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ADMIN,
+            divisionId: null,
+          }),
+        },
+        voter: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'voter-a',
+            consentAccepted: true,
+            consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
+          }),
+          create: voterCreate,
+          update: voterUpdate,
+        },
+        consentRecord: {
+          findFirst: jest.fn().mockResolvedValue(latestConsent),
+          create: consentCreate,
+        },
+      };
+      const hashIp = jest.fn();
+      const service = new LogisticsService(
+        {
+          $transaction: jest.fn(
+            async (
+              callback: (client: typeof transaction) => Promise<unknown>,
+            ) => callback(transaction),
+          ),
+        } as unknown as PrismaService,
+        { hashIp } as unknown as ConsentEvidenceService,
+      );
+
+      const synchronization = service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'volunteer-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+        },
+      );
+
+      await expect(synchronization).resolves.toEqual({ received: true });
+      expect(transaction.consentRecord.findFirst).not.toHaveBeenCalled();
+      expect(hashIp).not.toHaveBeenCalled();
+      expect(voterCreate).not.toHaveBeenCalled();
+      expect(voterUpdate).not.toHaveBeenCalled();
+      expect(consentCreate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('returns the same non-disclosing receipt after a concurrent insert', async () => {
+    const concurrentVoter = {
+      id: 'voter-concurrent',
+      consentAccepted: true,
+      consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
+    };
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany: jest.fn(), findFirst: jest.fn() },
+      voter: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockRejectedValue({ code: 'P2002' }),
+      },
+      consentRecord: { create: jest.fn() },
+    };
+    const concurrentFindUnique = jest.fn().mockResolvedValue(concurrentVoter);
+    const concurrentConsentFindFirst = jest.fn().mockResolvedValue({
+      status: ConsentStatus.GRANTED,
+      expiresAt: null,
+    });
+    const service = new LogisticsService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+        voter: { findUnique: concurrentFindUnique },
+        consentRecord: { findFirst: concurrentConsentFindFirst },
+      } as unknown as PrismaService,
+      {
+        hashIp: jest.fn().mockReturnValue('hashed-ip'),
+      } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'volunteer-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+        },
+      ),
+    ).resolves.toEqual({ received: true });
+    expect(concurrentFindUnique).not.toHaveBeenCalled();
+    expect(concurrentConsentFindFirst).not.toHaveBeenCalled();
+    expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('denies offline voter capture outside the persisted volunteer territory', async () => {
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.VOLUNTEER,
+          divisionId: 'zone-a',
+        }),
+      },
+      politicalDivision: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'zone-a', parentId: null },
+          { id: 'puesto-a', parentId: 'zone-a' },
+          { id: 'puesto-b', parentId: null },
+        ]),
+        findFirst: jest.fn(),
+      },
+      voter: { findUnique: jest.fn(), create: jest.fn() },
+      consentRecord: { create: jest.fn() },
+    };
+    const hashIp = jest.fn();
+    const service = new LogisticsService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      { hashIp } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.syncVoter(
+        {
+          tenantId: 'tenant-a',
+          userId: 'volunteer-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          puestoId: 'puesto-b',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+        },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(hashIp).not.toHaveBeenCalled();
+    expect(transaction.politicalDivision.findFirst).not.toHaveBeenCalled();
+    expect(transaction.voter.findUnique).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 });

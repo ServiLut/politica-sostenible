@@ -34,7 +34,7 @@ Como referencias adicionales de mercado se revisaron las propuestas públicas de
 | Fuga entre campañas/entidades       | Tenant obligatorio en cada tabla operativa                           | Tenant sólo desde JWT                                            |
 | Bases políticas sin autorización    | Registro y evidencia atómica de consentimiento                       | Datos sensibles opt-in y revocables                              |
 | Perfilamiento o incentivos abusivos | Sin intención de voto, psicografía ni puntos por capturar ciudadanos | Minimización, finalidad y explicabilidad                         |
-| Desorden semanal de ingresos/gastos | Libro cronológico, soportes privados y topes configurables           | No inventar topes ni códigos oficiales                           |
+| Desorden semanal de ingresos/gastos | Libro cronológico, soportes privados, topes y revisión independiente | Decimal exacto, soporte obligatorio, transacción serializable y cuatro ojos |
 | Tareas que nadie cierra             | Responsables, prioridad, vencimiento y estado                        | RBAC y alcance tenant+modo                                       |
 | Agendas dispersas                   | Eventos paginados, responsables, horarios y transiciones             | Sólo usuarios activos y auditoría sin contenido sensible         |
 | Altas y bajas informales            | Invitaciones de un solo uso, cambio de rol y desactivación inmediata | Rol vigente consultado en PostgreSQL                             |
@@ -43,7 +43,7 @@ Como referencias adicionales de mercado se revisaron las propuestas públicas de
 | PQRS sin trazabilidad               | Casos, SLA, asignación, estado y confidencialidad                    | Acceso restringido a atención/auditoría                          |
 | Crisis manejadas por chats          | Incidentes, severidad humana, propietario y vencimiento              | Sin “sentimiento” ni riesgo inventados por IA                    |
 | Pérdida de control el Día D         | Puestos, mesas, testigos, actas e incidentes                         | E-14 privado y ruta firmada                                      |
-| Archivos pesados en la API          | Subida directa a Storage por URL firmada                             | Bucket privado y prefijo tenant/módulo                           |
+| Archivos pesados en la API          | Subida directa y lectura temporal por recurso                        | Autorización durable, consumo único, cuotas y prefijo tenant/módulo |
 | “IA” que inventa resultados         | Capacidades desactivadas hasta tener proveedor y evaluación          | Nunca inferir intención política individual                      |
 
 ## Siguiente frontera

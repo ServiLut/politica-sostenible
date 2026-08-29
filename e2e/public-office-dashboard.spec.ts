@@ -26,127 +26,85 @@ const session = {
   },
 };
 
-const recentCase = {
-  id: "case-1",
-  mode: "PUBLIC_OFFICE",
-  reference: "PQRS-2026-001",
-  title: "Reparación de luminaria",
-  description: "Solicitud ciudadana sobre alumbrado público.",
-  category: "Servicios públicos",
-  sourceChannel: "WEB",
-  status: "OPEN",
-  priority: "HIGH",
-  voterId: null,
-  externalContactRef: null,
-  divisionId: null,
-  assigneeId: "case-worker-1",
-  createdById: "admin-public-office",
-  confidential: false,
-  dueAt: "2026-08-30T12:00:00.000Z",
-  firstResponseAt: null,
-  resolvedAt: null,
-  createdAt: "2026-08-21T12:00:00.000Z",
-  updatedAt: "2026-08-21T12:00:00.000Z",
-  assignee: {
-    id: "case-worker-1",
-    name: "Gestora ciudadana",
-    role: "CASE_WORKER",
+const briefing = {
+  generatedAt: "2026-08-27T14:00:00.000Z",
+  tenant: {
+    id: session.tenant.id,
+    name: session.tenant.name,
+    type: "PUBLIC_OFFICE",
+    mode: "PUBLIC_OFFICE",
   },
-  createdBy: {
-    id: "admin-public-office",
-    name: "Dirección de gestión",
-    role: "ADMIN",
-  },
-  voter: null,
-  division: null,
-  _count: { interactions: 2, tasks: 1, commitments: 0 },
-};
-
-const urgentCase = {
-  ...recentCase,
-  id: "case-urgent-1",
-  reference: "PQRS-2026-URG",
-  title: "Riesgo en vía peatonal",
-  priority: "URGENT",
-  status: "IN_PROGRESS",
-};
-
-const recentTask = {
-  id: "task-1",
-  mode: "PUBLIC_OFFICE",
-  title: "Visitar punto reportado",
-  description: "Verificar condiciones en terreno.",
-  status: "IN_PROGRESS",
-  priority: "HIGH",
-  assigneeId: "case-worker-1",
-  issueCaseId: "case-1",
-  commitmentId: null,
-  createdById: "admin-public-office",
-  dueAt: "2026-08-20T12:00:00.000Z",
-  completedAt: null,
-  createdAt: "2026-08-21T12:00:00.000Z",
-  updatedAt: "2026-08-21T12:00:00.000Z",
-  assignee: {
-    id: "case-worker-1",
-    name: "Gestora ciudadana",
-    role: "CASE_WORKER",
-  },
-  createdBy: {
-    id: "admin-public-office",
-    name: "Dirección de gestión",
-    role: "ADMIN",
-  },
-  issueCase: {
-    id: "case-1",
-    reference: "PQRS-2026-001",
-    title: "Reparación de luminaria",
-    status: "OPEN",
-  },
-  commitment: null,
-};
-
-const publicCommitment = {
-  id: "commitment-1",
-  mode: "PUBLIC_OFFICE",
-  reference: "GOB-001",
-  title: "Corredores peatonales seguros",
-  description: "Intervención verificable de puntos críticos.",
-  status: "IN_PROGRESS",
-  ownerId: null,
-  issueCaseId: null,
-  targetDate: "2026-12-20T12:00:00.000Z",
-  progress: 45,
-  isPublic: true,
-  evidencePath: null,
-  completedAt: null,
-  createdAt: "2026-08-20T12:00:00.000Z",
-  updatedAt: "2026-08-21T12:00:00.000Z",
-  owner: null,
-  issueCase: null,
-  _count: { tasks: 2 },
-};
-
-function paginated<T>(items: T[], total: number, limit: number) {
-  return {
-    statusCode: 200,
-    message: "Success",
-    data: {
-      items,
-      pagination: {
-        page: 1,
-        limit,
-        total,
-        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+  activation: {
+    ready: false,
+    completedSteps: 3,
+    totalSteps: 4,
+    steps: [
+      {
+        code: "TEAM_READY",
+        title: "Asignar el equipo de atención",
+        detail: "Activa responsables con roles claros.",
+        href: "/dashboard/team",
+        complete: true,
       },
+      {
+        code: "FIRST_CASE",
+        title: "Abrir el primer caso trazable",
+        detail: "Centraliza la solicitud con responsable y SLA.",
+        href: "/dashboard/cases",
+        complete: true,
+      },
+      {
+        code: "FIRST_PUBLIC_COMMITMENT",
+        title: "Publicar el primer compromiso",
+        detail: "Define responsable, fecha y avance.",
+        href: "/dashboard/tasks",
+        complete: true,
+      },
+      {
+        code: "FIRST_SCHEDULED_EVENT",
+        title: "Programar la primera actividad pública",
+        detail: "Conecta la agenda con la ejecución.",
+        href: "/dashboard/events",
+        complete: false,
+      },
+    ],
+  },
+  metrics: {
+    team: { active: 5, pendingInvitations: 1 },
+    cases: { open: 12, overdue: 2, urgent: 1 },
+    tasks: { open: 11, overdue: 4 },
+    commitments: { open: 6, atRisk: 1, overdue: 1, public: 3 },
+    events: { upcoming: 0 },
+    communications: { pendingApproval: 2 },
+  },
+  alerts: [
+    {
+      code: "CASES_REQUIRE_DECISION",
+      severity: "critical",
+      title: "Casos ciudadanos requieren decisión",
+      detail: "1 urgente y 2 vencidos necesitan responsable.",
+      href: "/dashboard/cases",
+      count: 3,
     },
-  };
-}
+  ],
+  agenda: {
+    upcomingEvents: [],
+    priorityTasks: [
+      {
+        id: "task-1",
+        title: "Visitar punto reportado",
+        status: "IN_PROGRESS",
+        priority: "HIGH",
+        dueAt: "2026-08-30T12:00:00.000Z",
+      },
+    ],
+  },
+};
 
-test("muestra gestión pública con métricas exactas y Bearer", async ({
+test("muestra un briefing de gestión pública agregado, aislado y con Bearer", async ({
   page,
 }) => {
   const authorizationHeaders: string[] = [];
-  const authSessionHeaders: string[] = [];
   const requestedUrls: URL[] = [];
 
   await page.addInitScript(
@@ -162,11 +120,8 @@ test("muestra gestión pública con métricas exactas y Bearer", async ({
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const pathname = url.pathname;
-    const limit = Number(url.searchParams.get("limit") ?? 20);
 
-    if (request.method() === "GET" && pathname === "/api/auth/me") {
-      authSessionHeaders.push(request.headers().authorization ?? "");
+    if (request.method() === "GET" && url.pathname === "/api/auth/me") {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -190,54 +145,15 @@ test("muestra gestión pública con métricas exactas y Bearer", async ({
     authorizationHeaders.push(request.headers().authorization ?? "");
     requestedUrls.push(url);
 
-    if (pathname === "/api/cases") {
-      const status = url.searchParams.get("status");
-      const priority = url.searchParams.get("priority");
-      const response =
-        priority === "URGENT"
-          ? paginated([urgentCase], 2, limit)
-          : status === "OPEN"
-            ? paginated([], 7, limit)
-            : status === "IN_PROGRESS"
-              ? paginated([], 3, limit)
-              : paginated([recentCase], 12, limit);
+    if (url.pathname === "/api/command-center/briefing") {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(response),
-      });
-      return;
-    }
-
-    if (pathname === "/api/tasks") {
-      const status = url.searchParams.get("status");
-      const overdue = url.searchParams.has("dueTo");
-      const totals: Record<string, { pending: number; overdue: number }> = {
-        TODO: { pending: 5, overdue: 2 },
-        IN_PROGRESS: { pending: 4, overdue: 1 },
-        BLOCKED: { pending: 2, overdue: 1 },
-      };
-      const total = status
-        ? overdue
-          ? totals[status].overdue
-          : totals[status].pending
-        : 11;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          paginated(status ? [] : [recentTask], total, limit),
-        ),
-      });
-      return;
-    }
-
-    if (pathname === "/api/commitments") {
-      expect(url.searchParams.get("isPublic")).toBe("true");
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(paginated([publicCommitment], 3, limit)),
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: briefing,
+        }),
       });
       return;
     }
@@ -245,7 +161,7 @@ test("muestra gestión pública con métricas exactas y Bearer", async ({
     await route.fulfill({
       status: 404,
       contentType: "application/json",
-      body: JSON.stringify({ message: `Ruta inesperada: ${pathname}` }),
+      body: JSON.stringify({ message: `Ruta inesperada: ${url.pathname}` }),
     });
   });
 
@@ -254,30 +170,26 @@ test("muestra gestión pública con métricas exactas y Bearer", async ({
   await expect(
     page.getByRole("heading", { name: "Centro de gestión pública" }),
   ).toBeVisible();
-  await expect(page.getByText("Alcaldía verificable")).toBeVisible();
-  await expect(page.getByTestId("total-cases-metric")).toHaveText("12");
-  await expect(page.getByTestId("open-cases-metric")).toHaveText("7");
-  await expect(page.getByTestId("in-progress-cases-metric")).toHaveText("3");
-  await expect(page.getByTestId("pending-tasks-metric")).toHaveText("11");
+  await expect(
+    page.getByText(/Seguimiento de Alcaldía verificable/),
+  ).toBeVisible();
+  await expect(page.getByTestId("open-cases-metric")).toHaveText("12");
+  await expect(page.getByTestId("overdue-cases-metric")).toHaveText("2");
   await expect(page.getByTestId("overdue-tasks-metric")).toHaveText("4");
   await expect(page.getByTestId("public-commitments-metric")).toHaveText("3");
-  await expect(page.getByTestId("urgent-case-case-urgent-1")).toContainText(
-    "Riesgo en vía peatonal",
-  );
-  await expect(page.getByTestId("recent-task-task-1")).toContainText(
-    "Visitar punto reportado",
-  );
+  await expect(page.getByText("Visitar punto reportado")).toBeVisible();
   await expect(
-    page.getByTestId("public-commitment-commitment-1").getByRole("progressbar"),
-  ).toHaveAttribute("aria-valuenow", "45");
+    page.getByText("Casos ciudadanos requieren decisión"),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Gestionar casos" }),
   ).toHaveAttribute("href", "/dashboard/cases");
 
-  const paths = new Set(requestedUrls.map((url) => url.pathname));
-  expect(paths).toEqual(
-    new Set(["/api/cases", "/api/tasks", "/api/commitments"]),
+  expect(new Set(requestedUrls.map((url) => url.pathname))).toEqual(
+    new Set(["/api/command-center/briefing"]),
   );
+  expect(requestedUrls.length).toBeGreaterThanOrEqual(1);
+  expect(requestedUrls.length).toBeLessThanOrEqual(2);
   expect(
     requestedUrls.every(
       (url) =>
@@ -286,20 +198,7 @@ test("muestra gestión pública con métricas exactas y Bearer", async ({
         !url.searchParams.has("mode"),
     ),
   ).toBe(true);
-  const overdueStatuses = new Set(
-    requestedUrls
-      .filter(
-        (url) => url.pathname === "/api/tasks" && url.searchParams.has("dueTo"),
-      )
-      .map((url) => url.searchParams.get("status")),
-  );
-  expect(overdueStatuses).toEqual(new Set(["TODO", "IN_PROGRESS", "BLOCKED"]));
-  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(12);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
-    true,
-  );
-  expect(authSessionHeaders.length).toBeGreaterThanOrEqual(1);
-  expect(authSessionHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
   );
 });

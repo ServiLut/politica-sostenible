@@ -1,4 +1,12 @@
-import { IsBoolean, IsEnum, IsString, Length, Matches } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { Role } from '../../../prisma/generated/prisma';
 
 export class TeamMemberParamsDto {
@@ -18,4 +26,14 @@ export class UpdateTeamMemberRoleDto {
 export class UpdateTeamMemberStatusDto {
   @IsBoolean({ message: 'El estado de la cuenta debe ser booleano' })
   isActive: boolean;
+}
+
+export class UpdateTeamMemberDivisionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  @Matches(/^[A-Za-z0-9_-]+$/, {
+    message: 'El identificador territorial no es valido',
+  })
+  divisionId?: string | null;
 }

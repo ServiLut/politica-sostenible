@@ -12,6 +12,10 @@ export interface SignedUploadData {
   readonly token: string;
 }
 
+export interface SignedDownloadData {
+  readonly signedUrl: string;
+}
+
 export interface StoredObjectInfo {
   readonly name: string;
   readonly size?: number;
@@ -107,6 +111,44 @@ export class SupabaseStorageGateway {
       ...(typeof data.etag === 'string' ? { etag: data.etag } : {}),
       ...(data.metadata ? { metadata: data.metadata } : {}),
     };
+  }
+
+  async createSignedDownloadUrl(
+    path: string,
+    expiresInSeconds = 300,
+  ): Promise<SignedDownloadData> {
+    await this.assertPrivateBucket();
+
+    const { data, error } = await this.bucketClient.createSignedUrl(
+      path,
+      expiresInSeconds,
+      { download: false },
+    );
+
+    if (error || !data) {
+      this.logger.error(
+        `No fue posible firmar una lectura de Storage: ${this.errorMessage(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'No fue posible autorizar la lectura del archivo',
+      );
+    }
+
+    return { signedUrl: data.signedUrl };
+  }
+
+  async removeObject(path: string): Promise<void> {
+    await this.assertPrivateBucket();
+    const { error } = await this.bucketClient.remove([path]);
+
+    if (error && !this.isNotFound(error)) {
+      this.logger.error(
+        `No fue posible retirar un objeto huérfano: ${this.errorMessage(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'No fue posible completar la limpieza del almacenamiento privado',
+      );
+    }
   }
 
   private async assertPrivateBucket(): Promise<void> {

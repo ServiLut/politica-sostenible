@@ -140,6 +140,26 @@ exports.Prisma.CampaignSettingsScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.StoredObjectScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  uploaderId: 'uploaderId',
+  path: 'path',
+  module: 'module',
+  contentType: 'contentType',
+  expectedSize: 'expectedSize',
+  actualSize: 'actualSize',
+  etag: 'etag',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  confirmedAt: 'confirmedAt',
+  consumedAt: 'consumedAt',
+  consumedByType: 'consumedByType',
+  consumedById: 'consumedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
@@ -211,6 +231,9 @@ exports.Prisma.FinancialEntryScalarFieldEnum = {
   vendorTaxId: 'vendorTaxId',
   evidenceUrl: 'evidenceUrl',
   reporterId: 'reporterId',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewReason: 'reviewReason',
   status: 'status',
   auditLog: 'auditLog',
   createdAt: 'createdAt'
@@ -461,6 +484,18 @@ exports.PoliticalOperationMode = exports.$Enums.PoliticalOperationMode = {
   PUBLIC_OFFICE: 'PUBLIC_OFFICE'
 };
 
+exports.StorageObjectModule = exports.$Enums.StorageObjectModule = {
+  FINANCE: 'FINANCE',
+  E14: 'E14'
+};
+
+exports.StoredObjectStatus = exports.$Enums.StoredObjectStatus = {
+  ISSUED: 'ISSUED',
+  CONFIRMED: 'CONFIRMED',
+  CONSUMED: 'CONSUMED',
+  EXPIRED: 'EXPIRED'
+};
+
 exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
   CAMPAIGN_MANAGER: 'CAMPAIGN_MANAGER',
@@ -644,6 +679,7 @@ exports.AuditOutcome = exports.$Enums.AuditOutcome = {
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
+  StoredObject: 'StoredObject',
   User: 'User',
   TeamInvitation: 'TeamInvitation',
   PoliticalDivision: 'PoliticalDivision',

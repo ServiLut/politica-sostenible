@@ -11,6 +11,7 @@ import {
   TaskStatus,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
@@ -27,30 +28,65 @@ const TASK_INCLUDE = {
   },
 } satisfies Prisma.TaskInclude;
 
+const TASK_ACCESS_ROLES = Object.values(Role);
+const TERRITORIALLY_SCOPED_TASK_ROLES = [Role.ZONE_COORDINATOR] as const;
+
+interface TaskAccess {
+  role: Role;
+  divisionIds: string[] | null;
+}
+
 @Injectable()
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(user: AuthenticatedUser, query: ListTasksQueryDto) {
-    const mode = await this.getActiveMode(user.tenantId);
+    const [mode, access] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentAccess(user),
+    ]);
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    const isGlobalManager = this.isGlobalTaskManager(access.role, mode);
+    const isCaseWorker = access.role === Role.CASE_WORKER;
+
+    if (
+      !isGlobalManager &&
+      access.role !== Role.ZONE_COORDINATOR &&
+      query.assigneeId !== undefined &&
+      query.assigneeId !== user.userId
+    ) {
+      throw new ForbiddenException(
+        'Sólo puedes consultar tareas asignadas a ti',
+      );
+    }
+
+    const scope = this.buildTaskScope(user, mode, access);
+    const assigneeId =
+      isGlobalManager || access.role === Role.ZONE_COORDINATOR
+        ? query.assigneeId
+        : isCaseWorker
+          ? query.assigneeId
+          : user.userId;
+    const andFilters: Prisma.TaskWhereInput[] = [];
+    if (scope) andFilters.push(scope);
+    if (query.search) {
+      andFilters.push({
+        OR: [
+          { title: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
+        ],
+      });
+    }
     const where: Prisma.TaskWhereInput = {
       tenantId: user.tenantId,
       mode,
       ...(query.status ? { status: query.status } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
-      ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
+      ...(assigneeId ? { assigneeId } : {}),
       ...(query.issueCaseId ? { issueCaseId: query.issueCaseId } : {}),
       ...(query.commitmentId ? { commitmentId: query.commitmentId } : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { title: { contains: query.search, mode: 'insensitive' } },
-              { description: { contains: query.search, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
+      ...(andFilters.length > 0 ? { AND: andFilters } : {}),
       ...(query.dueFrom || query.dueTo
         ? {
             dueAt: {
@@ -84,19 +120,21 @@ export class TasksService {
   }
 
   async create(user: AuthenticatedUser, dto: CreateTaskDto) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertTaskManager(user.role, mode);
+    const [mode, access] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentAccess(user),
+    ]);
+    this.assertTaskCreateAccess(access.role, mode);
 
     await Promise.all([
-      this.assertUserInTenant(user.tenantId, user.userId, 'creador'),
       dto.assigneeId
-        ? this.assertUserInTenant(user.tenantId, dto.assigneeId, 'responsable')
+        ? this.assertAssigneeInScope(user, mode, access, dto.assigneeId)
         : Promise.resolve(),
       dto.issueCaseId
-        ? this.assertIssueCaseInScope(user.tenantId, mode, dto.issueCaseId)
+        ? this.assertIssueCaseInScope(user, mode, access, dto.issueCaseId)
         : Promise.resolve(),
       dto.commitmentId
-        ? this.assertCommitmentInScope(user.tenantId, mode, dto.commitmentId)
+        ? this.assertCommitmentInScope(user, mode, access, dto.commitmentId)
         : Promise.resolve(),
     ]);
 
@@ -120,27 +158,49 @@ export class TasksService {
   }
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateTaskDto) {
-    const mode = await this.getActiveMode(user.tenantId);
+    const [mode, access] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentAccess(user),
+    ]);
+    const scope = this.buildTaskScope(user, mode, access);
+    const scopedWhere: Prisma.TaskWhereUniqueInput = {
+      id,
+      tenantId: user.tenantId,
+      mode,
+      ...(scope ? { AND: [scope] } : {}),
+    };
     const existing = await this.prisma.task.findFirst({
-      where: { id, tenantId: user.tenantId, mode },
-      select: { id: true, status: true, assigneeId: true },
+      where: scopedWhere,
+      select: {
+        id: true,
+        status: true,
+        assigneeId: true,
+        createdById: true,
+      },
     });
 
     if (!existing) {
       throw new NotFoundException('Tarea no encontrada');
     }
 
-    this.assertTaskUpdateAccess(user, mode, existing.assigneeId, dto);
+    this.assertTaskUpdateAccess(
+      user.userId,
+      access.role,
+      mode,
+      existing.assigneeId,
+      existing.createdById,
+      dto,
+    );
 
     await Promise.all([
       dto.assigneeId
-        ? this.assertUserInTenant(user.tenantId, dto.assigneeId, 'responsable')
+        ? this.assertAssigneeInScope(user, mode, access, dto.assigneeId)
         : Promise.resolve(),
       dto.issueCaseId
-        ? this.assertIssueCaseInScope(user.tenantId, mode, dto.issueCaseId)
+        ? this.assertIssueCaseInScope(user, mode, access, dto.issueCaseId)
         : Promise.resolve(),
       dto.commitmentId
-        ? this.assertCommitmentInScope(user.tenantId, mode, dto.commitmentId)
+        ? this.assertCommitmentInScope(user, mode, access, dto.commitmentId)
         : Promise.resolve(),
     ]);
 
@@ -165,7 +225,7 @@ export class TasksService {
     }
 
     return this.prisma.task.update({
-      where: { id, tenantId: user.tenantId, mode },
+      where: scopedWhere,
       data,
       include: TASK_INCLUDE,
     });
@@ -187,12 +247,18 @@ export class TasksService {
   }
 
   private assertTaskUpdateAccess(
-    user: AuthenticatedUser,
+    userId: string,
+    role: Role,
     mode: PoliticalOperationMode,
     assigneeId: string | null,
+    createdById: string,
     dto: UpdateTaskDto,
   ): void {
-    if (this.isTaskManager(user.role, mode)) {
+    if (
+      this.isGlobalTaskManager(role, mode) ||
+      (role === Role.ZONE_COORDINATOR &&
+        mode === PoliticalOperationMode.CAMPAIGN)
+    ) {
       return;
     }
 
@@ -201,7 +267,7 @@ export class TasksService {
     );
 
     if (
-      assigneeId !== user.userId ||
+      (assigneeId !== userId && createdById !== userId) ||
       dto.status === undefined ||
       !changesOnlyStatus
     ) {
@@ -211,28 +277,180 @@ export class TasksService {
     }
   }
 
-  private assertTaskManager(
-    role: string | undefined,
+  private assertTaskCreateAccess(
+    role: Role,
     mode: PoliticalOperationMode,
   ): void {
-    if (!this.isTaskManager(role, mode)) {
-      throw new ForbiddenException(
-        'Tu rol no puede gestionar tareas en el modo operativo actual',
-      );
+    if (this.isGlobalTaskManager(role, mode)) return;
+    if (
+      role === Role.ZONE_COORDINATOR &&
+      mode === PoliticalOperationMode.CAMPAIGN
+    ) {
+      return;
     }
+    if (
+      role === Role.CASE_WORKER &&
+      mode === PoliticalOperationMode.PUBLIC_OFFICE
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Tu rol no puede gestionar tareas en el modo operativo actual',
+    );
   }
 
-  private isTaskManager(
-    role: string | undefined,
+  private isGlobalTaskManager(
+    role: Role,
     mode: PoliticalOperationMode,
   ): boolean {
     if (role === Role.ADMIN) return true;
 
     return mode === PoliticalOperationMode.CAMPAIGN
-      ? role === Role.CAMPAIGN_MANAGER ||
-          role === Role.COMMUNICATIONS_MANAGER ||
-          role === Role.ZONE_COORDINATOR
-      : role === Role.CONSTITUENT_SERVICES_MANAGER || role === Role.CASE_WORKER;
+      ? role === Role.CAMPAIGN_MANAGER || role === Role.COMMUNICATIONS_MANAGER
+      : role === Role.CONSTITUENT_SERVICES_MANAGER;
+  }
+
+  private async getCurrentAccess(user: AuthenticatedUser): Promise<TaskAccess> {
+    return resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: TASK_ACCESS_ROLES,
+      territoriallyScopedRoles: TERRITORIALLY_SCOPED_TASK_ROLES,
+    });
+  }
+
+  private buildTaskScope(
+    user: AuthenticatedUser,
+    mode: PoliticalOperationMode,
+    access: TaskAccess,
+  ): Prisma.TaskWhereInput | null {
+    if (this.isGlobalTaskManager(access.role, mode)) return null;
+
+    if (
+      access.role === Role.CASE_WORKER &&
+      mode === PoliticalOperationMode.PUBLIC_OFFICE
+    ) {
+      const issueCaseScope = this.buildIssueCaseScope(user, mode, access);
+      const commitmentScope = this.buildCommitmentScope(user, mode, access);
+      return {
+        AND: [
+          {
+            OR: [{ assigneeId: user.userId }, { createdById: user.userId }],
+          },
+          {
+            OR: [{ issueCaseId: null }, { issueCase: { is: issueCaseScope } }],
+          },
+          {
+            OR: [
+              { commitmentId: null },
+              { commitment: { is: commitmentScope } },
+            ],
+          },
+        ],
+      };
+    }
+
+    if (
+      access.role === Role.ZONE_COORDINATOR &&
+      mode === PoliticalOperationMode.CAMPAIGN
+    ) {
+      const divisionIds = access.divisionIds ?? [];
+      const issueCaseScope = this.buildIssueCaseScope(user, mode, access);
+      const commitmentScope = this.buildCommitmentScope(user, mode, access);
+      return {
+        AND: [
+          {
+            OR: [
+              { assigneeId: user.userId },
+              { createdById: user.userId },
+              {
+                assignee: {
+                  is: {
+                    tenantId: user.tenantId,
+                    divisionId: { in: divisionIds },
+                  },
+                },
+              },
+              { issueCase: { is: issueCaseScope } },
+              { commitment: { is: commitmentScope } },
+            ],
+          },
+          {
+            OR: [{ issueCaseId: null }, { issueCase: { is: issueCaseScope } }],
+          },
+          {
+            OR: [
+              { commitmentId: null },
+              { commitment: { is: commitmentScope } },
+            ],
+          },
+        ],
+      };
+    }
+
+    return { assigneeId: user.userId };
+  }
+
+  private buildIssueCaseScope(
+    user: AuthenticatedUser,
+    mode: PoliticalOperationMode,
+    access: TaskAccess,
+  ): Prisma.IssueCaseWhereInput {
+    const where: Prisma.IssueCaseWhereInput = {
+      tenantId: user.tenantId,
+      mode,
+    };
+
+    if (access.role === Role.CASE_WORKER) {
+      where.assigneeId = user.userId;
+    } else if (access.role === Role.ZONE_COORDINATOR) {
+      where.divisionId = { in: access.divisionIds ?? [] };
+    }
+
+    return where;
+  }
+
+  private buildCommitmentScope(
+    user: AuthenticatedUser,
+    mode: PoliticalOperationMode,
+    access: TaskAccess,
+  ): Prisma.CommitmentWhereInput {
+    const where: Prisma.CommitmentWhereInput = {
+      tenantId: user.tenantId,
+      mode,
+    };
+
+    if (access.role === Role.CASE_WORKER) {
+      where.OR = [
+        { ownerId: user.userId },
+        {
+          issueCase: {
+            is: this.buildIssueCaseScope(user, mode, access),
+          },
+        },
+      ];
+    } else if (access.role === Role.ZONE_COORDINATOR) {
+      where.OR = [
+        { ownerId: user.userId },
+        {
+          owner: {
+            is: {
+              tenantId: user.tenantId,
+              divisionId: { in: access.divisionIds ?? [] },
+            },
+          },
+        },
+        {
+          issueCase: {
+            is: this.buildIssueCaseScope(user, mode, access),
+          },
+        },
+      ];
+    }
+
+    return where;
   }
 
   private async assertUserInTenant(
@@ -241,7 +459,7 @@ export class TasksService {
     label: string,
   ): Promise<void> {
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId },
+      where: { id: userId, tenantId, isActive: true },
       select: { id: true },
     });
 
@@ -252,13 +470,62 @@ export class TasksService {
     }
   }
 
-  private async assertIssueCaseInScope(
-    tenantId: string,
+  private async assertAssigneeInScope(
+    actor: AuthenticatedUser,
     mode: PoliticalOperationMode,
+    access: TaskAccess,
+    assigneeId: string,
+  ): Promise<void> {
+    if (this.isGlobalTaskManager(access.role, mode)) {
+      await this.assertUserInTenant(actor.tenantId, assigneeId, 'responsable');
+      return;
+    }
+
+    if (access.role === Role.CASE_WORKER) {
+      if (assigneeId !== actor.userId) {
+        throw new ForbiddenException(
+          'Los gestores de caso no pueden asignar tareas a otros usuarios',
+        );
+      }
+      return;
+    }
+
+    if (access.role === Role.ZONE_COORDINATOR) {
+      if (assigneeId === actor.userId) return;
+
+      const assignee = await this.prisma.user.findFirst({
+        where: {
+          id: assigneeId,
+          tenantId: actor.tenantId,
+          isActive: true,
+          divisionId: { in: access.divisionIds ?? [] },
+        },
+        select: { id: true },
+      });
+      if (assignee) return;
+    }
+
+    throw new ForbiddenException(
+      'El responsable no pertenece al alcance operativo del usuario',
+    );
+  }
+
+  private async assertIssueCaseInScope(
+    user: AuthenticatedUser,
+    mode: PoliticalOperationMode,
+    access: TaskAccess,
     issueCaseId: string,
   ): Promise<void> {
+    const relationScope = this.buildIssueCaseScope(user, mode, access);
     const issueCase = await this.prisma.issueCase.findFirst({
-      where: { id: issueCaseId, tenantId, mode },
+      where: {
+        id: issueCaseId,
+        tenantId: user.tenantId,
+        mode,
+        ...(this.isGlobalTaskManager(access.role, mode)
+          ? {}
+          : { AND: [relationScope] }),
+      },
       select: { id: true },
     });
 
@@ -270,12 +537,21 @@ export class TasksService {
   }
 
   private async assertCommitmentInScope(
-    tenantId: string,
+    user: AuthenticatedUser,
     mode: PoliticalOperationMode,
+    access: TaskAccess,
     commitmentId: string,
   ): Promise<void> {
+    const relationScope = this.buildCommitmentScope(user, mode, access);
     const commitment = await this.prisma.commitment.findFirst({
-      where: { id: commitmentId, tenantId, mode },
+      where: {
+        id: commitmentId,
+        tenantId: user.tenantId,
+        mode,
+        ...(this.isGlobalTaskManager(access.role, mode)
+          ? {}
+          : { AND: [relationScope] }),
+      },
       select: { id: true },
     });
 

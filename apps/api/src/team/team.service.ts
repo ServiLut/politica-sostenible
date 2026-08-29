@@ -11,6 +11,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import {
   AuditActorType,
+  DivisionType,
   PoliticalOperationMode,
   Prisma,
   Role,
@@ -21,6 +22,7 @@ import { AcceptTeamInvitationDto } from './dto/accept-team-invitation.dto';
 import { CreateTeamInvitationDto } from './dto/create-team-invitation.dto';
 import { ListTeamQueryDto } from './dto/list-team-query.dto';
 import {
+  UpdateTeamMemberDivisionDto,
   UpdateTeamMemberRoleDto,
   UpdateTeamMemberStatusDto,
 } from './dto/team-member-lifecycle.dto';
@@ -45,6 +47,17 @@ const PUBLIC_OFFICE_ROLES = new Set<Role>([
   Role.COMPLIANCE_OFFICER,
   Role.AUDITOR,
 ]);
+
+const TERRITORIAL_ROLE_TYPES: Readonly<Partial<Record<Role, DivisionType[]>>> =
+  {
+    [Role.ZONE_COORDINATOR]: [DivisionType.MUNICIPIO, DivisionType.ZONA],
+    [Role.WITNESS]: [DivisionType.PUESTO],
+    [Role.VOLUNTEER]: [
+      DivisionType.MUNICIPIO,
+      DivisionType.ZONA,
+      DivisionType.PUESTO,
+    ],
+  };
 
 @Injectable()
 export class TeamService {
@@ -78,6 +91,10 @@ export class TeamService {
           email: true,
           role: true,
           isActive: true,
+          divisionId: true,
+          division: {
+            select: { id: true, code: true, name: true, type: true },
+          },
           createdAt: true,
         },
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
@@ -113,7 +130,9 @@ export class TeamService {
               role: target.role,
               isActive: target.isActive,
             },
-            data: { role: dto.role },
+            // Role changes invalidate the old territorial grant. An admin must
+            // explicitly assign a compatible scope for the new role.
+            data: { role: dto.role, divisionId: null },
           });
           if (updated.count !== 1) {
             throw this.concurrentTeamChange();
@@ -133,7 +152,12 @@ export class TeamService {
             },
           });
 
-          return { ...target, role: dto.role };
+          return {
+            ...target,
+            role: dto.role,
+            divisionId: null,
+            division: null,
+          };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
@@ -190,6 +214,93 @@ export class TeamService {
           });
 
           return { ...target, isActive: dto.isActive };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error: unknown) {
+      if (this.isPrismaError(error, 'P2034')) {
+        throw this.concurrentTeamChange();
+      }
+      throw error;
+    }
+  }
+
+  async updateMemberDivision(
+    user: AuthenticatedUser,
+    memberId: string,
+    dto: UpdateTeamMemberDivisionDto,
+  ) {
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const mode = await this.assertCurrentAdmin(user, tx);
+          if (mode !== PoliticalOperationMode.CAMPAIGN) {
+            throw new BadRequestException(
+              'El alcance electoral sólo se asigna en modo campaña',
+            );
+          }
+
+          const target = await this.findMutableMember(user, memberId, tx);
+          const divisionId = dto.divisionId ?? null;
+          const allowedTypes = TERRITORIAL_ROLE_TYPES[target.role];
+
+          if (!allowedTypes) {
+            if (divisionId !== null) {
+              throw new BadRequestException(
+                'El rol del miembro no utiliza una asignación territorial',
+              );
+            }
+          }
+
+          const division = divisionId
+            ? await tx.politicalDivision.findFirst({
+                where: {
+                  id: divisionId,
+                  tenantId: user.tenantId,
+                  type: { in: allowedTypes ?? [] },
+                },
+                select: { id: true, code: true, name: true, type: true },
+              })
+            : null;
+
+          if (divisionId && !division) {
+            throw new BadRequestException(
+              'La división no pertenece al tenant o no es compatible con el rol',
+            );
+          }
+
+          if (target.divisionId === divisionId) {
+            return { ...target, division };
+          }
+
+          const updated = await tx.user.updateMany({
+            where: {
+              id: target.id,
+              tenantId: user.tenantId,
+              role: target.role,
+              isActive: target.isActive,
+              divisionId: target.divisionId,
+            },
+            data: { divisionId },
+          });
+          if (updated.count !== 1) throw this.concurrentTeamChange();
+
+          await tx.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'TEAM_MEMBER_DIVISION_CHANGED',
+              resourceType: 'User',
+              resourceId: target.id,
+              before: { divisionId: target.divisionId },
+              after: { divisionId },
+              metadata: { role: target.role },
+            },
+          });
+
+          return { ...target, divisionId, division };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
@@ -270,14 +381,9 @@ export class TeamService {
             }),
           ]);
 
-          if (existingUser) {
+          if (existingUser || pendingInvitation) {
             throw new ConflictException(
-              'Ya existe una cuenta registrada con ese correo',
-            );
-          }
-          if (pendingInvitation) {
-            throw new ConflictException(
-              'Ya existe una invitacion vigente para ese correo',
+              'No fue posible crear la invitación con esos datos',
             );
           }
 
@@ -508,7 +614,12 @@ export class TeamService {
     user: AuthenticatedUser,
     memberId: string,
     client: Pick<PrismaService, 'user'>,
-  ): Promise<{ id: string; role: Role; isActive: boolean }> {
+  ): Promise<{
+    id: string;
+    role: Role;
+    isActive: boolean;
+    divisionId: string | null;
+  }> {
     const target = await client.user.findFirst({
       where: {
         id: memberId,
@@ -518,6 +629,7 @@ export class TeamService {
         id: true,
         role: true,
         isActive: true,
+        divisionId: true,
       },
     });
 

@@ -25,23 +25,96 @@ const COMMITMENT_INCLUDE = {
   _count: { select: { tasks: true } },
 } satisfies Prisma.CommitmentInclude;
 
+const PUBLIC_COMMITMENT_SELECT = {
+  id: true,
+  mode: true,
+  reference: true,
+  title: true,
+  description: true,
+  status: true,
+  targetDate: true,
+  progress: true,
+  isPublic: true,
+  completedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { tasks: true } },
+} satisfies Prisma.CommitmentSelect;
+
+// CASE_WORKER needs ownership fields only to evaluate authorization. They are
+// removed from the response so a public commitment cannot disclose a foreign
+// owner or case association.
+const CASE_WORKER_COMMITMENT_SELECT = {
+  ...PUBLIC_COMMITMENT_SELECT,
+  ownerId: true,
+  issueCaseId: true,
+  issueCase: { select: { assigneeId: true } },
+} satisfies Prisma.CommitmentSelect;
+
+type CaseWorkerCommitmentRecord = Prisma.CommitmentGetPayload<{
+  select: typeof CASE_WORKER_COMMITMENT_SELECT;
+}>;
+
 @Injectable()
 export class CommitmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(user: AuthenticatedUser, query: ListCommitmentsQueryDto) {
-    const mode = await this.getActiveMode(user.tenantId);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    const isCaseWorker = this.isScopedCaseWorker(currentRole, mode);
+    const canReadAllInternal = this.canReadAllInternalCommitments(
+      currentRole,
+      mode,
+    );
+    const canReadInternal = canReadAllInternal || isCaseWorker;
+
+    if (
+      !canReadInternal &&
+      (query.isPublic === 'false' || query.ownerId || query.issueCaseId)
+    ) {
+      throw new ForbiddenException(
+        'Tu rol sólo puede consultar compromisos públicos',
+      );
+    }
+
+    if (
+      isCaseWorker &&
+      query.ownerId !== undefined &&
+      query.ownerId !== user.userId
+    ) {
+      throw new ForbiddenException(
+        'Los gestores de caso solo pueden filtrar compromisos propios',
+      );
+    }
+
+    if (isCaseWorker && query.issueCaseId) {
+      await this.assertIssueCaseInScope(
+        user.tenantId,
+        mode,
+        query.issueCaseId,
+        user.userId,
+      );
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.CommitmentWhereInput = {
       tenantId: user.tenantId,
       mode,
       ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerId ? { ownerId: query.ownerId } : {}),
-      ...(query.issueCaseId ? { issueCaseId: query.issueCaseId } : {}),
-      ...(query.isPublic !== undefined
-        ? { isPublic: query.isPublic === 'true' }
+      ...(canReadInternal && query.ownerId ? { ownerId: query.ownerId } : {}),
+      ...(canReadInternal && query.issueCaseId
+        ? { issueCaseId: query.issueCaseId }
         : {}),
+      ...(isCaseWorker ? { AND: [this.caseWorkerReadScope(user.userId)] } : {}),
+      ...(canReadInternal
+        ? query.isPublic !== undefined
+          ? { isPublic: query.isPublic === 'true' }
+          : {}
+        : { isPublic: true }),
       ...(query.search
         ? {
             OR: [
@@ -61,43 +134,108 @@ export class CommitmentsService {
         : {}),
     };
 
-    const [items, total] = await Promise.all([
-      this.prisma.commitment.findMany({
-        where,
-        include: COMMITMENT_INCLUDE,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.commitment.count({ where }),
-    ]);
+    const orderBy = [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
+    const paginationQuery = {
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit,
+    };
+    const countPromise = this.prisma.commitment.count({ where });
+    const permissions = {
+      canCreate: this.canManageCommitments(currentRole, mode),
+      canReadInternal,
+    };
 
-    return {
-      items,
-      pagination: {
+    if (isCaseWorker) {
+      const [records, total] = await Promise.all([
+        this.prisma.commitment.findMany({
+          where,
+          select: CASE_WORKER_COMMITMENT_SELECT,
+          ...paginationQuery,
+        }),
+        countPromise,
+      ]);
+
+      return this.toPaginatedResult(
+        records.map((record) =>
+          this.toCaseWorkerCommitment(record, user.userId),
+        ),
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+        permissions,
+      );
+    }
+
+    if (canReadAllInternal) {
+      const [records, total] = await Promise.all([
+        this.prisma.commitment.findMany({
+          where,
+          include: COMMITMENT_INCLUDE,
+          ...paginationQuery,
+        }),
+        countPromise,
+      ]);
+
+      return this.toPaginatedResult(
+        records.map((record) => ({
+          ...record,
+          canUpdate: this.canManageAllCommitments(currentRole, mode),
+        })),
+        page,
+        limit,
+        total,
+        permissions,
+      );
+    }
+
+    const [records, total] = await Promise.all([
+      this.prisma.commitment.findMany({
+        where,
+        select: PUBLIC_COMMITMENT_SELECT,
+        ...paginationQuery,
+      }),
+      countPromise,
+    ]);
+
+    return this.toPaginatedResult(
+      records.map((record) => ({ ...record, canUpdate: false })),
+      page,
+      limit,
+      total,
+      permissions,
+    );
   }
 
   async create(user: AuthenticatedUser, dto: CreateCommitmentDto) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertCommitmentManager(user.role, mode);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertCommitmentManager(currentRole, mode);
+    const isCaseWorker = this.isScopedCaseWorker(currentRole, mode);
+    if (isCaseWorker) {
+      this.assertCaseWorkerOwner(user.userId, dto.ownerId);
+    }
+    const ownerId =
+      isCaseWorker && !dto.issueCaseId ? user.userId : dto.ownerId;
 
     await Promise.all([
       this.assertReferenceAvailable(user.tenantId, dto.reference),
-      dto.ownerId
-        ? this.assertUserInTenant(user.tenantId, dto.ownerId)
+      ownerId
+        ? this.assertUserInTenant(user.tenantId, ownerId)
         : Promise.resolve(),
       dto.issueCaseId
-        ? this.assertIssueCaseInScope(user.tenantId, mode, dto.issueCaseId)
+        ? this.assertIssueCaseInScope(
+            user.tenantId,
+            mode,
+            dto.issueCaseId,
+            isCaseWorker ? user.userId : undefined,
+          )
         : Promise.resolve(),
     ]);
 
-    return this.prisma.commitment.create({
+    const created = await this.prisma.commitment.create({
       data: {
         tenantId: user.tenantId,
         mode,
@@ -105,7 +243,7 @@ export class CommitmentsService {
         title: dto.title,
         description: dto.description,
         status: dto.status,
-        ownerId: dto.ownerId,
+        ownerId,
         issueCaseId: dto.issueCaseId,
         targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
         progress: dto.progress,
@@ -115,18 +253,42 @@ export class CommitmentsService {
       },
       include: COMMITMENT_INCLUDE,
     });
+
+    return { ...created, canUpdate: true };
   }
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateCommitmentDto) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertCommitmentManager(user.role, mode);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertCommitmentManager(currentRole, mode);
+    const isCaseWorker = this.isScopedCaseWorker(currentRole, mode);
+    const scopedWhere: Prisma.CommitmentWhereUniqueInput = {
+      id,
+      tenantId: user.tenantId,
+      mode,
+      ...(isCaseWorker
+        ? { AND: [this.caseWorkerMutationScope(user.userId)] }
+        : {}),
+    };
     const existing = await this.prisma.commitment.findFirst({
-      where: { id, tenantId: user.tenantId, mode },
-      select: { id: true, reference: true, status: true },
+      where: scopedWhere,
+      select: {
+        id: true,
+        reference: true,
+        status: true,
+        ownerId: true,
+        issueCaseId: true,
+      },
     });
 
     if (!existing) {
       throw new NotFoundException('Compromiso no encontrado');
+    }
+
+    if (isCaseWorker) {
+      this.assertCaseWorkerOwner(user.userId, dto.ownerId);
     }
 
     await Promise.all([
@@ -137,9 +299,27 @@ export class CommitmentsService {
         ? this.assertUserInTenant(user.tenantId, dto.ownerId)
         : Promise.resolve(),
       dto.issueCaseId
-        ? this.assertIssueCaseInScope(user.tenantId, mode, dto.issueCaseId)
+        ? this.assertIssueCaseInScope(
+            user.tenantId,
+            mode,
+            dto.issueCaseId,
+            isCaseWorker ? user.userId : undefined,
+          )
         : Promise.resolve(),
     ]);
+
+    if (isCaseWorker) {
+      const resultingIssueCaseId =
+        dto.issueCaseId !== undefined ? dto.issueCaseId : existing.issueCaseId;
+      const resultingOwnerId =
+        dto.ownerId !== undefined ? dto.ownerId : existing.ownerId;
+
+      if (resultingIssueCaseId === null && resultingOwnerId !== user.userId) {
+        throw new ForbiddenException(
+          'Un compromiso sin caso debe permanecer asignado al gestor actual',
+        );
+      }
+    }
 
     const data: Prisma.CommitmentUncheckedUpdateInput = {};
     if (dto.reference !== undefined) data.reference = dto.reference;
@@ -163,11 +343,13 @@ export class CommitmentsService {
     if (dto.progress !== undefined) data.progress = dto.progress;
     if (dto.isPublic !== undefined) data.isPublic = dto.isPublic;
 
-    return this.prisma.commitment.update({
-      where: { id, tenantId: user.tenantId, mode },
+    const updated = await this.prisma.commitment.update({
+      where: scopedWhere,
       data,
       include: COMMITMENT_INCLUDE,
     });
+
+    return { ...updated, canUpdate: true };
   }
 
   private async getActiveMode(
@@ -186,21 +368,117 @@ export class CommitmentsService {
   }
 
   private assertCommitmentManager(
-    role: string | undefined,
+    role: Role,
     mode: PoliticalOperationMode,
   ): void {
-    const isAllowed =
-      role === Role.ADMIN ||
-      (mode === PoliticalOperationMode.CAMPAIGN
-        ? role === Role.CAMPAIGN_MANAGER
-        : role === Role.CONSTITUENT_SERVICES_MANAGER ||
-          role === Role.CASE_WORKER);
-
-    if (!isAllowed) {
+    if (!this.canManageCommitments(role, mode)) {
       throw new ForbiddenException(
         'Tu rol no puede gestionar compromisos en el modo operativo actual',
       );
     }
+  }
+
+  private canManageCommitments(
+    role: Role,
+    mode: PoliticalOperationMode,
+  ): boolean {
+    return (
+      this.canManageAllCommitments(role, mode) ||
+      this.isScopedCaseWorker(role, mode)
+    );
+  }
+
+  private canManageAllCommitments(
+    role: Role,
+    mode: PoliticalOperationMode,
+  ): boolean {
+    return (
+      role === Role.ADMIN ||
+      (mode === PoliticalOperationMode.CAMPAIGN
+        ? role === Role.CAMPAIGN_MANAGER
+        : role === Role.CONSTITUENT_SERVICES_MANAGER)
+    );
+  }
+
+  private canReadAllInternalCommitments(
+    role: Role,
+    mode: PoliticalOperationMode,
+  ): boolean {
+    return (
+      role === Role.AUDITOR ||
+      role === Role.COMPLIANCE_OFFICER ||
+      this.canManageAllCommitments(role, mode)
+    );
+  }
+
+  private isScopedCaseWorker(
+    role: Role,
+    mode: PoliticalOperationMode,
+  ): boolean {
+    return (
+      role === Role.CASE_WORKER && mode === PoliticalOperationMode.PUBLIC_OFFICE
+    );
+  }
+
+  private caseWorkerReadScope(userId: string): Prisma.CommitmentWhereInput {
+    return {
+      OR: [
+        { isPublic: true },
+        { issueCase: { is: { assigneeId: userId } } },
+        { issueCaseId: null, ownerId: userId },
+      ],
+    };
+  }
+
+  private caseWorkerMutationScope(userId: string): Prisma.CommitmentWhereInput {
+    return {
+      OR: [
+        { issueCase: { is: { assigneeId: userId } } },
+        { issueCaseId: null, ownerId: userId },
+      ],
+    };
+  }
+
+  private assertCaseWorkerOwner(
+    userId: string,
+    ownerId: string | null | undefined,
+  ): void {
+    if (ownerId && ownerId !== userId) {
+      throw new ForbiddenException(
+        'Los gestores de caso no pueden asignar compromisos a otro usuario',
+      );
+    }
+  }
+
+  private toCaseWorkerCommitment(
+    record: CaseWorkerCommitmentRecord,
+    userId: string,
+  ) {
+    const { ownerId, issueCaseId, issueCase, ...safeCommitment } = record;
+    const canUpdate =
+      issueCase?.assigneeId === userId ||
+      (issueCaseId === null && ownerId === userId);
+
+    return { ...safeCommitment, canUpdate };
+  }
+
+  private toPaginatedResult<T>(
+    items: T[],
+    page: number,
+    limit: number,
+    total: number,
+    permissions: { canCreate: boolean; canReadInternal: boolean },
+  ) {
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      permissions,
+    };
   }
 
   private async assertUserInTenant(
@@ -208,7 +486,7 @@ export class CommitmentsService {
     userId: string,
   ): Promise<void> {
     const owner = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId },
+      where: { id: userId, tenantId, isActive: true },
       select: { id: true },
     });
 
@@ -219,17 +497,46 @@ export class CommitmentsService {
     }
   }
 
+  private async getCurrentRole(
+    tenantId: string,
+    userId: string,
+  ): Promise<Role> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId, isActive: true },
+      select: { role: true },
+    });
+
+    if (!user) {
+      throw new ForbiddenException(
+        'El usuario no tiene acceso vigente a la organización',
+      );
+    }
+
+    return user.role;
+  }
+
   private async assertIssueCaseInScope(
     tenantId: string,
     mode: PoliticalOperationMode,
     issueCaseId: string,
+    assigneeId?: string,
   ): Promise<void> {
     const issueCase = await this.prisma.issueCase.findFirst({
-      where: { id: issueCaseId, tenantId, mode },
+      where: {
+        id: issueCaseId,
+        tenantId,
+        mode,
+        ...(assigneeId ? { assigneeId } : {}),
+      },
       select: { id: true },
     });
 
     if (!issueCase) {
+      if (assigneeId) {
+        throw new ForbiddenException(
+          'El caso no está asignado al gestor actual',
+        );
+      }
       throw new BadRequestException(
         'Caso inválido para el modo operativo actual',
       );

@@ -1,15 +1,77 @@
 import { BackendUserRole, Tenant, User, UserRole } from "../types/saas-schema";
 
+export type NavigationGroupId =
+  | "OPERATE"
+  | "RELATIONSHIPS"
+  | "CONTROL"
+  | "ORGANIZATION";
+
+export type NavigationIcon =
+  | "dashboard"
+  | "siren"
+  | "publicOffice"
+  | "territory"
+  | "relationships"
+  | "cases"
+  | "tasks"
+  | "events"
+  | "team"
+  | "communications"
+  | "audit"
+  | "finance"
+  | "election";
+
 export interface NavItem {
   title: string;
+  mobileTitle: string;
   href: string;
-  icon?: string;
+  icon: NavigationIcon;
+  group: NavigationGroupId;
   allowedRoles: UserRole[];
   allowedBackendRoles: BackendUserRole[];
   allowedTenantTypes: Tenant["type"][];
   allowedBackendRolesByTenantType?: Partial<
     Record<Tenant["type"], BackendUserRole[]>
   >;
+}
+
+export const navigationGroups: ReadonlyArray<{
+  id: NavigationGroupId;
+  title: string;
+}> = [
+  { id: "OPERATE", title: "Operar hoy" },
+  { id: "RELATIONSHIPS", title: "Territorio y relaciones" },
+  { id: "CONTROL", title: "Control y evidencia" },
+  { id: "ORGANIZATION", title: "Organización" },
+];
+
+const BACKEND_ROLE_LABELS: Record<BackendUserRole, string> = {
+  ADMIN: "Administración",
+  CAMPAIGN_MANAGER: "Gerencia de campaña",
+  FINANCE_MANAGER: "Gerencia financiera",
+  COMMUNICATIONS_MANAGER: "Comunicaciones",
+  CONSTITUENT_SERVICES_MANAGER: "Dirección de atención ciudadana",
+  CASE_WORKER: "Gestión de casos",
+  COMPLIANCE_OFFICER: "Cumplimiento",
+  AUDITOR: "Auditoría",
+  ZONE_COORDINATOR: "Coordinación territorial",
+  WITNESS: "Testigo electoral",
+  VOLUNTEER: "Voluntariado",
+};
+
+const TENANT_TYPE_LABELS: Record<Tenant["type"], string> = {
+  CANDIDACY: "Candidatura",
+  PARTY: "Partido o movimiento",
+  GSC: "Grupo ciudadano",
+  PUBLIC_OFFICE: "Ejercicio del cargo",
+};
+
+export function getRoleLabel(role: BackendUserRole) {
+  return BACKEND_ROLE_LABELS[role];
+}
+
+export function getTenantTypeLabel(type: Tenant["type"]) {
+  return TENANT_TYPE_LABELS[type];
 }
 
 const CAMPAIGN_TENANTS: Tenant["type"][] = ["CANDIDACY", "PARTY", "GSC"];
@@ -31,14 +93,20 @@ const ALL_BACKEND_ROLES: BackendUserRole[] = [
 export const dashboardConfig: NavItem[] = [
   {
     title: "Centro de comando",
+    mobileTitle: "Inicio",
     href: "/dashboard/executive",
+    icon: "dashboard",
+    group: "OPERATE",
     allowedRoles: [UserRole.AdminCampana, UserRole.GerenteOps],
     allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER"],
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
     title: "Incidentes y crisis",
+    mobileTitle: "Crisis",
     href: "/dashboard/incidents",
+    icon: "siren",
+    group: "OPERATE",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -49,7 +117,10 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Centro de gestión",
+    mobileTitle: "Inicio",
     href: "/dashboard/public-office",
+    icon: "publicOffice",
+    group: "OPERATE",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.Coordinador,
@@ -66,7 +137,10 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Territorio",
+    mobileTitle: "Territorio",
     href: "/dashboard/territory",
+    icon: "territory",
+    group: "RELATIONSHIPS",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -84,7 +158,10 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Relacionamiento",
+    mobileTitle: "Personas",
     href: "/dashboard/votantes",
+    icon: "relationships",
+    group: "RELATIONSHIPS",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -102,7 +179,10 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Atención ciudadana",
+    mobileTitle: "Atención",
     href: "/dashboard/cases",
+    icon: "cases",
+    group: "OPERATE",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.Coordinador,
@@ -119,14 +199,20 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Tareas y compromisos",
+    mobileTitle: "Tareas",
     href: "/dashboard/tasks",
+    icon: "tasks",
+    group: "OPERATE",
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ALL_BACKEND_ROLES,
     allowedTenantTypes: ALL_TENANTS,
   },
   {
     title: "Agenda y eventos",
+    mobileTitle: "Agenda",
     href: "/dashboard/events",
+    icon: "events",
+    group: "OPERATE",
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ALL_BACKEND_ROLES,
     allowedTenantTypes: ALL_TENANTS,
@@ -176,14 +262,20 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Equipo y accesos",
+    mobileTitle: "Equipo",
     href: "/dashboard/team",
+    icon: "team",
+    group: "ORGANIZATION",
     allowedRoles: [UserRole.AdminCampana],
     allowedBackendRoles: ["ADMIN"],
     allowedTenantTypes: ALL_TENANTS,
   },
   {
     title: "Comunicaciones",
+    mobileTitle: "Mensajes",
     href: "/dashboard/communications",
+    icon: "communications",
+    group: "RELATIONSHIPS",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -234,14 +326,20 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Auditoría",
+    mobileTitle: "Auditoría",
     href: "/dashboard/audit",
+    icon: "audit",
+    group: "CONTROL",
     allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
     allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedTenantTypes: ALL_TENANTS,
   },
   {
     title: "Finanzas",
+    mobileTitle: "Finanzas",
     href: "/dashboard/finance",
+    icon: "finance",
+    group: "CONTROL",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -259,7 +357,10 @@ export const dashboardConfig: NavItem[] = [
   },
   {
     title: "Día D / E-14",
+    mobileTitle: "E-14",
     href: "/dashboard/war-room",
+    icon: "election",
+    group: "CONTROL",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,

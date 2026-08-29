@@ -3,9 +3,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import {
   CneCode,
   EntryType,
+  FinanceStatus,
   Prisma,
   PrismaClient,
   Role,
+  StoredObjectStatus,
+  StorageObjectModule,
 } from '../../prisma/generated/prisma';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -63,6 +66,9 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     try {
       // El borrado permanece acotado a los tenants creados por este archivo.
       await prisma.$transaction([
+        prisma.storedObject.deleteMany({
+          where: { tenantId: { in: tenantIds } },
+        }),
         prisma.financialEntry.deleteMany({
           where: { tenantId: { in: tenantIds } },
         }),
@@ -166,6 +172,116 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     await expect(
       prisma.financialEntry.count({ where: { tenantId: tenantB.id } }),
     ).resolves.toBe(0);
+  });
+
+  it('enforces an independent reviewer and a complete financial review state', async () => {
+    const tenant = await createTenant();
+    const reporter = await createUser(tenant.id);
+    const reviewer = await createUser(tenant.id);
+    const entry = await prisma.financialEntry.create({
+      data: {
+        id: nextId('review-entry'),
+        tenantId: tenant.id,
+        reporterId: reporter.id,
+        type: EntryType.EXPENSE,
+        amount: new Prisma.Decimal('1000.00'),
+        date: new Date('2026-08-27T00:00:00.000Z'),
+        cneCode: CneCode.OTROS,
+        description: 'Movimiento pendiente de control independiente',
+        vendorName: 'Proveedor de integración',
+        vendorTaxId: nextId('review-tax'),
+        evidenceUrl: `${tenant.id}/finance/${randomUUID()}.pdf`,
+      },
+    });
+
+    await expect(
+      prisma.financialEntry.update({
+        where: { id: entry.id },
+        data: {
+          status: FinanceStatus.APPROVED,
+          reviewedById: reporter.id,
+          reviewedAt: new Date(),
+          reviewReason: 'El mismo reportante intenta aprobar el movimiento',
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    await expect(
+      prisma.financialEntry.update({
+        where: { id: entry.id },
+        data: {
+          status: FinanceStatus.REJECTED,
+          reviewedById: reviewer.id,
+          reviewedAt: new Date(),
+          reviewReason: 'corto',
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    const reviewed = await prisma.financialEntry.update({
+      where: { id: entry.id },
+      data: {
+        status: FinanceStatus.APPROVED,
+        reviewedById: reviewer.id,
+        reviewedAt: new Date(),
+        reviewReason: 'Soporte y clasificación verificados independientemente',
+      },
+    });
+
+    expect(reviewed.status).toBe(FinanceStatus.APPROVED);
+    expect(reviewed.reviewedById).toBe(reviewer.id);
+  });
+
+  it('enforces the private-object lifecycle and canonical tenant path', async () => {
+    const tenant = await createTenant();
+    const uploader = await createUser(tenant.id);
+    const path = `${tenant.id}/e14/${randomUUID()}.pdf`;
+    const stored = await prisma.storedObject.create({
+      data: {
+        id: nextId('stored'),
+        tenantId: tenant.id,
+        uploaderId: uploader.id,
+        path,
+        module: StorageObjectModule.E14,
+        contentType: 'application/pdf',
+        expectedSize: 512,
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+
+    await expect(
+      prisma.storedObject.update({
+        where: { id: stored.id },
+        data: {
+          status: StoredObjectStatus.CONSUMED,
+          consumedAt: new Date(),
+          consumedByType: 'WitnessReport',
+          consumedById: 'report-a',
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    const confirmedAt = new Date();
+    await prisma.storedObject.update({
+      where: { id: stored.id },
+      data: {
+        status: StoredObjectStatus.CONFIRMED,
+        actualSize: 512,
+        confirmedAt,
+      },
+    });
+    const consumed = await prisma.storedObject.update({
+      where: { id: stored.id },
+      data: {
+        status: StoredObjectStatus.CONSUMED,
+        consumedAt: new Date(),
+        consumedByType: 'WitnessReport',
+        consumedById: 'report-a',
+      },
+    });
+
+    expect(consumed.status).toBe(StoredObjectStatus.CONSUMED);
+    expect(consumed.confirmedAt?.toISOString()).toBe(confirmedAt.toISOString());
   });
 
   it('allows exactly one winner for a concurrent tenant-scoped unique key', async () => {

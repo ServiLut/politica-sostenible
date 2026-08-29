@@ -312,16 +312,26 @@ describe('VoterService privacy controls', () => {
     const service = new VoterService(
       {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ADMIN,
+            divisionId: null,
+          }),
+        },
+        politicalDivision: { findMany: jest.fn() },
         voter: { findMany, count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
     );
 
-    const result = await service.findAll('tenant-a', {
-      page: 2,
-      limit: 10,
-      search: 'ana',
-    });
+    const result = await service.findAll(
+      { ...admin, role: Role.ZONE_COORDINATOR },
+      {
+        page: 2,
+        limit: 10,
+        search: 'ana',
+      },
+    );
 
     const findManyCalls = findMany.mock.calls as unknown as Array<
       [{ where: Record<string, unknown>; skip: number; take: number }]
@@ -333,6 +343,8 @@ describe('VoterService privacy controls', () => {
     const countArgs = countCalls[0]?.[0];
     expect(findManyArgs).toMatchObject({ skip: 10, take: 10 });
     expect(findManyArgs?.where).toMatchObject({ tenantId: 'tenant-a' });
+    expect(JSON.stringify(findManyArgs?.where)).not.toContain('documentId');
+    expect(JSON.stringify(findManyArgs?.where)).not.toContain('phone');
     expect(countArgs?.where).toMatchObject({ tenantId: 'tenant-a' });
     expect(result.pagination).toEqual({
       page: 2,
@@ -350,6 +362,158 @@ describe('VoterService privacy controls', () => {
     expect(result.items[0]).not.toHaveProperty('email');
   });
 
+  it('scopes a coordinator list to the persisted division and descendants', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const count = jest.fn().mockResolvedValue(0);
+    const userFindFirst = jest.fn().mockResolvedValue({
+      role: Role.ZONE_COORDINATOR,
+      divisionId: 'municipality-a',
+    });
+    const divisionFindMany = jest.fn().mockResolvedValue([
+      { id: 'department-a', parentId: null },
+      { id: 'municipality-a', parentId: 'department-a' },
+      { id: 'zone-a', parentId: 'municipality-a' },
+      { id: 'puesto-a', parentId: 'zone-a' },
+      { id: 'municipality-b', parentId: 'department-a' },
+      { id: 'puesto-b', parentId: 'municipality-b' },
+    ]);
+    const service = new VoterService(
+      {
+        tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: { findFirst: userFindFirst },
+        politicalDivision: { findMany: divisionFindMany },
+        voter: { findMany, count },
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await service.findAll(
+      { ...admin, userId: 'coordinator-a', role: Role.ADMIN },
+      { page: 1, limit: 25 },
+    );
+
+    expect(userFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'coordinator-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { role: true, divisionId: true },
+    });
+    expect(divisionFindMany).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-a' },
+      select: { id: true, parentId: true },
+    });
+
+    const findManyCalls = findMany.mock.calls as unknown as Array<
+      [{ where: Record<string, unknown> }]
+    >;
+    const countCalls = count.mock.calls as unknown as Array<
+      [{ where: Record<string, unknown> }]
+    >;
+    const listWhere = findManyCalls[0]?.[0].where;
+    const countWhere = countCalls[0]?.[0].where;
+    const territorialFilter = listWhere?.puestoId as
+      | { in?: string[] }
+      | undefined;
+
+    expect(listWhere).toMatchObject({ tenantId: 'tenant-a' });
+    expect(territorialFilter?.in).toEqual(
+      expect.arrayContaining(['municipality-a', 'zone-a', 'puesto-a']),
+    );
+    expect(territorialFilter?.in).not.toEqual(
+      expect.arrayContaining(['department-a', 'municipality-b', 'puesto-b']),
+    );
+    expect(countWhere).toEqual(listWhere);
+  });
+
+  it('scopes every coordinator statistic to the same tenant divisions', async () => {
+    const count = jest
+      .fn()
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
+    const service = new VoterService(
+      {
+        tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ZONE_COORDINATOR,
+            divisionId: 'zone-a',
+          }),
+        },
+        politicalDivision: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'zone-a', parentId: null },
+            { id: 'puesto-a', parentId: 'zone-a' },
+            { id: 'zone-b', parentId: null },
+          ]),
+        },
+        voter: { count },
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.getStats({
+        ...admin,
+        userId: 'coordinator-a',
+        role: Role.ADMIN,
+      }),
+    ).resolves.toEqual({ total: 3, signatures: 2, consented: 1 });
+
+    const calls = count.mock.calls as unknown as Array<
+      [{ where: Record<string, unknown> }]
+    >;
+    for (const [index, call] of calls.entries()) {
+      expect(call[0].where).toMatchObject({
+        tenantId: 'tenant-a',
+        puestoId: {
+          in: expect.arrayContaining(['zone-a', 'puesto-a']) as string[],
+        },
+        ...(index === 1 ? { isSignatureValid: true } : {}),
+        ...(index === 2 ? { consentAccepted: true } : {}),
+      });
+      const puestoFilter = call[0].where.puestoId as { in: string[] };
+      expect(puestoFilter.in).not.toContain('zone-b');
+    }
+  });
+
+  it('fails closed when a coordinator has no persisted division', async () => {
+    const findMany = jest.fn();
+    const count = jest.fn();
+    const divisionFindMany = jest.fn();
+    const service = new VoterService(
+      {
+        tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ZONE_COORDINATOR,
+            divisionId: null,
+          }),
+        },
+        politicalDivision: { findMany: divisionFindMany },
+        voter: { findMany, count },
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+    const coordinator = {
+      ...admin,
+      userId: 'coordinator-without-zone',
+      role: Role.ADMIN,
+    };
+
+    await expect(service.findAll(coordinator, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.getStats(coordinator)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(divisionFindMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
+    expect(count).not.toHaveBeenCalled();
+  });
+
   it('counts current consents for executive metrics inside the JWT tenant', async () => {
     const count = jest
       .fn()
@@ -359,12 +523,19 @@ describe('VoterService privacy controls', () => {
     const service = new VoterService(
       {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ADMIN,
+            divisionId: null,
+          }),
+        },
+        politicalDivision: { findMany: jest.fn() },
         voter: { count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
     );
 
-    await expect(service.getStats('tenant-a')).resolves.toEqual({
+    await expect(service.getStats(admin)).resolves.toEqual({
       total: 12,
       signatures: 4,
       consented: 9,

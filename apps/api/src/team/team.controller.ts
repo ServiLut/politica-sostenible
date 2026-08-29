@@ -17,6 +17,7 @@ import { CreateTeamInvitationDto } from './dto/create-team-invitation.dto';
 import { ListTeamQueryDto } from './dto/list-team-query.dto';
 import {
   TeamMemberParamsDto,
+  UpdateTeamMemberDivisionDto,
   UpdateTeamMemberRoleDto,
   UpdateTeamMemberStatusDto,
 } from './dto/team-member-lifecycle.dto';
@@ -58,6 +59,18 @@ export class TeamController {
     @Body() dto: UpdateTeamMemberStatusDto,
   ) {
     return this.teamService.updateMemberStatus(user, params.memberId, dto);
+  }
+
+  @Patch('members/:memberId/division')
+  @ApiOperation({
+    summary: 'Asigna o retira el alcance territorial de un miembro',
+  })
+  updateMemberDivision(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: TeamMemberParamsDto,
+    @Body() dto: UpdateTeamMemberDivisionDto,
+  ) {
+    return this.teamService.updateMemberDivision(user, params.memberId, dto);
   }
 
   @Get('invitations')

@@ -36,16 +36,24 @@ export function isOwnedCanonicalStoragePath({
     return false;
   }
 
-  const escapedExtensions = allowedExtensions
-    .map((extension) => extension.replace(/[^a-z0-9]/gi, ''))
-    .filter(Boolean)
-    .join('|');
-  if (!escapedExtensions) {
+  const normalizedExtensions = allowedExtensions.map((extension) =>
+    extension.toLowerCase(),
+  );
+  if (
+    normalizedExtensions.some(
+      (extension) => !/^[a-z0-9]{1,10}$/.test(extension),
+    )
+  ) {
+    return false;
+  }
+
+  const extensionAlternation = normalizedExtensions.join('|');
+  if (!extensionAlternation) {
     return false;
   }
 
   const canonicalName = new RegExp(
-    `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-[a-z0-9][a-z0-9-]*\\.(${escapedExtensions})$`,
+    `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.(${extensionAlternation})$`,
     'i',
   );
 

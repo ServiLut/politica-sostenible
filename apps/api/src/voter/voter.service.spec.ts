@@ -6,6 +6,7 @@ import {
   ConsentStatus,
   ConsentSubjectType,
   PoliticalOperationMode,
+  Role,
   TenantType,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
@@ -41,7 +42,14 @@ describe('VoterService consent transaction', () => {
               : TenantType.CANDIDACY,
         }),
       },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
       politicalDivision: {
+        findMany: jest.fn(),
         findFirst: jest.fn().mockResolvedValue({ id: 'puesto-a' }),
       },
       voter: {
@@ -80,8 +88,11 @@ describe('VoterService consent transaction', () => {
     );
 
     const result = await service.create(
-      'tenant-from-token',
-      'user-from-token',
+      {
+        tenantId: 'tenant-from-token',
+        userId: 'user-from-token',
+        role: Role.VOLUNTEER,
+      },
       '203.0.113.42',
       dto,
     );
@@ -113,7 +124,8 @@ describe('VoterService consent transaction', () => {
       capturedById: 'user-from-token',
     });
     expect(consentCreateData?.grantedAt).toBeInstanceOf(Date);
-    expect(result).toEqual({ id: 'voter-id', consentAccepted: true });
+    expect(result).toEqual({ received: true });
+    expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('documentId');
     expect(result).not.toHaveProperty('phone');
     expect(result).not.toHaveProperty('email');
@@ -135,8 +147,11 @@ describe('VoterService consent transaction', () => {
 
     await expect(
       service.create(
-        'tenant-from-token',
-        'user-from-token',
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'user-from-token',
+          role: Role.ADMIN,
+        },
         '203.0.113.42',
         dto,
       ),
@@ -161,10 +176,14 @@ describe('VoterService consent transaction', () => {
     );
 
     await expect(
-      service.create('tenant-a', 'user-a', '203.0.113.42', {
-        ...dto,
-        puestoId: 'puesto-from-tenant-b',
-      }),
+      service.create(
+        { tenantId: 'tenant-a', userId: 'user-a', role: Role.ADMIN },
+        '203.0.113.42',
+        {
+          ...dto,
+          puestoId: 'puesto-from-tenant-b',
+        },
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(transaction.politicalDivision.findFirst).toHaveBeenCalledWith({
       where: {
@@ -193,13 +212,125 @@ describe('VoterService consent transaction', () => {
       {} as ConsentEvidenceService,
     );
 
-    await expect(service.findAll('tenant-a', {})).rejects.toBeInstanceOf(
+    const user = {
+      userId: 'admin-a',
+      tenantId: 'tenant-a',
+      role: 'ADMIN',
+    };
+    await expect(service.findAll(user, {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    await expect(service.getStats('tenant-a')).rejects.toBeInstanceOf(
+    await expect(service.getStats(user)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
     expect(findMany).not.toHaveBeenCalled();
     expect(count).not.toHaveBeenCalled();
+  });
+
+  it('denies capture outside the persisted coordinator territory', async () => {
+    const transaction = buildTransaction();
+    transaction.user.findFirst.mockResolvedValue({
+      role: Role.ZONE_COORDINATOR,
+      divisionId: 'zone-a',
+    });
+    transaction.politicalDivision.findMany.mockResolvedValue([
+      { id: 'zone-a', parentId: null },
+      { id: 'puesto-a', parentId: 'zone-a' },
+      { id: 'puesto-b', parentId: null },
+    ]);
+    const hashIp = jest.fn();
+    const service = new VoterService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      { hashIp } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'coordinator-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        { ...dto, puestoId: 'puesto-b' },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(hashIp).not.toHaveBeenCalled();
+    expect(transaction.politicalDivision.findFirst).not.toHaveBeenCalled();
+    expect(transaction.voter.findUnique).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a scoped collector has no assigned voting place', async () => {
+    const transaction = buildTransaction();
+    transaction.user.findFirst.mockResolvedValue({
+      role: Role.VOLUNTEER,
+      divisionId: 'zone-a',
+    });
+    transaction.politicalDivision.findMany.mockResolvedValue([
+      { id: 'zone-a', parentId: null },
+      { id: 'puesto-a', parentId: 'zone-a' },
+    ]);
+    const service = new VoterService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'volunteer-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        dto,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(transaction.voter.findUnique).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
+  });
+
+  it('returns the same receipt for an existing record without exposing identity', async () => {
+    const transaction = buildTransaction();
+    transaction.voter.findUnique.mockResolvedValue({ id: 'existing-voter' });
+    const hashIp = jest.fn();
+    const service = new VoterService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      { hashIp } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'admin-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        dto,
+      ),
+    ).resolves.toEqual({ received: true });
+
+    expect(hashIp).not.toHaveBeenCalled();
+    expect(transaction.voter.create).not.toHaveBeenCalled();
+    expect(transaction.consentRecord.create).not.toHaveBeenCalled();
   });
 });

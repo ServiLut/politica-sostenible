@@ -1,6 +1,20 @@
 name: politica-sostenible
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrator
+    environment:
+      DIRECT_URL: ${DIRECT_URL:?DIRECT_URL is required for migrations}
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
   api:
     build:
       context: .
@@ -21,6 +35,9 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     expose:
       - "4000"
     healthcheck:
@@ -58,8 +75,6 @@ services:
       NODE_ENV: production
       PORT: 3000
       NESTJS_API_URL: http://api:4000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?NEXT_PUBLIC_APP_URL is required}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL is required}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY is required}

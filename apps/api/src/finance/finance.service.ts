@@ -1,7 +1,9 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
+  NotFoundException,
   NotImplementedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,15 +13,31 @@ import { ValidateExpenseDto } from './dto/validate-expense.dto';
 import { buildCsvRow } from '../common/utils/csv.util';
 import {
   AuditActorType,
+  EntryType,
+  FinanceStatus,
   PoliticalOperationMode,
   Prisma,
+  Role,
+  StorageObjectModule,
 } from '../../prisma/generated/prisma';
 import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
-import { assertConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
+import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
+import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
+import { ReviewFinancialEntryDto } from './dto/review-financial-entry.dto';
+
+const FINANCE_REVIEW_ROLES = new Set<Role>([
+  Role.ADMIN,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+]);
+
+const SERIALIZABLE_OPTIONS = {
+  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+} as const;
 
 const FINANCIAL_ENTRY_VIEW_SELECT = {
   id: true,
@@ -32,7 +50,9 @@ const FINANCIAL_ENTRY_VIEW_SELECT = {
   vendorTaxId: true,
   status: true,
   createdAt: true,
+  reviewedAt: true,
   evidenceUrl: true,
+  reporterId: true,
 } satisfies Prisma.FinancialEntrySelect;
 
 type FinancialEntryViewSource = Prisma.FinancialEntryGetPayload<{
@@ -60,15 +80,8 @@ export class FinanceService {
     reporterId: string,
     data: CreateFinancialEntryDto,
   ) {
-    await this.assertCampaignMode(tenantId);
-
     if (data.evidenceUrl) {
       this.assertOwnedFinanceEvidence(tenantId, data.evidenceUrl);
-      await assertConfirmedStorageUpload(
-        this.prisma,
-        tenantId,
-        data.evidenceUrl,
-      );
     }
 
     // 1. Validar NIT del proveedor (Sección 6.2)
@@ -83,60 +96,123 @@ export class FinanceService {
       }
     }
 
-    // Los topes varían por elección. Nunca se usa un valor legal ficticio.
-    if (data.type === 'EXPENSE') {
-      const settings = await this.prisma.campaignSettings.findUnique({
-        where: { tenantId },
-      });
+    const amount = new Prisma.Decimal(String(data.amount));
 
-      if (settings) {
-        const current = await this.prisma.financialEntry.aggregate({
-          where: { tenantId, type: 'EXPENSE', status: { not: 'REJECTED' } },
-          _sum: { amount: true },
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
         });
-        const projectedTotal =
-          Number(current._sum.amount ?? 0) + Number(data.amount);
+        assertCampaignTenant(tenant);
 
-        if (projectedTotal > Number(settings.maxTotalBudget)) {
+        const reporter = await transaction.user.findFirst({
+          where: { id: reporterId, tenantId },
+          select: { id: true },
+        });
+        if (!reporter) {
           throw new ForbiddenException(
-            'El movimiento supera el tope total configurado para esta elección.',
+            'El usuario autenticado no pertenece a esta campaña',
           );
         }
 
-        if (data.cneCode === 'PUBLICIDAD_VALLAS') {
-          const currentPublicity = await this.prisma.financialEntry.aggregate({
-            where: {
-              tenantId,
-              type: 'EXPENSE',
-              cneCode: 'PUBLICIDAD_VALLAS',
-              status: { not: 'REJECTED' },
-            },
-            _sum: { amount: true },
+        // Los topes varían por elección. Nunca se usa un valor legal ficticio.
+        if (data.type === EntryType.EXPENSE) {
+          const settings = await transaction.campaignSettings.findUnique({
+            where: { tenantId },
+            select: { maxTotalBudget: true, maxPublicityLimit: true },
           });
-          const projectedPublicity =
-            Number(currentPublicity._sum.amount ?? 0) + Number(data.amount);
-          if (projectedPublicity > Number(settings.maxPublicityLimit)) {
-            throw new ForbiddenException(
-              'El movimiento supera el tope de publicidad exterior configurado para esta elección.',
-            );
+
+          if (settings) {
+            const current = await transaction.financialEntry.aggregate({
+              where: {
+                tenantId,
+                type: EntryType.EXPENSE,
+                status: { not: FinanceStatus.REJECTED },
+              },
+              _sum: { amount: true },
+            });
+            const projectedTotal = new Prisma.Decimal(
+              current._sum.amount ?? 0,
+            ).plus(amount);
+
+            if (projectedTotal.greaterThan(settings.maxTotalBudget)) {
+              throw new ForbiddenException(
+                'El movimiento supera el tope total configurado para esta elección.',
+              );
+            }
+
+            if (data.cneCode === 'PUBLICIDAD_VALLAS') {
+              const currentPublicity =
+                await transaction.financialEntry.aggregate({
+                  where: {
+                    tenantId,
+                    type: EntryType.EXPENSE,
+                    cneCode: 'PUBLICIDAD_VALLAS',
+                    status: { not: FinanceStatus.REJECTED },
+                  },
+                  _sum: { amount: true },
+                });
+              const projectedPublicity = new Prisma.Decimal(
+                currentPublicity._sum.amount ?? 0,
+              ).plus(amount);
+              if (projectedPublicity.greaterThan(settings.maxPublicityLimit)) {
+                throw new ForbiddenException(
+                  'El movimiento supera el tope de publicidad exterior configurado para esta elección.',
+                );
+              }
+            }
           }
         }
-      }
-    }
 
-    const entry = await this.prisma.financialEntry.create({
-      data: {
-        ...data,
-        tenantId,
-        reporterId,
-        date: new Date(data.date),
-      },
-      select: FINANCIAL_ENTRY_VIEW_SELECT,
-    });
-    return this.toFinancialEntryView(entry);
+        const entry = await transaction.financialEntry.create({
+          data: {
+            ...data,
+            amount,
+            tenantId,
+            reporterId,
+            date: new Date(data.date),
+          },
+          select: FINANCIAL_ENTRY_VIEW_SELECT,
+        });
+
+        if (data.evidenceUrl) {
+          await consumeConfirmedStorageUpload(
+            transaction,
+            tenantId,
+            data.evidenceUrl,
+            StorageObjectModule.FINANCE,
+            'FinancialEntry',
+            entry.id,
+          );
+        }
+
+        await transaction.auditEvent.create({
+          data: {
+            tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId: reporterId,
+            action: 'CAMPAIGN_FINANCIAL_ENTRY_CREATED',
+            resourceType: 'FinancialEntry',
+            resourceId: entry.id,
+            metadata: {
+              type: data.type,
+              cneCode: data.cneCode,
+              amount: amount.toString(),
+              hasEvidence: Boolean(data.evidenceUrl),
+            },
+          },
+        });
+
+        return this.toFinancialEntryView(entry, reporterId);
+      }, SERIALIZABLE_OPTIONS);
+    } catch (error) {
+      this.rethrowSerializableConflict(error);
+    }
   }
 
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, viewerId?: string) {
     await this.assertCampaignMode(tenantId);
     try {
       const entries = await this.prisma.financialEntry.findMany({
@@ -144,7 +220,7 @@ export class FinanceService {
         select: FINANCIAL_ENTRY_VIEW_SELECT,
         orderBy: { date: 'desc' },
       });
-      return entries.map((entry) => this.toFinancialEntryView(entry));
+      return entries.map((entry) => this.toFinancialEntryView(entry, viewerId));
     } catch (error) {
       console.error('❌ Error in FinanceService.findAll:', error);
       throw error;
@@ -155,31 +231,45 @@ export class FinanceService {
     await this.assertCampaignMode(tenantId);
     try {
       const expenses = await this.prisma.financialEntry.aggregate({
-        where: { tenantId, type: 'EXPENSE' },
+        where: {
+          tenantId,
+          type: EntryType.EXPENSE,
+          status: { not: FinanceStatus.REJECTED },
+        },
         _sum: { amount: true },
       });
       const income = await this.prisma.financialEntry.aggregate({
-        where: { tenantId, type: 'INCOME' },
+        where: {
+          tenantId,
+          type: EntryType.INCOME,
+          status: { not: FinanceStatus.REJECTED },
+        },
         _sum: { amount: true },
       });
       const settings = await this.prisma.campaignSettings.findUnique({
         where: { tenantId },
       });
-      const totalExpenses = expenses._sum.amount
-        ? Number(expenses._sum.amount)
-        : 0;
+      const totalExpensesDecimal = new Prisma.Decimal(
+        expenses._sum.amount ?? 0,
+      );
+      const totalIncomeDecimal = new Prisma.Decimal(income._sum.amount ?? 0);
+      const totalExpenses = totalExpensesDecimal.toNumber();
+      const totalIncome = totalIncomeDecimal.toNumber();
+      const remainingBudget = settings
+        ? new Prisma.Decimal(settings.maxTotalBudget).minus(
+            totalExpensesDecimal,
+          )
+        : null;
 
       return {
         totalExpenses,
-        totalIncome: income._sum.amount ? Number(income._sum.amount) : 0,
-        balance:
-          (Number(income._sum.amount) || 0) -
-          (Number(expenses._sum.amount) || 0),
+        totalIncome,
+        balance: totalIncomeDecimal.minus(totalExpensesDecimal).toNumber(),
         limitsConfigured: Boolean(settings),
         maxTotalBudget: settings ? Number(settings.maxTotalBudget) : null,
         maxPublicityLimit: settings ? Number(settings.maxPublicityLimit) : null,
-        remainingBudget: settings
-          ? Math.max(0, Number(settings.maxTotalBudget) - totalExpenses)
+        remainingBudget: remainingBudget
+          ? Prisma.Decimal.max(remainingBudget, 0).toNumber()
           : null,
       };
     } catch (error) {
@@ -207,74 +297,202 @@ export class FinanceService {
     dto: UpsertFinanceSettingsDto,
   ) {
     this.assertValidSettings(dto);
+    const maxTotalBudget = new Prisma.Decimal(String(dto.maxTotalBudget));
+    const maxPublicityLimit = new Prisma.Decimal(String(dto.maxPublicityLimit));
 
-    return this.prisma.$transaction(async (transaction) => {
-      const tenant = await transaction.tenant.findUnique({
-        where: { id: tenantId },
-        select: CAMPAIGN_TENANT_SELECT,
-      });
-      assertCampaignTenant(tenant);
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
 
-      const actor = await transaction.user.findFirst({
-        where: { id: actorUserId, tenantId },
-        select: { id: true },
-      });
-      if (!actor) {
-        throw new ForbiddenException(
-          'El usuario autenticado no pertenece a esta campaña',
-        );
-      }
+        const actor = await transaction.user.findFirst({
+          where: { id: actorUserId, tenantId },
+          select: { id: true },
+        });
+        if (!actor) {
+          throw new ForbiddenException(
+            'El usuario autenticado no pertenece a esta campaña',
+          );
+        }
 
-      const previous = await transaction.campaignSettings.findUnique({
-        where: { tenantId },
-        select: FINANCE_SETTINGS_VIEW_SELECT,
-      });
-      const settings = await transaction.campaignSettings.upsert({
-        where: { tenantId },
-        update: {
-          maxTotalBudget: dto.maxTotalBudget,
-          maxPublicityLimit: dto.maxPublicityLimit,
-        },
-        create: {
-          tenantId,
-          maxTotalBudget: dto.maxTotalBudget,
-          maxPublicityLimit: dto.maxPublicityLimit,
-        },
-        select: FINANCE_SETTINGS_VIEW_SELECT,
-      });
+        const [currentExpenses, currentPublicity] = await Promise.all([
+          transaction.financialEntry.aggregate({
+            where: {
+              tenantId,
+              type: EntryType.EXPENSE,
+              status: { not: FinanceStatus.REJECTED },
+            },
+            _sum: { amount: true },
+          }),
+          transaction.financialEntry.aggregate({
+            where: {
+              tenantId,
+              type: EntryType.EXPENSE,
+              cneCode: 'PUBLICIDAD_VALLAS',
+              status: { not: FinanceStatus.REJECTED },
+            },
+            _sum: { amount: true },
+          }),
+        ]);
 
-      await transaction.auditEvent.create({
-        data: {
-          tenantId,
-          mode: PoliticalOperationMode.CAMPAIGN,
-          actorType: AuditActorType.USER,
-          actorUserId,
-          action: 'CAMPAIGN_FINANCE_SETTINGS_UPSERTED',
-          resourceType: 'CampaignSettings',
-          resourceId: settings.id,
-          ...(previous
-            ? { before: this.financeSettingsAuditSnapshot(previous) }
-            : {}),
-          after: this.financeSettingsAuditSnapshot(settings),
-        },
-      });
+        if (
+          new Prisma.Decimal(currentExpenses._sum.amount ?? 0).greaterThan(
+            maxTotalBudget,
+          ) ||
+          new Prisma.Decimal(currentPublicity._sum.amount ?? 0).greaterThan(
+            maxPublicityLimit,
+          )
+        ) {
+          throw new BadRequestException(
+            'Los topes no pueden quedar por debajo de movimientos no rechazados ya registrados',
+          );
+        }
 
-      return settings;
-    });
+        const previous = await transaction.campaignSettings.findUnique({
+          where: { tenantId },
+          select: FINANCE_SETTINGS_VIEW_SELECT,
+        });
+        const settings = await transaction.campaignSettings.upsert({
+          where: { tenantId },
+          update: { maxTotalBudget, maxPublicityLimit },
+          create: { tenantId, maxTotalBudget, maxPublicityLimit },
+          select: FINANCE_SETTINGS_VIEW_SELECT,
+        });
+
+        await transaction.auditEvent.create({
+          data: {
+            tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId,
+            action: 'CAMPAIGN_FINANCE_SETTINGS_UPSERTED',
+            resourceType: 'CampaignSettings',
+            resourceId: settings.id,
+            ...(previous
+              ? { before: this.financeSettingsAuditSnapshot(previous) }
+              : {}),
+            after: this.financeSettingsAuditSnapshot(settings),
+          },
+        });
+
+        return settings;
+      }, SERIALIZABLE_OPTIONS);
+    } catch (error) {
+      this.rethrowSerializableConflict(error);
+    }
+  }
+
+  async review(
+    tenantId: string,
+    reviewerId: string,
+    entryId: string,
+    dto: ReviewFinancialEntryDto,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
+
+        const reviewer = await transaction.user.findFirst({
+          where: { id: reviewerId, tenantId },
+          select: { id: true, role: true },
+        });
+        if (!reviewer || !FINANCE_REVIEW_ROLES.has(reviewer.role)) {
+          throw new ForbiddenException(
+            'El usuario autenticado no puede revisar movimientos financieros',
+          );
+        }
+
+        const existing = await transaction.financialEntry.findFirst({
+          where: { id: entryId, tenantId },
+          select: FINANCIAL_ENTRY_VIEW_SELECT,
+        });
+        if (!existing) {
+          throw new NotFoundException('Movimiento financiero no encontrado');
+        }
+        if (existing.status !== FinanceStatus.PENDING) {
+          throw new ConflictException(
+            'El movimiento financiero ya fue revisado',
+          );
+        }
+        if (existing.reporterId === reviewerId) {
+          throw new ForbiddenException(
+            'Quien registra un movimiento no puede revisar su propio registro',
+          );
+        }
+        if (dto.status === FinanceStatus.APPROVED && !existing.evidenceUrl) {
+          throw new BadRequestException(
+            'No se puede aprobar un movimiento financiero sin soporte',
+          );
+        }
+
+        const reviewedAt = new Date();
+        const transition = await transaction.financialEntry.updateMany({
+          where: {
+            id: entryId,
+            tenantId,
+            status: FinanceStatus.PENDING,
+            reporterId: { not: reviewerId },
+          },
+          data: {
+            status: dto.status,
+            reviewedById: reviewerId,
+            reviewedAt,
+            reviewReason: dto.reviewReason,
+          },
+        });
+        if (transition.count !== 1) {
+          throw new ConflictException(
+            'El movimiento fue revisado por otra persona; actualiza la vista',
+          );
+        }
+
+        const updated = await transaction.financialEntry.findFirst({
+          where: { id: entryId, tenantId },
+          select: FINANCIAL_ENTRY_VIEW_SELECT,
+        });
+        if (!updated) {
+          throw new ConflictException(
+            'No fue posible confirmar la revisión financiera',
+          );
+        }
+
+        await transaction.auditEvent.create({
+          data: {
+            tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId: reviewerId,
+            action: 'CAMPAIGN_FINANCIAL_ENTRY_REVIEWED',
+            resourceType: 'FinancialEntry',
+            resourceId: entryId,
+            before: { status: existing.status },
+            after: { status: updated.status },
+            metadata: { decision: dto.status },
+          },
+        });
+
+        return this.toFinancialEntryView(updated, reviewerId);
+      }, SERIALIZABLE_OPTIONS);
+    } catch (error) {
+      this.rethrowSerializableConflict(error);
+    }
   }
 
   private assertOwnedFinanceEvidence(tenantId: string, path: string): void {
-    const expectedPrefix = `${tenantId}/finance/`;
-    const objectName = path.startsWith(expectedPrefix)
-      ? path.slice(expectedPrefix.length)
-      : '';
-    const canonicalName =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-[a-z0-9][a-z0-9-]*\.(pdf|jpe?g|png|webp|csv|xlsx)$/i;
-
     if (
-      !objectName ||
-      objectName.includes('/') ||
-      !canonicalName.test(objectName)
+      !isOwnedCanonicalStoragePath({
+        tenantId,
+        module: 'finance',
+        path,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'csv', 'xlsx'],
+      })
     ) {
       throw new BadRequestException(
         'El soporte financiero debe ser una ruta privada confirmada del tenant autenticado.',
@@ -285,8 +503,22 @@ export class FinanceService {
   async generateCneReport(tenantId: string): Promise<string> {
     await this.assertCampaignMode(tenantId);
     const expenses = await this.prisma.financialEntry.findMany({
-      where: { tenantId, type: 'EXPENSE' },
-      include: { reporter: { select: { name: true } } },
+      where: {
+        tenantId,
+        type: EntryType.EXPENSE,
+        status: {
+          in: [FinanceStatus.APPROVED, FinanceStatus.REPORTED_CNE],
+        },
+      },
+      select: {
+        date: true,
+        description: true,
+        amount: true,
+        vendorName: true,
+        vendorTaxId: true,
+        cneCode: true,
+        reporter: { select: { name: true } },
+      },
       orderBy: { date: 'asc' },
     });
 
@@ -349,11 +581,38 @@ export class FinanceService {
     };
   }
 
-  private toFinancialEntryView(entry: FinancialEntryViewSource) {
-    const { evidenceUrl, ...view } = entry;
+  private toFinancialEntryView(
+    entry: FinancialEntryViewSource,
+    viewerId?: string,
+  ) {
     return {
-      ...view,
-      hasEvidence: Boolean(evidenceUrl),
+      id: entry.id,
+      type: entry.type,
+      amount: entry.amount,
+      date: entry.date,
+      cneCode: entry.cneCode,
+      description: entry.description,
+      vendorName: entry.vendorName,
+      vendorTaxId: entry.vendorTaxId,
+      status: entry.status,
+      createdAt: entry.createdAt,
+      reviewedAt: entry.reviewedAt,
+      hasEvidence: Boolean(entry.evidenceUrl),
+      reportedByMe: Boolean(viewerId && entry.reporterId === viewerId),
     };
+  }
+
+  private rethrowSerializableConflict(error: unknown): never {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2034'
+    ) {
+      throw new ConflictException(
+        'La información financiera cambió durante la operación; actualiza e intenta de nuevo',
+      );
+    }
+    throw error;
   }
 }

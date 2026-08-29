@@ -18,8 +18,10 @@ import {
   X,
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
+import { useAuth } from "@/context/auth";
 import {
   Commitment,
+  CommitmentPage,
   CommitmentStatus,
   createCommitment,
   CreateCommitmentInput,
@@ -35,6 +37,7 @@ import {
   updateTask,
   WorkPriority,
 } from "@/lib/work-api";
+import type { BackendUserRole } from "@/types/saas-schema";
 
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
@@ -54,6 +57,15 @@ interface CommitmentFilters {
 }
 
 const PAGE_SIZE = 9;
+
+const TASK_CREATE_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
+  "CAMPAIGN_MANAGER",
+  "COMMUNICATIONS_MANAGER",
+  "CONSTITUENT_SERVICES_MANAGER",
+  "CASE_WORKER",
+  "ZONE_COORDINATOR",
+]);
 
 const TASK_STATUSES: ReadonlyArray<{ value: TaskStatus; label: string }> = [
   { value: "TODO", label: "Por hacer" },
@@ -245,6 +257,9 @@ function RequestState({
 }
 
 export default function TasksPage() {
+  const { user } = useAuth();
+  const canCreateTask =
+    user !== null && TASK_CREATE_ROLES.has(user.backendRole);
   const [view, setView] = useState<View>("tasks");
   const [dialog, setDialog] = useState<Dialog>(null);
   const [taskFilters, setTaskFilters] =
@@ -258,7 +273,7 @@ export default function TasksPage() {
     null,
   );
   const [commitmentResult, setCommitmentResult] =
-    useState<PaginatedResult<Commitment> | null>(null);
+    useState<CommitmentPage | null>(null);
   const [taskLoading, setTaskLoading] = useState(true);
   const [commitmentLoading, setCommitmentLoading] = useState(true);
   const [taskError, setTaskError] = useState<string | null>(null);
@@ -406,6 +421,12 @@ export default function TasksPage() {
 
   async function handleCreateCommitment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!commitmentResult?.permissions.canCreate) {
+      setMutationError(
+        "Tu acceso actual permite consultar compromisos, pero no crearlos.",
+      );
+      return;
+    }
     setMutation("create-commitment");
     setMutationError(null);
 
@@ -468,6 +489,7 @@ export default function TasksPage() {
     commitment: Commitment,
     status: CommitmentStatus,
   ) {
+    if (!commitment.canUpdate) return;
     const mutationKey = `commitment-status-${commitment.id}`;
     setMutation(mutationKey);
     setMutationError(null);
@@ -493,6 +515,7 @@ export default function TasksPage() {
   }
 
   async function handleCommitmentProgress(commitment: Commitment) {
+    if (!commitment.canUpdate) return;
     const progress = progressDrafts[commitment.id] ?? commitment.progress;
     if (!Number.isInteger(progress) || progress < 0 || progress > 100) {
       setMutationError("El avance debe ser un número entero entre 0 y 100.");
@@ -564,17 +587,21 @@ export default function TasksPage() {
             compromisos de la organización.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setMutationError(null);
-            setDialog(view === "tasks" ? "task" : "commitment");
-          }}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
-        >
-          <Plus aria-hidden="true" size={19} />
-          {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
-        </button>
+        {(view === "tasks"
+          ? canCreateTask
+          : commitmentResult?.permissions.canCreate) && (
+          <button
+            type="button"
+            onClick={() => {
+              setMutationError(null);
+              setDialog(view === "tasks" ? "task" : "commitment");
+            }}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
+          >
+            <Plus aria-hidden="true" size={19} />
+            {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
+          </button>
+        )}
       </header>
 
       <div aria-live="polite" className="space-y-3">
@@ -895,9 +922,11 @@ export default function TasksPage() {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
-                <option value="">Toda visibilidad</option>
+                <option value="">Visibilidad permitida</option>
                 <option value="true">Públicos</option>
-                <option value="false">Internos</option>
+                {commitmentResult?.permissions.canReadInternal && (
+                  <option value="false">Internos</option>
+                )}
               </select>
             </label>
             <button
@@ -918,7 +947,11 @@ export default function TasksPage() {
             (commitmentResult?.items.length ?? 0) === 0
           }
           emptyTitle="No hay compromisos con estos filtros"
-          emptyMessage="Cambia los filtros o registra el primer compromiso para iniciar su seguimiento."
+          emptyMessage={
+            commitmentResult?.permissions.canCreate
+              ? "Cambia los filtros o registra el primer compromiso para iniciar su seguimiento."
+              : "Cambia los filtros para consultar los compromisos visibles para tu acceso actual."
+          }
           onRetry={() => setCommitmentReload((current) => current + 1)}
         />
 
@@ -978,11 +1011,14 @@ export default function TasksPage() {
                       </dl>
                       <label className="mt-4 block text-xs font-black text-slate-700">
                         Estado de {commitment.title}
+                        {!commitment.canUpdate && " (solo lectura)"}
                         <span className="relative mt-1 block">
                           <select
                             aria-label={`Estado de ${commitment.title}`}
                             value={commitment.status}
-                            disabled={Boolean(mutation)}
+                            disabled={
+                              Boolean(mutation) || !commitment.canUpdate
+                            }
                             onChange={(event) =>
                               void handleCommitmentStatus(
                                 commitment,
@@ -1034,7 +1070,9 @@ export default function TasksPage() {
                             max={100}
                             step={1}
                             value={currentProgress}
-                            disabled={Boolean(mutation)}
+                            disabled={
+                              Boolean(mutation) || !commitment.canUpdate
+                            }
                             onChange={(event) =>
                               setProgressDrafts((current) => ({
                                 ...current,
@@ -1050,6 +1088,7 @@ export default function TasksPage() {
                             }
                             disabled={
                               Boolean(mutation) ||
+                              !commitment.canUpdate ||
                               currentProgress === commitment.progress
                             }
                             className="min-h-11 rounded-xl bg-slate-900 px-4 text-xs font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"

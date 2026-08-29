@@ -81,6 +81,13 @@ const cases: RbacCase[] = [
     denied: Role.AUDITOR,
   },
   {
+    label: 'finance independent review',
+    controller: FinanceController,
+    method: 'review',
+    allowed: Role.COMPLIANCE_OFFICER,
+    denied: Role.CAMPAIGN_MANAGER,
+  },
+  {
     label: 'finance export',
     controller: FinanceController,
     method: 'getCneReport',
@@ -153,6 +160,11 @@ const VOTER_READ = [
 ];
 const FINANCE_WRITE = [Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.FINANCE_MANAGER];
 const FINANCE_READ = [...FINANCE_WRITE, Role.COMPLIANCE_OFFICER, Role.AUDITOR];
+const FINANCE_REVIEW = [
+  Role.ADMIN,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+];
 const WITNESS_WRITE = [
   Role.ADMIN,
   Role.CAMPAIGN_MANAGER,
@@ -175,6 +187,7 @@ const exactCases: Array<[string, Type<unknown>, string, readonly Role[]]> = [
   ['finance summary', FinanceController, 'getSummary', FINANCE_READ],
   ['finance validation', FinanceController, 'validateExpense', FINANCE_WRITE],
   ['finance settings', FinanceController, 'updateSettings', FINANCE_WRITE],
+  ['finance review', FinanceController, 'review', FINANCE_REVIEW],
   ['finance export', FinanceController, 'getCneReport', FINANCE_READ],
   ['witness create', WitnessController, 'create', WITNESS_WRITE],
   [

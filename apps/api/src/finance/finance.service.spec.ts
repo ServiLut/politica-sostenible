@@ -4,6 +4,7 @@ import { FinanceService } from './finance.service';
 import {
   AuditActorType,
   PoliticalOperationMode,
+  Prisma,
   TenantType,
 } from '../../prisma/generated/prisma';
 
@@ -33,8 +34,20 @@ describe('FinanceService tenant-safe exports', () => {
     const csv = await service.generateCneReport('tenant-from-jwt');
 
     expect(findMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-from-jwt', type: 'EXPENSE' },
-      include: { reporter: { select: { name: true } } },
+      where: {
+        tenantId: 'tenant-from-jwt',
+        type: 'EXPENSE',
+        status: { in: ['APPROVED', 'REPORTED_CNE'] },
+      },
+      select: {
+        date: true,
+        description: true,
+        amount: true,
+        vendorName: true,
+        vendorTaxId: true,
+        cneCode: true,
+        reporter: { select: { name: true } },
+      },
       orderBy: { date: 'asc' },
     });
     expect(csv.split('\n')).toHaveLength(2);
@@ -67,27 +80,49 @@ describe('FinanceService tenant-safe exports', () => {
         vendorName: 'Aportante',
         vendorTaxId: '900123456',
         evidenceUrl:
-          'tenant-attacker/finance/123e4567-e89b-42d3-a456-426614174000-soporte.pdf',
+          'tenant-attacker/finance/123e4567-e89b-42d3-a456-426614174000.pdf',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('rejects a canonical finance path without a durable upload receipt', async () => {
-    const create = jest.fn();
-    const receiptFindFirst = jest.fn().mockResolvedValue(null);
-    const service = new FinanceService({
+  it('rolls back association when the durable upload cannot be consumed', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'entry-a',
+      type: 'INCOME',
+      amount: 1000,
+      date: new Date('2026-08-21T00:00:00.000Z'),
+      cneCode: 'OTROS',
+      description: 'Aporte',
+      vendorName: 'Aportante',
+      vendorTaxId: '900123456',
+      status: 'PENDING',
+      createdAt: new Date(),
+      reviewedAt: null,
+      evidenceUrl: null,
+      reporterId: 'user-a',
+    });
+    const consume = jest.fn().mockResolvedValue({ count: 0 });
+    const transaction = {
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
           type: TenantType.CANDIDACY,
         }),
       },
-      auditEvent: { findFirst: receiptFindFirst },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'user-a' }) },
+      campaignSettings: { findUnique: jest.fn() },
       financialEntry: { create },
+      storedObject: { updateMany: consume },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     } as unknown as PrismaService);
-    const path =
-      'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000-soporte.pdf';
+    const path = 'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000.pdf';
 
     await expect(
       service.create('tenant-a', 'user-a', {
@@ -101,31 +136,45 @@ describe('FinanceService tenant-safe exports', () => {
         evidenceUrl: path,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(receiptFindFirst).toHaveBeenCalledWith({
+    expect(consume).toHaveBeenCalledWith({
       where: {
         tenantId: 'tenant-a',
-        action: 'STORAGE_UPLOAD_CONFIRMED',
-        resourceType: 'StorageObject',
-        resourceId: path,
-        outcome: 'SUCCESS',
+        path,
+        module: 'FINANCE',
+        status: 'CONFIRMED',
+        consumedAt: null,
       },
-      select: { id: true },
+      data: expect.objectContaining({
+        status: 'CONSUMED',
+        consumedByType: 'FinancialEntry',
+        consumedById: 'entry-a',
+      }) as object,
     });
-    expect(create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('blocks every finance operation when the active mode is public office', async () => {
     const create = jest.fn();
     const findMany = jest.fn();
     const aggregate = jest.fn();
+    const tenantFindUnique = jest.fn().mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+      type: TenantType.PUBLIC_OFFICE,
+    });
+    const transaction = {
+      tenant: { findUnique: tenantFindUnique },
+      user: { findFirst: jest.fn() },
+      campaignSettings: { findUnique: jest.fn() },
+      financialEntry: { create, aggregate },
+      auditEvent: { create: jest.fn() },
+    };
     const service = new FinanceService({
-      tenant: {
-        findUnique: jest.fn().mockResolvedValue({
-          defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
-          type: TenantType.PUBLIC_OFFICE,
-        }),
-      },
+      tenant: { findUnique: tenantFindUnique },
       financialEntry: { create, findMany, aggregate },
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     } as unknown as PrismaService);
 
     await expect(
@@ -170,7 +219,7 @@ describe('FinanceService tenant-safe exports', () => {
         status: 'PENDING',
         createdAt: new Date('2026-08-21T00:00:00.000Z'),
         evidenceUrl:
-          'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000-soporte.pdf',
+          'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000.pdf',
       },
       {
         id: 'entry-without-evidence',
@@ -197,21 +246,29 @@ describe('FinanceService tenant-safe exports', () => {
       vendorTaxId: '900123458',
       status: 'PENDING',
       createdAt: new Date('2026-08-21T00:00:00.000Z'),
-      evidenceUrl:
-        'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000-soporte.pdf',
+      evidenceUrl: 'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000.pdf',
     });
-    const receiptFindFirst = jest
-      .fn()
-      .mockResolvedValue({ id: 'upload-receipt-a' });
-    const service = new FinanceService({
-      tenant: {
-        findUnique: jest.fn().mockResolvedValue({
-          defaultMode: PoliticalOperationMode.CAMPAIGN,
-          type: TenantType.CANDIDACY,
-        }),
+    const tenantFindUnique = jest.fn().mockResolvedValue({
+      defaultMode: PoliticalOperationMode.CAMPAIGN,
+      type: TenantType.CANDIDACY,
+    });
+    const transaction = {
+      tenant: { findUnique: tenantFindUnique },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'user-a' }) },
+      campaignSettings: { findUnique: jest.fn() },
+      financialEntry: { create },
+      storedObject: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      auditEvent: { findFirst: receiptFindFirst },
-      financialEntry: { findMany, create },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    const service = new FinanceService({
+      tenant: { findUnique: tenantFindUnique },
+      financialEntry: { findMany },
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     } as unknown as PrismaService);
 
     const listed = await service.findAll('tenant-a');
@@ -223,8 +280,7 @@ describe('FinanceService tenant-safe exports', () => {
       description: 'Aporte',
       vendorName: 'Aportante',
       vendorTaxId: '900123458',
-      evidenceUrl:
-        'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000-soporte.pdf',
+      evidenceUrl: 'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000.pdf',
     });
 
     expect(listed.map((entry) => entry.hasEvidence)).toEqual([true, false]);
@@ -257,6 +313,9 @@ describe('FinanceService tenant-safe exports', () => {
         }),
       },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'manager-a' }) },
+      financialEntry: {
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+      },
       campaignSettings: {
         findUnique: jest.fn().mockResolvedValue({
           ...settings,
@@ -289,13 +348,13 @@ describe('FinanceService tenant-safe exports', () => {
       expect.objectContaining({
         where: { tenantId: 'tenant-a' },
         update: {
-          maxTotalBudget: 1_000_000,
-          maxPublicityLimit: 250_000,
+          maxTotalBudget: expect.any(Prisma.Decimal),
+          maxPublicityLimit: expect.any(Prisma.Decimal),
         },
         create: {
           tenantId: 'tenant-a',
-          maxTotalBudget: 1_000_000,
-          maxPublicityLimit: 250_000,
+          maxTotalBudget: expect.any(Prisma.Decimal),
+          maxPublicityLimit: expect.any(Prisma.Decimal),
         },
       }),
     );

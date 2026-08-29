@@ -33,6 +33,6 @@ export class WitnessController {
   @Get()
   @Roles(...WITNESS_READ_ROLES)
   async findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.witnessService.findAll(user.tenantId);
+    return this.witnessService.findAll(user.tenantId, user.userId);
   }
 }

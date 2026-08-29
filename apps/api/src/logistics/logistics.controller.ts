@@ -43,11 +43,6 @@ export class LogisticsController {
     @Body() data: SyncVoterDto,
     @Ip() consentIp: string,
   ) {
-    return this.logisticsService.syncVoter(
-      user.tenantId,
-      user.userId,
-      consentIp,
-      data,
-    );
+    return this.logisticsService.syncVoter(user, consentIp, data);
   }
 }

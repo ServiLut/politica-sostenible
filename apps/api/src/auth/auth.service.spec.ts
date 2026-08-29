@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
   AuditActorType,
@@ -77,6 +77,35 @@ describe('AuthService organization onboarding', () => {
       }),
     });
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a generic registration conflict after paying the password-hash cost', async () => {
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ id: 'existing' }) },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-hash' as never);
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.register({
+        email: 'existing@example.test',
+        password: 'clave-segura-2026',
+        name: 'Persona',
+        documentId: '1012345678',
+        organizationName: 'Organización',
+        organizationType: TenantType.CANDIDACY,
+        termsAccepted: true,
+        termsVersion: '2026.1',
+      }),
+    ).rejects.toMatchObject({
+      constructor: ConflictException,
+      message: 'No fue posible crear la cuenta con esos identificadores',
+    });
+    expect(bcrypt.hash).toHaveBeenCalledWith('clave-segura-2026', 12);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 

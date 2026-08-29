@@ -42,6 +42,17 @@ function paginated<T>(items: T[]) {
   };
 }
 
+function commitmentPage<T>(
+  items: T[],
+  permissions = { canCreate: true, canReadInternal: true },
+) {
+  const response = paginated(items);
+  return {
+    ...response,
+    data: { ...response.data, permissions },
+  };
+}
+
 function successful<T>(data: T) {
   return { statusCode: 200, message: "Success", data };
 }
@@ -102,6 +113,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
       owner: null,
       issueCase: null,
       _count: { tasks: 1 },
+      canUpdate: true,
     },
   ];
 
@@ -173,7 +185,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(paginated(commitments)),
+        body: JSON.stringify(commitmentPage(commitments)),
       });
       return;
     }
@@ -284,5 +296,161 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(7);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
+  );
+});
+
+test("presenta un compromiso público global como solo lectura", async ({
+  page,
+}) => {
+  let patchRequests = 0;
+  const publicCommitment = {
+    id: "commitment-public",
+    mode: "PUBLIC_OFFICE",
+    reference: "CMP-PUBLIC",
+    title: "Informe público global",
+    description: "Es visible, pero pertenece a otro ámbito de gestión.",
+    status: "IN_PROGRESS",
+    targetDate: null,
+    progress: 40,
+    isPublic: true,
+    completedAt: null,
+    createdAt: "2026-08-10T12:00:00.000Z",
+    updatedAt: "2026-08-20T12:00:00.000Z",
+    _count: { tasks: 0 },
+    canUpdate: false,
+  };
+
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: {
+        ...session,
+        user: {
+          id: "case-worker-e2e",
+          email: "gestor@example.test",
+          name: "Gestor de caso",
+          role: "Coordinador",
+          backendRole: "CASE_WORKER",
+        },
+      },
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === "GET" && pathname === "/api/tasks") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(paginated([])),
+      });
+      return;
+    }
+
+    if (request.method() === "GET" && pathname === "/api/commitments") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          commitmentPage([publicCommitment], {
+            canCreate: true,
+            canReadInternal: true,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (request.method() === "PATCH") patchRequests += 1;
+    await route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({ message: "Operación fuera de alcance" }),
+    });
+  });
+
+  await page.goto("/dashboard/tasks");
+  await page.getByRole("tab", { name: /Compromisos/ }).click();
+
+  const card = page.getByTestId("commitment-card-commitment-public");
+  await expect(card).toContainText("solo lectura");
+  await expect(
+    card.getByRole("combobox", { name: "Estado de Informe público global" }),
+  ).toBeDisabled();
+  await expect(card.getByRole("spinbutton", { name: "Avance" })).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Guardar" })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Nuevo compromiso" }),
+  ).toBeVisible();
+  expect(patchRequests).toBe(0);
+});
+
+test("oculta la creación de tareas a un rol de solo lectura", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: {
+        ...session,
+        user: {
+          id: "auditor-e2e",
+          email: "auditoria@example.test",
+          name: "Auditoría independiente",
+          role: "Auditor",
+          backendRole: "AUDITOR",
+        },
+      },
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === "GET" && pathname === "/api/tasks") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(paginated([])),
+      });
+      return;
+    }
+
+    if (request.method() === "GET" && pathname === "/api/commitments") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          commitmentPage([], {
+            canCreate: false,
+            canReadInternal: true,
+          }),
+        ),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ message: `Ruta no simulada: ${pathname}` }),
+    });
+  });
+
+  await page.goto("/dashboard/tasks");
+  await expect(
+    page.getByRole("heading", { name: "Tareas y compromisos" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nueva tarea" })).toHaveCount(
+    0,
   );
 });

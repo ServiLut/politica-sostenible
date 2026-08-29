@@ -66,13 +66,40 @@ const MODE_WRITE_ROLES: Readonly<
     Role.ADMIN,
     Role.CAMPAIGN_MANAGER,
     Role.COMMUNICATIONS_MANAGER,
-    Role.ZONE_COORDINATOR,
   ],
   [PoliticalOperationMode.PUBLIC_OFFICE]: [
     Role.ADMIN,
     Role.CONSTITUENT_SERVICES_MANAGER,
   ],
 };
+
+const MODE_INTERNAL_READ_ROLES: Readonly<
+  Record<PoliticalOperationMode, readonly Role[]>
+> = {
+  [PoliticalOperationMode.CAMPAIGN]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.FINANCE_MANAGER,
+    Role.COMMUNICATIONS_MANAGER,
+    Role.COMPLIANCE_OFFICER,
+    Role.AUDITOR,
+  ],
+  [PoliticalOperationMode.PUBLIC_OFFICE]: [
+    Role.ADMIN,
+    Role.CONSTITUENT_SERVICES_MANAGER,
+    Role.COMMUNICATIONS_MANAGER,
+    Role.CASE_WORKER,
+    Role.COMPLIANCE_OFFICER,
+    Role.AUDITOR,
+  ],
+};
+
+const PUBLISHED_EVENT_STATUSES = [
+  CampaignEventStatus.SCHEDULED,
+  CampaignEventStatus.IN_PROGRESS,
+  CampaignEventStatus.COMPLETED,
+  CampaignEventStatus.CANCELLED,
+] as const;
 
 const MODE_RESPONSIBLE_ROLES: Readonly<
   Record<PoliticalOperationMode, readonly Role[]>
@@ -118,8 +145,18 @@ export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(user: AuthenticatedUser, query: ListCampaignEventsQueryDto) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_READ_ROLES, 'consultar');
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_READ_ROLES, 'consultar');
+    const canReadDrafts = MODE_INTERNAL_READ_ROLES[mode].includes(currentRole);
+
+    if (!canReadDrafts && query.status === CampaignEventStatus.DRAFT) {
+      throw new ForbiddenException(
+        'Tu rol sólo puede consultar eventos publicados',
+      );
+    }
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const search = query.search?.trim();
@@ -137,7 +174,11 @@ export class EventsService {
     const where: Prisma.CampaignEventWhereInput = {
       tenantId: user.tenantId,
       mode,
-      ...(query.status ? { status: query.status } : {}),
+      ...(query.status
+        ? { status: query.status }
+        : canReadDrafts
+          ? {}
+          : { status: { in: [...PUBLISHED_EVENT_STATUSES] } }),
       ...(query.responsibleId ? { responsibleId: query.responsibleId } : {}),
       ...(search
         ? {
@@ -181,10 +222,21 @@ export class EventsService {
   }
 
   async findOne(user: AuthenticatedUser, id: string) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_READ_ROLES, 'consultar');
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_READ_ROLES, 'consultar');
+    const canReadDrafts = MODE_INTERNAL_READ_ROLES[mode].includes(currentRole);
     const event = await this.prisma.campaignEvent.findFirst({
-      where: { id, tenantId: user.tenantId, mode },
+      where: {
+        id,
+        tenantId: user.tenantId,
+        mode,
+        ...(canReadDrafts
+          ? {}
+          : { status: { in: [...PUBLISHED_EVENT_STATUSES] } }),
+      },
       select: EVENT_SELECT,
     });
 
@@ -196,8 +248,11 @@ export class EventsService {
   }
 
   async listResponsibles(user: AuthenticatedUser) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_WRITE_ROLES, 'gestionar');
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_WRITE_ROLES, 'gestionar');
 
     return this.prisma.user.findMany({
       where: {
@@ -211,19 +266,19 @@ export class EventsService {
   }
 
   async create(user: AuthenticatedUser, dto: CreateCampaignEventDto) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_WRITE_ROLES, 'crear');
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_WRITE_ROLES, 'crear');
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
     this.assertValidSchedule(startsAt, endsAt);
     this.assertNonBlank(dto.name, 'El nombre del evento es obligatorio');
 
-    await Promise.all([
-      this.assertActorInTenant(user),
-      dto.responsibleId
-        ? this.assertResponsibleInScope(user.tenantId, mode, dto.responsibleId)
-        : Promise.resolve(),
-    ]);
+    await (dto.responsibleId
+      ? this.assertResponsibleInScope(user.tenantId, mode, dto.responsibleId)
+      : Promise.resolve());
 
     return this.prisma.$transaction(async (tx) => {
       const event = await tx.campaignEvent.create({
@@ -268,9 +323,11 @@ export class EventsService {
       throw new BadRequestException('Debe enviar al menos un cambio');
     }
 
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_WRITE_ROLES, 'actualizar');
-    await this.assertActorInTenant(user);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_WRITE_ROLES, 'actualizar');
     const existing = await this.prisma.campaignEvent.findFirst({
       where: { id, tenantId: user.tenantId, mode },
       select: EVENT_SELECT,
@@ -376,15 +433,16 @@ export class EventsService {
     id: string,
     dto: TransitionCampaignEventDto,
   ) {
-    const mode = await this.getActiveMode(user.tenantId);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
     this.assertModeRole(
-      user.role,
+      currentRole,
       mode,
       MODE_WRITE_ROLES,
       'cambiar el estado de',
     );
-    await this.assertActorInTenant(user);
-
     try {
       return await this.prisma.$transaction(
         async (tx) => {
@@ -448,9 +506,11 @@ export class EventsService {
   }
 
   async remove(user: AuthenticatedUser, id: string) {
-    const mode = await this.getActiveMode(user.tenantId);
-    this.assertModeRole(user.role, mode, MODE_WRITE_ROLES, 'eliminar');
-    await this.assertActorInTenant(user);
+    const [mode, currentRole] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentRole(user.tenantId, user.userId),
+    ]);
+    this.assertModeRole(currentRole, mode, MODE_WRITE_ROLES, 'eliminar');
 
     try {
       return await this.prisma.$transaction(
@@ -532,29 +592,32 @@ export class EventsService {
   }
 
   private assertModeRole(
-    role: string | undefined,
+    role: Role,
     mode: PoliticalOperationMode,
     rolesByMode: Readonly<Record<PoliticalOperationMode, readonly Role[]>>,
     action: string,
   ): void {
-    if (!rolesByMode[mode].includes(role as Role)) {
+    if (!rolesByMode[mode].includes(role)) {
       throw new ForbiddenException(
         `Su rol no puede ${action} eventos en el modo operativo actual`,
       );
     }
   }
 
-  private async assertActorInTenant(user: AuthenticatedUser): Promise<void> {
+  private async getCurrentRole(
+    tenantId: string,
+    userId: string,
+  ): Promise<Role> {
     const actor = await this.prisma.user.findFirst({
-      where: { id: user.userId, tenantId: user.tenantId, isActive: true },
-      select: { id: true },
+      where: { id: userId, tenantId, isActive: true },
+      select: { role: true },
     });
 
     if (!actor) {
-      throw new ForbiddenException(
-        'El usuario autenticado no pertenece a la organización actual',
-      );
+      throw new ForbiddenException('El usuario no tiene acceso vigente');
     }
+
+    return actor.role;
   }
 
   private async assertResponsibleInScope(

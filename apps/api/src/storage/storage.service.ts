@@ -1,16 +1,23 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
+  PayloadTooLargeException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import {
   AuditActorType,
   PoliticalOperationMode,
+  Prisma,
   Role,
-  TenantType,
+  StoredObjectStatus,
+  StorageObjectModule,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
@@ -21,8 +28,10 @@ import {
   STORAGE_OBJECT_RESOURCE_TYPE,
   STORAGE_UPLOAD_CONFIRMED_ACTION,
 } from '../common/utils/confirmed-storage-upload.util';
+import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompleteUploadDto } from './dto/complete-upload.dto';
+import { CreateDownloadUrlDto } from './dto/create-download-url.dto';
 import { CreateUploadUrlDto } from './dto/create-upload-url.dto';
 import {
   STORAGE_MAX_FILE_NAME_LENGTH,
@@ -40,6 +49,8 @@ interface NormalizedUploadMetadata {
   readonly size: number;
 }
 
+type StorageAccessClient = Pick<Prisma.TransactionClient, 'tenant' | 'user'>;
+
 const STORAGE_MODULE_ROLES: Partial<
   Record<StorageModuleName, readonly Role[]>
 > = {
@@ -54,27 +65,37 @@ const STORAGE_MODULE_ROLES: Partial<
     Role.ZONE_COORDINATOR,
     Role.WITNESS,
   ],
-  [StorageModuleName.EVIDENCE]: [
-    Role.ADMIN,
-    Role.CAMPAIGN_MANAGER,
-    Role.CONSTITUENT_SERVICES_MANAGER,
-    Role.CASE_WORKER,
-  ],
 };
 
-const CAMPAIGN_ONLY_STORAGE_MODULES = new Set<StorageModuleName>([
-  StorageModuleName.FINANCE,
-  StorageModuleName.E14,
-]);
+const STORAGE_AUTHORIZATION_TTL_MS = 15 * 60 * 1_000;
+const MAX_UPLOADS_PER_USER_PER_HOUR = 30;
+const MAX_UPLOADS_PER_TENANT_PER_HOUR = 300;
+const MAX_STORED_BYTES_PER_TENANT = 10 * 1024 * 1024 * 1024;
+const DOWNLOAD_URL_TTL_SECONDS = 300;
+const CONFIRMED_ORPHAN_RETENTION_MS = 24 * 60 * 60 * 1_000;
+const ORPHAN_CLEANUP_BATCH_SIZE = 10;
 
-const PUBLIC_OFFICE_EVIDENCE_ROLES: readonly Role[] = [
+const FINANCE_DOWNLOAD_ROLES = [
   Role.ADMIN,
-  Role.CONSTITUENT_SERVICES_MANAGER,
-  Role.CASE_WORKER,
-];
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+] as const;
+
+const E14_DOWNLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+] as const;
 
 @Injectable()
 export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
+
   constructor(
     private readonly storageGateway: SupabaseStorageGateway,
     private readonly prisma: PrismaService,
@@ -82,13 +103,51 @@ export class StorageService {
 
   async createUploadUrl(user: AuthenticatedUser, dto: CreateUploadUrlDto) {
     const tenantId = this.requireIdentitySegment(user.tenantId, 'tenant');
-    this.requireIdentitySegment(user.userId, 'usuario');
-    await this.assertModuleAccess(user, dto.module, tenantId);
+    const userId = this.requireIdentitySegment(user.userId, 'usuario');
     const metadata = this.validateUploadMetadata(dto.module, dto);
-    // El nombre original puede contener PII. La ruta persistida usa sólo un
-    // identificador aleatorio y la extensión ya validada.
+    // Original names can contain PII; persistent paths use only a UUID.
     const path = `${tenantId}/${dto.module}/${randomUUID()}.${this.fileExtension(metadata.fileName)}`;
-    const signedUpload = await this.storageGateway.createSignedUploadUrl(path);
+    const expiresAt = new Date(Date.now() + STORAGE_AUTHORIZATION_TTL_MS);
+
+    await this.assertModuleAccess(user, dto.module, tenantId);
+    await this.cleanupOrphanedObjects(tenantId);
+
+    await this.runSerializable(async (transaction) => {
+      await this.assertModuleAccess(user, dto.module, tenantId, transaction);
+      await this.assertUploadQuota(
+        transaction,
+        tenantId,
+        userId,
+        metadata.size,
+      );
+      await transaction.storedObject.create({
+        data: {
+          tenantId,
+          uploaderId: userId,
+          path,
+          module: this.toStoredModule(dto.module),
+          contentType: metadata.contentType,
+          expectedSize: metadata.size,
+          expiresAt,
+        },
+        select: { id: true },
+      });
+    });
+
+    let signedUpload;
+    try {
+      signedUpload = await this.storageGateway.createSignedUploadUrl(path);
+    } catch (error) {
+      await this.prisma.storedObject.updateMany({
+        where: {
+          tenantId,
+          path,
+          status: StoredObjectStatus.ISSUED,
+        },
+        data: { status: StoredObjectStatus.EXPIRED },
+      });
+      throw error;
+    }
 
     return {
       bucket: this.storageGateway.bucketName,
@@ -96,9 +155,7 @@ export class StorageService {
       uploadUrl: signedUpload.signedUrl,
       uploadToken: signedUpload.token,
       method: 'PUT' as const,
-      headers: {
-        'Content-Type': metadata.contentType,
-      },
+      headers: { 'Content-Type': metadata.contentType },
       metadata: {
         fileName: metadata.fileName,
         contentType: metadata.contentType,
@@ -123,6 +180,59 @@ export class StorageService {
       this.fileExtension(metadata.fileName),
     );
 
+    const authorization = await this.prisma.storedObject.findFirst({
+      where: {
+        tenantId,
+        uploaderId: userId,
+        path: dto.path,
+        module: this.toStoredModule(dto.module),
+        status: {
+          in: [
+            StoredObjectStatus.ISSUED,
+            StoredObjectStatus.CONFIRMED,
+            StoredObjectStatus.CONSUMED,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        contentType: true,
+        expectedSize: true,
+        expiresAt: true,
+        status: true,
+      },
+    });
+
+    if (!authorization) {
+      throw new NotFoundException(
+        'No existe una autorización vigente para confirmar este archivo',
+      );
+    }
+    if (
+      authorization.contentType !== metadata.contentType ||
+      authorization.expectedSize !== metadata.size
+    ) {
+      throw new BadRequestException(
+        'Los metadatos no coinciden con la autorización de subida',
+      );
+    }
+    if (
+      authorization.status === StoredObjectStatus.ISSUED &&
+      authorization.expiresAt.getTime() <= Date.now()
+    ) {
+      await this.prisma.storedObject.updateMany({
+        where: {
+          id: authorization.id,
+          tenantId,
+          status: StoredObjectStatus.ISSUED,
+        },
+        data: { status: StoredObjectStatus.EXPIRED },
+      });
+      throw new ConflictException(
+        'La autorización de subida expiró; solicita una nueva',
+      );
+    }
+
     const object = await this.storageGateway.getObjectInfo(dto.path);
 
     if (!object) {
@@ -146,31 +256,155 @@ export class StorageService {
       );
     }
 
-    const mode =
-      authorizedMode ?? (await this.resolveOperationalMode(tenantId));
-    await this.prisma.auditEvent.create({
-      data: {
-        tenantId,
-        mode,
-        actorType: AuditActorType.USER,
-        actorUserId: userId,
-        action: STORAGE_UPLOAD_CONFIRMED_ACTION,
-        resourceType: STORAGE_OBJECT_RESOURCE_TYPE,
-        resourceId: dto.path,
-        metadata: {
-          module: dto.module,
-          bucket: this.storageGateway.bucketName,
-          contentType: actualContentType,
-          size: actualSize,
-          ...(object.etag ? { etag: object.etag } : {}),
+    const mode = authorizedMode;
+    await this.prisma.$transaction(async (transaction) => {
+      await this.assertModuleAccess(user, dto.module, tenantId, transaction);
+      const transition = await transaction.storedObject.updateMany({
+        where: {
+          id: authorization.id,
+          tenantId,
+          uploaderId: userId,
+          status: StoredObjectStatus.ISSUED,
+          expiresAt: { gt: new Date() },
         },
-      },
+        data: {
+          status: StoredObjectStatus.CONFIRMED,
+          actualSize,
+          etag: object.etag,
+          confirmedAt: new Date(),
+        },
+      });
+
+      if (transition.count === 0) {
+        const current = await transaction.storedObject.findFirst({
+          where: { id: authorization.id, tenantId, uploaderId: userId },
+          select: { status: true },
+        });
+        if (
+          current?.status !== StoredObjectStatus.CONFIRMED &&
+          current?.status !== StoredObjectStatus.CONSUMED
+        ) {
+          throw new ConflictException(
+            'La autorización ya no está disponible para confirmar',
+          );
+        }
+        return;
+      }
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId,
+          mode,
+          actorType: AuditActorType.USER,
+          actorUserId: userId,
+          action: STORAGE_UPLOAD_CONFIRMED_ACTION,
+          resourceType: STORAGE_OBJECT_RESOURCE_TYPE,
+          resourceId: authorization.id,
+          metadata: {
+            module: dto.module,
+            bucket: this.storageGateway.bucketName,
+            contentType: actualContentType,
+            size: actualSize,
+            ...(object.etag ? { etag: object.etag } : {}),
+          },
+        },
+      });
     });
 
     return {
       confirmed: true,
       path: dto.path,
       module: dto.module,
+    };
+  }
+
+  async createDownloadUrl(user: AuthenticatedUser, dto: CreateDownloadUrlDto) {
+    const tenantId = this.requireIdentitySegment(user.tenantId, 'tenant');
+    const userId = this.requireIdentitySegment(user.userId, 'usuario');
+    let path: string;
+    let resourceType: 'FinancialEntry' | 'WitnessReport';
+
+    if (dto.module === StorageModuleName.FINANCE) {
+      await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: FINANCE_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [],
+      });
+      await this.assertCampaignModeForDownload(tenantId);
+      const entry = await this.prisma.financialEntry.findFirst({
+        where: { id: dto.resourceId, tenantId, evidenceUrl: { not: null } },
+        select: { evidenceUrl: true },
+      });
+      if (!entry?.evidenceUrl) {
+        throw new NotFoundException('Soporte financiero no encontrado');
+      }
+      path = entry.evidenceUrl;
+      resourceType = 'FinancialEntry';
+    } else {
+      const access = await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: E14_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [Role.ZONE_COORDINATOR, Role.WITNESS],
+      });
+      await this.assertCampaignModeForDownload(tenantId);
+      const report = await this.prisma.witnessReport.findFirst({
+        where: {
+          id: dto.resourceId,
+          tenantId,
+          ...(access.divisionIds === null
+            ? {}
+            : { puestoId: { in: access.divisionIds } }),
+        },
+        select: { e14ImageUrl: true },
+      });
+      if (!report) {
+        throw new NotFoundException('Acta E-14 no encontrada');
+      }
+      path = report.e14ImageUrl;
+      resourceType = 'WitnessReport';
+    }
+
+    const stored = await this.prisma.storedObject.findFirst({
+      where: {
+        tenantId,
+        path,
+        module: this.toStoredModule(dto.module),
+        status: StoredObjectStatus.CONSUMED,
+        consumedByType: resourceType,
+        consumedById: dto.resourceId,
+      },
+      select: { id: true },
+    });
+    if (!stored) {
+      throw new NotFoundException('El archivo privado no está disponible');
+    }
+
+    const signed = await this.storageGateway.createSignedDownloadUrl(
+      path,
+      DOWNLOAD_URL_TTL_SECONDS,
+    );
+    await this.prisma.auditEvent.create({
+      data: {
+        tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: userId,
+        action: 'STORAGE_DOWNLOAD_AUTHORIZED',
+        resourceType,
+        resourceId: dto.resourceId,
+        metadata: { module: dto.module, storedObjectId: stored.id },
+      },
+    });
+
+    return {
+      url: signed.signedUrl,
+      expiresAt: new Date(
+        Date.now() + DOWNLOAD_URL_TTL_SECONDS * 1_000,
+      ).toISOString(),
     };
   }
 
@@ -225,83 +459,204 @@ export class StorageService {
     user: AuthenticatedUser,
     module: StorageModuleName,
     tenantId: string,
-  ): Promise<PoliticalOperationMode | undefined> {
+    client: StorageAccessClient = this.prisma,
+  ): Promise<PoliticalOperationMode> {
+    const actor = await client.user.findFirst({
+      where: { id: user.userId, tenantId, isActive: true },
+      select: { role: true },
+    });
+    if (!actor) {
+      throw new ForbiddenException(
+        'El usuario no tiene permisos vigentes para administrar archivos',
+      );
+    }
+
     const allowedRoles = STORAGE_MODULE_ROLES[module];
-    if (
-      allowedRoles &&
-      (!user.role || !allowedRoles.includes(user.role as Role))
-    ) {
+    if (allowedRoles && !allowedRoles.includes(actor.role)) {
       throw new ForbiddenException(
         'Tu rol no puede administrar archivos de este módulo',
       );
     }
 
-    if (
-      CAMPAIGN_ONLY_STORAGE_MODULES.has(module) ||
-      module === StorageModuleName.EVIDENCE
-    ) {
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: CAMPAIGN_TENANT_SELECT,
-      });
-
-      if (CAMPAIGN_ONLY_STORAGE_MODULES.has(module)) {
-        assertCampaignTenant(tenant);
-        return PoliticalOperationMode.CAMPAIGN;
-      }
-
-      const isCampaign =
-        tenant?.defaultMode === PoliticalOperationMode.CAMPAIGN &&
-        tenant.type !== TenantType.PUBLIC_OFFICE;
-      const isPublicOffice =
-        tenant?.defaultMode === PoliticalOperationMode.PUBLIC_OFFICE &&
-        tenant.type === TenantType.PUBLIC_OFFICE;
-      if (!isCampaign && !isPublicOffice) {
-        throw new ForbiddenException(
-          'El modo operativo del tenant no permite administrar evidencia',
-        );
-      }
-
-      if (
-        isPublicOffice &&
-        !PUBLIC_OFFICE_EVIDENCE_ROLES.includes(user.role as Role)
-      ) {
-        throw new ForbiddenException(
-          'Tu rol no puede administrar evidencia de gestión pública',
-        );
-      }
-
-      return isCampaign
-        ? PoliticalOperationMode.CAMPAIGN
-        : PoliticalOperationMode.PUBLIC_OFFICE;
-    }
-
-    return undefined;
+    const tenant = await client.tenant.findUnique({
+      where: { id: tenantId },
+      select: CAMPAIGN_TENANT_SELECT,
+    });
+    assertCampaignTenant(tenant);
+    return PoliticalOperationMode.CAMPAIGN;
   }
 
-  private async resolveOperationalMode(
+  private async assertUploadQuota(
+    transaction: Prisma.TransactionClient,
     tenantId: string,
-  ): Promise<PoliticalOperationMode> {
+    userId: string,
+    requestedSize: number,
+  ): Promise<void> {
+    const now = new Date();
+    await transaction.storedObject.updateMany({
+      where: {
+        tenantId,
+        status: StoredObjectStatus.ISSUED,
+        expiresAt: { lte: now },
+      },
+      data: { status: StoredObjectStatus.EXPIRED },
+    });
+
+    const hourAgo = new Date(now.getTime() - 60 * 60 * 1_000);
+    const activeStatuses = [
+      StoredObjectStatus.ISSUED,
+      StoredObjectStatus.CONFIRMED,
+      StoredObjectStatus.CONSUMED,
+    ];
+    const [userUploads, tenantUploads, storedBytes] = await Promise.all([
+      transaction.storedObject.count({
+        where: {
+          tenantId,
+          uploaderId: userId,
+          createdAt: { gte: hourAgo },
+          status: { in: activeStatuses },
+        },
+      }),
+      transaction.storedObject.count({
+        where: {
+          tenantId,
+          createdAt: { gte: hourAgo },
+          status: { in: activeStatuses },
+        },
+      }),
+      transaction.storedObject.aggregate({
+        where: { tenantId, status: { in: activeStatuses } },
+        _sum: { expectedSize: true },
+      }),
+    ]);
+
+    if (
+      userUploads >= MAX_UPLOADS_PER_USER_PER_HOUR ||
+      tenantUploads >= MAX_UPLOADS_PER_TENANT_PER_HOUR
+    ) {
+      throw new HttpException(
+        'Se alcanzó el límite temporal de autorizaciones de subida',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (
+      Number(storedBytes._sum.expectedSize ?? 0) + requestedSize >
+      MAX_STORED_BYTES_PER_TENANT
+    ) {
+      throw new PayloadTooLargeException(
+        'La organización alcanzó su cuota de almacenamiento',
+      );
+    }
+  }
+
+  private async cleanupOrphanedObjects(tenantId: string): Promise<void> {
+    const now = new Date();
+    const confirmedBefore = new Date(
+      now.getTime() - CONFIRMED_ORPHAN_RETENTION_MS,
+    );
+    const candidates = await this.prisma.storedObject.findMany({
+      where: {
+        tenantId,
+        consumedAt: null,
+        OR: [
+          { status: StoredObjectStatus.EXPIRED },
+          { status: StoredObjectStatus.ISSUED, expiresAt: { lte: now } },
+          {
+            status: StoredObjectStatus.CONFIRMED,
+            confirmedAt: { lte: confirmedBefore },
+          },
+        ],
+      },
+      select: { id: true, status: true, path: true },
+      orderBy: { createdAt: 'asc' },
+      take: ORPHAN_CLEANUP_BATCH_SIZE,
+    });
+
+    for (const candidate of candidates) {
+      let claimed = candidate.status === StoredObjectStatus.EXPIRED;
+      if (!claimed) {
+        const transition = await this.prisma.storedObject.updateMany({
+          where: {
+            id: candidate.id,
+            tenantId,
+            status: candidate.status,
+            consumedAt: null,
+            ...(candidate.status === StoredObjectStatus.ISSUED
+              ? { expiresAt: { lte: now } }
+              : { confirmedAt: { lte: confirmedBefore } }),
+          },
+          data: {
+            status: StoredObjectStatus.EXPIRED,
+            actualSize: null,
+            etag: null,
+            confirmedAt: null,
+          },
+        });
+        claimed = transition.count === 1;
+      }
+      if (!claimed) continue;
+
+      try {
+        await this.storageGateway.removeObject(candidate.path);
+        await this.prisma.storedObject.deleteMany({
+          where: {
+            id: candidate.id,
+            tenantId,
+            status: StoredObjectStatus.EXPIRED,
+            consumedAt: null,
+          },
+        });
+      } catch {
+        // Keep the claimed row so a later authorized upload retries cleanup.
+        this.logger.warn(
+          'Quedó pendiente la limpieza de un objeto privado huérfano',
+        );
+      }
+    }
+  }
+
+  private async runSerializable<T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        const serializationConflict =
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          error.code === 'P2034';
+        if (!serializationConflict) throw error;
+        if (attempt === 3) {
+          throw new ConflictException(
+            'La cuota de almacenamiento cambió durante la operación; intenta nuevamente',
+          );
+        }
+      }
+    }
+
+    throw new ConflictException(
+      'No fue posible reservar almacenamiento en este momento',
+    );
+  }
+
+  private toStoredModule(module: StorageModuleName): StorageObjectModule {
+    const mapping: Record<StorageModuleName, StorageObjectModule> = {
+      [StorageModuleName.FINANCE]: StorageObjectModule.FINANCE,
+      [StorageModuleName.E14]: StorageObjectModule.E14,
+    };
+    return mapping[module];
+  }
+
+  private async assertCampaignModeForDownload(tenantId: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: CAMPAIGN_TENANT_SELECT,
     });
-    const isCampaign =
-      tenant?.defaultMode === PoliticalOperationMode.CAMPAIGN &&
-      tenant.type !== TenantType.PUBLIC_OFFICE;
-    const isPublicOffice =
-      tenant?.defaultMode === PoliticalOperationMode.PUBLIC_OFFICE &&
-      tenant.type === TenantType.PUBLIC_OFFICE;
-
-    if (!isCampaign && !isPublicOffice) {
-      throw new ForbiddenException(
-        'El modo operativo del tenant no permite confirmar archivos',
-      );
-    }
-
-    return isCampaign
-      ? PoliticalOperationMode.CAMPAIGN
-      : PoliticalOperationMode.PUBLIC_OFFICE;
+    assertCampaignTenant(tenant);
   }
 
   private validateFileName(value: unknown): string {

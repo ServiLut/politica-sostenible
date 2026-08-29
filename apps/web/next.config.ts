@@ -16,7 +16,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob:${allowedStorageOrigin ? ` ${allowedStorageOrigin}` : ""}`,
   "font-src 'self' data:",
   `connect-src 'self'${allowedStorageOrigin ? ` ${allowedStorageOrigin}` : ""}`,
   "object-src 'none'",
@@ -27,8 +27,8 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@politica-sostenible/ui"],
   output: "standalone",
+  allowedDevOrigins: ["127.0.0.1"],
   async rewrites() {
     const apiUrl = process.env.NESTJS_API_URL || "http://localhost:4000";
     return [

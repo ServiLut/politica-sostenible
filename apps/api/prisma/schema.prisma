@@ -34,6 +34,7 @@ model Tenant {
   communicationApprovals CommunicationApproval[]
   teamInvitations        TeamInvitation[]
   auditEvents            AuditEvent[]
+  storedObjects          StoredObject[]
 }
 
 model CampaignSettings {
@@ -46,39 +47,68 @@ model CampaignSettings {
   tenant            Tenant   @relation(fields: [tenantId], references: [id])
 }
 
+model StoredObject {
+  id             String              @id @default(cuid())
+  tenantId       String
+  uploaderId     String
+  path           String              @unique @db.VarChar(512)
+  module         StorageObjectModule
+  contentType    String              @db.VarChar(150)
+  expectedSize   Int
+  actualSize     Int?
+  etag           String?             @db.VarChar(255)
+  status         StoredObjectStatus  @default(ISSUED)
+  expiresAt      DateTime
+  confirmedAt    DateTime?
+  consumedAt     DateTime?
+  consumedByType String?             @db.VarChar(64)
+  consumedById   String?             @db.VarChar(128)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
+  uploader       User                @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status, expiresAt])
+  @@index([tenantId, uploaderId, createdAt])
+  @@index([tenantId, module, consumedAt])
+}
+
 model User {
-  id                      String                  @id @default(cuid())
-  email                   String                  @unique
-  password                String
-  name                    String
-  role                    Role                    @default(VOLUNTEER)
-  isActive                Boolean                 @default(true)
-  documentId              String
-  phone                   String?
-  points                  Int                     @default(0)
-  tenantId                String
-  divisionId              String?
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  tenant                  Tenant                  @relation(fields: [tenantId], references: [id])
-  division                PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
-  financialEntries        FinancialEntry[]
-  registeredVoters        Voter[]                 @relation("Registrar")
-  witnessReports          WitnessReport[]
-  pointLogs               PointLog[]
-  inventoryMoves          InventoryMovement[]
-  consentsCaptured        ConsentRecord[]         @relation("ConsentCapturedBy")
-  casesAssigned           IssueCase[]             @relation("CaseAssignee")
-  casesCreated            IssueCase[]             @relation("CaseCreatedBy")
-  interactions            Interaction[]           @relation("InteractionActor")
-  tasksAssigned           Task[]                  @relation("TaskAssignee")
-  tasksCreated            Task[]                  @relation("TaskCreator")
-  commitmentsOwned        Commitment[]            @relation("CommitmentOwner")
-  communicationsRequested CommunicationApproval[] @relation("CommunicationRequestedBy")
-  communicationsDecided   CommunicationApproval[] @relation("CommunicationDecidedBy")
-  invitationsSent         TeamInvitation[]        @relation("InvitationInviter")
-  eventsResponsible       CampaignEvent[]         @relation("EventResponsible")
-  auditEvents             AuditEvent[]            @relation("AuditActor")
+  id                       String                  @id @default(cuid())
+  email                    String                  @unique
+  password                 String
+  name                     String
+  role                     Role                    @default(VOLUNTEER)
+  isActive                 Boolean                 @default(true)
+  documentId               String
+  phone                    String?
+  points                   Int                     @default(0)
+  tenantId                 String
+  divisionId               String?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  tenant                   Tenant                  @relation(fields: [tenantId], references: [id])
+  division                 PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
+  financialEntriesReported FinancialEntry[]        @relation("FinancialEntryReporter")
+  financialEntriesReviewed FinancialEntry[]        @relation("FinancialEntryReviewer")
+  registeredVoters         Voter[]                 @relation("Registrar")
+  witnessReports           WitnessReport[]
+  pointLogs                PointLog[]
+  inventoryMoves           InventoryMovement[]
+  consentsCaptured         ConsentRecord[]         @relation("ConsentCapturedBy")
+  casesAssigned            IssueCase[]             @relation("CaseAssignee")
+  casesCreated             IssueCase[]             @relation("CaseCreatedBy")
+  interactions             Interaction[]           @relation("InteractionActor")
+  tasksAssigned            Task[]                  @relation("TaskAssignee")
+  tasksCreated             Task[]                  @relation("TaskCreator")
+  commitmentsOwned         Commitment[]            @relation("CommitmentOwner")
+  communicationsRequested  CommunicationApproval[] @relation("CommunicationRequestedBy")
+  communicationsDecided    CommunicationApproval[] @relation("CommunicationDecidedBy")
+  invitationsSent          TeamInvitation[]        @relation("InvitationInviter")
+  eventsResponsible        CampaignEvent[]         @relation("EventResponsible")
+  auditEvents              AuditEvent[]            @relation("AuditActor")
+  storedObjects            StoredObject[]          @relation("StoredObjectUploader")
 
   @@unique([id, tenantId])
   @@unique([documentId, tenantId])
@@ -162,26 +192,31 @@ model Voter {
 }
 
 model FinancialEntry {
-  id          String        @id @default(cuid())
-  type        EntryType
-  amount      Decimal       @db.Decimal(15, 2)
-  date        DateTime
-  cneCode     CneCode
-  description String
-  tenantId    String
-  vendorName  String
-  vendorTaxId String
-  evidenceUrl String?
-  reporterId  String
-  status      FinanceStatus @default(PENDING)
-  auditLog    Json?
-  createdAt   DateTime      @default(now())
-  tenant      Tenant        @relation(fields: [tenantId], references: [id])
-  reporter    User          @relation(fields: [reporterId, tenantId], references: [id, tenantId])
+  id           String        @id @default(cuid())
+  type         EntryType
+  amount       Decimal       @db.Decimal(15, 2)
+  date         DateTime
+  cneCode      CneCode
+  description  String
+  tenantId     String
+  vendorName   String
+  vendorTaxId  String
+  evidenceUrl  String?       @unique
+  reporterId   String
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewReason String?       @db.VarChar(500)
+  status       FinanceStatus @default(PENDING)
+  auditLog     Json?
+  createdAt    DateTime      @default(now())
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  reporter     User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
+  reviewedBy   User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
 
   @@unique([id, tenantId])
   @@index([tenantId, type, date])
-  @@index([tenantId, status])
+  @@index([tenantId, status, date])
+  @@index([tenantId, reviewedById, reviewedAt])
   @@index([tenantId, cneCode])
 }
 
@@ -191,7 +226,7 @@ model WitnessReport {
   witnessId       String
   puestoId        String
   mesa            Int
-  e14ImageUrl     String
+  e14ImageUrl     String            @unique
   candidateVotes  Int
   totalTableVotes Int
   observations    String?
@@ -550,6 +585,18 @@ enum MovementType {
   IN
   OUT
   ADJUSTMENT
+}
+
+enum StorageObjectModule {
+  FINANCE
+  E14
+}
+
+enum StoredObjectStatus {
+  ISSUED
+  CONFIRMED
+  CONSUMED
+  EXPIRED
 }
 
 enum CneCode {

@@ -101,15 +101,19 @@ export class AuthService {
     } = dto;
     this.assertBcryptPasswordSize(password);
 
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const [existingUser, hashedPassword] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      }),
+      bcrypt.hash(password, 12),
+    ]);
 
     if (existingUser) {
-      throw new ConflictException('El correo electrónico ya está registrado');
+      throw new ConflictException(
+        'No fue posible crear la cuenta con esos identificadores',
+      );
     }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
     const normalizedName = name.trim();
     const normalizedOrganizationName = organizationName.trim();
     const defaultMode =
@@ -181,9 +185,7 @@ export class AuthService {
           'No fue posible crear la cuenta con esos identificadores',
         );
       }
-      this.logger.error(
-        `Error in registration: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      this.logger.error('Registration transaction failed');
       throw new InternalServerErrorException('Error al registrar el usuario');
     }
   }

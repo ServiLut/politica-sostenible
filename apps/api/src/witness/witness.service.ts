@@ -1,9 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { DivisionType, Prisma } from '../../prisma/generated/prisma';
+import {
+  DivisionType,
+  Prisma,
+  Role,
+  StorageObjectModule,
+} from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWitnessReportDto } from './dto/create-witness-report.dto';
 import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
@@ -11,7 +17,20 @@ import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
-import { assertConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
+import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
+import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+
+const WITNESS_OPERATION_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+] as const;
+const TERRITORIALLY_SCOPED_WITNESS_ROLES = [
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+] as const;
+const WITNESS_READ_ROLES = [...WITNESS_OPERATION_ROLES, Role.AUDITOR] as const;
 
 const WITNESS_REPORT_VIEW_SELECT = {
   id: true,
@@ -56,13 +75,24 @@ export class WitnessService {
       );
     }
 
-    await assertConfirmedStorageUpload(this.prisma, tenantId, data.e14ImageUrl);
+    const access = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId,
+      userId: witnessId,
+      allowedRoles: WITNESS_OPERATION_ROLES,
+      territoriallyScopedRoles: TERRITORIALLY_SCOPED_WITNESS_ROLES,
+    });
 
-    const [witness, puesto, existing] = await Promise.all([
-      this.prisma.user.findFirst({
-        where: { id: witnessId, tenantId },
-        select: { id: true },
-      }),
+    if (
+      access.divisionIds !== null &&
+      !access.divisionIds.includes(data.puestoId)
+    ) {
+      throw new ForbiddenException(
+        'El puesto no pertenece a la asignación territorial del usuario',
+      );
+    }
+
+    const [puesto, existing] = await Promise.all([
       this.prisma.politicalDivision.findFirst({
         where: { id: data.puestoId, tenantId, type: DivisionType.PUESTO },
         select: { id: true },
@@ -77,9 +107,9 @@ export class WitnessService {
       }),
     ]);
 
-    if (!witness || !puesto) {
+    if (!puesto) {
       throw new BadRequestException(
-        'Testigo o puesto inválido para la campaña autenticada',
+        'Puesto inválido para la campaña autenticada',
       );
     }
 
@@ -90,13 +120,24 @@ export class WitnessService {
     }
 
     try {
-      return await this.prisma.witnessReport.create({
-        data: {
-          ...data,
+      return await this.prisma.$transaction(async (transaction) => {
+        const report = await transaction.witnessReport.create({
+          data: {
+            ...data,
+            tenantId,
+            witnessId,
+          },
+          select: WITNESS_REPORT_VIEW_SELECT,
+        });
+        await consumeConfirmedStorageUpload(
+          transaction,
           tenantId,
-          witnessId,
-        },
-        select: WITNESS_REPORT_VIEW_SELECT,
+          data.e14ImageUrl,
+          StorageObjectModule.E14,
+          'WitnessReport',
+          report.id,
+        );
+        return report;
       });
     } catch (error) {
       if (isPrismaUniqueViolation(error)) {
@@ -108,10 +149,23 @@ export class WitnessService {
     }
   }
 
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, actorId: string) {
     await this.assertCampaignMode(tenantId);
+    const access = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId,
+      userId: actorId,
+      allowedRoles: WITNESS_READ_ROLES,
+      territoriallyScopedRoles: TERRITORIALLY_SCOPED_WITNESS_ROLES,
+    });
+
     return this.prisma.witnessReport.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(access.divisionIds === null
+          ? {}
+          : { puestoId: { in: access.divisionIds } }),
+      },
       select: WITNESS_REPORT_VIEW_SELECT,
       orderBy: { createdAt: 'desc' },
     });

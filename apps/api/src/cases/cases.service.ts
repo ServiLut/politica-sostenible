@@ -46,6 +46,35 @@ const CASE_READ_ROLES = [
   Role.COMPLIANCE_OFFICER,
 ] as const;
 
+const CASE_MODE_READ_ROLES: Readonly<
+  Record<PoliticalOperationMode, readonly Role[]>
+> = {
+  [PoliticalOperationMode.CAMPAIGN]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.AUDITOR,
+    Role.COMPLIANCE_OFFICER,
+  ],
+  [PoliticalOperationMode.PUBLIC_OFFICE]: [
+    Role.ADMIN,
+    Role.CONSTITUENT_SERVICES_MANAGER,
+    Role.CASE_WORKER,
+    Role.AUDITOR,
+    Role.COMPLIANCE_OFFICER,
+  ],
+};
+
+const CASE_MODE_WRITE_ROLES: Readonly<
+  Record<PoliticalOperationMode, readonly Role[]>
+> = {
+  [PoliticalOperationMode.CAMPAIGN]: [Role.ADMIN, Role.CAMPAIGN_MANAGER],
+  [PoliticalOperationMode.PUBLIC_OFFICE]: [
+    Role.ADMIN,
+    Role.CONSTITUENT_SERVICES_MANAGER,
+    Role.CASE_WORKER,
+  ],
+};
+
 const CASE_GLOBAL_MANAGER_ROLES = [
   Role.ADMIN,
   Role.CONSTITUENT_SERVICES_MANAGER,
@@ -107,7 +136,7 @@ export class CasesService {
   async findAll(user: AuthenticatedUser, query: ListIssueCasesQueryDto) {
     this.assertCaseReadAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
-    this.assertRoleAllowedForMode(user, mode);
+    this.assertRoleAllowedForMode(user, mode, 'read');
     // Least-privilege policy: creation alone grants no visibility; a
     // CASE_WORKER can only access records currently assigned to that user.
     const isCaseWorker = this.isCaseWorker(user);
@@ -206,7 +235,7 @@ export class CasesService {
   async findOne(user: AuthenticatedUser, id: string) {
     this.assertCaseReadAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
-    this.assertRoleAllowedForMode(user, mode);
+    this.assertRoleAllowedForMode(user, mode, 'read');
     const issueCase = await this.prisma.issueCase.findFirst({
       where: {
         id,
@@ -227,7 +256,7 @@ export class CasesService {
   async listAssignees(user: AuthenticatedUser) {
     this.assertCaseWriteAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
-    this.assertRoleAllowedForMode(user, mode);
+    this.assertRoleAllowedForMode(user, mode, 'write');
 
     if (this.isCaseWorker(user)) {
       return this.prisma.user.findMany({
@@ -243,19 +272,12 @@ export class CasesService {
       );
     }
 
-    const eligibleRoles = [
-      Role.ADMIN,
-      Role.CONSTITUENT_SERVICES_MANAGER,
-      Role.CASE_WORKER,
-      ...(mode === PoliticalOperationMode.CAMPAIGN
-        ? [Role.CAMPAIGN_MANAGER]
-        : []),
-    ];
+    const eligibleRoles = CASE_MODE_WRITE_ROLES[mode];
 
     return this.prisma.user.findMany({
       where: {
         tenantId: user.tenantId,
-        role: { in: eligibleRoles },
+        role: { in: [...eligibleRoles] },
       },
       select: { id: true, name: true, role: true },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
@@ -265,7 +287,7 @@ export class CasesService {
   async create(user: AuthenticatedUser, dto: CreateIssueCaseDto) {
     this.assertCaseWriteAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
-    this.assertRoleAllowedForMode(user, mode);
+    this.assertRoleAllowedForMode(user, mode, 'write');
     const isCaseWorker = this.isCaseWorker(user);
     if (
       isCaseWorker &&
@@ -355,7 +377,7 @@ export class CasesService {
     }
 
     const mode = await this.getActiveMode(user.tenantId);
-    this.assertRoleAllowedForMode(user, mode);
+    this.assertRoleAllowedForMode(user, mode, 'write');
     const isCaseWorker = this.isCaseWorker(user);
     if (!isCaseWorker && !this.canManageAllCases(user, mode)) {
       throw new ForbiddenException(
@@ -516,13 +538,16 @@ export class CasesService {
   private assertRoleAllowedForMode(
     user: AuthenticatedUser,
     mode: PoliticalOperationMode,
+    access: 'read' | 'write',
   ): void {
-    if (
-      user.role === Role.CAMPAIGN_MANAGER &&
-      mode !== PoliticalOperationMode.CAMPAIGN
-    ) {
+    const allowedRoles =
+      access === 'write'
+        ? CASE_MODE_WRITE_ROLES[mode]
+        : CASE_MODE_READ_ROLES[mode];
+
+    if (!allowedRoles?.includes(user.role as Role)) {
       throw new ForbiddenException(
-        'El responsable de campana solo administra casos en modo campana',
+        'Su rol no es compatible con la atención de casos del modo activo',
       );
     }
   }

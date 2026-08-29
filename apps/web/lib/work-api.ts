@@ -77,18 +77,26 @@ export interface Commitment {
   title: string;
   description: string;
   status: CommitmentStatus;
-  ownerId: string | null;
-  issueCaseId: string | null;
+  ownerId?: string | null;
+  issueCaseId?: string | null;
   targetDate: string | null;
   progress: number;
   isPublic: boolean;
-  evidencePath: string | null;
+  evidencePath?: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  owner: WorkUserSummary | null;
-  issueCase: IssueCaseSummary | null;
+  owner?: WorkUserSummary | null;
+  issueCase?: IssueCaseSummary | null;
   _count: { tasks: number };
+  canUpdate: boolean;
+}
+
+export interface CommitmentPage extends PaginatedResult<Commitment> {
+  permissions: {
+    canCreate: boolean;
+    canReadInternal: boolean;
+  };
 }
 
 export interface ListTasksParams {
@@ -199,7 +207,7 @@ export function updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
 export function listCommitments(
   params: ListCommitmentsParams = {},
   signal?: AbortSignal,
-): Promise<PaginatedResult<Commitment>> {
+): Promise<CommitmentPage> {
   return apiRequest(withQuery("commitments", { ...params }), { signal });
 }
 

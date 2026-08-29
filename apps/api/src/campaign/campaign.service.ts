@@ -1,11 +1,21 @@
 import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { DivisionType, Prisma } from '../../prisma/generated/prisma';
+import {
+  AuditActorType,
+  DivisionType,
+  PoliticalOperationMode,
+  Prisma,
+  Role,
+} from '../../prisma/generated/prisma';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   assertCampaignTenant,
@@ -17,6 +27,10 @@ import {
   type DaneMunicipality,
 } from './dane-divipola.client';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
+import {
+  CreatePoliticalDivisionDto,
+  CreatableDivisionType,
+} from './dto/create-political-division.dto';
 
 interface Department {
   code: string;
@@ -158,6 +172,112 @@ export class CampaignService {
     assertCampaignTenant(tenant);
 
     return tenant;
+  }
+
+  async createDivision(
+    user: AuthenticatedUser,
+    dto: CreatePoliticalDivisionDto,
+  ) {
+    const allowedParentTypes =
+      dto.type === CreatableDivisionType.ZONA
+        ? [DivisionType.MUNICIPIO]
+        : [DivisionType.MUNICIPIO, DivisionType.ZONA];
+
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const [tenant, admin, parent] = await Promise.all([
+            tx.tenant.findUnique({
+              where: { id: user.tenantId },
+              select: CAMPAIGN_TENANT_SELECT,
+            }),
+            tx.user.findFirst({
+              where: {
+                id: user.userId,
+                tenantId: user.tenantId,
+                role: Role.ADMIN,
+                isActive: true,
+              },
+              select: { id: true },
+            }),
+            tx.politicalDivision.findFirst({
+              where: {
+                id: dto.parentId,
+                tenantId: user.tenantId,
+                type: { in: allowedParentTypes },
+              },
+              select: { id: true, type: true },
+            }),
+          ]);
+          assertCampaignTenant(tenant);
+
+          if (!admin) {
+            throw new ForbiddenException(
+              'La cuenta ya no puede administrar el territorio',
+            );
+          }
+          if (!parent) {
+            throw new BadRequestException(
+              'El territorio padre no pertenece al tenant o no es compatible',
+            );
+          }
+
+          const division = await tx.politicalDivision.create({
+            data: {
+              tenantId: user.tenantId,
+              type: dto.type,
+              code: dto.code.trim().toUpperCase(),
+              name: dto.name.trim(),
+              parentId: parent.id,
+            },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              parentId: true,
+              parent: {
+                select: { id: true, code: true, name: true, type: true },
+              },
+            },
+          });
+
+          await tx.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'POLITICAL_DIVISION_CREATED',
+              resourceType: 'PoliticalDivision',
+              resourceId: division.id,
+              after: {
+                type: division.type,
+                code: division.code,
+                parentId: division.parentId,
+              },
+            },
+          });
+
+          return division;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error.code === 'P2002' || error.code === 'P2034')
+      ) {
+        throw new ConflictException(
+          error.code === 'P2002'
+            ? 'Ya existe una división con ese código y tipo'
+            : 'El territorio cambió durante la solicitud; vuelve a intentarlo',
+        );
+      }
+      throw error;
+    }
   }
 
   async findDivisions(tenantId: string, query: ListDivisionsQueryDto) {

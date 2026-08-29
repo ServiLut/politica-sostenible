@@ -66,7 +66,14 @@ const CAMPAIGN_WRITE_ROLES = new Set([
   "ADMIN",
   "CAMPAIGN_MANAGER",
   "COMMUNICATIONS_MANAGER",
-  "ZONE_COORDINATOR",
+]);
+const CAMPAIGN_INTERNAL_READ_ROLES = new Set([
+  "ADMIN",
+  "CAMPAIGN_MANAGER",
+  "FINANCE_MANAGER",
+  "COMMUNICATIONS_MANAGER",
+  "COMPLIANCE_OFFICER",
+  "AUDITOR",
 ]);
 const PUBLIC_OFFICE_WRITE_ROLES = new Set([
   "ADMIN",
@@ -183,6 +190,10 @@ export default function EventsPage() {
     (isPublicOffice
       ? PUBLIC_OFFICE_WRITE_ROLES.has(user.backendRole)
       : CAMPAIGN_WRITE_ROLES.has(user.backendRole)),
+  );
+  const canReadDrafts = Boolean(
+    user &&
+    (isPublicOffice || CAMPAIGN_INTERNAL_READ_ROLES.has(user.backendRole)),
   );
 
   const loadEvents = useCallback(
@@ -423,7 +434,9 @@ export default function EventsPage() {
             className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           >
             <option value="">Todos</option>
-            {STATUSES.map((status) => (
+            {STATUSES.filter(
+              (status) => status.value !== "DRAFT" || canReadDrafts,
+            ).map((status) => (
               <option key={status.value} value={status.value}>
                 {status.label}
               </option>

@@ -1,22 +1,64 @@
 import { BadRequestException } from '@nestjs/common';
-import { AuditOutcome } from '../../../prisma/generated/prisma';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  Prisma,
+  StorageObjectModule,
+  StoredObjectStatus,
+} from '../../../prisma/generated/prisma';
 
 export const STORAGE_UPLOAD_CONFIRMED_ACTION = 'STORAGE_UPLOAD_CONFIRMED';
 export const STORAGE_OBJECT_RESOURCE_TYPE = 'StorageObject';
 
-export async function assertConfirmedStorageUpload(
-  prisma: PrismaService,
+type StoredObjectClient = Pick<Prisma.TransactionClient, 'storedObject'>;
+
+/**
+ * Consumes a confirmed upload exactly once and links it to the domain record
+ * inside the caller's transaction. Audit events are evidence, not authority.
+ */
+export async function consumeConfirmedStorageUpload(
+  client: StoredObjectClient,
   tenantId: string,
   path: string,
+  module: StorageObjectModule,
+  resourceType: string,
+  resourceId: string,
 ): Promise<void> {
-  const receipt = await prisma.auditEvent.findFirst({
+  const transition = await client.storedObject.updateMany({
     where: {
       tenantId,
-      action: STORAGE_UPLOAD_CONFIRMED_ACTION,
-      resourceType: STORAGE_OBJECT_RESOURCE_TYPE,
-      resourceId: path,
-      outcome: AuditOutcome.SUCCESS,
+      path,
+      module,
+      status: StoredObjectStatus.CONFIRMED,
+      consumedAt: null,
+    },
+    data: {
+      status: StoredObjectStatus.CONSUMED,
+      consumedAt: new Date(),
+      consumedByType: resourceType,
+      consumedById: resourceId,
+    },
+  });
+
+  if (transition.count !== 1) {
+    throw new BadRequestException(
+      'El archivo debe estar confirmado, pertenecer al módulo y no haber sido asociado antes',
+    );
+  }
+}
+
+/** Read-only check retained for callers that only need validation. */
+export async function assertConfirmedStorageUpload(
+  client: StoredObjectClient,
+  tenantId: string,
+  path: string,
+  module?: StorageObjectModule,
+): Promise<void> {
+  const receipt = await client.storedObject.findFirst({
+    where: {
+      tenantId,
+      path,
+      ...(module ? { module } : {}),
+      status: StoredObjectStatus.CONFIRMED,
+      consumedAt: null,
     },
     select: { id: true },
   });

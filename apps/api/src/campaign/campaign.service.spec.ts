@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Logger,
   ServiceUnavailableException,
@@ -6,10 +7,13 @@ import {
 import {
   DivisionType,
   PoliticalOperationMode,
+  Prisma,
+  Role,
   TenantType,
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CampaignService } from './campaign.service';
+import { CreatableDivisionType } from './dto/create-political-division.dto';
 import {
   DaneDivipolaClient,
   DaneDivipolaError,
@@ -325,5 +329,136 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         defaultMode: true,
       },
     });
+  });
+
+  it('creates a tenant-scoped puesto under a compatible parent and audits it', async () => {
+    const division = {
+      id: 'puesto-a',
+      code: 'P-001',
+      name: 'Colegio Central',
+      type: DivisionType.PUESTO,
+      parentId: 'zone-a',
+      parent: {
+        id: 'zone-a',
+        code: 'Z-001',
+        name: 'Zona 1',
+        type: DivisionType.ZONA,
+      },
+    };
+    const tx = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+      politicalDivision: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'zone-a', type: DivisionType.ZONA }),
+        create: jest.fn().mockResolvedValue(division),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    const transaction = jest.fn(
+      async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+    const service = new CampaignService(
+      { $transaction: transaction } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.createDivision(
+        { userId: 'admin-a', tenantId: 'tenant-a', role: Role.VOLUNTEER },
+        {
+          type: CreatableDivisionType.PUESTO,
+          code: ' p-001 ',
+          name: 'Colegio Central',
+          parentId: 'zone-a',
+        },
+      ),
+    ).resolves.toEqual(division);
+
+    expect(tx.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'admin-a',
+        tenantId: 'tenant-a',
+        role: Role.ADMIN,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    expect(tx.politicalDivision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'zone-a',
+        tenantId: 'tenant-a',
+        type: { in: [DivisionType.MUNICIPIO, DivisionType.ZONA] },
+      },
+      select: { id: true, type: true },
+    });
+    expect(tx.politicalDivision.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          tenantId: 'tenant-a',
+          type: DivisionType.PUESTO,
+          code: 'P-001',
+          name: 'Colegio Central',
+          parentId: 'zone-a',
+        },
+      }),
+    );
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        actorUserId: 'admin-a',
+        action: 'POLITICAL_DIVISION_CREATED',
+        resourceId: 'puesto-a',
+      }),
+    });
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  });
+
+  it('rejects a parent outside the tenant or hierarchy before creating', async () => {
+    const tx = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+      politicalDivision: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new CampaignService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof tx) => Promise<unknown>) =>
+            callback(tx),
+        ),
+      } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.createDivision(
+        { userId: 'admin-a', tenantId: 'tenant-a', role: Role.ADMIN },
+        {
+          type: CreatableDivisionType.ZONA,
+          code: 'Z-001',
+          name: 'Zona 1',
+          parentId: 'other-tenant-parent',
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.politicalDivision.create).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 });

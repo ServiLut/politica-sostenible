@@ -63,7 +63,15 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
         }),
       },
       user: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'user-a' }),
+        findFirst: jest
+          .fn()
+          .mockImplementation(({ select }) =>
+            Promise.resolve(
+              'role' in select
+                ? { role: Role.CAMPAIGN_MANAGER }
+                : { id: 'user-a' },
+            ),
+          ),
         findMany: jest.fn().mockResolvedValue([]),
       },
       campaignEvent: {
@@ -145,6 +153,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
     'denies role %s/%s outside its operational mode matrix',
     async (mode, role) => {
       prisma.tenant.findUnique.mockResolvedValue({ defaultMode: mode });
+      prisma.user.findFirst.mockResolvedValue({ role });
 
       await expect(
         service.findAll({ ...actor, role }, { page: 1, limit: 20 }),
@@ -158,6 +167,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
       defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
     });
     const auditor = { ...actor, role: Role.AUDITOR };
+    prisma.user.findFirst.mockResolvedValue({ role: Role.AUDITOR });
 
     await expect(service.findAll(auditor, {})).resolves.toMatchObject({
       items: [],
@@ -184,9 +194,13 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
 
   it('rejects a responsible person outside the JWT tenant and eligible roles', async () => {
     prisma.user.findFirst.mockImplementation(
-      ({ where }: { where: { id: string } }) =>
+      ({ where, select }: { where: { id: string }; select: object }) =>
         Promise.resolve(
-          where.id === actor.userId ? { id: actor.userId } : null,
+          'role' in select
+            ? { role: Role.CAMPAIGN_MANAGER }
+            : where.id === actor.userId
+              ? { id: actor.userId }
+              : null,
         ),
     );
 
@@ -203,11 +217,19 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
 
   it('rejects a deactivated responsible person before writing', async () => {
     prisma.user.findFirst.mockImplementation(
-      ({ where }: { where: { id: string; isActive?: boolean } }) =>
+      ({
+        where,
+        select,
+      }: {
+        where: { id: string; isActive?: boolean };
+        select: object;
+      }) =>
         Promise.resolve(
-          where.id === actor.userId && where.isActive === true
-            ? { id: actor.userId }
-            : null,
+          'role' in select
+            ? { role: Role.CAMPAIGN_MANAGER }
+            : where.id === actor.userId && where.isActive === true
+              ? { id: actor.userId }
+              : null,
         ),
     );
 
@@ -426,5 +448,68 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
         },
       }),
     );
+  });
+
+  it('removes global event writes from zone coordinators until events have territory', async () => {
+    prisma.user.findFirst.mockResolvedValue({ role: Role.ZONE_COORDINATOR });
+
+    await expect(
+      service.create(
+        { ...actor, role: Role.CAMPAIGN_MANAGER },
+        {
+          name: 'Evento fuera de alcance',
+          startsAt: '2026-09-01T14:00:00.000Z',
+          endsAt: '2026-09-01T16:00:00.000Z',
+        },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(prisma.campaignEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('shows low campaign roles only published events and hides drafts by id', async () => {
+    prisma.user.findFirst.mockResolvedValue({ role: Role.VOLUNTEER });
+    prisma.campaignEvent.findFirst.mockResolvedValue(null);
+    const volunteer = { ...actor, userId: 'volunteer-a', role: Role.ADMIN };
+
+    await service.findAll(volunteer, { page: 1, limit: 20 });
+    await expect(service.findOne(volunteer, 'draft-a')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(prisma.campaignEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          status: {
+            in: expect.not.arrayContaining([CampaignEventStatus.DRAFT]),
+          },
+        }) as object,
+      }),
+    );
+    expect(prisma.campaignEvent.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'draft-a',
+          tenantId: 'tenant-a',
+          status: {
+            in: expect.not.arrayContaining([CampaignEventStatus.DRAFT]),
+          },
+        }) as object,
+      }),
+    );
+  });
+
+  it('rejects an explicit draft filter from a low campaign role', async () => {
+    prisma.user.findFirst.mockResolvedValue({ role: Role.WITNESS });
+
+    await expect(
+      service.findAll(
+        { ...actor, userId: 'witness-a', role: Role.ADMIN },
+        { page: 1, limit: 20, status: CampaignEventStatus.DRAFT },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(prisma.campaignEvent.findMany).not.toHaveBeenCalled();
   });
 });

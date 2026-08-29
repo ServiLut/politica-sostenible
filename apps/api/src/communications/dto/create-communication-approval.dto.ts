@@ -32,7 +32,7 @@ export class CreateCommunicationApprovalDto {
 
   @IsOptional()
   @IsBoolean()
-  containsSensitiveData = false;
+  containsSensitiveData?: boolean = false;
 
   @IsOptional()
   @IsString()

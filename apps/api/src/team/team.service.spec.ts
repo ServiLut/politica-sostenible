@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import {
   PoliticalOperationMode,
+  DivisionType,
   Prisma,
   Role,
 } from '../../prisma/generated/prisma';
@@ -43,6 +44,9 @@ function createHarness(
       updateMany: jest
         .fn<Promise<{ count: number }>, [Prisma.UserUpdateManyArgs]>()
         .mockResolvedValue({ count: 1 }),
+    },
+    politicalDivision: {
+      findFirst: jest.fn(),
     },
     teamInvitation: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -128,6 +132,10 @@ describe('TeamService administration and tenant isolation', () => {
       email: true,
       role: true,
       isActive: true,
+      divisionId: true,
+      division: {
+        select: { id: true, code: true, name: true, type: true },
+      },
       createdAt: true,
     });
     expect(memberQuery.select).not.toHaveProperty('password');
@@ -271,7 +279,12 @@ describe('TeamService member lifecycle', () => {
   beforeEach(() => jest.clearAllMocks());
 
   function withTarget(
-    overrides: Partial<{ id: string; role: Role; isActive: boolean }> = {},
+    overrides: Partial<{
+      id: string;
+      role: Role;
+      isActive: boolean;
+      divisionId: string | null;
+    }> = {},
     mode: PoliticalOperationMode = PoliticalOperationMode.CAMPAIGN,
   ) {
     const harness = createHarness(mode);
@@ -279,6 +292,7 @@ describe('TeamService member lifecycle', () => {
       id: 'member-a',
       role: Role.VOLUNTEER,
       isActive: true,
+      divisionId: null,
       ...overrides,
     };
     harness.tx.user.findFirst
@@ -299,6 +313,8 @@ describe('TeamService member lifecycle', () => {
       id: 'member-a',
       role: Role.CAMPAIGN_MANAGER,
       isActive: true,
+      divisionId: null,
+      division: null,
     });
 
     expect(tx.user.updateMany).toHaveBeenCalledWith({
@@ -308,7 +324,7 @@ describe('TeamService member lifecycle', () => {
         role: Role.VOLUNTEER,
         isActive: true,
       },
-      data: { role: Role.CAMPAIGN_MANAGER },
+      data: { role: Role.CAMPAIGN_MANAGER, divisionId: null },
     });
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -341,6 +357,7 @@ describe('TeamService member lifecycle', () => {
       id: 'member-a',
       role: Role.VOLUNTEER,
       isActive: false,
+      divisionId: null,
     });
     expect(deactivation.tx.user.updateMany).toHaveBeenCalledWith({
       where: expect.objectContaining({
@@ -365,6 +382,89 @@ describe('TeamService member lifecycle', () => {
     expect(reactivation.tx.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: 'TEAM_MEMBER_ACTIVATED' }),
     });
+  });
+
+  it('assigns a compatible tenant division with optimistic scope and audit', async () => {
+    const { prisma, service, tx } = withTarget({
+      role: Role.WITNESS,
+      divisionId: null,
+    });
+    tx.politicalDivision.findFirst.mockResolvedValue({
+      id: 'puesto-a',
+      code: 'P-001',
+      name: 'Colegio Central',
+      type: DivisionType.PUESTO,
+    });
+
+    await expect(
+      service.updateMemberDivision(admin, 'member-a', {
+        divisionId: 'puesto-a',
+      }),
+    ).resolves.toMatchObject({
+      id: 'member-a',
+      role: Role.WITNESS,
+      divisionId: 'puesto-a',
+      division: { id: 'puesto-a', type: DivisionType.PUESTO },
+    });
+
+    expect(tx.politicalDivision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'puesto-a',
+        tenantId: 'tenant-a',
+        type: { in: [DivisionType.PUESTO] },
+      },
+      select: { id: true, code: true, name: true, type: true },
+    });
+    expect(tx.user.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'member-a',
+        tenantId: 'tenant-a',
+        role: Role.WITNESS,
+        isActive: true,
+        divisionId: null,
+      },
+      data: { divisionId: 'puesto-a' },
+    });
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'TEAM_MEMBER_DIVISION_CHANGED',
+        before: { divisionId: null },
+        after: { divisionId: 'puesto-a' },
+      }),
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  });
+
+  it('rejects a cross-tenant or incompatible division for a witness', async () => {
+    const { service, tx } = withTarget({ role: Role.WITNESS });
+    tx.politicalDivision.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.updateMemberDivision(admin, 'member-a', {
+        divisionId: 'zone-or-other-tenant',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('clears an existing territorial assignment without a division lookup', async () => {
+    const { service, tx } = withTarget({
+      role: Role.ZONE_COORDINATOR,
+      divisionId: 'zone-a',
+    });
+
+    await expect(
+      service.updateMemberDivision(admin, 'member-a', { divisionId: null }),
+    ).resolves.toMatchObject({ divisionId: null, division: null });
+
+    expect(tx.politicalDivision.findFirst).not.toHaveBeenCalled();
+    expect(tx.user.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { divisionId: null } }),
+    );
   });
 
   it.each([
@@ -493,7 +593,7 @@ describe('TeamService invitation acceptance', () => {
       tenantId: 'tenant-a',
       acceptedAt: null,
     });
-    const consumptionExpiry = consumption.where
+    const consumptionExpiry = consumption.where!
       .expiresAt as Prisma.DateTimeFilter;
     expect(consumptionExpiry.gt).toBeInstanceOf(Date);
     expect(consumption.data.acceptedAt).toBeInstanceOf(Date);

@@ -14,14 +14,14 @@ export class ListVotersQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page = 1;
+  page?: number = 1;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  limit = 25;
+  limit?: number = 25;
 
   @IsOptional()
   @IsString()

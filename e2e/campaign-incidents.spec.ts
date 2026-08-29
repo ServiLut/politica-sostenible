@@ -235,9 +235,18 @@ test("administra un incidente real con filtros, responsable y transición audita
   await expect(
     page.getByText(/no inventa análisis de sentimiento/i),
   ).toBeVisible();
+  const moreNavigation = page.getByRole("button", {
+    name: /Abrir .* opciones/i,
+  });
+  if (await moreNavigation.isVisible()) {
+    await moreNavigation.click();
+  }
   await expect(
     page.getByRole("link", { name: "Incidentes y crisis" }),
   ).toBeVisible();
+  if (await moreNavigation.isVisible()) {
+    await page.getByRole("button", { name: /Cerrar men/i }).click();
+  }
   await expect(page.getByTestId("incident-card-incident-1")).toContainText(
     "Daño en material de puesto",
   );

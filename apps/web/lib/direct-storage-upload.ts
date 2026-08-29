@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { ApiError, apiRequest, type ApiRequestOptions } from "./api-client";
 
-export type StorageModule = "finance" | "e14" | "evidence" | "avatars";
+export type StorageModule = "finance" | "e14";
 
 export interface UploadAuthorization {
   bucket: string;

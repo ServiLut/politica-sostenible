@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Put, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Res,
+} from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -9,6 +18,7 @@ import { ValidateExpenseDto } from './dto/validate-expense.dto';
 import { Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
+import { ReviewFinancialEntryDto } from './dto/review-financial-entry.dto';
 
 const FINANCE_WRITE_ROLES = [
   Role.ADMIN,
@@ -19,6 +29,11 @@ const FINANCE_READ_ROLES = [
   ...FINANCE_WRITE_ROLES,
   Role.COMPLIANCE_OFFICER,
   Role.AUDITOR,
+];
+const FINANCE_REVIEW_ROLES = [
+  Role.ADMIN,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
 ];
 
 @ApiTags('Finance')
@@ -39,7 +54,7 @@ export class FinanceController {
   @Get()
   @Roles(...FINANCE_READ_ROLES)
   async findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.financeService.findAll(user.tenantId);
+    return this.financeService.findAll(user.tenantId, user.userId);
   }
 
   @Get('summary')
@@ -64,6 +79,21 @@ export class FinanceController {
     @Body() dto: UpsertFinanceSettingsDto,
   ) {
     return this.financeService.updateSettings(user.tenantId, user.userId, dto);
+  }
+
+  @Patch(':id/review')
+  @Roles(...FINANCE_REVIEW_ROLES)
+  review(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') entryId: string,
+    @Body() dto: ReviewFinancialEntryDto,
+  ) {
+    return this.financeService.review(
+      user.tenantId,
+      user.userId,
+      entryId,
+      dto,
+    );
   }
 
   @Get('cne-report')

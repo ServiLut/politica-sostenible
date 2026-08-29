@@ -7,7 +7,18 @@ export interface TeamMember {
   email: string;
   role: BackendUserRole;
   isActive: boolean;
+  divisionId: string | null;
+  division: TeamDivision | null;
   createdAt: string;
+}
+
+export type TeamDivisionType = "MUNICIPIO" | "ZONA" | "PUESTO";
+
+export interface TeamDivision {
+  id: string;
+  code: string;
+  name: string;
+  type: TeamDivisionType;
 }
 
 export interface TeamInvitation {
@@ -89,6 +100,50 @@ export function updateTeamMemberStatus(memberId: string, isActive: boolean) {
       body: JSON.stringify({ isActive }),
     },
   );
+}
+
+export function updateTeamMemberDivision(
+  memberId: string,
+  divisionId: string | null,
+) {
+  return apiRequest<
+    Pick<TeamMember, "id" | "role" | "isActive" | "divisionId" | "division">
+  >(`team/members/${encodeURIComponent(memberId)}/division`, {
+    method: "PATCH",
+    body: JSON.stringify({ divisionId }),
+  });
+}
+
+const ASSIGNABLE_DIVISION_TYPES: Partial<
+  Record<BackendUserRole, TeamDivisionType[]>
+> = {
+  ZONE_COORDINATOR: ["MUNICIPIO", "ZONA"],
+  WITNESS: ["PUESTO"],
+  VOLUNTEER: ["MUNICIPIO", "ZONA", "PUESTO"],
+};
+
+export async function listAssignableTeamDivisions(
+  role: BackendUserRole,
+  search = "",
+  signal?: AbortSignal,
+): Promise<TeamDivision[]> {
+  const types = ASSIGNABLE_DIVISION_TYPES[role] ?? [];
+  const responses = await Promise.all(
+    types.map((type) => {
+      const query = new URLSearchParams({ type, page: "1", limit: "30" });
+      if (search.trim()) query.set("search", search.trim());
+      return apiRequest<PaginatedTeamResult<TeamDivision>>(
+        `campaigns/divisions?${query}`,
+        { signal },
+      );
+    }),
+  );
+
+  const unique = new Map<string, TeamDivision>();
+  for (const response of responses) {
+    for (const division of response.items) unique.set(division.id, division);
+  }
+  return [...unique.values()];
 }
 
 export function acceptTeamInvitation(input: AcceptTeamInvitationInput) {
