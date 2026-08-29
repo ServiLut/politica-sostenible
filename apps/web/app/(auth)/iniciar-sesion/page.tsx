@@ -180,7 +180,7 @@ export default function LoginPage() {
                     Password
                   </Label>
                   <Link
-                    href="/olvide-mi-contraseña"
+                    href="/olvide-mi-contrasena"
                     title="Recuperar contraseña"
                     className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                   >

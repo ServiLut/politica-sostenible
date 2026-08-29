@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
  * payload.
  */
 const LEGACY_ROUTE_REDIRECTS: Readonly<Record<string, string>> = {
+  "/olvide-mi-contraseña": "/olvide-mi-contrasena",
+  "/reiniciar-contraseña": "/reiniciar-contrasena",
   "/crm-demo": "/",
   "/test": "/",
   "/dashboard/compliance": "/dashboard/audit",
@@ -50,6 +52,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/olvide-mi-contraseña",
+    "/reiniciar-contraseña",
     "/crm-demo",
     "/test",
     "/dashboard/agent/:path*",
