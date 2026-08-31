@@ -36,6 +36,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Probar guard de migraciones del contenedor Dokploy
+        run: pnpm test:deploy
       - name: Bloquear deepmerge-ts vulnerable en la resolución de Prisma
         shell: bash
         run: |
@@ -133,5 +135,22 @@ jobs:
       - run: pnpm --filter api exec tsc -p tsconfig.build.json --noEmit --incremental false
       - run: pnpm test:web-unit
       - run: pnpm build
+      - name: Verificar Prisma CLI en la imagen combinada de Dokploy
+        env:
+          PGPASSWORD: local_ci_only
+        run: |
+          docker build --tag politica-sostenible-ci .
+          docker run --rm --entrypoint node politica-sostenible-ci apps/api/node_modules/prisma/build/index.js --version
+          docker run --rm --entrypoint node politica-sostenible-ci --check deploy/migrate.mjs
+          psql -h localhost -U politica_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE politica_sostenible_dokploy'
+          docker run --rm --network host \
+            --env 'DIRECT_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?schema=politica-sostenible' \
+            --env 'DATABASE_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?schema=politica-sostenible' \
+            --env DATABASE_SSL=false \
+            --entrypoint node politica-sostenible-ci \
+            --input-type=module --eval "import('./deploy/migrate.mjs').then(({ runSafeMigrations }) => runSafeMigrations())"
+          table_count="$(psql -h localhost -U politica_test -d politica_sostenible_dokploy -At -v ON_ERROR_STOP=1 \
+            -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'politica-sostenible'")"
+          test "$table_count" -gt 0
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

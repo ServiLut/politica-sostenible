@@ -29,6 +29,42 @@ su estado y comprueba que no exista deriva respecto de `schema.prisma`.
 Para una base nueva no se requiere intervención: el servicio `migrate` termina
 antes de que arranque la API.
 
+En Dokploy, el `Dockerfile` raíz ejecuta API y web en un único contenedor. Su
+arranque ejecuta `deploy/migrate.mjs` antes de abrir ambos procesos y trabaja
+exclusivamente con una conexión directa. La prioridad es `DIRECT_URL`, luego
+`POSTGRES_URL_NON_POOLING` por compatibilidad; `DATABASE_URL` sólo se acepta
+como último recurso cuando no contiene señales de pooler. Se rechazan
+explícitamente `pgbouncer=true`, `pool_mode=transaction` y el puerto 6543.
+La base y el schema seleccionados por la URL directa deben coincidir con
+`DATABASE_URL`, aunque sus hosts y usuarios puedan diferir por el pooler. Si se
+define `DATABASE_SCHEMA`, el guard lo escribe en una copia en memoria de
+`DIRECT_URL` antes de entregarla tanto a `pg` como a Prisma; así la inspección y
+la CLI nunca pueden operar sobre schemas distintos. Nunca imprimas estas URLs
+en logs.
+
+El guard de Dokploy falla cerrado según el estado observado:
+
+- Schema vacío: ejecuta `prisma migrate deploy` y después `migrate status`.
+- Baseline ya registrada y sin migración fallida: aplica migraciones pendientes
+  y comprueba el estado.
+- Exactamente las cinco migraciones históricas completas, sin filas adicionales:
+  ejecuta `migrate diff --exit-code`; sólo con deriva cero registra la baseline.
+  Esta adopción automática se permite únicamente mientras la baseline sea la
+  única migración local, para no aplicar después SQL que el esquema ya contenga.
+- Objetos existentes sin historial, filas parciales/fallidas, duplicados,
+  migraciones históricas incompletas o nombres inesperados: detiene el
+  contenedor con diagnóstico accionable y no modifica el esquema.
+
+El proceso mantiene un advisory lock durante inspección, adopción y despliegue,
+por lo que dos réplicas no pueden adoptar la baseline simultáneamente. Prisma
+mantiene además su propio lock durante `migrate deploy`.
+
+Antes de migrar, el contenedor también rechaza los valores públicos de
+`.env.example`, secretos JWT o salts de consentimiento menores de 32 bytes y
+URLs sin el protocolo esperado. Para el Dockerfile raíz usado por Dokploy,
+`NESTJS_API_URL` debe ser `http://127.0.0.1:4000`; el Compose separado lo
+sobrescribe internamente con `http://api:4000`.
+
 No intentes ejecutar la línea base encima de tablas existentes. Toda adopción
 se ensaya primero contra una copia restaurada y exige respaldo recuperable,
 ventana de mantenimiento y deriva cero.
@@ -139,6 +175,11 @@ Es normal que `migrate status` anuncie historias distintas antes de
 reproduce este escenario en una segunda base PostgreSQL desechable y comprueba
 que las cinco filas antiguas permanecen intactas.
 
+El guard de Dokploy automatiza exactamente esta secuencia cuando observa esas
+cinco filas, todas completas, ninguna adicional y deriva cero. Cualquier otra
+combinación sigue requiriendo el procedimiento manual sobre una copia
+restaurada; no edites `_prisma_migrations` directamente.
+
 ## Dependencias de herramientas de migración
 
 Prisma 7.9.1 trae `deepmerge-ts` mediante
@@ -171,6 +212,7 @@ pnpm --filter api generate
 pnpm --filter api exec prisma validate
 pnpm --filter api exec tsc -p tsconfig.build.json --noEmit --incremental false
 pnpm --filter api test --runInBand
+pnpm test:deploy
 pnpm test:web-unit
 pnpm --filter web exec tsc --noEmit --incremental false
 pnpm --filter web lint
@@ -178,12 +220,19 @@ pnpm build
 pnpm test:e2e
 docker compose --env-file .env.production -f compose.production.yml config
 docker compose --env-file .env.production -f compose.production.yml build
+docker build --tag politica-sostenible-local .
+docker run --rm --entrypoint node politica-sostenible-local apps/api/node_modules/prisma/build/index.js --version
 ```
 
 La imagen final de la API enlaza únicamente dependencias de producción. El
 contenedor efímero `migrate` conserva Prisma CLI y el historial; termina antes
 de iniciar la API. Los prototipos `apps/pwa-field` y `packages/ai-agent` siguen
 fuera del workspace y del despliegue.
+
+El contenedor combinado de Dokploy también conserva Prisma CLI 7.9.1 como
+dependencia de producción porque migra antes de iniciar. La CLI, el schema y el
+historial se copian durante el build; no descarga herramientas ni ejecuta
+`pnpm install` al arrancar.
 
 ## Activación
 

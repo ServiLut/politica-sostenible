@@ -9,6 +9,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "test:deploy": "node --test deploy/*.test.mjs",
     "test:web-unit": "playwright test --config playwright.unit.config.ts",
     "test:e2e": "playwright test",
     "start": "turbo start",

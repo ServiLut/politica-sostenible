@@ -36,11 +36,16 @@ COPY --from=prod-deps --chown=politica:politica /app/node_modules ./node_modules
 COPY --from=prod-deps --chown=politica:politica /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=politica:politica /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=politica:politica /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder --chown=politica:politica /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
+COPY --from=builder --chown=politica:politica /app/apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
+COPY --from=builder --chown=politica:politica /app/apps/api/prisma/migrations ./apps/api/prisma/migrations
 COPY --from=builder --chown=politica:politica /app/apps/api/prisma/generated ./apps/api/prisma/generated
 COPY --from=builder --chown=politica:politica /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=politica:politica /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=politica:politica /app/apps/web/.next/standalone ./
 COPY --chown=politica:politica deploy/start.mjs ./deploy/start.mjs
+COPY --chown=politica:politica deploy/migrate.mjs ./deploy/migrate.mjs
+COPY --chown=politica:politica deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
 USER politica
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 CMD wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health/ready || exit 1
