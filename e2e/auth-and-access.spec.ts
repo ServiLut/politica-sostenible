@@ -41,6 +41,90 @@ test("el panel redirige a una persona no autenticada", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("la entrada del panel respeta la ruta disponible para el rol", async ({
+  page,
+}) => {
+  const publicOfficeUser = {
+    id: "case-worker-e2e",
+    email: "atencion@example.test",
+    name: "Equipo de atención",
+    role: "CASE_WORKER",
+    tenant: {
+      id: "tenant-public-office-e2e",
+      name: "Despacho ciudadano",
+      slug: "despacho-ciudadano",
+      type: "PUBLIC_OFFICE",
+    },
+  };
+
+  await page.addInitScript(
+    ({ storageKey, token, user }) => {
+      window.sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          accessToken: token,
+          expiresAt: 1_893_456_000_000,
+          tenant: user.tenant,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: "Coordinador",
+            backendRole: user.role,
+          },
+        }),
+      );
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      token: jwt,
+      user: publicOfficeUser,
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data =
+      pathname === "/api/auth/me"
+        ? { user: publicOfficeUser }
+        : {
+            generatedAt: "2026-08-31T14:00:00.000Z",
+            tenant: {
+              ...publicOfficeUser.tenant,
+              mode: "PUBLIC_OFFICE",
+            },
+            activation: {
+              ready: false,
+              completedSteps: 0,
+              totalSteps: 1,
+              steps: [],
+            },
+            metrics: {
+              team: { active: 1, pendingInvitations: 0 },
+              cases: { open: 0, overdue: 0, urgent: 0 },
+              tasks: { open: 0, overdue: 0 },
+              commitments: { open: 0, atRisk: 0, overdue: 0, public: 0 },
+              events: { upcoming: 0 },
+              communications: { pendingApproval: 0 },
+            },
+            alerts: [],
+            agenda: { upcomingEvents: [], priorityTasks: [] },
+          };
+
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({ statusCode: 200, message: "Success", data }),
+    });
+  });
+
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL(/\/dashboard\/public-office$/);
+  await expect(
+    page.getByRole("heading", { name: "Centro de gestión pública" }),
+  ).toBeVisible();
+});
+
 test("las rutas públicas de demostración quedaron fuera de producción", async ({
   page,
 }) => {
