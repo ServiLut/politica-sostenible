@@ -43,5 +43,5 @@ COPY --from=builder --chown=politica:politica /app/apps/web/.next/standalone ./
 COPY --chown=politica:politica deploy/start.mjs ./deploy/start.mjs
 USER politica
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD wget --quiet --tries=1 --spider http://127.0.0.1:3000/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 CMD wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health/ready || exit 1
 CMD ["node", "deploy/start.mjs"]

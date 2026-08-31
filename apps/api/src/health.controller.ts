@@ -16,7 +16,7 @@ export class HealthController {
   @Public()
   async ready() {
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.prisma.tenant.findFirst({ select: { id: true } });
       return { status: 'ok' as const, database: 'connected' as const };
     } catch {
       throw new ServiceUnavailableException('Database is not ready');
