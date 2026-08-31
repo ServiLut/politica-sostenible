@@ -303,6 +303,13 @@ export class CasesService {
         'Su rol no puede administrar todos los casos',
       );
     }
+    const externalContactRef = dto.externalContactRef?.trim();
+    if (dto.externalContactRef !== undefined && !externalContactRef) {
+      throw new BadRequestException(
+        'El contacto externo no puede quedar vacio',
+      );
+    }
+    this.assertUnambiguousSubject(dto.voterId, externalContactRef);
     const assigneeId = isCaseWorker ? user.userId : dto.assigneeId;
     const reference = dto.reference
       ? this.normalizeReference(dto.reference)
@@ -335,7 +342,7 @@ export class CasesService {
             sourceChannel: dto.sourceChannel,
             priority: dto.priority,
             voterId: dto.voterId,
-            externalContactRef: dto.externalContactRef?.trim(),
+            externalContactRef,
             divisionId: dto.divisionId,
             assigneeId,
             createdById: user.userId,
@@ -384,31 +391,6 @@ export class CasesService {
         'Su rol no puede administrar todos los casos',
       );
     }
-    const existing = await this.prisma.issueCase.findFirst({
-      where: {
-        id,
-        tenantId: user.tenantId,
-        mode,
-        ...(isCaseWorker ? { assigneeId: user.userId } : {}),
-      },
-      select: {
-        id: true,
-        reference: true,
-        status: true,
-        priority: true,
-        category: true,
-        assigneeId: true,
-        dueAt: true,
-        confidential: true,
-        firstResponseAt: true,
-        resolvedAt: true,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Caso no encontrado');
-    }
-
     if (
       isCaseWorker &&
       dto.assigneeId !== undefined &&
@@ -419,8 +401,21 @@ export class CasesService {
       );
     }
 
-    if (dto.status !== undefined) {
-      this.assertStatusTransition(existing.status, dto.status);
+    const normalizedExternalContactRef =
+      dto.externalContactRef === undefined || dto.externalContactRef === null
+        ? dto.externalContactRef
+        : dto.externalContactRef.trim();
+    if (
+      dto.externalContactRef !== undefined &&
+      dto.externalContactRef !== null &&
+      !normalizedExternalContactRef
+    ) {
+      throw new BadRequestException(
+        'El contacto externo no puede quedar vacio',
+      );
+    }
+    if (dto.voterId && normalizedExternalContactRef) {
+      this.assertUnambiguousSubject(dto.voterId, normalizedExternalContactRef);
     }
 
     await Promise.all([
@@ -435,81 +430,117 @@ export class CasesService {
         : Promise.resolve(),
     ]);
 
-    const data: Prisma.IssueCaseUncheckedUpdateInput = {};
-    if (dto.title !== undefined) data.title = dto.title.trim();
-    if (dto.description !== undefined) {
-      data.description = dto.description.trim();
-    }
-    if (dto.category !== undefined) data.category = dto.category.trim();
-    if (dto.sourceChannel !== undefined) {
-      data.sourceChannel = dto.sourceChannel;
-    }
-    if (dto.priority !== undefined) data.priority = dto.priority;
-    if (dto.voterId !== undefined) data.voterId = dto.voterId;
-    if (dto.externalContactRef !== undefined) {
-      data.externalContactRef = dto.externalContactRef?.trim() ?? null;
-    }
-    if (dto.divisionId !== undefined) data.divisionId = dto.divisionId;
-    if (dto.assigneeId !== undefined) data.assigneeId = dto.assigneeId;
-    if (dto.confidential !== undefined) {
-      data.confidential = dto.confidential;
-    }
-    if (dto.dueAt !== undefined) {
-      data.dueAt = dto.dueAt === null ? null : new Date(dto.dueAt);
-    }
-    if (dto.status !== undefined && dto.status !== existing.status) {
-      const transitionAt = new Date();
-      data.status = dto.status;
-      if (
-        !existing.firstResponseAt &&
-        dto.status !== IssueCaseStatus.OPEN &&
-        dto.status !== IssueCaseStatus.CANCELLED
-      ) {
-        data.firstResponseAt = transitionAt;
-      }
-
-      if (dto.status === IssueCaseStatus.RESOLVED) {
-        data.resolvedAt = transitionAt;
-      } else if (dto.status === IssueCaseStatus.CLOSED) {
-        data.resolvedAt = existing.resolvedAt ?? transitionAt;
-      } else {
-        data.resolvedAt = null;
-      }
-    }
-
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const updated = await tx.issueCase.update({
-          where: {
-            id,
-            tenantId: user.tenantId,
-            mode,
-            ...(isCaseWorker ? { assigneeId: user.userId } : {}),
-          },
-          data,
-          include: CASE_INCLUDE,
-        });
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.issueCase.findFirst({
+            where: {
+              id,
+              tenantId: user.tenantId,
+              mode,
+              ...(isCaseWorker ? { assigneeId: user.userId } : {}),
+            },
+            select: {
+              id: true,
+              reference: true,
+              status: true,
+              priority: true,
+              category: true,
+              assigneeId: true,
+              dueAt: true,
+              confidential: true,
+              voterId: true,
+              externalContactRef: true,
+              firstResponseAt: true,
+              resolvedAt: true,
+            },
+          });
+          if (!existing) {
+            throw new NotFoundException('Caso no encontrado');
+          }
 
-        await tx.auditEvent.create({
-          data: {
-            tenantId: user.tenantId,
-            mode,
-            actorType: AuditActorType.USER,
-            actorUserId: user.userId,
-            action: 'ISSUE_CASE_UPDATED',
-            resourceType: 'IssueCase',
-            resourceId: id,
-            before: this.auditSnapshot(existing),
-            after: this.auditSnapshot(updated),
-            metadata: { changedFields: Object.keys(dto).sort() },
-          },
-        });
+          if (dto.status !== undefined) {
+            this.assertStatusTransition(existing.status, dto.status);
+          }
+          this.assertUnambiguousSubject(
+            dto.voterId === undefined ? existing.voterId : dto.voterId,
+            normalizedExternalContactRef === undefined
+              ? existing.externalContactRef
+              : normalizedExternalContactRef,
+          );
 
-        return updated;
-      });
+          const data: Prisma.IssueCaseUncheckedUpdateInput = {};
+          if (dto.title !== undefined) data.title = dto.title.trim();
+          if (dto.description !== undefined) {
+            data.description = dto.description.trim();
+          }
+          if (dto.category !== undefined) data.category = dto.category.trim();
+          if (dto.sourceChannel !== undefined) {
+            data.sourceChannel = dto.sourceChannel;
+          }
+          if (dto.priority !== undefined) data.priority = dto.priority;
+          if (dto.voterId !== undefined) data.voterId = dto.voterId;
+          if (dto.externalContactRef !== undefined) {
+            data.externalContactRef = normalizedExternalContactRef ?? null;
+          }
+          if (dto.divisionId !== undefined) data.divisionId = dto.divisionId;
+          if (dto.assigneeId !== undefined) data.assigneeId = dto.assigneeId;
+          if (dto.confidential !== undefined) {
+            data.confidential = dto.confidential;
+          }
+          if (dto.dueAt !== undefined) {
+            data.dueAt = dto.dueAt === null ? null : new Date(dto.dueAt);
+          }
+          if (dto.status !== undefined && dto.status !== existing.status) {
+            const transitionAt = new Date();
+            data.status = dto.status;
+            if (dto.status === IssueCaseStatus.RESOLVED) {
+              data.resolvedAt = transitionAt;
+            } else if (dto.status === IssueCaseStatus.CLOSED) {
+              data.resolvedAt = existing.resolvedAt ?? transitionAt;
+            } else {
+              data.resolvedAt = null;
+            }
+          }
+
+          const updated = await tx.issueCase.update({
+            where: {
+              id,
+              tenantId: user.tenantId,
+              mode,
+              ...(isCaseWorker ? { assigneeId: user.userId } : {}),
+            },
+            data,
+            include: CASE_INCLUDE,
+          });
+
+          await tx.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'ISSUE_CASE_UPDATED',
+              resourceType: 'IssueCase',
+              resourceId: id,
+              before: this.auditSnapshot(existing),
+              after: this.auditSnapshot(updated),
+              metadata: { changedFields: Object.keys(dto).sort() },
+            },
+          });
+
+          return updated;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2025')) {
         throw new NotFoundException('Caso no encontrado');
+      }
+      if (this.isPrismaError(error, 'P2034')) {
+        throw new ConflictException(
+          'El caso cambio durante la actualizacion; intente nuevamente',
+        );
       }
       throw error;
     }
@@ -521,6 +552,17 @@ export class CasesService {
     ) {
       throw new ForbiddenException(
         'Su rol no tiene acceso a la atención de casos ciudadanos',
+      );
+    }
+  }
+
+  private assertUnambiguousSubject(
+    voterId: string | null | undefined,
+    externalContactRef: string | null | undefined,
+  ): void {
+    if (voterId && externalContactRef) {
+      throw new BadRequestException(
+        'Un caso no puede relacionar simultaneamente un ciudadano y un contacto externo',
       );
     }
   }

@@ -126,6 +126,8 @@ describe('CasesService tenant and mode isolation', () => {
         assigneeId: true,
         dueAt: true,
         confidential: true,
+        voterId: true,
+        externalContactRef: true,
         firstResponseAt: true,
         resolvedAt: true,
       },
@@ -181,6 +183,50 @@ describe('CasesService tenant and mode isolation', () => {
         reference: 'PQRS-2026-001',
       },
       select: { id: true },
+    });
+  });
+
+  it('rejects creating a case with two competing subjects', async () => {
+    await expect(
+      service.create(currentUser, {
+        title: 'Solicitud ambigua',
+        description: 'No debe mezclar identidades',
+        category: 'Informacion',
+        sourceChannel: CommunicationChannel.PHONE,
+        voterId: 'voter-a',
+        externalContactRef: 'citizen-ref-a',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.issueCase.create).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects updating a case into an ambiguous subject', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue({
+      id: 'case-a',
+      reference: 'PQRS-CAM-2026-001',
+      status: IssueCaseStatus.OPEN,
+      priority: WorkPriority.MEDIUM,
+      category: 'Informacion',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      voterId: 'voter-a',
+      externalContactRef: null,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+
+    await expect(
+      service.update(currentUser, 'case-a', {
+        externalContactRef: 'citizen-ref-a',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.issueCase.update).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
     });
   });
 
@@ -260,6 +306,78 @@ describe('CasesService tenant and mode isolation', () => {
 
     expect(prisma.issueCase.update).not.toHaveBeenCalled();
     expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('validates transitions against the status read inside the transaction', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue({
+      id: 'case-a',
+      reference: 'PQRS-CAM-2026-001',
+      status: IssueCaseStatus.CANCELLED,
+      priority: WorkPriority.MEDIUM,
+      category: 'Informacion',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      voterId: null,
+      externalContactRef: null,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+
+    await expect(
+      service.update(currentUser, 'case-a', {
+        status: IssueCaseStatus.TRIAGED,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
+    expect(prisma.$transaction.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.issueCase.findFirst.mock.invocationCallOrder[0],
+    );
+    expect(prisma.issueCase.update).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('does not infer first response from a status transition', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue({
+      id: 'case-a',
+      reference: 'PQRS-CAM-2026-001',
+      status: IssueCaseStatus.OPEN,
+      priority: WorkPriority.MEDIUM,
+      category: 'Informacion',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+    prisma.issueCase.update.mockResolvedValue({
+      id: 'case-a',
+      reference: 'PQRS-CAM-2026-001',
+      status: IssueCaseStatus.TRIAGED,
+      priority: WorkPriority.MEDIUM,
+      category: 'Informacion',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+
+    await service.update(currentUser, 'case-a', {
+      status: IssueCaseStatus.TRIAGED,
+    });
+
+    const updateArgs = prisma.issueCase.update.mock.calls[0]?.[0] as
+      | { data: Record<string, unknown> }
+      | undefined;
+    expect(updateArgs?.data).toMatchObject({
+      status: IssueCaseStatus.TRIAGED,
+      resolvedAt: null,
+    });
+    expect(updateArgs?.data).not.toHaveProperty('firstResponseAt');
   });
 
   it.each([Role.VOLUNTEER, Role.WITNESS])(

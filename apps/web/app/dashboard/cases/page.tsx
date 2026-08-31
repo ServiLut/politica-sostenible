@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileLock2,
+  History,
   Inbox,
   Loader2,
   Plus,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -43,6 +45,15 @@ const CASE_ASSIGNMENT_MANAGER_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
   "CONSTITUENT_SERVICES_MANAGER",
+]);
+const INTERACTION_WRITE_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
+  "CONSTITUENT_SERVICES_MANAGER",
+  "CASE_WORKER",
+]);
+const CONSENT_REVOKE_ROLES = new Set<BackendUserRole>([
+  ...INTERACTION_WRITE_ROLES,
+  "COMPLIANCE_OFFICER",
 ]);
 
 const STATUS_OPTIONS: ReadonlyArray<{
@@ -157,6 +168,7 @@ function CaseCard({
   canManageAssignments,
   saving,
   onSave,
+  onOpenInteractions,
 }: {
   issueCase: IssueCase;
   assignees: CaseUserSummary[];
@@ -171,6 +183,7 @@ function CaseCard({
       assigneeId?: string | null;
     },
   ) => Promise<void>;
+  onOpenInteractions: (issueCase: IssueCase) => void;
 }) {
   const [status, setStatus] = useState(issueCase.status);
   const [priority, setPriority] = useState(issueCase.priority);
@@ -239,6 +252,16 @@ function CaseCard({
           {issueCase._count.interactions} interacciones
         </span>
       </div>
+
+      <button
+        type="button"
+        aria-label={`Abrir bitácora de ${issueCase.reference}`}
+        onClick={() => onOpenInteractions(issueCase)}
+        className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-xs font-black uppercase tracking-wider text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+      >
+        <History aria-hidden="true" size={16} />
+        Ver bitácora
+      </button>
 
       {canMutate && (
         <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
@@ -327,6 +350,8 @@ export default function CasesPage() {
   const canMutate = user !== null && CASE_WRITE_ROLES.has(user.backendRole);
   const canManageAssignments =
     user !== null && CASE_ASSIGNMENT_MANAGER_ROLES.has(user.backendRole);
+  const canRegisterInteraction =
+    user !== null && INTERACTION_WRITE_ROLES.has(user.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
   const [result, setResult] = useState<IssueCasePage | null>(null);
@@ -338,6 +363,7 @@ export default function CasesPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [selectedCase, setSelectedCase] = useState<IssueCase | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -663,6 +689,7 @@ export default function CasesPage() {
                 canManageAssignments={canManageAssignments}
                 saving={saving === issueCase.id}
                 onSave={handleUpdate}
+                onOpenInteractions={setSelectedCase}
               />
             ))}
           </section>
@@ -901,6 +928,51 @@ export default function CasesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {selectedCase && (
+        <CaseInteractionsPanel
+          key={selectedCase.id}
+          issueCase={selectedCase}
+          canCreate={canRegisterInteraction}
+          canGrantConsent={canRegisterInteraction}
+          canRevokeConsent={
+            user !== null && CONSENT_REVOKE_ROLES.has(user.backendRole)
+          }
+          onClose={() => setSelectedCase(null)}
+          onCreated={() => {
+            setResult((current) =>
+              current
+                ? {
+                    ...current,
+                    items: current.items.map((item) =>
+                      item.id === selectedCase.id
+                        ? {
+                            ...item,
+                            _count: {
+                              ...item._count,
+                              interactions: item._count.interactions + 1,
+                            },
+                          }
+                        : item,
+                    ),
+                  }
+                : current,
+            );
+            setSelectedCase((current) =>
+              current
+                ? {
+                    ...current,
+                    _count: {
+                      ...current._count,
+                      interactions: current._count.interactions + 1,
+                    },
+                  }
+                : current,
+            );
+            setNotice("Gestión registrada y auditada en la bitácora del caso.");
+          }}
+        />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileLock2,
+  History,
   Inbox,
   Loader2,
   Plus,
@@ -18,6 +19,7 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
+import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -40,6 +42,10 @@ const PAGE_SIZE = 12;
 const INCIDENT_WRITE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
+]);
+const INCIDENT_CONSENT_REVOKE_ROLES = new Set<BackendUserRole>([
+  ...INCIDENT_WRITE_ROLES,
+  "COMPLIANCE_OFFICER",
 ]);
 
 const STATUS_OPTIONS: ReadonlyArray<{
@@ -187,12 +193,14 @@ function IncidentCard({
   canMutate,
   saving,
   onSave,
+  onOpenInteractions,
 }: {
   incident: IssueCase;
   assignees: CaseUserSummary[];
   canMutate: boolean;
   saving: boolean;
   onSave: (incident: IssueCase, input: UpdateIssueCaseInput) => Promise<void>;
+  onOpenInteractions: (incident: IssueCase) => void;
 }) {
   const [status, setStatus] = useState(incident.status);
   const [priority, setPriority] = useState(incident.priority);
@@ -295,6 +303,16 @@ function IncidentCard({
         </div>
       </dl>
 
+      <button
+        type="button"
+        aria-label={`Abrir bitácora de ${incident.reference}`}
+        onClick={() => onOpenInteractions(incident)}
+        className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-xs font-black uppercase tracking-wider text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+      >
+        <History aria-hidden="true" size={16} />
+        Ver bitácora · {incident._count.interactions}
+      </button>
+
       {canMutate && (
         <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -394,6 +412,9 @@ export default function IncidentsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<IssueCase | null>(
+    null,
+  );
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -732,6 +753,7 @@ export default function IncidentsPage() {
                 canMutate={canMutate}
                 saving={saving === incident.id}
                 onSave={handleUpdate}
+                onOpenInteractions={setSelectedIncident}
               />
             ))}
           </section>
@@ -968,6 +990,55 @@ export default function IncidentsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {selectedIncident && (
+        <CaseInteractionsPanel
+          key={selectedIncident.id}
+          issueCase={selectedIncident}
+          canCreate={canMutate}
+          canGrantConsent={canMutate}
+          canRevokeConsent={
+            user !== null &&
+            INCIDENT_CONSENT_REVOKE_ROLES.has(user.backendRole)
+          }
+          allowSentiment={false}
+          onClose={() => setSelectedIncident(null)}
+          onCreated={() => {
+            setResult((current) =>
+              current
+                ? {
+                    ...current,
+                    items: current.items.map((item) =>
+                      item.id === selectedIncident.id
+                        ? {
+                            ...item,
+                            _count: {
+                              ...item._count,
+                              interactions: item._count.interactions + 1,
+                            },
+                          }
+                        : item,
+                    ),
+                  }
+                : current,
+            );
+            setSelectedIncident((current) =>
+              current
+                ? {
+                    ...current,
+                    _count: {
+                      ...current._count,
+                      interactions: current._count.interactions + 1,
+                    },
+                  }
+                : current,
+            );
+            setNotice(
+              "Gestión registrada y auditada en la bitácora del incidente.",
+            );
+          }}
+        />
       )}
     </div>
   );

@@ -84,8 +84,48 @@ const initialIncident = {
   createdBy: assignees[0],
   voter: null,
   division: null,
-  _count: { interactions: 1, tasks: 0, commitments: 0 },
+  _count: { interactions: 11, tasks: 0, commitments: 0 },
 };
+
+const initialInteraction = {
+  id: "interaction-1",
+  channel: "INTERNAL",
+  direction: "INTERNAL",
+  summary: "El equipo verificó el reporte y preservó la evidencia disponible.",
+  outcome: "Incidente remitido al responsable asignado.",
+  sentiment: null,
+  occurredAt: "2026-08-21T13:00:00.000Z",
+  createdAt: "2026-08-21T13:01:00.000Z",
+  actor: assignees[0],
+};
+
+function consentStatus(state: "none" | "active" | "revoked") {
+  const active = state === "active";
+  const exists = state !== "none";
+  return {
+    issueCaseId: initialIncident.id,
+    purpose: "POLITICAL_COMMUNICATION",
+    subjectType: "OTHER",
+    status: active ? "GRANTED" : state === "revoked" ? "REVOKED" : null,
+    active,
+    consentRecordId: active
+      ? "consent-active"
+      : state === "revoked"
+        ? "consent-revoked"
+        : null,
+    collectionChannel: exists ? "PHONE" : null,
+    noticeVersion: exists ? "2026.1" : null,
+    grantedAt: exists ? "2026-08-21T12:30:00.000Z" : null,
+    expiresAt: null,
+    revokedAt:
+      state === "revoked" ? "2026-08-21T14:30:00.000Z" : null,
+    recordedAt: active
+      ? "2026-08-21T12:30:00.000Z"
+      : state === "revoked"
+        ? "2026-08-21T14:30:00.000Z"
+        : null,
+  };
+}
 
 function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
@@ -99,6 +139,22 @@ function pageOf(items: (typeof initialIncident)[]) {
       limit: 12,
       total: items.length,
       totalPages: items.length ? 1 : 0,
+    },
+  };
+}
+
+function interactionPage(
+  items: (typeof initialInteraction)[],
+  page: number,
+  total: number,
+) {
+  return {
+    items,
+    pagination: {
+      page,
+      limit: 10,
+      total,
+      totalPages: total > 0 ? Math.ceil(total / 10) : 0,
     },
   };
 }
@@ -149,8 +205,14 @@ test("administra un incidente real con filtros, responsable y transición audita
 }) => {
   const authorizationHeaders: string[] = [];
   const requestedCaseUrls: URL[] = [];
+  const requestedInteractionUrls: URL[] = [];
+  const requestedConsentUrls: URL[] = [];
   const mutationBodies: Record<string, unknown>[] = [];
+  const interactionMutationBodies: Record<string, unknown>[] = [];
+  const consentMutationBodies: Record<string, unknown>[] = [];
   let incidents = [initialIncident];
+  let interactionTotal = initialIncident._count.interactions;
+  let consentState: "none" | "active" | "revoked" = "none";
 
   await installSession(page, adminSession);
 
@@ -165,6 +227,95 @@ test("administra un incidente real con filtros, responsable y transición audita
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(successful(assignees)),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/interactions/consents/status" &&
+      method === "GET"
+    ) {
+      requestedConsentUrls.push(url);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(consentStatus(consentState))),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/interactions/consents/grants" &&
+      method === "POST"
+    ) {
+      consentMutationBodies.push(request.postDataJSON());
+      consentState = "active";
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(successful(consentStatus(consentState), 201)),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/interactions/consents/revocations" &&
+      method === "POST"
+    ) {
+      consentMutationBodies.push(request.postDataJSON());
+      consentState = "revoked";
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(successful(consentStatus(consentState), 201)),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/interactions" && method === "GET") {
+      requestedInteractionUrls.push(url);
+      const interactionPageNumber = Number(url.searchParams.get("page") ?? 1);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful(
+            interactionPage(
+              [
+                {
+                  ...initialInteraction,
+                  id: `interaction-page-${interactionPageNumber}`,
+                },
+              ],
+              interactionPageNumber,
+              interactionTotal,
+            ),
+          ),
+        ),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/interactions" && method === "POST") {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      interactionMutationBodies.push(body);
+      interactionTotal += 1;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful(
+            {
+              ...initialInteraction,
+              ...body,
+              id: "interaction-created",
+              sentiment: null,
+              occurredAt: "2026-08-21T14:00:00.000Z",
+              createdAt: "2026-08-21T14:00:01.000Z",
+            },
+            201,
+          ),
+        ),
       });
       return;
     }
@@ -254,6 +405,75 @@ test("administra un incidente real con filtros, responsable y transición audita
     "Severidad Alta",
   );
 
+  const initialCard = page.getByTestId("incident-card-incident-1");
+  await initialCard
+    .getByRole("button", { name: /Abrir bitácora/ })
+    .click();
+  const timelineDialog = page.getByRole("dialog", {
+    name: "Bitácora del caso",
+  });
+  await expect(timelineDialog).toContainText(
+    "El equipo verificó el reporte y preservó la evidencia disponible.",
+  );
+  await expect(timelineDialog.getByLabel("Percepción (opcional)")).toHaveCount(
+    0,
+  );
+  await expect
+    .poll(() => requestedInteractionUrls.length)
+    .toBeGreaterThanOrEqual(1);
+  await timelineDialog.getByRole("button", { name: "Siguiente" }).click();
+  await expect
+    .poll(() =>
+      requestedInteractionUrls.some(
+        (url) => url.searchParams.get("page") === "2",
+      ),
+    )
+    .toBe(true);
+
+  await expect(timelineDialog).toContainText("Sin autorización registrada");
+  await timelineDialog.getByLabel("Dirección").selectOption("OUTBOUND");
+  await expect(
+    timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
+  ).toBeDisabled();
+  await timelineDialog
+    .getByLabel("Canal de autorización")
+    .selectOption("PHONE");
+  await timelineDialog
+    .getByRole("checkbox", { name: /Confirmo que la persona autorizó/ })
+    .check();
+  await timelineDialog
+    .getByRole("button", { name: "Registrar autorización" })
+    .click();
+  await expect(timelineDialog).toContainText("Autorización vigente");
+  await expect(
+    timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
+  ).toBeEnabled();
+
+  await timelineDialog
+    .getByLabel("Resumen de la gestión")
+    .fill("Se informó al contacto sobre la verificación del incidente.");
+  await timelineDialog
+    .getByRole("button", { name: "Guardar en bitácora" })
+    .click();
+  await expect(timelineDialog).toContainText(
+    "Gestión registrada y vinculada al caso.",
+  );
+  await timelineDialog
+    .getByLabel("Motivo de revocación")
+    .fill("Solicitud expresa recibida por la persona contactada.");
+  await timelineDialog
+    .getByRole("button", { name: "Revocar autorización" })
+    .click();
+  await expect(timelineDialog).toContainText("Autorización revocada");
+  await timelineDialog.getByLabel("Dirección").selectOption("OUTBOUND");
+  await expect(
+    timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
+  ).toBeDisabled();
+  await timelineDialog
+    .getByRole("button", { name: "Cerrar bitácora del caso" })
+    .click();
+  await expect(initialCard).toContainText("Ver bitácora · 12");
+
   await page
     .getByRole("combobox", { name: "Filtrar incidentes por estado" })
     .selectOption("IN_PROGRESS");
@@ -337,6 +557,66 @@ test("administra un incidente real con filtros, responsable y transición audita
         !url.searchParams.has("mode"),
     ),
   ).toBe(true);
+  expect(
+    requestedInteractionUrls.every(
+      (url) =>
+        url.searchParams.get("issueCaseId") === initialIncident.id &&
+        url.searchParams.get("limit") === "10" &&
+        !url.searchParams.has("tenantId") &&
+        !url.searchParams.has("tenant_id") &&
+        !url.searchParams.has("mode") &&
+        !url.searchParams.has("voterId"),
+    ),
+  ).toBe(true);
+  expect(interactionMutationBodies).toEqual([
+    {
+      issueCaseId: initialIncident.id,
+      channel: "PHONE",
+      direction: "OUTBOUND",
+      summary: "Se informó al contacto sobre la verificación del incidente.",
+    },
+  ]);
+  expect(consentMutationBodies).toEqual([
+    {
+      issueCaseId: initialIncident.id,
+      collectionChannel: "PHONE",
+    },
+    {
+      issueCaseId: initialIncident.id,
+      reason: "Solicitud expresa recibida por la persona contactada.",
+    },
+  ]);
+  expect(
+    consentMutationBodies.every(
+      (body) =>
+        !("legalBasis" in body) &&
+        !("subjectRef" in body) &&
+        !("voterId" in body) &&
+        !("noticeVersion" in body) &&
+        !("grantedAt" in body),
+    ),
+  ).toBe(true);
+  expect(
+    requestedConsentUrls.every(
+      (url) =>
+        url.searchParams.get("issueCaseId") === initialIncident.id &&
+        !url.searchParams.has("tenantId") &&
+        !url.searchParams.has("mode"),
+    ),
+  ).toBe(true);
+  expect(
+    interactionMutationBodies.every(
+      (body) =>
+        !(
+          "tenantId" in body ||
+          "tenant_id" in body ||
+          "mode" in body ||
+          "voterId" in body ||
+          "externalContactRef" in body ||
+          "sentiment" in body
+        ),
+    ),
+  ).toBe(true);
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(7);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
@@ -375,6 +655,29 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
       return;
     }
 
+    if (request.method() === "GET" && url.pathname === "/api/interactions") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful(interactionPage([initialInteraction], 1, 1)),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/api/interactions/consents/status"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(consentStatus("active"))),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 403,
       contentType: "application/json",
@@ -397,8 +700,41 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
   await expect(
     page.getByRole("button", { name: "Guardar respuesta" }),
   ).toHaveCount(0);
+  await page
+    .getByTestId("incident-card-incident-1")
+    .getByRole("button", { name: /Abrir bitácora/ })
+    .click();
+  const timelineDialog = page.getByRole("dialog", {
+    name: "Bitácora del caso",
+  });
+  await expect(timelineDialog).toContainText(initialInteraction.summary);
+  await expect(
+    timelineDialog.getByRole("heading", { name: "Registrar gestión" }),
+  ).toHaveCount(0);
+  await expect(
+    timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
+  ).toHaveCount(0);
+  await expect(
+    timelineDialog.getByRole("button", { name: "Registrar autorización" }),
+  ).toHaveCount(0);
+  await expect(
+    timelineDialog.getByRole("button", { name: "Revocar autorización" }),
+  ).toBeVisible();
   expect(requestedPaths.length).toBeGreaterThanOrEqual(1);
-  expect(requestedPaths.every((path) => path === "GET /api/cases")).toBe(true);
+  expect(
+    requestedPaths.every((path) =>
+      [
+        "GET /api/cases",
+        "GET /api/interactions",
+        "GET /api/interactions/consents/status",
+      ].includes(path),
+    ),
+  ).toBe(true);
+  expect(requestedPaths).toContain("GET /api/interactions");
+  expect(requestedPaths).toContain(
+    "GET /api/interactions/consents/status",
+  );
+  expect(requestedPaths.some((path) => path.startsWith("POST "))).toBe(false);
   expect(authSessionRequests).toBeGreaterThanOrEqual(1);
 });
 
