@@ -71,6 +71,7 @@ describe('interaction DTO validation', () => {
     const grant = plainToInstance(GrantCaseConsentDto, {
       issueCaseId: 'case-a',
       collectionChannel: ConsentCollectionChannel.PHONE,
+      noticeVersion: 'public-office-2026-09-v1',
       expiresAt: '2027-08-31T12:00:00.000Z',
     });
     const revoke = plainToInstance(RevokeCaseConsentDto, {
@@ -87,7 +88,7 @@ describe('interaction DTO validation', () => {
       issueCaseId: 'case-a',
       legalBasis: 'PUBLIC_TASK',
       collectionChannel: 'FAX',
-      noticeVersion: 'forged-notice',
+      noticeVersion: 'version with spaces',
       grantedAt: 'not-a-date',
     });
     const properties = (

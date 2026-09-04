@@ -89,9 +89,8 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       auditEvent: { create: auditCreate },
     };
     const runTransaction = jest.fn(
-      async (
-        callback: (client: typeof prismaClient) => Promise<unknown>,
-      ) => callback(prismaClient),
+      async (callback: (client: typeof prismaClient) => Promise<unknown>) =>
+        callback(prismaClient),
     );
     const service = new CampaignService(
       {
@@ -189,9 +188,8 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       },
     };
     const runTransaction = jest.fn(
-      async (
-        callback: (client: typeof prismaClient) => Promise<unknown>,
-      ) => callback(prismaClient),
+      async (callback: (client: typeof prismaClient) => Promise<unknown>) =>
+        callback(prismaClient),
     );
     const service = new CampaignService(
       {
@@ -307,9 +305,8 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       auditEvent: { create: auditCreate },
     };
     const runTransaction = jest.fn(
-      async (
-        callback: (client: typeof prismaClient) => Promise<unknown>,
-      ) => callback(prismaClient),
+      async (callback: (client: typeof prismaClient) => Promise<unknown>) =>
+        callback(prismaClient),
     );
     const service = new CampaignService(
       {

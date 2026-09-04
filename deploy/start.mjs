@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import { runSafeMigrations } from "./migrate.mjs";
-import { requireRuntimeEnvironment } from "./runtime-environment.mjs";
+import {
+  allowsInsecureEvaluationDatabase,
+  requireRuntimeEnvironment,
+} from "./runtime-environment.mjs";
 
 const children = new Set();
 let shuttingDown = false;
@@ -42,6 +45,11 @@ process.on("SIGINT", () => shutdown(0));
 
 async function boot() {
   requireRuntimeEnvironment();
+  if (allowsInsecureEvaluationDatabase()) {
+    console.warn(
+      "ADVERTENCIA: conexion PostgreSQL sin TLS habilitada exclusivamente para este entorno de evaluacion. No usar este perfil con datos personales ni operativos.",
+    );
+  }
   await runSafeMigrations();
   start("api", ["apps/api/dist/main.js"], { PORT: "4000" });
   start("web", ["apps/web/server.js"], { PORT: "3000" });

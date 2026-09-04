@@ -85,6 +85,20 @@ const createdVoter = {
   email: createdRawPii.email,
 };
 
+const currentConsentNotice = {
+  id: "notice-e2e",
+  mode: "CAMPAIGN",
+  purpose: "POLITICAL_COMMUNICATION",
+  version: "campaign-2026-09-v1",
+  title: "AutorizaciÃ³n para comunicaciones polÃ­ticas",
+  content:
+    "La persona autoriza de manera previa, expresa e informada el tratamiento de sus datos para las finalidades comunicadas.",
+  controllerName: "CampaÃ±a verificable",
+  contactEmail: "privacidad@example.test",
+  privacyPolicyUrl: "https://example.test/privacidad",
+  activatedAt: "2026-09-04T12:00:00.000Z",
+};
+
 function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
@@ -102,9 +116,10 @@ async function expectRawPiiAbsentFromDom(page: Page, values: string[]) {
   }
 }
 
-test("pagina, minimiza, registra consentimiento y revoca sin identificadores internos", async ({
+test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const listRequests: URL[] = [];
   const searchRequests: Array<{
     url: URL;
@@ -152,6 +167,22 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
     const { pathname } = url;
     const method = request.method();
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (pathname === "/api/consent-notices/current" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            configured: true,
+            mode: "CAMPAIGN",
+            purpose: "POLITICAL_COMMUNICATION",
+            notice: currentConsentNotice,
+          }),
+        ),
+      });
+      return;
+    }
 
     if (pathname === "/api/voters" && method === "GET") {
       listRequests.push(url);
@@ -342,6 +373,33 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
       return;
     }
 
+    if (
+      pathname === "/api/voters/voter-created/consents/grant" &&
+      method === "POST"
+    ) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      mutationRequests.push({ method, pathname, body });
+      createdVoter.consentAccepted = true;
+      createdVoter.consentTimestamp = "2026-08-21T16:15:00.000Z";
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful(
+            {
+              voterId: createdVoter.id,
+              consentAccepted: true,
+              status: "GRANTED",
+              grantedAt: createdVoter.consentTimestamp,
+              noticeVersion: currentConsentNotice.version,
+            },
+            201,
+          ),
+        ),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -487,24 +545,38 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
     .getByLabel("Mesa opcional")
     .fill(String(createdVoter.mesa));
 
-  await createDialog
-    .getByRole("button", { name: "Guardar con trazabilidad" })
-    .click();
-  await expect(
-    createDialog.getByRole("alert").getByText(/autorizacion explicita/),
-  ).toBeVisible();
+  const createButton = createDialog.getByRole("button", {
+    name: "Guardar con trazabilidad",
+  });
+  await expect(createButton).toBeDisabled();
   expect(mutationRequests).toHaveLength(1);
 
+  const createChannel = createDialog.getByRole("combobox", {
+    name: /Canal real de la autorizacion/,
+  });
+  const createConfirmation = createDialog.getByRole("checkbox", {
+    name: /Confirmo que comuniqu/,
+  });
+  await createChannel.selectOption("IN_PERSON");
+  await createConfirmation.check();
+  await expect(createButton).toBeEnabled();
+
   await createDialog
-    .getByRole("checkbox", { name: /Confirmo que la persona recibio/ })
-    .check();
-  await createDialog
-    .getByRole("button", { name: "Guardar con trazabilidad" })
+    .getByRole("button", { name: "Cerrar registro de persona" })
     .click();
+  await expect(createDialog).toHaveCount(0);
+  await page.getByRole("button", { name: "Nueva vinculacion" }).click();
+  await expect(createChannel).toHaveValue("");
+  await expect(createConfirmation).not.toBeChecked();
+  await expect(createButton).toBeDisabled();
+
+  await createChannel.selectOption("IN_PERSON");
+  await createConfirmation.check();
+  await createButton.click();
 
   await expect(
     page.getByText(
-      "Solicitud recibida. Fue procesada sin revelar si el documento ya existía.",
+      "Nueva vinculacion creada con consentimiento y trazabilidad.",
     ),
   ).toBeVisible();
   await expect(page.getByText(createdVoter.documentIdMasked)).toBeVisible();
@@ -536,7 +608,46 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
       "Consentimiento revocado; el historial legal fue conservado.",
     ),
   ).toBeVisible();
-  await expect(createdRow).toContainText("Revocado");
+  await expect(createdRow).toContainText("No vigente");
+
+  await createdRow.getByRole("button", { name: "Reautorizar" }).click();
+  const grantDialog = page.getByRole("dialog", {
+    name: "Reautorizar consentimiento",
+  });
+  await expect(grantDialog).toContainText(
+    /La evidencia hist.rica anterior permanece intacta/,
+  );
+  const grantButton = grantDialog.getByRole("button", {
+    name: "Confirmar nueva autorizacion",
+  });
+  await expect(grantButton).toBeDisabled();
+  const grantChannel = grantDialog.getByRole("combobox", {
+    name: /Canal real de la nueva autorizacion/,
+  });
+  const grantConfirmation = grantDialog.getByRole("checkbox", {
+    name: /Confirmo que comuniqu.*nuevamente el aviso vigente completo/,
+  });
+  await grantChannel.selectOption("PHONE");
+  await grantConfirmation.check();
+  await expect(grantButton).toBeEnabled();
+
+  await grantDialog.getByRole("button", { name: "Cancelar" }).click();
+  await expect(grantDialog).toHaveCount(0);
+  await createdRow.getByRole("button", { name: "Reautorizar" }).click();
+  await expect(grantChannel).toHaveValue("");
+  await expect(grantConfirmation).not.toBeChecked();
+  await expect(grantButton).toBeDisabled();
+
+  await grantChannel.selectOption("PHONE");
+  await grantConfirmation.check();
+  await grantButton.click();
+
+  await expect(
+    page.getByText(
+      "Nueva autorizacion registrada; la revocacion historica fue conservada.",
+    ),
+  ).toBeVisible();
+  await expect(createdRow).toContainText("Vigente");
 
   expect(mutationRequests).toEqual([
     {
@@ -556,7 +667,8 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
         firstName: createdVoter.firstName,
         lastName: createdVoter.lastName,
         consentAccepted: true,
-        termsVersion: "2026.1",
+        termsVersion: currentConsentNotice.version,
+        collectionChannel: "IN_PERSON",
         phone: createdRawPii.phone,
         email: createdRawPii.email,
         mesa: createdVoter.mesa,
@@ -567,6 +679,15 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
       pathname: "/api/voters/voter-created/consents/revoke",
       body: {
         reason: "Solicitud telefonica verificada con la titular",
+      },
+    },
+    {
+      method: "POST",
+      pathname: "/api/voters/voter-created/consents/grant",
+      body: {
+        consentAccepted: true,
+        termsVersion: currentConsentNotice.version,
+        collectionChannel: "PHONE",
       },
     },
   ]);
@@ -605,7 +726,7 @@ test("pagina, minimiza, registra consentimiento y revoca sin identificadores int
   expect(divisionRequests).toHaveLength(1);
   expect(divisionRequests[0].searchParams.get("type")).toBe("PUESTO");
   expect(divisionRequests[0].searchParams.get("page")).toBe("1");
-  expect(divisionRequests[0].searchParams.get("limit")).toBe("100");
+  expect(divisionRequests[0].searchParams.get("limit")).toBe("25");
 });
 
 test("cumplimiento abre el detalle protegido sin adquirir permisos de creación", async ({
@@ -622,6 +743,11 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
     },
   };
   const requestedPaths: string[] = [];
+  const divisionQueries: Array<{
+    page: string | null;
+    limit: string | null;
+    search: string | null;
+  }> = [];
   let divisionAttempts = 0;
 
   await page.addInitScript(
@@ -636,8 +762,28 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const pathname = new URL(request.url()).pathname;
+    const requestUrl = new URL(request.url());
+    const pathname = requestUrl.pathname;
     requestedPaths.push(`${request.method()} ${pathname}`);
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/consent-notices/current"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            configured: true,
+            mode: "CAMPAIGN",
+            purpose: "POLITICAL_COMMUNICATION",
+            notice: currentConsentNotice,
+          }),
+        ),
+      });
+      return;
+    }
 
     if (request.method() === "GET" && pathname === "/api/voters") {
       await route.fulfill({
@@ -682,6 +828,11 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
 
     if (request.method() === "GET" && pathname === "/api/campaigns/divisions") {
       divisionAttempts += 1;
+      divisionQueries.push({
+        page: requestUrl.searchParams.get("page"),
+        limit: requestUrl.searchParams.get("limit"),
+        search: requestUrl.searchParams.get("search"),
+      });
       if (divisionAttempts === 1) {
         await route.fulfill({
           status: 503,
@@ -706,9 +857,15 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
                 type: "PUESTO",
                 parentId: "zona-centro",
                 parent: null,
+                expectedTables: null,
               },
             ],
-            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+            pagination: {
+              page: Number(requestUrl.searchParams.get("page") ?? "1"),
+              limit: 25,
+              total: 26,
+              totalPages: 2,
+            },
           }),
         ),
       });
@@ -745,7 +902,24 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
   await expect(puestoSelect).toBeEnabled();
   await expect(puestoSelect).toContainText("P-001 · Colegio Central");
   await expect(puestoSelect).toHaveValue("puesto-central");
-  expect(divisionAttempts).toBe(2);
+  await detailDialog
+    .getByLabel("Buscar puesto autorizado")
+    .fill("Colegio Central");
+  await detailDialog
+    .getByRole("button", { name: "Buscar", exact: true })
+    .click();
+  await detailDialog
+    .getByRole("navigation", { name: "Paginación de puestos autorizados" })
+    .getByRole("button", { name: "Siguiente" })
+    .click();
+  await expect(puestoSelect).toHaveValue("puesto-central");
+  expect(divisionAttempts).toBe(4);
+  expect(divisionQueries).toEqual([
+    { page: "1", limit: "25", search: null },
+    { page: "1", limit: "25", search: null },
+    { page: "1", limit: "25", search: "Colegio Central" },
+    { page: "2", limit: "25", search: "Colegio Central" },
+  ]);
   expect(
     new Set(
       requestedPaths.filter((path) => path.startsWith("GET /api/voters")),
@@ -783,6 +957,24 @@ test("los roles operativos conservan el listado enmascarado sin acceso al detall
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     requestedPaths.push(`${request.method()} ${pathname}`);
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/consent-notices/current"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            configured: true,
+            mode: "CAMPAIGN",
+            purpose: "POLITICAL_COMMUNICATION",
+            notice: currentConsentNotice,
+          }),
+        ),
+      });
+      return;
+    }
     if (request.method() === "GET" && pathname === "/api/voters") {
       await route.fulfill({
         status: 200,
@@ -809,7 +1001,10 @@ test("los roles operativos conservan el listado enmascarado sin acceso al detall
   expect(requestedPaths).toContain("GET /api/voters");
   expect(
     requestedPaths.every(
-      (path) => path === "GET /api/voters" || path === "GET /api/auth/me",
+      (path) =>
+        path === "GET /api/voters" ||
+        path === "GET /api/auth/me" ||
+        path === "GET /api/consent-notices/current",
     ),
   ).toBe(true);
 });

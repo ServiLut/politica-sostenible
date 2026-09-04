@@ -12,10 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
-import {
-  listAllVotingPlaces,
-  type VotingPlace,
-} from "@/lib/election-api";
+import { listVotingPlaces, type VotingPlacePage } from "@/lib/election-api";
 import {
   exportVoter,
   getVoter,
@@ -46,6 +43,11 @@ const EMPTY_FORM: DetailForm = {
   email: "",
   mesa: "",
   puestoId: "",
+};
+
+const EMPTY_PLACES_PAGE: VotingPlacePage = {
+  items: [],
+  pagination: { page: 1, limit: 25, total: 0, totalPages: 0 },
 };
 
 function detailToForm(voter: VoterDetail): DetailForm {
@@ -125,6 +127,11 @@ export function VoterDetailPanel({
   const busyRef = useRef(false);
   const [voter, setVoter] = useState<VoterDetail | null>(null);
   const [form, setForm] = useState<DetailForm>(EMPTY_FORM);
+  const [selectedPlace, setSelectedPlace] = useState<{
+    id: string;
+    name: string;
+    code?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -133,7 +140,11 @@ export function VoterDetailPanel({
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [places, setPlaces] = useState<VotingPlace[]>([]);
+  const [placesPage, setPlacesPage] =
+    useState<VotingPlacePage>(EMPTY_PLACES_PAGE);
+  const [placePage, setPlacePage] = useState(1);
+  const [placeSearchDraft, setPlaceSearchDraft] = useState("");
+  const [placeSearch, setPlaceSearch] = useState("");
   const [placesLoading, setPlacesLoading] = useState(false);
   const [placesError, setPlacesError] = useState<string | null>(null);
   const [placesReload, setPlacesReload] = useState(0);
@@ -159,6 +170,7 @@ export function VoterDetailPanel({
           if (controller.signal.aborted) return;
           setVoter(response);
           setForm(detailToForm(response));
+          setSelectedPlace(response.puesto);
         })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === "AbortError")
@@ -183,9 +195,16 @@ export function VoterDetailPanel({
     setPlacesLoading(true);
     setPlacesError(null);
 
-    void listAllVotingPlaces(controller.signal)
+    void listVotingPlaces(
+      {
+        page: placePage,
+        limit: 25,
+        ...(placeSearch ? { search: placeSearch } : {}),
+      },
+      controller.signal,
+    )
       .then((response) => {
-        if (!controller.signal.aborted) setPlaces(response);
+        if (!controller.signal.aborted) setPlacesPage(response);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
@@ -197,7 +216,24 @@ export function VoterDetailPanel({
       });
 
     return () => controller.abort();
-  }, [editing, placesReload]);
+  }, [editing, placePage, placeSearch, placesReload]);
+
+  const places = placesPage.items;
+  const selectedPlaceOutsidePage =
+    selectedPlace && !places.some((place) => place.id === selectedPlace.id)
+      ? selectedPlace
+      : null;
+
+  function applyPlaceSearch() {
+    setPlacePage(1);
+    setPlaceSearch(placeSearchDraft.trim());
+  }
+
+  function clearPlaceSearch() {
+    setPlaceSearchDraft("");
+    setPlaceSearch("");
+    setPlacePage(1);
+  }
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -280,6 +316,7 @@ export function VoterDetailPanel({
       const updated = await updateVoter(voterId, input);
       setVoter(updated);
       setForm(detailToForm(updated));
+      setSelectedPlace(updated.puesto);
       setEditing(false);
       setNotice("Corrección guardada con trazabilidad de auditoría.");
       onUpdated();
@@ -406,7 +443,11 @@ export function VoterDetailPanel({
 
               <Card className="border-amber-200 bg-amber-50/60">
                 <CardContent className="flex items-start gap-3 p-4 text-xs font-semibold leading-5 text-amber-950 sm:p-5">
-                  <Eye className="mt-0.5 shrink-0" aria-hidden="true" size={18} />
+                  <Eye
+                    className="mt-0.5 shrink-0"
+                    aria-hidden="true"
+                    size={18}
+                  />
                   <p>
                     Los datos ya están visibles porque solicitaste abrir este
                     registro. No los copies a canales personales ni los uses
@@ -491,24 +532,134 @@ export function VoterDetailPanel({
                         className="normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
-                      Puesto de votación
-                      <select
-                        value={form.puestoId}
-                        disabled={placesLoading || Boolean(placesError)}
-                        onChange={(event) =>
-                          setForm({ ...form, puestoId: event.target.value })
-                        }
-                        className="min-h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-900 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    <div className="space-y-3 sm:col-span-2">
+                      <Label
+                        htmlFor="voter-place-search"
+                        className="text-xs font-black uppercase tracking-wider text-slate-600"
                       >
-                        <option value="">Sin puesto asignado</option>
-                        {places.map((place) => (
-                          <option key={place.id} value={place.id}>
-                            {place.code} · {place.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Label>
+                        Buscar puesto autorizado
+                      </Label>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          id="voter-place-search"
+                          type="search"
+                          value={placeSearchDraft}
+                          maxLength={100}
+                          placeholder="Código o nombre del puesto"
+                          disabled={placesLoading}
+                          onChange={(event) =>
+                            setPlaceSearchDraft(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter") return;
+                            event.preventDefault();
+                            applyPlaceSearch();
+                          }}
+                          className="normal-case tracking-normal"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={placesLoading}
+                          onClick={applyPlaceSearch}
+                        >
+                          Buscar
+                        </Button>
+                        {placeSearch && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={placesLoading}
+                            onClick={clearPlaceSearch}
+                          >
+                            Limpiar
+                          </Button>
+                        )}
+                      </div>
+
+                      <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                        Puesto de votación
+                        <select
+                          value={form.puestoId}
+                          disabled={placesLoading || Boolean(placesError)}
+                          onChange={(event) => {
+                            const puestoId = event.target.value;
+                            const loadedPlace = places.find(
+                              (place) => place.id === puestoId,
+                            );
+                            setForm({ ...form, puestoId });
+                            setSelectedPlace(
+                              loadedPlace
+                                ? {
+                                    id: loadedPlace.id,
+                                    code: loadedPlace.code,
+                                    name: loadedPlace.name,
+                                  }
+                                : null,
+                            );
+                          }}
+                          className="min-h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-900 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Sin puesto asignado</option>
+                          {selectedPlaceOutsidePage && (
+                            <option value={selectedPlaceOutsidePage.id}>
+                              {selectedPlaceOutsidePage.code
+                                ? `${selectedPlaceOutsidePage.code} · `
+                                : "Actual · "}
+                              {selectedPlaceOutsidePage.name}
+                            </option>
+                          )}
+                          {places.map((place) => (
+                            <option key={place.id} value={place.id}>
+                              {place.code} · {place.name}
+                            </option>
+                          ))}
+                        </select>
+                      </Label>
+
+                      {!placesLoading && !placesError && (
+                        <div className="flex flex-col gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                          <span>
+                            {placesPage.pagination.total === 0
+                              ? "No hay resultados para esta búsqueda."
+                              : `${placesPage.pagination.total} puestos encontrados · página ${placesPage.pagination.page} de ${placesPage.pagination.totalPages}`}
+                          </span>
+                          {placesPage.pagination.totalPages > 1 && (
+                            <nav
+                              aria-label="Paginación de puestos autorizados"
+                              className="flex gap-2"
+                            >
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={placePage <= 1 || placesLoading}
+                                onClick={() =>
+                                  setPlacePage((current) => current - 1)
+                                }
+                              >
+                                Anterior
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={
+                                  placePage >=
+                                    placesPage.pagination.totalPages ||
+                                  placesLoading
+                                }
+                                onClick={() =>
+                                  setPlacePage((current) => current + 1)
+                                }
+                              >
+                                Siguiente
+                              </Button>
+                            </nav>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {placesLoading ? (
                     <div
@@ -540,7 +691,7 @@ export function VoterDetailPanel({
                         Reintentar puestos
                       </Button>
                     </div>
-                  ) : places.length === 0 ? (
+                  ) : places.length === 0 && !selectedPlaceOutsidePage ? (
                     <p className="rounded-2xl bg-slate-100 p-4 text-xs font-semibold text-slate-700">
                       No hay puestos de votación disponibles en el alcance
                       autorizado.
@@ -548,8 +699,8 @@ export function VoterDetailPanel({
                   ) : null}
                   <p className="rounded-2xl bg-slate-100 p-4 text-xs font-semibold leading-5 text-slate-700">
                     Corregir no cambia ni renueva el consentimiento. Los campos
-                    vacíos de teléfono, correo, mesa o puesto se guardan como
-                    no disponibles.
+                    vacíos de teléfono, correo, mesa o puesto se guardan como no
+                    disponibles.
                   </p>
                   <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <Button
@@ -558,6 +709,7 @@ export function VoterDetailPanel({
                       disabled={saving}
                       onClick={() => {
                         setForm(detailToForm(voter));
+                        setSelectedPlace(voter.puesto);
                         setMutationError(null);
                         setEditing(false);
                       }}
@@ -586,7 +738,7 @@ export function VoterDetailPanel({
                       ["Mesa", voter.mesa?.toString() ?? "No asignada"],
                       [
                         "Consentimiento",
-                        voter.consentAccepted ? "Vigente" : "Revocado",
+                        voter.consentAccepted ? "Vigente" : "No vigente",
                       ],
                       ["Autorizado", formatDate(voter.consentTimestamp)],
                       ["Aviso", voter.termsVersion ?? "No disponible"],

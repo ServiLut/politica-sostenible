@@ -10,6 +10,20 @@ const jwt = [
 
 type CaptureRole = "VOLUNTEER" | "ZONE_COORDINATOR";
 
+const consentNotice = {
+  id: "notice-e2e",
+  mode: "CAMPAIGN",
+  purpose: "POLITICAL_COMMUNICATION",
+  version: "campaign-2026-09-v1",
+  title: "AutorizaciÃ³n de tratamiento de datos",
+  content:
+    "La persona autoriza de forma previa, expresa e informada el tratamiento para comunicaciones polÃ­ticas.",
+  controllerName: "CampaÃ±a territorial",
+  contactEmail: "privacidad@example.test",
+  privacyPolicyUrl: null,
+  activatedAt: "2026-09-04T12:00:00.000Z",
+};
+
 function sessionFor(role: CaptureRole) {
   return {
     accessToken: jwt,
@@ -65,7 +79,7 @@ async function mockCaptureApi(
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful({ puestos })),
+        body: JSON.stringify(successful({ puestos, consentNotice })),
       });
       return;
     }
@@ -99,6 +113,9 @@ async function fillCitizenData(page: Page, documentId: string) {
     .getByLabel("Correo opcional", { exact: true })
     .fill("laura@example.test");
   await page.getByLabel("Mesa opcional", { exact: true }).fill("12");
+  await page
+    .getByRole("combobox", { name: /Canal real de la autorizaci/ })
+    .selectOption("IN_PERSON");
   await page.getByRole("checkbox").check();
 }
 
@@ -160,7 +177,7 @@ test("voluntariado captura únicamente en los puestos devueltos por su alcance",
   await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
 
   await expect(page.getByRole("status")).toContainText(
-    "Captura recibida con trazabilidad",
+    "Nueva vinculacion guardada con trazabilidad",
   );
   expect(posts).toHaveLength(1);
   expect(posts[0]).toEqual({
@@ -169,7 +186,8 @@ test("voluntariado captura únicamente en los puestos devueltos por su alcance",
     lastName: "Méndez",
     puestoId: "puesto-b",
     consentAccepted: true,
-    termsVersion: "2026.1",
+    termsVersion: consentNotice.version,
+    collectionChannel: "IN_PERSON",
     phone: "3204447788",
     email: "laura@example.test",
     mesa: 12,
@@ -205,7 +223,7 @@ test("coordinación territorial usa automáticamente su único puesto asignado",
   await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
 
   await expect(page.getByRole("status")).toContainText(
-    "Captura recibida con trazabilidad",
+    "Nueva vinculacion guardada con trazabilidad",
   );
   expect(posts).toHaveLength(1);
   expect(posts[0]).toMatchObject({
@@ -214,4 +232,151 @@ test("coordinación territorial usa automáticamente su único puesto asignado",
     consentAccepted: true,
   });
   expect(posts[0]).not.toHaveProperty("tenantId");
+});
+
+test("una recarga con otro aviso invalida la confirmación y el canal anteriores", async ({
+  page,
+}) => {
+  await installSession(page, "ZONE_COORDINATOR");
+  const updatedNotice = {
+    ...consentNotice,
+    id: "notice-e2e-v2",
+    version: "campaign-2026-09-v2",
+    title: "Autorización actualizada de tratamiento de datos",
+  };
+  const posts: Array<Record<string, unknown>> = [];
+  let contextReads = 0;
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (
+      url.pathname === "/api/voters/capture-context" &&
+      request.method() === "GET"
+    ) {
+      contextReads += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            puestos: [
+              { id: "puesto-central", code: "P-10", name: "Puesto Central" },
+            ],
+            consentNotice: contextReads === 1 ? consentNotice : updatedNotice,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/voters" && request.method() === "POST") {
+      posts.push(request.postDataJSON() as Record<string, unknown>);
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(successful({ received: true }, 201)),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "{}" });
+  });
+
+  await page.goto("/dashboard/captura-territorial");
+  await fillCitizenData(page, "1012345678");
+
+  const channel = page.getByRole("combobox", {
+    name: /Canal real de la autorizaci/,
+  });
+  const confirmation = page.getByRole("checkbox");
+  const submit = page.getByRole("button", {
+    name: "Guardar con trazabilidad",
+  });
+  await expect(submit).toBeEnabled();
+
+  await page
+    .getByRole("button", { name: /Actualizar asignaci/ })
+    .click();
+  await expect(page.getByText(new RegExp(updatedNotice.version))).toBeVisible();
+  await expect(channel).toHaveValue("");
+  await expect(confirmation).not.toBeChecked();
+  await expect(submit).toBeDisabled();
+  expect(posts).toHaveLength(0);
+
+  await channel.selectOption("PHONE");
+  await confirmation.check();
+  await submit.click();
+
+  expect(posts).toHaveLength(1);
+  expect(posts[0]).toMatchObject({
+    termsVersion: updatedNotice.version,
+    collectionChannel: "PHONE",
+    consentAccepted: true,
+  });
+});
+
+test("un documento duplicado no se presenta como una captura exitosa", async ({
+  page,
+}) => {
+  await installSession(page, "VOLUNTEER");
+  let postCount = 0;
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (
+      url.pathname === "/api/voters/capture-context" &&
+      request.method() === "GET"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            puestos: [
+              {
+                id: "puesto-central",
+                code: "P-10",
+                name: "Puesto Central",
+              },
+            ],
+            consentNotice,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/voters" && request.method() === "POST") {
+      postCount += 1;
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 409,
+          message:
+            "No se creo un registro nuevo porque el documento ya esta vinculado. Use la busqueda autorizada para revisar su estado o reautorizar el consentimiento.",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "{}" });
+  });
+
+  await page.goto("/dashboard/captura-territorial");
+  await fillCitizenData(page, "1012345678");
+  await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
+
+  await expect(page.locator("form").getByRole("alert")).toContainText(
+    "No se creo un registro nuevo porque el documento ya esta vinculado",
+  );
+  await expect(page.getByLabel("Documento", { exact: true })).toHaveValue(
+    "1012345678",
+  );
+  await expect(page.getByText(/Nueva vinculacion guardada/)).toHaveCount(0);
+  expect(postCount).toBe(1);
 });

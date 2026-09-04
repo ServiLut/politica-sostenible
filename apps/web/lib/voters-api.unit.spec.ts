@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   createVoter,
+  grantVoterConsent,
   getVoterCaptureContext,
   listVoters,
 } from "./voters-api";
@@ -77,9 +78,7 @@ test("consulta el alcance de captura sin aceptar territorio del cliente", async 
         statusCode: 200,
         message: "Success",
         data: {
-          puestos: [
-            { id: "puesto-a", code: "P-01", name: "Colegio Central" },
-          ],
+          puestos: [{ id: "puesto-a", code: "P-01", name: "Colegio Central" }],
         },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
@@ -88,9 +87,7 @@ test("consulta el alcance de captura sin aceptar territorio del cliente", async 
 
   try {
     await expect(getVoterCaptureContext()).resolves.toEqual({
-      puestos: [
-        { id: "puesto-a", code: "P-01", name: "Colegio Central" },
-      ],
+      puestos: [{ id: "puesto-a", code: "P-01", name: "Colegio Central" }],
     });
 
     expect(requests).toHaveLength(1);
@@ -126,6 +123,7 @@ test("envia el puesto permitido en la captura y nunca un tenant elegido por la U
       puestoId: "puesto-a",
       consentAccepted: true,
       termsVersion: "2026.1",
+      collectionChannel: "IN_PERSON",
     });
 
     expect(requests).toHaveLength(1);
@@ -139,6 +137,50 @@ test("envia el puesto permitido en la captura y nunca un tenant elegido por la U
     });
     expect(body).not.toHaveProperty("tenantId");
     expect(body).not.toHaveProperty("registrarId");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("reauthoriza mediante un endpoint explicito sin aceptar tenant ni actor del cliente", async () => {
+  const requests: Array<{ url: URL; init?: RequestInit }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    requests.push({ url: new URL(String(input), "http://localhost"), init });
+    return new Response(
+      JSON.stringify({
+        statusCode: 201,
+        message: "Success",
+        data: {
+          voterId: "voter/with spaces",
+          consentAccepted: true,
+          status: "GRANTED",
+          grantedAt: "2026-09-04T14:30:00.000Z",
+          noticeVersion: "2026.1",
+        },
+      }),
+      { status: 201, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  try {
+    await grantVoterConsent("voter/with spaces", {
+      noticeVersion: "2026.1",
+      collectionChannel: "PHONE",
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url.pathname).toBe(
+      "/api/voters/voter%2Fwith%20spaces/consents/grant",
+    );
+    expect(requests[0].init?.method).toBe("POST");
+    expect(JSON.parse(String(requests[0].init?.body))).toEqual({
+      consentAccepted: true,
+      termsVersion: "2026.1",
+      collectionChannel: "PHONE",
+    });
+    expect(requests[0].init?.body).not.toContain("tenantId");
+    expect(requests[0].init?.body).not.toContain("capturedById");
   } finally {
     globalThis.fetch = originalFetch;
   }

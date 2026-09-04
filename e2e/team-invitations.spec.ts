@@ -35,7 +35,7 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
-test("administración invita y copia un enlace secreto sin enviar tenantId", async ({
+test("administración invita un respaldo con privilegios explícitos sin enviar tenant", async ({
   context,
   page,
 }) => {
@@ -195,23 +195,42 @@ test("administración invita y copia un enlace secreto sin enviar tenantId", asy
     page.locator("main").getByText("Dirección de equipo").first(),
   ).toBeVisible();
 
-  await page.getByLabel("Correo electrónico").fill("persona@example.test");
-  await page.getByLabel("Rol operativo").selectOption("VOLUNTEER");
+  await page
+    .getByLabel("Correo electrónico")
+    .fill("respaldo-admin@example.test");
+  const invitationRole = page.getByLabel("Rol para la invitación");
+  await expect(invitationRole.locator('option[value="ADMIN"]')).toHaveText(
+    "Administración de respaldo",
+  );
+  await invitationRole.selectOption("ADMIN");
+  const privilegeWarning = page
+    .getByText("Privilegios administrativos totales", { exact: true })
+    .locator("..");
+  await expect(privilegeWarning).toBeVisible();
+  await expect(privilegeWarning).toContainText(
+    "no podrás degradar ni desactivar esta cuenta",
+  );
   await page.getByRole("button", { name: "Crear invitación" }).click();
 
   await expect(page.getByLabel("Enlace secreto de invitación")).toHaveValue(
     `https://politica.example.test/aceptar-invitacion#token=${token}`,
   );
   expect(invitationBodies).toEqual([
-    { email: "persona@example.test", role: "VOLUNTEER" },
+    { email: "respaldo-admin@example.test", role: "ADMIN" },
   ]);
   expect(invitationBodies[0]).not.toHaveProperty("tenantId");
+  expect(invitationBodies[0]).not.toHaveProperty("tenant_id");
 
   await page.getByRole("button", { name: "Copiar enlace" }).click();
   await expect(
     page.getByRole("button", { name: "Enlace copiado" }),
   ).toBeVisible();
-  await expect(page.getByText("persona@example.test").last()).toBeVisible();
+  await expect(
+    page.getByText("respaldo-admin@example.test").last(),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Administración de respaldo", { exact: true }).last(),
+  ).toBeVisible();
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(5);
   expect(
     authorizationHeaders.every((header) => header === `Bearer ${jwt}`),
@@ -435,17 +454,21 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
     }
 
     if (
-      path === "/api/team/members/member-north/access-reset" &&
+      [
+        "/api/team/members/member-north/access-reset",
+        "/api/team/members/member-admin-secondary/access-reset",
+      ].includes(path) &&
       request.method() === "POST"
     ) {
       accessResetRequests.push({ path, body: request.postData() });
+      const memberId = path.split("/").at(-2) as string;
       await route.fulfill({
         status: 201,
         contentType: "application/json",
         body: JSON.stringify(
           successful(
             {
-              memberId: "member-north",
+              memberId,
               temporaryPassword,
               temporaryPasswordExpiresAt,
             },
@@ -478,14 +501,45 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
     page.getByRole("button", {
       name: "Restablecer acceso de Administracion secundaria",
     }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByLabel("Rol de Coordinacion Norte")
+      .locator('option[value="ADMIN"]'),
   ).toHaveCount(0);
+
+  await page
+    .getByRole("button", {
+      name: "Restablecer acceso de Administracion secundaria",
+    })
+    .click();
+  const resetDialog = page.getByRole("dialog");
+  await expect(
+    resetDialog.getByRole("heading", {
+      name: "Restablecer acceso de Administracion secundaria",
+    }),
+  ).toBeVisible();
+  await expect(resetDialog.getByRole("alert")).toContainText(
+    "Cuenta administradora con acceso total",
+  );
+  await expect(resetDialog.getByRole("alert")).toContainText(
+    "conservará todos sus privilegios",
+  );
+  await resetDialog
+    .getByRole("button", { name: "Confirmar acceso administrativo" })
+    .click();
+  await expect(resetDialog.getByLabel("Nueva contraseña generada")).toHaveValue(
+    temporaryPassword,
+  );
+  await resetDialog
+    .getByRole("button", { name: "Ya la entregué; cerrar" })
+    .click();
 
   await page
     .getByRole("button", {
       name: "Restablecer acceso de Coordinacion Norte",
     })
     .click();
-  const resetDialog = page.getByRole("dialog");
   await expect(
     resetDialog.getByRole("heading", {
       name: "Restablecer acceso de Coordinacion Norte",
@@ -529,13 +583,20 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
   );
   expect(accessResetRequests).toEqual([
     {
+      path: "/api/team/members/member-admin-secondary/access-reset",
+      body: null,
+    },
+    {
       path: "/api/team/members/member-north/access-reset",
       body: null,
     },
   ]);
-  await resetDialog
-    .getByRole("button", { name: "Copiar contraseña" })
-    .click();
+  for (const request of accessResetRequests) {
+    expect(request.body).toBeNull();
+    expect(request.path).not.toContain("tenantId");
+    expect(request.path).not.toContain("tenant_id");
+  }
+  await resetDialog.getByRole("button", { name: "Copiar contraseña" }).click();
   await expect(
     resetDialog.getByRole("button", { name: "Contraseña copiada" }),
   ).toBeVisible();
@@ -848,7 +909,10 @@ test("equipo e invitaciones recorren todas las paginas autorizadas", async ({
                 role: "VOLUNTEER",
                 expiresAt: "2026-09-10T12:00:00.000Z",
                 createdAt: "2026-09-02T12:00:00.000Z",
-                invitedBy: { id: "user-admin", name: "Administracion principal" },
+                invitedBy: {
+                  id: "user-admin",
+                  name: "Administracion principal",
+                },
               },
             ]
           : [
@@ -858,7 +922,10 @@ test("equipo e invitaciones recorren todas las paginas autorizadas", async ({
                 role: "WITNESS",
                 expiresAt: "2026-09-10T12:00:00.000Z",
                 createdAt: "2026-09-02T12:05:00.000Z",
-                invitedBy: { id: "user-admin", name: "Administracion principal" },
+                invitedBy: {
+                  id: "user-admin",
+                  name: "Administracion principal",
+                },
               },
             ];
 

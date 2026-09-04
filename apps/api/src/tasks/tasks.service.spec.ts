@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AuditActorType,
   PoliticalOperationMode,
   Role,
   TaskStatus,
@@ -20,6 +21,7 @@ describe('TasksService tenant and mode isolation', () => {
   };
 
   let prisma: {
+    $transaction: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock; findMany: jest.Mock };
     issueCase: { findFirst: jest.Mock };
@@ -32,11 +34,12 @@ describe('TasksService tenant and mode isolation', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    auditEvent: { create: jest.Mock };
   };
   let service: TasksService;
 
   beforeEach(() => {
-    prisma = {
+    const transaction = {
       tenant: {
         findUnique: jest
           .fn()
@@ -62,6 +65,14 @@ describe('TasksService tenant and mode isolation', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    prisma = {
+      ...transaction,
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     };
     service = new TasksService(prisma as unknown as PrismaService);
   });
@@ -312,6 +323,97 @@ describe('TasksService tenant and mode isolation', () => {
         }) as object,
       }),
     );
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'volunteer-a',
+        action: 'TASK_UPDATED',
+        resourceType: 'Task',
+        resourceId: 'task-a',
+        after: { status: TaskStatus.IN_PROGRESS },
+        metadata: { changedFields: ['status'] },
+      },
+    });
+  });
+
+  it('creates a task and its privacy-minimized audit event atomically', async () => {
+    prisma.task.create.mockResolvedValue({
+      id: 'task-created',
+      status: TaskStatus.TODO,
+      title: 'Visita reservada a lider comunitario',
+    });
+
+    await expect(
+      service.create(currentUser, {
+        title: 'Visita reservada a lider comunitario',
+        description: 'Texto operativo que no debe llegar a la bitacora',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({ id: 'task-created', status: TaskStatus.TODO }),
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'creator-a',
+        action: 'TASK_CREATED',
+        resourceType: 'Task',
+        resourceId: 'task-created',
+        after: { status: TaskStatus.TODO },
+        metadata: { changedFields: ['description', 'title'] },
+      },
+    });
+    const serializedAudit = JSON.stringify(prisma.auditEvent.create.mock.calls);
+    expect(serializedAudit).not.toContain('Visita reservada');
+    expect(serializedAudit).not.toContain('Texto operativo');
+  });
+
+  it('does not report task creation as successful when the atomic audit fails', async () => {
+    prisma.task.create.mockResolvedValue({
+      id: 'task-without-durable-audit',
+      status: TaskStatus.TODO,
+    });
+    prisma.auditEvent.create.mockRejectedValue(new Error('audit unavailable'));
+
+    await expect(
+      service.create(currentUser, { title: 'Operacion atomica' }),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.task.create).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report a task update as successful when its audit fails', async () => {
+    prisma.user.findFirst.mockResolvedValue({ role: Role.VOLUNTEER });
+    prisma.task.findFirst.mockResolvedValue({
+      id: 'task-a',
+      status: TaskStatus.TODO,
+      assigneeId: 'volunteer-a',
+      createdById: 'creator-a',
+    });
+    prisma.task.update.mockResolvedValue({
+      id: 'task-a',
+      status: TaskStatus.DONE,
+    });
+    prisma.auditEvent.create.mockRejectedValue(new Error('audit unavailable'));
+
+    await expect(
+      service.update(
+        { ...currentUser, userId: 'volunteer-a', role: Role.VOLUNTEER },
+        'task-a',
+        { status: TaskStatus.DONE },
+      ),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.task.update).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
   });
 
   it('returns 403 when an assignee tries to edit task content', async () => {

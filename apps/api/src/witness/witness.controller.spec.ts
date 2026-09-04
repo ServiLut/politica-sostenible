@@ -1,6 +1,7 @@
 import { Role, WitnessReportStatus } from '../../prisma/generated/prisma';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import type { ReviewWitnessReportDto } from './dto/review-witness-report.dto';
 import { WitnessController } from './witness.controller';
 import { WitnessService } from './witness.service';
 
@@ -48,8 +49,8 @@ describe('WitnessController RBAC and JWT context', () => {
       userId: 'reviewer-from-jwt',
       role: Role.COMPLIANCE_OFFICER,
     };
-    const dto = {
-      status: WitnessReportStatus.REJECTED as const,
+    const dto: ReviewWitnessReportDto = {
+      status: WitnessReportStatus.REJECTED,
       reviewReason: 'Los totales requieren una nueva evidencia legible.',
     };
 

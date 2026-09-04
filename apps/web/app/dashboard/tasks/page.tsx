@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Flag,
+  Link2,
   Loader2,
   Plus,
   RefreshCw,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/context/auth";
+import { getIssueCase, IssueCase } from "@/lib/cases-api";
 import {
   Commitment,
   CommitmentPage,
@@ -44,6 +46,7 @@ import { getRoleLabel } from "@/config/navigation";
 
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
+type LinkedCase = Pick<IssueCase, "id" | "reference" | "title" | "status">;
 
 interface TaskFilters {
   page: number;
@@ -61,13 +64,17 @@ interface CommitmentFilters {
 
 const PAGE_SIZE = 9;
 
-const TASK_CREATE_ROLES = new Set<BackendUserRole>([
+const CAMPAIGN_TASK_CREATE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
   "COMMUNICATIONS_MANAGER",
+  "ZONE_COORDINATOR",
+]);
+
+const PUBLIC_OFFICE_TASK_CREATE_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
   "CONSTITUENT_SERVICES_MANAGER",
   "CASE_WORKER",
-  "ZONE_COORDINATOR",
 ]);
 
 const TASK_STATUSES: ReadonlyArray<{ value: TaskStatus; label: string }> = [
@@ -260,11 +267,23 @@ function RequestState({
 }
 
 export default function TasksPage() {
-  const { user } = useAuth();
-  const canCreateTask =
-    user !== null && TASK_CREATE_ROLES.has(user.backendRole);
+  const { tenant, user } = useAuth();
+  const canCreateTask = Boolean(
+    user &&
+    tenant &&
+    (tenant.type === "PUBLIC_OFFICE"
+      ? PUBLIC_OFFICE_TASK_CREATE_ROLES.has(user.backendRole)
+      : CAMPAIGN_TASK_CREATE_ROLES.has(user.backendRole)),
+  );
   const [view, setView] = useState<View>("tasks");
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [requestedDialog, setRequestedDialog] = useState<Dialog>(null);
+  const [linkedCaseRequestId, setLinkedCaseRequestId] = useState<string | null>(
+    null,
+  );
+  const [linkedCase, setLinkedCase] = useState<LinkedCase | null>(null);
+  const [linkedCaseLoading, setLinkedCaseLoading] = useState(false);
+  const [linkedCaseError, setLinkedCaseError] = useState<string | null>(null);
   const [taskFilters, setTaskFilters] =
     useState<TaskFilters>(INITIAL_TASK_FILTERS);
   const [commitmentFilters, setCommitmentFilters] = useState<CommitmentFilters>(
@@ -290,6 +309,7 @@ export default function TasksPage() {
     {},
   );
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const queryContextReadRef = useRef(false);
 
   const [newTask, setNewTask] = useState({
     title: "",
@@ -310,6 +330,64 @@ export default function TasksPage() {
   const [assigneesLoading, setAssigneesLoading] = useState(false);
   const [assigneesError, setAssigneesError] = useState<string | null>(null);
   const [assigneesReload, setAssigneesReload] = useState(0);
+
+  useEffect(() => {
+    if (queryContextReadRef.current) return;
+    queryContextReadRef.current = true;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const issueCaseId = searchParams.get("issueCaseId")?.trim() ?? "";
+    const create = searchParams.get("create");
+
+    if (!issueCaseId) return;
+    if (issueCaseId.length > 128) {
+      setLinkedCaseError(
+        "El vínculo recibido no tiene un identificador de caso válido.",
+      );
+      return;
+    }
+
+    setLinkedCaseRequestId(issueCaseId);
+    if (create === "task" || create === "commitment") {
+      setRequestedDialog(create);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!linkedCaseRequestId) {
+      setLinkedCase(null);
+      setLinkedCaseLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLinkedCaseLoading(true);
+    setLinkedCaseError(null);
+
+    void getIssueCase(linkedCaseRequestId, controller.signal)
+      .then((issueCase) => {
+        if (controller.signal.aborted) return;
+        setLinkedCase({
+          id: issueCase.id,
+          reference: issueCase.reference,
+          title: issueCase.title,
+          status: issueCase.status,
+        });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setLinkedCase(null);
+        setRequestedDialog(null);
+        setLinkedCaseError(
+          `No fue posible vincular el caso solicitado. ${readableError(error)}`,
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLinkedCaseLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [linkedCaseRequestId]);
 
   useEffect(() => {
     if (!canCreateTask) {
@@ -365,6 +443,7 @@ export default function TasksPage() {
         search: taskFilters.search || undefined,
         status: taskFilters.status || undefined,
         priority: taskFilters.priority || undefined,
+        issueCaseId: linkedCase?.id,
       },
       controller.signal,
     )
@@ -379,7 +458,7 @@ export default function TasksPage() {
       });
 
     return () => controller.abort();
-  }, [taskFilters, taskReload]);
+  }, [linkedCase?.id, taskFilters, taskReload]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -393,6 +472,7 @@ export default function TasksPage() {
         search: commitmentFilters.search || undefined,
         status: commitmentFilters.status || undefined,
         isPublic: commitmentFilters.isPublic || undefined,
+        issueCaseId: linkedCase?.id,
       },
       controller.signal,
     )
@@ -408,7 +488,7 @@ export default function TasksPage() {
       });
 
     return () => controller.abort();
-  }, [commitmentFilters, commitmentReload]);
+  }, [commitmentFilters, commitmentReload, linkedCase?.id]);
 
   useEffect(() => {
     if (!dialog) return;
@@ -426,6 +506,40 @@ export default function TasksPage() {
       previousActiveElement?.focus();
     };
   }, [dialog]);
+
+  useEffect(() => {
+    if (!user || !linkedCase || !requestedDialog) return;
+
+    if (requestedDialog === "task") {
+      if (canCreateTask) {
+        setView("tasks");
+        setMutationError(null);
+        setDialog("task");
+      } else {
+        setMutationError("Tu acceso actual no permite crear tareas.");
+      }
+      setRequestedDialog(null);
+      return;
+    }
+
+    if (commitmentLoading || !commitmentResult) return;
+
+    if (commitmentResult.permissions.canCreate) {
+      setView("commitments");
+      setMutationError(null);
+      setDialog("commitment");
+    } else {
+      setMutationError("Tu acceso actual no permite registrar compromisos.");
+    }
+    setRequestedDialog(null);
+  }, [
+    canCreateTask,
+    commitmentLoading,
+    commitmentResult,
+    linkedCase,
+    requestedDialog,
+    user,
+  ]);
 
   const activeMode = useMemo(
     () => taskResult?.items[0]?.mode ?? commitmentResult?.items[0]?.mode,
@@ -456,6 +570,7 @@ export default function TasksPage() {
         ? { description: newTask.description.trim() }
         : {}),
       ...(newTask.dueDate ? { dueAt: dateInputToIso(newTask.dueDate) } : {}),
+      ...(linkedCase ? { issueCaseId: linkedCase.id } : {}),
     };
 
     try {
@@ -471,7 +586,11 @@ export default function TasksPage() {
       setDialog(null);
       setTaskFilters((current) => ({ ...current, page: 1 }));
       setTaskReload((current) => current + 1);
-      showNotice("Tarea creada correctamente.");
+      showNotice(
+        linkedCase
+          ? `Tarea creada y vinculada al caso ${linkedCase.reference}.`
+          : "Tarea creada correctamente.",
+      );
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -505,6 +624,7 @@ export default function TasksPage() {
       ...(newCommitment.targetDate
         ? { targetDate: dateInputToIso(newCommitment.targetDate) }
         : {}),
+      ...(linkedCase ? { issueCaseId: linkedCase.id } : {}),
     };
 
     try {
@@ -521,7 +641,11 @@ export default function TasksPage() {
       setDialog(null);
       setCommitmentFilters((current) => ({ ...current, page: 1 }));
       setCommitmentReload((current) => current + 1);
-      showNotice("Compromiso creado correctamente.");
+      showNotice(
+        linkedCase
+          ? `Compromiso creado y vinculado al caso ${linkedCase.reference}.`
+          : "Compromiso creado correctamente.",
+      );
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -637,6 +761,24 @@ export default function TasksPage() {
     }));
   }
 
+  function clearLinkedCaseContext() {
+    setLinkedCaseRequestId(null);
+    setLinkedCase(null);
+    setLinkedCaseError(null);
+    setRequestedDialog(null);
+    setTaskFilters((current) => ({ ...current, page: 1 }));
+    setCommitmentFilters((current) => ({ ...current, page: 1 }));
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("issueCaseId");
+    url.searchParams.delete("create");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -672,6 +814,67 @@ export default function TasksPage() {
           </button>
         )}
       </header>
+
+      {linkedCaseLoading && (
+        <div
+          role="status"
+          className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900"
+        >
+          <Loader2 className="animate-spin" aria-hidden="true" size={18} />
+          Verificando el caso autorizado antes de vincular el trabajo…
+        </div>
+      )}
+
+      {linkedCaseError && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span className="inline-flex items-start gap-2 font-semibold">
+            <AlertCircle className="mt-0.5 shrink-0" aria-hidden="true" size={18} />
+            {linkedCaseError}
+          </span>
+          <button
+            type="button"
+            onClick={clearLinkedCaseContext}
+            className="min-h-10 shrink-0 rounded-xl border border-red-300 px-4 text-xs font-black"
+          >
+            Continuar sin vínculo
+          </button>
+        </div>
+      )}
+
+      {linkedCase && (
+        <section
+          data-testid="linked-case-context"
+          aria-label="Caso vinculado"
+          className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="rounded-xl bg-emerald-700 p-2 text-white">
+              <Link2 aria-hidden="true" size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                Trabajo vinculado a {linkedCase.reference}
+              </p>
+              <p className="mt-1 truncate text-sm font-bold text-slate-900">
+                {linkedCase.title}
+              </p>
+              <p className="mt-1 text-xs text-slate-600">
+                Las listas y cualquier registro nuevo se relacionan con este caso.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={clearLinkedCaseContext}
+            className="min-h-10 shrink-0 rounded-xl border border-emerald-300 bg-white px-4 text-xs font-black text-emerald-900 transition hover:bg-emerald-100"
+          >
+            Quitar vínculo
+          </button>
+        </section>
+      )}
 
       <div aria-live="polite" className="space-y-3">
         {notice && (
@@ -991,10 +1194,10 @@ export default function TasksPage() {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
-                <option value="">Visibilidad permitida</option>
-                <option value="true">Públicos</option>
+                <option value="">Todos los niveles de acceso</option>
+                <option value="true">Todo el equipo</option>
                 {commitmentResult?.permissions.canReadInternal && (
-                  <option value="false">Internos</option>
+                  <option value="false">Acceso restringido</option>
                 )}
               </select>
             </label>
@@ -1054,7 +1257,9 @@ export default function TasksPage() {
                           ) : (
                             <EyeOff aria-hidden="true" size={13} />
                           )}
-                          {commitment.isPublic ? "Público" : "Interno"}
+                          {commitment.isPublic
+                            ? "Todo el equipo"
+                            : "Acceso restringido"}
                         </span>
                       </div>
                       <h2
@@ -1227,6 +1432,30 @@ export default function TasksPage() {
                 <X aria-hidden="true" size={21} />
               </button>
             </header>
+
+            {linkedCase && (
+              <div
+                data-testid="linked-case-dialog-context"
+                className="mx-6 mt-5 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                    Se vinculará al caso {linkedCase.reference}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">
+                    {linkedCase.title}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearLinkedCaseContext}
+                  disabled={Boolean(mutation)}
+                  className="min-h-10 shrink-0 rounded-xl border border-emerald-300 bg-white px-4 text-xs font-black text-emerald-900 disabled:opacity-50"
+                >
+                  Quitar vínculo
+                </button>
+              </div>
+            )}
 
             {dialog === "task" ? (
               <form onSubmit={handleCreateTask} className="space-y-5 p-6">
@@ -1503,7 +1732,7 @@ export default function TasksPage() {
                       className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </label>
-                  <label className="mt-7 flex min-h-12 items-center gap-3 rounded-2xl border border-slate-200 px-4 text-sm font-black text-slate-800">
+                  <label className="mt-7 flex min-h-12 items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800">
                     <input
                       type="checkbox"
                       checked={newCommitment.isPublic}
@@ -1513,9 +1742,15 @@ export default function TasksPage() {
                           isPublic: event.target.checked,
                         }))
                       }
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Compromiso público
+                    <span>
+                      Compartir con todo el equipo
+                      <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                        Amplía la consulta dentro de esta organización. No crea
+                        un portal público ni publica contenido en internet.
+                      </span>
+                    </span>
                   </label>
                 </div>
                 {mutationError && (

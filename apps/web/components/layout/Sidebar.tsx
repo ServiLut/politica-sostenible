@@ -16,6 +16,7 @@ import {
   MessageSquareText,
   MoreHorizontal,
   ShieldCheck,
+  SlidersHorizontal,
   Siren,
   UserCog,
   UsersRound,
@@ -49,6 +50,7 @@ const NAV_ICONS: Record<NavigationIcon, LucideIcon> = {
   audit: ClipboardList,
   finance: WalletCards,
   election: FileCheck2,
+  settings: SlidersHorizontal,
 };
 
 const CAMPAIGN_MOBILE_ROUTES = [

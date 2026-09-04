@@ -64,7 +64,11 @@ jobs:
         run: |
           psql -h localhost -U politica_test -d postgres -v ON_ERROR_STOP=1 \
             -c 'CREATE DATABASE politica_sostenible_legacy'
-          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate deploy
+          psql -h localhost -U politica_test -d politica_sostenible_legacy \
+            -v ON_ERROR_STOP=1 \
+            -f apps/api/prisma/migrations/20260827000000_baseline/migration.sql
+          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate resolve \
+            --applied 20260827000000_baseline
           psql -h localhost -U politica_test -d politica_sostenible_legacy -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO "_prisma_migrations"
             (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
@@ -109,9 +113,19 @@ jobs:
           SQL
           )"
           test "$legacy_state" = "READY"
-          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
-          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate resolve --applied 20260827000000_baseline
+          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate diff \
+            --from-config-datasource --to-schema prisma/baseline.schema.prisma --exit-code
+          NODE_ENV=production \
+          DEPLOYMENT_PROFILE=evaluation \
+          ALLOW_INSECURE_DATABASE_CONNECTION=true \
+          DATABASE_SSL=false \
+          DATABASE_SSL_REJECT_UNAUTHORIZED=false \
+          DATABASE_URL="$LEGACY_DIRECT_URL&sslmode=disable" \
+          DIRECT_URL="$LEGACY_DIRECT_URL&sslmode=disable" \
+            node deploy/migrate-entrypoint.mjs
           DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate status
+          DIRECT_URL="$LEGACY_DIRECT_URL" pnpm --filter api exec prisma migrate diff \
+            --from-config-datasource --to-schema prisma/schema.prisma --exit-code
           historical_rows="$(psql -h localhost -U politica_test -d politica_sostenible_legacy -At -v ON_ERROR_STOP=1 <<'SQL'
           SELECT count(*)
           FROM "_prisma_migrations"
@@ -141,18 +155,54 @@ jobs:
         env:
           PGPASSWORD: local_ci_only
         run: |
-          docker build --tag politica-sostenible-ci .
+          docker build \
+            --build-arg NEXT_PUBLIC_APP_URL=https://politica-ci.invalid \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=https://storage-ci.invalid \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-public-anon-key-not-a-real-token \
+            --tag politica-sostenible-ci .
           docker run --rm --entrypoint node politica-sostenible-ci apps/api/node_modules/prisma/build/index.js --version
           docker run --rm --entrypoint node politica-sostenible-ci --check deploy/migrate.mjs
           psql -h localhost -U politica_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE politica_sostenible_dokploy'
           docker run --rm --network host \
-            --env 'DIRECT_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?schema=politica-sostenible' \
-            --env 'DATABASE_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?schema=politica-sostenible' \
+            --env 'DIRECT_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
+            --env 'DATABASE_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
+            --env DEPLOYMENT_PROFILE=evaluation \
+            --env ALLOW_INSECURE_DATABASE_CONNECTION=true \
             --env DATABASE_SSL=false \
+            --env DATABASE_SSL_REJECT_UNAUTHORIZED=false \
             --entrypoint node politica-sostenible-ci \
             --input-type=module --eval "import('./deploy/migrate.mjs').then(({ runSafeMigrations }) => runSafeMigrations())"
           table_count="$(psql -h localhost -U politica_test -d politica_sostenible_dokploy -At -v ON_ERROR_STOP=1 \
             -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'politica-sostenible'")"
           test "$table_count" -gt 0
+          docker run --detach --name politica-sostenible-ci-runtime --network host \
+            --env 'DIRECT_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
+            --env 'DATABASE_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
+            --env DEPLOYMENT_PROFILE=evaluation \
+            --env ALLOW_INSECURE_DATABASE_CONNECTION=true \
+            --env DATABASE_SSL=false \
+            --env DATABASE_SSL_REJECT_UNAUTHORIZED=false \
+            --env JWT_SECRET=ci-jwt-secret-with-more-than-thirty-two-bytes \
+            --env CONSENT_IP_SALT=ci-consent-salt-with-more-than-thirty-two-bytes \
+            --env CORS_ORIGINS=https://politica-ci.invalid \
+            --env NEXT_PUBLIC_APP_URL=https://politica-ci.invalid \
+            --env SUPABASE_URL=https://storage-ci.invalid \
+            --env SUPABASE_SERVICE_ROLE_KEY=sb_secret_ci_only_not_a_real_key \
+            --env SUPABASE_STORAGE_BUCKET=politica-ci \
+            politica-sostenible-ci
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health/ready >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "true" ]; then
+            docker logs politica-sostenible-ci-runtime
+            docker rm --force politica-sostenible-ci-runtime
+            exit 1
+          fi
+          docker rm --force politica-sostenible-ci-runtime
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

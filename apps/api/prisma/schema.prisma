@@ -27,6 +27,7 @@ model Tenant {
   inventory              InventoryItem[]
   inventoryMovements     InventoryMovement[]
   consentRecords         ConsentRecord[]
+  consentNotices         ConsentNotice[]
   issueCases             IssueCase[]
   interactions           Interaction[]
   tasks                  Task[]
@@ -94,12 +95,14 @@ model User {
   division                   PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
   financialEntriesReported   FinancialEntry[]        @relation("FinancialEntryReporter")
   financialEntriesReviewed   FinancialEntry[]        @relation("FinancialEntryReviewer")
+  financialEntriesCneMarked  FinancialEntry[]        @relation("FinancialEntryCneMarker")
   registeredVoters           Voter[]                 @relation("Registrar")
   witnessReports             WitnessReport[]         @relation("WitnessReportReporter")
   witnessReportsReviewed     WitnessReport[]         @relation("WitnessReportReviewer")
   pointLogs                  PointLog[]
   inventoryMoves             InventoryMovement[]
   consentsCaptured           ConsentRecord[]         @relation("ConsentCapturedBy")
+  consentNoticesCreated      ConsentNotice[]         @relation("ConsentNoticeCreatedBy")
   casesAssigned              IssueCase[]             @relation("CaseAssignee")
   casesCreated               IssueCase[]             @relation("CaseCreatedBy")
   interactions               Interaction[]           @relation("InteractionActor")
@@ -196,31 +199,36 @@ model Voter {
 }
 
 model FinancialEntry {
-  id           String        @id @default(cuid())
-  type         EntryType
-  amount       Decimal       @db.Decimal(15, 2)
-  date         DateTime
-  cneCode      CneCode
-  description  String
-  tenantId     String
-  vendorName   String
-  vendorTaxId  String
-  evidenceUrl  String?       @unique
-  reporterId   String
-  reviewedById String?
-  reviewedAt   DateTime?
-  reviewReason String?       @db.VarChar(500)
-  status       FinanceStatus @default(PENDING)
-  auditLog     Json?
-  createdAt    DateTime      @default(now())
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  reporter     User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
-  reviewedBy   User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
+  id                 String        @id @default(cuid())
+  type               EntryType
+  amount             Decimal       @db.Decimal(15, 2)
+  date               DateTime
+  cneCode            CneCode
+  description        String
+  tenantId           String
+  vendorName         String
+  vendorTaxId        String
+  evidenceUrl        String?       @unique
+  reporterId         String
+  reviewedById       String?
+  reviewedAt         DateTime?
+  reviewReason       String?       @db.VarChar(500)
+  cneReportedById    String?
+  cneReportedAt      DateTime?
+  cneReportReference String?       @db.VarChar(120)
+  status             FinanceStatus @default(PENDING)
+  auditLog           Json?
+  createdAt          DateTime      @default(now())
+  tenant             Tenant        @relation(fields: [tenantId], references: [id])
+  reporter           User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
+  reviewedBy         User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
+  cneReportedBy      User?         @relation("FinancialEntryCneMarker", fields: [cneReportedById, tenantId], references: [id, tenantId])
 
   @@unique([id, tenantId])
   @@index([tenantId, type, date])
   @@index([tenantId, status, date])
   @@index([tenantId, reviewedById, reviewedAt])
+  @@index([tenantId, cneReportedById, cneReportedAt])
   @@index([tenantId, cneCode])
 }
 
@@ -364,6 +372,34 @@ model ConsentRecord {
   @@index([tenantId, mode, subjectRef, purpose, status])
   @@index([tenantId, voterId])
   @@index([tenantId, expiresAt])
+}
+
+/// Versiones del aviso de privacidad configuradas por cada organización.
+/// Una versión retirada se conserva para poder reconstruir qué información
+/// recibió la persona al autorizar el tratamiento.
+model ConsentNotice {
+  id               String                 @id @default(cuid())
+  tenantId         String
+  mode             PoliticalOperationMode
+  purpose          ConsentPurpose
+  version          String                 @db.VarChar(32)
+  title            String                 @db.VarChar(160)
+  content          String                 @db.Text
+  controllerName   String                 @db.VarChar(200)
+  contactEmail     String                 @db.VarChar(254)
+  privacyPolicyUrl String?                @db.VarChar(2048)
+  isActive         Boolean                @default(true)
+  createdById      String
+  activatedAt      DateTime               @default(now())
+  retiredAt        DateTime?
+  createdAt        DateTime               @default(now())
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id])
+  createdBy        User                   @relation("ConsentNoticeCreatedBy", fields: [createdById, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, mode, purpose, version])
+  @@index([tenantId, mode, purpose, isActive])
+  @@index([tenantId, createdById, createdAt])
 }
 
 /// Solicitud ciudadana, incidencia territorial o caso de campaña, con SLA y
@@ -523,8 +559,8 @@ model CommunicationApproval {
   @@index([tenantId, issueCaseId])
 }
 
-/// Registro append-only de operaciones sensibles. Las capas de servicio deben
-/// prohibir update/delete y redactar secretos antes de persistir before/after.
+/// Registro append-only de operaciones sensibles. PostgreSQL rechaza UPDATE,
+/// DELETE y TRUNCATE; las capas de servicio redactan secretos antes de insertar.
 model AuditEvent {
   id           String                 @id @default(cuid())
   tenantId     String

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -9,11 +10,13 @@ import {
   FileLock2,
   History,
   Inbox,
+  ListChecks,
   Loader2,
   Plus,
   RefreshCw,
   Search,
   ShieldCheck,
+  Target,
   X,
 } from "lucide-react";
 import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
@@ -198,7 +201,10 @@ function CaseCard({
     (canManageAssignments && assigneeId !== (issueCase.assigneeId ?? ""));
 
   return (
-    <article className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article
+      data-testid={`case-card-${issueCase.id}`}
+      className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
@@ -214,10 +220,11 @@ function CaseCard({
         </div>
         {issueCase.confidential && (
           <span
-            title="Caso confidencial"
-            className="rounded-xl bg-violet-50 p-2 text-violet-700"
+            title="Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del caso"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-violet-700"
           >
             <FileLock2 aria-hidden="true" size={17} />
+            Manejo especial
           </span>
         )}
       </div>
@@ -251,17 +258,45 @@ function CaseCard({
         <span className="rounded-full bg-slate-100 px-3 py-1">
           {issueCase._count.interactions} interacciones
         </span>
+        <span className="rounded-full bg-slate-100 px-3 py-1">
+          {issueCase._count.tasks} tareas
+        </span>
+        <span className="rounded-full bg-slate-100 px-3 py-1">
+          {issueCase._count.commitments} compromisos
+        </span>
       </div>
 
-      <button
-        type="button"
-        aria-label={`Abrir bitácora de ${issueCase.reference}`}
-        onClick={() => onOpenInteractions(issueCase)}
-        className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-xs font-black uppercase tracking-wider text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-      >
-        <History aria-hidden="true" size={16} />
-        Ver bitácora
-      </button>
+      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+        <button
+          type="button"
+          aria-label={`Abrir bitácora de ${issueCase.reference}`}
+          onClick={() => onOpenInteractions(issueCase)}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+        >
+          <History aria-hidden="true" size={16} />
+          Bitácora
+        </button>
+        {canMutate && (
+          <>
+            <Link
+              href={`/dashboard/tasks?create=task&issueCaseId=${encodeURIComponent(issueCase.id)}`}
+              aria-label={`Crear tarea vinculada a ${issueCase.reference}`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+            >
+              <ListChecks aria-hidden="true" size={16} />
+              Crear tarea
+            </Link>
+            <Link
+              href={`/dashboard/tasks?create=commitment&issueCaseId=${encodeURIComponent(issueCase.id)}`}
+              aria-label={`Registrar compromiso vinculado a ${issueCase.reference}`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-xs font-black text-violet-800 transition hover:border-violet-700 hover:bg-violet-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2"
+            >
+              <Target aria-hidden="true" size={16} />
+              Compromiso
+            </Link>
+          </>
+        )}
+      </div>
 
       {canMutate && (
         <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
@@ -892,16 +927,24 @@ export default function CasesPage() {
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
                   />
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
+                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
                   <input
                     type="checkbox"
                     checked={form.confidential}
                     onChange={(event) =>
                       setForm({ ...form, confidential: event.target.checked })
                     }
-                    className="h-4 w-4"
+                    className="mt-0.5 h-4 w-4 shrink-0"
                   />
-                  <FileLock2 size={18} /> Marcar como caso confidencial
+                  <FileLock2 aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+                  <span>
+                    <span className="block">Aplicar etiqueta de manejo especial</span>
+                    <span className="mt-1 block text-xs font-semibold normal-case leading-5 tracking-normal text-violet-700">
+                      Es una clasificación operativa. No restringe el acceso: la
+                      visibilidad sigue los permisos generales del rol y la
+                      asignación del caso.
+                    </span>
+                  </span>
                 </label>
               </div>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

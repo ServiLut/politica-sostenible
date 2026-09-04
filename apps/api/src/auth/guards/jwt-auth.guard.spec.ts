@@ -166,14 +166,14 @@ describe('JwtAuthGuard', () => {
     });
     const request = { headers: { authorization: 'Bearer signed-token' } };
 
-    await expect(guard.canActivate(buildContext(request))).rejects.toMatchObject(
-      {
-        constructor: ForbiddenException,
-        response: {
-          code: 'PASSWORD_CHANGE_REQUIRED',
-        },
+    await expect(
+      guard.canActivate(buildContext(request)),
+    ).rejects.toMatchObject({
+      constructor: ForbiddenException,
+      response: {
+        code: 'PASSWORD_CHANGE_REQUIRED',
       },
-    );
+    });
   });
 
   it('allows only an explicitly decorated endpoint during mandatory change', async () => {

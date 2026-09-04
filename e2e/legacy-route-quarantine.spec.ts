@@ -40,7 +40,6 @@ test("la IA simulada y sus subrutas no pueden utilizarse", async ({
   for (const blockedPath of [
     "/dashboard/agent",
     "/dashboard/agent/conversacion-inventada",
-    "/dashboard/settings",
   ]) {
     const response = await request.get(blockedPath, { maxRedirects: 0 });
 

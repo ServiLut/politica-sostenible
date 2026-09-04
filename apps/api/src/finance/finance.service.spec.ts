@@ -3,8 +3,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FinanceService } from './finance.service';
 import {
   AuditActorType,
+  FinanceStatus,
   PoliticalOperationMode,
   Prisma,
+  Role,
   TenantType,
 } from '../../prisma/generated/prisma';
 
@@ -21,17 +23,32 @@ describe('FinanceService tenant-safe exports', () => {
         reporter: { name: '@SUM(1,1)' },
       },
     ]);
-    const service = new FinanceService({
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
+    const transaction = {
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
           type: TenantType.CANDIDACY,
         }),
       },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ role: Role.AUDITOR }),
+      },
       financialEntry: { findMany },
+      auditEvent: { create: auditCreate },
+    };
+    const runTransaction = jest.fn(
+      async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const service = new FinanceService({
+      $transaction: runTransaction,
     } as unknown as PrismaService);
 
-    const csv = await service.generateCneReport('tenant-from-jwt');
+    const csv = await service.generateCneReport(
+      'tenant-from-jwt',
+      'auditor-from-jwt',
+    );
 
     expect(findMany).toHaveBeenCalledWith({
       where: {
@@ -56,6 +73,107 @@ describe('FinanceService tenant-safe exports', () => {
     expect(csv).toContain("'+900123456");
     expect(csv).toContain("'@SUM(1,1)");
     expect(csv).toContain('ACME""');
+    expect(transaction.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'auditor-from-jwt',
+        tenantId: 'tenant-from-jwt',
+        isActive: true,
+      },
+      select: { role: true },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-from-jwt',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'auditor-from-jwt',
+        action: 'CAMPAIGN_CNE_REVIEW_DRAFT_EXPORTED',
+        resourceType: 'CneReviewDraft',
+        after: { status: 'GENERATED' },
+        metadata: {
+          format: 'CSV',
+          recordCount: 1,
+          includedStatuses: [
+            FinanceStatus.APPROVED,
+            FinanceStatus.REPORTED_CNE,
+          ],
+        },
+      },
+    });
+    const serializedAudit = JSON.stringify(auditCreate.mock.calls);
+    expect(serializedAudit).not.toContain('HYPERLINK');
+    expect(serializedAudit).not.toContain('900123456');
+    expect(serializedAudit).not.toContain('SUM(1,1)');
+  });
+
+  it('does not return a CNE draft when its audit record fails', async () => {
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ role: Role.COMPLIANCE_OFFICER }),
+      },
+      financialEntry: { findMany: jest.fn().mockResolvedValue([]) },
+      auditEvent: {
+        create: jest.fn().mockRejectedValue(new Error('audit unavailable')),
+      },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.generateCneReport('tenant-a', 'compliance-a'),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(transaction.financialEntry.findMany).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('revalidates the persisted export role and fails before reading finance data', async () => {
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ role: Role.VOLUNTEER }),
+      },
+      financialEntry: { findMany: jest.fn() },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.generateCneReport('tenant-a', 'former-auditor-a'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(transaction.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'former-auditor-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { role: true },
+    });
+    expect(transaction.financialEntry.findMany).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('rejects a finance object path owned by another tenant before writing', async () => {
@@ -141,6 +259,7 @@ describe('FinanceService tenant-safe exports', () => {
         tenantId: 'tenant-a',
         path,
         module: 'FINANCE',
+        uploaderId: 'user-a',
         status: 'CONFIRMED',
         consumedAt: null,
       },
@@ -194,9 +313,9 @@ describe('FinanceService tenant-safe exports', () => {
     await expect(service.getSummary('tenant-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    await expect(service.generateCneReport('tenant-a')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.generateCneReport('tenant-a', 'user-a'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(create).not.toHaveBeenCalled();
     expect(findMany).not.toHaveBeenCalled();
     expect(aggregate).not.toHaveBeenCalled();

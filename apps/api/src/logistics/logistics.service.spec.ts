@@ -4,11 +4,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import {
+  AuditActorType,
+  ConsentCollectionChannel,
   ConsentPurpose,
   ConsentStatus,
-  ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
+  Prisma,
   Role,
   TenantType,
   WitnessReportStatus,
@@ -17,6 +19,23 @@ import { ConsentEvidenceService } from '../common/services/consent-evidence.serv
 import { PrismaService } from '../prisma/prisma.service';
 import { WitnessService } from '../witness/witness.service';
 import { LogisticsService } from './logistics.service';
+
+function activeConsentNoticeDelegate() {
+  return {
+    findFirst: jest.fn().mockResolvedValue({
+      id: 'notice-a',
+      mode: PoliticalOperationMode.CAMPAIGN,
+      purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      version: '2026.1',
+      title: 'Autorizacion de tratamiento de datos',
+      content: 'Texto legal vigente para la campana.',
+      controllerName: 'Campana responsable',
+      contactEmail: 'privacidad@example.test',
+      privacyPolicyUrl: null,
+      activatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    }),
+  };
+}
 
 describe('LogisticsService tenant isolation', () => {
   it('rejects an E-14 voting place from another tenant', async () => {
@@ -69,6 +88,7 @@ describe('LogisticsService tenant isolation', () => {
 
   it('rejects an offline voter voting place from another tenant', async () => {
     const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -113,6 +133,7 @@ describe('LogisticsService tenant isolation', () => {
           puestoId: 'puesto-from-tenant-b',
           consentAccepted: true,
           termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -224,6 +245,7 @@ describe('LogisticsService tenant isolation', () => {
           lastName: 'Pérez',
           consentAccepted: true,
           termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
@@ -363,6 +385,7 @@ describe('LogisticsService tenant isolation', () => {
       consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
     });
     const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -382,6 +405,9 @@ describe('LogisticsService tenant isolation', () => {
       },
       consentRecord: {
         create: jest.fn().mockResolvedValue({ id: 'consent-a' }),
+      },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'audit-a' }),
       },
     };
     const service = new LogisticsService(
@@ -407,6 +433,7 @@ describe('LogisticsService tenant isolation', () => {
         email: 'maria@example.com',
         consentAccepted: true,
         termsVersion: '2026.1',
+        collectionChannel: ConsentCollectionChannel.IN_PERSON,
       },
     );
 
@@ -444,6 +471,129 @@ describe('LogisticsService tenant isolation', () => {
         status: ConsentStatus.GRANTED,
       }) as object,
     });
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'volunteer-a',
+        action: 'VOTER_REGISTERED_WITH_CONSENT',
+        resourceType: 'Voter',
+        resourceId: 'voter-a',
+        after: { consentStatus: ConsentStatus.GRANTED },
+        metadata: {
+          registeredFields: [
+            'documentId',
+            'email',
+            'firstName',
+            'lastName',
+            'phone',
+          ],
+          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
+          noticeVersion: '2026.1',
+        },
+      },
+    });
+    const serializedAudit = JSON.stringify(
+      transaction.auditEvent.create.mock.calls,
+    );
+    expect(serializedAudit).not.toContain('1012345678');
+    expect(serializedAudit).not.toContain('María');
+    expect(serializedAudit).not.toContain('Pérez');
+    expect(serializedAudit).not.toContain('3001234567');
+    expect(serializedAudit).not.toContain('maria@example.com');
+    expect(serializedAudit).not.toContain('203.0.113.42');
+    expect(serializedAudit).not.toContain('hashed-ip');
+  });
+
+  it('fails the offline voter operation when its audit cannot persist', async () => {
+    const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany: jest.fn(), findFirst: jest.fn() },
+      voter: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'voter-a' }),
+      },
+      consentRecord: {
+        create: jest.fn().mockResolvedValue({ id: 'consent-a' }),
+      },
+      auditEvent: {
+        create: jest.fn().mockRejectedValue(new Error('audit unavailable')),
+      },
+    };
+    const runTransaction = jest.fn(
+      async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const service = new LogisticsService(
+      { $transaction: runTransaction } as unknown as PrismaService,
+      {
+        hashIp: jest.fn().mockReturnValue('hashed-ip'),
+      } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'volunteer-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
+        },
+      ),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+    expect(transaction.voter.create).toHaveBeenCalledTimes(1);
+    expect(transaction.consentRecord.create).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps a serialization conflict to a safe retryable conflict', async () => {
+    const runTransaction = jest.fn().mockRejectedValue({ code: 'P2034' });
+    const service = new LogisticsService(
+      { $transaction: runTransaction } as unknown as PrismaService,
+      { hashIp: jest.fn() } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.syncVoter(
+        { tenantId: 'tenant-a', userId: 'volunteer-a' },
+        '203.0.113.42',
+        {
+          documentId: '1012345678',
+          firstName: 'María',
+          lastName: 'Pérez',
+          consentAccepted: true,
+          termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
+        },
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
   });
 
   it('returns a generic receipt for an existing voter after validating scope', async () => {
@@ -461,6 +611,7 @@ describe('LogisticsService tenant isolation', () => {
       expiresAt: null,
     });
     const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -487,6 +638,7 @@ describe('LogisticsService tenant isolation', () => {
         findFirst: consentFindFirst,
         create: consentCreate,
       },
+      auditEvent: { create: jest.fn() },
     };
     const hashIp = jest.fn();
     const service = new LogisticsService(
@@ -511,6 +663,7 @@ describe('LogisticsService tenant isolation', () => {
         puestoId: 'puesto-a',
         consentAccepted: true,
         termsVersion: '2026.1',
+        collectionChannel: ConsentCollectionChannel.IN_PERSON,
       },
     );
 
@@ -539,6 +692,7 @@ describe('LogisticsService tenant isolation', () => {
     expect(voterUpdate).not.toHaveBeenCalled();
     expect(voterUpsert).not.toHaveBeenCalled();
     expect(consentCreate).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -557,6 +711,7 @@ describe('LogisticsService tenant isolation', () => {
       const voterUpdate = jest.fn();
       const consentCreate = jest.fn();
       const transaction = {
+        consentNotice: activeConsentNoticeDelegate(),
         tenant: {
           findUnique: jest.fn().mockResolvedValue({
             defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -604,6 +759,7 @@ describe('LogisticsService tenant isolation', () => {
           lastName: 'Pérez',
           consentAccepted: true,
           termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       );
 
@@ -623,6 +779,7 @@ describe('LogisticsService tenant isolation', () => {
       consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
     };
     const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -641,6 +798,7 @@ describe('LogisticsService tenant isolation', () => {
         create: jest.fn().mockRejectedValue({ code: 'P2002' }),
       },
       consentRecord: { create: jest.fn() },
+      auditEvent: { create: jest.fn() },
     };
     const concurrentFindUnique = jest.fn().mockResolvedValue(concurrentVoter);
     const concurrentConsentFindFirst = jest.fn().mockResolvedValue({
@@ -671,16 +829,19 @@ describe('LogisticsService tenant isolation', () => {
           lastName: 'Pérez',
           consentAccepted: true,
           termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       ),
     ).resolves.toEqual({ received: true });
     expect(concurrentFindUnique).not.toHaveBeenCalled();
     expect(concurrentConsentFindFirst).not.toHaveBeenCalled();
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('denies offline voter capture outside the persisted volunteer territory', async () => {
     const transaction = {
+      consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -730,6 +891,7 @@ describe('LogisticsService tenant isolation', () => {
           puestoId: 'puesto-b',
           consentAccepted: true,
           termsVersion: '2026.1',
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);

@@ -37,8 +37,26 @@ describe('StorageService durable private-file authorization', () => {
     getObjectInfo: jest.Mock;
     removeObject: jest.Mock;
   };
-  let transaction: Record<string, any>;
-  let prisma: Record<string, any>;
+  type StoredObjectDelegateMock = {
+    create: jest.Mock;
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
+    deleteMany: jest.Mock;
+    updateMany: jest.Mock;
+    count: jest.Mock;
+    aggregate: jest.Mock;
+  };
+  type TransactionMock = {
+    tenant: { findUnique: jest.Mock };
+    user: { findFirst: jest.Mock };
+    politicalDivision: { findMany: jest.Mock };
+    storedObject: StoredObjectDelegateMock;
+    auditEvent: { create: jest.Mock };
+    financialEntry: { findFirst: jest.Mock };
+    witnessReport: { findFirst: jest.Mock };
+  };
+  let transaction: TransactionMock;
+  let prisma: TransactionMock & { $transaction: jest.Mock };
   let service: StorageService;
 
   beforeEach(() => {

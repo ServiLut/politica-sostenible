@@ -1,0 +1,745 @@
+// IMMUTABLE DEPLOYMENT CONTRACT.
+// This datamodel is the exact schema represented by 20260827000000_baseline.
+// It exists only to verify drift before adopting the five historical migrations;
+// application code and Prisma Client generation use schema.prisma instead.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id                     String                  @id @default(cuid())
+  slug                   String                  @unique
+  name                   String
+  type                   TenantType              @default(CANDIDACY)
+  defaultMode            PoliticalOperationMode  @default(CAMPAIGN)
+  config                 Json?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  settings               CampaignSettings?
+  users                  User[]
+  divisions              PoliticalDivision[]     @relation("TenantDivisions")
+  voters                 Voter[]
+  finances               FinancialEntry[]
+  witnesses              WitnessReport[]
+  events                 CampaignEvent[]
+  pointLogs              PointLog[]
+  inventory              InventoryItem[]
+  inventoryMovements     InventoryMovement[]
+  consentRecords         ConsentRecord[]
+  issueCases             IssueCase[]
+  interactions           Interaction[]
+  tasks                  Task[]
+  commitments            Commitment[]
+  communicationApprovals CommunicationApproval[]
+  teamInvitations        TeamInvitation[]
+  auditEvents            AuditEvent[]
+  storedObjects          StoredObject[]
+}
+
+model CampaignSettings {
+  id                String   @id @default(cuid())
+  tenantId          String   @unique
+  maxTotalBudget    Decimal  @db.Decimal(15, 2)
+  maxPublicityLimit Decimal  @db.Decimal(15, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model StoredObject {
+  id             String              @id @default(cuid())
+  tenantId       String
+  uploaderId     String
+  path           String              @unique @db.VarChar(512)
+  module         StorageObjectModule
+  contentType    String              @db.VarChar(150)
+  expectedSize   Int
+  actualSize     Int?
+  etag           String?             @db.VarChar(255)
+  status         StoredObjectStatus  @default(ISSUED)
+  expiresAt      DateTime
+  confirmedAt    DateTime?
+  consumedAt     DateTime?
+  consumedByType String?             @db.VarChar(64)
+  consumedById   String?             @db.VarChar(128)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
+  uploader       User                @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status, expiresAt])
+  @@index([tenantId, uploaderId, createdAt])
+  @@index([tenantId, module, consumedAt])
+}
+
+model User {
+  id                       String                  @id @default(cuid())
+  email                    String                  @unique
+  password                 String
+  name                     String
+  role                     Role                    @default(VOLUNTEER)
+  isActive                 Boolean                 @default(true)
+  documentId               String
+  phone                    String?
+  points                   Int                     @default(0)
+  tenantId                 String
+  divisionId               String?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  tenant                   Tenant                  @relation(fields: [tenantId], references: [id])
+  division                 PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
+  financialEntriesReported FinancialEntry[]        @relation("FinancialEntryReporter")
+  financialEntriesReviewed FinancialEntry[]        @relation("FinancialEntryReviewer")
+  registeredVoters         Voter[]                 @relation("Registrar")
+  witnessReports           WitnessReport[]
+  pointLogs                PointLog[]
+  inventoryMoves           InventoryMovement[]
+  consentsCaptured         ConsentRecord[]         @relation("ConsentCapturedBy")
+  casesAssigned            IssueCase[]             @relation("CaseAssignee")
+  casesCreated             IssueCase[]             @relation("CaseCreatedBy")
+  interactions             Interaction[]           @relation("InteractionActor")
+  tasksAssigned            Task[]                  @relation("TaskAssignee")
+  tasksCreated             Task[]                  @relation("TaskCreator")
+  commitmentsOwned         Commitment[]            @relation("CommitmentOwner")
+  communicationsRequested  CommunicationApproval[] @relation("CommunicationRequestedBy")
+  communicationsDecided    CommunicationApproval[] @relation("CommunicationDecidedBy")
+  invitationsSent          TeamInvitation[]        @relation("InvitationInviter")
+  eventsResponsible        CampaignEvent[]         @relation("EventResponsible")
+  auditEvents              AuditEvent[]            @relation("AuditActor")
+  storedObjects            StoredObject[]          @relation("StoredObjectUploader")
+
+  @@unique([id, tenantId])
+  @@unique([documentId, tenantId])
+  @@index([tenantId, role])
+  @@index([tenantId, isActive, role])
+  @@index([tenantId, divisionId])
+}
+
+/// Invitacion de acceso de un solo uso. El token nunca se persiste en claro:
+/// solo se conserva su SHA-256 para comprobar la aceptacion.
+model TeamInvitation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  email       String
+  role        Role
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  invitedBy   User      @relation("InvitationInviter", fields: [invitedById, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, email, acceptedAt, expiresAt])
+  @@index([tenantId, invitedById, createdAt])
+}
+
+model PoliticalDivision {
+  id         String              @id @default(cuid())
+  code       String
+  name       String
+  type       DivisionType
+  parentId   String?
+  tenantId   String
+  tenant     Tenant              @relation("TenantDivisions", fields: [tenantId], references: [id])
+  parent     PoliticalDivision?  @relation("Hierarchy", fields: [parentId, tenantId], references: [id, tenantId])
+  children   PoliticalDivision[] @relation("Hierarchy")
+  users      User[]
+  voters     Voter[]             @relation("VoterPuesto")
+  witnesses  WitnessReport[]
+  issueCases IssueCase[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code, type])
+  @@index([tenantId, type])
+  @@index([tenantId, parentId])
+}
+
+model Voter {
+  id                String             @id @default(cuid())
+  documentId        String
+  firstName         String
+  lastName          String
+  phone             String?
+  email             String?
+  tenantId          String
+  puestoId          String?
+  mesa              Int?
+  registrarId       String
+  isSignatureValid  Boolean            @default(false)
+  signatureImageUrl String?
+  consentAccepted   Boolean            @default(false)
+  consentIp         String?
+  consentTimestamp  DateTime?
+  termsVersion      String?            @default("2026.1")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  puesto            PoliticalDivision? @relation("VoterPuesto", fields: [puestoId, tenantId], references: [id, tenantId])
+  registrar         User               @relation("Registrar", fields: [registrarId, tenantId], references: [id, tenantId])
+  consentRecords    ConsentRecord[]
+  issueCases        IssueCase[]
+  interactions      Interaction[]
+
+  @@unique([id, tenantId])
+  @@unique([documentId, tenantId])
+  @@index([tenantId, puestoId])
+  @@index([tenantId, registrarId])
+}
+
+model FinancialEntry {
+  id           String        @id @default(cuid())
+  type         EntryType
+  amount       Decimal       @db.Decimal(15, 2)
+  date         DateTime
+  cneCode      CneCode
+  description  String
+  tenantId     String
+  vendorName   String
+  vendorTaxId  String
+  evidenceUrl  String?       @unique
+  reporterId   String
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewReason String?       @db.VarChar(500)
+  status       FinanceStatus @default(PENDING)
+  auditLog     Json?
+  createdAt    DateTime      @default(now())
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  reporter     User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
+  reviewedBy   User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, type, date])
+  @@index([tenantId, status, date])
+  @@index([tenantId, reviewedById, reviewedAt])
+  @@index([tenantId, cneCode])
+}
+
+model WitnessReport {
+  id              String            @id @default(cuid())
+  tenantId        String
+  witnessId       String
+  puestoId        String
+  mesa            Int
+  e14ImageUrl     String            @unique
+  candidateVotes  Int
+  totalTableVotes Int
+  observations    String?
+  isSynced        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  puesto          PoliticalDivision @relation(fields: [puestoId, tenantId], references: [id, tenantId])
+  witness         User              @relation(fields: [witnessId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, puestoId, mesa])
+  @@index([tenantId, witnessId, createdAt])
+  @@index([tenantId, isSynced])
+}
+
+model CampaignEvent {
+  id            String                 @id @default(cuid())
+  name          String
+  description   String?
+  startsAt      DateTime               @map("date")
+  endsAt        DateTime
+  location      String?
+  status        CampaignEventStatus    @default(DRAFT)
+  capacity      Int?
+  responsibleId String?
+  mode          PoliticalOperationMode
+  points        Int                    @default(0)
+  tenantId      String
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id])
+  responsible   User?                  @relation("EventResponsible", fields: [responsibleId, tenantId], references: [id, tenantId])
+  attendees     PointLog[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, mode, startsAt])
+  @@index([tenantId, mode, status, startsAt])
+  @@index([tenantId, responsibleId, startsAt])
+}
+
+model PointLog {
+  id        String         @id @default(cuid())
+  tenantId  String
+  userId    String
+  amount    Int
+  reason    String
+  eventId   String?
+  createdAt DateTime       @default(now())
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  user      User           @relation(fields: [userId, tenantId], references: [id, tenantId])
+  event     CampaignEvent? @relation(fields: [eventId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, eventId])
+}
+
+model InventoryItem {
+  id        String              @id @default(cuid())
+  name      String
+  sku       String?
+  quantity  Int                 @default(0)
+  warehouse String?
+  tenantId  String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tenant    Tenant              @relation(fields: [tenantId], references: [id])
+  movements InventoryMovement[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, sku])
+  @@index([tenantId, name])
+}
+
+model InventoryMovement {
+  id        String        @id @default(cuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  quantity  Int
+  type      MovementType
+  reason    String?
+  createdAt DateTime      @default(now())
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  item      InventoryItem @relation(fields: [itemId, tenantId], references: [id, tenantId])
+  user      User          @relation(fields: [userId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, itemId, createdAt])
+  @@index([tenantId, userId, createdAt])
+}
+
+/// Historial versionado de autorizaciones de tratamiento de datos. No debe
+/// sobrescribirse al revocar: se agrega un nuevo evento y se conserva la prueba.
+model ConsentRecord {
+  id                String                   @id @default(cuid())
+  tenantId          String
+  mode              PoliticalOperationMode
+  subjectType       ConsentSubjectType
+  subjectRef        String
+  voterId           String?
+  purpose           ConsentPurpose
+  legalBasis        ConsentLegalBasis
+  status            ConsentStatus            @default(GRANTED)
+  collectionChannel ConsentCollectionChannel
+  noticeVersion     String
+  proofPath         String?
+  sourceIpHash      String?
+  capturedById      String?
+  grantedAt         DateTime
+  expiresAt         DateTime?
+  revokedAt         DateTime?
+  revocationReason  String?                  @db.VarChar(500)
+  createdAt         DateTime                 @default(now())
+  tenant            Tenant                   @relation(fields: [tenantId], references: [id])
+  voter             Voter?                   @relation(fields: [voterId, tenantId], references: [id, tenantId])
+  capturedBy        User?                    @relation("ConsentCapturedBy", fields: [capturedById, tenantId], references: [id, tenantId])
+  interactions      Interaction[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, mode, subjectRef, purpose, status])
+  @@index([tenantId, voterId])
+  @@index([tenantId, expiresAt])
+}
+
+/// Solicitud ciudadana, incidencia territorial o caso de campaña, con SLA y
+/// responsable explícitos. `mode` impide mezclar gestión pública y proselitismo.
+model IssueCase {
+  id                     String                  @id @default(cuid())
+  tenantId               String
+  mode                   PoliticalOperationMode
+  reference              String
+  title                  String
+  description            String
+  category               String
+  sourceChannel          CommunicationChannel
+  status                 IssueCaseStatus         @default(OPEN)
+  priority               WorkPriority            @default(MEDIUM)
+  voterId                String?
+  externalContactRef     String?
+  divisionId             String?
+  assigneeId             String?
+  createdById            String?
+  confidential           Boolean                 @default(false)
+  dueAt                  DateTime?
+  firstResponseAt        DateTime?
+  resolvedAt             DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id])
+  voter                  Voter?                  @relation(fields: [voterId, tenantId], references: [id, tenantId])
+  division               PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
+  assignee               User?                   @relation("CaseAssignee", fields: [assigneeId, tenantId], references: [id, tenantId])
+  createdBy              User?                   @relation("CaseCreatedBy", fields: [createdById, tenantId], references: [id, tenantId])
+  interactions           Interaction[]
+  tasks                  Task[]
+  commitments            Commitment[]
+  communicationApprovals CommunicationApproval[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, mode, reference])
+  @@index([tenantId, mode, status, priority])
+  @@index([tenantId, assigneeId, dueAt])
+  @@index([tenantId, voterId])
+  @@index([tenantId, divisionId])
+}
+
+model Interaction {
+  id                 String                 @id @default(cuid())
+  tenantId           String
+  mode               PoliticalOperationMode
+  issueCaseId        String?
+  voterId            String?
+  externalContactRef String?
+  actorId            String?
+  consentRecordId    String?
+  channel            CommunicationChannel
+  direction          InteractionDirection
+  summary            String
+  outcome            String?
+  sentiment          InteractionSentiment?
+  occurredAt         DateTime               @default(now())
+  createdAt          DateTime               @default(now())
+  tenant             Tenant                 @relation(fields: [tenantId], references: [id])
+  issueCase          IssueCase?             @relation(fields: [issueCaseId, tenantId], references: [id, tenantId])
+  voter              Voter?                 @relation(fields: [voterId, tenantId], references: [id, tenantId])
+  actor              User?                  @relation("InteractionActor", fields: [actorId, tenantId], references: [id, tenantId])
+  consentRecord      ConsentRecord?         @relation(fields: [consentRecordId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, mode, occurredAt])
+  @@index([tenantId, issueCaseId, occurredAt])
+  @@index([tenantId, voterId, occurredAt])
+}
+
+model Task {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  mode         PoliticalOperationMode
+  issueCaseId  String?
+  commitmentId String?
+  title        String
+  description  String?
+  status       TaskStatus             @default(TODO)
+  priority     WorkPriority           @default(MEDIUM)
+  assigneeId   String?
+  createdById  String
+  dueAt        DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  issueCase    IssueCase?             @relation(fields: [issueCaseId, tenantId], references: [id, tenantId])
+  commitment   Commitment?            @relation(fields: [commitmentId, tenantId], references: [id, tenantId])
+  assignee     User?                  @relation("TaskAssignee", fields: [assigneeId, tenantId], references: [id, tenantId])
+  createdBy    User                   @relation("TaskCreator", fields: [createdById, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, mode, status, dueAt])
+  @@index([tenantId, assigneeId, status])
+  @@index([tenantId, issueCaseId])
+  @@index([tenantId, commitmentId])
+}
+
+/// Promesa de campaña o compromiso de gobierno con seguimiento verificable.
+model Commitment {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  mode         PoliticalOperationMode
+  reference    String
+  title        String
+  description  String
+  status       CommitmentStatus       @default(PROPOSED)
+  ownerId      String?
+  issueCaseId  String?
+  targetDate   DateTime?
+  progress     Int                    @default(0)
+  isPublic     Boolean                @default(false)
+  evidencePath String?
+  completedAt  DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  owner        User?                  @relation("CommitmentOwner", fields: [ownerId, tenantId], references: [id, tenantId])
+  issueCase    IssueCase?             @relation(fields: [issueCaseId, tenantId], references: [id, tenantId])
+  tasks        Task[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, reference])
+  @@index([tenantId, mode, status, targetDate])
+  @@index([tenantId, ownerId])
+}
+
+/// Flujo de cuatro ojos para mensajes públicos: el hash identifica exactamente
+/// la versión revisada y evita publicar una versión distinta a la aprobada.
+model CommunicationApproval {
+  id                    String                      @id @default(cuid())
+  tenantId              String
+  mode                  PoliticalOperationMode
+  issueCaseId           String?
+  channel               CommunicationChannel
+  title                 String
+  content               Json
+  contentHash           String
+  purpose               String
+  containsSensitiveData Boolean                     @default(false)
+  status                CommunicationApprovalStatus @default(PENDING)
+  requestedById         String
+  decidedById           String?
+  decisionReason        String?
+  scheduledAt           DateTime?
+  decidedAt             DateTime?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  tenant                Tenant                      @relation(fields: [tenantId], references: [id])
+  issueCase             IssueCase?                  @relation(fields: [issueCaseId, tenantId], references: [id, tenantId])
+  requestedBy           User                        @relation("CommunicationRequestedBy", fields: [requestedById, tenantId], references: [id, tenantId])
+  decidedBy             User?                       @relation("CommunicationDecidedBy", fields: [decidedById, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, mode, status, createdAt])
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, issueCaseId])
+}
+
+/// Registro append-only de operaciones sensibles. Las capas de servicio deben
+/// prohibir update/delete y redactar secretos antes de persistir before/after.
+model AuditEvent {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  mode         PoliticalOperationMode
+  actorType    AuditActorType
+  actorUserId  String?
+  action       String
+  resourceType String
+  resourceId   String?
+  outcome      AuditOutcome           @default(SUCCESS)
+  requestId    String?
+  sourceIpHash String?
+  userAgent    String?
+  before       Json?
+  after        Json?
+  metadata     Json?
+  occurredAt   DateTime               @default(now())
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  actorUser    User?                  @relation("AuditActor", fields: [actorUserId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, resourceType, resourceId, occurredAt])
+  @@index([tenantId, actorUserId, occurredAt])
+  @@index([tenantId, requestId])
+}
+
+enum TenantType {
+  CANDIDACY
+  PARTY
+  GSC
+  PUBLIC_OFFICE
+}
+
+enum PoliticalOperationMode {
+  CAMPAIGN
+  PUBLIC_OFFICE
+}
+
+enum Role {
+  ADMIN
+  CAMPAIGN_MANAGER
+  FINANCE_MANAGER
+  COMMUNICATIONS_MANAGER
+  CONSTITUENT_SERVICES_MANAGER
+  CASE_WORKER
+  COMPLIANCE_OFFICER
+  AUDITOR
+  ZONE_COORDINATOR
+  WITNESS
+  VOLUNTEER
+}
+
+enum DivisionType {
+  COUNTRY
+  DEPARTAMENTO
+  MUNICIPIO
+  ZONA
+  PUESTO
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+enum FinanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REPORTED_CNE
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum StorageObjectModule {
+  FINANCE
+  E14
+}
+
+enum StoredObjectStatus {
+  ISSUED
+  CONFIRMED
+  CONSUMED
+  EXPIRED
+}
+
+enum CneCode {
+  PUBLICIDAD_VALLAS
+  TRANSPORTE
+  SEDE_CAMPANA
+  ACTOS_PUBLICOS
+  OTROS
+}
+
+enum ConsentSubjectType {
+  VOTER
+  CITIZEN
+  VOLUNTEER
+  USER
+  OTHER
+}
+
+enum ConsentPurpose {
+  POLITICAL_COMMUNICATION
+  VOLUNTEER_MANAGEMENT
+  EVENT_MANAGEMENT
+  CONSTITUENT_CASE_MANAGEMENT
+  SERVICE_FOLLOW_UP
+  ANALYTICS
+}
+
+enum ConsentLegalBasis {
+  EXPLICIT_CONSENT
+  LEGAL_OBLIGATION
+  PUBLIC_TASK
+  CONTRACT
+}
+
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+  EXPIRED
+  DENIED
+}
+
+enum ConsentCollectionChannel {
+  WEB_FORM
+  PAPER
+  PHONE
+  IN_PERSON
+  IMPORT
+}
+
+enum CommunicationChannel {
+  IN_PERSON
+  PHONE
+  SMS
+  WHATSAPP
+  EMAIL
+  SOCIAL_MEDIA
+  WEB
+  LETTER
+  INTERNAL
+}
+
+enum InteractionDirection {
+  INBOUND
+  OUTBOUND
+  INTERNAL
+}
+
+enum InteractionSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  MIXED
+  UNKNOWN
+}
+
+enum IssueCaseStatus {
+  OPEN
+  TRIAGED
+  IN_PROGRESS
+  WAITING_ON_CITIZEN
+  WAITING_ON_EXTERNAL_ENTITY
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum WorkPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum CampaignEventStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CommitmentStatus {
+  PROPOSED
+  PLANNED
+  IN_PROGRESS
+  AT_RISK
+  FULFILLED
+  NOT_FULFILLED
+  CANCELLED
+}
+
+enum CommunicationApprovalStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  SCHEDULED
+  PUBLISHED
+  CANCELLED
+}
+
+enum AuditActorType {
+  USER
+  SERVICE
+  SYSTEM
+  ANONYMOUS
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILURE
+}

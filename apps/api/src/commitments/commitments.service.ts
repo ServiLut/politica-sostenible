@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AuditActorType,
   CommitmentStatus,
   PoliticalOperationMode,
   Prisma,
@@ -235,23 +236,41 @@ export class CommitmentsService {
         : Promise.resolve(),
     ]);
 
-    const created = await this.prisma.commitment.create({
-      data: {
-        tenantId: user.tenantId,
-        mode,
-        reference: dto.reference,
-        title: dto.title,
-        description: dto.description,
-        status: dto.status,
-        ownerId,
-        issueCaseId: dto.issueCaseId,
-        targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
-        progress: dto.progress,
-        isPublic: dto.isPublic,
-        completedAt:
-          dto.status === CommitmentStatus.FULFILLED ? new Date() : undefined,
-      },
-      include: COMMITMENT_INCLUDE,
+    const created = await this.prisma.$transaction(async (transaction) => {
+      const commitment = await transaction.commitment.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          reference: dto.reference,
+          title: dto.title,
+          description: dto.description,
+          status: dto.status,
+          ownerId,
+          issueCaseId: dto.issueCaseId,
+          targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
+          progress: dto.progress,
+          isPublic: dto.isPublic,
+          completedAt:
+            dto.status === CommitmentStatus.FULFILLED ? new Date() : undefined,
+        },
+        include: COMMITMENT_INCLUDE,
+      });
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'COMMITMENT_CREATED',
+          resourceType: 'Commitment',
+          resourceId: commitment.id,
+          after: { status: commitment.status },
+          metadata: { changedFields: this.definedFieldNames(dto) },
+        },
+      });
+
+      return commitment;
     });
 
     return { ...created, canUpdate: true };
@@ -343,13 +362,38 @@ export class CommitmentsService {
     if (dto.progress !== undefined) data.progress = dto.progress;
     if (dto.isPublic !== undefined) data.isPublic = dto.isPublic;
 
-    const updated = await this.prisma.commitment.update({
-      where: scopedWhere,
-      data,
-      include: COMMITMENT_INCLUDE,
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const commitment = await transaction.commitment.update({
+        where: scopedWhere,
+        data,
+        include: COMMITMENT_INCLUDE,
+      });
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'COMMITMENT_UPDATED',
+          resourceType: 'Commitment',
+          resourceId: commitment.id,
+          after: { status: commitment.status },
+          metadata: { changedFields: this.definedFieldNames(dto) },
+        },
+      });
+
+      return commitment;
     });
 
     return { ...updated, canUpdate: true };
+  }
+
+  private definedFieldNames(value: object): string[] {
+    return Object.entries(value)
+      .filter(([, fieldValue]) => fieldValue !== undefined)
+      .map(([fieldName]) => fieldName)
+      .sort();
   }
 
   private async getActiveMode(

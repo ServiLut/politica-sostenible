@@ -26,6 +26,7 @@ import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
 import { CommandCenterModule } from './command-center/command-center.module';
 import { InteractionsModule } from './interactions/interactions.module';
+import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { InteractionsModule } from './interactions/interactions.module';
     EventsModule,
     CommandCenterModule,
     InteractionsModule,
+    ConsentNoticesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

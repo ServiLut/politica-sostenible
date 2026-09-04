@@ -1,5 +1,6 @@
 import { apiRequest } from "./api-client";
 import type { CommunicationChannel } from "./cases-api";
+import type { ConsentNotice } from "./consent-notices-api";
 
 export type InteractionDirection = "INBOUND" | "OUTBOUND" | "INTERNAL";
 export type InteractionSentiment =
@@ -46,6 +47,8 @@ export interface CaseConsentStatus {
   subjectType: ConsentSubjectType;
   status: ConsentStatus | null;
   active: boolean;
+  requiresReconsent: boolean;
+  currentNotice: ConsentNotice | null;
   consentRecordId: string | null;
   collectionChannel: ConsentCollectionChannel | null;
   noticeVersion: string | null;
@@ -87,6 +90,7 @@ export interface CreateInteractionInput {
 export interface GrantCaseConsentInput {
   issueCaseId: string;
   collectionChannel: CapturableConsentCollectionChannel;
+  noticeVersion: string;
 }
 
 export interface RevokeCaseConsentInput {

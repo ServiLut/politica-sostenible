@@ -19,6 +19,12 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
+import {
+  findActiveConsentNotice,
+  getConsentPurposeForMode,
+  requireActiveConsentNotice,
+  type ConsentNoticeView,
+} from '../common/utils/consent-notice.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
@@ -94,8 +100,6 @@ const ALL_INTERACTION_ROLES = [
 ] as Role[];
 const TERRITORIALLY_SCOPED_ROLES = [Role.ZONE_COORDINATOR] as const;
 const MAX_FUTURE_CLOCK_SKEW_MS = 5 * 60 * 1000;
-const CASE_CONSENT_NOTICE_VERSION = '2026.1';
-
 const CASE_CONSENT_READ_ROLES: Readonly<
   Record<PoliticalOperationMode, readonly Role[]>
 > = {
@@ -395,13 +399,16 @@ export class InteractionsService {
     );
     const subject = this.resolveCaseSubject(issueCase, mode);
     const purpose = this.getConsentPurpose(mode);
-    const consent = await this.findLatestCaseConsent(
-      this.prisma,
-      user.tenantId,
-      mode,
-      purpose,
-      subject,
-    );
+    const [consent, currentNotice] = await Promise.all([
+      this.findLatestCaseConsent(
+        this.prisma,
+        user.tenantId,
+        mode,
+        purpose,
+        subject,
+      ),
+      findActiveConsentNotice(this.prisma, user.tenantId, mode, purpose),
+    ]);
 
     return this.toCaseConsentStatus(
       issueCase.id,
@@ -409,6 +416,7 @@ export class InteractionsService {
       subject,
       consent,
       new Date(),
+      currentNotice,
     );
   }
 
@@ -454,6 +462,13 @@ export class InteractionsService {
           );
           const subject = this.resolveCaseSubject(issueCase, mode);
           const purpose = this.getConsentPurpose(mode);
+          const currentNotice = await requireActiveConsentNotice(
+            tx,
+            user.tenantId,
+            mode,
+            dto.noticeVersion,
+            purpose,
+          );
           const latest = await this.findLatestCaseConsent(
             tx,
             user.tenantId,
@@ -462,7 +477,7 @@ export class InteractionsService {
             subject,
           );
 
-          if (this.isConsentActive(latest, grantedAt)) {
+          if (this.isConsentActive(latest, grantedAt, currentNotice.version)) {
             throw new ConflictException(
               'El caso ya tiene una autorizacion vigente para esta finalidad',
             );
@@ -488,7 +503,7 @@ export class InteractionsService {
               legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
               status: ConsentStatus.GRANTED,
               collectionChannel: dto.collectionChannel,
-              noticeVersion: CASE_CONSENT_NOTICE_VERSION,
+              noticeVersion: currentNotice.version,
               sourceIpHash,
               capturedById: user.userId,
               grantedAt,
@@ -506,7 +521,7 @@ export class InteractionsService {
               data: {
                 consentAccepted: true,
                 consentTimestamp: grantedAt,
-                termsVersion: CASE_CONSENT_NOTICE_VERSION,
+                termsVersion: currentNotice.version,
                 consentIp: sourceIpHash,
               },
             });
@@ -528,7 +543,7 @@ export class InteractionsService {
                 subjectType: subject.subjectType,
                 legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
                 collectionChannel: dto.collectionChannel,
-                noticeVersion: CASE_CONSENT_NOTICE_VERSION,
+                noticeVersion: currentNotice.version,
                 grantedAt: grantedAt.toISOString(),
                 expiresAt: expiresAt?.toISOString() ?? null,
               },
@@ -541,6 +556,7 @@ export class InteractionsService {
             subject,
             consent,
             grantedAt,
+            currentNotice,
           );
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -587,15 +603,18 @@ export class InteractionsService {
           );
           const subject = this.resolveCaseSubject(issueCase, mode);
           const purpose = this.getConsentPurpose(mode);
-          const latest = await this.findLatestCaseConsent(
-            tx,
-            user.tenantId,
-            mode,
-            purpose,
-            subject,
-          );
+          const [latest, currentNotice] = await Promise.all([
+            this.findLatestCaseConsent(
+              tx,
+              user.tenantId,
+              mode,
+              purpose,
+              subject,
+            ),
+            findActiveConsentNotice(tx, user.tenantId, mode, purpose),
+          ]);
 
-          if (!latest || !this.isConsentActive(latest, now)) {
+          if (!latest || latest.status !== ConsentStatus.GRANTED) {
             throw new ConflictException(
               'No existe una autorizacion vigente para revocar',
             );
@@ -662,6 +681,7 @@ export class InteractionsService {
             subject,
             revocation,
             now,
+            currentNotice,
           );
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -893,6 +913,7 @@ export class InteractionsService {
     subject: CaseConsentSubject,
     consent: CaseConsentRecord | null,
     checkedAt: Date,
+    currentNotice: ConsentNoticeView | null,
   ) {
     let status: ConsentStatus | null = consent?.status ?? null;
     if (consent?.revokedAt || status === ConsentStatus.REVOKED) {
@@ -910,7 +931,12 @@ export class InteractionsService {
       purpose,
       subjectType: subject.subjectType,
       status,
-      active: this.isConsentActive(consent, checkedAt),
+      active: this.isConsentActive(consent, checkedAt, currentNotice?.version),
+      requiresReconsent: Boolean(
+        consent?.status === ConsentStatus.GRANTED &&
+        consent.noticeVersion !== currentNotice?.version,
+      ),
+      currentNotice,
       consentRecordId: consent?.id ?? null,
       legalBasis: consent?.legalBasis ?? null,
       collectionChannel: consent?.collectionChannel ?? null,
@@ -925,10 +951,12 @@ export class InteractionsService {
   private isConsentActive(
     consent: CaseConsentRecord | null,
     checkedAt: Date,
+    currentNoticeVersion?: string,
   ): boolean {
     return Boolean(
       consent &&
       consent.status === ConsentStatus.GRANTED &&
+      consent.noticeVersion === currentNoticeVersion &&
       !consent.revokedAt &&
       consent.grantedAt.getTime() <= checkedAt.getTime() &&
       (!consent.expiresAt || consent.expiresAt.getTime() > checkedAt.getTime()),
@@ -936,9 +964,7 @@ export class InteractionsService {
   }
 
   private getConsentPurpose(mode: PoliticalOperationMode): ConsentPurpose {
-    return mode === PoliticalOperationMode.CAMPAIGN
-      ? ConsentPurpose.POLITICAL_COMMUNICATION
-      : ConsentPurpose.SERVICE_FOLLOW_UP;
+    return getConsentPurposeForMode(mode);
   }
 
   private shouldSyncCampaignVoterConsent(
@@ -1070,6 +1096,7 @@ export class InteractionsService {
       select: {
         id: true,
         status: true,
+        noticeVersion: true,
         grantedAt: true,
         expiresAt: true,
         revokedAt: true,
@@ -1084,11 +1111,19 @@ export class InteractionsService {
     );
     const isUnexpired =
       !consent?.expiresAt || consent.expiresAt.getTime() > checkedAt.getTime();
+    const currentNotice = await findActiveConsentNotice(
+      tx,
+      tenantId,
+      mode,
+      purpose,
+    );
 
     if (
       !consent ||
       consent.status !== ConsentStatus.GRANTED ||
       consent.revokedAt ||
+      !currentNotice ||
+      consent.noticeVersion !== currentNotice.version ||
       !isGrantedBeforeInteraction ||
       !isCurrentlyEffective ||
       !isUnexpired

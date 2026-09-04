@@ -344,12 +344,6 @@ export class TeamService {
           if (!target) {
             throw new NotFoundException('Miembro activo no encontrado');
           }
-          if (target.role === Role.ADMIN) {
-            throw new ForbiddenException(
-              'No puedes restablecer otra cuenta administradora',
-            );
-          }
-
           const updated = await tx.user.updateMany({
             where: {
               id: target.id,
@@ -449,7 +443,7 @@ export class TeamService {
       const invitation = await this.prisma.$transaction(
         async (tx) => {
           const mode = await this.assertCurrentAdmin(user, tx);
-          this.assertAssignableRole(dto.role, mode);
+          this.assertInvitableRole(dto.role, mode);
 
           const [existingUser, pendingInvitation] = await Promise.all([
             tx.user.findUnique({
@@ -562,7 +556,7 @@ export class TeamService {
             !invitation ||
             invitation.acceptedAt !== null ||
             invitation.expiresAt <= now ||
-            !this.isAssignableRole(
+            !this.isInvitableRole(
               invitation.role,
               invitation.tenant.defaultMode,
             )
@@ -696,6 +690,14 @@ export class TeamService {
     }
   }
 
+  private assertInvitableRole(role: Role, mode: PoliticalOperationMode): void {
+    if (!this.isInvitableRole(role, mode)) {
+      throw new BadRequestException(
+        'El rol no puede invitarse en el modo operativo actual',
+      );
+    }
+  }
+
   private async findMutableMember(
     user: AuthenticatedUser,
     memberId: string,
@@ -745,6 +747,12 @@ export class TeamService {
     return mode === PoliticalOperationMode.CAMPAIGN
       ? CAMPAIGN_ROLES.has(role)
       : PUBLIC_OFFICE_ROLES.has(role);
+  }
+
+  private isInvitableRole(role: Role, mode: PoliticalOperationMode): boolean {
+    // ADMIN sólo nace mediante una invitación explícita de otro ADMIN. Nunca
+    // se incluye entre los roles mutables para impedir ascensos accidentales.
+    return role === Role.ADMIN || this.isAssignableRole(role, mode);
   }
 
   private resolveAppOrigin(): string {

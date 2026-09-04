@@ -24,10 +24,47 @@ export function resolveDatabaseSchema(
   if (!schema) return undefined;
 
   if (!POSTGRES_IDENTIFIER.test(schema)) {
-    throw new Error('DATABASE_SCHEMA contains an invalid PostgreSQL identifier');
+    throw new Error(
+      'DATABASE_SCHEMA contains an invalid PostgreSQL identifier',
+    );
   }
 
   return schema;
+}
+
+export function resolveDatabaseSsl(
+  environment: NodeJS.ProcessEnv = process.env,
+): false | { rejectUnauthorized: boolean } {
+  const sslEnabled = environment.DATABASE_SSL === 'true';
+  const rejectUnauthorized =
+    environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
+  const production = environment.NODE_ENV === 'production';
+  const insecureEvaluation =
+    production &&
+    environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === 'evaluation' &&
+    environment.ALLOW_INSECURE_DATABASE_CONNECTION === 'true';
+
+  if (production && !insecureEvaluation) {
+    if (!sslEnabled || !rejectUnauthorized) {
+      throw new Error(
+        'PostgreSQL TLS is mandatory outside the explicit evaluation profile',
+      );
+    }
+  }
+
+  if (insecureEvaluation) {
+    if (sslEnabled || rejectUnauthorized) {
+      throw new Error(
+        'The evaluation database exception requires DATABASE_SSL=false and DATABASE_SSL_REJECT_UNAUTHORIZED=false',
+      );
+    }
+    console.warn(
+      'PostgreSQL is using the explicit insecure evaluation profile; do not use it with real data.',
+    );
+    return false;
+  }
+
+  return sslEnabled ? { rejectUnauthorized } : false;
 }
 
 @Injectable()
@@ -46,13 +83,11 @@ export class PrismaService
       console.warn('DATABASE_URL is not configured. Database calls will fail.');
     }
 
-    const sslEnabled = process.env.DATABASE_SSL === 'true';
-    const rejectUnauthorized =
-      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
-
     const pool = new pg.Pool({
       connectionString,
-      ssl: sslEnabled ? { rejectUnauthorized } : false,
+      ssl: resolveDatabaseSsl(),
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
     });
 
     const schema = resolveDatabaseSchema(connectionString);

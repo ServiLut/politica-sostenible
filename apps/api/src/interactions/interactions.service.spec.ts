@@ -21,6 +21,19 @@ import { ConsentEvidenceService } from '../common/services/consent-evidence.serv
 import { PrismaService } from '../prisma/prisma.service';
 import { InteractionsService } from './interactions.service';
 
+const activeConsentNotice = {
+  id: 'notice-a',
+  mode: PoliticalOperationMode.CAMPAIGN,
+  purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+  version: '2026.1',
+  title: 'Autorizacion de tratamiento de datos',
+  content: 'Texto legal vigente para la organizacion.',
+  controllerName: 'Organizacion responsable',
+  contactEmail: 'privacidad@example.test',
+  privacyPolicyUrl: null,
+  activatedAt: new Date('2026-01-01T00:00:00.000Z'),
+};
+
 describe('InteractionsService', () => {
   const currentUser: AuthenticatedUser = {
     userId: 'agent-a',
@@ -34,6 +47,7 @@ describe('InteractionsService', () => {
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
+    consentNotice: { findFirst: jest.Mock };
     issueCase: { findFirst: jest.Mock; updateMany: jest.Mock };
     voter: { findFirst: jest.Mock; update: jest.Mock };
     consentRecord: { findFirst: jest.Mock; create: jest.Mock };
@@ -66,6 +80,9 @@ describe('InteractionsService', () => {
         ),
       },
       politicalDivision: { findMany: jest.fn().mockResolvedValue([]) },
+      consentNotice: {
+        findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+      },
       issueCase: {
         findFirst: jest.fn().mockResolvedValue({
           id: 'case-a',
@@ -605,6 +622,7 @@ describe('InteractionsService', () => {
       select: {
         id: true,
         status: true,
+        noticeVersion: true,
         grantedAt: true,
         expiresAt: true,
         revokedAt: true,
@@ -826,6 +844,7 @@ describe('InteractionsService', () => {
       {
         issueCaseId: 'case-a',
         collectionChannel: ConsentCollectionChannel.PHONE,
+        noticeVersion: '2026.1',
         expiresAt: '2027-08-01T10:00:00.000Z',
       },
     );
@@ -863,6 +882,7 @@ describe('InteractionsService', () => {
       service.grantCaseConsent(currentUser, '203.0.113.42', {
         issueCaseId: 'case-a',
         collectionChannel: ConsentCollectionChannel.IMPORT,
+        noticeVersion: '2026.1',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -888,6 +908,7 @@ describe('InteractionsService', () => {
     await service.grantCaseConsent(currentUser, '203.0.113.42', {
       issueCaseId: 'case-a',
       collectionChannel: ConsentCollectionChannel.PHONE,
+      noticeVersion: '2026.1',
     });
     const after = new Date();
 
@@ -929,6 +950,7 @@ describe('InteractionsService', () => {
       service.grantCaseConsent(currentUser, '203.0.113.42', {
         issueCaseId: 'case-a',
         collectionChannel: ConsentCollectionChannel.PHONE,
+        noticeVersion: '2026.1',
       }),
     ).resolves.toMatchObject({ active: true });
 
@@ -1022,6 +1044,7 @@ describe('InteractionsService', () => {
       service.grantCaseConsent(currentUser, '203.0.113.42', {
         issueCaseId: 'case-a',
         collectionChannel: ConsentCollectionChannel.PHONE,
+        noticeVersion: '2026.1',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
 
@@ -1037,6 +1060,7 @@ describe('InteractionsService', () => {
         {
           issueCaseId: 'unassigned-case',
           collectionChannel: ConsentCollectionChannel.IN_PERSON,
+          noticeVersion: '2026.1',
         },
       ),
     ).rejects.toBeInstanceOf(NotFoundException);

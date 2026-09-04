@@ -185,8 +185,7 @@ export default function WarRoomPage() {
   const [reportPage, setReportPage] =
     useState<WitnessReportPage>(EMPTY_REPORT_PAGE);
   const [page, setPage] = useState(1);
-  const [filterDraft, setFilterDraft] =
-    useState<ReportFilters>(EMPTY_FILTERS);
+  const [filterDraft, setFilterDraft] = useState<ReportFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<ReportFilters>(EMPTY_FILTERS);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -201,15 +200,17 @@ export default function WarRoomPage() {
   const [e14File, setE14File] = useState<File | null>(null);
   const [openingReportId, setOpeningReportId] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<WitnessReport | null>(null);
-  const [reviewDecision, setReviewDecision] = useState<
-    "ACCEPTED" | "REJECTED"
-  >("ACCEPTED");
+  const [reviewDecision, setReviewDecision] = useState<"ACCEPTED" | "REJECTED">(
+    "ACCEPTED",
+  );
   const [reviewReason, setReviewReason] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
   const [profileTarget, setProfileTarget] = useState<VotingPlace | null>(null);
   const [expectedTables, setExpectedTables] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const reviewTitleRef = useRef<HTMLHeadingElement>(null);
+  const profileTitleRef = useRef<HTMLHeadingElement>(null);
 
   async function handleOpenReport(reportId: string) {
     setOpeningReportId(reportId);
@@ -225,58 +226,62 @@ export default function WarRoomPage() {
     }
   }
 
-  const loadData = useCallback(async (signal?: AbortSignal) => {
-    if (!canReadE14) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setLoadError(null);
+  const loadData = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!canReadE14) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setLoadError(null);
 
-    try {
-      const [loadedPlaces, loadedReports] = await Promise.all([
-        listVotingPlaces(
-          { page: placePage, limit: 50, search: placeSearch || undefined },
-          signal,
-        ),
-        listWitnessReports(
-          {
-            page,
-            limit: PAGE_SIZE,
-            ...(filters.status ? { status: filters.status } : {}),
-            ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
-            ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
-          },
-          signal,
-        ),
-      ]);
+      try {
+        const [loadedPlaces, loadedReports] = await Promise.all([
+          listVotingPlaces(
+            { page: placePage, limit: 50, search: placeSearch || undefined },
+            signal,
+          ),
+          listWitnessReports(
+            {
+              page,
+              limit: PAGE_SIZE,
+              ...(filters.status ? { status: filters.status } : {}),
+              ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
+              ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
+            },
+            signal,
+          ),
+        ]);
 
-      setPlacesPage(loadedPlaces);
-      setReportPage(loadedReports);
-      setForm((current) => {
-        const selectedPlaceStillExists = loadedPlaces.items.some(
-          (place) => place.id === current.puestoId,
+        setPlacesPage(loadedPlaces);
+        setReportPage(loadedReports);
+        setForm((current) => {
+          const selectedPlaceStillExists = loadedPlaces.items.some(
+            (place) => place.id === current.puestoId,
+          );
+
+          return {
+            ...current,
+            puestoId: selectedPlaceStillExists
+              ? current.puestoId
+              : (loadedPlaces.items[0]?.id ?? ""),
+          };
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setLoadError(
+          readableError(
+            error,
+            "No fue posible consultar los puestos y reportes electorales.",
+          ),
         );
-
-        return {
-          ...current,
-          puestoId: selectedPlaceStillExists
-            ? current.puestoId
-            : (loadedPlaces.items[0]?.id ?? ""),
-        };
-      });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setLoadError(
-        readableError(
-          error,
-          "No fue posible consultar los puestos y reportes electorales.",
-        ),
-      );
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [canReadE14, filters, page, placePage, placeSearch]);
+      } finally {
+        if (!signal?.aborted) setLoading(false);
+      }
+    },
+    [canReadE14, filters, page, placePage, placeSearch],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -285,13 +290,23 @@ export default function WarRoomPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (!dialogOpen) return;
+    const activeDialogTitle = dialogOpen
+      ? dialogTitleRef.current
+      : reviewTarget
+        ? reviewTitleRef.current
+        : profileTarget
+          ? profileTitleRef.current
+          : null;
+    if (!activeDialogTitle) return;
 
     const previousActiveElement = document.activeElement as HTMLElement | null;
-    dialogTitleRef.current?.focus();
+    activeDialogTitle.focus();
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !savingStep) setDialogOpen(false);
+      if (event.key !== "Escape") return;
+      if (dialogOpen && !savingStep) setDialogOpen(false);
+      if (reviewTarget && !reviewSaving) setReviewTarget(null);
+      if (profileTarget && !profileSaving) setProfileTarget(null);
     };
 
     window.addEventListener("keydown", closeOnEscape);
@@ -299,7 +314,14 @@ export default function WarRoomPage() {
       window.removeEventListener("keydown", closeOnEscape);
       previousActiveElement?.focus();
     };
-  }, [dialogOpen, savingStep]);
+  }, [
+    dialogOpen,
+    profileSaving,
+    profileTarget,
+    reviewSaving,
+    reviewTarget,
+    savingStep,
+  ]);
 
   const places = placesPage.items;
   const reports = reportPage.items;
@@ -404,7 +426,7 @@ export default function WarRoomPage() {
       setE14File(null);
       setDialogOpen(false);
       setNotice(
-        "Reporte E-14 radicado como pendiente. Sus votos solo contaran despues de una revision independiente.",
+        "Reporte E-14 radicado como pendiente. Sus votos solo contarán después de una revisión independiente.",
       );
       if (page === 1) await loadData();
       else setPage(1);
@@ -448,7 +470,13 @@ export default function WarRoomPage() {
   }
 
   function openReviewDialog(report: WitnessReport) {
-    if (!canReviewE14 || report.status !== "PENDING") return;
+    if (
+      !canReviewE14 ||
+      report.status !== "PENDING" ||
+      report.witnessId === user?.id
+    ) {
+      return;
+    }
     setActionError(null);
     setReviewTarget(report);
     setReviewDecision("ACCEPTED");
@@ -460,7 +488,9 @@ export default function WarRoomPage() {
     if (!reviewTarget) return;
     const reason = reviewReason.trim();
     if (reason.length < 10) {
-      setActionError("El motivo de revision debe tener al menos 10 caracteres.");
+      setActionError(
+        "El motivo de revisión debe tener al menos 10 caracteres.",
+      );
       return;
     }
 
@@ -474,13 +504,13 @@ export default function WarRoomPage() {
       setReviewTarget(null);
       setNotice(
         reviewDecision === "ACCEPTED"
-          ? "Reporte aceptado. Esta es ahora la unica lectura que alimenta las metricas de la mesa."
-          : "Reporte rechazado con motivo registrado en la auditoria.",
+          ? "Reporte aceptado. Esta es ahora la única lectura que alimenta las métricas de la mesa."
+          : "Reporte rechazado con motivo registrado en la auditoría.",
       );
       await loadData();
     } catch (error) {
       setActionError(
-        readableError(error, "No fue posible registrar la revision E-14."),
+        readableError(error, "No fue posible registrar la revisión E-14."),
       );
     } finally {
       setReviewSaving(false);
@@ -494,12 +524,26 @@ export default function WarRoomPage() {
     setExpectedTables(place.expectedTables?.toString() ?? "");
   }
 
+  function closeReviewDialog() {
+    if (reviewSaving) return;
+    setReviewTarget(null);
+    setActionError(null);
+  }
+
+  function closeProfileDialog() {
+    if (profileSaving) return;
+    setProfileTarget(null);
+    setActionError(null);
+  }
+
   async function handleProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profileTarget) return;
     const value = Number(expectedTables);
     if (!Number.isInteger(value) || value < 1 || value > 99_999) {
-      setActionError("Las mesas esperadas deben ser un entero entre 1 y 99.999.");
+      setActionError(
+        "Las mesas esperadas deben ser un entero entre 1 y 99.999.",
+      );
       return;
     }
 
@@ -579,7 +623,7 @@ export default function WarRoomPage() {
         </div>
       )}
 
-      {actionError && (
+      {actionError && !reviewTarget && !profileTarget && (
         <div
           role="alert"
           className="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-900"
@@ -602,7 +646,7 @@ export default function WarRoomPage() {
           role="alert"
           className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-950"
         >
-          Tu rol no tiene acceso al modulo de conciliacion E-14.
+          Tu rol no tiene acceso al módulo de conciliación E-14.
         </div>
       ) : loading ? (
         <div
@@ -743,8 +787,8 @@ export default function WarRoomPage() {
                   <strong>Cobertura pendiente de parametrizar.</strong>{" "}
                   {formatNumber(summary.coverage.configuredPlaces)} de{" "}
                   {formatNumber(summary.coverage.totalPlaces)} puestos tienen
-                  definido su número esperado de mesas. La plataforma no
-                  inventa porcentajes cuando falta esa base.
+                  definido su número esperado de mesas. La plataforma no inventa
+                  porcentajes cuando falta esa base.
                 </>
               ) : (
                 <>
@@ -921,13 +965,96 @@ export default function WarRoomPage() {
             aria-labelledby="reports-heading"
             className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <header className="border-b border-slate-100 bg-slate-50/60 px-6 py-5">
-              <h2 id="reports-heading" className="font-black text-slate-950">
-                Reportes registrados
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                La ruta privada del acta nunca se expone en esta vista.
-              </p>
+            <header className="space-y-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+              <div>
+                <h2 id="reports-heading" className="font-black text-slate-950">
+                  Reportes registrados
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  La ruta privada del acta nunca se expone en esta vista.
+                </p>
+              </div>
+              <form
+                aria-label="Filtrar reportes E-14"
+                onSubmit={applyFilters}
+                className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]"
+              >
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Estado
+                  <select
+                    value={filterDraft.status}
+                    onChange={(event) =>
+                      setFilterDraft((current) => ({
+                        ...current,
+                        status: event.target.value as ReportFilters["status"],
+                      }))
+                    }
+                    className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
+                    <option value="">Todos</option>
+                    {Object.entries(STATUS_LABELS).map(([value, meta]) => (
+                      <option key={value} value={value}>
+                        {meta.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Puesto
+                  <select
+                    value={filterDraft.puestoId}
+                    onChange={(event) =>
+                      setFilterDraft((current) => ({
+                        ...current,
+                        puestoId: event.target.value,
+                      }))
+                    }
+                    className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
+                    <option value="">Todos los visibles</option>
+                    {places.map((place) => (
+                      <option key={place.id} value={place.id}>
+                        {place.code} · {place.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Mesa
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    value={filterDraft.mesa}
+                    onChange={(event) =>
+                      setFilterDraft((current) => ({
+                        ...current,
+                        mesa: event.target.value,
+                      }))
+                    }
+                    placeholder="Cualquier mesa"
+                    className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  />
+                </label>
+                <div className="flex items-end gap-2">
+                  <button
+                    type="submit"
+                    className="min-h-11 flex-1 rounded-xl bg-slate-950 px-4 text-sm font-black text-white hover:bg-blue-800"
+                  >
+                    Filtrar
+                  </button>
+                  {(filters.status || filters.puestoId || filters.mesa) && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 hover:bg-slate-100"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              </form>
             </header>
             {reports.length === 0 ? (
               <div className="px-6 py-16 text-center">
@@ -946,15 +1073,17 @@ export default function WarRoomPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px] text-left text-sm">
+                <table className="w-full min-w-[1180px] text-left text-sm">
                   <thead className="bg-white text-xs font-black uppercase tracking-wider text-slate-400">
                     <tr>
                       <th className="px-6 py-4">Puesto / mesa</th>
                       <th className="px-6 py-4">Testigo</th>
                       <th className="px-6 py-4 text-right">Votos candidato</th>
                       <th className="px-6 py-4 text-right">Votos totales</th>
+                      <th className="px-6 py-4">Conciliación</th>
                       <th className="px-6 py-4">Soporte</th>
                       <th className="px-6 py-4">Fecha</th>
+                      <th className="px-6 py-4 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -980,6 +1109,36 @@ export default function WarRoomPage() {
                         </td>
                         <td className="px-6 py-5 text-right font-black text-slate-900">
                           {formatNumber(report.totalTableVotes)}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex max-w-xs flex-col items-start gap-2">
+                            <span
+                              data-testid={`report-status-${report.id}`}
+                              className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${STATUS_LABELS[report.status].className}`}
+                            >
+                              {STATUS_LABELS[report.status].label}
+                            </span>
+                            {report.divergent && (
+                              <span className="inline-flex items-center gap-1 text-xs font-black text-amber-700">
+                                <AlertTriangle aria-hidden="true" size={14} />
+                                Lecturas divergentes
+                              </span>
+                            )}
+                            {report.reviewer && report.reviewedAt && (
+                              <p className="text-xs leading-5 text-slate-500">
+                                Revisó {report.reviewer.name} ·{" "}
+                                {formatDate(report.reviewedAt)}
+                              </p>
+                            )}
+                            {report.reviewReason && (
+                              <p
+                                title={report.reviewReason}
+                                className="line-clamp-2 text-xs leading-5 text-slate-600"
+                              >
+                                Motivo: {report.reviewReason}
+                              </p>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col items-start gap-2">
@@ -1011,11 +1170,57 @@ export default function WarRoomPage() {
                         <td className="px-6 py-5 text-xs text-slate-500">
                           {formatDate(report.createdAt)}
                         </td>
+                        <td className="px-6 py-5 text-right">
+                          {report.status === "PENDING" && canReviewE14 ? (
+                            report.witnessId === user?.id ? (
+                              <span className="text-xs font-semibold text-slate-500">
+                                Requiere otro revisor
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openReviewDialog(report)}
+                                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-700 px-4 text-xs font-black text-white hover:bg-blue-800"
+                              >
+                                <Scale aria-hidden="true" size={15} /> Revisar
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
+            {reportPage.pagination.totalPages > 1 && (
+              <nav
+                aria-label="Paginación de reportes E-14"
+                className="flex items-center justify-between border-t border-slate-100 px-4 py-3 sm:px-6"
+              >
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                >
+                  <ChevronLeft aria-hidden="true" size={16} /> Anterior
+                </button>
+                <span className="text-xs font-bold text-slate-500">
+                  Página {reportPage.pagination.page} de{" "}
+                  {reportPage.pagination.totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= reportPage.pagination.totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                >
+                  Siguiente <ChevronRight aria-hidden="true" size={16} />
+                </button>
+              </nav>
             )}
           </section>
         </>
@@ -1222,6 +1427,239 @@ export default function WarRoomPage() {
                     : savingStep === "reporting"
                       ? "Guardando reporte…"
                       : "Enviar reporte"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {reviewTarget && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="e14-review-title"
+            className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2
+                  id="e14-review-title"
+                  ref={reviewTitleRef}
+                  tabIndex={-1}
+                  className="text-xl font-black text-slate-950 outline-none"
+                >
+                  Revisar reporte E-14
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Mesa {reviewTarget.mesa} ·{" "}
+                  {placeName(reviewTarget, placesById)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeReviewDialog}
+                disabled={reviewSaving}
+                aria-label="Cerrar revisión"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+              >
+                <X aria-hidden="true" size={21} />
+              </button>
+            </header>
+            <form onSubmit={handleReview} className="space-y-5 p-6">
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Reportante
+                  </p>
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {reviewTarget.witness.name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Votos candidato
+                  </p>
+                  <p className="mt-1 text-sm font-black text-blue-800">
+                    {formatNumber(reviewTarget.candidateVotes)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Votos totales
+                  </p>
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {formatNumber(reviewTarget.totalTableVotes)}
+                  </p>
+                </div>
+              </div>
+
+              {reviewTarget.divergent && (
+                <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                  <AlertTriangle
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0"
+                    size={18}
+                  />
+                  Este reporte difiere de otra lectura pendiente o aceptada de
+                  la misma mesa. Verifica el acta antes de decidir.
+                </div>
+              )}
+
+              {actionError && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
+                >
+                  {actionError}
+                </div>
+              )}
+
+              <label className="block text-sm font-black text-slate-800">
+                Decisión de conciliación
+                <select
+                  value={reviewDecision}
+                  onChange={(event) =>
+                    setReviewDecision(
+                      event.target.value as "ACCEPTED" | "REJECTED",
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="ACCEPTED">Aceptar como lectura oficial</option>
+                  <option value="REJECTED">Rechazar reporte</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-black text-slate-800">
+                Motivo de la decisión
+                <textarea
+                  required
+                  minLength={10}
+                  maxLength={1000}
+                  rows={4}
+                  value={reviewReason}
+                  onChange={(event) => setReviewReason(event.target.value)}
+                  placeholder="Describe la verificación realizada y la razón de la decisión."
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeReviewDialog}
+                  disabled={reviewSaving}
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewSaving}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60"
+                >
+                  {reviewSaving ? (
+                    <Loader2
+                      aria-hidden="true"
+                      className="animate-spin"
+                      size={17}
+                    />
+                  ) : (
+                    <Scale aria-hidden="true" size={17} />
+                  )}
+                  {reviewSaving ? "Guardando decisión…" : "Guardar decisión"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {profileTarget && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="e14-profile-title"
+            className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2
+                  id="e14-profile-title"
+                  ref={profileTitleRef}
+                  tabIndex={-1}
+                  className="text-xl font-black text-slate-950 outline-none"
+                >
+                  Configurar mesas esperadas
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {profileTarget.code} · {profileTarget.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeProfileDialog}
+                disabled={profileSaving}
+                aria-label="Cerrar configuración"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+              >
+                <X aria-hidden="true" size={21} />
+              </button>
+            </header>
+            <form onSubmit={handleProfile} className="space-y-5 p-6">
+              {actionError && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
+                >
+                  {actionError}
+                </div>
+              )}
+              <p className="text-sm leading-6 text-slate-600">
+                Este valor define el denominador de cobertura. Debe corresponder
+                al número real de mesas habilitadas en el puesto.
+              </p>
+              <label className="block text-sm font-black text-slate-800">
+                Mesas esperadas
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  max={99_999}
+                  step={1}
+                  inputMode="numeric"
+                  value={expectedTables}
+                  onChange={(event) => setExpectedTables(event.target.value)}
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeProfileDialog}
+                  disabled={profileSaving}
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60"
+                >
+                  {profileSaving ? (
+                    <Loader2
+                      aria-hidden="true"
+                      className="animate-spin"
+                      size={17}
+                    />
+                  ) : (
+                    <Settings2 aria-hidden="true" size={17} />
+                  )}
+                  {profileSaving ? "Guardando perfil…" : "Guardar perfil"}
                 </button>
               </div>
             </form>

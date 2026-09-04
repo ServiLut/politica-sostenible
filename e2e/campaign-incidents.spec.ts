@@ -99,7 +99,24 @@ const initialInteraction = {
   actor: assignees[0],
 };
 
-function consentStatus(state: "none" | "active" | "revoked") {
+const currentConsentNotice = {
+  id: "case-notice-e2e",
+  mode: "CAMPAIGN",
+  purpose: "POLITICAL_COMMUNICATION",
+  version: "campaign-2026-09-v1",
+  title: "AutorizaciÃ³n para seguimiento del caso",
+  content:
+    "La persona autoriza de manera previa, expresa e informada el contacto relacionado con este caso y conoce cÃ³mo ejercer sus derechos.",
+  controllerName: "CampaÃ±a verificable",
+  contactEmail: "privacidad@example.test",
+  privacyPolicyUrl: null,
+  activatedAt: "2026-09-04T12:00:00.000Z",
+};
+
+function consentStatus(
+  state: "none" | "active" | "revoked",
+  notice = currentConsentNotice,
+) {
   const active = state === "active";
   const exists = state !== "none";
   return {
@@ -114,16 +131,17 @@ function consentStatus(state: "none" | "active" | "revoked") {
         ? "consent-revoked"
         : null,
     collectionChannel: exists ? "PHONE" : null,
-    noticeVersion: exists ? "2026.1" : null,
+    noticeVersion: exists ? notice.version : null,
     grantedAt: exists ? "2026-08-21T12:30:00.000Z" : null,
     expiresAt: null,
-    revokedAt:
-      state === "revoked" ? "2026-08-21T14:30:00.000Z" : null,
+    revokedAt: state === "revoked" ? "2026-08-21T14:30:00.000Z" : null,
     recordedAt: active
       ? "2026-08-21T12:30:00.000Z"
       : state === "revoked"
         ? "2026-08-21T14:30:00.000Z"
         : null,
+    currentNotice: notice,
+    requiresReconsent: false,
   };
 }
 
@@ -213,6 +231,13 @@ test("administra un incidente real con filtros, responsable y transición audita
   let incidents = [initialIncident];
   let interactionTotal = initialIncident._count.interactions;
   let consentState: "none" | "active" | "revoked" = "none";
+  let servedConsentNotice = currentConsentNotice;
+  const renewedConsentNotice = {
+    ...currentConsentNotice,
+    id: "case-notice-e2e-v2",
+    version: "campaign-2026-09-v2",
+    title: "Autorización actualizada para seguimiento del caso",
+  };
 
   await installSession(page, adminSession);
 
@@ -239,7 +264,9 @@ test("administra un incidente real con filtros, responsable y transición audita
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(consentStatus(consentState))),
+        body: JSON.stringify(
+          successful(consentStatus(consentState, servedConsentNotice)),
+        ),
       });
       return;
     }
@@ -253,7 +280,12 @@ test("administra un incidente real con filtros, responsable y transición audita
       await route.fulfill({
         status: 201,
         contentType: "application/json",
-        body: JSON.stringify(successful(consentStatus(consentState), 201)),
+        body: JSON.stringify(
+          successful(
+            consentStatus(consentState, servedConsentNotice),
+            201,
+          ),
+        ),
       });
       return;
     }
@@ -267,7 +299,12 @@ test("administra un incidente real con filtros, responsable y transición audita
       await route.fulfill({
         status: 201,
         contentType: "application/json",
-        body: JSON.stringify(successful(consentStatus(consentState), 201)),
+        body: JSON.stringify(
+          successful(
+            consentStatus(consentState, servedConsentNotice),
+            201,
+          ),
+        ),
       });
       return;
     }
@@ -406,9 +443,7 @@ test("administra un incidente real con filtros, responsable y transición audita
   );
 
   const initialCard = page.getByTestId("incident-card-incident-1");
-  await initialCard
-    .getByRole("button", { name: /Abrir bitácora/ })
-    .click();
+  await initialCard.getByRole("button", { name: /Abrir bitácora/ }).click();
   const timelineDialog = page.getByRole("dialog", {
     name: "Bitácora del caso",
   });
@@ -435,15 +470,30 @@ test("administra un incidente real con filtros, responsable y transición audita
   await expect(
     timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
   ).toBeDisabled();
+  const consentChannel = timelineDialog.getByLabel("Canal de autorización");
+  const consentConfirmation = timelineDialog.getByRole("checkbox", {
+    name: /Confirmo que la persona autorizó/,
+  });
+  const grantConsentButton = timelineDialog.getByRole("button", {
+    name: "Registrar autorización",
+  });
+  await expect(consentChannel).toHaveValue("");
+  await consentChannel.selectOption("PHONE");
+  await consentConfirmation.check();
+  await expect(grantConsentButton).toBeEnabled();
+
+  servedConsentNotice = renewedConsentNotice;
   await timelineDialog
-    .getByLabel("Canal de autorización")
-    .selectOption("PHONE");
-  await timelineDialog
-    .getByRole("checkbox", { name: /Confirmo que la persona autorizó/ })
-    .check();
-  await timelineDialog
-    .getByRole("button", { name: "Registrar autorización" })
+    .getByRole("button", { name: "Actualizar historial" })
     .click();
+  await expect(timelineDialog).toContainText(renewedConsentNotice.version);
+  await expect(consentChannel).toHaveValue("");
+  await expect(consentConfirmation).not.toBeChecked();
+  await expect(grantConsentButton).toBeDisabled();
+
+  await consentChannel.selectOption("PHONE");
+  await consentConfirmation.check();
+  await grantConsentButton.click();
   await expect(timelineDialog).toContainText("Autorización vigente");
   await expect(
     timelineDialog.getByRole("button", { name: "Guardar en bitácora" }),
@@ -512,7 +562,12 @@ test("administra un incidente real con filtros, responsable y transición audita
   await dialog.getByLabel("Severidad / prioridad").selectOption("URGENT");
   await dialog.getByLabel("Responsable").selectOption("legal-team");
   await dialog.getByLabel("Vencimiento").fill("2026-08-22");
-  await dialog.getByLabel(/Restringir como incidente confidencial/).check();
+  await expect(
+    dialog.getByText(
+      /Es una clasificación operativa\. No restringe el acceso: la visibilidad sigue los permisos generales del rol y la asignación del incidente\./,
+    ),
+  ).toBeVisible();
+  await dialog.getByLabel(/Aplicar etiqueta de manejo especial/).check();
   await dialog.getByRole("button", { name: "Registrar incidente" }).click();
 
   await expect(
@@ -521,6 +576,12 @@ test("administra un incidente real con filtros, responsable y transición audita
   const createdCard = page.getByTestId("incident-card-incident-2");
   await expect(createdCard).toContainText("Amenaza al equipo territorial");
   await expect(createdCard).toContainText("Severidad Crítica");
+  await expect(createdCard.getByText("Manejo especial")).toBeVisible();
+  await expect(
+    createdCard.getByTitle(
+      "Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del incidente",
+    ),
+  ).toBeVisible();
 
   await createdCard
     .getByRole("combobox", { name: /Estado operativo/ })
@@ -580,6 +641,7 @@ test("administra un incidente real con filtros, responsable y transición audita
     {
       issueCaseId: initialIncident.id,
       collectionChannel: "PHONE",
+      noticeVersion: renewedConsentNotice.version,
     },
     {
       issueCaseId: initialIncident.id,
@@ -592,7 +654,6 @@ test("administra un incidente real con filtros, responsable y transición audita
         !("legalBasis" in body) &&
         !("subjectRef" in body) &&
         !("voterId" in body) &&
-        !("noticeVersion" in body) &&
         !("grantedAt" in body),
     ),
   ).toBe(true);
@@ -731,9 +792,7 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
     ),
   ).toBe(true);
   expect(requestedPaths).toContain("GET /api/interactions");
-  expect(requestedPaths).toContain(
-    "GET /api/interactions/consents/status",
-  );
+  expect(requestedPaths).toContain("GET /api/interactions/consents/status");
   expect(requestedPaths.some((path) => path.startsWith("POST "))).toBe(false);
   expect(authSessionRequests).toBeGreaterThanOrEqual(1);
 });

@@ -35,7 +35,8 @@ La integración PostgreSQL requiere una base desechable. Debe aplicar primero
    aprobarlo, que nadie puede aprobarlo sin soporte y que una segunda persona
    autorizada sí puede hacerlo con motivo.
 5. Exportar el borrador financiero y confirmar que sólo incluye gastos
-   aprobados o ya reportados y que se identifica como preparatorio.
+   aprobados o ya reportados y que se identifica como preparatorio, nunca como
+   radicación oficial.
 6. Verificar los centros de mando `CAMPAIGN` y `PUBLIC_OFFICE` con roles
    permitidos y denegados, sin enviar `tenantId` ni modo desde el navegador.
 7. Completar captura E-14, incidentes, invitaciones, tareas, agenda y auditoría

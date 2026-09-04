@@ -75,10 +75,8 @@ describe('FinanceService controlled workflow', () => {
       auditEvent: { create: auditCreate },
     };
     const runTransaction = jest.fn(
-      async (
-        callback: (client: typeof transaction) => Promise<unknown>,
-        _options?: unknown,
-      ) => callback(transaction),
+      async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
     );
     const service = new FinanceService({
       $transaction: runTransaction,
@@ -244,12 +242,25 @@ describe('FinanceService controlled workflow', () => {
         reporter: { name: '@SUM(1,1)' },
       },
     ]);
-    const service = new FinanceService({
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-export' });
+    const transaction = {
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ role: Role.COMPLIANCE_OFFICER }),
+      },
       financialEntry: { findMany },
+      auditEvent: { create: auditCreate },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     } as unknown as PrismaService);
 
-    const csv = await service.generateCneReport('tenant-a');
+    const csv = await service.generateCneReport('tenant-a', 'compliance-a');
 
     expect(findMany).toHaveBeenCalledWith({
       where: {
@@ -274,6 +285,19 @@ describe('FinanceService controlled workflow', () => {
     expect(csv).toContain("'=HYPERLINK");
     expect(csv).toContain("'+900123456");
     expect(csv).toContain("'@SUM(1,1)");
+    expect(auditCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tenantId: 'tenant-a',
+          actorUserId: 'compliance-a',
+          action: 'CAMPAIGN_CNE_REVIEW_DRAFT_EXPORTED',
+          metadata: expect.objectContaining({ recordCount: 1 }) as object,
+        }) as object,
+      }),
+    );
+    expect(JSON.stringify(auditCreate.mock.calls)).not.toContain(
+      'Proveedor sensible',
+    );
   });
 
   it('rejects lowering either setting below current non-rejected expenses', async () => {
@@ -353,10 +377,8 @@ describe('FinanceService controlled workflow', () => {
       auditEvent: { create: auditCreate },
     };
     const runTransaction = jest.fn(
-      async (
-        callback: (client: typeof transaction) => Promise<unknown>,
-        _options?: unknown,
-      ) => callback(transaction),
+      async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
     );
     const service = new FinanceService({
       $transaction: runTransaction,

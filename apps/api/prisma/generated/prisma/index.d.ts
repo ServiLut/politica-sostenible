@@ -86,6 +86,13 @@ export type InventoryMovement = $Result.DefaultSelection<Prisma.$InventoryMoveme
  */
 export type ConsentRecord = $Result.DefaultSelection<Prisma.$ConsentRecordPayload>
 /**
+ * Model ConsentNotice
+ * Versiones del aviso de privacidad configuradas por cada organización.
+ * Una versión retirada se conserva para poder reconstruir qué información
+ * recibió la persona al autorizar el tratamiento.
+ */
+export type ConsentNotice = $Result.DefaultSelection<Prisma.$ConsentNoticePayload>
+/**
  * Model IssueCase
  * Solicitud ciudadana, incidencia territorial o caso de campaña, con SLA y
  * responsable explícitos. `mode` impide mezclar gestión pública y proselitismo.
@@ -114,8 +121,8 @@ export type Commitment = $Result.DefaultSelection<Prisma.$CommitmentPayload>
 export type CommunicationApproval = $Result.DefaultSelection<Prisma.$CommunicationApprovalPayload>
 /**
  * Model AuditEvent
- * Registro append-only de operaciones sensibles. Las capas de servicio deben
- * prohibir update/delete y redactar secretos antes de persistir before/after.
+ * Registro append-only de operaciones sensibles. PostgreSQL rechaza UPDATE,
+ * DELETE y TRUNCATE; las capas de servicio redactan secretos antes de insertar.
  */
 export type AuditEvent = $Result.DefaultSelection<Prisma.$AuditEventPayload>
 
@@ -786,6 +793,16 @@ export class PrismaClient<
   get consentRecord(): Prisma.ConsentRecordDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.consentNotice`: Exposes CRUD operations for the **ConsentNotice** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ConsentNotices
+    * const consentNotices = await prisma.consentNotice.findMany()
+    * ```
+    */
+  get consentNotice(): Prisma.ConsentNoticeDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.issueCase`: Exposes CRUD operations for the **IssueCase** model.
     * Example usage:
     * ```ts
@@ -1305,6 +1322,7 @@ export namespace Prisma {
     InventoryItem: 'InventoryItem',
     InventoryMovement: 'InventoryMovement',
     ConsentRecord: 'ConsentRecord',
+    ConsentNotice: 'ConsentNotice',
     IssueCase: 'IssueCase',
     Interaction: 'Interaction',
     Task: 'Task',
@@ -1326,7 +1344,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent"
+      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2366,6 +2384,80 @@ export namespace Prisma {
           }
         }
       }
+      ConsentNotice: {
+        payload: Prisma.$ConsentNoticePayload<ExtArgs>
+        fields: Prisma.ConsentNoticeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ConsentNoticeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ConsentNoticeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          findFirst: {
+            args: Prisma.ConsentNoticeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ConsentNoticeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          findMany: {
+            args: Prisma.ConsentNoticeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>[]
+          }
+          create: {
+            args: Prisma.ConsentNoticeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          createMany: {
+            args: Prisma.ConsentNoticeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ConsentNoticeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>[]
+          }
+          delete: {
+            args: Prisma.ConsentNoticeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          update: {
+            args: Prisma.ConsentNoticeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          deleteMany: {
+            args: Prisma.ConsentNoticeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ConsentNoticeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ConsentNoticeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>[]
+          }
+          upsert: {
+            args: Prisma.ConsentNoticeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsentNoticePayload>
+          }
+          aggregate: {
+            args: Prisma.ConsentNoticeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateConsentNotice>
+          }
+          groupBy: {
+            args: Prisma.ConsentNoticeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ConsentNoticeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ConsentNoticeCountArgs<ExtArgs>
+            result: $Utils.Optional<ConsentNoticeCountAggregateOutputType> | number
+          }
+        }
+      }
       IssueCase: {
         payload: Prisma.$IssueCasePayload<ExtArgs>
         fields: Prisma.IssueCaseFieldRefs
@@ -2947,6 +3039,7 @@ export namespace Prisma {
     inventoryItem?: InventoryItemOmit
     inventoryMovement?: InventoryMovementOmit
     consentRecord?: ConsentRecordOmit
+    consentNotice?: ConsentNoticeOmit
     issueCase?: IssueCaseOmit
     interaction?: InteractionOmit
     task?: TaskOmit
@@ -3043,6 +3136,7 @@ export namespace Prisma {
     inventory: number
     inventoryMovements: number
     consentRecords: number
+    consentNotices: number
     issueCases: number
     interactions: number
     tasks: number
@@ -3064,6 +3158,7 @@ export namespace Prisma {
     inventory?: boolean | TenantCountOutputTypeCountInventoryArgs
     inventoryMovements?: boolean | TenantCountOutputTypeCountInventoryMovementsArgs
     consentRecords?: boolean | TenantCountOutputTypeCountConsentRecordsArgs
+    consentNotices?: boolean | TenantCountOutputTypeCountConsentNoticesArgs
     issueCases?: boolean | TenantCountOutputTypeCountIssueCasesArgs
     interactions?: boolean | TenantCountOutputTypeCountInteractionsArgs
     tasks?: boolean | TenantCountOutputTypeCountTasksArgs
@@ -3158,6 +3253,13 @@ export namespace Prisma {
   /**
    * TenantCountOutputType without action
    */
+  export type TenantCountOutputTypeCountConsentNoticesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConsentNoticeWhereInput
+  }
+
+  /**
+   * TenantCountOutputType without action
+   */
   export type TenantCountOutputTypeCountIssueCasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: IssueCaseWhereInput
   }
@@ -3219,12 +3321,14 @@ export namespace Prisma {
   export type UserCountOutputType = {
     financialEntriesReported: number
     financialEntriesReviewed: number
+    financialEntriesCneMarked: number
     registeredVoters: number
     witnessReports: number
     witnessReportsReviewed: number
     pointLogs: number
     inventoryMoves: number
     consentsCaptured: number
+    consentNoticesCreated: number
     casesAssigned: number
     casesCreated: number
     interactions: number
@@ -3242,12 +3346,14 @@ export namespace Prisma {
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     financialEntriesReported?: boolean | UserCountOutputTypeCountFinancialEntriesReportedArgs
     financialEntriesReviewed?: boolean | UserCountOutputTypeCountFinancialEntriesReviewedArgs
+    financialEntriesCneMarked?: boolean | UserCountOutputTypeCountFinancialEntriesCneMarkedArgs
     registeredVoters?: boolean | UserCountOutputTypeCountRegisteredVotersArgs
     witnessReports?: boolean | UserCountOutputTypeCountWitnessReportsArgs
     witnessReportsReviewed?: boolean | UserCountOutputTypeCountWitnessReportsReviewedArgs
     pointLogs?: boolean | UserCountOutputTypeCountPointLogsArgs
     inventoryMoves?: boolean | UserCountOutputTypeCountInventoryMovesArgs
     consentsCaptured?: boolean | UserCountOutputTypeCountConsentsCapturedArgs
+    consentNoticesCreated?: boolean | UserCountOutputTypeCountConsentNoticesCreatedArgs
     casesAssigned?: boolean | UserCountOutputTypeCountCasesAssignedArgs
     casesCreated?: boolean | UserCountOutputTypeCountCasesCreatedArgs
     interactions?: boolean | UserCountOutputTypeCountInteractionsArgs
@@ -3284,6 +3390,13 @@ export namespace Prisma {
    * UserCountOutputType without action
    */
   export type UserCountOutputTypeCountFinancialEntriesReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FinancialEntryWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountFinancialEntriesCneMarkedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FinancialEntryWhereInput
   }
 
@@ -3327,6 +3440,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountConsentsCapturedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ConsentRecordWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountConsentNoticesCreatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConsentNoticeWhereInput
   }
 
   /**
@@ -3942,6 +4062,7 @@ export namespace Prisma {
     inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
     inventoryMovements?: boolean | Tenant$inventoryMovementsArgs<ExtArgs>
     consentRecords?: boolean | Tenant$consentRecordsArgs<ExtArgs>
+    consentNotices?: boolean | Tenant$consentNoticesArgs<ExtArgs>
     issueCases?: boolean | Tenant$issueCasesArgs<ExtArgs>
     interactions?: boolean | Tenant$interactionsArgs<ExtArgs>
     tasks?: boolean | Tenant$tasksArgs<ExtArgs>
@@ -3999,6 +4120,7 @@ export namespace Prisma {
     inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
     inventoryMovements?: boolean | Tenant$inventoryMovementsArgs<ExtArgs>
     consentRecords?: boolean | Tenant$consentRecordsArgs<ExtArgs>
+    consentNotices?: boolean | Tenant$consentNoticesArgs<ExtArgs>
     issueCases?: boolean | Tenant$issueCasesArgs<ExtArgs>
     interactions?: boolean | Tenant$interactionsArgs<ExtArgs>
     tasks?: boolean | Tenant$tasksArgs<ExtArgs>
@@ -4026,6 +4148,7 @@ export namespace Prisma {
       inventory: Prisma.$InventoryItemPayload<ExtArgs>[]
       inventoryMovements: Prisma.$InventoryMovementPayload<ExtArgs>[]
       consentRecords: Prisma.$ConsentRecordPayload<ExtArgs>[]
+      consentNotices: Prisma.$ConsentNoticePayload<ExtArgs>[]
       issueCases: Prisma.$IssueCasePayload<ExtArgs>[]
       interactions: Prisma.$InteractionPayload<ExtArgs>[]
       tasks: Prisma.$TaskPayload<ExtArgs>[]
@@ -4449,6 +4572,7 @@ export namespace Prisma {
     inventory<T extends Tenant$inventoryArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$inventoryArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventoryMovements<T extends Tenant$inventoryMovementsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$inventoryMovementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentRecords<T extends Tenant$consentRecordsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$consentRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    consentNotices<T extends Tenant$consentNoticesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$consentNoticesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     issueCases<T extends Tenant$issueCasesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$issueCasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IssueCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     interactions<T extends Tenant$interactionsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$interactionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InteractionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     tasks<T extends Tenant$tasksArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -5143,6 +5267,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ConsentRecordScalarFieldEnum | ConsentRecordScalarFieldEnum[]
+  }
+
+  /**
+   * Tenant.consentNotices
+   */
+  export type Tenant$consentNoticesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    where?: ConsentNoticeWhereInput
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    cursor?: ConsentNoticeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ConsentNoticeScalarFieldEnum | ConsentNoticeScalarFieldEnum[]
   }
 
   /**
@@ -8017,12 +8165,14 @@ export namespace Prisma {
     division?: boolean | User$divisionArgs<ExtArgs>
     financialEntriesReported?: boolean | User$financialEntriesReportedArgs<ExtArgs>
     financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
+    financialEntriesCneMarked?: boolean | User$financialEntriesCneMarkedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
     inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
+    consentNoticesCreated?: boolean | User$consentNoticesCreatedArgs<ExtArgs>
     casesAssigned?: boolean | User$casesAssignedArgs<ExtArgs>
     casesCreated?: boolean | User$casesCreatedArgs<ExtArgs>
     interactions?: boolean | User$interactionsArgs<ExtArgs>
@@ -8102,12 +8252,14 @@ export namespace Prisma {
     division?: boolean | User$divisionArgs<ExtArgs>
     financialEntriesReported?: boolean | User$financialEntriesReportedArgs<ExtArgs>
     financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
+    financialEntriesCneMarked?: boolean | User$financialEntriesCneMarkedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
     inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
+    consentNoticesCreated?: boolean | User$consentNoticesCreatedArgs<ExtArgs>
     casesAssigned?: boolean | User$casesAssignedArgs<ExtArgs>
     casesCreated?: boolean | User$casesCreatedArgs<ExtArgs>
     interactions?: boolean | User$interactionsArgs<ExtArgs>
@@ -8138,12 +8290,14 @@ export namespace Prisma {
       division: Prisma.$PoliticalDivisionPayload<ExtArgs> | null
       financialEntriesReported: Prisma.$FinancialEntryPayload<ExtArgs>[]
       financialEntriesReviewed: Prisma.$FinancialEntryPayload<ExtArgs>[]
+      financialEntriesCneMarked: Prisma.$FinancialEntryPayload<ExtArgs>[]
       registeredVoters: Prisma.$VoterPayload<ExtArgs>[]
       witnessReports: Prisma.$WitnessReportPayload<ExtArgs>[]
       witnessReportsReviewed: Prisma.$WitnessReportPayload<ExtArgs>[]
       pointLogs: Prisma.$PointLogPayload<ExtArgs>[]
       inventoryMoves: Prisma.$InventoryMovementPayload<ExtArgs>[]
       consentsCaptured: Prisma.$ConsentRecordPayload<ExtArgs>[]
+      consentNoticesCreated: Prisma.$ConsentNoticePayload<ExtArgs>[]
       casesAssigned: Prisma.$IssueCasePayload<ExtArgs>[]
       casesCreated: Prisma.$IssueCasePayload<ExtArgs>[]
       interactions: Prisma.$InteractionPayload<ExtArgs>[]
@@ -8571,12 +8725,14 @@ export namespace Prisma {
     division<T extends User$divisionArgs<ExtArgs> = {}>(args?: Subset<T, User$divisionArgs<ExtArgs>>): Prisma__PoliticalDivisionClient<$Result.GetResult<Prisma.$PoliticalDivisionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     financialEntriesReported<T extends User$financialEntriesReportedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesReportedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     financialEntriesReviewed<T extends User$financialEntriesReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    financialEntriesCneMarked<T extends User$financialEntriesCneMarkedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesCneMarkedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     registeredVoters<T extends User$registeredVotersArgs<ExtArgs> = {}>(args?: Subset<T, User$registeredVotersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VoterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReports<T extends User$witnessReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReportsReviewed<T extends User$witnessReportsReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pointLogs<T extends User$pointLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$pointLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventoryMoves<T extends User$inventoryMovesArgs<ExtArgs> = {}>(args?: Subset<T, User$inventoryMovesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentsCaptured<T extends User$consentsCapturedArgs<ExtArgs> = {}>(args?: Subset<T, User$consentsCapturedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    consentNoticesCreated<T extends User$consentNoticesCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$consentNoticesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     casesAssigned<T extends User$casesAssignedArgs<ExtArgs> = {}>(args?: Subset<T, User$casesAssignedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IssueCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     casesCreated<T extends User$casesCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$casesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IssueCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     interactions<T extends User$interactionsArgs<ExtArgs> = {}>(args?: Subset<T, User$interactionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InteractionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -9101,6 +9257,30 @@ export namespace Prisma {
   }
 
   /**
+   * User.financialEntriesCneMarked
+   */
+  export type User$financialEntriesCneMarkedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FinancialEntry
+     */
+    select?: FinancialEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FinancialEntry
+     */
+    omit?: FinancialEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FinancialEntryInclude<ExtArgs> | null
+    where?: FinancialEntryWhereInput
+    orderBy?: FinancialEntryOrderByWithRelationInput | FinancialEntryOrderByWithRelationInput[]
+    cursor?: FinancialEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FinancialEntryScalarFieldEnum | FinancialEntryScalarFieldEnum[]
+  }
+
+  /**
    * User.registeredVoters
    */
   export type User$registeredVotersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9242,6 +9422,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ConsentRecordScalarFieldEnum | ConsentRecordScalarFieldEnum[]
+  }
+
+  /**
+   * User.consentNoticesCreated
+   */
+  export type User$consentNoticesCreatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    where?: ConsentNoticeWhereInput
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    cursor?: ConsentNoticeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ConsentNoticeScalarFieldEnum | ConsentNoticeScalarFieldEnum[]
   }
 
   /**
@@ -13401,6 +13605,9 @@ export namespace Prisma {
     reviewedById: string | null
     reviewedAt: Date | null
     reviewReason: string | null
+    cneReportedById: string | null
+    cneReportedAt: Date | null
+    cneReportReference: string | null
     status: $Enums.FinanceStatus | null
     createdAt: Date | null
   }
@@ -13420,6 +13627,9 @@ export namespace Prisma {
     reviewedById: string | null
     reviewedAt: Date | null
     reviewReason: string | null
+    cneReportedById: string | null
+    cneReportedAt: Date | null
+    cneReportReference: string | null
     status: $Enums.FinanceStatus | null
     createdAt: Date | null
   }
@@ -13439,6 +13649,9 @@ export namespace Prisma {
     reviewedById: number
     reviewedAt: number
     reviewReason: number
+    cneReportedById: number
+    cneReportedAt: number
+    cneReportReference: number
     status: number
     auditLog: number
     createdAt: number
@@ -13469,6 +13682,9 @@ export namespace Prisma {
     reviewedById?: true
     reviewedAt?: true
     reviewReason?: true
+    cneReportedById?: true
+    cneReportedAt?: true
+    cneReportReference?: true
     status?: true
     createdAt?: true
   }
@@ -13488,6 +13704,9 @@ export namespace Prisma {
     reviewedById?: true
     reviewedAt?: true
     reviewReason?: true
+    cneReportedById?: true
+    cneReportedAt?: true
+    cneReportReference?: true
     status?: true
     createdAt?: true
   }
@@ -13507,6 +13726,9 @@ export namespace Prisma {
     reviewedById?: true
     reviewedAt?: true
     reviewReason?: true
+    cneReportedById?: true
+    cneReportedAt?: true
+    cneReportReference?: true
     status?: true
     auditLog?: true
     createdAt?: true
@@ -13614,6 +13836,9 @@ export namespace Prisma {
     reviewedById: string | null
     reviewedAt: Date | null
     reviewReason: string | null
+    cneReportedById: string | null
+    cneReportedAt: Date | null
+    cneReportReference: string | null
     status: $Enums.FinanceStatus
     auditLog: JsonValue | null
     createdAt: Date
@@ -13653,12 +13878,16 @@ export namespace Prisma {
     reviewedById?: boolean
     reviewedAt?: boolean
     reviewReason?: boolean
+    cneReportedById?: boolean
+    cneReportedAt?: boolean
+    cneReportReference?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -13676,12 +13905,16 @@ export namespace Prisma {
     reviewedById?: boolean
     reviewedAt?: boolean
     reviewReason?: boolean
+    cneReportedById?: boolean
+    cneReportedAt?: boolean
+    cneReportReference?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -13699,12 +13932,16 @@ export namespace Prisma {
     reviewedById?: boolean
     reviewedAt?: boolean
     reviewReason?: boolean
+    cneReportedById?: boolean
+    cneReportedAt?: boolean
+    cneReportReference?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }, ExtArgs["result"]["financialEntry"]>
 
   export type FinancialEntrySelectScalar = {
@@ -13722,26 +13959,32 @@ export namespace Prisma {
     reviewedById?: boolean
     reviewedAt?: boolean
     reviewReason?: boolean
+    cneReportedById?: boolean
+    cneReportedAt?: boolean
+    cneReportReference?: boolean
     status?: boolean
     auditLog?: boolean
     createdAt?: boolean
   }
 
-  export type FinancialEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "amount" | "date" | "cneCode" | "description" | "tenantId" | "vendorName" | "vendorTaxId" | "evidenceUrl" | "reporterId" | "reviewedById" | "reviewedAt" | "reviewReason" | "status" | "auditLog" | "createdAt", ExtArgs["result"]["financialEntry"]>
+  export type FinancialEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "amount" | "date" | "cneCode" | "description" | "tenantId" | "vendorName" | "vendorTaxId" | "evidenceUrl" | "reporterId" | "reviewedById" | "reviewedAt" | "reviewReason" | "cneReportedById" | "cneReportedAt" | "cneReportReference" | "status" | "auditLog" | "createdAt", ExtArgs["result"]["financialEntry"]>
   export type FinancialEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }
   export type FinancialEntryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }
   export type FinancialEntryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     reporter?: boolean | UserDefaultArgs<ExtArgs>
     reviewedBy?: boolean | FinancialEntry$reviewedByArgs<ExtArgs>
+    cneReportedBy?: boolean | FinancialEntry$cneReportedByArgs<ExtArgs>
   }
 
   export type $FinancialEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13750,6 +13993,7 @@ export namespace Prisma {
       tenant: Prisma.$TenantPayload<ExtArgs>
       reporter: Prisma.$UserPayload<ExtArgs>
       reviewedBy: Prisma.$UserPayload<ExtArgs> | null
+      cneReportedBy: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -13766,6 +14010,9 @@ export namespace Prisma {
       reviewedById: string | null
       reviewedAt: Date | null
       reviewReason: string | null
+      cneReportedById: string | null
+      cneReportedAt: Date | null
+      cneReportReference: string | null
       status: $Enums.FinanceStatus
       auditLog: Prisma.JsonValue | null
       createdAt: Date
@@ -14166,6 +14413,7 @@ export namespace Prisma {
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     reporter<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     reviewedBy<T extends FinancialEntry$reviewedByArgs<ExtArgs> = {}>(args?: Subset<T, FinancialEntry$reviewedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    cneReportedBy<T extends FinancialEntry$cneReportedByArgs<ExtArgs> = {}>(args?: Subset<T, FinancialEntry$cneReportedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14209,6 +14457,9 @@ export namespace Prisma {
     readonly reviewedById: FieldRef<"FinancialEntry", 'String'>
     readonly reviewedAt: FieldRef<"FinancialEntry", 'DateTime'>
     readonly reviewReason: FieldRef<"FinancialEntry", 'String'>
+    readonly cneReportedById: FieldRef<"FinancialEntry", 'String'>
+    readonly cneReportedAt: FieldRef<"FinancialEntry", 'DateTime'>
+    readonly cneReportReference: FieldRef<"FinancialEntry", 'String'>
     readonly status: FieldRef<"FinancialEntry", 'FinanceStatus'>
     readonly auditLog: FieldRef<"FinancialEntry", 'Json'>
     readonly createdAt: FieldRef<"FinancialEntry", 'DateTime'>
@@ -14616,6 +14867,25 @@ export namespace Prisma {
    * FinancialEntry.reviewedBy
    */
   export type FinancialEntry$reviewedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * FinancialEntry.cneReportedBy
+   */
+  export type FinancialEntry$cneReportedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the User
      */
@@ -22088,6 +22358,1207 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ConsentRecordInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ConsentNotice
+   */
+
+  export type AggregateConsentNotice = {
+    _count: ConsentNoticeCountAggregateOutputType | null
+    _min: ConsentNoticeMinAggregateOutputType | null
+    _max: ConsentNoticeMaxAggregateOutputType | null
+  }
+
+  export type ConsentNoticeMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    mode: $Enums.PoliticalOperationMode | null
+    purpose: $Enums.ConsentPurpose | null
+    version: string | null
+    title: string | null
+    content: string | null
+    controllerName: string | null
+    contactEmail: string | null
+    privacyPolicyUrl: string | null
+    isActive: boolean | null
+    createdById: string | null
+    activatedAt: Date | null
+    retiredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ConsentNoticeMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    mode: $Enums.PoliticalOperationMode | null
+    purpose: $Enums.ConsentPurpose | null
+    version: string | null
+    title: string | null
+    content: string | null
+    controllerName: string | null
+    contactEmail: string | null
+    privacyPolicyUrl: string | null
+    isActive: boolean | null
+    createdById: string | null
+    activatedAt: Date | null
+    retiredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ConsentNoticeCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    mode: number
+    purpose: number
+    version: number
+    title: number
+    content: number
+    controllerName: number
+    contactEmail: number
+    privacyPolicyUrl: number
+    isActive: number
+    createdById: number
+    activatedAt: number
+    retiredAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ConsentNoticeMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    mode?: true
+    purpose?: true
+    version?: true
+    title?: true
+    content?: true
+    controllerName?: true
+    contactEmail?: true
+    privacyPolicyUrl?: true
+    isActive?: true
+    createdById?: true
+    activatedAt?: true
+    retiredAt?: true
+    createdAt?: true
+  }
+
+  export type ConsentNoticeMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    mode?: true
+    purpose?: true
+    version?: true
+    title?: true
+    content?: true
+    controllerName?: true
+    contactEmail?: true
+    privacyPolicyUrl?: true
+    isActive?: true
+    createdById?: true
+    activatedAt?: true
+    retiredAt?: true
+    createdAt?: true
+  }
+
+  export type ConsentNoticeCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    mode?: true
+    purpose?: true
+    version?: true
+    title?: true
+    content?: true
+    controllerName?: true
+    contactEmail?: true
+    privacyPolicyUrl?: true
+    isActive?: true
+    createdById?: true
+    activatedAt?: true
+    retiredAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ConsentNoticeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConsentNotice to aggregate.
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConsentNotices to fetch.
+     */
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ConsentNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConsentNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConsentNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ConsentNotices
+    **/
+    _count?: true | ConsentNoticeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ConsentNoticeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ConsentNoticeMaxAggregateInputType
+  }
+
+  export type GetConsentNoticeAggregateType<T extends ConsentNoticeAggregateArgs> = {
+        [P in keyof T & keyof AggregateConsentNotice]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConsentNotice[P]>
+      : GetScalarType<T[P], AggregateConsentNotice[P]>
+  }
+
+
+
+
+  export type ConsentNoticeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConsentNoticeWhereInput
+    orderBy?: ConsentNoticeOrderByWithAggregationInput | ConsentNoticeOrderByWithAggregationInput[]
+    by: ConsentNoticeScalarFieldEnum[] | ConsentNoticeScalarFieldEnum
+    having?: ConsentNoticeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ConsentNoticeCountAggregateInputType | true
+    _min?: ConsentNoticeMinAggregateInputType
+    _max?: ConsentNoticeMaxAggregateInputType
+  }
+
+  export type ConsentNoticeGroupByOutputType = {
+    id: string
+    tenantId: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl: string | null
+    isActive: boolean
+    createdById: string
+    activatedAt: Date
+    retiredAt: Date | null
+    createdAt: Date
+    _count: ConsentNoticeCountAggregateOutputType | null
+    _min: ConsentNoticeMinAggregateOutputType | null
+    _max: ConsentNoticeMaxAggregateOutputType | null
+  }
+
+  type GetConsentNoticeGroupByPayload<T extends ConsentNoticeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ConsentNoticeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ConsentNoticeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConsentNoticeGroupByOutputType[P]>
+            : GetScalarType<T[P], ConsentNoticeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ConsentNoticeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    mode?: boolean
+    purpose?: boolean
+    version?: boolean
+    title?: boolean
+    content?: boolean
+    controllerName?: boolean
+    contactEmail?: boolean
+    privacyPolicyUrl?: boolean
+    isActive?: boolean
+    createdById?: boolean
+    activatedAt?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consentNotice"]>
+
+  export type ConsentNoticeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    mode?: boolean
+    purpose?: boolean
+    version?: boolean
+    title?: boolean
+    content?: boolean
+    controllerName?: boolean
+    contactEmail?: boolean
+    privacyPolicyUrl?: boolean
+    isActive?: boolean
+    createdById?: boolean
+    activatedAt?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consentNotice"]>
+
+  export type ConsentNoticeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    mode?: boolean
+    purpose?: boolean
+    version?: boolean
+    title?: boolean
+    content?: boolean
+    controllerName?: boolean
+    contactEmail?: boolean
+    privacyPolicyUrl?: boolean
+    isActive?: boolean
+    createdById?: boolean
+    activatedAt?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consentNotice"]>
+
+  export type ConsentNoticeSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    mode?: boolean
+    purpose?: boolean
+    version?: boolean
+    title?: boolean
+    content?: boolean
+    controllerName?: boolean
+    contactEmail?: boolean
+    privacyPolicyUrl?: boolean
+    isActive?: boolean
+    createdById?: boolean
+    activatedAt?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ConsentNoticeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "mode" | "purpose" | "version" | "title" | "content" | "controllerName" | "contactEmail" | "privacyPolicyUrl" | "isActive" | "createdById" | "activatedAt" | "retiredAt" | "createdAt", ExtArgs["result"]["consentNotice"]>
+  export type ConsentNoticeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ConsentNoticeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ConsentNoticeIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ConsentNoticePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ConsentNotice"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+      createdBy: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      mode: $Enums.PoliticalOperationMode
+      purpose: $Enums.ConsentPurpose
+      version: string
+      title: string
+      content: string
+      controllerName: string
+      contactEmail: string
+      privacyPolicyUrl: string | null
+      isActive: boolean
+      createdById: string
+      activatedAt: Date
+      retiredAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["consentNotice"]>
+    composites: {}
+  }
+
+  type ConsentNoticeGetPayload<S extends boolean | null | undefined | ConsentNoticeDefaultArgs> = $Result.GetResult<Prisma.$ConsentNoticePayload, S>
+
+  type ConsentNoticeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ConsentNoticeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ConsentNoticeCountAggregateInputType | true
+    }
+
+  export interface ConsentNoticeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ConsentNotice'], meta: { name: 'ConsentNotice' } }
+    /**
+     * Find zero or one ConsentNotice that matches the filter.
+     * @param {ConsentNoticeFindUniqueArgs} args - Arguments to find a ConsentNotice
+     * @example
+     * // Get one ConsentNotice
+     * const consentNotice = await prisma.consentNotice.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ConsentNoticeFindUniqueArgs>(args: SelectSubset<T, ConsentNoticeFindUniqueArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ConsentNotice that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ConsentNoticeFindUniqueOrThrowArgs} args - Arguments to find a ConsentNotice
+     * @example
+     * // Get one ConsentNotice
+     * const consentNotice = await prisma.consentNotice.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ConsentNoticeFindUniqueOrThrowArgs>(args: SelectSubset<T, ConsentNoticeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConsentNotice that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeFindFirstArgs} args - Arguments to find a ConsentNotice
+     * @example
+     * // Get one ConsentNotice
+     * const consentNotice = await prisma.consentNotice.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ConsentNoticeFindFirstArgs>(args?: SelectSubset<T, ConsentNoticeFindFirstArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConsentNotice that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeFindFirstOrThrowArgs} args - Arguments to find a ConsentNotice
+     * @example
+     * // Get one ConsentNotice
+     * const consentNotice = await prisma.consentNotice.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ConsentNoticeFindFirstOrThrowArgs>(args?: SelectSubset<T, ConsentNoticeFindFirstOrThrowArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ConsentNotices that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ConsentNotices
+     * const consentNotices = await prisma.consentNotice.findMany()
+     * 
+     * // Get first 10 ConsentNotices
+     * const consentNotices = await prisma.consentNotice.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const consentNoticeWithIdOnly = await prisma.consentNotice.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ConsentNoticeFindManyArgs>(args?: SelectSubset<T, ConsentNoticeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ConsentNotice.
+     * @param {ConsentNoticeCreateArgs} args - Arguments to create a ConsentNotice.
+     * @example
+     * // Create one ConsentNotice
+     * const ConsentNotice = await prisma.consentNotice.create({
+     *   data: {
+     *     // ... data to create a ConsentNotice
+     *   }
+     * })
+     * 
+     */
+    create<T extends ConsentNoticeCreateArgs>(args: SelectSubset<T, ConsentNoticeCreateArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ConsentNotices.
+     * @param {ConsentNoticeCreateManyArgs} args - Arguments to create many ConsentNotices.
+     * @example
+     * // Create many ConsentNotices
+     * const consentNotice = await prisma.consentNotice.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ConsentNoticeCreateManyArgs>(args?: SelectSubset<T, ConsentNoticeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ConsentNotices and returns the data saved in the database.
+     * @param {ConsentNoticeCreateManyAndReturnArgs} args - Arguments to create many ConsentNotices.
+     * @example
+     * // Create many ConsentNotices
+     * const consentNotice = await prisma.consentNotice.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ConsentNotices and only return the `id`
+     * const consentNoticeWithIdOnly = await prisma.consentNotice.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ConsentNoticeCreateManyAndReturnArgs>(args?: SelectSubset<T, ConsentNoticeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ConsentNotice.
+     * @param {ConsentNoticeDeleteArgs} args - Arguments to delete one ConsentNotice.
+     * @example
+     * // Delete one ConsentNotice
+     * const ConsentNotice = await prisma.consentNotice.delete({
+     *   where: {
+     *     // ... filter to delete one ConsentNotice
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ConsentNoticeDeleteArgs>(args: SelectSubset<T, ConsentNoticeDeleteArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ConsentNotice.
+     * @param {ConsentNoticeUpdateArgs} args - Arguments to update one ConsentNotice.
+     * @example
+     * // Update one ConsentNotice
+     * const consentNotice = await prisma.consentNotice.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ConsentNoticeUpdateArgs>(args: SelectSubset<T, ConsentNoticeUpdateArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ConsentNotices.
+     * @param {ConsentNoticeDeleteManyArgs} args - Arguments to filter ConsentNotices to delete.
+     * @example
+     * // Delete a few ConsentNotices
+     * const { count } = await prisma.consentNotice.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ConsentNoticeDeleteManyArgs>(args?: SelectSubset<T, ConsentNoticeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConsentNotices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ConsentNotices
+     * const consentNotice = await prisma.consentNotice.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ConsentNoticeUpdateManyArgs>(args: SelectSubset<T, ConsentNoticeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConsentNotices and returns the data updated in the database.
+     * @param {ConsentNoticeUpdateManyAndReturnArgs} args - Arguments to update many ConsentNotices.
+     * @example
+     * // Update many ConsentNotices
+     * const consentNotice = await prisma.consentNotice.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ConsentNotices and only return the `id`
+     * const consentNoticeWithIdOnly = await prisma.consentNotice.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ConsentNoticeUpdateManyAndReturnArgs>(args: SelectSubset<T, ConsentNoticeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ConsentNotice.
+     * @param {ConsentNoticeUpsertArgs} args - Arguments to update or create a ConsentNotice.
+     * @example
+     * // Update or create a ConsentNotice
+     * const consentNotice = await prisma.consentNotice.upsert({
+     *   create: {
+     *     // ... data to create a ConsentNotice
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ConsentNotice we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ConsentNoticeUpsertArgs>(args: SelectSubset<T, ConsentNoticeUpsertArgs<ExtArgs>>): Prisma__ConsentNoticeClient<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ConsentNotices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeCountArgs} args - Arguments to filter ConsentNotices to count.
+     * @example
+     * // Count the number of ConsentNotices
+     * const count = await prisma.consentNotice.count({
+     *   where: {
+     *     // ... the filter for the ConsentNotices we want to count
+     *   }
+     * })
+    **/
+    count<T extends ConsentNoticeCountArgs>(
+      args?: Subset<T, ConsentNoticeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConsentNoticeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ConsentNotice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ConsentNoticeAggregateArgs>(args: Subset<T, ConsentNoticeAggregateArgs>): Prisma.PrismaPromise<GetConsentNoticeAggregateType<T>>
+
+    /**
+     * Group by ConsentNotice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsentNoticeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ConsentNoticeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ConsentNoticeGroupByArgs['orderBy'] }
+        : { orderBy?: ConsentNoticeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ConsentNoticeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConsentNoticeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ConsentNotice model
+   */
+  readonly fields: ConsentNoticeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ConsentNotice.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ConsentNoticeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    createdBy<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ConsentNotice model
+   */
+  interface ConsentNoticeFieldRefs {
+    readonly id: FieldRef<"ConsentNotice", 'String'>
+    readonly tenantId: FieldRef<"ConsentNotice", 'String'>
+    readonly mode: FieldRef<"ConsentNotice", 'PoliticalOperationMode'>
+    readonly purpose: FieldRef<"ConsentNotice", 'ConsentPurpose'>
+    readonly version: FieldRef<"ConsentNotice", 'String'>
+    readonly title: FieldRef<"ConsentNotice", 'String'>
+    readonly content: FieldRef<"ConsentNotice", 'String'>
+    readonly controllerName: FieldRef<"ConsentNotice", 'String'>
+    readonly contactEmail: FieldRef<"ConsentNotice", 'String'>
+    readonly privacyPolicyUrl: FieldRef<"ConsentNotice", 'String'>
+    readonly isActive: FieldRef<"ConsentNotice", 'Boolean'>
+    readonly createdById: FieldRef<"ConsentNotice", 'String'>
+    readonly activatedAt: FieldRef<"ConsentNotice", 'DateTime'>
+    readonly retiredAt: FieldRef<"ConsentNotice", 'DateTime'>
+    readonly createdAt: FieldRef<"ConsentNotice", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ConsentNotice findUnique
+   */
+  export type ConsentNoticeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsentNotice to fetch.
+     */
+    where: ConsentNoticeWhereUniqueInput
+  }
+
+  /**
+   * ConsentNotice findUniqueOrThrow
+   */
+  export type ConsentNoticeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsentNotice to fetch.
+     */
+    where: ConsentNoticeWhereUniqueInput
+  }
+
+  /**
+   * ConsentNotice findFirst
+   */
+  export type ConsentNoticeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsentNotice to fetch.
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConsentNotices to fetch.
+     */
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConsentNotices.
+     */
+    cursor?: ConsentNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConsentNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConsentNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConsentNotices.
+     */
+    distinct?: ConsentNoticeScalarFieldEnum | ConsentNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * ConsentNotice findFirstOrThrow
+   */
+  export type ConsentNoticeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsentNotice to fetch.
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConsentNotices to fetch.
+     */
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConsentNotices.
+     */
+    cursor?: ConsentNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConsentNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConsentNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConsentNotices.
+     */
+    distinct?: ConsentNoticeScalarFieldEnum | ConsentNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * ConsentNotice findMany
+   */
+  export type ConsentNoticeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsentNotices to fetch.
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConsentNotices to fetch.
+     */
+    orderBy?: ConsentNoticeOrderByWithRelationInput | ConsentNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ConsentNotices.
+     */
+    cursor?: ConsentNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConsentNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConsentNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConsentNotices.
+     */
+    distinct?: ConsentNoticeScalarFieldEnum | ConsentNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * ConsentNotice create
+   */
+  export type ConsentNoticeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ConsentNotice.
+     */
+    data: XOR<ConsentNoticeCreateInput, ConsentNoticeUncheckedCreateInput>
+  }
+
+  /**
+   * ConsentNotice createMany
+   */
+  export type ConsentNoticeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ConsentNotices.
+     */
+    data: ConsentNoticeCreateManyInput | ConsentNoticeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConsentNotice createManyAndReturn
+   */
+  export type ConsentNoticeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * The data used to create many ConsentNotices.
+     */
+    data: ConsentNoticeCreateManyInput | ConsentNoticeCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ConsentNotice update
+   */
+  export type ConsentNoticeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ConsentNotice.
+     */
+    data: XOR<ConsentNoticeUpdateInput, ConsentNoticeUncheckedUpdateInput>
+    /**
+     * Choose, which ConsentNotice to update.
+     */
+    where: ConsentNoticeWhereUniqueInput
+  }
+
+  /**
+   * ConsentNotice updateMany
+   */
+  export type ConsentNoticeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ConsentNotices.
+     */
+    data: XOR<ConsentNoticeUpdateManyMutationInput, ConsentNoticeUncheckedUpdateManyInput>
+    /**
+     * Filter which ConsentNotices to update
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * Limit how many ConsentNotices to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConsentNotice updateManyAndReturn
+   */
+  export type ConsentNoticeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * The data used to update ConsentNotices.
+     */
+    data: XOR<ConsentNoticeUpdateManyMutationInput, ConsentNoticeUncheckedUpdateManyInput>
+    /**
+     * Filter which ConsentNotices to update
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * Limit how many ConsentNotices to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ConsentNotice upsert
+   */
+  export type ConsentNoticeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ConsentNotice to update in case it exists.
+     */
+    where: ConsentNoticeWhereUniqueInput
+    /**
+     * In case the ConsentNotice found by the `where` argument doesn't exist, create a new ConsentNotice with this data.
+     */
+    create: XOR<ConsentNoticeCreateInput, ConsentNoticeUncheckedCreateInput>
+    /**
+     * In case the ConsentNotice was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ConsentNoticeUpdateInput, ConsentNoticeUncheckedUpdateInput>
+  }
+
+  /**
+   * ConsentNotice delete
+   */
+  export type ConsentNoticeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
+    /**
+     * Filter which ConsentNotice to delete.
+     */
+    where: ConsentNoticeWhereUniqueInput
+  }
+
+  /**
+   * ConsentNotice deleteMany
+   */
+  export type ConsentNoticeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConsentNotices to delete
+     */
+    where?: ConsentNoticeWhereInput
+    /**
+     * Limit how many ConsentNotices to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConsentNotice without action
+   */
+  export type ConsentNoticeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentNotice
+     */
+    select?: ConsentNoticeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsentNotice
+     */
+    omit?: ConsentNoticeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsentNoticeInclude<ExtArgs> | null
   }
 
 
@@ -30154,6 +31625,9 @@ export namespace Prisma {
     reviewedById: 'reviewedById',
     reviewedAt: 'reviewedAt',
     reviewReason: 'reviewReason',
+    cneReportedById: 'cneReportedById',
+    cneReportedAt: 'cneReportedAt',
+    cneReportReference: 'cneReportReference',
     status: 'status',
     auditLog: 'auditLog',
     createdAt: 'createdAt'
@@ -30269,6 +31743,27 @@ export namespace Prisma {
   };
 
   export type ConsentRecordScalarFieldEnum = (typeof ConsentRecordScalarFieldEnum)[keyof typeof ConsentRecordScalarFieldEnum]
+
+
+  export const ConsentNoticeScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    mode: 'mode',
+    purpose: 'purpose',
+    version: 'version',
+    title: 'title',
+    content: 'content',
+    controllerName: 'controllerName',
+    contactEmail: 'contactEmail',
+    privacyPolicyUrl: 'privacyPolicyUrl',
+    isActive: 'isActive',
+    createdById: 'createdById',
+    activatedAt: 'activatedAt',
+    retiredAt: 'retiredAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ConsentNoticeScalarFieldEnum = (typeof ConsentNoticeScalarFieldEnum)[keyof typeof ConsentNoticeScalarFieldEnum]
 
 
   export const IssueCaseScalarFieldEnum: {
@@ -30956,6 +32451,7 @@ export namespace Prisma {
     inventory?: InventoryItemListRelationFilter
     inventoryMovements?: InventoryMovementListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    consentNotices?: ConsentNoticeListRelationFilter
     issueCases?: IssueCaseListRelationFilter
     interactions?: InteractionListRelationFilter
     tasks?: TaskListRelationFilter
@@ -30986,6 +32482,7 @@ export namespace Prisma {
     inventory?: InventoryItemOrderByRelationAggregateInput
     inventoryMovements?: InventoryMovementOrderByRelationAggregateInput
     consentRecords?: ConsentRecordOrderByRelationAggregateInput
+    consentNotices?: ConsentNoticeOrderByRelationAggregateInput
     issueCases?: IssueCaseOrderByRelationAggregateInput
     interactions?: InteractionOrderByRelationAggregateInput
     tasks?: TaskOrderByRelationAggregateInput
@@ -31019,6 +32516,7 @@ export namespace Prisma {
     inventory?: InventoryItemListRelationFilter
     inventoryMovements?: InventoryMovementListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    consentNotices?: ConsentNoticeListRelationFilter
     issueCases?: IssueCaseListRelationFilter
     interactions?: InteractionListRelationFilter
     tasks?: TaskListRelationFilter
@@ -31263,12 +32761,14 @@ export namespace Prisma {
     division?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     financialEntriesReported?: FinancialEntryListRelationFilter
     financialEntriesReviewed?: FinancialEntryListRelationFilter
+    financialEntriesCneMarked?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     witnessReportsReviewed?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
     inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
+    consentNoticesCreated?: ConsentNoticeListRelationFilter
     casesAssigned?: IssueCaseListRelationFilter
     casesCreated?: IssueCaseListRelationFilter
     interactions?: InteractionListRelationFilter
@@ -31303,12 +32803,14 @@ export namespace Prisma {
     division?: PoliticalDivisionOrderByWithRelationInput
     financialEntriesReported?: FinancialEntryOrderByRelationAggregateInput
     financialEntriesReviewed?: FinancialEntryOrderByRelationAggregateInput
+    financialEntriesCneMarked?: FinancialEntryOrderByRelationAggregateInput
     registeredVoters?: VoterOrderByRelationAggregateInput
     witnessReports?: WitnessReportOrderByRelationAggregateInput
     witnessReportsReviewed?: WitnessReportOrderByRelationAggregateInput
     pointLogs?: PointLogOrderByRelationAggregateInput
     inventoryMoves?: InventoryMovementOrderByRelationAggregateInput
     consentsCaptured?: ConsentRecordOrderByRelationAggregateInput
+    consentNoticesCreated?: ConsentNoticeOrderByRelationAggregateInput
     casesAssigned?: IssueCaseOrderByRelationAggregateInput
     casesCreated?: IssueCaseOrderByRelationAggregateInput
     interactions?: InteractionOrderByRelationAggregateInput
@@ -31348,12 +32850,14 @@ export namespace Prisma {
     division?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     financialEntriesReported?: FinancialEntryListRelationFilter
     financialEntriesReviewed?: FinancialEntryListRelationFilter
+    financialEntriesCneMarked?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     witnessReportsReviewed?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
     inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
+    consentNoticesCreated?: ConsentNoticeListRelationFilter
     casesAssigned?: IssueCaseListRelationFilter
     casesCreated?: IssueCaseListRelationFilter
     interactions?: InteractionListRelationFilter
@@ -31740,12 +33244,16 @@ export namespace Prisma {
     reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
     reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
     reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    cneReportReference?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     reporter?: XOR<UserScalarRelationFilter, UserWhereInput>
     reviewedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    cneReportedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }
 
   export type FinancialEntryOrderByWithRelationInput = {
@@ -31763,12 +33271,16 @@ export namespace Prisma {
     reviewedById?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     reviewReason?: SortOrderInput | SortOrder
+    cneReportedById?: SortOrderInput | SortOrder
+    cneReportedAt?: SortOrderInput | SortOrder
+    cneReportReference?: SortOrderInput | SortOrder
     status?: SortOrder
     auditLog?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     reporter?: UserOrderByWithRelationInput
     reviewedBy?: UserOrderByWithRelationInput
+    cneReportedBy?: UserOrderByWithRelationInput
   }
 
   export type FinancialEntryWhereUniqueInput = Prisma.AtLeast<{
@@ -31790,12 +33302,16 @@ export namespace Prisma {
     reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
     reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
     reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    cneReportReference?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     reporter?: XOR<UserScalarRelationFilter, UserWhereInput>
     reviewedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    cneReportedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }, "id" | "evidenceUrl" | "id_tenantId">
 
   export type FinancialEntryOrderByWithAggregationInput = {
@@ -31813,6 +33329,9 @@ export namespace Prisma {
     reviewedById?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     reviewReason?: SortOrderInput | SortOrder
+    cneReportedById?: SortOrderInput | SortOrder
+    cneReportedAt?: SortOrderInput | SortOrder
+    cneReportReference?: SortOrderInput | SortOrder
     status?: SortOrder
     auditLog?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -31841,6 +33360,9 @@ export namespace Prisma {
     reviewedById?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
     reviewedAt?: DateTimeNullableWithAggregatesFilter<"FinancialEntry"> | Date | string | null
     reviewReason?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
+    cneReportedById?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
+    cneReportedAt?: DateTimeNullableWithAggregatesFilter<"FinancialEntry"> | Date | string | null
+    cneReportReference?: StringNullableWithAggregatesFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusWithAggregatesFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableWithAggregatesFilter<"FinancialEntry">
     createdAt?: DateTimeWithAggregatesFilter<"FinancialEntry"> | Date | string
@@ -32449,6 +33971,116 @@ export namespace Prisma {
     revokedAt?: DateTimeNullableWithAggregatesFilter<"ConsentRecord"> | Date | string | null
     revocationReason?: StringNullableWithAggregatesFilter<"ConsentRecord"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ConsentRecord"> | Date | string
+  }
+
+  export type ConsentNoticeWhereInput = {
+    AND?: ConsentNoticeWhereInput | ConsentNoticeWhereInput[]
+    OR?: ConsentNoticeWhereInput[]
+    NOT?: ConsentNoticeWhereInput | ConsentNoticeWhereInput[]
+    id?: StringFilter<"ConsentNotice"> | string
+    tenantId?: StringFilter<"ConsentNotice"> | string
+    mode?: EnumPoliticalOperationModeFilter<"ConsentNotice"> | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFilter<"ConsentNotice"> | $Enums.ConsentPurpose
+    version?: StringFilter<"ConsentNotice"> | string
+    title?: StringFilter<"ConsentNotice"> | string
+    content?: StringFilter<"ConsentNotice"> | string
+    controllerName?: StringFilter<"ConsentNotice"> | string
+    contactEmail?: StringFilter<"ConsentNotice"> | string
+    privacyPolicyUrl?: StringNullableFilter<"ConsentNotice"> | string | null
+    isActive?: BoolFilter<"ConsentNotice"> | boolean
+    createdById?: StringFilter<"ConsentNotice"> | string
+    activatedAt?: DateTimeFilter<"ConsentNotice"> | Date | string
+    retiredAt?: DateTimeNullableFilter<"ConsentNotice"> | Date | string | null
+    createdAt?: DateTimeFilter<"ConsentNotice"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    createdBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type ConsentNoticeOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    mode?: SortOrder
+    purpose?: SortOrder
+    version?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    controllerName?: SortOrder
+    contactEmail?: SortOrder
+    privacyPolicyUrl?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    createdById?: SortOrder
+    activatedAt?: SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+    createdBy?: UserOrderByWithRelationInput
+  }
+
+  export type ConsentNoticeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    id_tenantId?: ConsentNoticeIdTenantIdCompoundUniqueInput
+    tenantId_mode_purpose_version?: ConsentNoticeTenantIdModePurposeVersionCompoundUniqueInput
+    AND?: ConsentNoticeWhereInput | ConsentNoticeWhereInput[]
+    OR?: ConsentNoticeWhereInput[]
+    NOT?: ConsentNoticeWhereInput | ConsentNoticeWhereInput[]
+    tenantId?: StringFilter<"ConsentNotice"> | string
+    mode?: EnumPoliticalOperationModeFilter<"ConsentNotice"> | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFilter<"ConsentNotice"> | $Enums.ConsentPurpose
+    version?: StringFilter<"ConsentNotice"> | string
+    title?: StringFilter<"ConsentNotice"> | string
+    content?: StringFilter<"ConsentNotice"> | string
+    controllerName?: StringFilter<"ConsentNotice"> | string
+    contactEmail?: StringFilter<"ConsentNotice"> | string
+    privacyPolicyUrl?: StringNullableFilter<"ConsentNotice"> | string | null
+    isActive?: BoolFilter<"ConsentNotice"> | boolean
+    createdById?: StringFilter<"ConsentNotice"> | string
+    activatedAt?: DateTimeFilter<"ConsentNotice"> | Date | string
+    retiredAt?: DateTimeNullableFilter<"ConsentNotice"> | Date | string | null
+    createdAt?: DateTimeFilter<"ConsentNotice"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    createdBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "id_tenantId" | "tenantId_mode_purpose_version">
+
+  export type ConsentNoticeOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    mode?: SortOrder
+    purpose?: SortOrder
+    version?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    controllerName?: SortOrder
+    contactEmail?: SortOrder
+    privacyPolicyUrl?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    createdById?: SortOrder
+    activatedAt?: SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ConsentNoticeCountOrderByAggregateInput
+    _max?: ConsentNoticeMaxOrderByAggregateInput
+    _min?: ConsentNoticeMinOrderByAggregateInput
+  }
+
+  export type ConsentNoticeScalarWhereWithAggregatesInput = {
+    AND?: ConsentNoticeScalarWhereWithAggregatesInput | ConsentNoticeScalarWhereWithAggregatesInput[]
+    OR?: ConsentNoticeScalarWhereWithAggregatesInput[]
+    NOT?: ConsentNoticeScalarWhereWithAggregatesInput | ConsentNoticeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    tenantId?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    mode?: EnumPoliticalOperationModeWithAggregatesFilter<"ConsentNotice"> | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeWithAggregatesFilter<"ConsentNotice"> | $Enums.ConsentPurpose
+    version?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    title?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    content?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    controllerName?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    contactEmail?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    privacyPolicyUrl?: StringNullableWithAggregatesFilter<"ConsentNotice"> | string | null
+    isActive?: BoolWithAggregatesFilter<"ConsentNotice"> | boolean
+    createdById?: StringWithAggregatesFilter<"ConsentNotice"> | string
+    activatedAt?: DateTimeWithAggregatesFilter<"ConsentNotice"> | Date | string
+    retiredAt?: DateTimeNullableWithAggregatesFilter<"ConsentNotice"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ConsentNotice"> | Date | string
   }
 
   export type IssueCaseWhereInput = {
@@ -33231,6 +34863,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -33261,6 +34894,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -33291,6 +34925,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -33321,6 +34956,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -33582,12 +35218,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -33620,12 +35258,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -33658,12 +35298,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -33696,12 +35338,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -34113,12 +35757,15 @@ export namespace Prisma {
     evidenceUrl?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutFinancesInput
     reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
     reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
+    cneReportedBy?: UserCreateNestedOneWithoutFinancialEntriesCneMarkedInput
   }
 
   export type FinancialEntryUncheckedCreateInput = {
@@ -34136,6 +35783,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -34153,12 +35803,15 @@ export namespace Prisma {
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
     reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
     reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
+    cneReportedBy?: UserUpdateOneWithoutFinancialEntriesCneMarkedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateInput = {
@@ -34176,6 +35829,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -34196,6 +35852,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -34213,6 +35872,8 @@ export namespace Prisma {
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -34233,6 +35894,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -34871,6 +36535,130 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revocationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeCreateInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutConsentNoticesInput
+    createdBy: UserCreateNestedOneWithoutConsentNoticesCreatedInput
+  }
+
+  export type ConsentNoticeUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    createdById: string
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutConsentNoticesNestedInput
+    createdBy?: UserUpdateOneRequiredWithoutConsentNoticesCreatedNestedInput
+  }
+
+  export type ConsentNoticeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdById?: StringFieldUpdateOperationsInput | string
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeCreateManyInput = {
+    id?: string
+    tenantId: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    createdById: string
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdById?: StringFieldUpdateOperationsInput | string
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -35831,6 +37619,12 @@ export namespace Prisma {
     none?: ConsentRecordWhereInput
   }
 
+  export type ConsentNoticeListRelationFilter = {
+    every?: ConsentNoticeWhereInput
+    some?: ConsentNoticeWhereInput
+    none?: ConsentNoticeWhereInput
+  }
+
   export type IssueCaseListRelationFilter = {
     every?: IssueCaseWhereInput
     some?: IssueCaseWhereInput
@@ -35921,6 +37715,10 @@ export namespace Prisma {
   }
 
   export type ConsentRecordOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ConsentNoticeOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -36704,6 +38502,9 @@ export namespace Prisma {
     reviewedById?: SortOrder
     reviewedAt?: SortOrder
     reviewReason?: SortOrder
+    cneReportedById?: SortOrder
+    cneReportedAt?: SortOrder
+    cneReportReference?: SortOrder
     status?: SortOrder
     auditLog?: SortOrder
     createdAt?: SortOrder
@@ -36728,6 +38529,9 @@ export namespace Prisma {
     reviewedById?: SortOrder
     reviewedAt?: SortOrder
     reviewReason?: SortOrder
+    cneReportedById?: SortOrder
+    cneReportedAt?: SortOrder
+    cneReportReference?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -36747,6 +38551,9 @@ export namespace Prisma {
     reviewedById?: SortOrder
     reviewedAt?: SortOrder
     reviewReason?: SortOrder
+    cneReportedById?: SortOrder
+    cneReportedAt?: SortOrder
+    cneReportReference?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -37288,6 +39095,72 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumConsentCollectionChannelFilter<$PrismaModel>
     _max?: NestedEnumConsentCollectionChannelFilter<$PrismaModel>
+  }
+
+  export type ConsentNoticeIdTenantIdCompoundUniqueInput = {
+    id: string
+    tenantId: string
+  }
+
+  export type ConsentNoticeTenantIdModePurposeVersionCompoundUniqueInput = {
+    tenantId: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+  }
+
+  export type ConsentNoticeCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    mode?: SortOrder
+    purpose?: SortOrder
+    version?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    controllerName?: SortOrder
+    contactEmail?: SortOrder
+    privacyPolicyUrl?: SortOrder
+    isActive?: SortOrder
+    createdById?: SortOrder
+    activatedAt?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ConsentNoticeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    mode?: SortOrder
+    purpose?: SortOrder
+    version?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    controllerName?: SortOrder
+    contactEmail?: SortOrder
+    privacyPolicyUrl?: SortOrder
+    isActive?: SortOrder
+    createdById?: SortOrder
+    activatedAt?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ConsentNoticeMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    mode?: SortOrder
+    purpose?: SortOrder
+    version?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    controllerName?: SortOrder
+    contactEmail?: SortOrder
+    privacyPolicyUrl?: SortOrder
+    isActive?: SortOrder
+    createdById?: SortOrder
+    activatedAt?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type EnumCommunicationChannelFilter<$PrismaModel = never> = {
@@ -37978,6 +39851,13 @@ export namespace Prisma {
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
   }
 
+  export type ConsentNoticeCreateNestedManyWithoutTenantInput = {
+    create?: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput> | ConsentNoticeCreateWithoutTenantInput[] | ConsentNoticeUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutTenantInput | ConsentNoticeCreateOrConnectWithoutTenantInput[]
+    createMany?: ConsentNoticeCreateManyTenantInputEnvelope
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+  }
+
   export type IssueCaseCreateNestedManyWithoutTenantInput = {
     create?: XOR<IssueCaseCreateWithoutTenantInput, IssueCaseUncheckedCreateWithoutTenantInput> | IssueCaseCreateWithoutTenantInput[] | IssueCaseUncheckedCreateWithoutTenantInput[]
     connectOrCreate?: IssueCaseCreateOrConnectWithoutTenantInput | IssueCaseCreateOrConnectWithoutTenantInput[]
@@ -38108,6 +39988,13 @@ export namespace Prisma {
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutTenantInput | ConsentRecordCreateOrConnectWithoutTenantInput[]
     createMany?: ConsentRecordCreateManyTenantInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput> | ConsentNoticeCreateWithoutTenantInput[] | ConsentNoticeUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutTenantInput | ConsentNoticeCreateOrConnectWithoutTenantInput[]
+    createMany?: ConsentNoticeCreateManyTenantInputEnvelope
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
   }
 
   export type IssueCaseUncheckedCreateNestedManyWithoutTenantInput = {
@@ -38330,6 +40217,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutTenantInput | ConsentRecordUpdateWithWhereUniqueWithoutTenantInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutTenantInput | ConsentRecordUpdateManyWithWhereWithoutTenantInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type ConsentNoticeUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput> | ConsentNoticeCreateWithoutTenantInput[] | ConsentNoticeUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutTenantInput | ConsentNoticeCreateOrConnectWithoutTenantInput[]
+    upsert?: ConsentNoticeUpsertWithWhereUniqueWithoutTenantInput | ConsentNoticeUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: ConsentNoticeCreateManyTenantInputEnvelope
+    set?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    disconnect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    delete?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    update?: ConsentNoticeUpdateWithWhereUniqueWithoutTenantInput | ConsentNoticeUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: ConsentNoticeUpdateManyWithWhereWithoutTenantInput | ConsentNoticeUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
   }
 
   export type IssueCaseUpdateManyWithoutTenantNestedInput = {
@@ -38594,6 +40495,20 @@ export namespace Prisma {
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
   }
 
+  export type ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput> | ConsentNoticeCreateWithoutTenantInput[] | ConsentNoticeUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutTenantInput | ConsentNoticeCreateOrConnectWithoutTenantInput[]
+    upsert?: ConsentNoticeUpsertWithWhereUniqueWithoutTenantInput | ConsentNoticeUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: ConsentNoticeCreateManyTenantInputEnvelope
+    set?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    disconnect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    delete?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    update?: ConsentNoticeUpdateWithWhereUniqueWithoutTenantInput | ConsentNoticeUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: ConsentNoticeUpdateManyWithWhereWithoutTenantInput | ConsentNoticeUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
+  }
+
   export type IssueCaseUncheckedUpdateManyWithoutTenantNestedInput = {
     create?: XOR<IssueCaseCreateWithoutTenantInput, IssueCaseUncheckedCreateWithoutTenantInput> | IssueCaseCreateWithoutTenantInput[] | IssueCaseUncheckedCreateWithoutTenantInput[]
     connectOrCreate?: IssueCaseCreateOrConnectWithoutTenantInput | IssueCaseCreateOrConnectWithoutTenantInput[]
@@ -38814,6 +40729,13 @@ export namespace Prisma {
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
   }
 
+  export type FinancialEntryCreateNestedManyWithoutCneReportedByInput = {
+    create?: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput> | FinancialEntryCreateWithoutCneReportedByInput[] | FinancialEntryUncheckedCreateWithoutCneReportedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutCneReportedByInput | FinancialEntryCreateOrConnectWithoutCneReportedByInput[]
+    createMany?: FinancialEntryCreateManyCneReportedByInputEnvelope
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+  }
+
   export type VoterCreateNestedManyWithoutRegistrarInput = {
     create?: XOR<VoterCreateWithoutRegistrarInput, VoterUncheckedCreateWithoutRegistrarInput> | VoterCreateWithoutRegistrarInput[] | VoterUncheckedCreateWithoutRegistrarInput[]
     connectOrCreate?: VoterCreateOrConnectWithoutRegistrarInput | VoterCreateOrConnectWithoutRegistrarInput[]
@@ -38854,6 +40776,13 @@ export namespace Prisma {
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutCapturedByInput | ConsentRecordCreateOrConnectWithoutCapturedByInput[]
     createMany?: ConsentRecordCreateManyCapturedByInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type ConsentNoticeCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput> | ConsentNoticeCreateWithoutCreatedByInput[] | ConsentNoticeUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutCreatedByInput | ConsentNoticeCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ConsentNoticeCreateManyCreatedByInputEnvelope
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
   }
 
   export type IssueCaseCreateNestedManyWithoutAssigneeInput = {
@@ -38954,6 +40883,13 @@ export namespace Prisma {
     connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
   }
 
+  export type FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput = {
+    create?: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput> | FinancialEntryCreateWithoutCneReportedByInput[] | FinancialEntryUncheckedCreateWithoutCneReportedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutCneReportedByInput | FinancialEntryCreateOrConnectWithoutCneReportedByInput[]
+    createMany?: FinancialEntryCreateManyCneReportedByInputEnvelope
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+  }
+
   export type VoterUncheckedCreateNestedManyWithoutRegistrarInput = {
     create?: XOR<VoterCreateWithoutRegistrarInput, VoterUncheckedCreateWithoutRegistrarInput> | VoterCreateWithoutRegistrarInput[] | VoterUncheckedCreateWithoutRegistrarInput[]
     connectOrCreate?: VoterCreateOrConnectWithoutRegistrarInput | VoterCreateOrConnectWithoutRegistrarInput[]
@@ -38994,6 +40930,13 @@ export namespace Prisma {
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutCapturedByInput | ConsentRecordCreateOrConnectWithoutCapturedByInput[]
     createMany?: ConsentRecordCreateManyCapturedByInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput> | ConsentNoticeCreateWithoutCreatedByInput[] | ConsentNoticeUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutCreatedByInput | ConsentNoticeCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ConsentNoticeCreateManyCreatedByInputEnvelope
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
   }
 
   export type IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput = {
@@ -39134,6 +41077,20 @@ export namespace Prisma {
     deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
   }
 
+  export type FinancialEntryUpdateManyWithoutCneReportedByNestedInput = {
+    create?: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput> | FinancialEntryCreateWithoutCneReportedByInput[] | FinancialEntryUncheckedCreateWithoutCneReportedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutCneReportedByInput | FinancialEntryCreateOrConnectWithoutCneReportedByInput[]
+    upsert?: FinancialEntryUpsertWithWhereUniqueWithoutCneReportedByInput | FinancialEntryUpsertWithWhereUniqueWithoutCneReportedByInput[]
+    createMany?: FinancialEntryCreateManyCneReportedByInputEnvelope
+    set?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    disconnect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    delete?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    update?: FinancialEntryUpdateWithWhereUniqueWithoutCneReportedByInput | FinancialEntryUpdateWithWhereUniqueWithoutCneReportedByInput[]
+    updateMany?: FinancialEntryUpdateManyWithWhereWithoutCneReportedByInput | FinancialEntryUpdateManyWithWhereWithoutCneReportedByInput[]
+    deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
+  }
+
   export type VoterUpdateManyWithoutRegistrarNestedInput = {
     create?: XOR<VoterCreateWithoutRegistrarInput, VoterUncheckedCreateWithoutRegistrarInput> | VoterCreateWithoutRegistrarInput[] | VoterUncheckedCreateWithoutRegistrarInput[]
     connectOrCreate?: VoterCreateOrConnectWithoutRegistrarInput | VoterCreateOrConnectWithoutRegistrarInput[]
@@ -39216,6 +41173,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutCapturedByInput | ConsentRecordUpdateWithWhereUniqueWithoutCapturedByInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutCapturedByInput | ConsentRecordUpdateManyWithWhereWithoutCapturedByInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type ConsentNoticeUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput> | ConsentNoticeCreateWithoutCreatedByInput[] | ConsentNoticeUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutCreatedByInput | ConsentNoticeCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ConsentNoticeUpsertWithWhereUniqueWithoutCreatedByInput | ConsentNoticeUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ConsentNoticeCreateManyCreatedByInputEnvelope
+    set?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    disconnect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    delete?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    update?: ConsentNoticeUpdateWithWhereUniqueWithoutCreatedByInput | ConsentNoticeUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ConsentNoticeUpdateManyWithWhereWithoutCreatedByInput | ConsentNoticeUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
   }
 
   export type IssueCaseUpdateManyWithoutAssigneeNestedInput = {
@@ -39414,6 +41385,20 @@ export namespace Prisma {
     deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
   }
 
+  export type FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput = {
+    create?: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput> | FinancialEntryCreateWithoutCneReportedByInput[] | FinancialEntryUncheckedCreateWithoutCneReportedByInput[]
+    connectOrCreate?: FinancialEntryCreateOrConnectWithoutCneReportedByInput | FinancialEntryCreateOrConnectWithoutCneReportedByInput[]
+    upsert?: FinancialEntryUpsertWithWhereUniqueWithoutCneReportedByInput | FinancialEntryUpsertWithWhereUniqueWithoutCneReportedByInput[]
+    createMany?: FinancialEntryCreateManyCneReportedByInputEnvelope
+    set?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    disconnect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    delete?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    connect?: FinancialEntryWhereUniqueInput | FinancialEntryWhereUniqueInput[]
+    update?: FinancialEntryUpdateWithWhereUniqueWithoutCneReportedByInput | FinancialEntryUpdateWithWhereUniqueWithoutCneReportedByInput[]
+    updateMany?: FinancialEntryUpdateManyWithWhereWithoutCneReportedByInput | FinancialEntryUpdateManyWithWhereWithoutCneReportedByInput[]
+    deleteMany?: FinancialEntryScalarWhereInput | FinancialEntryScalarWhereInput[]
+  }
+
   export type VoterUncheckedUpdateManyWithoutRegistrarNestedInput = {
     create?: XOR<VoterCreateWithoutRegistrarInput, VoterUncheckedCreateWithoutRegistrarInput> | VoterCreateWithoutRegistrarInput[] | VoterUncheckedCreateWithoutRegistrarInput[]
     connectOrCreate?: VoterCreateOrConnectWithoutRegistrarInput | VoterCreateOrConnectWithoutRegistrarInput[]
@@ -39496,6 +41481,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutCapturedByInput | ConsentRecordUpdateWithWhereUniqueWithoutCapturedByInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutCapturedByInput | ConsentRecordUpdateManyWithWhereWithoutCapturedByInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput> | ConsentNoticeCreateWithoutCreatedByInput[] | ConsentNoticeUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ConsentNoticeCreateOrConnectWithoutCreatedByInput | ConsentNoticeCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ConsentNoticeUpsertWithWhereUniqueWithoutCreatedByInput | ConsentNoticeUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ConsentNoticeCreateManyCreatedByInputEnvelope
+    set?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    disconnect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    delete?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    connect?: ConsentNoticeWhereUniqueInput | ConsentNoticeWhereUniqueInput[]
+    update?: ConsentNoticeUpdateWithWhereUniqueWithoutCreatedByInput | ConsentNoticeUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ConsentNoticeUpdateManyWithWhereWithoutCreatedByInput | ConsentNoticeUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
   }
 
   export type IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput = {
@@ -40126,6 +42125,12 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type UserCreateNestedOneWithoutFinancialEntriesCneMarkedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesCneMarkedInput, UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesCneMarkedInput
+    connect?: UserWhereUniqueInput
+  }
+
   export type EnumEntryTypeFieldUpdateOperationsInput = {
     set?: $Enums.EntryType
   }
@@ -40162,6 +42167,16 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutFinancialEntriesReviewedInput, UserUpdateWithoutFinancialEntriesReviewedInput>, UserUncheckedUpdateWithoutFinancialEntriesReviewedInput>
+  }
+
+  export type UserUpdateOneWithoutFinancialEntriesCneMarkedNestedInput = {
+    create?: XOR<UserCreateWithoutFinancialEntriesCneMarkedInput, UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutFinancialEntriesCneMarkedInput
+    upsert?: UserUpsertWithoutFinancialEntriesCneMarkedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutFinancialEntriesCneMarkedInput, UserUpdateWithoutFinancialEntriesCneMarkedInput>, UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput>
   }
 
   export type TenantCreateNestedOneWithoutWitnessesInput = {
@@ -40612,6 +42627,34 @@ export namespace Prisma {
     update?: InteractionUpdateWithWhereUniqueWithoutConsentRecordInput | InteractionUpdateWithWhereUniqueWithoutConsentRecordInput[]
     updateMany?: InteractionUpdateManyWithWhereWithoutConsentRecordInput | InteractionUpdateManyWithWhereWithoutConsentRecordInput[]
     deleteMany?: InteractionScalarWhereInput | InteractionScalarWhereInput[]
+  }
+
+  export type TenantCreateNestedOneWithoutConsentNoticesInput = {
+    create?: XOR<TenantCreateWithoutConsentNoticesInput, TenantUncheckedCreateWithoutConsentNoticesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutConsentNoticesInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutConsentNoticesCreatedInput = {
+    create?: XOR<UserCreateWithoutConsentNoticesCreatedInput, UserUncheckedCreateWithoutConsentNoticesCreatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutConsentNoticesCreatedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type TenantUpdateOneRequiredWithoutConsentNoticesNestedInput = {
+    create?: XOR<TenantCreateWithoutConsentNoticesInput, TenantUncheckedCreateWithoutConsentNoticesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutConsentNoticesInput
+    upsert?: TenantUpsertWithoutConsentNoticesInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutConsentNoticesInput, TenantUpdateWithoutConsentNoticesInput>, TenantUncheckedUpdateWithoutConsentNoticesInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutConsentNoticesCreatedNestedInput = {
+    create?: XOR<UserCreateWithoutConsentNoticesCreatedInput, UserUncheckedCreateWithoutConsentNoticesCreatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutConsentNoticesCreatedInput
+    upsert?: UserUpsertWithoutConsentNoticesCreatedInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutConsentNoticesCreatedInput, UserUpdateWithoutConsentNoticesCreatedInput>, UserUncheckedUpdateWithoutConsentNoticesCreatedInput>
   }
 
   export type TenantCreateNestedOneWithoutIssueCasesInput = {
@@ -42003,12 +44046,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -42040,12 +44085,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -42176,11 +44223,14 @@ export namespace Prisma {
     evidenceUrl?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
     reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
+    cneReportedBy?: UserCreateNestedOneWithoutFinancialEntriesCneMarkedInput
   }
 
   export type FinancialEntryUncheckedCreateWithoutTenantInput = {
@@ -42197,6 +44247,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -42447,6 +44500,50 @@ export namespace Prisma {
 
   export type ConsentRecordCreateManyTenantInputEnvelope = {
     data: ConsentRecordCreateManyTenantInput | ConsentRecordCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ConsentNoticeCreateWithoutTenantInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+    createdBy: UserCreateNestedOneWithoutConsentNoticesCreatedInput
+  }
+
+  export type ConsentNoticeUncheckedCreateWithoutTenantInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    createdById: string
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeCreateOrConnectWithoutTenantInput = {
+    where: ConsentNoticeWhereUniqueInput
+    create: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput>
+  }
+
+  export type ConsentNoticeCreateManyTenantInputEnvelope = {
+    data: ConsentNoticeCreateManyTenantInput | ConsentNoticeCreateManyTenantInput[]
     skipDuplicates?: boolean
   }
 
@@ -42995,6 +45092,9 @@ export namespace Prisma {
     reviewedById?: StringNullableFilter<"FinancialEntry"> | string | null
     reviewedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
     reviewReason?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedById?: StringNullableFilter<"FinancialEntry"> | string | null
+    cneReportedAt?: DateTimeNullableFilter<"FinancialEntry"> | Date | string | null
+    cneReportReference?: StringNullableFilter<"FinancialEntry"> | string | null
     status?: EnumFinanceStatusFilter<"FinancialEntry"> | $Enums.FinanceStatus
     auditLog?: JsonNullableFilter<"FinancialEntry">
     createdAt?: DateTimeFilter<"FinancialEntry"> | Date | string
@@ -43203,6 +45303,43 @@ export namespace Prisma {
     revokedAt?: DateTimeNullableFilter<"ConsentRecord"> | Date | string | null
     revocationReason?: StringNullableFilter<"ConsentRecord"> | string | null
     createdAt?: DateTimeFilter<"ConsentRecord"> | Date | string
+  }
+
+  export type ConsentNoticeUpsertWithWhereUniqueWithoutTenantInput = {
+    where: ConsentNoticeWhereUniqueInput
+    update: XOR<ConsentNoticeUpdateWithoutTenantInput, ConsentNoticeUncheckedUpdateWithoutTenantInput>
+    create: XOR<ConsentNoticeCreateWithoutTenantInput, ConsentNoticeUncheckedCreateWithoutTenantInput>
+  }
+
+  export type ConsentNoticeUpdateWithWhereUniqueWithoutTenantInput = {
+    where: ConsentNoticeWhereUniqueInput
+    data: XOR<ConsentNoticeUpdateWithoutTenantInput, ConsentNoticeUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type ConsentNoticeUpdateManyWithWhereWithoutTenantInput = {
+    where: ConsentNoticeScalarWhereInput
+    data: XOR<ConsentNoticeUpdateManyMutationInput, ConsentNoticeUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type ConsentNoticeScalarWhereInput = {
+    AND?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
+    OR?: ConsentNoticeScalarWhereInput[]
+    NOT?: ConsentNoticeScalarWhereInput | ConsentNoticeScalarWhereInput[]
+    id?: StringFilter<"ConsentNotice"> | string
+    tenantId?: StringFilter<"ConsentNotice"> | string
+    mode?: EnumPoliticalOperationModeFilter<"ConsentNotice"> | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFilter<"ConsentNotice"> | $Enums.ConsentPurpose
+    version?: StringFilter<"ConsentNotice"> | string
+    title?: StringFilter<"ConsentNotice"> | string
+    content?: StringFilter<"ConsentNotice"> | string
+    controllerName?: StringFilter<"ConsentNotice"> | string
+    contactEmail?: StringFilter<"ConsentNotice"> | string
+    privacyPolicyUrl?: StringNullableFilter<"ConsentNotice"> | string | null
+    isActive?: BoolFilter<"ConsentNotice"> | boolean
+    createdById?: StringFilter<"ConsentNotice"> | string
+    activatedAt?: DateTimeFilter<"ConsentNotice"> | Date | string
+    retiredAt?: DateTimeNullableFilter<"ConsentNotice"> | Date | string | null
+    createdAt?: DateTimeFilter<"ConsentNotice"> | Date | string
   }
 
   export type IssueCaseUpsertWithWhereUniqueWithoutTenantInput = {
@@ -43528,6 +45665,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -43557,6 +45695,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -43602,6 +45741,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -43631,6 +45771,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -43661,6 +45802,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -43690,6 +45832,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -43722,12 +45865,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -43759,12 +45904,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -43814,6 +45961,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -43843,6 +45991,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -43881,12 +46030,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -43918,12 +46069,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -43956,6 +46109,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -43985,6 +46139,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -44045,11 +46200,14 @@ export namespace Prisma {
     evidenceUrl?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutFinancesInput
     reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
+    cneReportedBy?: UserCreateNestedOneWithoutFinancialEntriesCneMarkedInput
   }
 
   export type FinancialEntryUncheckedCreateWithoutReporterInput = {
@@ -44065,6 +46223,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -44092,11 +46253,14 @@ export namespace Prisma {
     evidenceUrl?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tenant: TenantCreateNestedOneWithoutFinancesInput
     reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
+    cneReportedBy?: UserCreateNestedOneWithoutFinancialEntriesCneMarkedInput
   }
 
   export type FinancialEntryUncheckedCreateWithoutReviewedByInput = {
@@ -44112,6 +46276,9 @@ export namespace Prisma {
     reporterId: string
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -44124,6 +46291,59 @@ export namespace Prisma {
 
   export type FinancialEntryCreateManyReviewedByInputEnvelope = {
     data: FinancialEntryCreateManyReviewedByInput | FinancialEntryCreateManyReviewedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FinancialEntryCreateWithoutCneReportedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutFinancesInput
+    reporter: UserCreateNestedOneWithoutFinancialEntriesReportedInput
+    reviewedBy?: UserCreateNestedOneWithoutFinancialEntriesReviewedInput
+  }
+
+  export type FinancialEntryUncheckedCreateWithoutCneReportedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type FinancialEntryCreateOrConnectWithoutCneReportedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    create: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput>
+  }
+
+  export type FinancialEntryCreateManyCneReportedByInputEnvelope = {
+    data: FinancialEntryCreateManyCneReportedByInput | FinancialEntryCreateManyCneReportedByInput[]
     skipDuplicates?: boolean
   }
 
@@ -44386,6 +46606,49 @@ export namespace Prisma {
 
   export type ConsentRecordCreateManyCapturedByInputEnvelope = {
     data: ConsentRecordCreateManyCapturedByInput | ConsentRecordCreateManyCapturedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ConsentNoticeCreateWithoutCreatedByInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutConsentNoticesInput
+  }
+
+  export type ConsentNoticeUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeCreateOrConnectWithoutCreatedByInput = {
+    where: ConsentNoticeWhereUniqueInput
+    create: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ConsentNoticeCreateManyCreatedByInputEnvelope = {
+    data: ConsentNoticeCreateManyCreatedByInput | ConsentNoticeCreateManyCreatedByInput[]
     skipDuplicates?: boolean
   }
 
@@ -44987,6 +47250,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -45016,6 +47280,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -45095,6 +47360,22 @@ export namespace Prisma {
   export type FinancialEntryUpdateManyWithWhereWithoutReviewedByInput = {
     where: FinancialEntryScalarWhereInput
     data: XOR<FinancialEntryUpdateManyMutationInput, FinancialEntryUncheckedUpdateManyWithoutReviewedByInput>
+  }
+
+  export type FinancialEntryUpsertWithWhereUniqueWithoutCneReportedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    update: XOR<FinancialEntryUpdateWithoutCneReportedByInput, FinancialEntryUncheckedUpdateWithoutCneReportedByInput>
+    create: XOR<FinancialEntryCreateWithoutCneReportedByInput, FinancialEntryUncheckedCreateWithoutCneReportedByInput>
+  }
+
+  export type FinancialEntryUpdateWithWhereUniqueWithoutCneReportedByInput = {
+    where: FinancialEntryWhereUniqueInput
+    data: XOR<FinancialEntryUpdateWithoutCneReportedByInput, FinancialEntryUncheckedUpdateWithoutCneReportedByInput>
+  }
+
+  export type FinancialEntryUpdateManyWithWhereWithoutCneReportedByInput = {
+    where: FinancialEntryScalarWhereInput
+    data: XOR<FinancialEntryUpdateManyMutationInput, FinancialEntryUncheckedUpdateManyWithoutCneReportedByInput>
   }
 
   export type VoterUpsertWithWhereUniqueWithoutRegistrarInput = {
@@ -45191,6 +47472,22 @@ export namespace Prisma {
   export type ConsentRecordUpdateManyWithWhereWithoutCapturedByInput = {
     where: ConsentRecordScalarWhereInput
     data: XOR<ConsentRecordUpdateManyMutationInput, ConsentRecordUncheckedUpdateManyWithoutCapturedByInput>
+  }
+
+  export type ConsentNoticeUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: ConsentNoticeWhereUniqueInput
+    update: XOR<ConsentNoticeUpdateWithoutCreatedByInput, ConsentNoticeUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<ConsentNoticeCreateWithoutCreatedByInput, ConsentNoticeUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ConsentNoticeUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: ConsentNoticeWhereUniqueInput
+    data: XOR<ConsentNoticeUpdateWithoutCreatedByInput, ConsentNoticeUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type ConsentNoticeUpdateManyWithWhereWithoutCreatedByInput = {
+    where: ConsentNoticeScalarWhereInput
+    data: XOR<ConsentNoticeUpdateManyMutationInput, ConsentNoticeUncheckedUpdateManyWithoutCreatedByInput>
   }
 
   export type IssueCaseUpsertWithWhereUniqueWithoutAssigneeInput = {
@@ -45405,6 +47702,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -45434,6 +47732,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -45466,12 +47765,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -45503,12 +47804,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -45558,6 +47861,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -45587,6 +47891,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -45625,12 +47930,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -45662,12 +47969,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -45700,6 +48009,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -45729,6 +48039,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -45831,12 +48142,14 @@ export namespace Prisma {
     tenant: TenantCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -45867,12 +48180,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -46094,6 +48409,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -46123,6 +48439,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -46271,6 +48588,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -46300,6 +48618,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -46366,11 +48685,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -46403,11 +48724,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -46616,6 +48939,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -46645,6 +48969,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -46723,11 +49048,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -46760,11 +49087,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -46846,6 +49175,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -46875,6 +49205,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -46907,12 +49238,14 @@ export namespace Prisma {
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -46944,12 +49277,14 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -46986,12 +49321,14 @@ export namespace Prisma {
     tenant: TenantCreateNestedOneWithoutUsersInput
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -47023,12 +49360,14 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -47046,6 +49385,89 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutFinancialEntriesReviewedInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutFinancialEntriesReviewedInput, UserUncheckedCreateWithoutFinancialEntriesReviewedInput>
+  }
+
+  export type UserCreateWithoutFinancialEntriesCneMarkedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserCreateOrConnectWithoutFinancialEntriesCneMarkedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutFinancialEntriesCneMarkedInput, UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput>
   }
 
   export type TenantUpsertWithoutFinancesInput = {
@@ -47078,6 +49500,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -47107,6 +49530,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -47145,12 +49569,14 @@ export namespace Prisma {
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -47182,12 +49608,14 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -47230,12 +49658,14 @@ export namespace Prisma {
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -47267,12 +49697,103 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUpsertWithoutFinancialEntriesCneMarkedInput = {
+    update: XOR<UserUpdateWithoutFinancialEntriesCneMarkedInput, UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput>
+    create: XOR<UserCreateWithoutFinancialEntriesCneMarkedInput, UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutFinancialEntriesCneMarkedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutFinancialEntriesCneMarkedInput, UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput>
+  }
+
+  export type UserUpdateWithoutFinancialEntriesCneMarkedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -47306,6 +49827,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -47335,6 +49857,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -47401,11 +49924,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -47438,11 +49963,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -47480,11 +50007,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -47517,11 +50046,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -47665,6 +50196,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -47694,6 +50226,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -47772,11 +50305,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -47809,11 +50344,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -47857,11 +50394,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -47894,11 +50433,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -47999,6 +50540,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -48028,6 +50570,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -48061,12 +50604,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -48098,12 +50643,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -48179,6 +50726,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -48208,6 +50756,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -48247,12 +50796,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -48284,12 +50835,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -48338,6 +50891,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -48367,6 +50921,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -48400,11 +50955,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -48437,11 +50994,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -48530,6 +51089,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -48559,6 +51119,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -48598,11 +51159,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -48635,11 +51198,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -48718,6 +51283,7 @@ export namespace Prisma {
     pointLogs?: PointLogCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -48747,6 +51313,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -48821,6 +51388,7 @@ export namespace Prisma {
     pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -48850,6 +51418,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -48895,6 +51464,7 @@ export namespace Prisma {
     pointLogs?: PointLogCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -48924,6 +51494,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -48984,11 +51555,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -49021,11 +51594,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -49075,6 +51650,7 @@ export namespace Prisma {
     pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -49104,6 +51680,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -49176,11 +51753,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -49213,11 +51792,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -49251,6 +51832,7 @@ export namespace Prisma {
     pointLogs?: PointLogCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -49280,6 +51862,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -49364,11 +51947,13 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -49401,11 +51986,13 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -49498,6 +52085,7 @@ export namespace Prisma {
     pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -49527,6 +52115,7 @@ export namespace Prisma {
     pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -49623,11 +52212,13 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -49660,11 +52251,13 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -49695,6 +52288,314 @@ export namespace Prisma {
     data: XOR<InteractionUpdateManyMutationInput, InteractionUncheckedUpdateManyWithoutConsentRecordInput>
   }
 
+  export type TenantCreateWithoutConsentNoticesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutConsentNoticesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutConsentNoticesInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutConsentNoticesInput, TenantUncheckedCreateWithoutConsentNoticesInput>
+  }
+
+  export type UserCreateWithoutConsentNoticesCreatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserUncheckedCreateWithoutConsentNoticesCreatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserCreateOrConnectWithoutConsentNoticesCreatedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutConsentNoticesCreatedInput, UserUncheckedCreateWithoutConsentNoticesCreatedInput>
+  }
+
+  export type TenantUpsertWithoutConsentNoticesInput = {
+    update: XOR<TenantUpdateWithoutConsentNoticesInput, TenantUncheckedUpdateWithoutConsentNoticesInput>
+    create: XOR<TenantCreateWithoutConsentNoticesInput, TenantUncheckedCreateWithoutConsentNoticesInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutConsentNoticesInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutConsentNoticesInput, TenantUncheckedUpdateWithoutConsentNoticesInput>
+  }
+
+  export type TenantUpdateWithoutConsentNoticesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutConsentNoticesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type UserUpsertWithoutConsentNoticesCreatedInput = {
+    update: XOR<UserUpdateWithoutConsentNoticesCreatedInput, UserUncheckedUpdateWithoutConsentNoticesCreatedInput>
+    create: XOR<UserCreateWithoutConsentNoticesCreatedInput, UserUncheckedCreateWithoutConsentNoticesCreatedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutConsentNoticesCreatedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutConsentNoticesCreatedInput, UserUncheckedUpdateWithoutConsentNoticesCreatedInput>
+  }
+
+  export type UserUpdateWithoutConsentNoticesCreatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutConsentNoticesCreatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+  }
+
   export type TenantCreateWithoutIssueCasesInput = {
     id?: string
     slug: string
@@ -49715,6 +52616,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
@@ -49744,6 +52646,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
@@ -49860,12 +52763,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
     tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
@@ -49897,12 +52802,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
     tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
@@ -49939,12 +52846,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
     tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
@@ -49976,12 +52885,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
     tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
@@ -50213,6 +53124,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
@@ -50242,6 +53154,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
@@ -50376,12 +53289,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
     tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
@@ -50413,12 +53328,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
     tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -50461,12 +53378,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
     tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
@@ -50498,12 +53417,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
     tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -50601,6 +53522,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
@@ -50630,6 +53552,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
@@ -50772,12 +53695,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
@@ -50809,12 +53734,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
@@ -50913,6 +53840,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
@@ -50942,6 +53870,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
@@ -51102,12 +54031,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
@@ -51139,12 +54070,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -51233,6 +54166,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     commitments?: CommitmentCreateNestedManyWithoutTenantInput
@@ -51262,6 +54196,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
@@ -51396,12 +54331,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -51433,12 +54370,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -51475,12 +54414,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -51512,12 +54453,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -51567,6 +54510,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUpdateManyWithoutTenantNestedInput
@@ -51596,6 +54540,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
@@ -51748,12 +54693,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -51785,12 +54732,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -51833,12 +54782,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -51870,12 +54821,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -51909,6 +54862,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -51938,6 +54892,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -51970,12 +54925,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -52007,12 +54964,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -52164,6 +55123,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -52193,6 +55153,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -52231,12 +55192,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -52268,12 +55231,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -52388,6 +55353,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -52417,6 +55383,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -52508,12 +55475,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -52545,12 +55514,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -52587,12 +55558,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -52624,12 +55597,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -52679,6 +55654,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -52708,6 +55684,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -52811,12 +55788,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -52848,12 +55827,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -52896,12 +55877,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -52933,12 +55916,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -52972,6 +55957,7 @@ export namespace Prisma {
     inventory?: InventoryItemCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
     tasks?: TaskCreateNestedManyWithoutTenantInput
@@ -53001,6 +55987,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
     tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
@@ -53033,12 +56020,14 @@ export namespace Prisma {
     division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionCreateNestedManyWithoutActorInput
@@ -53070,12 +56059,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
@@ -53125,6 +56116,7 @@ export namespace Prisma {
     inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
     tasks?: TaskUpdateManyWithoutTenantNestedInput
@@ -53154,6 +56146,7 @@ export namespace Prisma {
     inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
     tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
@@ -53192,12 +56185,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -53229,12 +56224,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -53308,6 +56305,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -53395,6 +56395,23 @@ export namespace Prisma {
     expiresAt?: Date | string | null
     revokedAt?: Date | string | null
     revocationReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeCreateManyTenantInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    createdById: string
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -53559,12 +56576,14 @@ export namespace Prisma {
     division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -53596,12 +56615,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
@@ -53748,11 +56769,14 @@ export namespace Prisma {
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
     reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
+    cneReportedBy?: UserUpdateOneWithoutFinancialEntriesCneMarkedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateWithoutTenantInput = {
@@ -53769,6 +56793,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53788,6 +56815,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54053,6 +57083,57 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revocationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: UserUpdateOneRequiredWithoutConsentNoticesCreatedNestedInput
+  }
+
+  export type ConsentNoticeUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdById?: StringFieldUpdateOperationsInput | string
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdById?: StringFieldUpdateOperationsInput | string
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -54511,6 +57592,9 @@ export namespace Prisma {
     reviewedById?: string | null
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -54529,6 +57613,30 @@ export namespace Prisma {
     reporterId: string
     reviewedAt?: Date | string | null
     reviewReason?: string | null
+    cneReportedById?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
+    status?: $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type FinancialEntryCreateManyCneReportedByInput = {
+    id?: string
+    type: $Enums.EntryType
+    amount: Decimal | DecimalJsLike | number | string
+    date: Date | string
+    cneCode: $Enums.CneCode
+    description: string
+    vendorName: string
+    vendorTaxId: string
+    evidenceUrl?: string | null
+    reporterId: string
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    reviewReason?: string | null
+    cneReportedAt?: Date | string | null
+    cneReportReference?: string | null
     status?: $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -54623,6 +57731,22 @@ export namespace Prisma {
     expiresAt?: Date | string | null
     revokedAt?: Date | string | null
     revocationReason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ConsentNoticeCreateManyCreatedByInput = {
+    id?: string
+    mode: $Enums.PoliticalOperationMode
+    purpose: $Enums.ConsentPurpose
+    version: string
+    title: string
+    content: string
+    controllerName: string
+    contactEmail: string
+    privacyPolicyUrl?: string | null
+    isActive?: boolean
+    activatedAt?: Date | string
+    retiredAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -54846,11 +57970,14 @@ export namespace Prisma {
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
     reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
+    cneReportedBy?: UserUpdateOneWithoutFinancialEntriesCneMarkedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateWithoutReporterInput = {
@@ -54866,6 +57993,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54884,6 +58014,9 @@ export namespace Prisma {
     reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54901,11 +58034,14 @@ export namespace Prisma {
     evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
     reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
+    cneReportedBy?: UserUpdateOneWithoutFinancialEntriesCneMarkedNestedInput
   }
 
   export type FinancialEntryUncheckedUpdateWithoutReviewedByInput = {
@@ -54921,6 +58057,9 @@ export namespace Prisma {
     reporterId?: StringFieldUpdateOperationsInput | string
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54939,6 +58078,73 @@ export namespace Prisma {
     reporterId?: StringFieldUpdateOperationsInput | string
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedById?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FinancialEntryUpdateWithoutCneReportedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutFinancesNestedInput
+    reporter?: UserUpdateOneRequiredWithoutFinancialEntriesReportedNestedInput
+    reviewedBy?: UserUpdateOneWithoutFinancialEntriesReviewedNestedInput
+  }
+
+  export type FinancialEntryUncheckedUpdateWithoutCneReportedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
+    auditLog?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FinancialEntryUncheckedUpdateManyWithoutCneReportedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: EnumEntryTypeFieldUpdateOperationsInput | $Enums.EntryType
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    cneCode?: EnumCneCodeFieldUpdateOperationsInput | $Enums.CneCode
+    description?: StringFieldUpdateOperationsInput | string
+    vendorName?: StringFieldUpdateOperationsInput | string
+    vendorTaxId?: StringFieldUpdateOperationsInput | string
+    evidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterId?: StringFieldUpdateOperationsInput | string
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cneReportedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cneReportReference?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFinanceStatusFieldUpdateOperationsInput | $Enums.FinanceStatus
     auditLog?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -55235,6 +58441,55 @@ export namespace Prisma {
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revocationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutConsentNoticesNestedInput
+  }
+
+  export type ConsentNoticeUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentNoticeUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    purpose?: EnumConsentPurposeFieldUpdateOperationsInput | $Enums.ConsentPurpose
+    version?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    controllerName?: StringFieldUpdateOperationsInput | string
+    contactEmail?: StringFieldUpdateOperationsInput | string
+    privacyPolicyUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    activatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -56029,12 +59284,14 @@ export namespace Prisma {
     tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUpdateManyWithoutActorNestedInput
@@ -56065,12 +59322,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput

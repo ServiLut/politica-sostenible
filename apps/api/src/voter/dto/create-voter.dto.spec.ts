@@ -1,5 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { ConsentCollectionChannel } from '../../../prisma/generated/prisma';
 import { CreateVoterDto } from './create-voter.dto';
 
 const validInput = {
@@ -11,6 +12,7 @@ const validInput = {
   mesa: 12,
   consentAccepted: true,
   termsVersion: '2026.1',
+  collectionChannel: ConsentCollectionChannel.IN_PERSON,
 };
 
 describe('CreateVoterDto', () => {
@@ -42,7 +44,14 @@ describe('CreateVoterDto', () => {
 
   it.each([
     [{ ...validInput, consentAccepted: false }, 'consentAccepted'],
-    [{ ...validInput, termsVersion: 'legacy' }, 'termsVersion'],
+    [{ ...validInput, termsVersion: 'version con espacios' }, 'termsVersion'],
+    [
+      {
+        ...validInput,
+        collectionChannel: ConsentCollectionChannel.IMPORT,
+      },
+      'collectionChannel',
+    ],
     [{ ...validInput, documentId: '../tenant-b' }, 'documentId'],
     [{ ...validInput, email: 'correo-invalido' }, 'email'],
     [{ ...validInput, mesa: 0 }, 'mesa'],

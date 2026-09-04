@@ -1,4 +1,6 @@
 import { apiRequest } from "./api-client";
+import type { ConsentNotice } from "./consent-notices-api";
+import type { CapturableConsentCollectionChannel } from "./interactions-api";
 
 export interface VoterListItem {
   id: string;
@@ -35,6 +37,7 @@ export interface CreateVoterInput {
   mesa?: number;
   consentAccepted: true;
   termsVersion: string;
+  collectionChannel: CapturableConsentCollectionChannel;
 }
 
 export interface VoterCapturePuesto {
@@ -45,6 +48,7 @@ export interface VoterCapturePuesto {
 
 export interface VoterCaptureContext {
   puestos: VoterCapturePuesto[];
+  consentNotice: ConsentNotice | null;
 }
 
 export interface ConsentRevocationResult {
@@ -52,6 +56,14 @@ export interface ConsentRevocationResult {
   consentAccepted: false;
   status: "REVOKED";
   revokedAt: string;
+}
+
+export interface ConsentGrantResult {
+  voterId: string;
+  consentAccepted: true;
+  status: "GRANTED";
+  grantedAt: string;
+  noticeVersion: string;
 }
 
 export interface VoterDetail {
@@ -151,6 +163,23 @@ export function revokeVoterConsent(
   return apiRequest(`voters/${encodeURIComponent(voterId)}/consents/revoke`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  });
+}
+
+export function grantVoterConsent(
+  voterId: string,
+  input: {
+    noticeVersion: string;
+    collectionChannel: CapturableConsentCollectionChannel;
+  },
+): Promise<ConsentGrantResult> {
+  return apiRequest(`voters/${encodeURIComponent(voterId)}/consents/grant`, {
+    method: "POST",
+    body: JSON.stringify({
+      consentAccepted: true,
+      termsVersion: input.noticeVersion,
+      collectionChannel: input.collectionChannel,
+    }),
   });
 }
 

@@ -63,6 +63,11 @@ const PUBLIC_OFFICE_ROLES: typeof CAMPAIGN_ROLES = [
   { value: "AUDITOR", label: "Auditoría" },
 ];
 
+const BACKUP_ADMIN_ROLE = {
+  value: "ADMIN",
+  label: "Administración de respaldo",
+} as const satisfies { value: BackendUserRole; label: string };
+
 const ROLE_LABELS = new Map(
   [
     ...CAMPAIGN_ROLES,
@@ -70,6 +75,12 @@ const ROLE_LABELS = new Map(
     { value: "ADMIN", label: "Administración" },
   ].map((item) => [item.value, item.label]),
 );
+
+function invitationRoleLabel(role: BackendUserRole): string {
+  return role === BACKUP_ADMIN_ROLE.value
+    ? BACKUP_ADMIN_ROLE.label
+    : (ROLE_LABELS.get(role) ?? role);
+}
 
 const TERRITORIAL_ROLES = new Set<BackendUserRole>([
   "ZONE_COORDINATOR",
@@ -100,6 +111,10 @@ export default function TeamPage() {
       tenant?.type === "PUBLIC_OFFICE" ? PUBLIC_OFFICE_ROLES : CAMPAIGN_ROLES,
     [tenant?.type],
   );
+  const invitationRoleOptions = useMemo(
+    () => [...roleOptions, BACKUP_ADMIN_ROLE],
+    [roleOptions],
+  );
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,8 +139,9 @@ export default function TeamPage() {
   const resetDialogRef = useRef<HTMLElement>(null);
   const resetBusyRef = useRef(false);
   const [resetMember, setResetMember] = useState<TeamMember | null>(null);
-  const [resetResult, setResetResult] =
-    useState<TeamMemberAccessReset | null>(null);
+  const [resetResult, setResetResult] = useState<TeamMemberAccessReset | null>(
+    null,
+  );
   const [resettingAccess, setResettingAccess] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetCopyStatus, setResetCopyStatus] = useState<
@@ -133,10 +149,10 @@ export default function TeamPage() {
   >("idle");
 
   useEffect(() => {
-    if (!roleOptions.some((option) => option.value === role)) {
+    if (!invitationRoleOptions.some((option) => option.value === role)) {
       setRole(roleOptions[0].value);
     }
-  }, [role, roleOptions]);
+  }, [invitationRoleOptions, role, roleOptions]);
 
   const loadTeam = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -408,8 +424,8 @@ export default function TeamPage() {
         </h1>
         <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
           Invita a cada persona con el menor privilegio necesario. Los enlaces
-          vencen en 72 horas, se usan una sola vez y nunca convierten a alguien
-          en administrador.
+          vencen en 72 horas y se usan una sola vez. Si necesitas continuidad,
+          puedes designar explícitamente una administración de respaldo.
         </p>
       </header>
 
@@ -444,22 +460,39 @@ export default function TeamPage() {
               />
             </label>
             <label className="block space-y-2 text-sm font-black text-slate-700">
-              Rol operativo
+              Rol para la invitación
               <select
-                aria-label="Rol operativo"
+                aria-label="Rol para la invitación"
                 value={role}
                 onChange={(event) =>
                   setRole(event.target.value as BackendUserRole)
                 }
                 className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
-                {roleOptions.map((option) => (
+                {invitationRoleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
             </label>
+            {role === "ADMIN" && (
+              <div
+                role="alert"
+                className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950"
+              >
+                <p className="font-black">
+                  Privilegios administrativos totales
+                </p>
+                <p className="mt-1">
+                  Esta persona podrá gestionar todo el equipo, invitar a otras
+                  personas, restablecer accesos y consultar información
+                  sensible. Asígnalo únicamente a alguien de absoluta confianza:
+                  luego no podrás degradar ni desactivar esta cuenta desde
+                  Equipo.
+                </p>
+              </div>
+            )}
             {mutationError && (
               <p
                 role="alert"
@@ -502,7 +535,8 @@ export default function TeamPage() {
           ) : (
             <div className="mt-5 space-y-4" role="status">
               <p className="text-sm font-semibold text-emerald-300">
-                Invitación creada para {created.invitation.email}
+                Invitación creada para {created.invitation.email} como{" "}
+                {invitationRoleLabel(created.invitation.role)}
               </p>
               <label className="block text-xs font-black uppercase tracking-wider text-slate-400">
                 Enlace secreto
@@ -711,9 +745,7 @@ export default function TeamPage() {
                           )}
                         </div>
                       )}
-                      {member.isActive &&
-                        member.id !== user?.id &&
-                        member.role !== "ADMIN" && (
+                      {member.isActive && member.id !== user?.id && (
                         <button
                           type="button"
                           disabled={updatingMemberId === member.id}
@@ -756,7 +788,7 @@ export default function TeamPage() {
                         {invitation.email}
                       </p>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {ROLE_LABELS.get(invitation.role) ?? invitation.role}
+                        {invitationRoleLabel(invitation.role)}
                       </p>
                       <p className="mt-3 text-xs font-bold text-amber-800">
                         Vence {formatDate(invitation.expiresAt)}
@@ -866,12 +898,14 @@ export default function TeamPage() {
                 </button>
               </div>
             )}
-            {!loadingDivisions && !divisionError && divisionOptions.length === 0 && (
-              <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">
-                No hay resultados compatibles. Crea la zona o puesto desde
-                Organización territorial y vuelve a buscar.
-              </p>
-            )}
+            {!loadingDivisions &&
+              !divisionError &&
+              divisionOptions.length === 0 && (
+                <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+                  No hay resultados compatibles. Crea la zona o puesto desde
+                  Organización territorial y vuelve a buscar.
+                </p>
+              )}
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
@@ -884,8 +918,7 @@ export default function TeamPage() {
                 type="button"
                 onClick={() => void saveDivisionAssignment()}
                 disabled={
-                  loadingDivisions ||
-                  updatingMemberId === divisionMember.id
+                  loadingDivisions || updatingMemberId === divisionMember.id
                 }
                 className="min-h-11 rounded-xl bg-blue-700 px-5 text-sm font-black text-white disabled:opacity-50"
               >
@@ -935,9 +968,26 @@ export default function TeamPage() {
                 <p className="mt-5 text-sm font-semibold leading-6 text-slate-700">
                   Confirma primero la identidad de la persona por un canal
                   verificado. Su contraseña actual dejará de funcionar y se
-                  generará una contraseña nueva. Su valor solo se mostrará una
-                  vez en esta pantalla.
+                  generará una contraseña nueva. Todas sus sesiones actuales
+                  quedarán invalidadas. El valor nuevo solo se mostrará una vez
+                  en esta pantalla.
                 </p>
+                {resetMember.role === "ADMIN" && (
+                  <div
+                    role="alert"
+                    className="mt-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-950"
+                  >
+                    <p className="font-black">
+                      Cuenta administradora con acceso total
+                    </p>
+                    <p className="mt-1">
+                      Estás restableciendo a otra administración. La persona
+                      conservará todos sus privilegios y podrá gestionar equipo,
+                      accesos e información sensible. Confirma su identidad
+                      antes de continuar.
+                    </p>
+                  </div>
+                )}
                 {resetError && (
                   <p
                     role="alert"
@@ -972,7 +1022,9 @@ export default function TeamPage() {
                     ) : (
                       <KeyRound size={17} aria-hidden="true" />
                     )}
-                    Confirmar restablecimiento
+                    {resetMember.role === "ADMIN"
+                      ? "Confirmar acceso administrativo"
+                      : "Confirmar restablecimiento"}
                   </button>
                 </div>
               </>
@@ -1036,7 +1088,10 @@ export default function TeamPage() {
                   </button>
                 </div>
                 {resetCopyStatus === "failed" && (
-                  <p role="alert" className="mt-3 text-xs font-bold text-red-700">
+                  <p
+                    role="alert"
+                    className="mt-3 text-xs font-bold text-red-700"
+                  >
                     No se pudo usar el portapapeles. Selecciona la contraseña y
                     cópiala manualmente antes de cerrar.
                   </p>

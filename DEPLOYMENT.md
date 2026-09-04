@@ -20,6 +20,13 @@ ni `SUPABASE_SERVICE_ROLE_KEY`.
    objeto funciona sin URL firmada y que una firma expirada es rechazada.
 5. Completa `.env.production` desde `.env.example`; nunca versiones ese archivo.
 
+En Dokploy configura también estos tres valores como **Build-time Arguments**:
+`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SUPABASE_URL` y
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. Next.js los incorpora al paquete del navegador
+durante la compilación; definirlos sólo como variables de ejecución no corrige
+un paquete ya construido. El Dockerfile raíz detiene el build si alguno queda
+vacío y no contiene valores de credenciales en el repositorio.
+
 ## Migraciones
 
 `20260827000000_baseline` es una línea base completa y reproducible. El job de
@@ -48,9 +55,9 @@ El guard de Dokploy falla cerrado según el estado observado:
 - Baseline ya registrada y sin migración fallida: aplica migraciones pendientes
   y comprueba el estado.
 - Exactamente las cinco migraciones históricas completas, sin filas adicionales:
-  ejecuta `migrate diff --exit-code`; sólo con deriva cero registra la baseline.
-  Esta adopción automática se permite únicamente mientras la baseline sea la
-  única migración local, para no aplicar después SQL que el esquema ya contenga.
+  compara la base contra `prisma/baseline.schema.prisma`, una fotografía
+  inmutable del contrato que esas migraciones deben producir. Sólo con deriva
+  cero registra la baseline; luego aplica, en orden, las migraciones posteriores.
 - Objetos existentes sin historial, filas parciales/fallidas, duplicados,
   migraciones históricas incompletas o nombres inesperados: detiene el
   contenedor con diagnóstico accionable y no modifica el esquema.
@@ -64,6 +71,19 @@ Antes de migrar, el contenedor también rechaza los valores públicos de
 URLs sin el protocolo esperado. Para el Dockerfile raíz usado por Dokploy,
 `NESTJS_API_URL` debe ser `http://127.0.0.1:4000`; el Compose separado lo
 sobrescribe internamente con `http://api:4000`.
+
+TLS de PostgreSQL se exige de forma predeterminada cuando `NODE_ENV=production`.
+Si un entorno aislado de evaluación no ofrece TLS y no contiene datos personales
+ni operativos,
+puede habilitarse temporalmente la excepción de doble consentimiento con
+`DEPLOYMENT_PROFILE=evaluation` y
+`ALLOW_INSECURE_DATABASE_CONNECTION=true`. En ese caso ambas URLs deben declarar
+`sslmode=disable`, `DATABASE_SSL=false` y
+`DATABASE_SSL_REJECT_UNAUTHORIZED=false`; el arranque
+falla ante cualquier combinación parcial y deja una advertencia visible. Esta
+excepción no es aceptable para producción real: habilita TLS en PostgreSQL,
+vuelve al perfil `production` y restaura verificación estricta antes de cargar
+datos personales.
 
 No intentes ejecutar la línea base encima de tablas existentes. Toda adopción
 se ensaya primero contra una copia restaurada y exige respaldo recuperable,

@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AuditActorType,
   PoliticalOperationMode,
   Prisma,
   Role,
@@ -171,22 +172,40 @@ export class TasksService {
         : Promise.resolve(),
     ]);
 
-    return this.prisma.task.create({
-      data: {
-        tenantId: user.tenantId,
-        mode,
-        title: dto.title,
-        description: dto.description,
-        status: dto.status,
-        priority: dto.priority,
-        assigneeId: dto.assigneeId,
-        issueCaseId: dto.issueCaseId,
-        commitmentId: dto.commitmentId,
-        createdById: user.userId,
-        dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
-        completedAt: dto.status === TaskStatus.DONE ? new Date() : undefined,
-      },
-      include: TASK_INCLUDE,
+    return this.prisma.$transaction(async (transaction) => {
+      const created = await transaction.task.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          title: dto.title,
+          description: dto.description,
+          status: dto.status,
+          priority: dto.priority,
+          assigneeId: dto.assigneeId,
+          issueCaseId: dto.issueCaseId,
+          commitmentId: dto.commitmentId,
+          createdById: user.userId,
+          dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
+          completedAt: dto.status === TaskStatus.DONE ? new Date() : undefined,
+        },
+        include: TASK_INCLUDE,
+      });
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'TASK_CREATED',
+          resourceType: 'Task',
+          resourceId: created.id,
+          after: { status: created.status },
+          metadata: { changedFields: this.definedFieldNames(dto) },
+        },
+      });
+
+      return created;
     });
   }
 
@@ -257,11 +276,36 @@ export class TasksService {
       data.dueAt = dto.dueAt === null ? null : new Date(dto.dueAt);
     }
 
-    return this.prisma.task.update({
-      where: scopedWhere,
-      data,
-      include: TASK_INCLUDE,
+    return this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.task.update({
+        where: scopedWhere,
+        data,
+        include: TASK_INCLUDE,
+      });
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'TASK_UPDATED',
+          resourceType: 'Task',
+          resourceId: updated.id,
+          after: { status: updated.status },
+          metadata: { changedFields: this.definedFieldNames(dto) },
+        },
+      });
+
+      return updated;
     });
+  }
+
+  private definedFieldNames(value: object): string[] {
+    return Object.entries(value)
+      .filter(([, fieldValue]) => fieldValue !== undefined)
+      .map(([fieldName]) => fieldName)
+      .sort();
   }
 
   private async getActiveMode(

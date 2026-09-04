@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowDownLeft,
@@ -27,6 +21,7 @@ import {
 } from "lucide-react";
 import type { CommunicationChannel, IssueCase } from "@/lib/cases-api";
 import { ApiError } from "@/lib/api-client";
+import { getConsentNoticePresentationKey } from "@/lib/consent-notices-api";
 import {
   createInteraction,
   CaseConsentStatus,
@@ -42,7 +37,6 @@ import {
 } from "@/lib/interactions-api";
 
 const PAGE_SIZE = 10;
-const PRIVACY_NOTICE_VERSION = "2026.1" as const;
 
 const CONSENT_CHANNEL_OPTIONS: ReadonlyArray<{
   value: CapturableConsentCollectionChannel;
@@ -133,6 +127,7 @@ function formatDateTime(value: string): string {
 function consentStatusLabel(consent: CaseConsentStatus | null): string {
   if (!consent?.status) return "Sin autorización registrada";
   if (consent.active) return "Autorización vigente";
+  if (consent.requiresReconsent) return "Requiere nueva autorización";
   if (consent.status === "REVOKED") return "Autorización revocada";
   if (consent.status === "EXPIRED") return "Autorización vencida";
   return "Autorización no otorgada";
@@ -167,7 +162,11 @@ function directionIcon(direction: InteractionDirection) {
   return <ShieldCheck aria-hidden="true" size={16} />;
 }
 
-function InteractionTimelineItem({ interaction }: { interaction: Interaction }) {
+function InteractionTimelineItem({
+  interaction,
+}: {
+  interaction: Interaction;
+}) {
   const sentiment = sentimentLabel(interaction.sentiment);
 
   return (
@@ -265,19 +264,44 @@ export function CaseInteractionsPanel({
   >(null);
   const [consentNotice, setConsentNotice] = useState<string | null>(null);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [consentChannel, setConsentChannel] =
-    useState<CapturableConsentCollectionChannel>("IN_PERSON");
+  const [acceptedConsentNoticeKey, setAcceptedConsentNoticeKey] = useState<
+    string | null
+  >(null);
+  const [consentChannel, setConsentChannel] = useState<
+    "" | CapturableConsentCollectionChannel
+  >("");
   const [revocationReason, setRevocationReason] = useState("");
   const canCaptureSentiment =
     allowSentiment ?? issueCase.mode === "PUBLIC_OFFICE";
+  const currentConsentNoticeKey = getConsentNoticePresentationKey(
+    consent?.currentNotice,
+  );
+  const consentAcceptedForCurrentNotice =
+    currentConsentNoticeKey !== null &&
+    consentAccepted &&
+    acceptedConsentNoticeKey === currentConsentNoticeKey;
+
+  const closePanel = useCallback(() => {
+    if (savingRef.current) return;
+    setConsentAccepted(false);
+    setAcceptedConsentNoticeKey(null);
+    setConsentChannel("");
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
-    closePanelRef.current = onClose;
-  }, [onClose]);
+    closePanelRef.current = closePanel;
+  }, [closePanel]);
 
   useEffect(() => {
     savingRef.current = saving || consentMutation !== null;
   }, [consentMutation, saving]);
+
+  useEffect(() => {
+    setConsentAccepted(false);
+    setAcceptedConsentNoticeKey(null);
+    setConsentChannel("");
+  }, [currentConsentNoticeKey, issueCase.id, reloadVersion]);
 
   const loadInteractions = useCallback(
     (signal: AbortSignal) =>
@@ -302,7 +326,8 @@ export function CaseInteractionsPanel({
         if (!controller.signal.aborted) setResult(response);
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         if (!controller.signal.aborted) setLoadError(readableError(error));
       })
       .finally(() => {
@@ -322,7 +347,8 @@ export function CaseInteractionsPanel({
         if (!controller.signal.aborted) setConsent(response);
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         if (!controller.signal.aborted) {
           setConsent(null);
           setConsentLoadError(readableError(error));
@@ -415,9 +441,28 @@ export function CaseInteractionsPanel({
     setConsentMutationError(null);
     setConsentNotice(null);
 
-    if (!consentAccepted) {
+    if (!consent?.currentNotice) {
       setConsentMutationError(
-        "Confirma que la persona autorizó de forma previa, expresa e informada.",
+        "La organización debe activar su aviso de privacidad antes de registrar autorizaciones.",
+      );
+      return;
+    }
+    const submittedNoticeKey = getConsentNoticePresentationKey(
+      consent.currentNotice,
+    );
+    if (
+      !consentAccepted ||
+      !submittedNoticeKey ||
+      acceptedConsentNoticeKey !== submittedNoticeKey
+    ) {
+      setConsentMutationError(
+        "Confirma que la persona autorizó de forma previa, expresa e informada el aviso mostrado.",
+      );
+      return;
+    }
+    if (!consentChannel) {
+      setConsentMutationError(
+        "Selecciona el canal real en el que se obtuvo la autorización.",
       );
       return;
     }
@@ -427,9 +472,12 @@ export function CaseInteractionsPanel({
       const nextConsent = await grantCaseConsent({
         issueCaseId: issueCase.id,
         collectionChannel: consentChannel,
+        noticeVersion: consent.currentNotice.version,
       });
       setConsent(nextConsent);
       setConsentAccepted(false);
+      setAcceptedConsentNoticeKey(null);
+      setConsentChannel("");
       setConsentNotice(
         "Autorización registrada con trazabilidad. Ya se permiten gestiones salientes mientras siga vigente.",
       );
@@ -499,7 +547,8 @@ export function CaseInteractionsPanel({
                 {issueCase.reference}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                {result?.pagination.total ?? issueCase._count.interactions} gestiones
+                {result?.pagination.total ?? issueCase._count.interactions}{" "}
+                gestiones
               </span>
             </div>
             <h2
@@ -517,7 +566,7 @@ export function CaseInteractionsPanel({
             type="button"
             aria-label="Cerrar bitácora del caso"
             disabled={busy}
-            onClick={onClose}
+            onClick={closePanel}
             className="shrink-0 rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-40"
           >
             <X aria-hidden="true" />
@@ -552,7 +601,10 @@ export function CaseInteractionsPanel({
                 role="status"
                 className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-500"
               >
-                <Loader2 className="animate-spin text-blue-700" aria-hidden="true" />
+                <Loader2
+                  className="animate-spin text-blue-700"
+                  aria-hidden="true"
+                />
                 Consultando la bitácora segura…
               </div>
             ) : loadError ? (
@@ -562,8 +614,12 @@ export function CaseInteractionsPanel({
               >
                 <AlertCircle aria-hidden="true" size={30} />
                 <div>
-                  <p className="font-black">No fue posible cargar la bitácora</p>
-                  <p className="mt-1 max-w-md text-sm font-semibold">{loadError}</p>
+                  <p className="font-black">
+                    No fue posible cargar la bitácora
+                  </p>
+                  <p className="mt-1 max-w-md text-sm font-semibold">
+                    {loadError}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -575,12 +631,17 @@ export function CaseInteractionsPanel({
               </div>
             ) : interactions.length === 0 ? (
               <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-7 text-center">
-                <Inbox className="text-slate-300" aria-hidden="true" size={40} />
+                <Inbox
+                  className="text-slate-300"
+                  aria-hidden="true"
+                  size={40}
+                />
                 <p className="mt-3 font-black text-slate-900">
                   Este caso aún no tiene gestiones
                 </p>
                 <p className="mt-1 max-w-md text-sm font-semibold text-slate-500">
-                  La bitácora comenzará cuando el equipo registre el primer contacto real.
+                  La bitácora comenzará cuando el equipo registre el primer
+                  contacto real.
                 </p>
               </div>
             ) : (
@@ -661,7 +722,11 @@ export function CaseInteractionsPanel({
                     role="status"
                     className="mt-4 flex items-center gap-2 rounded-xl bg-white p-3 text-xs font-bold text-slate-600"
                   >
-                    <Loader2 className="animate-spin" aria-hidden="true" size={15} />
+                    <Loader2
+                      className="animate-spin"
+                      aria-hidden="true"
+                      size={15}
+                    />
                     Verificando autorización vigente…
                   </div>
                 ) : consentLoadError ? (
@@ -702,9 +767,7 @@ export function CaseInteractionsPanel({
                         {consent.collectionChannel && (
                           <div className="flex flex-wrap justify-between gap-2">
                             <dt>Canal</dt>
-                            <dd>
-                              {consentChannelLabel(consent)}
-                            </dd>
+                            <dd>{consentChannelLabel(consent)}</dd>
                           </div>
                         )}
                         {consent.expiresAt && (
@@ -738,7 +801,8 @@ export function CaseInteractionsPanel({
 
                 {!consentLoading &&
                   !consentLoadError &&
-                  !consent?.active &&
+                  consent !== null &&
+                  !consent.active &&
                   canGrantConsent && (
                     <form
                       onSubmit={handleGrantConsent}
@@ -749,10 +813,35 @@ export function CaseInteractionsPanel({
                         finalidad, los canales de contacto y cómo revocarla. La
                         hora la fija el servidor.
                       </p>
+                      {consent.currentNotice ? (
+                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-semibold leading-5 text-blue-950">
+                          <p className="font-black">
+                            {consent.currentNotice.title} · versión{" "}
+                            {consent.currentNotice.version}
+                          </p>
+                          <p className="mt-2 whitespace-pre-line">
+                            {consent.currentNotice.content}
+                          </p>
+                          <p className="mt-2">
+                            Responsable: {consent.currentNotice.controllerName}{" "}
+                            · {consent.currentNotice.contactEmail}
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          role="alert"
+                          className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-950"
+                        >
+                          No hay un aviso de privacidad activo. Administración
+                          debe configurarlo antes de continuar.
+                        </div>
+                      )}
                       <label className="block space-y-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600">
                         Canal de autorización
                         <select
+                          required
                           aria-label="Canal de autorización"
+                          disabled={!consent.currentNotice}
                           value={consentChannel}
                           onChange={(event) =>
                             setConsentChannel(
@@ -762,6 +851,7 @@ export function CaseInteractionsPanel({
                           }
                           className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
                         >
+                          <option value="">Selecciona el canal</option>
                           {CONSENT_CHANNEL_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -773,25 +863,43 @@ export function CaseInteractionsPanel({
                         <input
                           required
                           type="checkbox"
-                          checked={consentAccepted}
-                          onChange={(event) =>
-                            setConsentAccepted(event.target.checked)
-                          }
+                          disabled={!consent.currentNotice}
+                          checked={consentAcceptedForCurrentNotice}
+                          onChange={(event) => {
+                            const checked = event.target.checked;
+                            setConsentAccepted(checked);
+                            setAcceptedConsentNoticeKey(
+                              checked && currentConsentNoticeKey
+                                ? currentConsentNoticeKey
+                                : null,
+                            );
+                          }}
                           className="mt-0.5 h-4 w-4 shrink-0 accent-blue-700"
                         />
                         <span>
                           Confirmo que la persona autorizó de forma previa,
-                          expresa e informada el {consentPurposeLabel(consent).toLowerCase()} y
-                          conoció el aviso de privacidad versión {PRIVACY_NOTICE_VERSION}.
+                          expresa e informada el{" "}
+                          {consentPurposeLabel(consent).toLowerCase()} y conoció
+                          el aviso de privacidad versión{" "}
+                          {consent.currentNotice?.version ?? "no configurada"}.
                         </span>
                       </label>
                       <button
                         type="submit"
-                        disabled={consentMutation !== null || !consentAccepted}
+                        disabled={
+                          consentMutation !== null ||
+                          !consentAcceptedForCurrentNotice ||
+                          !consentChannel ||
+                          !consent.currentNotice
+                        }
                         className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-[10px] font-black uppercase tracking-wider text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {consentMutation === "grant" ? (
-                          <Loader2 className="animate-spin" aria-hidden="true" size={15} />
+                          <Loader2
+                            className="animate-spin"
+                            aria-hidden="true"
+                            size={15}
+                          />
                         ) : (
                           <BadgeCheck aria-hidden="true" size={16} />
                         )}
@@ -832,7 +940,11 @@ export function CaseInteractionsPanel({
                         className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-300 bg-white px-4 text-[10px] font-black uppercase tracking-wider text-red-800 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {consentMutation === "revoke" ? (
-                          <Loader2 className="animate-spin" aria-hidden="true" size={15} />
+                          <Loader2
+                            className="animate-spin"
+                            aria-hidden="true"
+                            size={15}
+                          />
                         ) : (
                           <Ban aria-hidden="true" size={16} />
                         )}
@@ -844,224 +956,241 @@ export function CaseInteractionsPanel({
 
               {canCreate && (
                 <section aria-labelledby="register-interaction-title">
-                <div className="mb-5 flex items-start gap-3">
-                  <span className="rounded-xl bg-blue-100 p-2 text-blue-800">
-                    <MessageSquarePlus aria-hidden="true" size={20} />
-                  </span>
-                  <div>
-                    <h3
-                      id="register-interaction-title"
-                      className="text-lg font-black text-slate-950"
-                    >
-                      Registrar gestión
-                    </h3>
-                    <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                      Documenta únicamente información necesaria para atender este caso.
-                    </p>
-                  </div>
-                </div>
-
-                {(notice || mutationError) && (
-                  <div
-                    role={mutationError ? "alert" : "status"}
-                    className={`mb-4 flex items-start gap-2 rounded-xl border p-3 text-sm font-bold ${
-                      mutationError
-                        ? "border-red-200 bg-red-50 text-red-800"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    }`}
-                  >
-                    {mutationError ? (
-                      <AlertCircle className="mt-0.5 shrink-0" aria-hidden="true" size={16} />
-                    ) : (
-                      <CheckCircle2 className="mt-0.5 shrink-0" aria-hidden="true" size={16} />
-                    )}
-                    {mutationError ?? notice}
-                  </div>
-                )}
-
-                <form onSubmit={handleCreate} className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                    <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                      Canal
-                      <select
-                        required
-                        value={form.channel}
-                        onChange={(event) => {
-                          const channel = event.target.value as CommunicationChannel;
-                          setForm((current) => ({
-                            ...current,
-                            channel,
-                            direction:
-                              channel === "INTERNAL"
-                                ? "INTERNAL"
-                                : current.direction === "INTERNAL"
-                                  ? "INBOUND"
-                                  : current.direction,
-                          }));
-                        }}
-                        className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
-                      >
-                        {CHANNEL_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                      Dirección
-                      <select
-                        required
-                        value={form.direction}
-                        onChange={(event) => {
-                          const direction = event.target.value as InteractionDirection;
-                          setForm((current) => ({
-                            ...current,
-                            direction,
-                            channel:
-                              direction === "INTERNAL"
-                                ? "INTERNAL"
-                                : current.channel === "INTERNAL"
-                                  ? "PHONE"
-                                  : current.channel,
-                          }));
-                        }}
-                        className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
-                      >
-                        {DIRECTION_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  <label className="block space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                    Resumen de la gestión
-                    <textarea
-                      required
-                      minLength={3}
-                      maxLength={5000}
-                      rows={5}
-                      value={form.summary}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          summary: event.target.value,
-                        }))
-                      }
-                      placeholder="Qué informó el ciudadano y qué gestión realizó el equipo"
-                      className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                    <span className="block text-right text-[10px] font-bold text-slate-400">
-                      {form.summary.length}/5000
+                  <div className="mb-5 flex items-start gap-3">
+                    <span className="rounded-xl bg-blue-100 p-2 text-blue-800">
+                      <MessageSquarePlus aria-hidden="true" size={20} />
                     </span>
-                  </label>
+                    <div>
+                      <h3
+                        id="register-interaction-title"
+                        className="text-lg font-black text-slate-950"
+                      >
+                        Registrar gestión
+                      </h3>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                        Documenta únicamente información necesaria para atender
+                        este caso.
+                      </p>
+                    </div>
+                  </div>
 
-                  <label className="block space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                    Resultado (opcional)
-                    <textarea
-                      maxLength={1000}
-                      rows={3}
-                      value={form.outcome}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          outcome: event.target.value,
-                        }))
-                      }
-                      placeholder="Ej. Información entregada; ciudadano enviará soporte"
-                      className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </label>
+                  {(notice || mutationError) && (
+                    <div
+                      role={mutationError ? "alert" : "status"}
+                      className={`mb-4 flex items-start gap-2 rounded-xl border p-3 text-sm font-bold ${
+                        mutationError
+                          ? "border-red-200 bg-red-50 text-red-800"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      }`}
+                    >
+                      {mutationError ? (
+                        <AlertCircle
+                          className="mt-0.5 shrink-0"
+                          aria-hidden="true"
+                          size={16}
+                        />
+                      ) : (
+                        <CheckCircle2
+                          className="mt-0.5 shrink-0"
+                          aria-hidden="true"
+                          size={16}
+                        />
+                      )}
+                      {mutationError ?? notice}
+                    </div>
+                  )}
 
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                    {canCaptureSentiment && (
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                        Percepción (opcional)
+                        Canal
                         <select
-                          value={form.sentiment}
-                          onChange={(event) =>
+                          required
+                          value={form.channel}
+                          onChange={(event) => {
+                            const channel = event.target
+                              .value as CommunicationChannel;
                             setForm((current) => ({
                               ...current,
-                              sentiment: event.target.value as InteractionFormState["sentiment"],
-                            }))
-                          }
+                              channel,
+                              direction:
+                                channel === "INTERNAL"
+                                  ? "INTERNAL"
+                                  : current.direction === "INTERNAL"
+                                    ? "INBOUND"
+                                    : current.direction,
+                            }));
+                          }}
                           className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
                         >
-                          <option value="">No registrar</option>
-                          {SENTIMENT_OPTIONS.map((option) => (
+                          {CHANNEL_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
                             </option>
                           ))}
                         </select>
                       </label>
-                    )}
-                    <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                      Fecha y hora
-                      <input
-                        type="datetime-local"
-                        value={form.occurredAt}
+                      <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
+                        Dirección
+                        <select
+                          required
+                          value={form.direction}
+                          onChange={(event) => {
+                            const direction = event.target
+                              .value as InteractionDirection;
+                            setForm((current) => ({
+                              ...current,
+                              direction,
+                              channel:
+                                direction === "INTERNAL"
+                                  ? "INTERNAL"
+                                  : current.channel === "INTERNAL"
+                                    ? "PHONE"
+                                    : current.channel,
+                            }));
+                          }}
+                          className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                        >
+                          {DIRECTION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <label className="block space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
+                      Resumen de la gestión
+                      <textarea
+                        required
+                        minLength={3}
+                        maxLength={5000}
+                        rows={5}
+                        value={form.summary}
                         onChange={(event) =>
                           setForm((current) => ({
                             ...current,
-                            occurredAt: event.target.value,
+                            summary: event.target.value,
                           }))
                         }
-                        className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                        placeholder="Qué informó el ciudadano y qué gestión realizó el equipo"
+                        className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                      <span className="block text-right text-[10px] font-bold text-slate-400">
+                        {form.summary.length}/5000
+                      </span>
+                    </label>
+
+                    <label className="block space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
+                      Resultado (opcional)
+                      <textarea
+                        maxLength={1000}
+                        rows={3}
+                        value={form.outcome}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            outcome: event.target.value,
+                          }))
+                        }
+                        placeholder="Ej. Información entregada; ciudadano enviará soporte"
+                        className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
-                  </div>
 
-                  <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
-                    Si queda una acción pendiente, regístrala en el módulo de Tareas para asignar responsable y vencimiento.
-                  </p>
-
-                  {form.direction === "OUTBOUND" && (
-                    <div
-                      id="outbound-consent-control"
-                      role={outboundBlocked ? "alert" : "status"}
-                      className={`rounded-xl border p-3 text-xs font-semibold leading-5 ${
-                        outboundBlocked
-                          ? "border-red-200 bg-red-50 text-red-900"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-950"
-                      }`}
-                    >
-                      <strong className="block font-black">
-                        Control obligatorio de consentimiento
-                      </strong>
-                      {outboundWithoutContact
-                        ? "Este caso no tiene un ciudadano o contacto externo relacionado. Vincúlalo antes de registrar una gestión saliente."
-                        : consentLoading
-                          ? "Estamos verificando el permiso vigente antes de habilitar esta gestión."
-                          : consentLoadError
-                            ? "No fue posible verificar el permiso. Reintenta la consulta antes de contactar a la persona."
-                            : consent?.active
-                              ? "Autorización vigente verificada. La API volverá a validarla al guardar."
-                              : "No hay una autorización vigente. Regístrala arriba antes de contactar a la persona."}
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                      {canCaptureSentiment && (
+                        <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
+                          Percepción (opcional)
+                          <select
+                            value={form.sentiment}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                sentiment: event.target
+                                  .value as InteractionFormState["sentiment"],
+                              }))
+                            }
+                            className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                          >
+                            <option value="">No registrar</option>
+                            {SENTIMENT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <label className="space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
+                        Fecha y hora
+                        <input
+                          type="datetime-local"
+                          value={form.occurredAt}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              occurredAt: event.target.value,
+                            }))
+                          }
+                          className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                        />
+                      </label>
                     </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    aria-describedby={
-                      form.direction === "OUTBOUND"
-                        ? "outbound-consent-control"
-                        : undefined
-                    }
-                    disabled={saving || outboundBlocked}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {saving ? (
-                      <Loader2 className="animate-spin" aria-hidden="true" size={17} />
-                    ) : (
-                      <MessageSquarePlus aria-hidden="true" size={17} />
+                    <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
+                      Si queda una acción pendiente, regístrala en el módulo de
+                      Tareas para asignar responsable y vencimiento.
+                    </p>
+
+                    {form.direction === "OUTBOUND" && (
+                      <div
+                        id="outbound-consent-control"
+                        role={outboundBlocked ? "alert" : "status"}
+                        className={`rounded-xl border p-3 text-xs font-semibold leading-5 ${
+                          outboundBlocked
+                            ? "border-red-200 bg-red-50 text-red-900"
+                            : "border-emerald-200 bg-emerald-50 text-emerald-950"
+                        }`}
+                      >
+                        <strong className="block font-black">
+                          Control obligatorio de consentimiento
+                        </strong>
+                        {outboundWithoutContact
+                          ? "Este caso no tiene un ciudadano o contacto externo relacionado. Vincúlalo antes de registrar una gestión saliente."
+                          : consentLoading
+                            ? "Estamos verificando el permiso vigente antes de habilitar esta gestión."
+                            : consentLoadError
+                              ? "No fue posible verificar el permiso. Reintenta la consulta antes de contactar a la persona."
+                              : consent?.active
+                                ? "Autorización vigente verificada. La API volverá a validarla al guardar."
+                                : "No hay una autorización vigente. Regístrala arriba antes de contactar a la persona."}
+                      </div>
                     )}
-                    Guardar en bitácora
-                  </button>
-                </form>
+
+                    <button
+                      type="submit"
+                      aria-describedby={
+                        form.direction === "OUTBOUND"
+                          ? "outbound-consent-control"
+                          : undefined
+                      }
+                      disabled={saving || outboundBlocked}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <Loader2
+                          className="animate-spin"
+                          aria-hidden="true"
+                          size={17}
+                        />
+                      ) : (
+                        <MessageSquarePlus aria-hidden="true" size={17} />
+                      )}
+                      Guardar en bitácora
+                    </button>
+                  </form>
                 </section>
               )}
             </div>

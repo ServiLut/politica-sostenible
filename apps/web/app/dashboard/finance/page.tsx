@@ -44,6 +44,8 @@ interface FinancialEntry {
   status: FinanceStatus;
   reportedByMe: boolean;
   reviewedAt: string | null;
+  cneReportedAt: string | null;
+  cneReportReference: string | null;
   createdAt: string;
 }
 
@@ -134,6 +136,8 @@ export default function FinancePage() {
   const [reviewStatus, setReviewStatus] =
     useState<FinanceReviewStatus>("APPROVED");
   const [reviewReason, setReviewReason] = useState("");
+  const [reportEntry, setReportEntry] = useState<FinancialEntry | null>(null);
+  const [externalReference, setExternalReference] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [settingsForm, setSettingsForm] = useState({
     maxTotalBudget: "",
@@ -317,6 +321,57 @@ export default function FinancePage() {
     }
   }
 
+  function openExternalReport(entry: FinancialEntry) {
+    setReportEntry(entry);
+    setExternalReference("");
+    setError(null);
+  }
+
+  function closeExternalReport() {
+    setReportEntry(null);
+    setExternalReference("");
+    setError(null);
+  }
+
+  async function handleExternalReportSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    if (!reportEntry) return;
+
+    const normalizedReference = externalReference.trim();
+    if (normalizedReference.length < 5 || normalizedReference.length > 120) {
+      setError("El radicado debe tener entre 5 y 120 caracteres.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await apiRequest<FinancialEntry>(
+        `finance/${reportEntry.id}/cne-report`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ externalReference: normalizedReference }),
+        },
+      );
+      closeExternalReport();
+      setNotice(
+        "Radicación externa confirmada y registrada en la auditoría.",
+      );
+      window.setTimeout(() => setNotice(null), 4000);
+      await loadFinance();
+    } catch (requestError) {
+      setError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : "No fue posible confirmar la radicación externa.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleDownloadCneReviewDraft() {
     setError(null);
     try {
@@ -411,7 +466,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {error && !isOpen && !isSettingsOpen && !reviewEntry && (
+      {error && !isOpen && !isSettingsOpen && !reviewEntry && !reportEntry && (
         <div
           role="alert"
           className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
@@ -590,6 +645,12 @@ export default function FinancePage() {
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
                         {STATUS_LABEL[entry.status]}
                       </span>
+                      {entry.status === "REPORTED_CNE" &&
+                        entry.cneReportReference && (
+                          <p className="mt-2 max-w-[220px] break-words text-[10px] font-bold text-blue-800">
+                            Radicado externo {entry.cneReportReference}
+                          </p>
+                        )}
                       {entry.hasEvidence && (
                         <div className="mt-2 flex flex-col items-start gap-1.5">
                           <span className="text-[10px] font-bold text-emerald-700">
@@ -637,6 +698,15 @@ export default function FinancePage() {
                         <span className="text-[10px] font-bold text-slate-400">
                           Registrado por ti
                         </span>
+                      ) : canReview && entry.status === "APPROVED" ? (
+                        <button
+                          type="button"
+                          aria-label={`Registrar radicación externa de ${entry.description}`}
+                          onClick={() => openExternalReport(entry)}
+                          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white hover:bg-blue-800"
+                        >
+                          Registrar radicación
+                        </button>
                       ) : (
                         <span aria-hidden="true" className="text-slate-300">
                           —
@@ -1002,6 +1072,112 @@ export default function FinancePage() {
             </div>
           </div>
         )}
+
+      {reportEntry && canReview && reportEntry.status === "APPROVED" && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finance-cne-report-title"
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && !saving) closeExternalReport();
+          }}
+        >
+          <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+                  Confirmación posterior al trámite externo
+                </p>
+                <h2
+                  id="finance-cne-report-title"
+                  className="mt-2 text-2xl font-black text-slate-950"
+                >
+                  Registrar radicación en Cuentas Claras
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Política Sostenible no envía información al CNE. Usa esta
+                  acción únicamente después de realizar el trámite oficial y
+                  comprobar el número de radicado.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Cerrar confirmación de radicación"
+                disabled={saving}
+                onClick={closeExternalReport}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleExternalReportSubmit}
+              className="space-y-6 p-7"
+            >
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
+                >
+                  {error}
+                </div>
+              )}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950">
+                Movimiento: {reportEntry.description}. Esta confirmación cambia
+                el estado a “Reportado CNE” y no podrá sobrescribirse desde la
+                interfaz.
+              </div>
+              <label
+                htmlFor="finance-cne-external-reference"
+                className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500"
+              >
+                Número de radicado externo
+                <input
+                  id="finance-cne-external-reference"
+                  required
+                  autoFocus
+                  minLength={5}
+                  maxLength={120}
+                  value={externalReference}
+                  onChange={(event) =>
+                    setExternalReference(event.target.value)
+                  }
+                  placeholder="Ej. CC-2026/004219"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                />
+                <span className="flex justify-between text-[10px] font-semibold normal-case tracking-normal text-slate-400">
+                  <span>Debe coincidir con el comprobante oficial.</span>
+                  <span>{externalReference.length}/120</span>
+                </span>
+              </label>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={closeExternalReport}
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-60"
+                >
+                  {saving ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <CheckCircle2 size={16} />
+                  )}
+                  Confirmar radicación externa
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isSettingsOpen && canWrite && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">

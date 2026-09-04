@@ -1,19 +1,22 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import {
-  ConsentCollectionChannel,
+  AuditActorType,
   ConsentLegalBasis,
   ConsentPurpose,
   ConsentStatus,
   ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
+  Prisma,
   Role,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
+import { requireActiveConsentNotice } from '../common/utils/consent-notice.util';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
   assertCampaignTenant,
@@ -26,6 +29,9 @@ import { SyncE14Dto } from './dto/sync-e14.dto';
 import { SyncVoterDto } from './dto/sync-voter.dto';
 
 const VOTER_SYNC_RECEIPT = { received: true } as const;
+const SERIALIZABLE_OPTIONS = {
+  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+} as const;
 
 const VOTER_SYNC_ROLES = [
   Role.ADMIN,
@@ -83,6 +89,7 @@ export class LogisticsService {
       puestoId,
       consentAccepted,
       termsVersion,
+      collectionChannel,
     } = data;
 
     try {
@@ -92,6 +99,13 @@ export class LogisticsService {
           select: CAMPAIGN_TENANT_SELECT,
         });
         assertCampaignTenant(tenant);
+        const consentNotice = await requireActiveConsentNotice(
+          transaction,
+          user.tenantId,
+          PoliticalOperationMode.CAMPAIGN,
+          termsVersion,
+          ConsentPurpose.POLITICAL_COMMUNICATION,
+        );
 
         const { divisionIds } = await resolveTerritorialAccess({
           client: transaction,
@@ -154,7 +168,7 @@ export class LogisticsService {
             consentAccepted,
             consentIp: sourceIpHash,
             consentTimestamp: grantedAt,
-            termsVersion,
+            termsVersion: consentNotice.version,
           },
           select: { id: true },
         });
@@ -169,27 +183,64 @@ export class LogisticsService {
             purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
             legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
             status: ConsentStatus.GRANTED,
-            collectionChannel: ConsentCollectionChannel.IN_PERSON,
-            noticeVersion: termsVersion,
+            collectionChannel,
+            noticeVersion: consentNotice.version,
             sourceIpHash,
             capturedById: user.userId,
             grantedAt,
           },
         });
 
-        return VOTER_SYNC_RECEIPT;
-      });
-    } catch (error: unknown) {
-      if (!this.isPrismaUniqueViolation(error)) {
-        throw error;
-      }
+        await transaction.auditEvent.create({
+          data: {
+            tenantId: user.tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId: user.userId,
+            action: 'VOTER_REGISTERED_WITH_CONSENT',
+            resourceType: 'Voter',
+            resourceId: voter.id,
+            after: { consentStatus: ConsentStatus.GRANTED },
+            metadata: {
+              registeredFields: this.definedFieldNames({
+                documentId,
+                firstName,
+                lastName,
+                phone,
+                email,
+                puestoId,
+              }),
+              purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+              collectionChannel,
+              noticeVersion: consentNotice.version,
+            },
+          },
+        });
 
-      return VOTER_SYNC_RECEIPT;
+        return VOTER_SYNC_RECEIPT;
+      }, SERIALIZABLE_OPTIONS);
+    } catch (error: unknown) {
+      if (this.isPrismaUniqueViolation(error)) {
+        return VOTER_SYNC_RECEIPT;
+      }
+      if (this.isPrismaError(error, 'P2034')) {
+        throw new ConflictException(
+          'La sincronizacion cambio durante la solicitud; intente nuevamente',
+        );
+      }
+      throw error;
     }
   }
 
   private isPrismaUniqueViolation(error: unknown): boolean {
     return this.isPrismaError(error, 'P2002');
+  }
+
+  private definedFieldNames(value: object): string[] {
+    return Object.entries(value)
+      .filter(([, fieldValue]) => fieldValue !== undefined)
+      .map(([fieldName]) => fieldName)
+      .sort();
   }
 
   private isPrismaError(error: unknown, code: string): boolean {

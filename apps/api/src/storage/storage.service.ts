@@ -39,6 +39,7 @@ import {
   StorageModuleName,
 } from './storage.constants';
 import {
+  SignedUploadData,
   StoredObjectInfo,
   SupabaseStorageGateway,
 } from './supabase-storage.gateway';
@@ -134,7 +135,7 @@ export class StorageService {
       });
     });
 
-    let signedUpload;
+    let signedUpload: SignedUploadData;
     try {
       signedUpload = await this.storageGateway.createSignedUploadUrl(path);
     } catch (error) {
@@ -624,11 +625,14 @@ export class StorageService {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         });
       } catch (error) {
-        const serializationConflict =
+        const errorCode =
           typeof error === 'object' &&
           error !== null &&
           'code' in error &&
-          error.code === 'P2034';
+          typeof (error as Record<string, unknown>).code === 'string'
+            ? (error as Record<string, unknown>).code
+            : undefined;
+        const serializationConflict = errorCode === 'P2034';
         if (!serializationConflict) throw error;
         if (attempt === 3) {
           throw new ConflictException(

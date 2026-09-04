@@ -19,7 +19,8 @@ export type NavigationIcon =
   | "communications"
   | "audit"
   | "finance"
-  | "election";
+  | "election"
+  | "settings";
 
 export interface NavItem {
   title: string;
@@ -281,6 +282,16 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: ALL_TENANTS,
   },
   {
+    title: "Aviso de privacidad",
+    mobileTitle: "Privacidad",
+    href: "/dashboard/settings",
+    icon: "settings",
+    group: "ORGANIZATION",
+    allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
+    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER"],
+    allowedTenantTypes: ALL_TENANTS,
+  },
+  {
     title: "Aprobación de comunicaciones",
     mobileTitle: "Aprobación de comunicaciones",
     href: "/dashboard/communications",
@@ -381,6 +392,7 @@ export const dashboardConfig: NavItem[] = [
     allowedBackendRoles: [
       "ADMIN",
       "CAMPAIGN_MANAGER",
+      "COMPLIANCE_OFFICER",
       "ZONE_COORDINATOR",
       "WITNESS",
       "AUDITOR",

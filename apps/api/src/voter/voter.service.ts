@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import {
   AuditActorType,
-  ConsentCollectionChannel,
   ConsentLegalBasis,
   ConsentPurpose,
   ConsentStatus,
@@ -20,12 +19,17 @@ import {
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import {
+  findActiveConsentNotice,
+  requireActiveConsentNotice,
+} from '../common/utils/consent-notice.util';
+import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
+import { GrantVoterConsentDto } from './dto/grant-voter-consent.dto';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
@@ -35,6 +39,17 @@ const CONSENT_REVOKE_ROLES = [
   Role.ADMIN,
   Role.CAMPAIGN_MANAGER,
   Role.COMPLIANCE_OFFICER,
+] as const;
+
+export const VOTER_CONSENT_GRANT_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.ZONE_COORDINATOR,
+] as const;
+
+const VOTER_CONSENT_GRANT_TERRITORIALLY_SCOPED_ROLES = [
+  Role.ZONE_COORDINATOR,
 ] as const;
 
 export const VOTER_READ_ROLES = [
@@ -61,6 +76,8 @@ export const VOTER_CAPTURE_ROLES = [
   Role.VOLUNTEER,
 ] as const;
 const VOTER_CAPTURE_RECEIPT = { received: true } as const;
+const DUPLICATE_VOTER_MESSAGE =
+  'No se creo un registro nuevo porque el documento ya esta vinculado. Use la busqueda autorizada para revisar su estado o reautorizar el consentimiento.';
 
 const VOTER_LIST_SELECT = {
   id: true,
@@ -99,102 +116,141 @@ export class VoterService {
       );
     }
 
-    const { consentAccepted, termsVersion, ...voterData } = dto;
+    const { consentAccepted, termsVersion, collectionChannel, ...voterData } =
+      dto;
     try {
-      return await this.prisma.$transaction(async (transaction) => {
-        const tenant = await transaction.tenant.findUnique({
-          where: { id: user.tenantId },
-          select: CAMPAIGN_TENANT_SELECT,
-        });
-        assertCampaignTenant(tenant);
+      return await this.prisma.$transaction(
+        async (transaction) => {
+          const tenant = await transaction.tenant.findUnique({
+            where: { id: user.tenantId },
+            select: CAMPAIGN_TENANT_SELECT,
+          });
+          assertCampaignTenant(tenant);
+          const consentNotice = await requireActiveConsentNotice(
+            transaction,
+            user.tenantId,
+            PoliticalOperationMode.CAMPAIGN,
+            termsVersion,
+            ConsentPurpose.POLITICAL_COMMUNICATION,
+          );
 
-        const { divisionIds } = await resolveTerritorialAccess({
-          client: transaction,
-          tenantId: user.tenantId,
-          userId: user.userId,
-          allowedRoles: VOTER_WRITE_ROLES,
-          territoriallyScopedRoles: VOTER_WRITE_TERRITORIALLY_SCOPED_ROLES,
-        });
+          const { divisionIds } = await resolveTerritorialAccess({
+            client: transaction,
+            tenantId: user.tenantId,
+            userId: user.userId,
+            allowedRoles: VOTER_WRITE_ROLES,
+            territoriallyScopedRoles: VOTER_WRITE_TERRITORIALLY_SCOPED_ROLES,
+          });
 
-        if (divisionIds !== null) {
-          if (!voterData.puestoId) {
-            throw new BadRequestException(
-              'El registro requiere un puesto dentro de la asignación territorial',
-            );
+          if (divisionIds !== null) {
+            if (!voterData.puestoId) {
+              throw new BadRequestException(
+                'El registro requiere un puesto dentro de la asignación territorial',
+              );
+            }
+            if (!divisionIds.includes(voterData.puestoId)) {
+              throw new ForbiddenException(
+                'El puesto no pertenece a la asignación territorial del usuario',
+              );
+            }
           }
-          if (!divisionIds.includes(voterData.puestoId)) {
-            throw new ForbiddenException(
-              'El puesto no pertenece a la asignación territorial del usuario',
-            );
-          }
-        }
 
-        if (voterData.puestoId) {
-          const puesto = await transaction.politicalDivision.findFirst({
+          if (voterData.puestoId) {
+            const puesto = await transaction.politicalDivision.findFirst({
+              where: {
+                id: voterData.puestoId,
+                tenantId: user.tenantId,
+                type: DivisionType.PUESTO,
+              },
+              select: { id: true },
+            });
+
+            if (!puesto) {
+              throw new BadRequestException(
+                'Puesto de votación inválido para la campaña autenticada',
+              );
+            }
+          }
+
+          const existingVoter = await transaction.voter.findUnique({
             where: {
-              id: voterData.puestoId,
-              tenantId: user.tenantId,
-              type: DivisionType.PUESTO,
+              documentId_tenantId: {
+                documentId: dto.documentId,
+                tenantId: user.tenantId,
+              },
             },
             select: { id: true },
           });
 
-          if (!puesto) {
-            throw new BadRequestException(
-              'Puesto de votación inválido para la campaña autenticada',
-            );
+          if (existingVoter) {
+            throw new ConflictException(DUPLICATE_VOTER_MESSAGE);
           }
-        }
 
-        const existingVoter = await transaction.voter.findUnique({
-          where: {
-            documentId_tenantId: {
-              documentId: dto.documentId,
+          const grantedAt = new Date();
+          const sourceIpHash = this.consentEvidence.hashIp(consentIp);
+          const voter = await transaction.voter.create({
+            data: {
+              ...voterData,
               tenantId: user.tenantId,
+              registrarId: user.userId,
+              consentAccepted,
+              consentIp: sourceIpHash,
+              consentTimestamp: grantedAt,
+              termsVersion: consentNotice.version,
             },
-          },
-          select: { id: true },
-        });
+            select: { id: true },
+          });
 
-        if (existingVoter) return VOTER_CAPTURE_RECEIPT;
+          await transaction.consentRecord.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              subjectType: ConsentSubjectType.VOTER,
+              subjectRef: voter.id,
+              voterId: voter.id,
+              purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+              legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
+              status: ConsentStatus.GRANTED,
+              collectionChannel,
+              noticeVersion: consentNotice.version,
+              sourceIpHash,
+              capturedById: user.userId,
+              grantedAt,
+            },
+          });
 
-        const grantedAt = new Date();
-        const sourceIpHash = this.consentEvidence.hashIp(consentIp);
-        const voter = await transaction.voter.create({
-          data: {
-            ...voterData,
-            tenantId: user.tenantId,
-            registrarId: user.userId,
-            consentAccepted,
-            consentIp: sourceIpHash,
-            consentTimestamp: grantedAt,
-            termsVersion,
-          },
-          select: { id: true },
-        });
+          await transaction.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'VOTER_REGISTERED_WITH_CONSENT',
+              resourceType: 'Voter',
+              resourceId: voter.id,
+              after: { consentStatus: ConsentStatus.GRANTED },
+              metadata: {
+                registeredFields: this.definedFieldNames(voterData),
+                purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+                collectionChannel,
+                noticeVersion: consentNotice.version,
+              },
+            },
+          });
 
-        await transaction.consentRecord.create({
-          data: {
-            tenantId: user.tenantId,
-            mode: PoliticalOperationMode.CAMPAIGN,
-            subjectType: ConsentSubjectType.VOTER,
-            subjectRef: voter.id,
-            voterId: voter.id,
-            purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
-            legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
-            status: ConsentStatus.GRANTED,
-            collectionChannel: ConsentCollectionChannel.IN_PERSON,
-            noticeVersion: termsVersion,
-            sourceIpHash,
-            capturedById: user.userId,
-            grantedAt,
-          },
-        });
-
-        return VOTER_CAPTURE_RECEIPT;
-      });
+          return VOTER_CAPTURE_RECEIPT;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error: unknown) {
-      if (this.isPrismaError(error, 'P2002')) return VOTER_CAPTURE_RECEIPT;
+      if (this.isPrismaError(error, 'P2002')) {
+        throw new ConflictException(DUPLICATE_VOTER_MESSAGE);
+      }
+      if (this.isPrismaError(error, 'P2034')) {
+        throw new ConflictException(
+          'El aviso de privacidad cambio durante el registro; recarga y confirma nuevamente',
+        );
+      }
       throw error;
     }
   }
@@ -214,13 +270,21 @@ export class VoterService {
 
   async getCaptureContext(user: AuthenticatedUser) {
     await this.assertCampaignMode(user.tenantId);
-    const { divisionIds } = await resolveTerritorialAccess({
-      client: this.prisma,
-      tenantId: user.tenantId,
-      userId: user.userId,
-      allowedRoles: VOTER_CAPTURE_ROLES,
-      territoriallyScopedRoles: VOTER_CAPTURE_ROLES,
-    });
+    const [{ divisionIds }, consentNotice] = await Promise.all([
+      resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId: user.tenantId,
+        userId: user.userId,
+        allowedRoles: VOTER_CAPTURE_ROLES,
+        territoriallyScopedRoles: VOTER_CAPTURE_ROLES,
+      }),
+      findActiveConsentNotice(
+        this.prisma,
+        user.tenantId,
+        PoliticalOperationMode.CAMPAIGN,
+        ConsentPurpose.POLITICAL_COMMUNICATION,
+      ),
+    ]);
 
     // Los dos roles de captura son siempre territoriales. Este control hace
     // que un cambio futuro en la política de roles falle de forma cerrada.
@@ -240,7 +304,7 @@ export class VoterService {
       orderBy: [{ name: 'asc' }, { code: 'asc' }, { id: 'asc' }],
     });
 
-    return { puestos };
+    return { puestos, consentNotice };
   }
 
   private async findPage(
@@ -429,6 +493,168 @@ export class VoterService {
     }
   }
 
+  async grantConsent(
+    user: AuthenticatedUser,
+    voterId: string,
+    consentIp: string,
+    dto: GrantVoterConsentDto,
+  ) {
+    this.assertConsentGrantRole(user);
+    if (dto.consentAccepted !== true) {
+      throw new BadRequestException(
+        'Se requiere una nueva autorizacion expresa con la version vigente',
+      );
+    }
+
+    try {
+      return await this.prisma.$transaction(
+        async (transaction) => {
+          const tenant = await transaction.tenant.findUnique({
+            where: { id: user.tenantId },
+            select: CAMPAIGN_TENANT_SELECT,
+          });
+          assertCampaignTenant(tenant);
+          const consentNotice = await requireActiveConsentNotice(
+            transaction,
+            user.tenantId,
+            PoliticalOperationMode.CAMPAIGN,
+            dto.termsVersion,
+            ConsentPurpose.POLITICAL_COMMUNICATION,
+          );
+
+          const { divisionIds } = await resolveTerritorialAccess({
+            client: transaction,
+            tenantId: user.tenantId,
+            userId: user.userId,
+            allowedRoles: VOTER_CONSENT_GRANT_ROLES,
+            territoriallyScopedRoles:
+              VOTER_CONSENT_GRANT_TERRITORIALLY_SCOPED_ROLES,
+          });
+
+          const voter = await transaction.voter.findFirst({
+            where: {
+              id: voterId,
+              tenantId: user.tenantId,
+              ...(divisionIds !== null
+                ? { puestoId: { in: divisionIds } }
+                : {}),
+            },
+            select: { id: true, consentAccepted: true },
+          });
+          if (!voter) {
+            throw new NotFoundException('Ciudadano no encontrado');
+          }
+
+          const latestConsent = await transaction.consentRecord.findFirst({
+            where: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              voterId,
+              subjectType: ConsentSubjectType.VOTER,
+              purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            select: { id: true, status: true, noticeVersion: true },
+          });
+
+          const hasOutdatedGrant =
+            latestConsent?.status === ConsentStatus.GRANTED &&
+            latestConsent.noticeVersion !== consentNotice.version;
+          if (
+            !latestConsent ||
+            (latestConsent.status !== ConsentStatus.REVOKED &&
+              !hasOutdatedGrant) ||
+            voter.consentAccepted
+          ) {
+            throw new ConflictException(
+              latestConsent?.status === ConsentStatus.GRANTED
+                ? 'El consentimiento ya esta vigente'
+                : 'No existe una revocacion vigente que pueda reautorizarse',
+            );
+          }
+
+          const grantedAt = new Date();
+          const sourceIpHash = this.consentEvidence.hashIp(consentIp);
+          const grant = await transaction.consentRecord.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              subjectType: ConsentSubjectType.VOTER,
+              subjectRef: voter.id,
+              voterId: voter.id,
+              purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+              legalBasis: ConsentLegalBasis.EXPLICIT_CONSENT,
+              status: ConsentStatus.GRANTED,
+              collectionChannel: dto.collectionChannel,
+              noticeVersion: consentNotice.version,
+              sourceIpHash,
+              capturedById: user.userId,
+              grantedAt,
+            },
+            select: { id: true, status: true, grantedAt: true },
+          });
+
+          const voterState = await transaction.voter.update({
+            where: { id: voter.id, tenantId: user.tenantId },
+            data: {
+              consentAccepted: true,
+              consentIp: sourceIpHash,
+              consentTimestamp: grantedAt,
+              termsVersion: consentNotice.version,
+            },
+            select: {
+              id: true,
+              consentAccepted: true,
+              consentTimestamp: true,
+            },
+          });
+
+          await transaction.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'VOTER_CONSENT_REAUTHORIZED',
+              resourceType: 'ConsentRecord',
+              resourceId: grant.id,
+              before: {
+                status: latestConsent.status,
+                consentAccepted: false,
+                noticeVersion: latestConsent.noticeVersion,
+              },
+              after: {
+                status: ConsentStatus.GRANTED,
+                consentAccepted: true,
+              },
+              metadata: {
+                purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+                collectionChannel: dto.collectionChannel,
+                noticeVersion: consentNotice.version,
+              },
+            },
+          });
+
+          return {
+            voterId: voterState.id,
+            consentAccepted: voterState.consentAccepted,
+            status: grant.status,
+            grantedAt: grant.grantedAt,
+            noticeVersion: consentNotice.version,
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error: unknown) {
+      if (this.isPrismaError(error, 'P2034')) {
+        throw new ConflictException(
+          'El consentimiento cambio durante la solicitud; consulta su estado actual',
+        );
+      }
+      throw error;
+    }
+  }
+
   async getStats(user: AuthenticatedUser) {
     await this.assertCampaignMode(user.tenantId);
     const { divisionIds } = await resolveTerritorialAccess({
@@ -471,6 +697,18 @@ export class VoterService {
     }
   }
 
+  private assertConsentGrantRole(user: AuthenticatedUser): void {
+    if (
+      !VOTER_CONSENT_GRANT_ROLES.includes(
+        user.role as (typeof VOTER_CONSENT_GRANT_ROLES)[number],
+      )
+    ) {
+      throw new ForbiddenException(
+        'Su rol no puede reautorizar consentimientos electorales',
+      );
+    }
+  }
+
   private toVoterListItem(voter: VoterListSource) {
     return {
       id: voter.id,
@@ -499,6 +737,13 @@ export class VoterService {
   private normalizeSearch(value: string | undefined): string | undefined {
     const normalized = value?.trim().replace(/\s+/gu, ' ');
     return normalized || undefined;
+  }
+
+  private definedFieldNames(value: object): string[] {
+    return Object.entries(value)
+      .filter(([, fieldValue]) => fieldValue !== undefined)
+      .map(([fieldName]) => fieldName)
+      .sort();
   }
 
   private isPrismaError(error: unknown, code: string): boolean {

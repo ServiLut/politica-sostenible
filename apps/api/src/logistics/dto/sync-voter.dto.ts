@@ -9,6 +9,7 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
+import { ConsentCollectionChannel } from '../../../prisma/generated/prisma';
 import {
   CANONICAL_PHONE_PATTERN,
   normalizePhoneInput,
@@ -65,7 +66,20 @@ export class SyncVoterDto {
   })
   consentAccepted: true;
 
+  @Transform(trim)
   @IsString()
-  @IsIn(['2026.1'], { message: 'Versión de términos no soportada' })
+  @IsNotEmpty()
+  @MaxLength(32)
+  @Matches(/^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u, {
+    message: 'La version del aviso no tiene un formato valido',
+  })
   termsVersion: string;
+
+  @IsIn([
+    ConsentCollectionChannel.WEB_FORM,
+    ConsentCollectionChannel.PAPER,
+    ConsentCollectionChannel.PHONE,
+    ConsentCollectionChannel.IN_PERSON,
+  ])
+  collectionChannel: ConsentCollectionChannel;
 }

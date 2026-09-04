@@ -39,7 +39,7 @@ Como referencias adicionales de mercado se revisaron las propuestas públicas de
 | Agendas dispersas                   | Eventos paginados, responsables, horarios y transiciones             | Sólo usuarios activos y auditoría sin contenido sensible         |
 | Altas y bajas informales            | Invitaciones de un solo uso, cambio de rol y desactivación inmediata | Rol vigente consultado en PostgreSQL                             |
 | Mensajes sin revisión               | Cola de aprobación con separación solicitante/aprobador              | No envía ni publica; cuatro ojos y mínimo contenido en auditoría |
-| Promesas sin seguimiento            | Compromisos, progreso, evidencia y publicación                       | Campaña/cargo separados                                          |
+| Promesas sin seguimiento            | Compromisos, responsables, progreso y clasificación interna          | No publica en internet; campaña/cargo separados                   |
 | PQRS sin trazabilidad               | Casos, SLA, asignación, estado y confidencialidad                    | Acceso restringido a atención/auditoría                          |
 | Crisis manejadas por chats          | Incidentes, severidad humana, propietario y vencimiento              | Sin “sentimiento” ni riesgo inventados por IA                    |
 | Pérdida de control el Día D         | Puestos, mesas, testigos, actas e incidentes                         | E-14 privado y ruta firmada                                      |

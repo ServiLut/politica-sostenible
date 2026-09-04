@@ -17,6 +17,17 @@ const PLACEHOLDER_FRAGMENTS = Object.freeze([
   "changeme",
 ]);
 
+const INSECURE_EVALUATION_PROFILE = "evaluation";
+
+export function allowsInsecureEvaluationDatabase(environment = process.env) {
+  return (
+    environment.NODE_ENV === "production" &&
+    environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() ===
+      INSECURE_EVALUATION_PROFILE &&
+    environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true"
+  );
+}
+
 function isPlaceholder(value) {
   const normalized = value.toLowerCase();
   if (
@@ -166,6 +177,20 @@ function validateUrl(issues, name, value, protocols) {
 function validateProductionDatabaseTls(issues, environment, name, value) {
   if (environment.NODE_ENV !== "production" || !value) return;
 
+  if (allowsInsecureEvaluationDatabase(environment)) {
+    try {
+      const parsed = new URL(value);
+      if (parsed.searchParams.get("sslmode")?.toLowerCase() !== "disable") {
+        issues.push(
+          `${name} debe declarar sslmode=disable cuando la excepcion de evaluacion esta activa`,
+        );
+      }
+    } catch {
+      // validateUrl reports the malformed URL with the canonical message.
+    }
+    return;
+  }
+
   try {
     const parsed = new URL(value);
     const sslMode = parsed.searchParams.get("sslmode")?.toLowerCase();
@@ -176,6 +201,46 @@ function validateProductionDatabaseTls(issues, environment, name, value) {
     }
   } catch {
     // validateUrl reports the malformed URL with the canonical message.
+  }
+}
+
+function validateProductionDatabaseFlags(issues, environment) {
+  if (environment.NODE_ENV !== "production") return;
+
+  const requestedInsecureConnection =
+    environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true";
+  const evaluationProfile =
+    environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() ===
+    INSECURE_EVALUATION_PROFILE;
+
+  if (requestedInsecureConnection && !evaluationProfile) {
+    issues.push(
+      "ALLOW_INSECURE_DATABASE_CONNECTION solo se permite con DEPLOYMENT_PROFILE=evaluation",
+    );
+    return;
+  }
+
+  if (allowsInsecureEvaluationDatabase(environment)) {
+    if (environment.DATABASE_SSL !== "false") {
+      issues.push(
+        "DATABASE_SSL debe ser false cuando la excepcion de evaluacion esta activa",
+      );
+    }
+    if (environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") {
+      issues.push(
+        "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser false cuando la excepcion de evaluacion esta activa",
+      );
+    }
+    return;
+  }
+
+  if (environment.DATABASE_SSL !== "true") {
+    issues.push("DATABASE_SSL debe ser true en produccion");
+  }
+  if (environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "true") {
+    issues.push(
+      "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser true en produccion",
+    );
   }
 }
 
@@ -230,16 +295,7 @@ export function runtimeEnvironmentIssues(environment = process.env) {
     directUrl,
   );
 
-  if (environment.NODE_ENV === "production") {
-    if (environment.DATABASE_SSL !== "true") {
-      issues.push("DATABASE_SSL debe ser true en produccion");
-    }
-    if (environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "true") {
-      issues.push(
-        "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser true en produccion",
-      );
-    }
-  }
+  validateProductionDatabaseFlags(issues, environment);
 
   validateUrl(issues, "SUPABASE_URL", values.SUPABASE_URL, ["https:"]);
   validateUrl(
@@ -281,16 +337,7 @@ export function migrationEnvironmentIssues(environment = process.env) {
     validateProductionDatabaseTls(issues, environment, name, value);
   }
 
-  if (environment.NODE_ENV === "production") {
-    if (environment.DATABASE_SSL !== "true") {
-      issues.push("DATABASE_SSL debe ser true en produccion");
-    }
-    if (environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "true") {
-      issues.push(
-        "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser true en produccion",
-      );
-    }
-  }
+  validateProductionDatabaseFlags(issues, environment);
 
   return issues;
 }

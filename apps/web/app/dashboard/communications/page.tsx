@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
+import { IssueCase, IssueCasePage, listIssueCases } from "@/lib/cases-api";
 import {
   CommunicationApproval,
   CommunicationApprovalPage,
@@ -30,6 +31,12 @@ import {
 import { BackendUserRole, Tenant } from "@/types/saas-schema";
 
 const PAGE_SIZE = 10;
+const CASE_PAGE_SIZE = 6;
+
+type CommunicationCaseOption = Pick<
+  IssueCase,
+  "id" | "reference" | "title" | "status"
+>;
 
 const CHANNELS: ReadonlyArray<{
   value: CommunicationChannel;
@@ -102,7 +109,6 @@ interface RequestFormState {
   channel: CommunicationChannel;
   purpose: string;
   containsSensitiveData: boolean;
-  issueCaseId: string;
 }
 
 const INITIAL_FILTERS: Filters = {
@@ -119,7 +125,6 @@ const INITIAL_REQUEST: RequestFormState = {
   channel: "SOCIAL_MEDIA",
   purpose: "",
   containsSensitiveData: false,
-  issueCaseId: "",
 };
 
 function readableError(error: unknown): string {
@@ -166,6 +171,15 @@ export default function CommunicationsPage() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestForm, setRequestForm] =
     useState<RequestFormState>(INITIAL_REQUEST);
+  const [caseSearchDraft, setCaseSearchDraft] = useState("");
+  const [caseSearch, setCaseSearch] = useState("");
+  const [casePage, setCasePage] = useState(1);
+  const [caseResult, setCaseResult] = useState<IssueCasePage | null>(null);
+  const [selectedCase, setSelectedCase] =
+    useState<CommunicationCaseOption | null>(null);
+  const [casesLoading, setCasesLoading] = useState(false);
+  const [casesError, setCasesError] = useState<string | null>(null);
+  const [casesReload, setCasesReload] = useState(0);
   const [decision, setDecision] = useState<{
     approval: CommunicationApproval;
     status: "APPROVED" | "REJECTED";
@@ -200,6 +214,39 @@ export default function CommunicationsPage() {
   const caseLinkRequired = user?.backendRole === "CASE_WORKER";
 
   useEffect(() => {
+    if (!requestOpen || !canLinkCase) {
+      setCasesLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setCasesLoading(true);
+    setCasesError(null);
+
+    void listIssueCases(
+      {
+        page: casePage,
+        limit: CASE_PAGE_SIZE,
+        search: caseSearch || undefined,
+      },
+      controller.signal,
+    )
+      .then((response) => {
+        if (!controller.signal.aborted) setCaseResult(response);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setCasesError(readableError(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCasesLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [canLinkCase, casePage, caseSearch, casesReload, requestOpen]);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setLoadError(null);
@@ -229,9 +276,17 @@ export default function CommunicationsPage() {
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving("request");
     setMutationError(null);
     setNotice(null);
+
+    if (caseLinkRequired && !selectedCase) {
+      setMutationError(
+        "Selecciona uno de los casos autorizados para solicitar esta revisión.",
+      );
+      return;
+    }
+
+    setSaving("request");
     try {
       await createCommunicationApproval({
         title: requestForm.title.trim(),
@@ -239,9 +294,13 @@ export default function CommunicationsPage() {
         channel: requestForm.channel,
         purpose: requestForm.purpose.trim(),
         containsSensitiveData: requestForm.containsSensitiveData,
-        issueCaseId: requestForm.issueCaseId.trim() || undefined,
+        issueCaseId: selectedCase?.id,
       });
       setRequestForm(INITIAL_REQUEST);
+      setSelectedCase(null);
+      setCaseSearchDraft("");
+      setCaseSearch("");
+      setCasePage(1);
       setRequestOpen(false);
       setNotice("Solicitud enviada a revisión. No se publicó ningún mensaje.");
       setFilters((current) => ({ ...current, page: 1 }));
@@ -251,6 +310,19 @@ export default function CommunicationsPage() {
     } finally {
       setSaving(null);
     }
+  }
+
+  function submitCaseSearch() {
+    setCasePage(1);
+    setCaseSearch(caseSearchDraft.trim());
+  }
+
+  function selectCase(issueCase: CommunicationCaseOption) {
+    setSelectedCase(issueCase);
+  }
+
+  function clearSelectedCase() {
+    setSelectedCase(null);
   }
 
   async function handleDecision(event: FormEvent<HTMLFormElement>) {
@@ -724,24 +796,148 @@ export default function CommunicationsPage() {
                     ))}
                   </select>
                 </label>
-                {canLinkCase && (
-                  <label className="block space-y-2 text-sm font-black text-slate-700">
-                    ID interno del caso {caseLinkRequired ? "" : "(opcional)"}
-                    <input
-                      required={caseLinkRequired}
-                      maxLength={128}
-                      value={requestForm.issueCaseId}
-                      onChange={(event) =>
-                        setRequestForm((current) => ({
-                          ...current,
-                          issueCaseId: event.target.value,
-                        }))
-                      }
-                      className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold"
-                    />
-                  </label>
-                )}
               </div>
+              {canLinkCase && (
+                <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-black text-slate-800">
+                    Caso relacionado {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
+                  </legend>
+                  <p className="text-xs leading-5 text-slate-500">
+                    Busca por referencia o asunto. La API solo devuelve casos
+                    autorizados para tu organización y alcance actual.
+                  </p>
+
+                  {selectedCase && (
+                    <div
+                      data-testid="selected-communication-case"
+                      className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                          {selectedCase.reference}
+                        </p>
+                        <p className="mt-1 truncate text-sm font-bold text-slate-900">
+                          {selectedCase.title}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearSelectedCase}
+                        className="min-h-9 shrink-0 rounded-lg border border-emerald-300 bg-white px-3 text-xs font-black text-emerald-900"
+                      >
+                        Quitar caso
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <label className="flex-1">
+                      <span className="sr-only">Buscar caso autorizado</span>
+                      <input
+                        type="search"
+                        value={caseSearchDraft}
+                        onChange={(event) => setCaseSearchDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            submitCaseSearch();
+                          }
+                        }}
+                        placeholder="Referencia o asunto del caso"
+                        className="min-h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={submitCaseSearch}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white"
+                    >
+                      <Search size={16} aria-hidden="true" /> Buscar casos
+                    </button>
+                  </div>
+
+                  {casesLoading ? (
+                    <div
+                      role="status"
+                      className="flex min-h-20 items-center justify-center gap-2 text-sm font-semibold text-slate-500"
+                    >
+                      <Loader2 className="animate-spin" size={17} aria-hidden="true" />
+                      Consultando casos autorizados…
+                    </div>
+                  ) : casesError ? (
+                    <div
+                      role="alert"
+                      className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <span>No fue posible consultar los casos: {casesError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCasesReload((value) => value + 1)}
+                        className="min-h-9 shrink-0 rounded-lg bg-red-700 px-3 text-xs font-black text-white"
+                      >
+                        Reintentar
+                      </button>
+                    </div>
+                  ) : caseResult?.items.length ? (
+                    <div className="space-y-2" role="radiogroup" aria-label="Casos autorizados">
+                      {caseResult.items.map((issueCase) => (
+                        <label
+                          key={issueCase.id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                            selectedCase?.id === issueCase.id
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-slate-200 hover:border-blue-300"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="communication-case"
+                            checked={selectedCase?.id === issueCase.id}
+                            onChange={() => selectCase(issueCase)}
+                            className="mt-1 h-4 w-4"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-xs font-black uppercase tracking-wider text-blue-700">
+                              {issueCase.reference}
+                            </span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-800">
+                              {issueCase.title}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">
+                      No hay casos autorizados con esta búsqueda.
+                    </p>
+                  )}
+
+                  {!casesLoading && !casesError && caseResult && caseResult.pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+                      <button
+                        type="button"
+                        disabled={casePage <= 1}
+                        onClick={() => setCasePage((value) => value - 1)}
+                        className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
+                      >
+                        Casos anteriores
+                      </button>
+                      <span>
+                        Página {casePage} de {caseResult.pagination.totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={casePage >= caseResult.pagination.totalPages}
+                        onClick={() => setCasePage((value) => value + 1)}
+                        className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
+                      >
+                        Más casos
+                      </button>
+                    </div>
+                  )}
+                </fieldset>
+              )}
               <label className="block space-y-2 text-sm font-black text-slate-700">
                 Finalidad legítima
                 <textarea

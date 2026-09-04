@@ -68,6 +68,84 @@ test("produccion rechaza PostgreSQL sin TLS estricto", () => {
   );
 });
 
+test("evaluacion permite PostgreSQL sin TLS solo con doble opt-in explicito", () => {
+  const environment = {
+    ...validEnvironment(),
+    NODE_ENV: "production",
+    DEPLOYMENT_PROFILE: "evaluation",
+    ALLOW_INSECURE_DATABASE_CONNECTION: "true",
+    DATABASE_URL:
+      "postgresql://application:strong-password@pool.internal:6543/politica?pgbouncer=true&sslmode=disable&schema=politica-sostenible",
+    DIRECT_URL:
+      "postgresql://application:strong-password@database.internal:5432/politica?sslmode=disable&schema=politica-sostenible",
+    DATABASE_SSL: "false",
+    DATABASE_SSL_REJECT_UNAUTHORIZED: "false",
+  };
+
+  assert.deepEqual(runtimeEnvironmentIssues(environment), []);
+  assert.deepEqual(migrationEnvironmentIssues(environment), []);
+  assert.doesNotThrow(() => requireRuntimeEnvironment(environment));
+  assert.doesNotThrow(() => requireMigrationEnvironment(environment));
+});
+
+test("la excepcion sin TLS falla cerrada fuera del perfil de evaluacion", () => {
+  const environment = {
+    ...validEnvironment(),
+    NODE_ENV: "production",
+    DEPLOYMENT_PROFILE: "production",
+    ALLOW_INSECURE_DATABASE_CONNECTION: "true",
+    DATABASE_URL:
+      "postgresql://application:strong-password@database.internal:5432/politica?sslmode=disable&schema=politica-sostenible",
+    DIRECT_URL:
+      "postgresql://application:strong-password@database.internal:5432/politica?sslmode=disable&schema=politica-sostenible",
+    DATABASE_SSL: "false",
+    DATABASE_SSL_REJECT_UNAUTHORIZED: "false",
+  };
+
+  const issues = runtimeEnvironmentIssues(environment);
+  assert.ok(
+    issues.includes(
+      "ALLOW_INSECURE_DATABASE_CONNECTION solo se permite con DEPLOYMENT_PROFILE=evaluation",
+    ),
+  );
+  assert.ok(
+    issues.some((issue) => issue.startsWith("DATABASE_URL debe declarar")),
+  );
+  assert.throws(() => requireRuntimeEnvironment(environment));
+});
+
+test("la excepcion de evaluacion exige URLs y flags coherentes", () => {
+  const environment = {
+    ...validEnvironment(),
+    NODE_ENV: "production",
+    DEPLOYMENT_PROFILE: "evaluation",
+    ALLOW_INSECURE_DATABASE_CONNECTION: "true",
+    DATABASE_URL:
+      "postgresql://application:strong-password@database.internal:5432/politica?sslmode=require&schema=politica-sostenible",
+    DIRECT_URL:
+      "postgresql://application:strong-password@database.internal:5432/politica?sslmode=require&schema=politica-sostenible",
+    DATABASE_SSL: "true",
+    DATABASE_SSL_REJECT_UNAUTHORIZED: "true",
+  };
+
+  const issues = runtimeEnvironmentIssues(environment);
+  assert.ok(
+    issues.some((issue) =>
+      issue.includes("sslmode=disable cuando la excepcion"),
+    ),
+  );
+  assert.ok(
+    issues.includes(
+      "DATABASE_SSL debe ser false cuando la excepcion de evaluacion esta activa",
+    ),
+  );
+  assert.ok(
+    issues.includes(
+      "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser false cuando la excepcion de evaluacion esta activa",
+    ),
+  );
+});
+
 test("el migrador normaliza aliases PostgreSQL y exige TLS antes de ejecutar", () => {
   const environment = {
     NODE_ENV: "production",

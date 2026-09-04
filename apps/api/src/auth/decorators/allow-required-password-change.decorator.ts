@@ -1,7 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const ALLOW_REQUIRED_PASSWORD_CHANGE_KEY =
-  'allowRequiredPasswordChange';
+export const ALLOW_REQUIRED_PASSWORD_CHANGE_KEY = 'allowRequiredPasswordChange';
 
 /**
  * Allows an authenticated account with a temporary credential to reach only

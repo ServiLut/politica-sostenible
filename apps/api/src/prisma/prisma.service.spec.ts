@@ -1,4 +1,4 @@
-import { resolveDatabaseSchema } from './prisma.service';
+import { resolveDatabaseSchema, resolveDatabaseSsl } from './prisma.service';
 
 describe('resolveDatabaseSchema', () => {
   it('reads the schema used by Prisma from DATABASE_URL', () => {
@@ -38,5 +38,56 @@ describe('resolveDatabaseSchema', () => {
         'public; DROP SCHEMA public',
       ),
     ).toThrow('DATABASE_SCHEMA contains an invalid PostgreSQL identifier');
+  });
+});
+
+describe('resolveDatabaseSsl', () => {
+  it('requires verified TLS in production by default', () => {
+    expect(
+      resolveDatabaseSsl({
+        NODE_ENV: 'production',
+        DATABASE_SSL: 'true',
+        DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+      }),
+    ).toEqual({ rejectUnauthorized: true });
+
+    expect(() =>
+      resolveDatabaseSsl({
+        NODE_ENV: 'production',
+        DATABASE_SSL: 'false',
+        DATABASE_SSL_REJECT_UNAUTHORIZED: 'false',
+      }),
+    ).toThrow('PostgreSQL TLS is mandatory');
+  });
+
+  it('allows plain PostgreSQL only with the explicit evaluation profile', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(
+      resolveDatabaseSsl({
+        NODE_ENV: 'production',
+        DEPLOYMENT_PROFILE: 'evaluation',
+        ALLOW_INSECURE_DATABASE_CONNECTION: 'true',
+        DATABASE_SSL: 'false',
+        DATABASE_SSL_REJECT_UNAUTHORIZED: 'false',
+      }),
+    ).toBe(false);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('insecure evaluation profile'),
+    );
+
+    warn.mockRestore();
+  });
+
+  it('rejects a contradictory evaluation TLS configuration', () => {
+    expect(() =>
+      resolveDatabaseSsl({
+        NODE_ENV: 'production',
+        DEPLOYMENT_PROFILE: 'evaluation',
+        ALLOW_INSECURE_DATABASE_CONNECTION: 'true',
+        DATABASE_SSL: 'true',
+        DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+      }),
+    ).toThrow('evaluation database exception requires');
   });
 });

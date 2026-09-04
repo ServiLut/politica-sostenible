@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  VOTER_CONSENT_GRANT_ROLES,
   VOTER_CAPTURE_ROLES,
   VOTER_READ_ROLES,
   VoterService,
@@ -22,6 +23,7 @@ import { Role } from '../../prisma/generated/prisma';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
 import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
+import { GrantVoterConsentDto } from './dto/grant-voter-consent.dto';
 import { UpdateVoterDataDto } from './dto/update-voter-data.dto';
 import { VoterDataRightsParamsDto } from './dto/voter-data-rights-params.dto';
 import {
@@ -147,5 +149,20 @@ export class VoterController {
     @Body() dto: RevokeVoterConsentDto,
   ) {
     return this.voterService.revokeConsent(user, voterId, dto);
+  }
+
+  @Post(':id/consents/grant')
+  @Roles(...VOTER_CONSENT_GRANT_ROLES)
+  @ApiOperation({
+    summary:
+      'Registra una nueva autorizacion expresa despues de una revocacion',
+  })
+  async grantConsent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: VoterDataRightsParamsDto,
+    @Ip() consentIp: string,
+    @Body() dto: GrantVoterConsentDto,
+  ) {
+    return this.voterService.grantConsent(user, params.id, consentIp, dto);
   }
 }

@@ -237,6 +237,9 @@ exports.Prisma.FinancialEntryScalarFieldEnum = {
   reviewedById: 'reviewedById',
   reviewedAt: 'reviewedAt',
   reviewReason: 'reviewReason',
+  cneReportedById: 'cneReportedById',
+  cneReportedAt: 'cneReportedAt',
+  cneReportReference: 'cneReportReference',
   status: 'status',
   auditLog: 'auditLog',
   createdAt: 'createdAt'
@@ -330,6 +333,24 @@ exports.Prisma.ConsentRecordScalarFieldEnum = {
   expiresAt: 'expiresAt',
   revokedAt: 'revokedAt',
   revocationReason: 'revocationReason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ConsentNoticeScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  mode: 'mode',
+  purpose: 'purpose',
+  version: 'version',
+  title: 'title',
+  content: 'content',
+  controllerName: 'controllerName',
+  contactEmail: 'contactEmail',
+  privacyPolicyUrl: 'privacyPolicyUrl',
+  isActive: 'isActive',
+  createdById: 'createdById',
+  activatedAt: 'activatedAt',
+  retiredAt: 'retiredAt',
   createdAt: 'createdAt'
 };
 
@@ -707,6 +728,7 @@ exports.Prisma.ModelName = {
   InventoryItem: 'InventoryItem',
   InventoryMovement: 'InventoryMovement',
   ConsentRecord: 'ConsentRecord',
+  ConsentNotice: 'ConsentNotice',
   IssueCase: 'IssueCase',
   Interaction: 'Interaction',
   Task: 'Task',

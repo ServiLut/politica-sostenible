@@ -18,6 +18,7 @@ import { Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
 import { ReviewFinancialEntryDto } from './dto/review-financial-entry.dto';
+import { MarkCneReportedDto } from './dto/mark-cne-reported.dto';
 
 const FINANCE_WRITE_ROLES = [
   Role.ADMIN,
@@ -78,7 +79,20 @@ export class FinanceController {
     @Param('id') entryId: string,
     @Body() dto: ReviewFinancialEntryDto,
   ) {
-    return this.financeService.review(
+    return this.financeService.review(user.tenantId, user.userId, entryId, dto);
+  }
+
+  @Patch(':id/cne-report')
+  @Roles(...FINANCE_REVIEW_ROLES)
+  @ApiOperation({
+    summary: 'Confirma una radicación realizada externamente en Cuentas Claras',
+  })
+  markReportedToCne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') entryId: string,
+    @Body() dto: MarkCneReportedDto,
+  ) {
+    return this.financeService.markReportedToCne(
       user.tenantId,
       user.userId,
       entryId,
@@ -96,7 +110,10 @@ export class FinanceController {
     @CurrentUser() user: AuthenticatedUser,
     @Res() res: Response,
   ) {
-    const csv = await this.financeService.generateCneReport(user.tenantId);
+    const csv = await this.financeService.generateCneReport(
+      user.tenantId,
+      user.userId,
+    );
     res.header('Content-Type', 'text/csv; charset=utf-8');
     res.header(
       'Content-Disposition',

@@ -479,7 +479,9 @@ describe('AuthService password change', () => {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
-    jest.mocked(bcrypt.hash).mockResolvedValue('personal-password-hash' as never);
+    jest
+      .mocked(bcrypt.hash)
+      .mockResolvedValue('personal-password-hash' as never);
 
     await expect(
       service.changePassword(

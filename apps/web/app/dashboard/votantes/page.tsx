@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  UserCheck,
   UserMinus,
   UserPlus,
   X,
@@ -20,8 +21,15 @@ import { VoterDetailPanel } from "@/components/voters/VoterDetailPanel";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
+  getConsentNoticePresentationKey,
+  getCurrentConsentNotice,
+  type ConsentNoticeContext,
+} from "@/lib/consent-notices-api";
+import type { CapturableConsentCollectionChannel } from "@/lib/interactions-api";
+import {
   createVoter,
   CreateVoterInput,
+  grantVoterConsent,
   listVoters,
   revokeVoterConsent,
   VoterListItem,
@@ -30,10 +38,7 @@ import {
 import { BackendUserRole } from "@/types/saas-schema";
 
 const PAGE_SIZE = 25;
-const CREATE_ROLES = new Set<BackendUserRole>([
-  "ADMIN",
-  "CAMPAIGN_MANAGER",
-]);
+const CREATE_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
 const TERRITORIAL_CAPTURE_ROLES = new Set<BackendUserRole>([
   "ZONE_COORDINATOR",
   "VOLUNTEER",
@@ -42,6 +47,12 @@ const REVOKE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
   "COMPLIANCE_OFFICER",
+]);
+const REAUTHORIZE_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
+  "CAMPAIGN_MANAGER",
+  "COMPLIANCE_OFFICER",
+  "ZONE_COORDINATOR",
 ]);
 const SENSITIVE_DETAIL_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -55,8 +66,19 @@ const EMPTY_FORM = {
   phone: "",
   email: "",
   mesa: "",
+  collectionChannel: "",
   consentAccepted: false,
 };
+
+const CONSENT_CHANNEL_OPTIONS: ReadonlyArray<{
+  value: CapturableConsentCollectionChannel;
+  label: string;
+}> = [
+  { value: "IN_PERSON", label: "Presencial" },
+  { value: "PHONE", label: "Llamada" },
+  { value: "PAPER", label: "Formato físico" },
+  { value: "WEB_FORM", label: "Formulario web diligenciado por la persona" },
+];
 
 function readableError(error: unknown, fallback: string) {
   if (error instanceof ApiError) return error.message;
@@ -70,6 +92,8 @@ export default function VotantesPage() {
   const usesTerritorialCapture =
     user !== null && TERRITORIAL_CAPTURE_ROLES.has(user.backendRole);
   const canRevoke = user !== null && REVOKE_ROLES.has(user.backendRole);
+  const canReauthorize =
+    user !== null && REAUTHORIZE_ROLES.has(user.backendRole);
   const canManageSensitiveDetail =
     user !== null && SENSITIVE_DETAIL_ROLES.has(user.backendRole);
   const [result, setResult] = useState<VoterPage | null>(null);
@@ -84,11 +108,39 @@ export default function VotantesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [createAcceptedNoticeKey, setCreateAcceptedNoticeKey] = useState<
+    string | null
+  >(null);
   const [revokeTarget, setRevokeTarget] = useState<VoterListItem | null>(null);
   const [revocationReason, setRevocationReason] = useState("");
   const [revocationConfirmed, setRevocationConfirmed] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [grantTarget, setGrantTarget] = useState<VoterListItem | null>(null);
+  const [grantConfirmed, setGrantConfirmed] = useState(false);
+  const [grantChannel, setGrantChannel] = useState<
+    "" | CapturableConsentCollectionChannel
+  >("");
+  const [grantAcceptedNoticeKey, setGrantAcceptedNoticeKey] = useState<
+    string | null
+  >(null);
+  const [granting, setGranting] = useState(false);
   const [detailVoterId, setDetailVoterId] = useState<string | null>(null);
+  const [consentContext, setConsentContext] =
+    useState<ConsentNoticeContext | null>(null);
+  const [consentConfigError, setConsentConfigError] = useState<string | null>(
+    null,
+  );
+  const currentConsentNoticeKey = getConsentNoticePresentationKey(
+    consentContext?.notice,
+  );
+  const createConsentAcceptedForCurrentNotice =
+    currentConsentNoticeKey !== null &&
+    form.consentAccepted &&
+    createAcceptedNoticeKey === currentConsentNoticeKey;
+  const grantConfirmedForCurrentNotice =
+    currentConsentNoticeKey !== null &&
+    grantConfirmed &&
+    grantAcceptedNoticeKey === currentConsentNoticeKey;
 
   const loadVoters = useCallback(
     (signal: AbortSignal) =>
@@ -122,19 +174,98 @@ export default function VotantesPage() {
     return () => controller.abort();
   }, [loadVoters, reload]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setConsentConfigError(null);
+    void getCurrentConsentNotice(controller.signal)
+      .then((response) => {
+        if (!controller.signal.aborted) setConsentContext(response);
+      })
+      .catch((requestError: unknown) => {
+        if (!controller.signal.aborted) {
+          setConsentContext(null);
+          setConsentConfigError(
+            readableError(
+              requestError,
+              "No fue posible verificar el aviso de privacidad vigente.",
+            ),
+          );
+        }
+      });
+    return () => controller.abort();
+  }, [reload]);
+
+  useEffect(() => {
+    setForm((current) => {
+      if (!current.consentAccepted && !current.collectionChannel) {
+        return current;
+      }
+      return {
+        ...current,
+        collectionChannel: "",
+        consentAccepted: false,
+      };
+    });
+    setCreateAcceptedNoticeKey(null);
+    setGrantConfirmed(false);
+    setGrantChannel("");
+    setGrantAcceptedNoticeKey(null);
+  }, [currentConsentNoticeKey, reload]);
+
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
     setSearch(searchDraft.trim());
   }
 
+  function resetCreateConsentConfirmation() {
+    setForm((current) => ({
+      ...current,
+      collectionChannel: "",
+      consentAccepted: false,
+    }));
+    setCreateAcceptedNoticeKey(null);
+  }
+
+  function openCreate() {
+    setMutationError(null);
+    resetCreateConsentConfirmation();
+    setIsCreateOpen(true);
+  }
+
+  function closeCreate() {
+    if (saving) return;
+    setIsCreateOpen(false);
+    setMutationError(null);
+    resetCreateConsentConfirmation();
+  }
+
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMutationError(null);
 
-    if (!form.consentAccepted) {
+    if (!consentContext?.notice) {
       setMutationError(
-        "Debes registrar la autorizacion explicita antes de guardar datos sensibles.",
+        "La organizacion debe activar su aviso de privacidad antes de registrar autorizaciones.",
+      );
+      return;
+    }
+    const submittedNoticeKey = getConsentNoticePresentationKey(
+      consentContext.notice,
+    );
+    if (
+      !form.consentAccepted ||
+      !submittedNoticeKey ||
+      createAcceptedNoticeKey !== submittedNoticeKey
+    ) {
+      setMutationError(
+        "Debes registrar la autorizacion explicita para el aviso de privacidad mostrado antes de guardar datos sensibles.",
+      );
+      return;
+    }
+    if (!form.collectionChannel) {
+      setMutationError(
+        "Selecciona el canal real usado para obtener la autorizacion.",
       );
       return;
     }
@@ -144,7 +275,9 @@ export default function VotantesPage() {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       consentAccepted: true,
-      termsVersion: "2026.1",
+      termsVersion: consentContext.notice.version,
+      collectionChannel:
+        form.collectionChannel as CapturableConsentCollectionChannel,
       ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
       ...(form.email.trim() ? { email: form.email.trim() } : {}),
       ...(form.mesa ? { mesa: Number(form.mesa) } : {}),
@@ -154,13 +287,12 @@ export default function VotantesPage() {
     try {
       await createVoter(payload);
       setForm(EMPTY_FORM);
+      setCreateAcceptedNoticeKey(null);
       setIsCreateOpen(false);
       setSearchDraft("");
       setSearch("");
       setPage(1);
-      setNotice(
-        "Solicitud recibida. Fue procesada sin revelar si el documento ya existía.",
-      );
+      setNotice("Nueva vinculacion creada con consentimiento y trazabilidad.");
       setReload((value) => value + 1);
     } catch (requestError: unknown) {
       setMutationError(
@@ -234,6 +366,92 @@ export default function VotantesPage() {
     }
   }
 
+  function openGrant(voter: VoterListItem) {
+    setMutationError(null);
+    setGrantConfirmed(false);
+    setGrantChannel("");
+    setGrantAcceptedNoticeKey(null);
+    setGrantTarget(voter);
+  }
+
+  function closeGrant() {
+    if (granting) return;
+    setGrantTarget(null);
+    setGrantConfirmed(false);
+    setGrantChannel("");
+    setGrantAcceptedNoticeKey(null);
+    setMutationError(null);
+  }
+
+  async function handleGrant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!grantTarget) return;
+    if (!consentContext?.notice) {
+      setMutationError(
+        "No hay un aviso de privacidad activo para registrar la nueva autorizacion.",
+      );
+      return;
+    }
+    const submittedNoticeKey = getConsentNoticePresentationKey(
+      consentContext.notice,
+    );
+    if (
+      !grantConfirmed ||
+      !submittedNoticeKey ||
+      grantAcceptedNoticeKey !== submittedNoticeKey
+    ) {
+      setMutationError(
+        "Confirma que la persona otorgo una nueva autorizacion expresa para el aviso mostrado.",
+      );
+      return;
+    }
+    if (!grantChannel) {
+      setMutationError("Selecciona el canal real de la nueva autorizacion.");
+      return;
+    }
+
+    setGranting(true);
+    setMutationError(null);
+    try {
+      const granted = await grantVoterConsent(grantTarget.id, {
+        noticeVersion: consentContext.notice.version,
+        collectionChannel: grantChannel,
+      });
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((voter) =>
+                voter.id === granted.voterId
+                  ? {
+                      ...voter,
+                      consentAccepted: true,
+                      consentTimestamp: granted.grantedAt,
+                    }
+                  : voter,
+              ),
+            }
+          : current,
+      );
+      setNotice(
+        "Nueva autorizacion registrada; la revocacion historica fue conservada.",
+      );
+      setGrantTarget(null);
+      setGrantConfirmed(false);
+      setGrantChannel("");
+      setGrantAcceptedNoticeKey(null);
+    } catch (requestError: unknown) {
+      setMutationError(
+        readableError(
+          requestError,
+          "No fue posible registrar la nueva autorizacion.",
+        ),
+      );
+    } finally {
+      setGranting(false);
+    }
+  }
+
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
@@ -278,11 +496,9 @@ export default function VotantesPage() {
           {canCreate && (
             <button
               type="button"
-              onClick={() => {
-                setMutationError(null);
-                setIsCreateOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-700"
+              disabled={!consentContext?.notice}
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserPlus size={16} /> Nueva vinculacion
             </button>
@@ -297,6 +513,33 @@ export default function VotantesPage() {
           )}
         </div>
       </header>
+
+      {!consentContext?.notice && (
+        <div
+          role="alert"
+          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle
+              aria-hidden="true"
+              className="mt-0.5 shrink-0"
+              size={20}
+            />
+            <p>
+              {consentConfigError ??
+                "No hay un aviso de privacidad activo. Las nuevas vinculaciones y reautorizaciones permanecen bloqueadas para no registrar un consentimiento sin información verificable."}
+            </p>
+          </div>
+          {user?.backendRole === "ADMIN" && (
+            <Link
+              href="/dashboard/settings"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-black uppercase tracking-wider text-white"
+            >
+              Configurar aviso
+            </Link>
+          )}
+        </div>
+      )}
 
       <section
         aria-busy={loading}
@@ -329,7 +572,8 @@ export default function VotantesPage() {
             </button>
           </form>
           <p className="shrink-0 text-xs font-bold text-slate-500">
-            {result ? result.pagination.total : "—"} registros · datos minimizados
+            {result ? result.pagination.total : "—"} registros · datos
+            minimizados
           </p>
         </div>
 
@@ -391,7 +635,9 @@ export default function VotantesPage() {
                   <th className="px-6 py-4">Contacto</th>
                   <th className="px-6 py-4">Puesto / mesa</th>
                   <th className="px-6 py-4">Consentimiento</th>
-                  {(canRevoke || canManageSensitiveDetail) && (
+                  {(canRevoke ||
+                    canReauthorize ||
+                    canManageSensitiveDetail) && (
                     <th className="px-6 py-4">Acciones autorizadas</th>
                   )}
                 </tr>
@@ -425,11 +671,13 @@ export default function VotantesPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
-                          <UserMinus size={13} /> Revocado
+                          <UserMinus size={13} /> No vigente
                         </span>
                       )}
                     </td>
-                    {(canRevoke || canManageSensitiveDetail) && (
+                    {(canRevoke ||
+                      canReauthorize ||
+                      canManageSensitiveDetail) && (
                       <td className="px-6 py-5">
                         <div className="flex flex-wrap gap-2">
                           {canManageSensitiveDetail && (
@@ -442,19 +690,25 @@ export default function VotantesPage() {
                               <Eye aria-hidden="true" size={14} /> Ver datos
                             </button>
                           )}
-                          {canRevoke && voter.consentAccepted ? (
-                          <button
-                            type="button"
-                            onClick={() => openRevocation(voter)}
-                            className="rounded-xl border border-red-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-red-700 hover:bg-red-50"
-                          >
-                            Revocar
-                          </button>
-                          ) : canRevoke ? (
-                          <span className="text-xs font-semibold text-slate-400">
-                            Sin consentimiento activo
-                          </span>
-                          ) : null}
+                          {canRevoke && voter.consentAccepted && (
+                            <button
+                              type="button"
+                              onClick={() => openRevocation(voter)}
+                              className="rounded-xl border border-red-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-red-700 hover:bg-red-50"
+                            >
+                              Revocar
+                            </button>
+                          )}
+                          {canReauthorize && !voter.consentAccepted && (
+                            <button
+                              type="button"
+                              onClick={() => openGrant(voter)}
+                              className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                            >
+                              <UserCheck aria-hidden="true" size={14} />
+                              Reautorizar
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -516,10 +770,8 @@ export default function VotantesPage() {
               <button
                 type="button"
                 aria-label="Cerrar"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setMutationError(null);
-                }}
+                disabled={saving}
+                onClick={closeCreate}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
               >
                 <X />
@@ -534,6 +786,24 @@ export default function VotantesPage() {
                 >
                   {mutationError}
                 </div>
+              )}
+
+              {consentContext?.notice && (
+                <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">
+                    Aviso {consentContext.notice.version}
+                  </p>
+                  <h3 className="mt-1 font-black">
+                    {consentContext.notice.title}
+                  </h3>
+                  <p className="mt-2 whitespace-pre-line">
+                    {consentContext.notice.content}
+                  </p>
+                  <p className="mt-3 text-xs font-semibold">
+                    Responsable: {consentContext.notice.controllerName} ·
+                    Derechos: {consentContext.notice.contactEmail}
+                  </p>
+                </section>
               )}
 
               <div className="grid gap-5 md:grid-cols-2">
@@ -608,39 +878,69 @@ export default function VotantesPage() {
                 </label>
               </div>
 
+              <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                Canal real de la autorizacion
+                <select
+                  required
+                  disabled={!consentContext?.notice || saving}
+                  value={form.collectionChannel}
+                  onChange={(event) =>
+                    setForm({ ...form, collectionChannel: event.target.value })
+                  }
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                >
+                  <option value="">Selecciona cómo autorizó la persona</option>
+                  {CONSENT_CHANNEL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
                 <input
                   type="checkbox"
-                  checked={form.consentAccepted}
-                  onChange={(event) =>
+                  disabled={!consentContext?.notice || saving}
+                  checked={createConsentAcceptedForCurrentNotice}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
                     setForm({
                       ...form,
-                      consentAccepted: event.target.checked,
-                    })
-                  }
+                      consentAccepted: checked,
+                    });
+                    setCreateAcceptedNoticeKey(
+                      checked && currentConsentNoticeKey
+                        ? currentConsentNoticeKey
+                        : null,
+                    );
+                  }}
                   className="mt-1 h-5 w-5 accent-emerald-600"
                 />
                 <span className="text-sm leading-6 text-slate-700">
-                  Confirmo que la persona recibio informacion sobre finalidad
-                  electoral, responsable y derechos, y autorizo expresamente el
-                  tratamiento.
+                  Confirmo que comuniqué el aviso{" "}
+                  {consentContext?.notice?.version} completo, registré el canal
+                  real y la persona autorizó expresamente el tratamiento.
                 </span>
               </label>
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                aria-label="Cerrar registro de persona"
-                onClick={() => {
-                    setIsCreateOpen(false);
-                    setMutationError(null);
-                  }}
+                <button
+                  type="button"
+                  aria-label="Cerrar registro de persona"
+                  disabled={saving}
+                  onClick={closeCreate}
                   className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600"
                 >
                   Cancelar
                 </button>
                 <button
-                  disabled={saving}
+                  disabled={
+                    saving ||
+                    !consentContext?.notice ||
+                    !form.collectionChannel ||
+                    !createConsentAcceptedForCurrentNotice
+                  }
                   type="submit"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-60"
                 >
@@ -650,6 +950,143 @@ export default function VotantesPage() {
                     <ShieldCheck size={16} />
                   )}
                   Guardar con trazabilidad
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {grantTarget && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="grant-consent-title"
+            className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl"
+          >
+            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+              <div>
+                <div className="mb-3 inline-flex rounded-xl bg-emerald-50 p-2 text-emerald-700">
+                  <UserCheck aria-hidden="true" size={20} />
+                </div>
+                <h2
+                  id="grant-consent-title"
+                  className="text-2xl font-black text-slate-950"
+                >
+                  Reautorizar consentimiento
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {grantTarget.firstName} {grantTarget.lastName} ·{" "}
+                  {grantTarget.documentIdMasked}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Cerrar"
+                disabled={granting}
+                onClick={closeGrant}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGrant} className="space-y-5 p-7">
+              <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+                Esta operacion crea una nueva evidencia con fecha, responsable y
+                versión {consentContext?.notice?.version ?? "no disponible"}. La
+                evidencia histórica anterior permanece intacta.
+              </p>
+              {mutationError && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+                >
+                  {mutationError}
+                </div>
+              )}
+              {consentContext?.notice && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                  <strong className="block">
+                    {consentContext.notice.title}
+                  </strong>
+                  <p className="mt-2 whitespace-pre-line">
+                    {consentContext.notice.content}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold">
+                    {consentContext.notice.controllerName} ·{" "}
+                    {consentContext.notice.contactEmail}
+                  </p>
+                </div>
+              )}
+              <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                Canal real de la nueva autorizacion
+                <select
+                  required
+                  disabled={!consentContext?.notice || granting}
+                  value={grantChannel}
+                  onChange={(event) =>
+                    setGrantChannel(
+                      event.target.value as CapturableConsentCollectionChannel,
+                    )
+                  }
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                >
+                  <option value="">Selecciona el canal</option>
+                  {CONSENT_CHANNEL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+                <input
+                  type="checkbox"
+                  disabled={!consentContext?.notice || granting}
+                  checked={grantConfirmedForCurrentNotice}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setGrantConfirmed(checked);
+                    setGrantAcceptedNoticeKey(
+                      checked && currentConsentNoticeKey
+                        ? currentConsentNoticeKey
+                        : null,
+                    );
+                  }}
+                  className="mt-1 h-5 w-5 accent-emerald-700"
+                />
+                <span className="text-sm font-semibold leading-6 text-slate-700">
+                  Confirmo que comuniqué nuevamente el aviso vigente completo y
+                  que la persona otorgó una nueva autorización expresa.
+                </span>
+              </label>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={granting}
+                  onClick={closeGrant}
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    granting ||
+                    !grantConfirmedForCurrentNotice ||
+                    !grantChannel ||
+                    !consentContext?.notice
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                >
+                  {granting ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <UserCheck aria-hidden="true" size={16} />
+                  )}
+                  Confirmar nueva autorizacion
                 </button>
               </div>
             </form>

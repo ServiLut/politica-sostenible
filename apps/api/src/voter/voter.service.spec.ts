@@ -1,5 +1,10 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import {
+  AuditActorType,
   ConsentCollectionChannel,
   ConsentLegalBasis,
   ConsentPurpose,
@@ -17,6 +22,19 @@ import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
 import { VoterService } from './voter.service';
 
+const activeConsentNotice = {
+  id: 'notice-a',
+  mode: PoliticalOperationMode.CAMPAIGN,
+  purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+  version: '2026.1',
+  title: 'Autorizacion de tratamiento de datos',
+  content: 'Texto legal vigente para la campana.',
+  controllerName: 'Campana responsable',
+  contactEmail: 'privacidad@example.test',
+  privacyPolicyUrl: null,
+  activatedAt: new Date('2026-01-01T00:00:00.000Z'),
+};
+
 describe('VoterService consent transaction', () => {
   const dto: CreateVoterDto = {
     documentId: '1012345678',
@@ -24,6 +42,7 @@ describe('VoterService consent transaction', () => {
     lastName: 'Pérez',
     consentAccepted: true,
     termsVersion: '2026.1',
+    collectionChannel: ConsentCollectionChannel.IN_PERSON,
   };
 
   const buildTransaction = (
@@ -55,6 +74,9 @@ describe('VoterService consent transaction', () => {
         findMany: jest.fn(),
         findFirst: jest.fn().mockResolvedValue({ id: 'puesto-a' }),
       },
+      consentNotice: {
+        findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+      },
       voter: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn((args: { data: Record<string, unknown> }) => {
@@ -74,6 +96,9 @@ describe('VoterService consent transaction', () => {
           captured.consentData = args.data;
           return Promise.resolve({ id: 'consent-id' });
         }),
+      },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'audit-id' }),
       },
     };
   };
@@ -100,7 +125,9 @@ describe('VoterService consent transaction', () => {
       dto,
     );
 
-    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
     expect(hashIp).toHaveBeenCalledWith('203.0.113.42');
     const voterCreateData = transaction.captured.voterData;
     expect(voterCreateData).toMatchObject({
@@ -127,6 +154,32 @@ describe('VoterService consent transaction', () => {
       capturedById: 'user-from-token',
     });
     expect(consentCreateData?.grantedAt).toBeInstanceOf(Date);
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-from-token',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'user-from-token',
+        action: 'VOTER_REGISTERED_WITH_CONSENT',
+        resourceType: 'Voter',
+        resourceId: 'voter-id',
+        after: { consentStatus: ConsentStatus.GRANTED },
+        metadata: {
+          registeredFields: ['documentId', 'firstName', 'lastName'],
+          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+          collectionChannel: ConsentCollectionChannel.IN_PERSON,
+          noticeVersion: '2026.1',
+        },
+      },
+    });
+    const serializedAudit = JSON.stringify(
+      transaction.auditEvent.create.mock.calls,
+    );
+    expect(serializedAudit).not.toContain('1012345678');
+    expect(serializedAudit).not.toContain('María');
+    expect(serializedAudit).not.toContain('Pérez');
+    expect(serializedAudit).not.toContain('203.0.113.42');
+    expect(serializedAudit).not.toContain('hashed-ip-evidence');
     expect(result).toEqual({ received: true });
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('documentId');
@@ -161,6 +214,41 @@ describe('VoterService consent transaction', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(transaction.voter.create).not.toHaveBeenCalled();
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('fails the voter and consent operation when its audit cannot persist', async () => {
+    const transaction = buildTransaction();
+    transaction.auditEvent.create.mockRejectedValue(
+      new Error('audit unavailable'),
+    );
+    const runTransaction = jest.fn(
+      async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const service = new VoterService(
+      { $transaction: runTransaction } as unknown as PrismaService,
+      {
+        hashIp: jest.fn().mockReturnValue('hashed-ip'),
+      } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'user-from-token',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        dto,
+      ),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction.voter.create).toHaveBeenCalledTimes(1);
+    expect(transaction.consentRecord.create).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a voting place from another tenant', async () => {
@@ -351,6 +439,9 @@ describe('VoterService consent transaction', () => {
         }),
       },
       politicalDivision: { findMany: divisionFindMany },
+      consentNotice: {
+        findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+      },
     };
     const service = new VoterService(
       prisma as unknown as PrismaService,
@@ -388,6 +479,10 @@ describe('VoterService consent transaction', () => {
         { id: 'puesto-a', code: 'P-01', name: 'Colegio Central' },
         { id: 'puesto-b', code: 'P-02', name: 'Escuela Norte' },
       ],
+      consentNotice: expect.objectContaining({
+        version: '2026.1',
+        purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      }),
     });
     expect(JSON.stringify(result)).not.toContain('tenant-a');
   });
@@ -428,7 +523,7 @@ describe('VoterService consent transaction', () => {
     expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 
-  it('returns the same receipt for an existing record without exposing identity', async () => {
+  it('rejects an existing record instead of reporting a false successful capture', async () => {
     const transaction = buildTransaction();
     transaction.voter.findUnique.mockResolvedValue({ id: 'existing-voter' });
     const hashIp = jest.fn();
@@ -452,11 +547,58 @@ describe('VoterService consent transaction', () => {
         '203.0.113.42',
         dto,
       ),
-    ).resolves.toEqual({ received: true });
+    ).rejects.toThrow(
+      'No se creo un registro nuevo porque el documento ya esta vinculado',
+    );
 
     expect(hashIp).not.toHaveBeenCalled();
     expect(transaction.voter.create).not.toHaveBeenCalled();
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('maps a concurrent duplicate to the same explicit conflict', async () => {
+    const service = new VoterService(
+      {
+        $transaction: jest.fn().mockRejectedValue({ code: 'P2002' }),
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'admin-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        dto,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects a capture serialized against a concurrent notice activation', async () => {
+    const service = new VoterService(
+      {
+        $transaction: jest.fn().mockRejectedValue({ code: 'P2034' }),
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'admin-a',
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        dto,
+      ),
+    ).rejects.toThrow(
+      'El aviso de privacidad cambio durante el registro; recarga y confirma nuevamente',
+    );
   });
 
   describe('privacy-preserving voter search', () => {

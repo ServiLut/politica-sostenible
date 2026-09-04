@@ -39,7 +39,27 @@ test("configura topes auditables y descarga el borrador interno para revisión C
   page,
 }) => {
   const settingsBodies: Record<string, unknown>[] = [];
+  const cneReportBodies: Record<string, unknown>[] = [];
   const authorizationHeaders: string[] = [];
+  let financialEntries = [
+    {
+      id: "entry-approved",
+      type: "EXPENSE",
+      amount: 100_000_000,
+      date: "2026-08-21T00:00:00.000Z",
+      cneCode: "TRANSPORTE",
+      description: "Transporte territorial",
+      vendorName: "Proveedor verificado",
+      vendorTaxId: "900123456",
+      hasEvidence: true,
+      status: "APPROVED",
+      reportedByMe: false,
+      reviewedAt: "2026-08-22T12:00:00.000Z",
+      cneReportedAt: null as string | null,
+      cneReportReference: null as string | null,
+      createdAt: "2026-08-21T00:00:00.000Z",
+    },
+  ];
   let settings = {
     limitsConfigured: false,
     maxTotalBudget: null as number | null,
@@ -66,7 +86,7 @@ test("configura topes auditables y descarga el borrador interno para revisión C
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful([])),
+        body: JSON.stringify(successful(financialEntries)),
       });
       return;
     }
@@ -122,6 +142,26 @@ test("configura topes auditables y descarga el borrador interno para revisión C
       return;
     }
 
+    if (
+      pathname === "/api/finance/entry-approved/cne-report" &&
+      request.method() === "PATCH"
+    ) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      cneReportBodies.push(body);
+      financialEntries = financialEntries.map((entry) => ({
+        ...entry,
+        status: "REPORTED_CNE",
+        cneReportedAt: "2026-09-04T15:00:00.000Z",
+        cneReportReference: String(body.externalReference),
+      }));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(financialEntries[0])),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -160,7 +200,39 @@ test("configura topes auditables y descarga el borrador interno para revisión C
   expect(download.suggestedFilename()).toMatch(
     /^borrador-interno-revision-cne-\d{4}-\d{2}-\d{2}\.csv$/,
   );
-  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(6);
+
+  await page
+    .getByRole("button", {
+      name: "Registrar radicación externa de Transporte territorial",
+    })
+    .click();
+  const reportDialog = page.getByRole("dialog");
+  await expect(
+    reportDialog.getByRole("heading", {
+      name: "Registrar radicación en Cuentas Claras",
+    }),
+  ).toBeVisible();
+  await expect(reportDialog).toContainText(
+    "Política Sostenible no envía información al CNE",
+  );
+  await reportDialog
+    .getByLabel("Número de radicado externo")
+    .fill("CC-2026/004219");
+  await reportDialog
+    .getByRole("button", { name: "Confirmar radicación externa" })
+    .click();
+  await expect(
+    page.getByText(
+      "Radicación externa confirmada y registrada en la auditoría.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Radicado externo CC-2026/004219")).toBeVisible();
+  expect(cneReportBodies).toEqual([
+    { externalReference: "CC-2026/004219" },
+  ]);
+  expect(cneReportBodies[0]).not.toHaveProperty("tenantId");
+  expect(cneReportBodies[0]).not.toHaveProperty("tenant_id");
+  expect(authorizationHeaders.length).toBeGreaterThanOrEqual(9);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
   );

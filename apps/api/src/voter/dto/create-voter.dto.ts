@@ -13,6 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { ConsentCollectionChannel } from '../../../prisma/generated/prisma';
 import {
   CANONICAL_PHONE_PATTERN,
   normalizePhoneInput,
@@ -92,8 +93,22 @@ export class CreateVoterDto {
   })
   consentAccepted: true;
 
-  @ApiProperty({ example: '2026.1' })
+  @ApiProperty({ example: '2026-09-v1' })
+  @Transform(trim)
   @IsString()
-  @IsIn(['2026.1'], { message: 'Versión de términos no soportada' })
+  @IsNotEmpty()
+  @MaxLength(32)
+  @Matches(/^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u, {
+    message: 'La version del aviso no tiene un formato valido',
+  })
   termsVersion: string;
+
+  @ApiProperty({ enum: ConsentCollectionChannel, example: 'IN_PERSON' })
+  @IsIn([
+    ConsentCollectionChannel.WEB_FORM,
+    ConsentCollectionChannel.PAPER,
+    ConsentCollectionChannel.PHONE,
+    ConsentCollectionChannel.IN_PERSON,
+  ])
+  collectionChannel: ConsentCollectionChannel;
 }

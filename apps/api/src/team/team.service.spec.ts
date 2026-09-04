@@ -315,20 +315,49 @@ describe('TeamService administration and tenant isolation', () => {
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 
-  it('prohibits resetting another administrator account', async () => {
-    const { service, tx } = createHarness();
-    tx.user.findFirst
-      .mockResolvedValueOnce({ id: admin.userId })
-      .mockResolvedValueOnce({ id: 'admin-b', role: Role.ADMIN });
-    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+  it.each([
+    PoliticalOperationMode.CAMPAIGN,
+    PoliticalOperationMode.PUBLIC_OFFICE,
+  ])(
+    'resets another active administrator in %s mode while preserving tenant and role guards',
+    async (mode) => {
+      const { service, tx } = createHarness(mode);
+      tx.user.findFirst
+        .mockResolvedValueOnce({ id: admin.userId })
+        .mockResolvedValueOnce({ id: 'admin-b', role: Role.ADMIN });
+      jest.mocked(bcrypt.hash).mockResolvedValue('backup-reset-hash' as never);
 
-    await expect(
-      service.resetMemberAccess(admin, 'admin-b'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+      const result = await service.resetMemberAccess(admin, 'admin-b');
 
-    expect(tx.user.updateMany).not.toHaveBeenCalled();
-    expect(tx.auditEvent.create).not.toHaveBeenCalled();
-  });
+      expect(result).toMatchObject({
+        memberId: 'admin-b',
+        temporaryPassword: expect.stringMatching(/^[A-Za-z0-9_-]{32}$/),
+        temporaryPasswordExpiresAt: expect.any(Date),
+      });
+      expect(tx.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'admin-b',
+          tenantId: 'tenant-a',
+          isActive: true,
+          role: Role.ADMIN,
+        },
+        data: {
+          password: 'backup-reset-hash',
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: result.temporaryPasswordExpiresAt,
+        },
+      });
+      expect(tx.auditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tenantId: 'tenant-a',
+          mode,
+          actorUserId: 'admin-a',
+          action: 'TEAM_MEMBER_ACCESS_RESET',
+          resourceId: 'admin-b',
+        }),
+      });
+    },
+  );
 
   it('does not return a secret when the atomic audit write fails', async () => {
     const { service, prisma, tx } = createHarness();
@@ -338,9 +367,9 @@ describe('TeamService administration and tenant isolation', () => {
     tx.auditEvent.create.mockRejectedValueOnce(new Error('audit unavailable'));
     jest.mocked(bcrypt.hash).mockResolvedValue('bcrypt-reset-hash' as never);
 
-    await expect(
-      service.resetMemberAccess(admin, 'member-a'),
-    ).rejects.toThrow('audit unavailable');
+    await expect(service.resetMemberAccess(admin, 'member-a')).rejects.toThrow(
+      'audit unavailable',
+    );
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.user.updateMany).toHaveBeenCalledTimes(1);
@@ -399,7 +428,6 @@ describe('TeamService administration and tenant isolation', () => {
   });
 
   it.each([
-    [PoliticalOperationMode.CAMPAIGN, Role.ADMIN],
     [PoliticalOperationMode.CAMPAIGN, Role.CASE_WORKER],
     [PoliticalOperationMode.PUBLIC_OFFICE, Role.CAMPAIGN_MANAGER],
     [PoliticalOperationMode.PUBLIC_OFFICE, Role.WITNESS],
@@ -413,6 +441,44 @@ describe('TeamService administration and tenant isolation', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(tx.teamInvitation.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    PoliticalOperationMode.CAMPAIGN,
+    PoliticalOperationMode.PUBLIC_OFFICE,
+  ])('invites an explicit backup administrator in %s mode', async (mode) => {
+    const { service, tx } = createHarness(mode);
+
+    await expect(
+      service.createInvitation(admin, {
+        email: 'respaldo@example.test',
+        role: Role.ADMIN,
+      }),
+    ).resolves.toMatchObject({
+      invitation: {
+        email: 'respaldo@example.test',
+        role: Role.ADMIN,
+      },
+      delivery: 'MANUAL',
+    });
+
+    expect(tx.teamInvitation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        role: Role.ADMIN,
+        invitedById: 'admin-a',
+      }),
+      select: expect.any(Object),
+    });
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        mode,
+        actorUserId: 'admin-a',
+        action: 'TEAM_INVITATION_CREATED',
+        metadata: { role: Role.ADMIN, delivery: 'MANUAL' },
+      }),
+    });
   });
 
   it('allows a constituent case worker only in public-office mode', async () => {
@@ -665,6 +731,21 @@ describe('TeamService member lifecycle', () => {
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 
+  it('never downgrades an existing administrator through role mutation', async () => {
+    const { service, tx } = withTarget({
+      id: 'other-admin',
+      role: Role.ADMIN,
+    });
+
+    await expect(
+      service.updateMemberRole(admin, 'other-admin', {
+        role: Role.CAMPAIGN_MANAGER,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     [PoliticalOperationMode.CAMPAIGN, Role.ADMIN],
     [PoliticalOperationMode.CAMPAIGN, Role.CASE_WORKER],
@@ -746,16 +827,19 @@ describe('TeamService invitation acceptance', () => {
     termsVersion: '2026.1',
   } as const;
 
-  function withValidInvitation() {
-    const harness = createHarness();
+  function withValidInvitation(
+    role: Role = Role.VOLUNTEER,
+    mode: PoliticalOperationMode = PoliticalOperationMode.CAMPAIGN,
+  ) {
+    const harness = createHarness(mode);
     harness.tx.teamInvitation.findUnique.mockResolvedValue({
       id: 'invitation-a',
       tenantId: 'tenant-a',
       email: 'invited@example.test',
-      role: Role.VOLUNTEER,
+      role,
       expiresAt: new Date(Date.now() + 60_000),
       acceptedAt: null,
-      tenant: { defaultMode: PoliticalOperationMode.CAMPAIGN },
+      tenant: { defaultMode: mode },
     });
     return harness;
   }
@@ -821,6 +905,36 @@ describe('TeamService invitation acceptance', () => {
     expect(serializedAudit).not.toContain(acceptance.phone);
     expect(serializedAudit).not.toContain(acceptance.password);
   });
+
+  it.each([
+    PoliticalOperationMode.CAMPAIGN,
+    PoliticalOperationMode.PUBLIC_OFFICE,
+  ])(
+    'accepts a valid backup-administrator invitation in %s mode',
+    async (mode) => {
+      const { service, tx } = withValidInvitation(Role.ADMIN, mode);
+
+      await expect(service.acceptInvitation(acceptance)).resolves.toEqual({
+        message: 'Invitacion aceptada. Ya puedes iniciar sesion.',
+      });
+      expect(tx.user.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tenantId: 'tenant-a',
+          email: 'invited@example.test',
+          role: Role.ADMIN,
+        }),
+        select: { id: true },
+      });
+      expect(tx.auditEvent.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            action: 'TEAM_INVITATION_ACCEPTED',
+            metadata: { role: Role.ADMIN },
+          }),
+        ]),
+      });
+    },
+  );
 
   it.each([
     ['missing', null],

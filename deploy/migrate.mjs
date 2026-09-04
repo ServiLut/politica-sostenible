@@ -17,6 +17,11 @@ export const HISTORICAL_MIGRATIONS = Object.freeze([
 
 const DEPLOY_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const APPLICATION_DIRECTORY = join(DEPLOY_DIRECTORY, "..", "apps", "api");
+const BASELINE_SCHEMA = join(
+  APPLICATION_DIRECTORY,
+  "prisma",
+  "baseline.schema.prisma",
+);
 const PRISMA_CLI = join(
   APPLICATION_DIRECTORY,
   "node_modules",
@@ -374,17 +379,14 @@ export async function runSafeMigrations(environment = process.env) {
     }
 
     if (state === "HISTORICAL_FIVE") {
-      if (
-        localMigrations.length !== 1 ||
-        localMigrations[0] !== BASELINE_MIGRATION
-      ) {
+      if (localMigrations[0] !== BASELINE_MIGRATION) {
         throw new Error(
-          "la adopcion automatica del historial antiguo solo es segura cuando la baseline es la unica migracion local; sigue DEPLOYMENT.md manualmente",
+          "la baseline debe ser la primera migracion local antes de adoptar el historial antiguo",
         );
       }
 
       console.log(
-        "Detectadas exactamente las cinco migraciones historicas; comprobando deriva antes de adoptar la baseline...",
+        "Detectadas exactamente las cinco migraciones historicas; comprobando deriva contra la fotografia inmutable de la baseline...",
       );
       const diffExitCode = await runPrisma(
         [
@@ -392,7 +394,7 @@ export async function runSafeMigrations(environment = process.env) {
           "diff",
           "--from-config-datasource",
           "--to-schema",
-          "prisma/schema.prisma",
+          BASELINE_SCHEMA,
           "--exit-code",
         ],
         prismaEnvironment,

@@ -59,6 +59,7 @@ describe('InteractionsController', () => {
     await controller.grantCaseConsent(user, '203.0.113.42', {
       issueCaseId: 'case-a',
       collectionChannel: ConsentCollectionChannel.PHONE,
+      noticeVersion: '2026.1',
     });
     await controller.revokeCaseConsent(user, '203.0.113.42', {
       issueCaseId: 'case-a',

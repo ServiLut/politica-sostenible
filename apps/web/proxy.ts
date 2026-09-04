@@ -23,10 +23,7 @@ const LEGACY_ROUTE_REDIRECTS: Readonly<Record<string, string>> = {
   "/dashboard/testigos": "/dashboard/war-room",
 };
 
-const BLOCKED_LEGACY_ROUTES = new Set([
-  "/dashboard/agent",
-  "/dashboard/settings",
-]);
+const BLOCKED_LEGACY_ROUTES = new Set(["/dashboard/agent"]);
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/$/, "") || "/";
@@ -68,7 +65,6 @@ export const config = {
     "/dashboard/org/:path*",
     "/dashboard/pipeline/:path*",
     "/dashboard/security/:path*",
-    "/dashboard/settings/:path*",
     "/dashboard/testigos/:path*",
   ],
 };

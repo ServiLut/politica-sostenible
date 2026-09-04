@@ -31,8 +31,8 @@ describe('password-bound session version', () => {
   it('rejects a claim after the password hash changes', () => {
     const stale = createSessionVersion('user-a', 'old-password-hash');
 
-    expect(
-      isCurrentSessionVersion(stale, 'user-a', 'new-password-hash'),
-    ).toBe(false);
+    expect(isCurrentSessionVersion(stale, 'user-a', 'new-password-hash')).toBe(
+      false,
+    );
   });
 });

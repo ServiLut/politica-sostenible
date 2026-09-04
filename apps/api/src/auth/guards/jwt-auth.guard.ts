@@ -101,10 +101,7 @@ export class JwtAuthGuard implements CanActivate {
           ? currentUser.temporaryPasswordExpiresAt
           : null,
       });
-      if (
-        currentUser.mustChangePassword &&
-        !allowsRequiredPasswordChange
-      ) {
+      if (currentUser.mustChangePassword && !allowsRequiredPasswordChange) {
         throw new ForbiddenException({
           code: 'PASSWORD_CHANGE_REQUIRED',
           message: 'Debes cambiar la contrasena temporal antes de continuar',

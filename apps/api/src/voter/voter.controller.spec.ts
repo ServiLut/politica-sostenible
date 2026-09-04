@@ -7,6 +7,7 @@ import {
   VoterDataRightsService,
 } from './voter-data-rights.service';
 import {
+  VOTER_CONSENT_GRANT_ROLES,
   VOTER_CAPTURE_ROLES,
   VOTER_READ_ROLES,
   VoterService,
@@ -69,5 +70,49 @@ describe('VoterController private search', () => {
 
     expect(getCaptureContext).toHaveBeenCalledWith(user);
     expect(getCaptureContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes explicit consent reauthorization only to operational privacy roles', () => {
+    const roles = Reflect.getMetadata(
+      ROLES_KEY,
+      VoterController.prototype.grantConsent,
+    );
+
+    expect(roles).toEqual(VOTER_CONSENT_GRANT_ROLES);
+    expect(roles).toContain(Role.ZONE_COORDINATOR);
+    expect(roles).toContain(Role.COMPLIANCE_OFFICER);
+    expect(roles).not.toContain(Role.VOLUNTEER);
+    expect(roles).not.toContain(Role.AUDITOR);
+  });
+
+  it('delegates reauthorization without accepting tenant or actor from the body', async () => {
+    const grantConsent = jest.fn().mockResolvedValue({
+      voterId: 'voter-a',
+      consentAccepted: true,
+      status: 'GRANTED',
+    });
+    const controller = new VoterController(
+      { grantConsent } as unknown as VoterService,
+      {} as VoterDataRightsService,
+    );
+    const user: AuthenticatedUser = {
+      userId: 'coordinator-a',
+      tenantId: 'tenant-a',
+      role: Role.ZONE_COORDINATOR,
+    };
+    const dto = {
+      consentAccepted: true as const,
+      termsVersion: '2026.1',
+      collectionChannel: 'IN_PERSON' as const,
+    };
+
+    await controller.grantConsent(user, { id: 'voter-a' }, '203.0.113.42', dto);
+
+    expect(grantConsent).toHaveBeenCalledWith(
+      user,
+      'voter-a',
+      '203.0.113.42',
+      dto,
+    );
   });
 });

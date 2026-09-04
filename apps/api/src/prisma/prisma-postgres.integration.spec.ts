@@ -1,14 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
+  AuditActorType,
   CneCode,
+  ConsentPurpose,
+  DivisionType,
   EntryType,
   FinanceStatus,
+  PoliticalOperationMode,
   Prisma,
   PrismaClient,
   Role,
   StoredObjectStatus,
   StorageObjectModule,
+  WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -66,6 +71,12 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     try {
       // El borrado permanece acotado a los tenants creados por este archivo.
       await prisma.$transaction([
+        prisma.consentNotice.deleteMany({
+          where: { tenantId: { in: tenantIds } },
+        }),
+        prisma.witnessReport.deleteMany({
+          where: { tenantId: { in: tenantIds } },
+        }),
         prisma.storedObject.deleteMany({
           where: { tenantId: { in: tenantIds } },
         }),
@@ -76,6 +87,9 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
           where: { tenantId: { in: tenantIds } },
         }),
         prisma.user.deleteMany({ where: { tenantId: { in: tenantIds } } }),
+        prisma.politicalDivision.deleteMany({
+          where: { tenantId: { in: tenantIds } },
+        }),
         prisma.campaignSettings.deleteMany({
           where: { tenantId: { in: tenantIds } },
         }),
@@ -116,6 +130,183 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     await expect(
       prisma.tenant.findUnique({ where: { id: tenantId } }),
     ).resolves.toBeNull();
+  });
+
+  it('keeps AuditEvent append-only at the PostgreSQL boundary', async () => {
+    const tenant = await createTenant();
+    const auditId = nextId('audit');
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        const inserted = await transaction.auditEvent.create({
+          data: {
+            id: auditId,
+            tenantId: tenant.id,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.SYSTEM,
+            action: 'INTEGRATION_APPEND_ONLY_CHECK',
+            resourceType: 'IntegrationTest',
+            resourceId: nextId('audit-resource'),
+          },
+        });
+
+        expect(inserted.id).toBe(auditId);
+        await expect(
+          transaction.auditEvent.count({ where: { id: auditId } }),
+        ).resolves.toBe(1);
+
+        throw new Error('intentional-audit-insert-rollback');
+      }),
+    ).rejects.toThrow('intentional-audit-insert-rollback');
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        await transaction.auditEvent.create({
+          data: {
+            id: auditId,
+            tenantId: tenant.id,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.SYSTEM,
+            action: 'INTEGRATION_APPEND_ONLY_CHECK',
+            resourceType: 'IntegrationTest',
+          },
+        });
+        await transaction.auditEvent.update({
+          where: { id: auditId },
+          data: { action: 'FORBIDDEN_REWRITE' },
+        });
+      }),
+    ).rejects.toThrow(/AuditEvent es append-only.*UPDATE.*prohibida/i);
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        await transaction.auditEvent.create({
+          data: {
+            id: auditId,
+            tenantId: tenant.id,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.SYSTEM,
+            action: 'INTEGRATION_APPEND_ONLY_CHECK',
+            resourceType: 'IntegrationTest',
+          },
+        });
+        await transaction.auditEvent.delete({ where: { id: auditId } });
+      }),
+    ).rejects.toThrow(/AuditEvent es append-only.*DELETE.*prohibida/i);
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        await transaction.auditEvent.create({
+          data: {
+            id: auditId,
+            tenantId: tenant.id,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.SYSTEM,
+            action: 'INTEGRATION_APPEND_ONLY_CHECK',
+            resourceType: 'IntegrationTest',
+          },
+        });
+        await transaction.$executeRawUnsafe('TRUNCATE TABLE "AuditEvent"');
+      }),
+    ).rejects.toThrow(/AuditEvent es append-only.*TRUNCATE.*prohibida/i);
+
+    await expect(
+      prisma.auditEvent.count({ where: { id: auditId } }),
+    ).resolves.toBe(0);
+  });
+
+  it('keeps consent notice versions tenant-scoped with exactly one active notice per purpose', async () => {
+    const tenantA = await createTenant();
+    const tenantB = await createTenant();
+    const adminA = await createUser(tenantA.id);
+    const adminB = await createUser(tenantB.id);
+    const common = {
+      mode: PoliticalOperationMode.CAMPAIGN,
+      purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      version: 'campaign-2026-09-v1',
+      title: 'Autorizacion para comunicaciones politicas',
+      content:
+        'Texto completo del aviso informado antes de registrar la autorizacion expresa del titular.',
+      controllerName: 'Organizacion ciudadana responsable',
+      contactEmail: 'privacidad@integration.invalid',
+    };
+
+    const first = await prisma.consentNotice.create({
+      data: {
+        id: nextId('notice-a-v1'),
+        tenantId: tenantA.id,
+        createdById: adminA.id,
+        ...common,
+      },
+    });
+
+    await expect(
+      prisma.consentNotice.create({
+        data: {
+          id: nextId('notice-b-v1'),
+          tenantId: tenantB.id,
+          createdById: adminB.id,
+          ...common,
+        },
+      }),
+    ).resolves.toMatchObject({ tenantId: tenantB.id, version: common.version });
+
+    await expect(
+      prisma.consentNotice.create({
+        data: {
+          id: nextId('notice-a-contender'),
+          tenantId: tenantA.id,
+          createdById: adminA.id,
+          ...common,
+          version: 'campaign-2026-09-contender',
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+
+    await prisma.consentNotice.update({
+      where: { id: first.id, tenantId: tenantA.id },
+      data: { isActive: false, retiredAt: new Date() },
+    });
+    await expect(
+      prisma.consentNotice.create({
+        data: {
+          id: nextId('notice-a-v2'),
+          tenantId: tenantA.id,
+          createdById: adminA.id,
+          ...common,
+          version: 'campaign-2026-09-v2',
+        },
+      }),
+    ).resolves.toMatchObject({
+      tenantId: tenantA.id,
+      version: 'campaign-2026-09-v2',
+      isActive: true,
+    });
+
+    await expect(
+      prisma.consentNotice.create({
+        data: {
+          id: nextId('notice-cross-tenant'),
+          tenantId: tenantA.id,
+          createdById: adminB.id,
+          ...common,
+          version: 'campaign-cross-tenant',
+          isActive: false,
+          retiredAt: new Date(),
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'P2003' });
+
+    await expect(
+      prisma.consentNotice.count({
+        where: {
+          tenantId: tenantA.id,
+          mode: PoliticalOperationMode.CAMPAIGN,
+          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+          isActive: true,
+        },
+      }),
+    ).resolves.toBe(1);
   });
 
   it('round-trips PostgreSQL Decimal and DateTime values without precision loss', async () => {
@@ -230,6 +421,26 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
 
     expect(reviewed.status).toBe(FinanceStatus.APPROVED);
     expect(reviewed.reviewedById).toBe(reviewer.id);
+
+    await expect(
+      prisma.financialEntry.update({
+        where: { id: entry.id },
+        data: { status: FinanceStatus.REPORTED_CNE },
+      }),
+    ).rejects.toBeDefined();
+
+    const reported = await prisma.financialEntry.update({
+      where: { id: entry.id },
+      data: {
+        status: FinanceStatus.REPORTED_CNE,
+        cneReportedById: reviewer.id,
+        cneReportedAt: new Date(),
+        cneReportReference: 'CC-2026/004219',
+      },
+    });
+
+    expect(reported.status).toBe(FinanceStatus.REPORTED_CNE);
+    expect(reported.cneReportReference).toBe('CC-2026/004219');
   });
 
   it('enforces the private-object lifecycle and canonical tenant path', async () => {
@@ -282,6 +493,108 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
 
     expect(consumed.status).toBe(StoredObjectStatus.CONSUMED);
     expect(consumed.confirmedAt?.toISOString()).toBe(confirmedAt.toISOString());
+  });
+
+  it('enforces E-14 four-eyes state and one accepted reading per tenant table', async () => {
+    const tenant = await createTenant();
+    const reporter = await createUser(tenant.id);
+    const reviewer = await createUser(tenant.id);
+    const puesto = await prisma.politicalDivision.create({
+      data: {
+        id: nextId('puesto'),
+        tenantId: tenant.id,
+        code: nextId('puesto-code'),
+        name: 'Puesto de integración',
+        type: DivisionType.PUESTO,
+        expectedTables: 20,
+      },
+    });
+    const first = await prisma.witnessReport.create({
+      data: {
+        id: nextId('e14-first'),
+        tenantId: tenant.id,
+        witnessId: reporter.id,
+        puestoId: puesto.id,
+        mesa: 7,
+        e14ImageUrl: `${tenant.id}/e14/${randomUUID()}.pdf`,
+        candidateVotes: 120,
+        totalTableVotes: 240,
+      },
+    });
+
+    expect(first.status).toBe(WitnessReportStatus.PENDING);
+
+    await expect(
+      prisma.witnessReport.update({
+        where: { id: first.id },
+        data: {
+          status: WitnessReportStatus.ACCEPTED,
+          reviewerId: reporter.id,
+          reviewReason: 'El mismo reportante no puede validar su propia acta',
+          reviewedAt: new Date(),
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    await expect(
+      prisma.witnessReport.update({
+        where: { id: first.id },
+        data: {
+          status: WitnessReportStatus.ACCEPTED,
+          reviewerId: reviewer.id,
+          reviewReason: 'corto',
+          reviewedAt: new Date(),
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    const accepted = await prisma.witnessReport.update({
+      where: { id: first.id },
+      data: {
+        status: WitnessReportStatus.ACCEPTED,
+        reviewerId: reviewer.id,
+        reviewReason:
+          'Acta y cifras contrastadas por una persona independiente',
+        reviewedAt: new Date(),
+      },
+    });
+    expect(accepted.status).toBe(WitnessReportStatus.ACCEPTED);
+
+    const contender = await prisma.witnessReport.create({
+      data: {
+        id: nextId('e14-contender'),
+        tenantId: tenant.id,
+        witnessId: reporter.id,
+        puestoId: puesto.id,
+        mesa: 7,
+        e14ImageUrl: `${tenant.id}/e14/${randomUUID()}.pdf`,
+        candidateVotes: 118,
+        totalTableVotes: 240,
+      },
+    });
+
+    await expect(
+      prisma.witnessReport.update({
+        where: { id: contender.id },
+        data: {
+          status: WitnessReportStatus.ACCEPTED,
+          reviewerId: reviewer.id,
+          reviewReason: 'Segundo reporte verificado para comprobar la unicidad',
+          reviewedAt: new Date(),
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+
+    await expect(
+      prisma.witnessReport.count({
+        where: {
+          tenantId: tenant.id,
+          puestoId: puesto.id,
+          mesa: 7,
+          status: WitnessReportStatus.ACCEPTED,
+        },
+      }),
+    ).resolves.toBe(1);
   });
 
   it('allows exactly one winner for a concurrent tenant-scoped unique key', async () => {

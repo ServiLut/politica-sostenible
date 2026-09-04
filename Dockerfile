@@ -12,13 +12,16 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
-ARG NEXT_PUBLIC_APP_URL=https://politica-sostenible.abogadosencolombiasas.com
-ARG NEXT_PUBLIC_SUPABASE_URL=https://supabase.servilutioncrm.cloud
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3Njk0NDk5NDEsImV4cCI6MTg5MzQ1NjAwMCwicm9sZSI6ImFub24iLCJpc3MiOiJzdXBhYmFzZSJ9.2uoYyj9HFydkWiY0DFeyygosnltHj2T5DqdN1zrxcJM
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NESTJS_API_URL=http://127.0.0.1:4000
+RUN test -n "$NEXT_PUBLIC_APP_URL" \
+    && test -n "$NEXT_PUBLIC_SUPABASE_URL" \
+    && test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
 RUN pnpm --filter api generate && pnpm --filter api build && pnpm --filter web build
 
 FROM node:22-alpine AS prod-deps
@@ -37,6 +40,7 @@ COPY --from=prod-deps --chown=politica:politica /app/apps/api/node_modules ./app
 COPY --from=builder --chown=politica:politica /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=politica:politica /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder --chown=politica:politica /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
+COPY --from=builder --chown=politica:politica /app/apps/api/prisma/baseline.schema.prisma ./apps/api/prisma/baseline.schema.prisma
 COPY --from=builder --chown=politica:politica /app/apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
 COPY --from=builder --chown=politica:politica /app/apps/api/prisma/migrations ./apps/api/prisma/migrations
 COPY --from=builder --chown=politica:politica /app/apps/api/prisma/generated ./apps/api/prisma/generated

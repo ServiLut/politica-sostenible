@@ -35,6 +35,7 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
 }) => {
   const authorizationHeaders: string[] = [];
   const requestedUrls: URL[] = [];
+  const caseSearchUrls: URL[] = [];
   const postBodies: Array<Record<string, unknown>> = [];
   const decisionBodies: Array<Record<string, unknown>> = [];
   let approvals = [
@@ -64,6 +65,33 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
       issueCase: null,
     },
   ];
+  const relatedCase = {
+    id: "case-authorized",
+    mode: "CAMPAIGN",
+    reference: "CASO-2026-018",
+    title: "Solicitud sobre encuentro comunitario",
+    description: "Solicitud recibida por el equipo territorial.",
+    category: "Participación",
+    sourceChannel: "WEB",
+    status: "IN_PROGRESS",
+    priority: "MEDIUM",
+    voterId: null,
+    externalContactRef: null,
+    divisionId: null,
+    assigneeId: "admin-a",
+    createdById: "admin-a",
+    confidential: false,
+    dueAt: null,
+    firstResponseAt: null,
+    resolvedAt: null,
+    createdAt: "2026-08-20T12:00:00.000Z",
+    updatedAt: "2026-08-20T12:00:00.000Z",
+    assignee: null,
+    createdBy: null,
+    voter: null,
+    division: null,
+    _count: { interactions: 1, tasks: 0, commitments: 0 },
+  };
 
   await page.addInitScript(
     ({ storageKey, authSession }) => {
@@ -74,6 +102,28 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
       authSession: session,
     },
   );
+
+  await page.route("**/api/cases**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    caseSearchUrls.push(url);
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        envelope({
+          items: [relatedCase],
+          pagination: {
+            page: Number(url.searchParams.get("page") ?? 1),
+            limit: 6,
+            total: 1,
+            totalPages: 1,
+          },
+        }),
+      ),
+    });
+  });
 
   await page.route("**/api/communications/approvals**", async (route) => {
     const request = route.request();
@@ -107,7 +157,8 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
       const created = {
         id: "approval-own",
         mode: "CAMPAIGN",
-        issueCaseId: null,
+        issueCaseId:
+          typeof body.issueCaseId === "string" ? body.issueCaseId : null,
         channel: body.channel,
         title: body.title,
         content: { message: body.message },
@@ -127,7 +178,14 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
           role: "ADMIN",
         },
         decidedBy: null,
-        issueCase: null,
+        issueCase:
+          body.issueCaseId === relatedCase.id
+            ? {
+                id: relatedCase.id,
+                reference: relatedCase.reference,
+                status: relatedCase.status,
+              }
+            : null,
       };
       approvals = [created, ...approvals];
       await route.fulfill({
@@ -203,6 +261,19 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
     .getByLabel("Mensaje a revisar")
     .fill("Invitamos a participar en el encuentro público del sábado.");
   await requestDialog.getByLabel("Canal").selectOption("WHATSAPP");
+  await expect(requestDialog.getByLabel(/ID interno del caso/i)).toHaveCount(0);
+  await requestDialog
+    .getByLabel("Buscar caso autorizado")
+    .fill("encuentro comunitario");
+  await requestDialog.getByRole("button", { name: "Buscar casos" }).click();
+  await requestDialog
+    .getByRole("radio", {
+      name: /CASO-2026-018.*Solicitud sobre encuentro comunitario/,
+    })
+    .check();
+  await expect(
+    requestDialog.getByTestId("selected-communication-case"),
+  ).toContainText("CASO-2026-018");
   await requestDialog
     .getByLabel("Finalidad legítima")
     .fill("Informar sobre un espacio abierto de participación");
@@ -254,6 +325,7 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
       channel: "WHATSAPP",
       purpose: "Informar sobre un espacio abierto de participación",
       containsSensitiveData: true,
+      issueCaseId: "case-authorized",
     },
   ]);
   expect(
@@ -270,6 +342,19 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
   ]);
   expect(
     requestedUrls.every(
+      (url) =>
+        !url.searchParams.has("tenantId") &&
+        !url.searchParams.has("tenant_id") &&
+        !url.searchParams.has("mode"),
+    ),
+  ).toBe(true);
+  expect(
+    caseSearchUrls.some(
+      (url) => url.searchParams.get("search") === "encuentro comunitario",
+    ),
+  ).toBe(true);
+  expect(
+    caseSearchUrls.every(
       (url) =>
         !url.searchParams.has("tenantId") &&
         !url.searchParams.has("tenant_id") &&

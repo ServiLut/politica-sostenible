@@ -26,11 +26,20 @@ import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage
 import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
 import { ReviewFinancialEntryDto } from './dto/review-financial-entry.dto';
+import { MarkCneReportedDto } from './dto/mark-cne-reported.dto';
 
 const FINANCE_REVIEW_ROLES = new Set<Role>([
   Role.ADMIN,
   Role.FINANCE_MANAGER,
   Role.COMPLIANCE_OFFICER,
+]);
+
+const FINANCE_REPORT_EXPORT_ROLES = new Set<Role>([
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
 ]);
 
 const SERIALIZABLE_OPTIONS = {
@@ -49,6 +58,8 @@ const FINANCIAL_ENTRY_VIEW_SELECT = {
   status: true,
   createdAt: true,
   reviewedAt: true,
+  cneReportedAt: true,
+  cneReportReference: true,
   evidenceUrl: true,
   reporterId: true,
 } satisfies Prisma.FinancialEntrySelect;
@@ -182,6 +193,7 @@ export class FinanceService {
             StorageObjectModule.FINANCE,
             'FinancialEntry',
             entry.id,
+            reporterId,
           );
         }
 
@@ -456,6 +468,103 @@ export class FinanceService {
     }
   }
 
+  async markReportedToCne(
+    tenantId: string,
+    actorUserId: string,
+    entryId: string,
+    dto: MarkCneReportedDto,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
+
+        const actor = await transaction.user.findFirst({
+          where: { id: actorUserId, tenantId, isActive: true },
+          select: { id: true, role: true },
+        });
+        if (!actor || !FINANCE_REVIEW_ROLES.has(actor.role)) {
+          throw new ForbiddenException(
+            'El usuario autenticado no puede confirmar radicaciones externas',
+          );
+        }
+
+        const existing = await transaction.financialEntry.findFirst({
+          where: { id: entryId, tenantId },
+          select: FINANCIAL_ENTRY_VIEW_SELECT,
+        });
+        if (!existing) {
+          throw new NotFoundException('Movimiento financiero no encontrado');
+        }
+        if (existing.status === FinanceStatus.REPORTED_CNE) {
+          throw new ConflictException(
+            'El movimiento ya tiene una radicación externa confirmada',
+          );
+        }
+        if (existing.status !== FinanceStatus.APPROVED) {
+          throw new BadRequestException(
+            'Sólo un movimiento aprobado puede marcarse como radicado externamente',
+          );
+        }
+
+        const cneReportedAt = new Date();
+        const transition = await transaction.financialEntry.updateMany({
+          where: {
+            id: entryId,
+            tenantId,
+            status: FinanceStatus.APPROVED,
+          },
+          data: {
+            status: FinanceStatus.REPORTED_CNE,
+            cneReportedById: actorUserId,
+            cneReportedAt,
+            cneReportReference: dto.externalReference,
+          },
+        });
+        if (transition.count !== 1) {
+          throw new ConflictException(
+            'El movimiento cambió mientras se confirmaba la radicación; actualiza la vista',
+          );
+        }
+
+        const updated = await transaction.financialEntry.findFirst({
+          where: { id: entryId, tenantId },
+          select: FINANCIAL_ENTRY_VIEW_SELECT,
+        });
+        if (!updated) {
+          throw new ConflictException(
+            'No fue posible confirmar la radicación externa',
+          );
+        }
+
+        await transaction.auditEvent.create({
+          data: {
+            tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId,
+            action: 'CAMPAIGN_FINANCIAL_ENTRY_CNE_REPORTED',
+            resourceType: 'FinancialEntry',
+            resourceId: entryId,
+            before: { status: existing.status },
+            after: {
+              status: updated.status,
+              cneReportedAt: cneReportedAt.toISOString(),
+            },
+            metadata: { externalReference: dto.externalReference },
+          },
+        });
+
+        return this.toFinancialEntryView(updated, actorUserId);
+      }, SERIALIZABLE_OPTIONS);
+    } catch (error) {
+      this.rethrowSerializableConflict(error);
+    }
+  }
+
   private assertOwnedFinanceEvidence(tenantId: string, path: string): void {
     if (
       !isOwnedCanonicalStoragePath({
@@ -471,52 +580,93 @@ export class FinanceService {
     }
   }
 
-  async generateCneReport(tenantId: string): Promise<string> {
-    await this.assertCampaignMode(tenantId);
-    const expenses = await this.prisma.financialEntry.findMany({
-      where: {
-        tenantId,
-        type: EntryType.EXPENSE,
-        status: {
-          in: [FinanceStatus.APPROVED, FinanceStatus.REPORTED_CNE],
+  async generateCneReport(
+    tenantId: string,
+    actorUserId: string,
+  ): Promise<string> {
+    return this.prisma.$transaction(async (transaction) => {
+      const tenant = await transaction.tenant.findUnique({
+        where: { id: tenantId },
+        select: CAMPAIGN_TENANT_SELECT,
+      });
+      assertCampaignTenant(tenant);
+
+      const actor = await transaction.user.findFirst({
+        where: { id: actorUserId, tenantId, isActive: true },
+        select: { role: true },
+      });
+      if (!actor || !FINANCE_REPORT_EXPORT_ROLES.has(actor.role)) {
+        throw new ForbiddenException(
+          'El usuario no tiene acceso vigente para exportar finanzas',
+        );
+      }
+
+      const expenses = await transaction.financialEntry.findMany({
+        where: {
+          tenantId,
+          type: EntryType.EXPENSE,
+          status: {
+            in: [FinanceStatus.APPROVED, FinanceStatus.REPORTED_CNE],
+          },
         },
-      },
-      select: {
-        date: true,
-        description: true,
-        amount: true,
-        vendorName: true,
-        vendorTaxId: true,
-        cneCode: true,
-        reporter: { select: { name: true } },
-      },
-      orderBy: { date: 'asc' },
+        select: {
+          date: true,
+          description: true,
+          amount: true,
+          vendorName: true,
+          vendorTaxId: true,
+          cneCode: true,
+          reporter: { select: { name: true } },
+        },
+        orderBy: { date: 'asc' },
+      });
+
+      const header = buildCsvRow([
+        'Fecha',
+        'Concepto',
+        'Monto',
+        'Proveedor',
+        'NIT',
+        'Código CNE',
+        'Responsable',
+      ]);
+      const rows = expenses
+        .map((entry) =>
+          buildCsvRow([
+            entry.date.toISOString().split('T')[0],
+            entry.description,
+            String(entry.amount),
+            entry.vendorName,
+            entry.vendorTaxId,
+            entry.cneCode,
+            entry.reporter.name,
+          ]),
+        )
+        .join('\n');
+      const csv = rows ? `${header}\n${rows}` : header;
+
+      await transaction.auditEvent.create({
+        data: {
+          tenantId,
+          mode: PoliticalOperationMode.CAMPAIGN,
+          actorType: AuditActorType.USER,
+          actorUserId,
+          action: 'CAMPAIGN_CNE_REVIEW_DRAFT_EXPORTED',
+          resourceType: 'CneReviewDraft',
+          after: { status: 'GENERATED' },
+          metadata: {
+            format: 'CSV',
+            recordCount: expenses.length,
+            includedStatuses: [
+              FinanceStatus.APPROVED,
+              FinanceStatus.REPORTED_CNE,
+            ],
+          },
+        },
+      });
+
+      return csv;
     });
-
-    const header = buildCsvRow([
-      'Fecha',
-      'Concepto',
-      'Monto',
-      'Proveedor',
-      'NIT',
-      'Código CNE',
-      'Responsable',
-    ]);
-    const rows = expenses
-      .map((entry) =>
-        buildCsvRow([
-          entry.date.toISOString().split('T')[0],
-          entry.description,
-          String(entry.amount),
-          entry.vendorName,
-          entry.vendorTaxId,
-          entry.cneCode,
-          entry.reporter.name,
-        ]),
-      )
-      .join('\n');
-
-    return rows ? `${header}\n${rows}` : header;
   }
 
   private async assertCampaignMode(tenantId: string): Promise<void> {
@@ -568,6 +718,8 @@ export class FinanceService {
       status: entry.status,
       createdAt: entry.createdAt,
       reviewedAt: entry.reviewedAt,
+      cneReportedAt: entry.cneReportedAt,
+      cneReportReference: entry.cneReportReference,
       hasEvidence: Boolean(entry.evidenceUrl),
       reportedByMe: Boolean(viewerId && entry.reporterId === viewerId),
     };

@@ -18,19 +18,19 @@ describe('ReviewFinancialEntryDto', () => {
     },
   );
 
-  it.each([
-    FinanceStatus.PENDING,
-    FinanceStatus.REPORTED_CNE,
-  ])('rejects the non-review status %s', async (status) => {
-    const errors = await validate(
-      plainToInstance(ReviewFinancialEntryDto, {
-        status,
-        reviewReason: 'Motivo suficientemente detallado',
-      }),
-    );
+  it.each([FinanceStatus.PENDING, FinanceStatus.REPORTED_CNE])(
+    'rejects the non-review status %s',
+    async (status) => {
+      const errors = await validate(
+        plainToInstance(ReviewFinancialEntryDto, {
+          status,
+          reviewReason: 'Motivo suficientemente detallado',
+        }),
+      );
 
-    expect(errors.some((error) => error.property === 'status')).toBe(true);
-  });
+      expect(errors.some((error) => error.property === 'status')).toBe(true);
+    },
+  );
 
   it.each(['muy corto', 'x'.repeat(501)])(
     'rejects a reason outside 10..500 characters',

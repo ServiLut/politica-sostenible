@@ -1,5 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { ConsentCollectionChannel } from '../../../prisma/generated/prisma';
 import { SyncVoterDto } from './sync-voter.dto';
 
 const validInput = {
@@ -8,6 +9,7 @@ const validInput = {
   lastName: 'Rojas',
   consentAccepted: true,
   termsVersion: '2026.1',
+  collectionChannel: ConsentCollectionChannel.IN_PERSON,
 };
 
 describe('SyncVoterDto phone normalization', () => {

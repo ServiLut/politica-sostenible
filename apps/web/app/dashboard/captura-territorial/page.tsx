@@ -11,6 +11,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
+import { getConsentNoticePresentationKey } from "@/lib/consent-notices-api";
+import type { CapturableConsentCollectionChannel } from "@/lib/interactions-api";
 import {
   createVoter,
   getVoterCaptureContext,
@@ -25,8 +27,19 @@ const EMPTY_FORM = {
   phone: "",
   email: "",
   mesa: "",
+  collectionChannel: "",
   consentAccepted: false,
 };
+
+const CONSENT_CHANNEL_OPTIONS: ReadonlyArray<{
+  value: CapturableConsentCollectionChannel;
+  label: string;
+}> = [
+  { value: "IN_PERSON", label: "Presencial" },
+  { value: "PHONE", label: "Llamada" },
+  { value: "PAPER", label: "Formato físico" },
+  { value: "WEB_FORM", label: "Formulario web diligenciado por la persona" },
+];
 
 function readableError(error: unknown, fallback: string) {
   if (error instanceof ApiError) return error.message;
@@ -44,10 +57,19 @@ export default function CapturaTerritorialPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [acceptedNoticeKey, setAcceptedNoticeKey] = useState<string | null>(
+    null,
+  );
 
   const loadContext = useCallback(async (signal: AbortSignal) => {
     setLoadingContext(true);
     setContextError(null);
+    setAcceptedNoticeKey(null);
+    setForm((current) => ({
+      ...current,
+      collectionChannel: "",
+      consentAccepted: false,
+    }));
 
     try {
       const response = await getVoterCaptureContext(signal);
@@ -94,9 +116,28 @@ export default function CapturaTerritorialPage() {
       return;
     }
 
-    if (!form.consentAccepted) {
+    if (!context?.consentNotice) {
       setFormError(
-        "Confirma la autorización expresa de la persona antes de guardar.",
+        "La organización debe activar su aviso de privacidad antes de capturar datos.",
+      );
+      return;
+    }
+    const submittedNoticeKey = getConsentNoticePresentationKey(
+      context.consentNotice,
+    );
+    if (
+      !form.consentAccepted ||
+      !submittedNoticeKey ||
+      acceptedNoticeKey !== submittedNoticeKey
+    ) {
+      setFormError(
+        "Confirma la autorización expresa para el aviso de privacidad mostrado antes de guardar.",
+      );
+      return;
+    }
+    if (!form.collectionChannel) {
+      setFormError(
+        "Selecciona el canal real usado para obtener la autorización.",
       );
       return;
     }
@@ -107,7 +148,9 @@ export default function CapturaTerritorialPage() {
       lastName: form.lastName.trim(),
       puestoId: selectedPuestoId,
       consentAccepted: true,
-      termsVersion: "2026.1",
+      termsVersion: context.consentNotice.version,
+      collectionChannel:
+        form.collectionChannel as CapturableConsentCollectionChannel,
       ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
       ...(form.email.trim() ? { email: form.email.trim() } : {}),
       ...(form.mesa ? { mesa: Number(form.mesa) } : {}),
@@ -117,8 +160,9 @@ export default function CapturaTerritorialPage() {
     try {
       await createVoter(payload);
       setForm(EMPTY_FORM);
+      setAcceptedNoticeKey(null);
       setNotice(
-        "Captura recibida con trazabilidad. Puedes registrar a la siguiente persona.",
+        "Nueva vinculacion guardada con trazabilidad. Puedes registrar a la siguiente persona.",
       );
     } catch (error: unknown) {
       setFormError(
@@ -131,6 +175,12 @@ export default function CapturaTerritorialPage() {
 
   const puestos = context?.puestos ?? [];
   const hasPuestos = puestos.length > 0;
+  const consentNotice = context?.consentNotice ?? null;
+  const displayedNoticeKey = getConsentNoticePresentationKey(consentNotice);
+  const consentAcceptedForDisplayedNotice =
+    displayedNoticeKey !== null &&
+    form.consentAccepted &&
+    acceptedNoticeKey === displayedNoticeKey;
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
@@ -366,31 +416,88 @@ export default function CapturaTerritorialPage() {
             </label>
           </div>
 
+          {consentNotice ? (
+            <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950">
+              <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">
+                Aviso vigente · {consentNotice.version}
+              </p>
+              <h3 className="mt-1 font-black">{consentNotice.title}</h3>
+              <p className="mt-2 whitespace-pre-line">
+                {consentNotice.content}
+              </p>
+              <p className="mt-3 text-xs font-semibold">
+                Responsable: {consentNotice.controllerName} · Derechos:{" "}
+                {consentNotice.contactEmail}
+              </p>
+            </section>
+          ) : (
+            <div
+              role="alert"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950"
+            >
+              No hay un aviso de privacidad activo. La captura está bloqueada;
+              solicita a Administración que configure el texto que debe
+              comunicarse a la persona.
+            </div>
+          )}
+
+          <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+            Canal real de la autorización
+            <select
+              required
+              disabled={!consentNotice || loadingContext}
+              value={form.collectionChannel}
+              onChange={(event) =>
+                setForm({ ...form, collectionChannel: event.target.value })
+              }
+              className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900"
+            >
+              <option value="">Selecciona cómo autorizó la persona</option>
+              {CONSENT_CHANNEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
             <input
               type="checkbox"
-              checked={form.consentAccepted}
-              onChange={(event) =>
-                setForm({ ...form, consentAccepted: event.target.checked })
-              }
+              disabled={!consentNotice || loadingContext}
+              checked={consentAcceptedForDisplayedNotice}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setForm({ ...form, consentAccepted: checked });
+                setAcceptedNoticeKey(
+                  checked && displayedNoticeKey ? displayedNoticeKey : null,
+                );
+              }}
               className="mt-1 h-5 w-5 shrink-0 accent-emerald-700"
             />
             <span className="text-sm leading-6 text-slate-700">
-              Confirmo que informé la finalidad electoral, el responsable del
-              tratamiento y los derechos de consulta, corrección y revocación;
-              la persona autorizó expresamente este registro.
+              Confirmo que comuniqué el aviso vigente completo, registré el
+              canal real y la persona autorizó expresamente este tratamiento.
             </span>
           </label>
 
           <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-xl text-xs leading-5 text-slate-500">
-              La respuesta no revela si el documento ya existía. Cada alta
-              conserva fecha, versión del aviso, responsable y evidencia técnica
-              del consentimiento.
+              Si el documento ya esta vinculado, el sistema no crea ni altera
+              datos y solicita revisar su estado con un rol autorizado. Cada
+              alta conserva fecha, version del aviso, responsable y evidencia
+              tecnica del consentimiento.
             </p>
             <button
               type="submit"
-              disabled={saving || loadingContext || !hasPuestos}
+              disabled={
+                saving ||
+                loadingContext ||
+                !hasPuestos ||
+                !consentNotice ||
+                !form.collectionChannel ||
+                !consentAcceptedForDisplayedNotice
+              }
               className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? (

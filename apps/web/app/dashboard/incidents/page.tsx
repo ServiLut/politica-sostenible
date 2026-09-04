@@ -254,10 +254,11 @@ function IncidentCard({
         </div>
         {incident.confidential && (
           <span
-            title="Incidente confidencial"
-            className="rounded-xl bg-violet-50 p-2 text-violet-700"
+            title="Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del incidente"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-violet-700"
           >
             <FileLock2 aria-hidden="true" size={17} />
+            Manejo especial
           </span>
         )}
       </div>
@@ -954,16 +955,24 @@ export default function IncidentsPage() {
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
                   />
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
+                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
                   <input
                     type="checkbox"
                     checked={form.confidential}
                     onChange={(event) =>
                       setForm({ ...form, confidential: event.target.checked })
                     }
-                    className="h-4 w-4"
+                    className="mt-0.5 h-4 w-4 shrink-0"
                   />
-                  <FileLock2 size={18} /> Restringir como incidente confidencial
+                  <FileLock2 aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+                  <span>
+                    <span className="block">Aplicar etiqueta de manejo especial</span>
+                    <span className="mt-1 block text-xs font-semibold normal-case leading-5 tracking-normal text-violet-700">
+                      Es una clasificación operativa. No restringe el acceso: la
+                      visibilidad sigue los permisos generales del rol y la
+                      asignación del incidente.
+                    </span>
+                  </span>
                 </label>
               </div>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

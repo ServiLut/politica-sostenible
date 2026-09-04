@@ -395,12 +395,13 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
   page,
 }) => {
   let attempts = 0;
+  let backendAvailable = false;
   await installSession(page, session("PUBLIC_OFFICE", "AUDITOR"));
   await page.route("**/api/events*", async (route) => {
     attempts += 1;
-    // Next development mode intentionally mounts effects twice. Both initial
-    // reads fail, while the user-triggered retry succeeds deterministically.
-    if (attempts <= 2) {
+    // Todas las lecturas iniciales fallan; la prueba habilita el backend justo
+    // antes del clic para no depender de cuántas veces monte React.
+    if (!backendAvailable) {
       await route.fulfill({
         status: 503,
         contentType: "application/json",
@@ -426,9 +427,10 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
   await expect(
     page.getByText("Agenda temporalmente no disponible"),
   ).toBeVisible();
+  backendAvailable = true;
   await page.getByRole("button", { name: "Reintentar" }).click();
   await expect(
     page.getByRole("heading", { name: "No hay eventos para estos filtros" }),
   ).toBeVisible();
-  expect(attempts).toBeGreaterThan(2);
+  expect(attempts).toBeGreaterThan(1);
 });

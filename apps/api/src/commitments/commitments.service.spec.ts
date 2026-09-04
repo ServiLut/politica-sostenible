@@ -3,7 +3,12 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { PoliticalOperationMode, Role } from '../../prisma/generated/prisma';
+import {
+  AuditActorType,
+  CommitmentStatus,
+  PoliticalOperationMode,
+  Role,
+} from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommitmentsService } from './commitments.service';
@@ -22,6 +27,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
   };
 
   let prisma: {
+    $transaction: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     issueCase: { findFirst: jest.Mock };
@@ -32,11 +38,12 @@ describe('CommitmentsService tenant and mode isolation', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    auditEvent: { create: jest.Mock };
   };
   let service: CommitmentsService;
 
   beforeEach(() => {
-    prisma = {
+    const transaction = {
       tenant: {
         findUnique: jest
           .fn()
@@ -61,6 +68,14 @@ describe('CommitmentsService tenant and mode isolation', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    prisma = {
+      ...transaction,
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     };
     service = new CommitmentsService(prisma as unknown as PrismaService);
   });
@@ -449,6 +464,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
     prisma.commitment.findFirst.mockResolvedValue(null);
     prisma.commitment.create.mockResolvedValue({
       id: 'commitment-own',
+      status: CommitmentStatus.PROPOSED,
       ownerId: 'case-worker-a',
       issueCaseId: null,
     });
@@ -472,6 +488,25 @@ describe('CommitmentsService tenant and mode isolation', () => {
     expect(result).toEqual(
       expect.objectContaining({ id: 'commitment-own', canUpdate: true }),
     );
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.PUBLIC_OFFICE,
+        actorType: AuditActorType.USER,
+        actorUserId: 'case-worker-a',
+        action: 'COMMITMENT_CREATED',
+        resourceType: 'Commitment',
+        resourceId: 'commitment-own',
+        after: { status: CommitmentStatus.PROPOSED },
+        metadata: {
+          changedFields: ['description', 'reference', 'title'],
+        },
+      },
+    });
+    const serializedAudit = JSON.stringify(prisma.auditEvent.create.mock.calls);
+    expect(serializedAudit).not.toContain('Seguimiento propio');
+    expect(serializedAudit).not.toContain('compromiso privado global');
   });
 
   it('does not let CASE_WORKER create a commitment for another owner or case', async () => {
@@ -526,6 +561,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
     });
     prisma.commitment.update.mockResolvedValue({
       id: 'commitment-assigned',
+      status: CommitmentStatus.PROPOSED,
       progress: 60,
     });
 
@@ -562,6 +598,65 @@ describe('CommitmentsService tenant and mode isolation', () => {
     expect(result).toEqual(
       expect.objectContaining({ id: 'commitment-assigned', canUpdate: true }),
     );
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.PUBLIC_OFFICE,
+        actorType: AuditActorType.USER,
+        actorUserId: 'case-worker-a',
+        action: 'COMMITMENT_UPDATED',
+        resourceType: 'Commitment',
+        resourceId: 'commitment-assigned',
+        after: { status: CommitmentStatus.PROPOSED },
+        metadata: { changedFields: ['progress'] },
+      },
+    });
+  });
+
+  it('fails commitment creation when the audit event cannot be persisted', async () => {
+    prisma.commitment.findFirst.mockResolvedValue(null);
+    prisma.commitment.create.mockResolvedValue({
+      id: 'commitment-without-audit',
+      status: CommitmentStatus.PROPOSED,
+    });
+    prisma.auditEvent.create.mockRejectedValue(new Error('audit unavailable'));
+
+    await expect(
+      service.create(currentUser, {
+        reference: 'CMP-AUDIT',
+        title: 'Trazabilidad obligatoria',
+        description: 'No debe confirmarse sin bitacora',
+      }),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.commitment.create).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails commitment updates when the audit event cannot be persisted', async () => {
+    prisma.commitment.findFirst.mockResolvedValue({
+      id: 'commitment-a',
+      reference: 'CMP-A',
+      status: CommitmentStatus.PROPOSED,
+      ownerId: 'manager-a',
+      issueCaseId: null,
+    });
+    prisma.commitment.update.mockResolvedValue({
+      id: 'commitment-a',
+      status: CommitmentStatus.IN_PROGRESS,
+    });
+    prisma.auditEvent.create.mockRejectedValue(new Error('audit unavailable'));
+
+    await expect(
+      service.update(currentUser, 'commitment-a', {
+        status: CommitmentStatus.IN_PROGRESS,
+      }),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.commitment.update).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
   });
 
   it('hides a foreign or global public commitment from CASE_WORKER updates', async () => {
