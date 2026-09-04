@@ -35,7 +35,7 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
-test("configura topes auditables y descarga el informe preparatorio", async ({
+test("configura topes auditables y descarga el borrador interno para revisión CNE", async ({
   page,
 }) => {
   const settingsBodies: Record<string, unknown>[] = [];
@@ -110,7 +110,10 @@ test("configura topes auditables y descarga el informe preparatorio", async ({
       return;
     }
 
-    if (pathname === "/api/finance/cne-report" && request.method() === "GET") {
+    if (
+      pathname === "/api/finance/cne-review-draft" &&
+      request.method() === "GET"
+    ) {
       await route.fulfill({
         status: 200,
         contentType: "text/csv; charset=utf-8",
@@ -150,10 +153,12 @@ test("configura topes auditables y descarga el informe preparatorio", async ({
   ]);
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Exportar CSV" }).click();
+  await page
+    .getByRole("button", { name: "Borrador interno para revisión CNE" })
+    .click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(
-    /^reporte-cuentas-claras-\d{4}-\d{2}-\d{2}\.csv$/,
+    /^borrador-interno-revision-cne-\d{4}-\d{2}-\d{2}\.csv$/,
   );
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(6);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
@@ -161,7 +166,7 @@ test("configura topes auditables y descarga el informe preparatorio", async ({
   );
 });
 
-test("auditoría consulta y exporta sin controles de escritura", async ({
+test("auditoría consulta y descarga el borrador sin controles de escritura", async ({
   page,
 }) => {
   await page.addInitScript(
@@ -203,7 +208,7 @@ test("auditoría consulta y exporta sin controles de escritura", async ({
       });
       return;
     }
-    if (pathname === "/api/finance/cne-report") {
+    if (pathname === "/api/finance/cne-review-draft") {
       await route.fulfill({
         status: 200,
         contentType: "text/csv; charset=utf-8",
@@ -216,7 +221,9 @@ test("auditoría consulta y exporta sin controles de escritura", async ({
 
   await page.goto("/dashboard/finance");
   await expect(
-    page.getByRole("button", { name: "Exportar CSV" }),
+    page.getByRole("button", {
+      name: "Borrador interno para revisión CNE",
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Registrar movimiento" }),

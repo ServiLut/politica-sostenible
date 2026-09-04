@@ -28,6 +28,7 @@ import {
   createTask,
   CreateTaskInput,
   listCommitments,
+  listTaskAssignees,
   listTasks,
   PaginatedResult,
   PoliticalOperationMode,
@@ -36,8 +37,10 @@ import {
   updateCommitment,
   updateTask,
   WorkPriority,
+  WorkAssignee,
 } from "@/lib/work-api";
 import type { BackendUserRole } from "@/types/saas-schema";
+import { getRoleLabel } from "@/config/navigation";
 
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
@@ -293,6 +296,7 @@ export default function TasksPage() {
     description: "",
     priority: "MEDIUM" as WorkPriority,
     dueDate: "",
+    assigneeId: "",
   });
   const [newCommitment, setNewCommitment] = useState({
     reference: "",
@@ -300,7 +304,54 @@ export default function TasksPage() {
     description: "",
     targetDate: "",
     isPublic: false,
+    ownerId: "",
   });
+  const [assignees, setAssignees] = useState<WorkAssignee[]>([]);
+  const [assigneesLoading, setAssigneesLoading] = useState(false);
+  const [assigneesError, setAssigneesError] = useState<string | null>(null);
+  const [assigneesReload, setAssigneesReload] = useState(0);
+
+  useEffect(() => {
+    if (!canCreateTask) {
+      setAssignees([]);
+      setAssigneesLoading(false);
+      setAssigneesError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setAssigneesLoading(true);
+    setAssigneesError(null);
+
+    void listTaskAssignees(controller.signal)
+      .then((items) => {
+        if (controller.signal.aborted) return;
+
+        setAssignees(items);
+        const ownId = items.find((item) => item.id === user?.id)?.id ?? "";
+        setNewTask((current) => ({
+          ...current,
+          assigneeId: items.some((item) => item.id === current.assigneeId)
+            ? current.assigneeId
+            : ownId,
+        }));
+        setNewCommitment((current) => ({
+          ...current,
+          ownerId: items.some((item) => item.id === current.ownerId)
+            ? current.ownerId
+            : ownId,
+        }));
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setAssigneesError(readableError(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAssigneesLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [assigneesReload, canCreateTask, user?.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -391,9 +442,16 @@ export default function TasksPage() {
     setMutation("create-task");
     setMutationError(null);
 
+    if (!newTask.assigneeId) {
+      setMutation(null);
+      setMutationError("Selecciona una persona responsable para la tarea.");
+      return;
+    }
+
     const input: CreateTaskInput = {
       title: newTask.title.trim(),
       priority: newTask.priority,
+      assigneeId: newTask.assigneeId,
       ...(newTask.description.trim()
         ? { description: newTask.description.trim() }
         : {}),
@@ -407,6 +465,8 @@ export default function TasksPage() {
         description: "",
         priority: "MEDIUM",
         dueDate: "",
+        assigneeId:
+          assignees.find((assignee) => assignee.id === user?.id)?.id ?? "",
       });
       setDialog(null);
       setTaskFilters((current) => ({ ...current, page: 1 }));
@@ -427,6 +487,12 @@ export default function TasksPage() {
       );
       return;
     }
+    if (!newCommitment.ownerId) {
+      setMutationError(
+        "Selecciona una persona responsable para el compromiso.",
+      );
+      return;
+    }
     setMutation("create-commitment");
     setMutationError(null);
 
@@ -435,6 +501,7 @@ export default function TasksPage() {
       title: newCommitment.title.trim(),
       description: newCommitment.description.trim(),
       isPublic: newCommitment.isPublic,
+      ownerId: newCommitment.ownerId,
       ...(newCommitment.targetDate
         ? { targetDate: dateInputToIso(newCommitment.targetDate) }
         : {}),
@@ -448,6 +515,8 @@ export default function TasksPage() {
         description: "",
         targetDate: "",
         isPublic: false,
+        ownerId:
+          assignees.find((assignee) => assignee.id === user?.id)?.id ?? "",
       });
       setDialog(null);
       setCommitmentFilters((current) => ({ ...current, page: 1 }));
@@ -998,6 +1067,12 @@ export default function TasksPage() {
                         {commitment.description}
                       </p>
                       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-xs text-slate-600">
+                        {commitment.owner && (
+                          <div className="col-span-2">
+                            <dt className="font-bold">Responsable</dt>
+                            <dd className="mt-1">{commitment.owner.name}</dd>
+                          </div>
+                        )}
                         <div>
                           <dt className="font-bold">Fecha objetivo</dt>
                           <dd className="mt-1">
@@ -1187,6 +1262,53 @@ export default function TasksPage() {
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </label>
+                <label className="block text-sm font-black text-slate-800">
+                  Responsable
+                  <select
+                    required
+                    value={newTask.assigneeId}
+                    disabled={assigneesLoading || Boolean(assigneesError)}
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        assigneeId: event.target.value,
+                      }))
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
+                  >
+                    <option value="" disabled>
+                      {assigneesLoading
+                        ? "Consultando responsables…"
+                        : "Selecciona una persona"}
+                    </option>
+                    {assignees.map((assignee) => (
+                      <option key={assignee.id} value={assignee.id}>
+                        {assignee.name} ·{" "}
+                        {getRoleLabel(assignee.role as BackendUserRole)}
+                        {assignee.division
+                          ? ` · ${assignee.division.name}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {assigneesError && (
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800"
+                  >
+                    <span>No fue posible cargar responsables.</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAssigneesReload((current) => current + 1)
+                      }
+                      className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-xs font-black text-white"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block text-sm font-black text-slate-800">
                     Prioridad
@@ -1244,7 +1366,12 @@ export default function TasksPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={Boolean(mutation)}
+                    disabled={
+                      Boolean(mutation) ||
+                      assigneesLoading ||
+                      Boolean(assigneesError) ||
+                      !newTask.assigneeId
+                    }
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
                   >
                     {mutation === "create-task" && (
@@ -1311,6 +1438,53 @@ export default function TasksPage() {
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </label>
+                <label className="block text-sm font-black text-slate-800">
+                  Responsable
+                  <select
+                    required
+                    value={newCommitment.ownerId}
+                    disabled={assigneesLoading || Boolean(assigneesError)}
+                    onChange={(event) =>
+                      setNewCommitment((current) => ({
+                        ...current,
+                        ownerId: event.target.value,
+                      }))
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
+                  >
+                    <option value="" disabled>
+                      {assigneesLoading
+                        ? "Consultando responsables…"
+                        : "Selecciona una persona"}
+                    </option>
+                    {assignees.map((assignee) => (
+                      <option key={assignee.id} value={assignee.id}>
+                        {assignee.name} ·{" "}
+                        {getRoleLabel(assignee.role as BackendUserRole)}
+                        {assignee.division
+                          ? ` · ${assignee.division.name}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {assigneesError && (
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800"
+                  >
+                    <span>No fue posible cargar responsables.</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAssigneesReload((current) => current + 1)
+                      }
+                      className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-xs font-black text-white"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block text-sm font-black text-slate-800">
                     Fecha objetivo{" "}
@@ -1363,7 +1537,12 @@ export default function TasksPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={Boolean(mutation)}
+                    disabled={
+                      Boolean(mutation) ||
+                      assigneesLoading ||
+                      Boolean(assigneesError) ||
+                      !newCommitment.ownerId
+                    }
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
                   >
                     {mutation === "create-commitment" && (

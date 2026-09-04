@@ -75,6 +75,19 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
               sourceIpHash: "hash privado",
               requestId: "request privado",
             },
+            {
+              id: `access-reset-${currentPage}`,
+              action: "TEAM_MEMBER_ACCESS_RESET",
+              resourceType: "User",
+              resourceId: `member-${currentPage}`,
+              outcome: "SUCCESS",
+              occurredAt: "2026-08-21T15:35:00.000Z",
+              actor: {
+                id: "actor-a",
+                name: "Control interno",
+                role: "ADMIN",
+              },
+            },
           ],
           pagination: {
             page: currentPage,
@@ -91,10 +104,24 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   await expect(
     page.getByRole("heading", { name: "Bitácora de auditoría" }),
   ).toBeVisible();
-  await expect(page.getByText("CASE_UPDATED")).toBeVisible();
-  const auditRow = page.getByRole("row").filter({ hasText: "CASE_UPDATED" });
+  const isMobile = (page.viewportSize()?.width ?? 0) < 768;
+  const auditRow = page.getByTestId(
+    `${isMobile ? "audit-card" : "audit-row"}-audit-1`,
+  );
+  await expect(
+    auditRow.getByText("Caso actualizado", { exact: true }),
+  ).toBeVisible();
+  await expect(auditRow.getByText("CASE_UPDATED")).toBeVisible();
   await expect(
     auditRow.getByText("Control interno", { exact: true }),
+  ).toBeVisible();
+  await expect(auditRow.getByText("Cumplimiento", { exact: true })).toBeVisible();
+  await expect(auditRow.getByText("Exitosa", { exact: true })).toBeVisible();
+  const resetAudit = page.getByTestId(
+    `${isMobile ? "audit-card" : "audit-row"}-access-reset-1`,
+  );
+  await expect(
+    resetAudit.getByText("Acceso de integrante restablecido", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("contenido privado")).toHaveCount(0);
   await expect(page.getByText("hash privado")).toHaveCount(0);

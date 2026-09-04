@@ -123,7 +123,9 @@ export default function FinancePage() {
     balance: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedFinance, setHasLoadedFinance] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -144,7 +146,7 @@ export default function FinancePage() {
 
   const loadFinance = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const [loadedEntries, loadedSummary] = await Promise.all([
         apiRequest<FinancialEntry[]>("finance"),
@@ -152,12 +154,13 @@ export default function FinancePage() {
       ]);
       setEntries(loadedEntries);
       setSummary(loadedSummary);
+      setHasLoadedFinance(true);
       setSettingsForm({
         maxTotalBudget: loadedSummary.maxTotalBudget?.toString() ?? "",
         maxPublicityLimit: loadedSummary.maxPublicityLimit?.toString() ?? "",
       });
     } catch (requestError) {
-      setError(
+      setLoadError(
         requestError instanceof ApiError
           ? requestError.message
           : "No fue posible consultar las finanzas de la campaña.",
@@ -314,14 +317,14 @@ export default function FinancePage() {
     }
   }
 
-  async function handleDownloadReport() {
+  async function handleDownloadCneReviewDraft() {
     setError(null);
     try {
-      const report = await apiDownload("finance/cne-report");
-      const objectUrl = URL.createObjectURL(report);
+      const draft = await apiDownload("finance/cne-review-draft");
+      const objectUrl = URL.createObjectURL(draft);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = `reporte-cuentas-claras-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `borrador-interno-revision-cne-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -330,7 +333,7 @@ export default function FinancePage() {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : "No fue posible preparar el informe.",
+          : "No fue posible preparar el borrador interno para revisión CNE.",
       );
     }
   }
@@ -357,13 +360,13 @@ export default function FinancePage() {
             sigue realizándose ante el CNE.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
             type="button"
-            onClick={() => void handleDownloadReport()}
+            onClick={() => void handleDownloadCneReviewDraft()}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-wider text-slate-600 hover:bg-slate-50"
           >
-            <Download size={15} /> Exportar CSV
+            <Download size={15} /> Borrador interno para revisión CNE
           </button>
           <button
             type="button"
@@ -383,6 +386,30 @@ export default function FinancePage() {
           )}
         </div>
       </header>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p>{loadError}</p>
+            <p className="mt-1 text-xs">
+              {hasLoadedFinance
+                ? "Se conserva el último corte financiero disponible."
+                : "Los valores financieros no están disponibles; no se sustituyeron por ceros."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadFinance()}
+            disabled={loading}
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            <RefreshCw aria-hidden="true" size={15} /> Reintentar
+          </button>
+        </div>
+      )}
 
       {error && !isOpen && !isSettingsOpen && !reviewEntry && (
         <div
@@ -408,7 +435,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {!loading && summary.limitsConfigured === false && (
+      {!loading && hasLoadedFinance && summary.limitsConfigured === false && (
         <div className="flex items-start gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-950">
           <AlertTriangle className="mt-0.5 shrink-0" size={20} />
           <div>
@@ -431,7 +458,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {!loading && summary.limitsConfigured && (
+      {!loading && hasLoadedFinance && summary.limitsConfigured && (
         <section className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -465,7 +492,7 @@ export default function FinancePage() {
             Balance registrado
           </p>
           <p className="mt-2 text-3xl font-black tracking-tight">
-            {formatCop(summary.balance)}
+            {hasLoadedFinance ? formatCop(summary.balance) : "—"}
           </p>
         </article>
         <article className="rounded-[2rem] border border-slate-200 bg-white p-7">
@@ -473,7 +500,7 @@ export default function FinancePage() {
             Ingresos
           </p>
           <p className="mt-3 text-3xl font-black tracking-tight text-emerald-700">
-            {formatCop(summary.totalIncome)}
+            {hasLoadedFinance ? formatCop(summary.totalIncome) : "—"}
           </p>
         </article>
         <article className="rounded-[2rem] border border-slate-200 bg-white p-7">
@@ -481,7 +508,7 @@ export default function FinancePage() {
             Gastos
           </p>
           <p className="mt-3 text-3xl font-black tracking-tight text-red-700">
-            {formatCop(summary.totalExpenses)}
+            {hasLoadedFinance ? formatCop(summary.totalExpenses) : "—"}
           </p>
         </article>
       </section>
@@ -497,10 +524,20 @@ export default function FinancePage() {
           <Clock3 className="text-slate-400" size={20} />
         </div>
 
-        {loading ? (
+        {loading && !hasLoadedFinance ? (
           <div className="flex items-center justify-center gap-3 py-20 text-sm font-bold text-slate-400">
             <Loader2 className="animate-spin" size={20} /> Consultando la API
             segura…
+          </div>
+        ) : loadError && !hasLoadedFinance ? (
+          <div className="px-6 py-20 text-center">
+            <AlertTriangle className="mx-auto mb-4 text-amber-500" size={42} />
+            <h3 className="font-black text-slate-900">
+              Libro financiero no disponible
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Reintenta la consulta antes de concluir que no existen movimientos.
+            </p>
           </div>
         ) : entries.length === 0 ? (
           <div className="px-6 py-20 text-center">
@@ -628,13 +665,14 @@ export default function FinancePage() {
               </div>
               <button
                 type="button"
+                aria-label="Cerrar registro de movimiento"
                 onClick={() => {
                   setIsOpen(false);
                   setError(null);
                 }}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
               >
-                <X />
+                <X aria-hidden="true" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6 p-7">

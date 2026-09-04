@@ -21,12 +21,14 @@ export async function consumeConfirmedStorageUpload(
   module: StorageObjectModule,
   resourceType: string,
   resourceId: string,
+  uploaderId?: string,
 ): Promise<void> {
   const transition = await client.storedObject.updateMany({
     where: {
       tenantId,
       path,
       module,
+      ...(uploaderId ? { uploaderId } : {}),
       status: StoredObjectStatus.CONFIRMED,
       consumedAt: null,
     },

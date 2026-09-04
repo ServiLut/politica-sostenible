@@ -35,6 +35,14 @@ export interface WorkUserSummary {
   role: string;
 }
 
+export interface WorkAssignee extends WorkUserSummary {
+  division: {
+    id: string;
+    name: string;
+    type: string;
+  } | null;
+}
+
 export interface IssueCaseSummary {
   id: string;
   reference: string;
@@ -188,6 +196,12 @@ export function listTasks(
   signal?: AbortSignal,
 ): Promise<PaginatedResult<Task>> {
   return apiRequest(withQuery("tasks", { ...params }), { signal });
+}
+
+export function listTaskAssignees(
+  signal?: AbortSignal,
+): Promise<WorkAssignee[]> {
+  return apiRequest("tasks/assignees", { signal });
 }
 
 export function createTask(input: CreateTaskInput): Promise<Task> {

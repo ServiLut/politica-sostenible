@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * El producto todavía no ofrece un selector de tema. Mantener `dark` ligado a
+ * una clase evita que la preferencia del sistema cambie solo una parte de la
+ * interfaz y deje tarjetas con texto sin contraste.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -14,6 +21,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Paleta de Colores Politica Sostenible */
   --color-base: #F3F4F6;      /* Gris muy claro - Limpieza */
   --color-primary: #0047AB;   /* Azul Cobalto - Confianza */
@@ -25,21 +33,8 @@
   --color-white: #FFFFFF;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-base: #1a1a1a;
-    --color-primary: #F5F1EB; 
-    --color-secondary: #8DA168;
-    --color-accent: #D97E5E;
-    --color-text-main: #F5F1EB;
-    --color-text-secondary: #A0A0A0;
-    --color-border: #2D2D2D;    /* Gris muy oscuro pero no negro para el borde en dark mode */
-    --color-white: #222222;
-  }
-}
-
 .dark {
-  /* Dark mode overrides when .dark class is present */
+  color-scheme: dark;
   --color-base: #1a1a1a;
   --color-primary: #F5F1EB; 
   --color-secondary: #8DA168;

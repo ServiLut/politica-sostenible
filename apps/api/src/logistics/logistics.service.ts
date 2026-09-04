@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
@@ -12,9 +11,7 @@ import {
   ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
-  Prisma,
   Role,
-  StorageObjectModule,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -22,38 +19,14 @@ import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
-import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
-import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { WitnessService } from '../witness/witness.service';
 import { SyncE14Dto } from './dto/sync-e14.dto';
 import { SyncVoterDto } from './dto/sync-voter.dto';
 
-const E14_REPORT_VIEW_SELECT = {
-  id: true,
-  puestoId: true,
-  mesa: true,
-  candidateVotes: true,
-  totalTableVotes: true,
-  observations: true,
-  isSynced: true,
-  createdAt: true,
-  puesto: { select: { code: true, name: true } },
-  witness: { select: { name: true } },
-} satisfies Prisma.WitnessReportSelect;
-
 const VOTER_SYNC_RECEIPT = { received: true } as const;
 
-const E14_OPERATION_ROLES = [
-  Role.ADMIN,
-  Role.CAMPAIGN_MANAGER,
-  Role.ZONE_COORDINATOR,
-  Role.WITNESS,
-] as const;
-const TERRITORIALLY_SCOPED_E14_ROLES = [
-  Role.ZONE_COORDINATOR,
-  Role.WITNESS,
-] as const;
 const VOTER_SYNC_ROLES = [
   Role.ADMIN,
   Role.CAMPAIGN_MANAGER,
@@ -70,122 +43,21 @@ export class LogisticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly consentEvidence: ConsentEvidenceService,
+    // The default only preserves direct construction in legacy unit tests;
+    // Nest always injects the exported singleton from WitnessModule.
+    private readonly witnessService: WitnessService = new WitnessService(
+      prisma,
+    ),
   ) {}
 
   /**
    * Sincroniza un acta E-14. Implementa resolución de conflictos básica.
    */
   async syncE14(tenantId: string, witnessId: string, data: SyncE14Dto) {
-    await this.assertCampaignMode(tenantId);
-
-    const {
-      puestoId,
-      mesa,
-      candidateVotes,
-      totalTableVotes,
-      e14ImageUrl,
-      observations,
-    } = data;
-
-    if (candidateVotes > totalTableVotes) {
-      throw new BadRequestException(
-        'Los votos del candidato no pueden superar el total de votos de la mesa',
-      );
-    }
-
-    if (
-      !isOwnedCanonicalStoragePath({
-        tenantId,
-        module: 'e14',
-        path: e14ImageUrl,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-      })
-    ) {
-      throw new BadRequestException(
-        'El E-14 debe ser una ruta privada confirmada del tenant autenticado',
-      );
-    }
-
-    const access = await resolveTerritorialAccess({
-      client: this.prisma,
-      tenantId,
-      userId: witnessId,
-      allowedRoles: E14_OPERATION_ROLES,
-      territoriallyScopedRoles: TERRITORIALLY_SCOPED_E14_ROLES,
+    return this.witnessService.create(tenantId, witnessId, data, {
+      isSynced: true,
+      source: 'OFFLINE_SYNC',
     });
-
-    if (access.divisionIds !== null && !access.divisionIds.includes(puestoId)) {
-      throw new ForbiddenException(
-        'El puesto no pertenece a la asignación territorial del usuario',
-      );
-    }
-
-    const puesto = await this.prisma.politicalDivision.findFirst({
-      where: { id: puestoId, tenantId, type: DivisionType.PUESTO },
-      select: { id: true },
-    });
-
-    if (!puesto) {
-      throw new BadRequestException(
-        'Puesto inválido para la campaña autenticada',
-      );
-    }
-
-    // Buscar si ya existe un reporte para esta mesa en este puesto
-    const existing = await this.prisma.witnessReport.findFirst({
-      where: { puestoId, mesa, tenantId },
-      select: E14_REPORT_VIEW_SELECT,
-    });
-
-    if (existing) {
-      // Si existe y los datos de votos son diferentes, reportar conflicto
-      if (
-        existing.candidateVotes !== candidateVotes ||
-        existing.totalTableVotes !== totalTableVotes
-      ) {
-        console.warn(
-          `[Conflict] Mesa ${mesa} en Puesto ${puestoId} tiene datos discrepantes.`,
-        );
-        // Podríamos guardar el duplicado con un flag de conflicto en una tabla de auditoría
-        throw new ConflictException('CONFLICT');
-      }
-      // Si son iguales, simplemente ignoramos el duplicado (Idempotencia)
-      return existing;
-    }
-
-    // Crear el reporte si no existe
-    try {
-      return await this.prisma.$transaction(async (transaction) => {
-        const report = await transaction.witnessReport.create({
-          data: {
-            tenantId,
-            witnessId,
-            puestoId,
-            mesa,
-            e14ImageUrl,
-            candidateVotes,
-            totalTableVotes,
-            observations,
-            isSynced: true,
-          },
-          select: E14_REPORT_VIEW_SELECT,
-        });
-        await consumeConfirmedStorageUpload(
-          transaction,
-          tenantId,
-          e14ImageUrl,
-          StorageObjectModule.E14,
-          'WitnessReport',
-          report.id,
-        );
-        return report;
-      });
-    } catch (error: unknown) {
-      if (this.isPrismaUniqueViolation(error)) {
-        throw new ConflictException('CONFLICT');
-      }
-      throw error;
-    }
   }
 
   /**
@@ -317,19 +189,15 @@ export class LogisticsService {
   }
 
   private isPrismaUniqueViolation(error: unknown): boolean {
+    return this.isPrismaError(error, 'P2002');
+  }
+
+  private isPrismaError(error: unknown, code: string): boolean {
     return (
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      error.code === 'P2002'
+      error.code === code
     );
-  }
-
-  private async assertCampaignMode(tenantId: string): Promise<void> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: CAMPAIGN_TENANT_SELECT,
-    });
-    assertCampaignTenant(tenant);
   }
 }

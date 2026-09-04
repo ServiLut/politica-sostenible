@@ -30,7 +30,10 @@ const BLOCKED_LEGACY_ROUTES = new Set([
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/$/, "") || "/";
-  const canonicalPath = LEGACY_ROUTE_REDIRECTS[pathname];
+  const canonicalPath = Object.entries(LEGACY_ROUTE_REDIRECTS).find(
+    ([legacyPath]) =>
+      pathname === legacyPath || pathname.startsWith(`${legacyPath}/`),
+  )?.[1];
 
   if (canonicalPath) {
     return NextResponse.redirect(new URL(canonicalPath, request.url), 308);

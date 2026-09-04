@@ -187,6 +187,16 @@ export const FinanceStatus: {
 export type FinanceStatus = (typeof FinanceStatus)[keyof typeof FinanceStatus]
 
 
+export const WitnessReportStatus: {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+export type WitnessReportStatus = (typeof WitnessReportStatus)[keyof typeof WitnessReportStatus]
+
+
 export const MovementType: {
   IN: 'IN',
   OUT: 'OUT',
@@ -429,6 +439,10 @@ export const EntryType: typeof $Enums.EntryType
 export type FinanceStatus = $Enums.FinanceStatus
 
 export const FinanceStatus: typeof $Enums.FinanceStatus
+
+export type WitnessReportStatus = $Enums.WitnessReportStatus
+
+export const WitnessReportStatus: typeof $Enums.WitnessReportStatus
 
 export type MovementType = $Enums.MovementType
 
@@ -3207,6 +3221,7 @@ export namespace Prisma {
     financialEntriesReviewed: number
     registeredVoters: number
     witnessReports: number
+    witnessReportsReviewed: number
     pointLogs: number
     inventoryMoves: number
     consentsCaptured: number
@@ -3229,6 +3244,7 @@ export namespace Prisma {
     financialEntriesReviewed?: boolean | UserCountOutputTypeCountFinancialEntriesReviewedArgs
     registeredVoters?: boolean | UserCountOutputTypeCountRegisteredVotersArgs
     witnessReports?: boolean | UserCountOutputTypeCountWitnessReportsArgs
+    witnessReportsReviewed?: boolean | UserCountOutputTypeCountWitnessReportsReviewedArgs
     pointLogs?: boolean | UserCountOutputTypeCountPointLogsArgs
     inventoryMoves?: boolean | UserCountOutputTypeCountInventoryMovesArgs
     consentsCaptured?: boolean | UserCountOutputTypeCountConsentsCapturedArgs
@@ -3282,6 +3298,13 @@ export namespace Prisma {
    * UserCountOutputType without action
    */
   export type UserCountOutputTypeCountWitnessReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WitnessReportWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountWitnessReportsReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WitnessReportWhereInput
   }
 
@@ -3504,6 +3527,37 @@ export namespace Prisma {
    */
   export type VoterCountOutputTypeCountInteractionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InteractionWhereInput
+  }
+
+
+  /**
+   * Count Type WitnessReportCountOutputType
+   */
+
+  export type WitnessReportCountOutputType = {
+    supersededReports: number
+  }
+
+  export type WitnessReportCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    supersededReports?: boolean | WitnessReportCountOutputTypeCountSupersededReportsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * WitnessReportCountOutputType without action
+   */
+  export type WitnessReportCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WitnessReportCountOutputType
+     */
+    select?: WitnessReportCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * WitnessReportCountOutputType without action
+   */
+  export type WitnessReportCountOutputTypeCountSupersededReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WitnessReportWhereInput
   }
 
 
@@ -7705,6 +7759,8 @@ export namespace Prisma {
     id: string | null
     email: string | null
     password: string | null
+    mustChangePassword: boolean | null
+    temporaryPasswordExpiresAt: Date | null
     name: string | null
     role: $Enums.Role | null
     isActive: boolean | null
@@ -7721,6 +7777,8 @@ export namespace Prisma {
     id: string | null
     email: string | null
     password: string | null
+    mustChangePassword: boolean | null
+    temporaryPasswordExpiresAt: Date | null
     name: string | null
     role: $Enums.Role | null
     isActive: boolean | null
@@ -7737,6 +7795,8 @@ export namespace Prisma {
     id: number
     email: number
     password: number
+    mustChangePassword: number
+    temporaryPasswordExpiresAt: number
     name: number
     role: number
     isActive: number
@@ -7763,6 +7823,8 @@ export namespace Prisma {
     id?: true
     email?: true
     password?: true
+    mustChangePassword?: true
+    temporaryPasswordExpiresAt?: true
     name?: true
     role?: true
     isActive?: true
@@ -7779,6 +7841,8 @@ export namespace Prisma {
     id?: true
     email?: true
     password?: true
+    mustChangePassword?: true
+    temporaryPasswordExpiresAt?: true
     name?: true
     role?: true
     isActive?: true
@@ -7795,6 +7859,8 @@ export namespace Prisma {
     id?: true
     email?: true
     password?: true
+    mustChangePassword?: true
+    temporaryPasswordExpiresAt?: true
     name?: true
     role?: true
     isActive?: true
@@ -7898,10 +7964,12 @@ export namespace Prisma {
     id: string
     email: string
     password: string
+    mustChangePassword: boolean
+    temporaryPasswordExpiresAt: Date | null
     name: string
     role: $Enums.Role
     isActive: boolean
-    documentId: string
+    documentId: string | null
     phone: string | null
     points: number
     tenantId: string
@@ -7933,6 +8001,8 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     password?: boolean
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: boolean
     name?: boolean
     role?: boolean
     isActive?: boolean
@@ -7949,6 +8019,7 @@ export namespace Prisma {
     financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
+    witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
     inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
@@ -7971,6 +8042,8 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     password?: boolean
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: boolean
     name?: boolean
     role?: boolean
     isActive?: boolean
@@ -7989,6 +8062,8 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     password?: boolean
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: boolean
     name?: boolean
     role?: boolean
     isActive?: boolean
@@ -8007,6 +8082,8 @@ export namespace Prisma {
     id?: boolean
     email?: boolean
     password?: boolean
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: boolean
     name?: boolean
     role?: boolean
     isActive?: boolean
@@ -8019,7 +8096,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "name" | "role" | "isActive" | "documentId" | "phone" | "points" | "tenantId" | "divisionId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "mustChangePassword" | "temporaryPasswordExpiresAt" | "name" | "role" | "isActive" | "documentId" | "phone" | "points" | "tenantId" | "divisionId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     division?: boolean | User$divisionArgs<ExtArgs>
@@ -8027,6 +8104,7 @@ export namespace Prisma {
     financialEntriesReviewed?: boolean | User$financialEntriesReviewedArgs<ExtArgs>
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
+    witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
     pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
     inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
@@ -8062,6 +8140,7 @@ export namespace Prisma {
       financialEntriesReviewed: Prisma.$FinancialEntryPayload<ExtArgs>[]
       registeredVoters: Prisma.$VoterPayload<ExtArgs>[]
       witnessReports: Prisma.$WitnessReportPayload<ExtArgs>[]
+      witnessReportsReviewed: Prisma.$WitnessReportPayload<ExtArgs>[]
       pointLogs: Prisma.$PointLogPayload<ExtArgs>[]
       inventoryMoves: Prisma.$InventoryMovementPayload<ExtArgs>[]
       consentsCaptured: Prisma.$ConsentRecordPayload<ExtArgs>[]
@@ -8082,10 +8161,12 @@ export namespace Prisma {
       id: string
       email: string
       password: string
+      mustChangePassword: boolean
+      temporaryPasswordExpiresAt: Date | null
       name: string
       role: $Enums.Role
       isActive: boolean
-      documentId: string
+      documentId: string | null
       phone: string | null
       points: number
       tenantId: string
@@ -8492,6 +8573,7 @@ export namespace Prisma {
     financialEntriesReviewed<T extends User$financialEntriesReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$financialEntriesReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     registeredVoters<T extends User$registeredVotersArgs<ExtArgs> = {}>(args?: Subset<T, User$registeredVotersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VoterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReports<T extends User$witnessReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    witnessReportsReviewed<T extends User$witnessReportsReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pointLogs<T extends User$pointLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$pointLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventoryMoves<T extends User$inventoryMovesArgs<ExtArgs> = {}>(args?: Subset<T, User$inventoryMovesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentsCaptured<T extends User$consentsCapturedArgs<ExtArgs> = {}>(args?: Subset<T, User$consentsCapturedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -8539,6 +8621,8 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
     readonly password: FieldRef<"User", 'String'>
+    readonly mustChangePassword: FieldRef<"User", 'Boolean'>
+    readonly temporaryPasswordExpiresAt: FieldRef<"User", 'DateTime'>
     readonly name: FieldRef<"User", 'String'>
     readonly role: FieldRef<"User", 'Role'>
     readonly isActive: FieldRef<"User", 'Boolean'>
@@ -9044,6 +9128,30 @@ export namespace Prisma {
    * User.witnessReports
    */
   export type User$witnessReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WitnessReport
+     */
+    select?: WitnessReportSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WitnessReport
+     */
+    omit?: WitnessReportOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WitnessReportInclude<ExtArgs> | null
+    where?: WitnessReportWhereInput
+    orderBy?: WitnessReportOrderByWithRelationInput | WitnessReportOrderByWithRelationInput[]
+    cursor?: WitnessReportWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WitnessReportScalarFieldEnum | WitnessReportScalarFieldEnum[]
+  }
+
+  /**
+   * User.witnessReportsReviewed
+   */
+  export type User$witnessReportsReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the WitnessReport
      */
@@ -10585,8 +10693,18 @@ export namespace Prisma {
 
   export type AggregatePoliticalDivision = {
     _count: PoliticalDivisionCountAggregateOutputType | null
+    _avg: PoliticalDivisionAvgAggregateOutputType | null
+    _sum: PoliticalDivisionSumAggregateOutputType | null
     _min: PoliticalDivisionMinAggregateOutputType | null
     _max: PoliticalDivisionMaxAggregateOutputType | null
+  }
+
+  export type PoliticalDivisionAvgAggregateOutputType = {
+    expectedTables: number | null
+  }
+
+  export type PoliticalDivisionSumAggregateOutputType = {
+    expectedTables: number | null
   }
 
   export type PoliticalDivisionMinAggregateOutputType = {
@@ -10596,6 +10714,7 @@ export namespace Prisma {
     type: $Enums.DivisionType | null
     parentId: string | null
     tenantId: string | null
+    expectedTables: number | null
   }
 
   export type PoliticalDivisionMaxAggregateOutputType = {
@@ -10605,6 +10724,7 @@ export namespace Prisma {
     type: $Enums.DivisionType | null
     parentId: string | null
     tenantId: string | null
+    expectedTables: number | null
   }
 
   export type PoliticalDivisionCountAggregateOutputType = {
@@ -10614,9 +10734,18 @@ export namespace Prisma {
     type: number
     parentId: number
     tenantId: number
+    expectedTables: number
     _all: number
   }
 
+
+  export type PoliticalDivisionAvgAggregateInputType = {
+    expectedTables?: true
+  }
+
+  export type PoliticalDivisionSumAggregateInputType = {
+    expectedTables?: true
+  }
 
   export type PoliticalDivisionMinAggregateInputType = {
     id?: true
@@ -10625,6 +10754,7 @@ export namespace Prisma {
     type?: true
     parentId?: true
     tenantId?: true
+    expectedTables?: true
   }
 
   export type PoliticalDivisionMaxAggregateInputType = {
@@ -10634,6 +10764,7 @@ export namespace Prisma {
     type?: true
     parentId?: true
     tenantId?: true
+    expectedTables?: true
   }
 
   export type PoliticalDivisionCountAggregateInputType = {
@@ -10643,6 +10774,7 @@ export namespace Prisma {
     type?: true
     parentId?: true
     tenantId?: true
+    expectedTables?: true
     _all?: true
   }
 
@@ -10684,6 +10816,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: PoliticalDivisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PoliticalDivisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: PoliticalDivisionMinAggregateInputType
@@ -10714,6 +10858,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: PoliticalDivisionCountAggregateInputType | true
+    _avg?: PoliticalDivisionAvgAggregateInputType
+    _sum?: PoliticalDivisionSumAggregateInputType
     _min?: PoliticalDivisionMinAggregateInputType
     _max?: PoliticalDivisionMaxAggregateInputType
   }
@@ -10725,7 +10871,10 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId: string | null
     tenantId: string
+    expectedTables: number | null
     _count: PoliticalDivisionCountAggregateOutputType | null
+    _avg: PoliticalDivisionAvgAggregateOutputType | null
+    _sum: PoliticalDivisionSumAggregateOutputType | null
     _min: PoliticalDivisionMinAggregateOutputType | null
     _max: PoliticalDivisionMaxAggregateOutputType | null
   }
@@ -10751,6 +10900,7 @@ export namespace Prisma {
     type?: boolean
     parentId?: boolean
     tenantId?: boolean
+    expectedTables?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
     children?: boolean | PoliticalDivision$childrenArgs<ExtArgs>
@@ -10768,6 +10918,7 @@ export namespace Prisma {
     type?: boolean
     parentId?: boolean
     tenantId?: boolean
+    expectedTables?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
   }, ExtArgs["result"]["politicalDivision"]>
@@ -10779,6 +10930,7 @@ export namespace Prisma {
     type?: boolean
     parentId?: boolean
     tenantId?: boolean
+    expectedTables?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
   }, ExtArgs["result"]["politicalDivision"]>
@@ -10790,9 +10942,10 @@ export namespace Prisma {
     type?: boolean
     parentId?: boolean
     tenantId?: boolean
+    expectedTables?: boolean
   }
 
-  export type PoliticalDivisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "type" | "parentId" | "tenantId", ExtArgs["result"]["politicalDivision"]>
+  export type PoliticalDivisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "type" | "parentId" | "tenantId" | "expectedTables", ExtArgs["result"]["politicalDivision"]>
   export type PoliticalDivisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
@@ -10830,6 +10983,7 @@ export namespace Prisma {
       type: $Enums.DivisionType
       parentId: string | null
       tenantId: string
+      expectedTables: number | null
     }, ExtArgs["result"]["politicalDivision"]>
     composites: {}
   }
@@ -11266,6 +11420,7 @@ export namespace Prisma {
     readonly type: FieldRef<"PoliticalDivision", 'DivisionType'>
     readonly parentId: FieldRef<"PoliticalDivision", 'String'>
     readonly tenantId: FieldRef<"PoliticalDivision", 'String'>
+    readonly expectedTables: FieldRef<"PoliticalDivision", 'Int'>
   }
     
 
@@ -14530,7 +14685,13 @@ export namespace Prisma {
     totalTableVotes: number | null
     observations: string | null
     isSynced: boolean | null
+    status: $Enums.WitnessReportStatus | null
+    reviewerId: string | null
+    reviewReason: string | null
+    reviewedAt: Date | null
+    supersededById: string | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type WitnessReportMaxAggregateOutputType = {
@@ -14544,7 +14705,13 @@ export namespace Prisma {
     totalTableVotes: number | null
     observations: string | null
     isSynced: boolean | null
+    status: $Enums.WitnessReportStatus | null
+    reviewerId: string | null
+    reviewReason: string | null
+    reviewedAt: Date | null
+    supersededById: string | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type WitnessReportCountAggregateOutputType = {
@@ -14558,7 +14725,13 @@ export namespace Prisma {
     totalTableVotes: number
     observations: number
     isSynced: number
+    status: number
+    reviewerId: number
+    reviewReason: number
+    reviewedAt: number
+    supersededById: number
     createdAt: number
+    updatedAt: number
     _all: number
   }
 
@@ -14586,7 +14759,13 @@ export namespace Prisma {
     totalTableVotes?: true
     observations?: true
     isSynced?: true
+    status?: true
+    reviewerId?: true
+    reviewReason?: true
+    reviewedAt?: true
+    supersededById?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type WitnessReportMaxAggregateInputType = {
@@ -14600,7 +14779,13 @@ export namespace Prisma {
     totalTableVotes?: true
     observations?: true
     isSynced?: true
+    status?: true
+    reviewerId?: true
+    reviewReason?: true
+    reviewedAt?: true
+    supersededById?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type WitnessReportCountAggregateInputType = {
@@ -14614,7 +14799,13 @@ export namespace Prisma {
     totalTableVotes?: true
     observations?: true
     isSynced?: true
+    status?: true
+    reviewerId?: true
+    reviewReason?: true
+    reviewedAt?: true
+    supersededById?: true
     createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -14715,7 +14906,13 @@ export namespace Prisma {
     totalTableVotes: number
     observations: string | null
     isSynced: boolean
+    status: $Enums.WitnessReportStatus
+    reviewerId: string | null
+    reviewReason: string | null
+    reviewedAt: Date | null
+    supersededById: string | null
     createdAt: Date
+    updatedAt: Date
     _count: WitnessReportCountAggregateOutputType | null
     _avg: WitnessReportAvgAggregateOutputType | null
     _sum: WitnessReportSumAggregateOutputType | null
@@ -14748,10 +14945,20 @@ export namespace Prisma {
     totalTableVotes?: boolean
     observations?: boolean
     isSynced?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewReason?: boolean
+    reviewedAt?: boolean
+    supersededById?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
+    supersededReports?: boolean | WitnessReport$supersededReportsArgs<ExtArgs>
+    _count?: boolean | WitnessReportCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["witnessReport"]>
 
   export type WitnessReportSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14765,10 +14972,18 @@ export namespace Prisma {
     totalTableVotes?: boolean
     observations?: boolean
     isSynced?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewReason?: boolean
+    reviewedAt?: boolean
+    supersededById?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
   }, ExtArgs["result"]["witnessReport"]>
 
   export type WitnessReportSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14782,10 +14997,18 @@ export namespace Prisma {
     totalTableVotes?: boolean
     observations?: boolean
     isSynced?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewReason?: boolean
+    reviewedAt?: boolean
+    supersededById?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
   }, ExtArgs["result"]["witnessReport"]>
 
   export type WitnessReportSelectScalar = {
@@ -14799,24 +15022,38 @@ export namespace Prisma {
     totalTableVotes?: boolean
     observations?: boolean
     isSynced?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewReason?: boolean
+    reviewedAt?: boolean
+    supersededById?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "totalTableVotes" | "observations" | "isSynced" | "createdAt", ExtArgs["result"]["witnessReport"]>
+  export type WitnessReportOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "witnessId" | "puestoId" | "mesa" | "e14ImageUrl" | "candidateVotes" | "totalTableVotes" | "observations" | "isSynced" | "status" | "reviewerId" | "reviewReason" | "reviewedAt" | "supersededById" | "createdAt" | "updatedAt", ExtArgs["result"]["witnessReport"]>
   export type WitnessReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
+    supersededReports?: boolean | WitnessReport$supersededReportsArgs<ExtArgs>
+    _count?: boolean | WitnessReportCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type WitnessReportIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
   }
   export type WitnessReportIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     puesto?: boolean | PoliticalDivisionDefaultArgs<ExtArgs>
     witness?: boolean | UserDefaultArgs<ExtArgs>
+    reviewer?: boolean | WitnessReport$reviewerArgs<ExtArgs>
+    supersededBy?: boolean | WitnessReport$supersededByArgs<ExtArgs>
   }
 
   export type $WitnessReportPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -14825,6 +15062,9 @@ export namespace Prisma {
       tenant: Prisma.$TenantPayload<ExtArgs>
       puesto: Prisma.$PoliticalDivisionPayload<ExtArgs>
       witness: Prisma.$UserPayload<ExtArgs>
+      reviewer: Prisma.$UserPayload<ExtArgs> | null
+      supersededBy: Prisma.$WitnessReportPayload<ExtArgs> | null
+      supersededReports: Prisma.$WitnessReportPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14837,7 +15077,13 @@ export namespace Prisma {
       totalTableVotes: number
       observations: string | null
       isSynced: boolean
+      status: $Enums.WitnessReportStatus
+      reviewerId: string | null
+      reviewReason: string | null
+      reviewedAt: Date | null
+      supersededById: string | null
       createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["witnessReport"]>
     composites: {}
   }
@@ -15235,6 +15481,9 @@ export namespace Prisma {
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     puesto<T extends PoliticalDivisionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PoliticalDivisionDefaultArgs<ExtArgs>>): Prisma__PoliticalDivisionClient<$Result.GetResult<Prisma.$PoliticalDivisionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     witness<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    reviewer<T extends WitnessReport$reviewerArgs<ExtArgs> = {}>(args?: Subset<T, WitnessReport$reviewerArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    supersededBy<T extends WitnessReport$supersededByArgs<ExtArgs> = {}>(args?: Subset<T, WitnessReport$supersededByArgs<ExtArgs>>): Prisma__WitnessReportClient<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    supersededReports<T extends WitnessReport$supersededReportsArgs<ExtArgs> = {}>(args?: Subset<T, WitnessReport$supersededReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -15274,7 +15523,13 @@ export namespace Prisma {
     readonly totalTableVotes: FieldRef<"WitnessReport", 'Int'>
     readonly observations: FieldRef<"WitnessReport", 'String'>
     readonly isSynced: FieldRef<"WitnessReport", 'Boolean'>
+    readonly status: FieldRef<"WitnessReport", 'WitnessReportStatus'>
+    readonly reviewerId: FieldRef<"WitnessReport", 'String'>
+    readonly reviewReason: FieldRef<"WitnessReport", 'String'>
+    readonly reviewedAt: FieldRef<"WitnessReport", 'DateTime'>
+    readonly supersededById: FieldRef<"WitnessReport", 'String'>
     readonly createdAt: FieldRef<"WitnessReport", 'DateTime'>
+    readonly updatedAt: FieldRef<"WitnessReport", 'DateTime'>
   }
     
 
@@ -15673,6 +15928,68 @@ export namespace Prisma {
      * Limit how many WitnessReports to delete.
      */
     limit?: number
+  }
+
+  /**
+   * WitnessReport.reviewer
+   */
+  export type WitnessReport$reviewerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * WitnessReport.supersededBy
+   */
+  export type WitnessReport$supersededByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WitnessReport
+     */
+    select?: WitnessReportSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WitnessReport
+     */
+    omit?: WitnessReportOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WitnessReportInclude<ExtArgs> | null
+    where?: WitnessReportWhereInput
+  }
+
+  /**
+   * WitnessReport.supersededReports
+   */
+  export type WitnessReport$supersededReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WitnessReport
+     */
+    select?: WitnessReportSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WitnessReport
+     */
+    omit?: WitnessReportOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WitnessReportInclude<ExtArgs> | null
+    where?: WitnessReportWhereInput
+    orderBy?: WitnessReportOrderByWithRelationInput | WitnessReportOrderByWithRelationInput[]
+    cursor?: WitnessReportWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WitnessReportScalarFieldEnum | WitnessReportScalarFieldEnum[]
   }
 
   /**
@@ -29752,6 +30069,8 @@ export namespace Prisma {
     id: 'id',
     email: 'email',
     password: 'password',
+    mustChangePassword: 'mustChangePassword',
+    temporaryPasswordExpiresAt: 'temporaryPasswordExpiresAt',
     name: 'name',
     role: 'role',
     isActive: 'isActive',
@@ -29789,7 +30108,8 @@ export namespace Prisma {
     name: 'name',
     type: 'type',
     parentId: 'parentId',
-    tenantId: 'tenantId'
+    tenantId: 'tenantId',
+    expectedTables: 'expectedTables'
   };
 
   export type PoliticalDivisionScalarFieldEnum = (typeof PoliticalDivisionScalarFieldEnum)[keyof typeof PoliticalDivisionScalarFieldEnum]
@@ -29853,7 +30173,13 @@ export namespace Prisma {
     totalTableVotes: 'totalTableVotes',
     observations: 'observations',
     isSynced: 'isSynced',
-    createdAt: 'createdAt'
+    status: 'status',
+    reviewerId: 'reviewerId',
+    reviewReason: 'reviewReason',
+    reviewedAt: 'reviewedAt',
+    supersededById: 'supersededById',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type WitnessReportScalarFieldEnum = (typeof WitnessReportScalarFieldEnum)[keyof typeof WitnessReportScalarFieldEnum]
@@ -30262,6 +30588,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'Role'
    */
   export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
@@ -30272,13 +30605,6 @@ export namespace Prisma {
    * Reference to a field of type 'Role[]'
    */
   export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -30335,6 +30661,20 @@ export namespace Prisma {
    * Reference to a field of type 'FinanceStatus[]'
    */
   export type ListEnumFinanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinanceStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'WitnessReportStatus'
+   */
+  export type EnumWitnessReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WitnessReportStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'WitnessReportStatus[]'
+   */
+  export type ListEnumWitnessReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WitnessReportStatus[]'>
     
 
 
@@ -30907,10 +31247,12 @@ export namespace Prisma {
     id?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
     password?: StringFilter<"User"> | string
+    mustChangePassword?: BoolFilter<"User"> | boolean
+    temporaryPasswordExpiresAt?: DateTimeNullableFilter<"User"> | Date | string | null
     name?: StringFilter<"User"> | string
     role?: EnumRoleFilter<"User"> | $Enums.Role
     isActive?: BoolFilter<"User"> | boolean
-    documentId?: StringFilter<"User"> | string
+    documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
@@ -30923,6 +31265,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
+    witnessReportsReviewed?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
     inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
@@ -30944,10 +31287,12 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     password?: SortOrder
+    mustChangePassword?: SortOrder
+    temporaryPasswordExpiresAt?: SortOrderInput | SortOrder
     name?: SortOrder
     role?: SortOrder
     isActive?: SortOrder
-    documentId?: SortOrder
+    documentId?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
     points?: SortOrder
     tenantId?: SortOrder
@@ -30960,6 +31305,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryOrderByRelationAggregateInput
     registeredVoters?: VoterOrderByRelationAggregateInput
     witnessReports?: WitnessReportOrderByRelationAggregateInput
+    witnessReportsReviewed?: WitnessReportOrderByRelationAggregateInput
     pointLogs?: PointLogOrderByRelationAggregateInput
     inventoryMoves?: InventoryMovementOrderByRelationAggregateInput
     consentsCaptured?: ConsentRecordOrderByRelationAggregateInput
@@ -30986,10 +31332,12 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     password?: StringFilter<"User"> | string
+    mustChangePassword?: BoolFilter<"User"> | boolean
+    temporaryPasswordExpiresAt?: DateTimeNullableFilter<"User"> | Date | string | null
     name?: StringFilter<"User"> | string
     role?: EnumRoleFilter<"User"> | $Enums.Role
     isActive?: BoolFilter<"User"> | boolean
-    documentId?: StringFilter<"User"> | string
+    documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
@@ -31002,6 +31350,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryListRelationFilter
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
+    witnessReportsReviewed?: WitnessReportListRelationFilter
     pointLogs?: PointLogListRelationFilter
     inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
@@ -31023,10 +31372,12 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     password?: SortOrder
+    mustChangePassword?: SortOrder
+    temporaryPasswordExpiresAt?: SortOrderInput | SortOrder
     name?: SortOrder
     role?: SortOrder
     isActive?: SortOrder
-    documentId?: SortOrder
+    documentId?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
     points?: SortOrder
     tenantId?: SortOrder
@@ -31047,10 +31398,12 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
     password?: StringWithAggregatesFilter<"User"> | string
+    mustChangePassword?: BoolWithAggregatesFilter<"User"> | boolean
+    temporaryPasswordExpiresAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     name?: StringWithAggregatesFilter<"User"> | string
     role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
     isActive?: BoolWithAggregatesFilter<"User"> | boolean
-    documentId?: StringWithAggregatesFilter<"User"> | string
+    documentId?: StringNullableWithAggregatesFilter<"User"> | string | null
     phone?: StringNullableWithAggregatesFilter<"User"> | string | null
     points?: IntWithAggregatesFilter<"User"> | number
     tenantId?: StringWithAggregatesFilter<"User"> | string
@@ -31153,6 +31506,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFilter<"PoliticalDivision"> | $Enums.DivisionType
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
+    expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     parent?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     children?: PoliticalDivisionListRelationFilter
@@ -31169,6 +31523,7 @@ export namespace Prisma {
     type?: SortOrder
     parentId?: SortOrderInput | SortOrder
     tenantId?: SortOrder
+    expectedTables?: SortOrderInput | SortOrder
     tenant?: TenantOrderByWithRelationInput
     parent?: PoliticalDivisionOrderByWithRelationInput
     children?: PoliticalDivisionOrderByRelationAggregateInput
@@ -31190,6 +31545,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFilter<"PoliticalDivision"> | $Enums.DivisionType
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
+    expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     parent?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     children?: PoliticalDivisionListRelationFilter
@@ -31206,9 +31562,12 @@ export namespace Prisma {
     type?: SortOrder
     parentId?: SortOrderInput | SortOrder
     tenantId?: SortOrder
+    expectedTables?: SortOrderInput | SortOrder
     _count?: PoliticalDivisionCountOrderByAggregateInput
+    _avg?: PoliticalDivisionAvgOrderByAggregateInput
     _max?: PoliticalDivisionMaxOrderByAggregateInput
     _min?: PoliticalDivisionMinOrderByAggregateInput
+    _sum?: PoliticalDivisionSumOrderByAggregateInput
   }
 
   export type PoliticalDivisionScalarWhereWithAggregatesInput = {
@@ -31221,6 +31580,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeWithAggregatesFilter<"PoliticalDivision"> | $Enums.DivisionType
     parentId?: StringNullableWithAggregatesFilter<"PoliticalDivision"> | string | null
     tenantId?: StringWithAggregatesFilter<"PoliticalDivision"> | string
+    expectedTables?: IntNullableWithAggregatesFilter<"PoliticalDivision"> | number | null
   }
 
   export type VoterWhereInput = {
@@ -31500,10 +31860,19 @@ export namespace Prisma {
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     isSynced?: BoolFilter<"WitnessReport"> | boolean
+    status?: EnumWitnessReportStatusFilter<"WitnessReport"> | $Enums.WitnessReportStatus
+    reviewerId?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewReason?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    supersededById?: StringNullableFilter<"WitnessReport"> | string | null
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
+    updatedAt?: DateTimeFilter<"WitnessReport"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     puesto?: XOR<PoliticalDivisionScalarRelationFilter, PoliticalDivisionWhereInput>
     witness?: XOR<UserScalarRelationFilter, UserWhereInput>
+    reviewer?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    supersededBy?: XOR<WitnessReportNullableScalarRelationFilter, WitnessReportWhereInput> | null
+    supersededReports?: WitnessReportListRelationFilter
   }
 
   export type WitnessReportOrderByWithRelationInput = {
@@ -31517,17 +31886,25 @@ export namespace Prisma {
     totalTableVotes?: SortOrder
     observations?: SortOrderInput | SortOrder
     isSynced?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrderInput | SortOrder
+    reviewReason?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    supersededById?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     puesto?: PoliticalDivisionOrderByWithRelationInput
     witness?: UserOrderByWithRelationInput
+    reviewer?: UserOrderByWithRelationInput
+    supersededBy?: WitnessReportOrderByWithRelationInput
+    supersededReports?: WitnessReportOrderByRelationAggregateInput
   }
 
   export type WitnessReportWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     e14ImageUrl?: string
     id_tenantId?: WitnessReportIdTenantIdCompoundUniqueInput
-    tenantId_puestoId_mesa?: WitnessReportTenantIdPuestoIdMesaCompoundUniqueInput
     AND?: WitnessReportWhereInput | WitnessReportWhereInput[]
     OR?: WitnessReportWhereInput[]
     NOT?: WitnessReportWhereInput | WitnessReportWhereInput[]
@@ -31539,11 +31916,20 @@ export namespace Prisma {
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     isSynced?: BoolFilter<"WitnessReport"> | boolean
+    status?: EnumWitnessReportStatusFilter<"WitnessReport"> | $Enums.WitnessReportStatus
+    reviewerId?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewReason?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    supersededById?: StringNullableFilter<"WitnessReport"> | string | null
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
+    updatedAt?: DateTimeFilter<"WitnessReport"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     puesto?: XOR<PoliticalDivisionScalarRelationFilter, PoliticalDivisionWhereInput>
     witness?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id" | "e14ImageUrl" | "id_tenantId" | "tenantId_puestoId_mesa">
+    reviewer?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    supersededBy?: XOR<WitnessReportNullableScalarRelationFilter, WitnessReportWhereInput> | null
+    supersededReports?: WitnessReportListRelationFilter
+  }, "id" | "e14ImageUrl" | "id_tenantId">
 
   export type WitnessReportOrderByWithAggregationInput = {
     id?: SortOrder
@@ -31556,7 +31942,13 @@ export namespace Prisma {
     totalTableVotes?: SortOrder
     observations?: SortOrderInput | SortOrder
     isSynced?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrderInput | SortOrder
+    reviewReason?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    supersededById?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: WitnessReportCountOrderByAggregateInput
     _avg?: WitnessReportAvgOrderByAggregateInput
     _max?: WitnessReportMaxOrderByAggregateInput
@@ -31578,7 +31970,13 @@ export namespace Prisma {
     totalTableVotes?: IntWithAggregatesFilter<"WitnessReport"> | number
     observations?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
     isSynced?: BoolWithAggregatesFilter<"WitnessReport"> | boolean
+    status?: EnumWitnessReportStatusWithAggregatesFilter<"WitnessReport"> | $Enums.WitnessReportStatus
+    reviewerId?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
+    reviewReason?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"WitnessReport"> | Date | string | null
+    supersededById?: StringNullableWithAggregatesFilter<"WitnessReport"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WitnessReport"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"WitnessReport"> | Date | string
   }
 
   export type CampaignEventWhereInput = {
@@ -33170,10 +33568,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -33184,6 +33584,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -33205,10 +33606,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -33219,6 +33622,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -33240,10 +33644,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33254,6 +33660,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -33275,10 +33682,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -33289,6 +33698,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -33310,10 +33720,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -33326,10 +33738,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33340,10 +33754,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -33446,6 +33862,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -33462,6 +33879,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -33474,6 +33892,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -33490,6 +33909,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -33504,6 +33924,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
   }
 
   export type PoliticalDivisionUpdateManyMutationInput = {
@@ -33511,6 +33932,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type PoliticalDivisionUncheckedUpdateManyInput = {
@@ -33520,6 +33942,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type VoterCreateInput = {
@@ -33823,10 +34246,17 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutWitnessesInput
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
     witness: UserCreateNestedOneWithoutWitnessReportsInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportUncheckedCreateInput = {
@@ -33840,7 +34270,14 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportUpdateInput = {
@@ -33851,10 +34288,17 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
     witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateInput = {
@@ -33868,7 +34312,14 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportCreateManyInput = {
@@ -33882,7 +34333,13 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type WitnessReportUpdateManyMutationInput = {
@@ -33893,7 +34350,11 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WitnessReportUncheckedUpdateManyInput = {
@@ -33907,7 +34368,13 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CampaignEventCreateInput = {
@@ -35893,16 +36360,16 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type EnumRoleFilter<$PrismaModel = never> = {
     equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
     in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
     notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
     not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
-  }
-
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type PoliticalDivisionNullableScalarRelationFilter = {
@@ -35924,6 +36391,8 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     password?: SortOrder
+    mustChangePassword?: SortOrder
+    temporaryPasswordExpiresAt?: SortOrder
     name?: SortOrder
     role?: SortOrder
     isActive?: SortOrder
@@ -35944,6 +36413,8 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     password?: SortOrder
+    mustChangePassword?: SortOrder
+    temporaryPasswordExpiresAt?: SortOrder
     name?: SortOrder
     role?: SortOrder
     isActive?: SortOrder
@@ -35960,6 +36431,8 @@ export namespace Prisma {
     id?: SortOrder
     email?: SortOrder
     password?: SortOrder
+    mustChangePassword?: SortOrder
+    temporaryPasswordExpiresAt?: SortOrder
     name?: SortOrder
     role?: SortOrder
     isActive?: SortOrder
@@ -35976,6 +36449,14 @@ export namespace Prisma {
     points?: SortOrder
   }
 
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type EnumRoleWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
     in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
@@ -35984,14 +36465,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRoleFilter<$PrismaModel>
     _max?: NestedEnumRoleFilter<$PrismaModel>
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type TeamInvitationIdTenantIdCompoundUniqueInput = {
@@ -36063,6 +36536,11 @@ export namespace Prisma {
     type?: SortOrder
     parentId?: SortOrder
     tenantId?: SortOrder
+    expectedTables?: SortOrder
+  }
+
+  export type PoliticalDivisionAvgOrderByAggregateInput = {
+    expectedTables?: SortOrder
   }
 
   export type PoliticalDivisionMaxOrderByAggregateInput = {
@@ -36072,6 +36550,7 @@ export namespace Prisma {
     type?: SortOrder
     parentId?: SortOrder
     tenantId?: SortOrder
+    expectedTables?: SortOrder
   }
 
   export type PoliticalDivisionMinOrderByAggregateInput = {
@@ -36081,6 +36560,11 @@ export namespace Prisma {
     type?: SortOrder
     parentId?: SortOrder
     tenantId?: SortOrder
+    expectedTables?: SortOrder
+  }
+
+  export type PoliticalDivisionSumOrderByAggregateInput = {
+    expectedTables?: SortOrder
   }
 
   export type EnumDivisionTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -36301,20 +36785,26 @@ export namespace Prisma {
     _max?: NestedEnumFinanceStatusFilter<$PrismaModel>
   }
 
+  export type EnumWitnessReportStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.WitnessReportStatus | EnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWitnessReportStatusFilter<$PrismaModel> | $Enums.WitnessReportStatus
+  }
+
   export type PoliticalDivisionScalarRelationFilter = {
     is?: PoliticalDivisionWhereInput
     isNot?: PoliticalDivisionWhereInput
   }
 
+  export type WitnessReportNullableScalarRelationFilter = {
+    is?: WitnessReportWhereInput | null
+    isNot?: WitnessReportWhereInput | null
+  }
+
   export type WitnessReportIdTenantIdCompoundUniqueInput = {
     id: string
     tenantId: string
-  }
-
-  export type WitnessReportTenantIdPuestoIdMesaCompoundUniqueInput = {
-    tenantId: string
-    puestoId: string
-    mesa: number
   }
 
   export type WitnessReportCountOrderByAggregateInput = {
@@ -36328,7 +36818,13 @@ export namespace Prisma {
     totalTableVotes?: SortOrder
     observations?: SortOrder
     isSynced?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewReason?: SortOrder
+    reviewedAt?: SortOrder
+    supersededById?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type WitnessReportAvgOrderByAggregateInput = {
@@ -36348,7 +36844,13 @@ export namespace Prisma {
     totalTableVotes?: SortOrder
     observations?: SortOrder
     isSynced?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewReason?: SortOrder
+    reviewedAt?: SortOrder
+    supersededById?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type WitnessReportMinOrderByAggregateInput = {
@@ -36362,13 +36864,29 @@ export namespace Prisma {
     totalTableVotes?: SortOrder
     observations?: SortOrder
     isSynced?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewReason?: SortOrder
+    reviewedAt?: SortOrder
+    supersededById?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type WitnessReportSumOrderByAggregateInput = {
     mesa?: SortOrder
     candidateVotes?: SortOrder
     totalTableVotes?: SortOrder
+  }
+
+  export type EnumWitnessReportStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WitnessReportStatus | EnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWitnessReportStatusWithAggregatesFilter<$PrismaModel> | $Enums.WitnessReportStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWitnessReportStatusFilter<$PrismaModel>
+    _max?: NestedEnumWitnessReportStatusFilter<$PrismaModel>
   }
 
   export type EnumCampaignEventStatusFilter<$PrismaModel = never> = {
@@ -38310,6 +38828,13 @@ export namespace Prisma {
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
   }
 
+  export type WitnessReportCreateNestedManyWithoutReviewerInput = {
+    create?: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput> | WitnessReportCreateWithoutReviewerInput[] | WitnessReportUncheckedCreateWithoutReviewerInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutReviewerInput | WitnessReportCreateOrConnectWithoutReviewerInput[]
+    createMany?: WitnessReportCreateManyReviewerInputEnvelope
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+  }
+
   export type PointLogCreateNestedManyWithoutUserInput = {
     create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
     connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
@@ -38443,6 +38968,13 @@ export namespace Prisma {
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
   }
 
+  export type WitnessReportUncheckedCreateNestedManyWithoutReviewerInput = {
+    create?: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput> | WitnessReportCreateWithoutReviewerInput[] | WitnessReportUncheckedCreateWithoutReviewerInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutReviewerInput | WitnessReportCreateOrConnectWithoutReviewerInput[]
+    createMany?: WitnessReportCreateManyReviewerInputEnvelope
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+  }
+
   export type PointLogUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
     connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
@@ -38548,12 +39080,12 @@ export namespace Prisma {
     connect?: StoredObjectWhereUniqueInput | StoredObjectWhereUniqueInput[]
   }
 
-  export type EnumRoleFieldUpdateOperationsInput = {
-    set?: $Enums.Role
-  }
-
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
+  }
+
+  export type EnumRoleFieldUpdateOperationsInput = {
+    set?: $Enums.Role
   }
 
   export type TenantUpdateOneRequiredWithoutUsersNestedInput = {
@@ -38627,6 +39159,20 @@ export namespace Prisma {
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
     update?: WitnessReportUpdateWithWhereUniqueWithoutWitnessInput | WitnessReportUpdateWithWhereUniqueWithoutWitnessInput[]
     updateMany?: WitnessReportUpdateManyWithWhereWithoutWitnessInput | WitnessReportUpdateManyWithWhereWithoutWitnessInput[]
+    deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
+  }
+
+  export type WitnessReportUpdateManyWithoutReviewerNestedInput = {
+    create?: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput> | WitnessReportCreateWithoutReviewerInput[] | WitnessReportUncheckedCreateWithoutReviewerInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutReviewerInput | WitnessReportCreateOrConnectWithoutReviewerInput[]
+    upsert?: WitnessReportUpsertWithWhereUniqueWithoutReviewerInput | WitnessReportUpsertWithWhereUniqueWithoutReviewerInput[]
+    createMany?: WitnessReportCreateManyReviewerInputEnvelope
+    set?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    disconnect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    delete?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    update?: WitnessReportUpdateWithWhereUniqueWithoutReviewerInput | WitnessReportUpdateWithWhereUniqueWithoutReviewerInput[]
+    updateMany?: WitnessReportUpdateManyWithWhereWithoutReviewerInput | WitnessReportUpdateManyWithWhereWithoutReviewerInput[]
     deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
   }
 
@@ -38893,6 +39439,20 @@ export namespace Prisma {
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
     update?: WitnessReportUpdateWithWhereUniqueWithoutWitnessInput | WitnessReportUpdateWithWhereUniqueWithoutWitnessInput[]
     updateMany?: WitnessReportUpdateManyWithWhereWithoutWitnessInput | WitnessReportUpdateManyWithWhereWithoutWitnessInput[]
+    deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
+  }
+
+  export type WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput = {
+    create?: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput> | WitnessReportCreateWithoutReviewerInput[] | WitnessReportUncheckedCreateWithoutReviewerInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutReviewerInput | WitnessReportCreateOrConnectWithoutReviewerInput[]
+    upsert?: WitnessReportUpsertWithWhereUniqueWithoutReviewerInput | WitnessReportUpsertWithWhereUniqueWithoutReviewerInput[]
+    createMany?: WitnessReportCreateManyReviewerInputEnvelope
+    set?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    disconnect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    delete?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    update?: WitnessReportUpdateWithWhereUniqueWithoutReviewerInput | WitnessReportUpdateWithWhereUniqueWithoutReviewerInput[]
+    updateMany?: WitnessReportUpdateManyWithWhereWithoutReviewerInput | WitnessReportUpdateManyWithWhereWithoutReviewerInput[]
     deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
   }
 
@@ -39622,6 +40182,36 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type UserCreateNestedOneWithoutWitnessReportsReviewedInput = {
+    create?: XOR<UserCreateWithoutWitnessReportsReviewedInput, UserUncheckedCreateWithoutWitnessReportsReviewedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWitnessReportsReviewedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type WitnessReportCreateNestedOneWithoutSupersededReportsInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededReportsInput, WitnessReportUncheckedCreateWithoutSupersededReportsInput>
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededReportsInput
+    connect?: WitnessReportWhereUniqueInput
+  }
+
+  export type WitnessReportCreateNestedManyWithoutSupersededByInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput> | WitnessReportCreateWithoutSupersededByInput[] | WitnessReportUncheckedCreateWithoutSupersededByInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededByInput | WitnessReportCreateOrConnectWithoutSupersededByInput[]
+    createMany?: WitnessReportCreateManySupersededByInputEnvelope
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+  }
+
+  export type WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput> | WitnessReportCreateWithoutSupersededByInput[] | WitnessReportUncheckedCreateWithoutSupersededByInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededByInput | WitnessReportCreateOrConnectWithoutSupersededByInput[]
+    createMany?: WitnessReportCreateManySupersededByInputEnvelope
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+  }
+
+  export type EnumWitnessReportStatusFieldUpdateOperationsInput = {
+    set?: $Enums.WitnessReportStatus
+  }
+
   export type TenantUpdateOneRequiredWithoutWitnessesNestedInput = {
     create?: XOR<TenantCreateWithoutWitnessesInput, TenantUncheckedCreateWithoutWitnessesInput>
     connectOrCreate?: TenantCreateOrConnectWithoutWitnessesInput
@@ -39644,6 +40234,54 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutWitnessReportsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutWitnessReportsInput, UserUpdateWithoutWitnessReportsInput>, UserUncheckedUpdateWithoutWitnessReportsInput>
+  }
+
+  export type UserUpdateOneWithoutWitnessReportsReviewedNestedInput = {
+    create?: XOR<UserCreateWithoutWitnessReportsReviewedInput, UserUncheckedCreateWithoutWitnessReportsReviewedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWitnessReportsReviewedInput
+    upsert?: UserUpsertWithoutWitnessReportsReviewedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutWitnessReportsReviewedInput, UserUpdateWithoutWitnessReportsReviewedInput>, UserUncheckedUpdateWithoutWitnessReportsReviewedInput>
+  }
+
+  export type WitnessReportUpdateOneWithoutSupersededReportsNestedInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededReportsInput, WitnessReportUncheckedCreateWithoutSupersededReportsInput>
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededReportsInput
+    upsert?: WitnessReportUpsertWithoutSupersededReportsInput
+    disconnect?: WitnessReportWhereInput | boolean
+    delete?: WitnessReportWhereInput | boolean
+    connect?: WitnessReportWhereUniqueInput
+    update?: XOR<XOR<WitnessReportUpdateToOneWithWhereWithoutSupersededReportsInput, WitnessReportUpdateWithoutSupersededReportsInput>, WitnessReportUncheckedUpdateWithoutSupersededReportsInput>
+  }
+
+  export type WitnessReportUpdateManyWithoutSupersededByNestedInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput> | WitnessReportCreateWithoutSupersededByInput[] | WitnessReportUncheckedCreateWithoutSupersededByInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededByInput | WitnessReportCreateOrConnectWithoutSupersededByInput[]
+    upsert?: WitnessReportUpsertWithWhereUniqueWithoutSupersededByInput | WitnessReportUpsertWithWhereUniqueWithoutSupersededByInput[]
+    createMany?: WitnessReportCreateManySupersededByInputEnvelope
+    set?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    disconnect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    delete?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    update?: WitnessReportUpdateWithWhereUniqueWithoutSupersededByInput | WitnessReportUpdateWithWhereUniqueWithoutSupersededByInput[]
+    updateMany?: WitnessReportUpdateManyWithWhereWithoutSupersededByInput | WitnessReportUpdateManyWithWhereWithoutSupersededByInput[]
+    deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
+  }
+
+  export type WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput = {
+    create?: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput> | WitnessReportCreateWithoutSupersededByInput[] | WitnessReportUncheckedCreateWithoutSupersededByInput[]
+    connectOrCreate?: WitnessReportCreateOrConnectWithoutSupersededByInput | WitnessReportCreateOrConnectWithoutSupersededByInput[]
+    upsert?: WitnessReportUpsertWithWhereUniqueWithoutSupersededByInput | WitnessReportUpsertWithWhereUniqueWithoutSupersededByInput[]
+    createMany?: WitnessReportCreateManySupersededByInputEnvelope
+    set?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    disconnect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    delete?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
+    update?: WitnessReportUpdateWithWhereUniqueWithoutSupersededByInput | WitnessReportUpdateWithWhereUniqueWithoutSupersededByInput[]
+    updateMany?: WitnessReportUpdateManyWithWhereWithoutSupersededByInput | WitnessReportUpdateManyWithWhereWithoutSupersededByInput[]
+    deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
   }
 
   export type TenantCreateNestedOneWithoutEventsInput = {
@@ -40900,6 +41538,11 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type NestedEnumRoleFilter<$PrismaModel = never> = {
     equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
     in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
@@ -40907,9 +41550,12 @@ export namespace Prisma {
     not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumRoleWithAggregatesFilter<$PrismaModel = never> = {
@@ -40920,14 +41566,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRoleFilter<$PrismaModel>
     _max?: NestedEnumRoleFilter<$PrismaModel>
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumDivisionTypeFilter<$PrismaModel = never> = {
@@ -40996,6 +41634,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumFinanceStatusFilter<$PrismaModel>
     _max?: NestedEnumFinanceStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumWitnessReportStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.WitnessReportStatus | EnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWitnessReportStatusFilter<$PrismaModel> | $Enums.WitnessReportStatus
+  }
+
+  export type NestedEnumWitnessReportStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WitnessReportStatus | EnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WitnessReportStatus[] | ListEnumWitnessReportStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWitnessReportStatusWithAggregatesFilter<$PrismaModel> | $Enums.WitnessReportStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWitnessReportStatusFilter<$PrismaModel>
+    _max?: NestedEnumWitnessReportStatusFilter<$PrismaModel>
   }
 
   export type NestedEnumCampaignEventStatusFilter<$PrismaModel = never> = {
@@ -41335,10 +41990,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -41348,6 +42005,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -41369,10 +42027,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     divisionId?: string | null
@@ -41382,6 +42042,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -41414,6 +42075,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -41428,6 +42090,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     parentId?: string | null
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -41557,9 +42220,16 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
     witness: UserCreateNestedOneWithoutWitnessReportsInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportUncheckedCreateWithoutTenantInput = {
@@ -41572,7 +42242,14 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportCreateOrConnectWithoutTenantInput = {
@@ -42201,10 +42878,12 @@ export namespace Prisma {
     id?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
     password?: StringFilter<"User"> | string
+    mustChangePassword?: BoolFilter<"User"> | boolean
+    temporaryPasswordExpiresAt?: DateTimeNullableFilter<"User"> | Date | string | null
     name?: StringFilter<"User"> | string
     role?: EnumRoleFilter<"User"> | $Enums.Role
     isActive?: BoolFilter<"User"> | boolean
-    documentId?: StringFilter<"User"> | string
+    documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
@@ -42239,6 +42918,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFilter<"PoliticalDivision"> | $Enums.DivisionType
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
+    expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
   }
 
   export type VoterUpsertWithWhereUniqueWithoutTenantInput = {
@@ -42350,7 +43030,13 @@ export namespace Prisma {
     totalTableVotes?: IntFilter<"WitnessReport"> | number
     observations?: StringNullableFilter<"WitnessReport"> | string | null
     isSynced?: BoolFilter<"WitnessReport"> | boolean
+    status?: EnumWitnessReportStatusFilter<"WitnessReport"> | $Enums.WitnessReportStatus
+    reviewerId?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewReason?: StringNullableFilter<"WitnessReport"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"WitnessReport"> | Date | string | null
+    supersededById?: StringNullableFilter<"WitnessReport"> | string | null
     createdAt?: DateTimeFilter<"WitnessReport"> | Date | string
+    updatedAt?: DateTimeFilter<"WitnessReport"> | Date | string
   }
 
   export type CampaignEventUpsertWithWhereUniqueWithoutTenantInput = {
@@ -43022,10 +43708,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -43036,6 +43724,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -43056,10 +43745,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -43070,6 +43761,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -43175,10 +43867,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -43189,6 +43883,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -43209,10 +43904,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -43223,6 +43920,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -43307,6 +44005,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -43322,6 +44021,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -43490,9 +44190,16 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutWitnessesInput
     puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportUncheckedCreateWithoutWitnessInput = {
@@ -43504,7 +44211,14 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportCreateOrConnectWithoutWitnessInput = {
@@ -43514,6 +44228,55 @@ export namespace Prisma {
 
   export type WitnessReportCreateManyWitnessInputEnvelope = {
     data: WitnessReportCreateManyWitnessInput | WitnessReportCreateManyWitnessInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WitnessReportCreateWithoutReviewerInput = {
+    id?: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutWitnessesInput
+    puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
+    witness: UserCreateNestedOneWithoutWitnessReportsInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
+  }
+
+  export type WitnessReportUncheckedCreateWithoutReviewerInput = {
+    id?: string
+    witnessId: string
+    puestoId: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
+  }
+
+  export type WitnessReportCreateOrConnectWithoutReviewerInput = {
+    where: WitnessReportWhereUniqueInput
+    create: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput>
+  }
+
+  export type WitnessReportCreateManyReviewerInputEnvelope = {
+    data: WitnessReportCreateManyReviewerInput | WitnessReportCreateManyReviewerInput[]
     skipDuplicates?: boolean
   }
 
@@ -44279,6 +45042,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -44294,6 +45058,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -44362,6 +45127,22 @@ export namespace Prisma {
   export type WitnessReportUpdateManyWithWhereWithoutWitnessInput = {
     where: WitnessReportScalarWhereInput
     data: XOR<WitnessReportUpdateManyMutationInput, WitnessReportUncheckedUpdateManyWithoutWitnessInput>
+  }
+
+  export type WitnessReportUpsertWithWhereUniqueWithoutReviewerInput = {
+    where: WitnessReportWhereUniqueInput
+    update: XOR<WitnessReportUpdateWithoutReviewerInput, WitnessReportUncheckedUpdateWithoutReviewerInput>
+    create: XOR<WitnessReportCreateWithoutReviewerInput, WitnessReportUncheckedCreateWithoutReviewerInput>
+  }
+
+  export type WitnessReportUpdateWithWhereUniqueWithoutReviewerInput = {
+    where: WitnessReportWhereUniqueInput
+    data: XOR<WitnessReportUpdateWithoutReviewerInput, WitnessReportUncheckedUpdateWithoutReviewerInput>
+  }
+
+  export type WitnessReportUpdateManyWithWhereWithoutReviewerInput = {
+    where: WitnessReportScalarWhereInput
+    data: XOR<WitnessReportUpdateManyMutationInput, WitnessReportUncheckedUpdateManyWithoutReviewerInput>
   }
 
   export type PointLogUpsertWithWhereUniqueWithoutUserInput = {
@@ -44671,10 +45452,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -44685,6 +45468,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -44705,10 +45489,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -44719,6 +45505,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -44824,10 +45611,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -44838,6 +45627,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -44858,10 +45648,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -44872,6 +45664,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -44956,6 +45749,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -44971,6 +45765,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -44987,6 +45782,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -45000,6 +45796,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -45021,10 +45818,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -45034,6 +45833,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -45055,10 +45855,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -45067,6 +45869,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -45157,9 +45960,16 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutWitnessesInput
     witness: UserCreateNestedOneWithoutWitnessReportsInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportUncheckedCreateWithoutPuestoInput = {
@@ -45171,7 +45981,14 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
   }
 
   export type WitnessReportCreateOrConnectWithoutPuestoInput = {
@@ -45332,6 +46149,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -45347,6 +46165,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -45501,6 +46320,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -45516,6 +46336,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -45531,10 +46352,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -45544,6 +46367,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -45565,10 +46389,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -45578,6 +46404,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -45844,6 +46671,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -45859,6 +46687,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -45880,10 +46709,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -45893,6 +46724,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -45914,10 +46746,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -45927,6 +46761,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -46059,10 +46894,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -46072,6 +46909,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -46093,10 +46931,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -46106,6 +46946,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -46132,10 +46973,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -46145,6 +46988,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -46166,10 +47010,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -46179,6 +47025,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -46285,10 +47132,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -46298,6 +47147,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -46319,10 +47169,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -46332,6 +47184,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -46364,10 +47217,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -46377,6 +47232,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -46398,10 +47254,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -46411,6 +47269,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -46496,6 +47355,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -46511,6 +47371,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -46526,10 +47387,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -46539,6 +47402,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -46560,10 +47424,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -46573,6 +47439,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -46593,6 +47460,179 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutWitnessReportsInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutWitnessReportsInput, UserUncheckedCreateWithoutWitnessReportsInput>
+  }
+
+  export type UserCreateWithoutWitnessReportsReviewedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserUncheckedCreateWithoutWitnessReportsReviewedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+  }
+
+  export type UserCreateOrConnectWithoutWitnessReportsReviewedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutWitnessReportsReviewedInput, UserUncheckedCreateWithoutWitnessReportsReviewedInput>
+  }
+
+  export type WitnessReportCreateWithoutSupersededReportsInput = {
+    id?: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutWitnessesInput
+    puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
+    witness: UserCreateNestedOneWithoutWitnessReportsInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededBy?: WitnessReportCreateNestedOneWithoutSupersededReportsInput
+  }
+
+  export type WitnessReportUncheckedCreateWithoutSupersededReportsInput = {
+    id?: string
+    tenantId: string
+    witnessId: string
+    puestoId: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WitnessReportCreateOrConnectWithoutSupersededReportsInput = {
+    where: WitnessReportWhereUniqueInput
+    create: XOR<WitnessReportCreateWithoutSupersededReportsInput, WitnessReportUncheckedCreateWithoutSupersededReportsInput>
+  }
+
+  export type WitnessReportCreateWithoutSupersededByInput = {
+    id?: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutWitnessesInput
+    puesto: PoliticalDivisionCreateNestedOneWithoutWitnessesInput
+    witness: UserCreateNestedOneWithoutWitnessReportsInput
+    reviewer?: UserCreateNestedOneWithoutWitnessReportsReviewedInput
+    supersededReports?: WitnessReportCreateNestedManyWithoutSupersededByInput
+  }
+
+  export type WitnessReportUncheckedCreateWithoutSupersededByInput = {
+    id?: string
+    witnessId: string
+    puestoId: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededReports?: WitnessReportUncheckedCreateNestedManyWithoutSupersededByInput
+  }
+
+  export type WitnessReportCreateOrConnectWithoutSupersededByInput = {
+    where: WitnessReportWhereUniqueInput
+    create: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput>
+  }
+
+  export type WitnessReportCreateManySupersededByInputEnvelope = {
+    data: WitnessReportCreateManySupersededByInput | WitnessReportCreateManySupersededByInput[]
+    skipDuplicates?: boolean
   }
 
   export type TenantUpsertWithoutWitnessesInput = {
@@ -46680,6 +47720,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -46695,6 +47736,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -46716,10 +47758,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -46729,6 +47773,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -46750,10 +47795,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -46763,6 +47810,7 @@ export namespace Prisma {
     financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -46778,6 +47826,158 @@ export namespace Prisma {
     eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUpsertWithoutWitnessReportsReviewedInput = {
+    update: XOR<UserUpdateWithoutWitnessReportsReviewedInput, UserUncheckedUpdateWithoutWitnessReportsReviewedInput>
+    create: XOR<UserCreateWithoutWitnessReportsReviewedInput, UserUncheckedCreateWithoutWitnessReportsReviewedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutWitnessReportsReviewedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutWitnessReportsReviewedInput, UserUncheckedUpdateWithoutWitnessReportsReviewedInput>
+  }
+
+  export type UserUpdateWithoutWitnessReportsReviewedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutWitnessReportsReviewedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+  }
+
+  export type WitnessReportUpsertWithoutSupersededReportsInput = {
+    update: XOR<WitnessReportUpdateWithoutSupersededReportsInput, WitnessReportUncheckedUpdateWithoutSupersededReportsInput>
+    create: XOR<WitnessReportCreateWithoutSupersededReportsInput, WitnessReportUncheckedCreateWithoutSupersededReportsInput>
+    where?: WitnessReportWhereInput
+  }
+
+  export type WitnessReportUpdateToOneWithWhereWithoutSupersededReportsInput = {
+    where?: WitnessReportWhereInput
+    data: XOR<WitnessReportUpdateWithoutSupersededReportsInput, WitnessReportUncheckedUpdateWithoutSupersededReportsInput>
+  }
+
+  export type WitnessReportUpdateWithoutSupersededReportsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
+    puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
+    witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+  }
+
+  export type WitnessReportUncheckedUpdateWithoutSupersededReportsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    witnessId?: StringFieldUpdateOperationsInput | string
+    puestoId?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WitnessReportUpsertWithWhereUniqueWithoutSupersededByInput = {
+    where: WitnessReportWhereUniqueInput
+    update: XOR<WitnessReportUpdateWithoutSupersededByInput, WitnessReportUncheckedUpdateWithoutSupersededByInput>
+    create: XOR<WitnessReportCreateWithoutSupersededByInput, WitnessReportUncheckedCreateWithoutSupersededByInput>
+  }
+
+  export type WitnessReportUpdateWithWhereUniqueWithoutSupersededByInput = {
+    where: WitnessReportWhereUniqueInput
+    data: XOR<WitnessReportUpdateWithoutSupersededByInput, WitnessReportUncheckedUpdateWithoutSupersededByInput>
+  }
+
+  export type WitnessReportUpdateManyWithWhereWithoutSupersededByInput = {
+    where: WitnessReportScalarWhereInput
+    data: XOR<WitnessReportUpdateManyMutationInput, WitnessReportUncheckedUpdateManyWithoutSupersededByInput>
   }
 
   export type TenantCreateWithoutEventsInput = {
@@ -46847,10 +48047,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -46861,6 +48063,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -46881,10 +48084,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -46895,6 +48100,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -47027,10 +48233,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47041,6 +48249,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -47061,10 +48270,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -47075,6 +48286,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -47174,10 +48386,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -47188,6 +48402,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -47208,10 +48423,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -47222,6 +48439,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -47366,10 +48584,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47380,6 +48600,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -47400,10 +48621,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -47414,6 +48637,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -47746,10 +48970,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -47760,6 +48986,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -47780,10 +49007,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -47794,6 +49023,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -47932,10 +49162,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47946,6 +49178,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -47966,10 +49199,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -47980,6 +49215,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -48114,10 +49350,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -48128,6 +49366,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -48148,10 +49387,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -48162,6 +49403,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -48367,10 +49609,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48381,6 +49625,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -48401,10 +49646,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -48415,6 +49662,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -48566,6 +49814,7 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -48581,6 +49830,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     tenantId: string
+    expectedTables?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -48596,10 +49846,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -48610,6 +49862,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -48630,10 +49883,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -48644,6 +49899,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -48669,10 +49925,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -48683,6 +49941,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -48703,10 +49962,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -48717,6 +49978,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -49062,6 +50324,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -49077,6 +50340,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -49098,10 +50362,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49112,6 +50378,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -49132,10 +50399,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -49146,6 +50415,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -49177,10 +50447,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49191,6 +50463,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -49211,10 +50484,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -49225,6 +50500,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -49482,10 +50758,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -49496,6 +50774,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -49516,10 +50795,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -49530,6 +50811,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -49806,10 +51088,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49820,6 +51104,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -49840,10 +51125,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -49854,6 +51141,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -50094,10 +51382,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -50108,6 +51398,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -50128,10 +51419,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -50142,6 +51435,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -50167,10 +51461,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -50181,6 +51477,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -50201,10 +51498,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -50215,6 +51514,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -50434,10 +51734,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50448,6 +51750,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -50468,10 +51771,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -50482,6 +51787,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -50513,10 +51819,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50527,6 +51835,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -50547,10 +51856,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -50561,6 +51872,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -50644,10 +51956,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -50658,6 +51972,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -50678,10 +51993,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -50692,6 +52009,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -50899,10 +52217,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50913,6 +52233,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -50933,10 +52254,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -50947,6 +52270,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -51170,10 +52494,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -51184,6 +52510,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -51204,10 +52531,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -51218,6 +52547,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -51243,10 +52573,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -51257,6 +52589,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -51277,10 +52610,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -51291,6 +52626,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -51461,10 +52797,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -51475,6 +52813,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -51495,10 +52834,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -51509,6 +52850,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -51540,10 +52882,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -51554,6 +52898,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -51574,10 +52919,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -51588,6 +52935,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -51671,10 +53019,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -51685,6 +53035,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
@@ -51705,10 +53056,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     tenantId: string
@@ -51719,6 +53072,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
     pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
     inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
@@ -51824,10 +53178,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -51838,6 +53194,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -51858,10 +53215,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
@@ -51872,6 +53231,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -51892,10 +53252,12 @@ export namespace Prisma {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     divisionId?: string | null
@@ -51909,6 +53271,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     parentId?: string | null
+    expectedTables?: number | null
   }
 
   export type VoterCreateManyTenantInput = {
@@ -51960,7 +53323,13 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CampaignEventCreateManyTenantInput = {
@@ -52177,10 +53546,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -52190,6 +53561,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -52211,10 +53583,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52224,6 +53598,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -52245,10 +53620,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52261,6 +53638,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -52275,6 +53653,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -52288,6 +53667,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type VoterUpdateWithoutTenantInput = {
@@ -52421,9 +53801,16 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
     witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateWithoutTenantInput = {
@@ -52436,7 +53823,14 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateManyWithoutTenantInput = {
@@ -52449,7 +53843,13 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CampaignEventUpdateWithoutTenantInput = {
@@ -53162,7 +54562,31 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WitnessReportCreateManyReviewerInput = {
+    id?: string
+    witnessId: string
+    puestoId: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PointLogCreateManyUserInput = {
@@ -53592,9 +55016,16 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
     puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateWithoutWitnessInput = {
@@ -53606,7 +55037,14 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateManyWithoutWitnessInput = {
@@ -53618,7 +55056,70 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WitnessReportUpdateWithoutReviewerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
+    puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
+    witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
+  }
+
+  export type WitnessReportUncheckedUpdateWithoutReviewerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    witnessId?: StringFieldUpdateOperationsInput | string
+    puestoId?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
+  }
+
+  export type WitnessReportUncheckedUpdateManyWithoutReviewerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    witnessId?: StringFieldUpdateOperationsInput | string
+    puestoId?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PointLogUpdateWithoutUserInput = {
@@ -54398,16 +55899,19 @@ export namespace Prisma {
     code: string
     name: string
     type: $Enums.DivisionType
+    expectedTables?: number | null
   }
 
   export type UserCreateManyDivisionInput = {
     id?: string
     email: string
     password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
     name: string
     role?: $Enums.Role
     isActive?: boolean
-    documentId: string
+    documentId?: string | null
     phone?: string | null
     points?: number
     createdAt?: Date | string
@@ -54442,7 +55946,13 @@ export namespace Prisma {
     totalTableVotes: number
     observations?: string | null
     isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    supersededById?: string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type IssueCaseCreateManyDivisionInput = {
@@ -54472,6 +55982,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -54485,6 +55996,7 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -54497,16 +56009,19 @@ export namespace Prisma {
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
+    expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type UserUpdateWithoutDivisionInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54516,6 +56031,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
@@ -54537,10 +56053,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54549,6 +56067,7 @@ export namespace Prisma {
     financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
     pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
     inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
@@ -54570,10 +56089,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     name?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: StringFieldUpdateOperationsInput | string
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54652,9 +56173,16 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
     witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededBy?: WitnessReportUpdateOneWithoutSupersededReportsNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateWithoutPuestoInput = {
@@ -54666,7 +56194,14 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
   }
 
   export type WitnessReportUncheckedUpdateManyWithoutPuestoInput = {
@@ -54678,7 +56213,13 @@ export namespace Prisma {
     totalTableVotes?: IntFieldUpdateOperationsInput | number
     observations?: NullableStringFieldUpdateOperationsInput | string | null
     isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersededById?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type IssueCaseUpdateWithoutDivisionInput = {
@@ -54999,6 +56540,81 @@ export namespace Prisma {
     sentiment?: NullableEnumInteractionSentimentFieldUpdateOperationsInput | $Enums.InteractionSentiment | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WitnessReportCreateManySupersededByInput = {
+    id?: string
+    witnessId: string
+    puestoId: string
+    mesa: number
+    e14ImageUrl: string
+    candidateVotes: number
+    totalTableVotes: number
+    observations?: string | null
+    isSynced?: boolean
+    status?: $Enums.WitnessReportStatus
+    reviewerId?: string | null
+    reviewReason?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WitnessReportUpdateWithoutSupersededByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutWitnessesNestedInput
+    puesto?: PoliticalDivisionUpdateOneRequiredWithoutWitnessesNestedInput
+    witness?: UserUpdateOneRequiredWithoutWitnessReportsNestedInput
+    reviewer?: UserUpdateOneWithoutWitnessReportsReviewedNestedInput
+    supersededReports?: WitnessReportUpdateManyWithoutSupersededByNestedInput
+  }
+
+  export type WitnessReportUncheckedUpdateWithoutSupersededByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    witnessId?: StringFieldUpdateOperationsInput | string
+    puestoId?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededReports?: WitnessReportUncheckedUpdateManyWithoutSupersededByNestedInput
+  }
+
+  export type WitnessReportUncheckedUpdateManyWithoutSupersededByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    witnessId?: StringFieldUpdateOperationsInput | string
+    puestoId?: StringFieldUpdateOperationsInput | string
+    mesa?: IntFieldUpdateOperationsInput | number
+    e14ImageUrl?: StringFieldUpdateOperationsInput | string
+    candidateVotes?: IntFieldUpdateOperationsInput | number
+    totalTableVotes?: IntFieldUpdateOperationsInput | number
+    observations?: NullableStringFieldUpdateOperationsInput | string | null
+    isSynced?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumWitnessReportStatusFieldUpdateOperationsInput | $Enums.WitnessReportStatus
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PointLogCreateManyEventInput = {

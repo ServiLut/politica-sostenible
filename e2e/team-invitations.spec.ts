@@ -272,12 +272,19 @@ test("la persona invitada activa su cuenta con términos versionados", async ({
 });
 
 test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si misma", async ({
+  context,
   page,
 }) => {
   const patchBodies: Array<{
     path: string;
     body: Record<string, unknown>;
   }> = [];
+  const accessResetRequests: Array<{
+    path: string;
+    body: string | null;
+  }> = [];
+  const temporaryPassword = "Temporal-Acceso-2026!";
+  const temporaryPasswordExpiresAt = "2026-09-03T18:30:00.000Z";
   const members = [
     {
       id: "user-admin",
@@ -295,7 +302,19 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
       isActive: true,
       createdAt: "2026-08-21T12:30:00.000Z",
     },
+    {
+      id: "member-admin-secondary",
+      name: "Administracion secundaria",
+      email: "admin2@example.test",
+      role: "ADMIN",
+      isActive: true,
+      createdAt: "2026-08-21T12:45:00.000Z",
+    },
   ];
+
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:3000",
+  });
 
   await page.addInitScript(
     ({ storageKey, authSession }) => {
@@ -415,6 +434,28 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
       return;
     }
 
+    if (
+      path === "/api/team/members/member-north/access-reset" &&
+      request.method() === "POST"
+    ) {
+      accessResetRequests.push({ path, body: request.postData() });
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful(
+            {
+              memberId: "member-north",
+              temporaryPassword,
+              temporaryPasswordExpiresAt,
+            },
+            201,
+          ),
+        ),
+      });
+      return;
+    }
+
     await route.fulfill({ status: 404, body: "Ruta no simulada" });
   });
 
@@ -424,10 +465,91 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
   ).toBeVisible();
   await expect(
     page.getByText("Cuenta administradora protegida", { exact: false }),
-  ).toBeVisible();
+  ).toHaveCount(2);
   await expect(page.getByLabel("Rol de Administracion principal")).toHaveCount(
     0,
   );
+  await expect(
+    page.getByRole("button", {
+      name: "Restablecer acceso de Administracion principal",
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: "Restablecer acceso de Administracion secundaria",
+    }),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole("button", {
+      name: "Restablecer acceso de Coordinacion Norte",
+    })
+    .click();
+  const resetDialog = page.getByRole("dialog");
+  await expect(
+    resetDialog.getByRole("heading", {
+      name: "Restablecer acceso de Coordinacion Norte",
+    }),
+  ).toBeVisible();
+  await expect(resetDialog).toContainText(
+    "Confirma primero la identidad de la persona",
+  );
+  await expect(resetDialog).toHaveCSS("overflow-y", "auto");
+  await expect(
+    resetDialog.getByRole("button", { name: "Confirmar restablecimiento" }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(
+    resetDialog.getByRole("button", { name: "Cancelar" }),
+  ).toBeFocused();
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .toBe("hidden");
+  await page.keyboard.press("Escape");
+  await expect(resetDialog).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .toBe("");
+
+  await page
+    .getByRole("button", {
+      name: "Restablecer acceso de Coordinacion Norte",
+    })
+    .click();
+  await resetDialog
+    .getByRole("button", { name: "Confirmar restablecimiento" })
+    .click();
+  const temporaryPasswordField = resetDialog.getByLabel(
+    "Nueva contraseña generada",
+  );
+  await expect(temporaryPasswordField).toHaveValue(temporaryPassword);
+  await expect(resetDialog).toContainText("hora de Colombia");
+  await expect(resetDialog).toContainText(
+    "solo podrá abrir Mi perfil hasta crear su contraseña personal",
+  );
+  expect(accessResetRequests).toEqual([
+    {
+      path: "/api/team/members/member-north/access-reset",
+      body: null,
+    },
+  ]);
+  await resetDialog
+    .getByRole("button", { name: "Copiar contraseña" })
+    .click();
+  await expect(
+    resetDialog.getByRole("button", { name: "Contraseña copiada" }),
+  ).toBeVisible();
+  await resetDialog
+    .getByRole("button", { name: "Ya la entregué; cerrar" })
+    .click();
+  await expect(temporaryPasswordField).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .toBe("");
+  const htmlAfterClosingReset = await page
+    .locator("html")
+    .evaluate((element) => element.outerHTML);
+  expect(htmlAfterClosingReset).not.toContain(temporaryPassword);
 
   await page
     .getByLabel("Rol de Coordinacion Norte")
@@ -442,6 +564,11 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
   await expect(
     page.getByRole("button", { name: "Reactivar a Coordinacion Norte" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Restablecer acceso de Coordinacion Norte",
+    }),
+  ).toHaveCount(0);
 
   expect(patchBodies).toEqual([
     {
@@ -457,6 +584,320 @@ test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si mi
     expect(request.body).not.toHaveProperty("tenantId");
     expect(request.body).not.toHaveProperty("actorUserId");
   }
+});
+
+test("asigna un puesto disponible en una pagina territorial posterior", async ({
+  page,
+}) => {
+  const divisionRequests: string[] = [];
+  let assignmentBody: Record<string, unknown> | null = null;
+  const targetMember = {
+    id: "witness-territory",
+    name: "Testigo territorial",
+    email: "testigo.territorial@example.test",
+    role: "WITNESS",
+    isActive: true,
+    divisionId: null,
+    division: null,
+    createdAt: "2026-09-02T12:00:00.000Z",
+  };
+
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: sessionFor("ADMIN", "AdminCampana"),
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (url.pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            user: {
+              id: "user-admin",
+              email: "admin@example.test",
+              name: "Administracion principal",
+              role: "ADMIN",
+              tenant: {
+                id: "tenant-e2e",
+                name: "Campana verificable",
+                slug: "campana-verificable",
+                type: "CANDIDACY",
+              },
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/team/members" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [targetMember],
+            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/team/invitations" &&
+      request.method() === "GET"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [],
+            pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/campaigns/divisions" &&
+      request.method() === "GET"
+    ) {
+      const requestedPage = Number(url.searchParams.get("page"));
+      divisionRequests.push(
+        `${url.searchParams.get("type")}:${requestedPage}:${url.searchParams.get("limit")}`,
+      );
+      const division =
+        requestedPage === 1
+          ? {
+              id: "puesto-page-one",
+              code: "P-001",
+              name: "Puesto primera pagina",
+              type: "PUESTO",
+            }
+          : {
+              id: "puesto-page-two",
+              code: "P-101",
+              name: "Puesto segunda pagina",
+              type: "PUESTO",
+            };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [division],
+            pagination: {
+              page: requestedPage,
+              limit: 100,
+              total: 2,
+              totalPages: 2,
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      url.pathname === "/api/team/members/witness-territory/division" &&
+      request.method() === "PATCH"
+    ) {
+      assignmentBody = request.postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            id: targetMember.id,
+            role: targetMember.role,
+            isActive: true,
+            divisionId: "puesto-page-two",
+            division: {
+              id: "puesto-page-two",
+              code: "P-101",
+              name: "Puesto segunda pagina",
+              type: "PUESTO",
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "Ruta no simulada" });
+  });
+
+  await page.goto("/dashboard/team");
+  await page.getByRole("button", { name: "Asignar", exact: true }).click();
+  const divisionDialog = page.getByRole("dialog", {
+    name: "Asignar a Testigo territorial",
+  });
+  const divisionSelect = divisionDialog.getByLabel(
+    "División compatible con Testigo electoral",
+  );
+  await expect(divisionSelect).toContainText("Puesto segunda pagina");
+  expect(new Set(divisionRequests)).toEqual(
+    new Set(["PUESTO:1:100", "PUESTO:2:100"]),
+  );
+  await divisionSelect.selectOption("puesto-page-two");
+  await divisionDialog.getByRole("button", { name: "Guardar alcance" }).click();
+  await expect(divisionDialog).toHaveCount(0);
+  await expect(
+    page.getByText("Puesto segunda pagina · PUESTO", { exact: true }),
+  ).toBeVisible();
+  expect(assignmentBody).toEqual({ divisionId: "puesto-page-two" });
+});
+
+test("equipo e invitaciones recorren todas las paginas autorizadas", async ({
+  page,
+}) => {
+  const requestedPages: string[] = [];
+
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: sessionFor("ADMIN", "AdminCampana"),
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (url.pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            user: {
+              id: "user-admin",
+              email: "admin@example.test",
+              name: "Administracion principal",
+              role: "ADMIN",
+              tenant: {
+                id: "tenant-e2e",
+                name: "Campana verificable",
+                slug: "campana-verificable",
+                type: "CANDIDACY",
+              },
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      (url.pathname === "/api/team/members" ||
+        url.pathname === "/api/team/invitations")
+    ) {
+      const pageNumber = Number(url.searchParams.get("page"));
+      requestedPages.push(
+        `${url.pathname}:${pageNumber}:${url.searchParams.get("limit")}`,
+      );
+      const isMembers = url.pathname === "/api/team/members";
+      const items = isMembers
+        ? pageNumber === 1
+          ? [
+              {
+                id: "user-admin",
+                name: "Administracion principal",
+                email: "admin@example.test",
+                role: "ADMIN",
+                isActive: true,
+                divisionId: null,
+                division: null,
+                createdAt: "2026-08-21T12:00:00.000Z",
+              },
+            ]
+          : [
+              {
+                id: "member-page-two",
+                name: "Coordinacion segunda pagina",
+                email: "segunda@example.test",
+                role: "VOLUNTEER",
+                isActive: true,
+                divisionId: null,
+                division: null,
+                createdAt: "2026-08-21T12:30:00.000Z",
+              },
+            ]
+        : pageNumber === 1
+          ? [
+              {
+                id: "invitation-page-one",
+                email: "primera-invitacion@example.test",
+                role: "VOLUNTEER",
+                expiresAt: "2026-09-10T12:00:00.000Z",
+                createdAt: "2026-09-02T12:00:00.000Z",
+                invitedBy: { id: "user-admin", name: "Administracion principal" },
+              },
+            ]
+          : [
+              {
+                id: "invitation-page-two",
+                email: "segunda-invitacion@example.test",
+                role: "WITNESS",
+                expiresAt: "2026-09-10T12:00:00.000Z",
+                createdAt: "2026-09-02T12:05:00.000Z",
+                invitedBy: { id: "user-admin", name: "Administracion principal" },
+              },
+            ];
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items,
+            pagination: {
+              page: pageNumber,
+              limit: 100,
+              total: 2,
+              totalPages: 2,
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "Ruta no simulada" });
+  });
+
+  await page.goto("/dashboard/team");
+  await expect(
+    page.getByText("Coordinacion segunda pagina", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("segunda-invitacion@example.test", { exact: true }),
+  ).toBeVisible();
+  expect(new Set(requestedPages)).toEqual(
+    new Set([
+      "/api/team/invitations:1:100",
+      "/api/team/invitations:2:100",
+      "/api/team/members:1:100",
+      "/api/team/members:2:100",
+    ]),
+  );
 });
 
 test("refresca el rol vigente antes de construir la navegacion", async ({

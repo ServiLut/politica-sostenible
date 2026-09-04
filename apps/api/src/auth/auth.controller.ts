@@ -7,6 +7,7 @@ import { Public } from './decorators/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
+import { AllowRequiredPasswordChange } from './decorators/allow-required-password-change.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -27,11 +28,13 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowRequiredPasswordChange()
   currentSession(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.currentSession(user);
   }
 
   @Post('change-password')
+  @AllowRequiredPasswordChange()
   @Throttle({
     default: { limit: 5, ttl: 15 * 60_000, blockDuration: 15 * 60_000 },
   })

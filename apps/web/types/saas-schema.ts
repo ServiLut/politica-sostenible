@@ -29,6 +29,8 @@ export interface User {
   name: string;
   role: UserRole;
   backendRole: BackendUserRole;
+  mustChangePassword?: boolean;
+  temporaryPasswordExpiresAt?: string | null;
   avatar?: string;
 }
 

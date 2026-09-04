@@ -212,7 +212,7 @@ export default function ExecutivePage() {
               aria-label="Progreso de activación"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={progress}
+              aria-valuenow={briefing ? progress : undefined}
             >
               <div
                 className="h-full bg-emerald-400 transition-[width]"
@@ -220,9 +220,13 @@ export default function ExecutivePage() {
               />
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              {briefing?.activation.ready
-                ? "Onboarding operativo completo; mantén los controles medidos al día."
-                : "Completa la ruta para pasar de configuración a ejecución."}
+              {briefing
+                ? briefing.activation.ready
+                  ? "Onboarding operativo completo; mantén los controles medidos al día."
+                  : "Completa la ruta para pasar de configuración a ejecución."
+                : loading
+                  ? "Consultando el estado operativo…"
+                  : "Estado no disponible. Actualiza para volver a consultarlo."}
             </p>
           </div>
         </div>
@@ -231,13 +235,28 @@ export default function ExecutivePage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+          className="flex flex-col items-start gap-4 border border-red-200 bg-red-50 p-5 text-sm text-red-800 sm:flex-row sm:justify-between"
         >
-          <AlertTriangle className="mt-0.5 shrink-0" size={19} />
-          <div>
-            <p className="font-black">No se pudo actualizar el tablero</p>
-            <p className="mt-1">{error}</p>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+            <div>
+              <p className="font-black">No se pudo actualizar el tablero</p>
+              <p className="mt-1">{error}</p>
+              <p className="mt-1 text-xs font-semibold">
+                {briefing
+                  ? "Se conserva el último corte disponible."
+                  : "Los indicadores no están disponibles; no se sustituyeron por ceros."}
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => void loadBriefing()}
+            disabled={loading}
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            <RefreshCw aria-hidden="true" size={15} /> Reintentar
+          </button>
         </div>
       )}
 
@@ -248,15 +267,21 @@ export default function ExecutivePage() {
         <MetricCard
           icon={Users}
           label="Personas autorizadas"
-          value={String(briefing?.metrics.people.consented ?? 0)}
-          hint={`${briefing?.metrics.people.total ?? 0} relaciones totales`}
+          value={briefing ? String(briefing.metrics.people.consented) : "—"}
+          hint={
+            briefing
+              ? `${briefing.metrics.people.total} relaciones totales`
+              : "Datos no disponibles"
+          }
           loading={loading}
         />
         <MetricCard
           icon={ShieldCheck}
           label="Cobertura de consentimiento"
-          value={`${briefing?.metrics.people.consentCoverage ?? 0}%`}
-          hint="La meta obligatoria es 100%"
+          value={
+            briefing ? `${briefing.metrics.people.consentCoverage}%` : "—"
+          }
+          hint={briefing ? "La meta obligatoria es 100%" : "Datos no disponibles"}
           loading={loading}
           accent={
             briefing?.metrics.people.consentCoverage === 100
@@ -267,16 +292,26 @@ export default function ExecutivePage() {
         <MetricCard
           icon={CircleDollarSign}
           label="Balance registrado"
-          value={formatCop(briefing?.metrics.finance.balance ?? "0")}
-          hint={`${briefing?.metrics.finance.pending ?? 0} movimientos pendientes`}
+          value={briefing ? formatCop(briefing.metrics.finance.balance) : "—"}
+          hint={
+            briefing
+              ? `${briefing.metrics.finance.pending} movimientos pendientes`
+              : "Datos no disponibles"
+          }
           loading={loading}
           accent="blue"
         />
         <MetricCard
           icon={FileCheck2}
           label="Actas sincronizadas"
-          value={String(briefing?.metrics.electionDay.syncedReports ?? 0)}
-          hint={`${briefing?.metrics.electionDay.reports ?? 0} reportes recibidos`}
+          value={
+            briefing ? String(briefing.metrics.electionDay.syncedReports) : "—"
+          }
+          hint={
+            briefing
+              ? `${briefing.metrics.electionDay.reports} reportes recibidos`
+              : "Datos no disponibles"
+          }
           loading={loading}
           accent="violet"
         />
@@ -357,6 +392,11 @@ export default function ExecutivePage() {
                 ruta…
               </div>
             )}
+            {!loading && !briefing && (
+              <p className="py-6 text-sm text-slate-500">
+                La ruta de activación no está disponible. Reintenta la consulta.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -365,7 +405,13 @@ export default function ExecutivePage() {
         <AgendaPanel
           title="Próximas acciones"
           icon={CalendarClock}
-          empty="No hay actividades programadas para las próximas dos semanas."
+          empty={
+            briefing
+              ? "No hay actividades programadas para las próximas dos semanas."
+              : loading
+                ? "Consultando la agenda…"
+                : "La agenda no está disponible. Reintenta la consulta."
+          }
         >
           {(briefing?.agenda.upcomingEvents ?? []).map((event) => (
             <Link
@@ -389,7 +435,13 @@ export default function ExecutivePage() {
         <AgendaPanel
           title="Tareas de alta prioridad"
           icon={ListChecks}
-          empty="No hay tareas urgentes o de alta prioridad abiertas."
+          empty={
+            briefing
+              ? "No hay tareas urgentes o de alta prioridad abiertas."
+              : loading
+                ? "Consultando tareas prioritarias…"
+                : "Las tareas prioritarias no están disponibles. Reintenta la consulta."
+          }
         >
           {(briefing?.agenda.priorityTasks ?? []).map((task) => (
             <Link
@@ -432,13 +484,25 @@ export default function ExecutivePage() {
             href="/dashboard/territory"
             icon={MapPinned}
             title="Territorio"
-            detail={`${briefing?.metrics.territory.municipalities ?? 0} municipios configurados`}
+            detail={
+              briefing
+                ? `${briefing.metrics.territory.municipalities} municipios configurados`
+                : loading
+                  ? "Consultando…"
+                  : "Datos no disponibles"
+            }
           />
           <QuickAction
             href="/dashboard/tasks"
             icon={ListChecks}
             title="Ejecución"
-            detail={`${briefing?.metrics.tasks.open ?? 0} tareas abiertas`}
+            detail={
+              briefing
+                ? `${briefing.metrics.tasks.open} tareas abiertas`
+                : loading
+                  ? "Consultando…"
+                  : "Datos no disponibles"
+            }
           />
           <QuickAction
             href="/dashboard/war-room"

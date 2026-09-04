@@ -1,11 +1,12 @@
 import { apiRequest } from "./api-client";
+import type { BackendUserRole } from "@/types/saas-schema";
 
 export type AuditOutcome = "SUCCESS" | "DENIED" | "FAILURE";
 
 export interface AuditActor {
   id: string;
   name: string;
-  role: string;
+  role: BackendUserRole;
 }
 
 export interface AuditEvent {

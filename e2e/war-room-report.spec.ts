@@ -40,6 +40,20 @@ const votingPlace = {
   },
 };
 
+const secondPageVotingPlace = {
+  id: "puesto-101",
+  code: "11001101",
+  name: "Colegio Segunda Página",
+  type: "PUESTO",
+  parentId: "zona-2",
+  parent: {
+    id: "zona-2",
+    code: "11002",
+    name: "Zona Norte",
+    type: "ZONA",
+  },
+};
+
 const confirmedPath =
   "tenant-e2e/e14/123e4567-e89b-42d3-a456-426614174000-e14-mesa-12.pdf";
 
@@ -98,13 +112,22 @@ test("registra un E-14 privado y sólo muestra métricas reportadas", async ({
     if (pathname === "/api/campaigns/divisions" && method === "GET") {
       expect(url.searchParams.get("type")).toBe("PUESTO");
       expect(url.searchParams.get("limit")).toBe("100");
+      const requestedPage = Number(url.searchParams.get("page") ?? "1");
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(
           successful({
-            items: [votingPlace],
-            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+            items:
+              requestedPage === 1
+                ? [votingPlace]
+                : [secondPageVotingPlace],
+            pagination: {
+              page: requestedPage,
+              limit: 100,
+              total: 101,
+              totalPages: 2,
+            },
           }),
         ),
       });
@@ -173,7 +196,10 @@ test("registra un E-14 privado y sólo muestra métricas reportadas", async ({
         observations: String(body.observations),
         e14ImageUrl: String(body.e14ImageUrl),
         createdAt: "2026-08-21T15:00:00.000Z",
-        puesto: votingPlace,
+        puesto:
+          body.puestoId === secondPageVotingPlace.id
+            ? secondPageVotingPlace
+            : votingPlace,
         witness: { name: "Testigo de mesa" },
       };
       reports = [created, ...reports];
@@ -204,11 +230,17 @@ test("registra un E-14 privado y sólo muestra métricas reportadas", async ({
   await expect(page.getByTestId("total-votes-metric")).toHaveText("250");
   await expect(page.getByText("Cobertura no disponible.")).toBeVisible();
   await expect(page.getByText(/oponente/i)).toHaveCount(0);
+  await expect(
+    page.getByTestId(`place-card-${secondPageVotingPlace.id}`),
+  ).toContainText(secondPageVotingPlace.name);
 
   await page.getByRole("button", { name: "Registrar E-14" }).click();
   const dialog = page.getByRole("dialog", {
     name: "Registrar reporte de mesa",
   });
+  await dialog
+    .getByLabel("Puesto de votación")
+    .selectOption(secondPageVotingPlace.id);
   await dialog.getByLabel("Número de mesa").fill("12");
   await dialog.getByLabel("Votos del candidato").fill("80");
   await dialog.getByLabel("Votos totales de la mesa").fill("180");
@@ -249,7 +281,7 @@ test("registra un E-14 privado y sólo muestra métricas reportadas", async ({
         },
       },
       {
-        puestoId: votingPlace.id,
+        puestoId: secondPageVotingPlace.id,
         mesa: 12,
         candidateVotes: 80,
         totalTableVotes: 180,

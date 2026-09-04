@@ -80,6 +80,7 @@ export default function TerritoryPage() {
   const [result, setResult] = useState<DivisionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [createType, setCreateType] = useState<"ZONA" | "PUESTO">("ZONA");
@@ -94,23 +95,28 @@ export default function TerritoryPage() {
   const canSynchronize =
     user?.role === UserRole.AdminCampana || user?.role === UserRole.SuperAdmin;
 
-  const loadDivisions = useCallback(async () => {
+  const loadDivisions = useCallback(async (overrides?: {
+    type?: DivisionType;
+    page?: number;
+    search?: string;
+  }) => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
 
     const params = new URLSearchParams({
-      type,
-      page: String(page),
+      type: overrides?.type ?? type,
+      page: String(overrides?.page ?? page),
       limit: "24",
     });
-    if (search) params.set("search", search);
+    const requestedSearch = overrides?.search ?? search;
+    if (requestedSearch) params.set("search", requestedSearch);
 
     try {
       setResult(
         await apiRequest<DivisionResult>(`campaigns/divisions?${params}`),
       );
     } catch (requestError) {
-      setError(messageFrom(requestError));
+      setLoadError(messageFrom(requestError));
     } finally {
       setLoading(false);
     }
@@ -233,6 +239,7 @@ export default function TerritoryPage() {
       setSearch("");
       setSearchDraft("");
       setNotice(`${created.name} quedó disponible para asignaciones.`);
+      await loadDivisions({ type: created.type, page: 1, search: "" });
     } catch (requestError) {
       setError(messageFrom(requestError));
     } finally {
@@ -290,6 +297,33 @@ export default function TerritoryPage() {
           className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-800"
         >
           {notice}
+        </div>
+      )}
+
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-4 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 sm:flex-row sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 shrink-0" size={18} />
+            <div>
+              <p>{loadError}</p>
+              <p className="mt-1 text-xs">
+                {result
+                  ? "Se conserva el último resultado territorial disponible."
+                  : "El territorio no está disponible; no se sustituyó por un listado vacío."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadDivisions()}
+            disabled={loading}
+            className="min-h-10 shrink-0 rounded-xl bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            Reintentar
+          </button>
         </div>
       )}
 
@@ -463,6 +497,16 @@ export default function TerritoryPage() {
         >
           <Loader2 className="animate-spin text-blue-700" size={30} />
           <span className="font-bold">Consultando territorio seguro…</span>
+        </div>
+      ) : loadError && !result ? (
+        <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-amber-300 bg-amber-50 p-8 text-center">
+          <AlertCircle className="mb-4 text-amber-600" size={42} />
+          <h2 className="font-black text-slate-950">
+            Territorio no disponible
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Reintenta la consulta antes de concluir que no existen divisiones.
+          </p>
         </div>
       ) : !result?.items.length ? (
         <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">

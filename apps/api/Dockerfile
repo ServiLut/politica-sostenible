@@ -20,9 +20,12 @@ RUN pnpm --filter api build
 # although pnpm's virtual store can retain unlinked artifacts; the root security
 # override therefore applies to both images.
 FROM builder AS migrator
-WORKDIR /app/apps/api
+WORKDIR /app
+COPY --chown=node:node deploy/migrate.mjs ./deploy/migrate.mjs
+COPY --chown=node:node deploy/migrate-entrypoint.mjs ./deploy/migrate-entrypoint.mjs
+COPY --chown=node:node deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
 USER node
-CMD ["node", "/app/apps/api/node_modules/prisma/build/index.js", "migrate", "deploy"]
+CMD ["node", "deploy/migrate-entrypoint.mjs"]
 
 FROM node:22-alpine AS prod-deps
 WORKDIR /app

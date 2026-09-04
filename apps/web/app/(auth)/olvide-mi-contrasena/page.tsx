@@ -15,12 +15,12 @@ export default function ForgotPasswordPage() {
             Protección de la cuenta
           </p>
           <h1 className="text-4xl font-black tracking-tight text-slate-950">
-            Recuperación en habilitación
+            Recupera el acceso con tu administrador
           </h1>
           <p className="text-lg leading-relaxed text-slate-600">
-            La API de la plataforma todavía no dispone de un flujo verificado
-            para restablecer contraseñas. Por seguridad, no enviaremos enlaces
-            ni recogeremos datos mediante un servicio de autenticación alterno.
+            El restablecimiento se realiza dentro de tu organización. Un
+            administrador puede verificar tu identidad y generar una nueva
+            contraseña sin usar enlaces externos ni servicios alternos.
           </p>
         </div>
 
@@ -31,8 +31,10 @@ export default function ForgotPasswordPage() {
           </div>
           <p>
             Usa únicamente el canal interno que tu organización ya haya
-            verificado. Nunca compartas tu contraseña, un código de acceso ni el
-            token de tu sesión.
+            verificado. El valor generado se muestra una sola vez al
+            administrador. Inicia sesión con esa contraseña y cámbiala
+            inmediatamente desde Mi perfil. Nunca compartas el token de tu
+            sesión.
           </p>
         </div>
 

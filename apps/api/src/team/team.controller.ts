@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -71,6 +72,23 @@ export class TeamController {
     @Body() dto: UpdateTeamMemberDivisionDto,
   ) {
     return this.teamService.updateMemberDivision(user, params.memberId, dto);
+  }
+
+  @Post('members/:memberId/access-reset')
+  @Throttle({
+    default: { limit: 5, ttl: 3_600_000, blockDuration: 3_600_000 },
+  })
+  @Header('Cache-Control', 'no-store, private')
+  @Header('Pragma', 'no-cache')
+  @ApiOperation({
+    summary:
+      'Genera una contraseña temporal de entrega única para un miembro activo',
+  })
+  resetMemberAccess(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: TeamMemberParamsDto,
+  ) {
+    return this.teamService.resetMemberAccess(user, params.memberId);
   }
 
   @Get('invitations')

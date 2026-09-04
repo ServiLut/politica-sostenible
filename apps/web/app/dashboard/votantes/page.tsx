@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Eye,
   Loader2,
   RefreshCw,
   Search,
@@ -14,6 +16,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
+import { VoterDetailPanel } from "@/components/voters/VoterDetailPanel";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -30,12 +33,18 @@ const PAGE_SIZE = 25;
 const CREATE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
+]);
+const TERRITORIAL_CAPTURE_ROLES = new Set<BackendUserRole>([
   "ZONE_COORDINATOR",
   "VOLUNTEER",
 ]);
 const REVOKE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
   "CAMPAIGN_MANAGER",
+  "COMPLIANCE_OFFICER",
+]);
+const SENSITIVE_DETAIL_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
   "COMPLIANCE_OFFICER",
 ]);
 
@@ -58,7 +67,11 @@ function readableError(error: unknown, fallback: string) {
 export default function VotantesPage() {
   const { user } = useAuth();
   const canCreate = user !== null && CREATE_ROLES.has(user.backendRole);
+  const usesTerritorialCapture =
+    user !== null && TERRITORIAL_CAPTURE_ROLES.has(user.backendRole);
   const canRevoke = user !== null && REVOKE_ROLES.has(user.backendRole);
+  const canManageSensitiveDetail =
+    user !== null && SENSITIVE_DETAIL_ROLES.has(user.backendRole);
   const [result, setResult] = useState<VoterPage | null>(null);
   const [page, setPage] = useState(1);
   const [searchDraft, setSearchDraft] = useState("");
@@ -75,6 +88,7 @@ export default function VotantesPage() {
   const [revocationReason, setRevocationReason] = useState("");
   const [revocationConfirmed, setRevocationConfirmed] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [detailVoterId, setDetailVoterId] = useState<string | null>(null);
 
   const loadVoters = useCallback(
     (signal: AbortSignal) =>
@@ -144,11 +158,13 @@ export default function VotantesPage() {
       setSearchDraft("");
       setSearch("");
       setPage(1);
-      setNotice("Registro creado con evidencia de consentimiento.");
+      setNotice(
+        "Solicitud recibida. Fue procesada sin revelar si el documento ya existía.",
+      );
       setReload((value) => value + 1);
     } catch (requestError: unknown) {
       setMutationError(
-        readableError(requestError, "No fue posible guardar el registro."),
+        readableError(requestError, "No fue posible enviar la solicitud."),
       );
     } finally {
       setSaving(false);
@@ -271,10 +287,21 @@ export default function VotantesPage() {
               <UserPlus size={16} /> Nueva vinculacion
             </button>
           )}
+          {usesTerritorialCapture && (
+            <Link
+              href="/dashboard/captura-territorial"
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-800"
+            >
+              <UserPlus size={16} /> Capturar en territorio
+            </Link>
+          )}
         </div>
       </header>
 
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <section
+        aria-busy={loading}
+        className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
+      >
         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 p-5 md:flex-row md:items-center md:justify-between">
           <form
             onSubmit={submitSearch}
@@ -302,7 +329,7 @@ export default function VotantesPage() {
             </button>
           </form>
           <p className="shrink-0 text-xs font-bold text-slate-500">
-            {result?.pagination.total ?? 0} registros · datos minimizados
+            {result ? result.pagination.total : "—"} registros · datos minimizados
           </p>
         </div>
 
@@ -311,7 +338,23 @@ export default function VotantesPage() {
             role="alert"
             className="m-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
           >
-            <AlertCircle className="mt-0.5 shrink-0" size={18} /> {listError}
+            <AlertCircle className="mt-0.5 shrink-0" size={18} />
+            <div className="flex-1">
+              <p>{listError}</p>
+              <p className="mt-1 text-xs">
+                {result
+                  ? "Se conserva el último resultado disponible."
+                  : "Los registros no están disponibles; no se sustituyeron por un total de cero."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReload((value) => value + 1)}
+              disabled={loading}
+              className="min-h-10 shrink-0 rounded-xl bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+            >
+              Reintentar
+            </button>
           </div>
         )}
 
@@ -322,6 +365,10 @@ export default function VotantesPage() {
           >
             <Loader2 className="animate-spin" size={20} /> Consultando la API
             segura...
+          </div>
+        ) : listError && !result ? (
+          <div className="px-6 py-20 text-center text-sm font-semibold text-slate-500">
+            Consulta no disponible. Usa Reintentar para recuperar el listado.
           </div>
         ) : !result?.items.length ? (
           <div className="px-6 py-20 text-center">
@@ -344,7 +391,9 @@ export default function VotantesPage() {
                   <th className="px-6 py-4">Contacto</th>
                   <th className="px-6 py-4">Puesto / mesa</th>
                   <th className="px-6 py-4">Consentimiento</th>
-                  {canRevoke && <th className="px-6 py-4">Accion</th>}
+                  {(canRevoke || canManageSensitiveDetail) && (
+                    <th className="px-6 py-4">Acciones autorizadas</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -380,9 +429,20 @@ export default function VotantesPage() {
                         </span>
                       )}
                     </td>
-                    {canRevoke && (
+                    {(canRevoke || canManageSensitiveDetail) && (
                       <td className="px-6 py-5">
-                        {voter.consentAccepted ? (
+                        <div className="flex flex-wrap gap-2">
+                          {canManageSensitiveDetail && (
+                            <button
+                              type="button"
+                              aria-label={`Ver datos protegidos de ${voter.firstName} ${voter.lastName}`}
+                              onClick={() => setDetailVoterId(voter.id)}
+                              className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 transition hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                            >
+                              <Eye aria-hidden="true" size={14} /> Ver datos
+                            </button>
+                          )}
+                          {canRevoke && voter.consentAccepted ? (
                           <button
                             type="button"
                             onClick={() => openRevocation(voter)}
@@ -390,11 +450,12 @@ export default function VotantesPage() {
                           >
                             Revocar
                           </button>
-                        ) : (
+                          ) : canRevoke ? (
                           <span className="text-xs font-semibold text-slate-400">
                             Sin consentimiento activo
                           </span>
-                        )}
+                          ) : null}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -567,9 +628,10 @@ export default function VotantesPage() {
               </label>
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
+              <button
+                type="button"
+                aria-label="Cerrar registro de persona"
+                onClick={() => {
                     setIsCreateOpen(false);
                     setMutationError(null);
                   }}
@@ -626,7 +688,7 @@ export default function VotantesPage() {
                 onClick={closeRevocation}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
               >
-                <X />
+                <X aria-hidden="true" />
               </button>
             </div>
 
@@ -698,6 +760,15 @@ export default function VotantesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {detailVoterId && canManageSensitiveDetail && (
+        <VoterDetailPanel
+          key={detailVoterId}
+          voterId={detailVoterId}
+          onClose={() => setDetailVoterId(null)}
+          onUpdated={() => setReload((value) => value + 1)}
+        />
       )}
     </div>
   );

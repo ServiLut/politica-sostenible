@@ -33,6 +33,16 @@ const TASK_MANAGER_ROLES = [
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
+  @Get('assignees')
+  @Roles(...TASK_MANAGER_ROLES)
+  @ApiOperation({
+    summary:
+      'Lista responsables activos que el usuario puede seleccionar según su alcance',
+  })
+  listAssignees(@CurrentUser() user: AuthenticatedUser) {
+    return this.tasksService.listAssignees(user);
+  }
+
   @Get()
   @Roles(...TASK_READ_ROLES)
   @ApiOperation({ summary: 'Lista tareas del tenant y modo operativo activos' })

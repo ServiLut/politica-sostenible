@@ -203,7 +203,7 @@ export default function PublicOfficePage() {
               aria-label="Progreso de activación de gestión pública"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={progress}
+              aria-valuenow={briefing ? progress : undefined}
             >
               <div
                 className="h-full bg-blue-400 transition-[width]"
@@ -211,9 +211,13 @@ export default function PublicOfficePage() {
               />
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              {briefing?.activation.ready
-                ? "Onboarding operativo completo para los controles medidos."
-                : "Completa la ruta para asegurar responsables y evidencia."}
+              {briefing
+                ? briefing.activation.ready
+                  ? "Onboarding operativo completo para los controles medidos."
+                  : "Completa la ruta para asegurar responsables y evidencia."
+                : loading
+                  ? "Consultando el estado del servicio…"
+                  : "Estado no disponible. Actualiza para volver a consultarlo."}
             </p>
           </div>
         </div>
@@ -222,13 +226,28 @@ export default function PublicOfficePage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+          className="flex flex-col items-start gap-4 border border-red-200 bg-red-50 p-5 text-sm text-red-800 sm:flex-row sm:justify-between"
         >
-          <AlertTriangle className="mt-0.5 shrink-0" size={19} />
-          <div>
-            <p className="font-black">No se pudo actualizar el centro</p>
-            <p className="mt-1">{error}</p>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+            <div>
+              <p className="font-black">No se pudo actualizar el centro</p>
+              <p className="mt-1">{error}</p>
+              <p className="mt-1 text-xs font-semibold">
+                {briefing
+                  ? "Se conserva el último corte disponible."
+                  : "Los indicadores no están disponibles; no se sustituyeron por ceros."}
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => void loadBriefing()}
+            disabled={loading}
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            <RefreshCw aria-hidden="true" size={15} /> Reintentar
+          </button>
         </div>
       )}
 
@@ -238,16 +257,20 @@ export default function PublicOfficePage() {
       >
         <MetricCard
           label="Casos abiertos"
-          value={briefing?.metrics.cases.open ?? 0}
-          detail={`${briefing?.metrics.cases.urgent ?? 0} urgentes`}
+          value={briefing?.metrics.cases.open ?? null}
+          detail={
+            briefing
+              ? `${briefing.metrics.cases.urgent} urgentes`
+              : "Datos no disponibles"
+          }
           icon={BriefcaseBusiness}
           testId="open-cases-metric"
           href="/dashboard/cases"
         />
         <MetricCard
           label="Casos vencidos"
-          value={briefing?.metrics.cases.overdue ?? 0}
-          detail="Superaron la fecha de atención"
+          value={briefing?.metrics.cases.overdue ?? null}
+          detail={briefing ? "Superaron la fecha de atención" : "Datos no disponibles"}
           icon={Siren}
           testId="overdue-cases-metric"
           href="/dashboard/cases"
@@ -255,8 +278,12 @@ export default function PublicOfficePage() {
         />
         <MetricCard
           label="Tareas vencidas"
-          value={briefing?.metrics.tasks.overdue ?? 0}
-          detail={`${briefing?.metrics.tasks.open ?? 0} tareas abiertas`}
+          value={briefing?.metrics.tasks.overdue ?? null}
+          detail={
+            briefing
+              ? `${briefing.metrics.tasks.open} tareas abiertas`
+              : "Datos no disponibles"
+          }
           icon={ClipboardCheck}
           testId="overdue-tasks-metric"
           href="/dashboard/tasks"
@@ -264,8 +291,12 @@ export default function PublicOfficePage() {
         />
         <MetricCard
           label="Compromisos públicos"
-          value={briefing?.metrics.commitments.public ?? 0}
-          detail={`${briefing?.metrics.commitments.atRisk ?? 0} en riesgo`}
+          value={briefing?.metrics.commitments.public ?? null}
+          detail={
+            briefing
+              ? `${briefing.metrics.commitments.atRisk} en riesgo`
+              : "Datos no disponibles"
+          }
           icon={Target}
           testId="public-commitments-metric"
           href="/dashboard/tasks"
@@ -323,6 +354,11 @@ export default function PublicOfficePage() {
                 Consolidando casos, tareas y compromisos…
               </div>
             )}
+            {!loading && !briefing && (
+              <p className="py-6 text-sm text-slate-500">
+                Las prioridades no están disponibles. Reintenta la consulta.
+              </p>
+            )}
           </div>
         </article>
 
@@ -363,6 +399,11 @@ export default function PublicOfficePage() {
                 />
               </Link>
             ))}
+            {!loading && !briefing && (
+              <p className="py-6 text-sm text-slate-500">
+                La ruta de activación no está disponible. Reintenta la consulta.
+              </p>
+            )}
           </div>
         </article>
       </section>
@@ -371,7 +412,13 @@ export default function PublicOfficePage() {
         <AgendaPanel
           title="Agenda pública próxima"
           icon={CalendarClock}
-          empty="No hay actividades programadas para las próximas dos semanas."
+          empty={
+            briefing
+              ? "No hay actividades programadas para las próximas dos semanas."
+              : loading
+                ? "Consultando la agenda…"
+                : "La agenda no está disponible. Reintenta la consulta."
+          }
         >
           {(briefing?.agenda.upcomingEvents ?? []).map((event) => (
             <Link
@@ -395,7 +442,13 @@ export default function PublicOfficePage() {
         <AgendaPanel
           title="Tareas de alta prioridad"
           icon={ListChecks}
-          empty="No hay tareas urgentes o de alta prioridad abiertas."
+          empty={
+            briefing
+              ? "No hay tareas urgentes o de alta prioridad abiertas."
+              : loading
+                ? "Consultando tareas prioritarias…"
+                : "Las tareas prioritarias no están disponibles. Reintenta la consulta."
+          }
         >
           {(briefing?.agenda.priorityTasks ?? []).map((task) => (
             <Link
@@ -441,12 +494,14 @@ export default function PublicOfficePage() {
             >
               <ListChecks size={17} /> Tareas y compromisos
             </Link>
-            <Link
-              href="/dashboard/team"
-              className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
-            >
-              <Users size={17} /> Equipo
-            </Link>
+            {user?.backendRole === "ADMIN" && (
+              <Link
+                href="/dashboard/team"
+                className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+              >
+                <Users aria-hidden="true" size={17} /> Equipo
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -470,7 +525,7 @@ function MetricCard({
   accent = "blue",
 }: {
   label: string;
-  value: number;
+  value: number | null;
   detail: string;
   icon: typeof ShieldCheck;
   testId: string;
@@ -496,7 +551,7 @@ function MetricCard({
         data-testid={testId}
         className="mt-1 text-3xl font-black tracking-tight text-slate-950"
       >
-        {formatNumber(value)}
+        {value === null ? "—" : formatNumber(value)}
       </p>
       <div className="mt-2 flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-slate-500">{detail}</p>

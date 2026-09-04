@@ -25,7 +25,19 @@ describe('CreateVoterDto', () => {
     await expect(validate(dto)).resolves.toHaveLength(0);
     expect(dto.documentId).toBe('1012345678');
     expect(dto.firstName).toBe('Ana María');
+    expect(dto.phone).toBe('+573001234567');
     expect(dto.email).toBe('ana@example.test');
+  });
+
+  it.each([
+    ['300 123 4567', '3001234567'],
+    ['(300) 123-4567', '3001234567'],
+    ['+57 (300) 123-4567', '+573001234567'],
+  ])('canonicalizes a formatted phone %s', async (phone, expected) => {
+    const dto = plainToInstance(CreateVoterDto, { ...validInput, phone });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.phone).toBe(expected);
   });
 
   it.each([

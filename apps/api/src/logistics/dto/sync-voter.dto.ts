@@ -9,6 +9,10 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
+import {
+  CANONICAL_PHONE_PATTERN,
+  normalizePhoneInput,
+} from '../../common/utils/phone-normalization.util';
 
 const trim = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -37,10 +41,10 @@ export class SyncVoterDto {
   lastName: string;
 
   @IsOptional()
-  @Transform(trim)
+  @Transform(({ value }: TransformFnParams) => normalizePhoneInput(value))
   @IsString()
-  @MaxLength(25)
-  @Matches(/^\+?[0-9][0-9 .()-]{6,24}$/)
+  @MaxLength(16)
+  @Matches(CANONICAL_PHONE_PATTERN)
   phone?: string;
 
   @IsOptional()

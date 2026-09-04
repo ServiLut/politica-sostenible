@@ -51,6 +51,12 @@ export interface CreatedTeamInvitation {
   delivery: "MANUAL";
 }
 
+export interface TeamMemberAccessReset {
+  memberId: string;
+  temporaryPassword: string;
+  temporaryPasswordExpiresAt: string;
+}
+
 export interface AcceptTeamInvitationInput {
   token: string;
   password: string;
@@ -61,18 +67,31 @@ export interface AcceptTeamInvitationInput {
   termsVersion: "2026.1";
 }
 
+async function listAllTeamPages<T>(path: string, signal?: AbortSignal) {
+  const items: T[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const query = new URLSearchParams({ page: String(page), limit: "100" });
+    const response = await apiRequest<PaginatedTeamResult<T>>(
+      `${path}?${query.toString()}`,
+      { signal },
+    );
+    items.push(...response.items);
+    totalPages = response.pagination.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return items;
+}
+
 export function listTeamMembers(signal?: AbortSignal) {
-  return apiRequest<PaginatedTeamResult<TeamMember>>(
-    "team/members?page=1&limit=100",
-    { signal },
-  );
+  return listAllTeamPages<TeamMember>("team/members", signal);
 }
 
 export function listPendingTeamInvitations(signal?: AbortSignal) {
-  return apiRequest<PaginatedTeamResult<TeamInvitation>>(
-    "team/invitations?page=1&limit=100",
-    { signal },
-  );
+  return listAllTeamPages<TeamInvitation>("team/invitations", signal);
 }
 
 export function createTeamInvitation(input: CreateTeamInvitationInput) {
@@ -102,6 +121,13 @@ export function updateTeamMemberStatus(memberId: string, isActive: boolean) {
   );
 }
 
+export function resetTeamMemberAccess(memberId: string) {
+  return apiRequest<TeamMemberAccessReset>(
+    `team/members/${encodeURIComponent(memberId)}/access-reset`,
+    { method: "POST" },
+  );
+}
+
 export function updateTeamMemberDivision(
   memberId: string,
   divisionId: string | null,
@@ -122,26 +148,70 @@ const ASSIGNABLE_DIVISION_TYPES: Partial<
   VOLUNTEER: ["MUNICIPIO", "ZONA", "PUESTO"],
 };
 
+const ASSIGNABLE_DIVISION_PAGE_SIZE = 100;
+const MAX_ASSIGNABLE_DIVISION_PAGES = 1_000;
+
+async function listAllAssignableDivisionPages(
+  type: TeamDivisionType,
+  search: string,
+  signal?: AbortSignal,
+) {
+  const divisions: TeamDivision[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const query = new URLSearchParams({
+      type,
+      page: String(page),
+      limit: String(ASSIGNABLE_DIVISION_PAGE_SIZE),
+    });
+    if (search) query.set("search", search);
+
+    const response = await apiRequest<PaginatedTeamResult<TeamDivision>>(
+      `campaigns/divisions?${query.toString()}`,
+      { signal },
+    );
+    const pagination = response?.pagination;
+    if (
+      !Array.isArray(response?.items) ||
+      !pagination ||
+      !Number.isSafeInteger(pagination.page) ||
+      pagination.page !== page ||
+      !Number.isSafeInteger(pagination.totalPages) ||
+      pagination.totalPages < 0 ||
+      pagination.totalPages > MAX_ASSIGNABLE_DIVISION_PAGES ||
+      (pagination.totalPages > 0 && pagination.totalPages < page)
+    ) {
+      throw new Error(
+        "La API devolvió una paginación territorial inválida o excesiva.",
+      );
+    }
+
+    divisions.push(...response.items);
+    totalPages = pagination.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return divisions;
+}
+
 export async function listAssignableTeamDivisions(
   role: BackendUserRole,
   search = "",
   signal?: AbortSignal,
 ): Promise<TeamDivision[]> {
   const types = ASSIGNABLE_DIVISION_TYPES[role] ?? [];
+  const normalizedSearch = search.trim();
   const responses = await Promise.all(
-    types.map((type) => {
-      const query = new URLSearchParams({ type, page: "1", limit: "30" });
-      if (search.trim()) query.set("search", search.trim());
-      return apiRequest<PaginatedTeamResult<TeamDivision>>(
-        `campaigns/divisions?${query}`,
-        { signal },
-      );
-    }),
+    types.map((type) =>
+      listAllAssignableDivisionPages(type, normalizedSearch, signal),
+    ),
   );
 
   const unique = new Map<string, TeamDivision>();
-  for (const response of responses) {
-    for (const division of response.items) unique.set(division.id, division);
+  for (const divisions of responses) {
+    for (const division of divisions) unique.set(division.id, division);
   }
   return [...unique.values()];
 }

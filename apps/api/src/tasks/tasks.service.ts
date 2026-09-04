@@ -40,6 +40,39 @@ interface TaskAccess {
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async listAssignees(user: AuthenticatedUser) {
+    const [mode, access] = await Promise.all([
+      this.getActiveMode(user.tenantId),
+      this.getCurrentAccess(user),
+    ]);
+    this.assertTaskCreateAccess(access.role, mode);
+
+    const where: Prisma.UserWhereInput = {
+      tenantId: user.tenantId,
+      isActive: true,
+    };
+
+    if (access.role === Role.CASE_WORKER) {
+      where.id = user.userId;
+    } else if (access.role === Role.ZONE_COORDINATOR) {
+      where.OR = [
+        { id: user.userId },
+        { divisionId: { in: access.divisionIds ?? [] } },
+      ];
+    }
+
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        division: { select: { id: true, name: true, type: true } },
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+  }
+
   async findAll(user: AuthenticatedUser, query: ListTasksQueryDto) {
     const [mode, access] = await Promise.all([
       this.getActiveMode(user.tenantId),

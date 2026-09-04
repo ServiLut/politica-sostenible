@@ -28,9 +28,11 @@ export default function DashboardLayout({
     matchesNavigationPath(pathname, item.href),
   );
   const isPersonalAccountRoute = pathname === "/dashboard/profile";
+  const requiresPasswordChange = user?.mustChangePassword === true;
   const hasPermission = Boolean(
     user &&
     tenant &&
+    (!requiresPasswordChange || isPersonalAccountRoute) &&
     (isPersonalAccountRoute ||
       (currentRouteConfig &&
         canAccessNavigationItem(currentRouteConfig, user, tenant))),
@@ -43,10 +45,22 @@ export default function DashboardLayout({
       return;
     }
 
+    if (!loading && user?.mustChangePassword && !isPersonalAccountRoute) {
+      router.replace("/dashboard/profile");
+      return;
+    }
+
     if (!loading && user && tenant && pathname === "/dashboard") {
       router.replace(getDefaultDashboardRoute(user, tenant));
     }
-  }, [user, tenant, loading, pathname, router]);
+  }, [
+    user,
+    tenant,
+    loading,
+    pathname,
+    router,
+    isPersonalAccountRoute,
+  ]);
 
   if (loading || !user) {
     return (
@@ -67,11 +81,18 @@ export default function DashboardLayout({
     );
   }
 
-  if (pathname === "/dashboard") {
+  if (
+    pathname === "/dashboard" ||
+    (requiresPasswordChange && !isPersonalAccountRoute)
+  ) {
     return (
       <div
         role="status"
-        aria-label="Abriendo el panel disponible"
+        aria-label={
+          requiresPasswordChange
+            ? "Abriendo el cambio de contraseña obligatorio"
+            : "Abriendo el panel disponible"
+        }
         className="flex h-screen items-center justify-center bg-slate-50"
       >
         <div
@@ -85,7 +106,7 @@ export default function DashboardLayout({
   if (!hasPermission) {
     return (
       <div className="flex min-h-screen bg-slate-50">
-        <Sidebar />
+        {!requiresPasswordChange && <Sidebar />}
         <main className="flex min-h-screen min-w-0 flex-1 items-center justify-center p-6 pb-24 text-center lg:pb-6">
           <div className="flex max-w-md flex-col items-center gap-6 rounded-[2rem] border border-red-100 bg-red-50 p-8 shadow-xl shadow-red-900/5">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-100 text-red-600">
@@ -126,7 +147,7 @@ export default function DashboardLayout({
         Saltar al contenido
       </a>
       <div className="flex min-h-screen bg-slate-50">
-        <Sidebar />
+        {!requiresPasswordChange && <Sidebar />}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
           <header className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
             <div className="min-w-0 pr-4">
@@ -141,12 +162,26 @@ export default function DashboardLayout({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-              <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 md:inline-flex">
+              <span
+                role={requiresPasswordChange ? "status" : undefined}
+                aria-live={requiresPasswordChange ? "assertive" : undefined}
+                className={`items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
+                  requiresPasswordChange ? "inline-flex" : "hidden md:inline-flex"
+                } ${
+                  requiresPasswordChange
+                    ? "bg-amber-50 text-amber-800"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
                 <span
                   aria-hidden="true"
-                  className="h-2 w-2 rounded-full bg-emerald-500"
+                  className={`h-2 w-2 rounded-full ${
+                    requiresPasswordChange ? "bg-amber-500" : "bg-emerald-500"
+                  }`}
                 />
-                Sesión activa
+                {requiresPasswordChange
+                  ? "Cambio de clave obligatorio"
+                  : "Sesión activa"}
               </span>
               <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 xl:block">
                 {getRoleLabel(user.backendRole)}

@@ -14,16 +14,4 @@ export class IdentityService {
     const cedulaRegex = /^\d{3,10}$/;
     return cedulaRegex.test(cedula);
   }
-
-  /**
-   * Placeholder para conexión futura con la Registraduría.
-   */
-  verifyWithRegistraduria(cedula: string): Promise<boolean> {
-    // TODO: Implementar integración con API de la Registraduría Nacional
-    // Este método simula la verificación de vigencia del documento.
-    console.log(
-      `[IdentityService] Verificando cédula ${cedula} con la Registraduría (Simulado)`,
-    );
-    return Promise.resolve(true);
-  }
 }

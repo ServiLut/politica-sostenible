@@ -194,9 +194,6 @@ describe('FinanceService tenant-safe exports', () => {
     await expect(service.getSummary('tenant-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    await expect(
-      service.validateExpense('tenant-a', { vendorName: 'Proveedor' }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.generateCneReport('tenant-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );

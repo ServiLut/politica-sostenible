@@ -67,13 +67,6 @@ const cases: RbacCase[] = [
     denied: Role.VOLUNTEER,
   },
   {
-    label: 'finance external validation',
-    controller: FinanceController,
-    method: 'validateExpense',
-    allowed: Role.CAMPAIGN_MANAGER,
-    denied: Role.COMPLIANCE_OFFICER,
-  },
-  {
     label: 'finance settings update',
     controller: FinanceController,
     method: 'updateSettings',
@@ -107,6 +100,20 @@ const cases: RbacCase[] = [
     method: 'findAll',
     allowed: Role.AUDITOR,
     denied: Role.VOLUNTEER,
+  },
+  {
+    label: 'witness review',
+    controller: WitnessController,
+    method: 'review',
+    allowed: Role.COMPLIANCE_OFFICER,
+    denied: Role.WITNESS,
+  },
+  {
+    label: 'polling-place profile',
+    controller: WitnessController,
+    method: 'updatePollingPlaceProfile',
+    allowed: Role.ADMIN,
+    denied: Role.ZONE_COORDINATOR,
   },
   {
     label: 'logistics E-14 sync',
@@ -171,6 +178,13 @@ const WITNESS_WRITE = [
   Role.ZONE_COORDINATOR,
   Role.WITNESS,
 ];
+const WITNESS_READ = [...WITNESS_WRITE, Role.COMPLIANCE_OFFICER, Role.AUDITOR];
+const WITNESS_REVIEW = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.ZONE_COORDINATOR,
+];
 
 const exactCases: Array<[string, Type<unknown>, string, readonly Role[]]> = [
   ['voter create', VoterController, 'create', VOTER_WRITE],
@@ -185,16 +199,17 @@ const exactCases: Array<[string, Type<unknown>, string, readonly Role[]]> = [
   ['finance create', FinanceController, 'create', FINANCE_WRITE],
   ['finance list', FinanceController, 'findAll', FINANCE_READ],
   ['finance summary', FinanceController, 'getSummary', FINANCE_READ],
-  ['finance validation', FinanceController, 'validateExpense', FINANCE_WRITE],
   ['finance settings', FinanceController, 'updateSettings', FINANCE_WRITE],
   ['finance review', FinanceController, 'review', FINANCE_REVIEW],
   ['finance export', FinanceController, 'getCneReport', FINANCE_READ],
   ['witness create', WitnessController, 'create', WITNESS_WRITE],
+  ['witness list', WitnessController, 'findAll', WITNESS_READ],
+  ['witness review', WitnessController, 'review', WITNESS_REVIEW],
   [
-    'witness list',
+    'polling-place profile',
     WitnessController,
-    'findAll',
-    [...WITNESS_WRITE, Role.AUDITOR],
+    'updatePollingPlaceProfile',
+    [Role.ADMIN, Role.CAMPAIGN_MANAGER],
   ],
   ['logistics E-14', LogisticsController, 'syncE14', WITNESS_WRITE],
   ['logistics voter', LogisticsController, 'syncVoter', VOTER_WRITE],

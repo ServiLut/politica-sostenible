@@ -21,7 +21,7 @@ describe('TasksService tenant and mode isolation', () => {
 
   let prisma: {
     tenant: { findUnique: jest.Mock };
-    user: { findFirst: jest.Mock };
+    user: { findFirst: jest.Mock; findMany: jest.Mock };
     issueCase: { findFirst: jest.Mock };
     commitment: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
@@ -50,6 +50,7 @@ describe('TasksService tenant and mode isolation', () => {
               'role' in select ? { role: Role.ADMIN } : { id: 'user-a' },
             ),
           ),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       issueCase: { findFirst: jest.fn() },
       commitment: { findFirst: jest.fn() },
@@ -63,6 +64,87 @@ describe('TasksService tenant and mode isolation', () => {
       },
     };
     service = new TasksService(prisma as unknown as PrismaService);
+  });
+
+  it('lists only active assignees from the JWT tenant for a global manager', async () => {
+    prisma.user.findMany.mockResolvedValue([
+      {
+        id: 'creator-a',
+        name: 'Administración',
+        role: Role.ADMIN,
+        division: null,
+      },
+    ]);
+
+    await expect(service.listAssignees(currentUser)).resolves.toEqual([
+      expect.objectContaining({ id: 'creator-a', role: Role.ADMIN }),
+    ]);
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-a', isActive: true },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        division: { select: { id: true, name: true, type: true } },
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+  });
+
+  it('limits a zone coordinator assignee catalog to self and territorial scope', async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.ZONE_COORDINATOR,
+      divisionId: 'zone-a',
+    });
+    prisma.politicalDivision.findMany.mockResolvedValue([
+      { id: 'zone-a', parentId: null },
+      { id: 'place-a', parentId: 'zone-a' },
+    ]);
+
+    await service.listAssignees({
+      ...currentUser,
+      userId: 'coordinator-a',
+      role: Role.ZONE_COORDINATOR,
+    });
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tenantId: 'tenant-a',
+          isActive: true,
+          OR: [
+            { id: 'coordinator-a' },
+            { divisionId: { in: ['zone-a', 'place-a'] } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('only offers the current case worker as an assignee', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.CASE_WORKER,
+      divisionId: null,
+    });
+
+    await service.listAssignees({
+      ...currentUser,
+      userId: 'case-worker-a',
+      role: Role.CASE_WORKER,
+    });
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tenantId: 'tenant-a',
+          isActive: true,
+          id: 'case-worker-a',
+        },
+      }),
+    );
   });
 
   it('rejects an assignee that does not belong to the JWT tenant', async () => {

@@ -28,6 +28,8 @@ import {
 } from './dto/team-member-lifecycle.dto';
 
 const INVITATION_LIFETIME_MS = 72 * 60 * 60 * 1_000;
+const TEMPORARY_PASSWORD_BYTES = 24;
+const TEMPORARY_PASSWORD_LIFETIME_MS = 24 * 60 * 60 * 1_000;
 
 const CAMPAIGN_ROLES = new Set<Role>([
   Role.CAMPAIGN_MANAGER,
@@ -304,6 +306,90 @@ export class TeamService {
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
+    } catch (error: unknown) {
+      if (this.isPrismaError(error, 'P2034')) {
+        throw this.concurrentTeamChange();
+      }
+      throw error;
+    }
+  }
+
+  async resetMemberAccess(user: AuthenticatedUser, memberId: string) {
+    const temporaryPassword = randomBytes(TEMPORARY_PASSWORD_BYTES).toString(
+      'base64url',
+    );
+    const temporaryPasswordExpiresAt = new Date(
+      Date.now() + TEMPORARY_PASSWORD_LIFETIME_MS,
+    );
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+
+    try {
+      const reset = await this.prisma.$transaction(
+        async (tx) => {
+          const mode = await this.assertCurrentAdmin(user, tx);
+          if (memberId === user.userId) {
+            throw new ForbiddenException(
+              'No puedes restablecer el acceso de tu propia cuenta',
+            );
+          }
+
+          const target = await tx.user.findFirst({
+            where: {
+              id: memberId,
+              tenantId: user.tenantId,
+              isActive: true,
+            },
+            select: { id: true, role: true },
+          });
+          if (!target) {
+            throw new NotFoundException('Miembro activo no encontrado');
+          }
+          if (target.role === Role.ADMIN) {
+            throw new ForbiddenException(
+              'No puedes restablecer otra cuenta administradora',
+            );
+          }
+
+          const updated = await tx.user.updateMany({
+            where: {
+              id: target.id,
+              tenantId: user.tenantId,
+              isActive: true,
+              role: target.role,
+            },
+            data: {
+              password: passwordHash,
+              mustChangePassword: true,
+              temporaryPasswordExpiresAt,
+            },
+          });
+          if (updated.count !== 1) {
+            throw this.concurrentTeamChange();
+          }
+
+          await tx.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'TEAM_MEMBER_ACCESS_RESET',
+              resourceType: 'User',
+              resourceId: target.id,
+              metadata: {
+                delivery: 'MANUAL_TEMPORARY',
+                temporaryPasswordExpiresAt:
+                  temporaryPasswordExpiresAt.toISOString(),
+              },
+            },
+          });
+
+          return { memberId: target.id };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      return { ...reset, temporaryPassword, temporaryPasswordExpiresAt };
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2034')) {
         throw this.concurrentTeamChange();

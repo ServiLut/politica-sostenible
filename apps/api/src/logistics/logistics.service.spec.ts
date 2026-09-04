@@ -11,9 +11,11 @@ import {
   PoliticalOperationMode,
   Role,
   TenantType,
+  WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WitnessService } from '../witness/witness.service';
 import { LogisticsService } from './logistics.service';
 
 describe('LogisticsService tenant isolation', () => {
@@ -24,6 +26,9 @@ describe('LogisticsService tenant isolation', () => {
     });
     const divisionFindFirst = jest.fn().mockResolvedValue(null);
     const reportCreate = jest.fn();
+    const witnessCreate = jest
+      .fn()
+      .mockRejectedValue(new BadRequestException('Puesto invalido'));
     const service = new LogisticsService(
       {
         tenant: {
@@ -40,6 +45,7 @@ describe('LogisticsService tenant isolation', () => {
         witnessReport: { findFirst: jest.fn(), create: reportCreate },
       } as unknown as PrismaService,
       { hashIp: jest.fn() } as unknown as ConsentEvidenceService,
+      { create: witnessCreate } as unknown as WitnessService,
     );
 
     await expect(
@@ -51,14 +57,13 @@ describe('LogisticsService tenant isolation', () => {
         e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(divisionFindFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'puesto-from-tenant-b',
-        tenantId: 'tenant-a',
-        type: DivisionType.PUESTO,
-      },
-      select: { id: true },
-    });
+    expect(witnessCreate).toHaveBeenCalledWith(
+      'tenant-a',
+      'witness-a',
+      expect.objectContaining({ puestoId: 'puesto-from-tenant-b' }),
+      { isSynced: true, source: 'OFFLINE_SYNC' },
+    );
+    expect(divisionFindFirst).not.toHaveBeenCalled();
     expect(reportCreate).not.toHaveBeenCalled();
   });
 
@@ -229,17 +234,30 @@ describe('LogisticsService tenant isolation', () => {
   it('does not expose the private E-14 object path for an idempotent sync', async () => {
     const existingReport = {
       id: 'report-a',
+      witnessId: 'witness-a',
       puestoId: 'puesto-a',
       mesa: 1,
       candidateVotes: 10,
       totalTableVotes: 100,
       observations: null,
       isSynced: true,
+      status: WitnessReportStatus.PENDING,
+      reviewerId: null,
+      reviewReason: null,
+      reviewedAt: null,
+      supersededById: null,
       createdAt: new Date('2026-08-21T00:00:00.000Z'),
-      puesto: { code: 'P-001', name: 'Colegio Central' },
-      witness: { name: 'Testigo A' },
+      updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+      puesto: {
+        code: 'P-001',
+        name: 'Colegio Central',
+        expectedTables: null,
+      },
+      witness: { id: 'witness-a', name: 'Testigo A' },
+      reviewer: null,
     };
     const reportFindFirst = jest.fn().mockResolvedValue(existingReport);
+    const witnessCreate = jest.fn().mockResolvedValue(existingReport);
     const service = new LogisticsService(
       {
         tenant: {
@@ -263,6 +281,7 @@ describe('LogisticsService tenant isolation', () => {
         witnessReport: { findFirst: reportFindFirst, create: jest.fn() },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
+      { create: witnessCreate } as unknown as WitnessService,
     );
 
     const result = await service.syncE14('tenant-a', 'witness-a', {
@@ -274,17 +293,25 @@ describe('LogisticsService tenant isolation', () => {
     });
 
     expect(result).not.toHaveProperty('e14ImageUrl');
-    expect(reportFindFirst).toHaveBeenCalledWith(
+    expect(witnessCreate).toHaveBeenCalledWith(
+      'tenant-a',
+      'witness-a',
       expect.objectContaining({
-        select: expect.not.objectContaining({ e14ImageUrl: true }) as object,
+        puestoId: 'puesto-a',
+        mesa: 1,
       }),
+      { isSynced: true, source: 'OFFLINE_SYNC' },
     );
+    expect(reportFindFirst).not.toHaveBeenCalled();
   });
 
   it('denies offline E-14 synchronization outside the current witness territory', async () => {
     const uploadFindFirst = jest.fn();
     const divisionFindFirst = jest.fn();
     const reportCreate = jest.fn();
+    const witnessCreate = jest
+      .fn()
+      .mockRejectedValue(new ForbiddenException('Fuera del territorio'));
     const service = new LogisticsService(
       {
         tenant: {
@@ -311,6 +338,7 @@ describe('LogisticsService tenant isolation', () => {
         witnessReport: { findFirst: jest.fn(), create: reportCreate },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
+      { create: witnessCreate } as unknown as WitnessService,
     );
 
     await expect(

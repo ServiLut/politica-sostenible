@@ -164,6 +164,8 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
   password: 'password',
+  mustChangePassword: 'mustChangePassword',
+  temporaryPasswordExpiresAt: 'temporaryPasswordExpiresAt',
   name: 'name',
   role: 'role',
   isActive: 'isActive',
@@ -195,7 +197,8 @@ exports.Prisma.PoliticalDivisionScalarFieldEnum = {
   name: 'name',
   type: 'type',
   parentId: 'parentId',
-  tenantId: 'tenantId'
+  tenantId: 'tenantId',
+  expectedTables: 'expectedTables'
 };
 
 exports.Prisma.VoterScalarFieldEnum = {
@@ -250,7 +253,13 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   totalTableVotes: 'totalTableVotes',
   observations: 'observations',
   isSynced: 'isSynced',
-  createdAt: 'createdAt'
+  status: 'status',
+  reviewerId: 'reviewerId',
+  reviewReason: 'reviewReason',
+  reviewedAt: 'reviewedAt',
+  supersededById: 'supersededById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.CampaignEventScalarFieldEnum = {
@@ -536,6 +545,13 @@ exports.FinanceStatus = exports.$Enums.FinanceStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   REPORTED_CNE: 'REPORTED_CNE'
+};
+
+exports.WitnessReportStatus = exports.$Enums.WitnessReportStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  SUPERSEDED: 'SUPERSEDED'
 };
 
 exports.CampaignEventStatus = exports.$Enums.CampaignEventStatus = {

@@ -136,6 +136,16 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: ["PUBLIC_OFFICE"],
   },
   {
+    title: "Captura territorial",
+    mobileTitle: "Capturar",
+    href: "/dashboard/captura-territorial",
+    icon: "relationships",
+    group: "OPERATE",
+    allowedRoles: [UserRole.Coordinador, UserRole.Voluntario],
+    allowedBackendRoles: ["ZONE_COORDINATOR", "VOLUNTEER"],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
     title: "Territorio",
     mobileTitle: "Territorio",
     href: "/dashboard/territory",
@@ -271,8 +281,8 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: ALL_TENANTS,
   },
   {
-    title: "Comunicaciones",
-    mobileTitle: "Mensajes",
+    title: "Aprobación de comunicaciones",
+    mobileTitle: "Aprobación de comunicaciones",
     href: "/dashboard/communications",
     icon: "communications",
     group: "RELATIONSHIPS",

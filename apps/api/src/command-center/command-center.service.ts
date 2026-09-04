@@ -17,6 +17,7 @@ import {
   Prisma,
   Role,
   TaskStatus,
+  WitnessReportStatus,
   WorkPriority,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -127,7 +128,7 @@ export class CommandCenterService {
 
     const briefing =
       tenant.defaultMode === PoliticalOperationMode.CAMPAIGN
-        ? await this.loadCampaignBriefing(user.tenantId, now)
+        ? await this.loadCampaignBriefing(user.tenantId, now, actor)
         : await this.loadPublicOfficeBriefing(user.tenantId, now, actor);
 
     return {
@@ -142,7 +143,11 @@ export class CommandCenterService {
     };
   }
 
-  private async loadCampaignBriefing(tenantId: string, now: Date) {
+  private async loadCampaignBriefing(
+    tenantId: string,
+    now: Date,
+    actor: BriefingActor,
+  ) {
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const inTwoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
@@ -213,8 +218,16 @@ export class CommandCenterService {
               date: { lt: oneWeekAgo },
             },
           }),
-          tx.witnessReport.count({ where: { tenantId } }),
-          tx.witnessReport.count({ where: { tenantId, isSynced: true } }),
+          tx.witnessReport.count({
+            where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+          }),
+          tx.witnessReport.count({
+            where: {
+              tenantId,
+              status: WitnessReportStatus.ACCEPTED,
+              isSynced: true,
+            },
+          }),
           tx.task.count({
             where: {
               tenantId,
@@ -326,7 +339,9 @@ export class CommandCenterService {
             href: '/dashboard/events',
             complete: upcomingEventsCount > 0,
           },
-        ];
+        ].filter(
+          (step) => actor.role === Role.ADMIN || step.code !== 'TEAM_READY',
+        );
 
         const alerts = this.buildCampaignAlerts({
           peopleTotal,
@@ -597,7 +612,9 @@ export class CommandCenterService {
             href: '/dashboard/events',
             complete: upcomingEventsCount > 0,
           },
-        ];
+        ].filter(
+          (step) => actor.role === Role.ADMIN || step.code !== 'TEAM_READY',
+        );
         const alerts = this.buildPublicOfficeAlerts({
           overdueCases,
           urgentCases,

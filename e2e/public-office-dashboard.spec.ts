@@ -202,3 +202,86 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
     true,
   );
 });
+
+test("un rol operativo no recibe atajos hacia la administración de equipo", async ({
+  page,
+}) => {
+  const operationalSession = {
+    ...session,
+    user: {
+      ...session.user,
+      id: "case-worker-public-office",
+      name: "Gestora ciudadana",
+      backendRole: "CASE_WORKER",
+      role: "Coordinador",
+    },
+  };
+
+  await page.addInitScript(
+    ({ storageKey, authSession }) => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      authSession: operationalSession,
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: {
+            user: {
+              id: operationalSession.user.id,
+              email: operationalSession.user.email,
+              name: operationalSession.user.name,
+              role: operationalSession.user.backendRole,
+              tenant: operationalSession.tenant,
+            },
+          },
+        }),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/command-center/briefing") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: {
+            ...briefing,
+            activation: {
+              ...briefing.activation,
+              totalSteps: 3,
+              steps: briefing.activation.steps.filter(
+                (step) => step.code !== "TEAM_READY",
+              ),
+            },
+          },
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "{}" });
+  });
+
+  await page.goto("/dashboard/public-office");
+
+  await expect(
+    page.getByRole("heading", { name: "Centro de gestión pública" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Equipo" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Gestionar casos" }),
+  ).toBeVisible();
+});

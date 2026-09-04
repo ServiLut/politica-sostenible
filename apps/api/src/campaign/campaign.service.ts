@@ -31,6 +31,23 @@ import {
   CreatePoliticalDivisionDto,
   CreatableDivisionType,
 } from './dto/create-political-division.dto';
+import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+
+export const CAMPAIGN_DIVISION_READ_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+  Role.VOLUNTEER,
+] as const;
+
+const TERRITORIALLY_SCOPED_DIVISION_ROLES = [
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+  Role.VOLUNTEER,
+] as const;
 
 interface Department {
   code: string;
@@ -44,6 +61,8 @@ const CAMPAIGN_VIEW_SELECT = {
   type: true,
   defaultMode: true,
 } satisfies Prisma.TenantSelect;
+
+const TERRITORY_SYNC_TRANSACTION_TIMEOUT_MS = 120_000;
 
 @Injectable()
 export class CampaignService {
@@ -59,16 +78,33 @@ export class CampaignService {
    * DIVIPOLA MGN 2025. La descarga se completa y valida antes de escribir en
    * PostgreSQL; la operación sólo hace upsert y nunca elimina divisiones.
    */
-  async initializeElectoralData(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: CAMPAIGN_VIEW_SELECT,
-    });
+  async initializeElectoralData(user: AuthenticatedUser) {
+    const tenantId = user.tenantId;
+    const [tenant, admin] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: user.tenantId },
+        select: CAMPAIGN_VIEW_SELECT,
+      }),
+      this.prisma.user.findFirst({
+        where: {
+          id: user.userId,
+          tenantId: user.tenantId,
+          role: Role.ADMIN,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+    ]);
 
     if (!tenant) {
       throw new NotFoundException('Campaña no encontrada');
     }
     assertCampaignTenant(tenant);
+    if (!admin) {
+      throw new ForbiddenException(
+        'La cuenta ya no puede sincronizar el territorio',
+      );
+    }
 
     let municipalities: DaneMunicipality[];
     try {
@@ -86,61 +122,128 @@ export class CampaignService {
     const departments = this.collectDepartments(municipalities);
 
     try {
-      const departmentIds = new Map<string, string>();
+      await this.prisma.$transaction(
+        async (transaction) => {
+          const [currentTenant, currentAdmin] = await Promise.all([
+            transaction.tenant.findUnique({
+              where: { id: user.tenantId },
+              select: CAMPAIGN_VIEW_SELECT,
+            }),
+            transaction.user.findFirst({
+              where: {
+                id: user.userId,
+                tenantId: user.tenantId,
+                role: Role.ADMIN,
+                isActive: true,
+              },
+              select: { id: true },
+            }),
+          ]);
+          assertCampaignTenant(currentTenant);
+          if (!currentAdmin) {
+            throw new ForbiddenException(
+              'La cuenta ya no puede sincronizar el territorio',
+            );
+          }
 
-      for (const department of departments) {
-        const saved = await this.prisma.politicalDivision.upsert({
-          where: {
-            tenantId_code_type: {
+          const lockName = `campaign-territory-sync:${tenantId}`;
+          const [syncLock] = await transaction.$queryRaw<
+            Array<{ acquired: boolean }>
+          >`SELECT pg_try_advisory_xact_lock(hashtextextended(${lockName}, 0)) AS acquired`;
+          if (!syncLock?.acquired) {
+            throw new ConflictException(
+              'Ya hay una sincronizacion territorial en curso para esta campaña',
+            );
+          }
+
+          const departmentIds = new Map<string, string>();
+
+          for (const department of departments) {
+            const saved = await transaction.politicalDivision.upsert({
+              where: {
+                tenantId_code_type: {
+                  tenantId,
+                  code: department.code,
+                  type: DivisionType.DEPARTAMENTO,
+                },
+              },
+              update: { name: department.name },
+              create: {
+                tenantId,
+                code: department.code,
+                name: department.name,
+                type: DivisionType.DEPARTAMENTO,
+              },
+              select: { id: true },
+            });
+            departmentIds.set(department.code, saved.id);
+          }
+
+          for (const municipality of municipalities) {
+            const parentId = departmentIds.get(municipality.departmentCode);
+            if (!parentId) {
+              throw new Error(
+                `No se creó el departamento ${municipality.departmentCode}`,
+              );
+            }
+
+            await transaction.politicalDivision.upsert({
+              where: {
+                tenantId_code_type: {
+                  tenantId,
+                  code: municipality.municipalityCode,
+                  type: DivisionType.MUNICIPIO,
+                },
+              },
+              update: {
+                name: municipality.municipalityName,
+                parentId,
+              },
+              create: {
+                tenantId,
+                code: municipality.municipalityCode,
+                name: municipality.municipalityName,
+                type: DivisionType.MUNICIPIO,
+                parentId,
+              },
+            });
+          }
+
+          await transaction.auditEvent.create({
+            data: {
               tenantId,
-              code: department.code,
-              type: DivisionType.DEPARTAMENTO,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'POLITICAL_GEOGRAPHY_SYNCHRONIZED',
+              resourceType: 'Tenant',
+              resourceId: tenantId,
+              metadata: {
+                source: DANE_DIVIPOLA_SOURCE.organization,
+                dataset: DANE_DIVIPOLA_SOURCE.dataset,
+                version: DANE_DIVIPOLA_SOURCE.version,
+                departments: departments.length,
+                municipalities: municipalities.length,
+              },
             },
-          },
-          update: { name: department.name },
-          create: {
-            tenantId,
-            code: department.code,
-            name: department.name,
-            type: DivisionType.DEPARTAMENTO,
-          },
-          select: { id: true },
-        });
-        departmentIds.set(department.code, saved.id);
-      }
-
-      for (const municipality of municipalities) {
-        const parentId = departmentIds.get(municipality.departmentCode);
-        if (!parentId) {
-          throw new Error(
-            `No se creó el departamento ${municipality.departmentCode}`,
-          );
-        }
-
-        await this.prisma.politicalDivision.upsert({
-          where: {
-            tenantId_code_type: {
-              tenantId,
-              code: municipality.municipalityCode,
-              type: DivisionType.MUNICIPIO,
-            },
-          },
-          update: {
-            name: municipality.municipalityName,
-            parentId,
-          },
-          create: {
-            tenantId,
-            code: municipality.municipalityCode,
-            name: municipality.municipalityName,
-            type: DivisionType.MUNICIPIO,
-            parentId,
-          },
-        });
-      }
+          });
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 10_000,
+          timeout: TERRITORY_SYNC_TRANSACTION_TIMEOUT_MS,
+        },
+      );
     } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
       this.logger.error(
-        `Falló la persistencia DIVIPOLA para tenant ${tenantId}`,
+        `Falló la persistencia DIVIPOLA para tenant ${user.tenantId}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw new InternalServerErrorException(
@@ -236,6 +339,7 @@ export class CampaignService {
               name: true,
               type: true,
               parentId: true,
+              expectedTables: true,
               parent: {
                 select: { id: true, code: true, name: true, type: true },
               },
@@ -280,64 +384,75 @@ export class CampaignService {
     }
   }
 
-  async findDivisions(tenantId: string, query: ListDivisionsQueryDto) {
-    await this.assertCampaignMode(tenantId);
+  async findDivisions(user: AuthenticatedUser, query: ListDivisionsQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 25;
-    const where: Prisma.PoliticalDivisionWhereInput = {
-      tenantId,
-      type: query.type,
-      ...(query.search
-        ? {
-            OR: [
-              {
-                code: { contains: query.search, mode: 'insensitive' },
-              },
-              {
-                name: { contains: query.search, mode: 'insensitive' },
-              },
-            ],
-          }
-        : {}),
-    };
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
 
-    const [items, total] = await Promise.all([
-      this.prisma.politicalDivision.findMany({
-        where,
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          type: true,
-          parentId: true,
-          parent: {
-            select: { id: true, code: true, name: true, type: true },
+        const access = await resolveTerritorialAccess({
+          client: transaction,
+          tenantId: user.tenantId,
+          userId: user.userId,
+          allowedRoles: CAMPAIGN_DIVISION_READ_ROLES,
+          territoriallyScopedRoles: TERRITORIALLY_SCOPED_DIVISION_ROLES,
+        });
+        const where: Prisma.PoliticalDivisionWhereInput = {
+          tenantId: user.tenantId,
+          type: query.type,
+          ...(access.divisionIds ? { id: { in: access.divisionIds } } : {}),
+          ...(query.search
+            ? {
+                OR: [
+                  {
+                    code: { contains: query.search, mode: 'insensitive' },
+                  },
+                  {
+                    name: { contains: query.search, mode: 'insensitive' },
+                  },
+                ],
+              }
+            : {}),
+        };
+
+        const [items, total] = await Promise.all([
+          transaction.politicalDivision.findMany({
+            where,
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              parentId: true,
+              expectedTables: true,
+              parent: {
+                select: { id: true, code: true, name: true, type: true },
+              },
+            },
+            orderBy: [{ code: 'asc' }, { id: 'asc' }],
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          transaction.politicalDivision.count({ where }),
+        ]);
+
+        return {
+          items,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
           },
-        },
-        orderBy: [{ code: 'asc' }, { id: 'asc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.politicalDivision.count({ where }),
-    ]);
-
-    return {
-      items,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        };
       },
-    };
-  }
-
-  private async assertCampaignMode(tenantId: string): Promise<void> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: CAMPAIGN_TENANT_SELECT,
-    });
-    assertCampaignTenant(tenant);
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   private collectDepartments(municipalities: DaneMunicipality[]): Department[] {

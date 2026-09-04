@@ -4,6 +4,8 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { requireMigrationEnvironment } from "./runtime-environment.mjs";
+
 export const BASELINE_MIGRATION = "20260827000000_baseline";
 export const HISTORICAL_MIGRATIONS = Object.freeze([
   "20260821123000_issue_case_mode_reference",
@@ -35,7 +37,11 @@ function parsePostgresUrl(value, variableName) {
   if (!["postgres:", "postgresql:"].includes(parsed.protocol)) {
     throw new Error(`${variableName} no es una URL PostgreSQL`);
   }
-  if (value.includes("your-tenant-id") || value.includes("replace-me")) {
+  const usesTemplateDatabaseAuthority =
+    parsed.username.toLowerCase() === "user" &&
+    parsed.password.toLowerCase() === "password" &&
+    parsed.hostname.toLowerCase() === "host";
+  if (value.includes("replace-me") || usesTemplateDatabaseAuthority) {
     throw new Error(`${variableName} contiene un placeholder sin resolver`);
   }
 
@@ -301,6 +307,7 @@ function actionableAdoptionError(reason) {
 }
 
 export async function runSafeMigrations(environment = process.env) {
+  requireMigrationEnvironment(environment);
   const { source, parsed } = resolveDirectUrl(environment);
   const schema = resolveTargetSchema(parsed, environment.DATABASE_SCHEMA);
   const normalizedDirect = normalizeDirectUrl(parsed, schema);

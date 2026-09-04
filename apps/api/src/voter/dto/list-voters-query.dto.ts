@@ -1,13 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class ListVotersQueryDto {
   @IsOptional()
@@ -22,10 +14,4 @@ export class ListVotersQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 25;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  search?: string;
 }

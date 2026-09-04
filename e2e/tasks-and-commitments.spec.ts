@@ -62,6 +62,24 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
 }) => {
   const mutationBodies: Array<Record<string, unknown>> = [];
   const authorizationHeaders: string[] = [];
+  const assignees = [
+    {
+      id: "user-e2e",
+      name: "Dirección operativa",
+      role: "ADMIN",
+      division: null,
+    },
+    {
+      id: "team-member-e2e",
+      name: "Andrea Territorio",
+      role: "CASE_WORKER",
+      division: {
+        id: "division-e2e",
+        name: "Comuna Centro",
+        type: "ZONA",
+      },
+    },
+  ];
   let tasks = [
     {
       id: "task-1",
@@ -133,6 +151,15 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     const method = request.method();
     authorizationHeaders.push(request.headers().authorization ?? "");
 
+    if (pathname === "/api/tasks/assignees" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(assignees)),
+      });
+      return;
+    }
+
     if (pathname === "/api/tasks" && method === "GET") {
       await route.fulfill({
         status: 200,
@@ -153,6 +180,9 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
           typeof body.description === "string" ? body.description : null,
         priority: typeof body.priority === "string" ? body.priority : "MEDIUM",
         status: "TODO",
+        assigneeId: String(body.assigneeId),
+        assignee:
+          assignees.find((assignee) => assignee.id === body.assigneeId) ?? null,
         commitmentId: null,
         commitment: null,
       };
@@ -186,6 +216,34 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(commitmentPage(commitments)),
+      });
+      return;
+    }
+
+    if (pathname === "/api/commitments" && method === "POST") {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      mutationBodies.push(body);
+      const created = {
+        ...commitments[0],
+        id: "commitment-2",
+        reference: String(body.reference),
+        title: String(body.title),
+        description: String(body.description),
+        targetDate:
+          typeof body.targetDate === "string" ? body.targetDate : null,
+        isPublic: Boolean(body.isPublic),
+        ownerId: String(body.ownerId),
+        owner:
+          assignees.find((assignee) => assignee.id === body.ownerId) ?? null,
+        progress: 0,
+        status: "PROPOSED",
+        _count: { tasks: 0 },
+      };
+      commitments = [created, ...commitments];
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(successful(created)),
       });
       return;
     }
@@ -246,11 +304,17 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await taskDialog
     .getByLabel(/Descripción/)
     .fill("Consolidar y publicar los resultados del mes.");
+  await taskDialog
+    .getByRole("combobox", { name: "Responsable" })
+    .selectOption("team-member-e2e");
   await taskDialog.getByRole("button", { name: "Crear tarea" }).click();
 
   await expect(page.getByText("Tarea creada correctamente.")).toBeVisible();
   await expect(page.getByTestId("task-card-task-2")).toContainText(
     "Publicar informe de avance",
+  );
+  await expect(page.getByTestId("task-card-task-2")).toContainText(
+    "Andrea Territorio",
   );
 
   await page.getByRole("tab", { name: /Compromisos/ }).click();
@@ -275,6 +339,31 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     }),
   ).toHaveAttribute("aria-valuenow", "70");
 
+  await page.getByRole("button", { name: "Nuevo compromiso" }).click();
+  const commitmentDialog = page.getByRole("dialog", {
+    name: "Registrar compromiso",
+  });
+  await commitmentDialog.getByLabel("Referencia").fill("CMP-002");
+  await commitmentDialog
+    .getByLabel("Título")
+    .fill("Recuperación del parque vecinal");
+  await commitmentDialog
+    .getByLabel("Descripción")
+    .fill("Coordinar y verificar la recuperación del espacio público.");
+  await commitmentDialog
+    .getByRole("combobox", { name: "Responsable" })
+    .selectOption("team-member-e2e");
+  await commitmentDialog
+    .getByRole("button", { name: "Registrar compromiso" })
+    .click();
+
+  await expect(
+    page.getByText("Compromiso creado correctamente."),
+  ).toBeVisible();
+  await expect(page.getByTestId("commitment-card-commitment-2")).toContainText(
+    "Andrea Territorio",
+  );
+
   expect(mutationBodies).toEqual(
     expect.arrayContaining([
       { status: "DONE" },
@@ -282,9 +371,18 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
         title: "Publicar informe de avance",
         description: "Consolidar y publicar los resultados del mes.",
         priority: "MEDIUM",
+        assigneeId: "team-member-e2e",
       },
       { status: "AT_RISK" },
       { progress: 70 },
+      {
+        reference: "CMP-002",
+        title: "Recuperación del parque vecinal",
+        description:
+          "Coordinar y verificar la recuperación del espacio público.",
+        isPublic: false,
+        ownerId: "team-member-e2e",
+      },
     ]),
   );
   expect(

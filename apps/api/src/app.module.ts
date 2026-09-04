@@ -5,7 +5,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CampaignModule } from './campaign/campaign.module';
 import { VoterModule } from './voter/voter.module';
-import { AiModule } from './ai/ai.module';
 import { FinanceModule } from './finance/finance.module';
 import { WitnessModule } from './witness/witness.module';
 import { LogisticsModule } from './logistics/logistics.module';
@@ -44,7 +43,6 @@ import { InteractionsModule } from './interactions/interactions.module';
     AuthModule,
     CampaignModule,
     VoterModule,
-    AiModule,
     FinanceModule,
     WitnessModule,
     LogisticsModule,

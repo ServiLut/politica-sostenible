@@ -8,6 +8,7 @@ import {
   Role,
   TaskStatus,
   TenantType,
+  WitnessReportStatus,
   WorkPriority,
 } from '../../prisma/generated/prisma';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
@@ -147,7 +148,7 @@ describe('CommandCenterService secure briefing', () => {
         id: 'tenant-a',
         mode: PoliticalOperationMode.CAMPAIGN,
       },
-      activation: { ready: true, completedSteps: 5, totalSteps: 5 },
+      activation: { ready: true, completedSteps: 4, totalSteps: 4 },
       metrics: {
         people: { total: 10, consented: 8, consentCoverage: 80 },
         team: { active: 3, pendingInvitations: 1 },
@@ -175,6 +176,26 @@ describe('CommandCenterService secure briefing', () => {
     expect(serialized).not.toContain('phone');
     expect(serialized).not.toContain('evidenceUrl');
     expect(serialized).not.toContain('description');
+    expect(serialized).not.toContain('/dashboard/team');
+  });
+
+  it('shows the team activation action only to the authoritative ADMIN role', async () => {
+    prisma.user.findFirst.mockResolvedValue({ role: Role.ADMIN });
+
+    const result = await service.getBriefing({
+      ...campaignLeader,
+      role: Role.CAMPAIGN_MANAGER,
+    });
+
+    expect(result.activation).toMatchObject({ totalSteps: 5 });
+    expect(result.activation.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'TEAM_READY',
+          href: '/dashboard/team',
+        }),
+      ]),
+    );
   });
 
   it('scopes every campaign query to the JWT tenant and server-side mode', async () => {
@@ -229,6 +250,9 @@ describe('CommandCenterService secure briefing', () => {
           expect.objectContaining({ tenantId: 'tenant-a' }),
         );
       }
+    }
+    for (const [args] of prisma.witnessReport.count.mock.calls) {
+      expect(args.where.status).toBe(WitnessReportStatus.ACCEPTED);
     }
     for (const query of [
       prisma.task.count,
@@ -299,6 +323,7 @@ describe('CommandCenterService secure briefing', () => {
     });
     expect(prisma.voter.count).not.toHaveBeenCalled();
     expect(prisma.financialEntry.count).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).not.toContain('/dashboard/team');
   });
 
   it('does not let a campaign manager read a public-office briefing', async () => {

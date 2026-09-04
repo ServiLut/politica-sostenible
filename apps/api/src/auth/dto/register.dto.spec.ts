@@ -27,6 +27,22 @@ describe('RegisterDto', () => {
   });
 
   it.each([
+    ['omitido', undefined],
+    ['vacío', '   '],
+  ])(
+    'acepta el documento %s sin persistir texto vacío',
+    async (_case, documentId) => {
+      const input = { ...validRegistration } as Record<string, unknown>;
+      if (documentId === undefined) delete input.documentId;
+      else input.documentId = documentId;
+      const dto = plainToInstance(RegisterDto, input);
+
+      await expect(validate(dto)).resolves.toHaveLength(0);
+      expect(dto.documentId).toBeUndefined();
+    },
+  );
+
+  it.each([
     [{ ...validRegistration, termsVersion: '2026.2' }, 'termsVersion'],
     [{ ...validRegistration, termsAccepted: false }, 'termsAccepted'],
     [{ ...validRegistration, documentId: '../otro-tenant' }, 'documentId'],

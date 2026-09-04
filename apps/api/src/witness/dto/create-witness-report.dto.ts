@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -9,10 +9,14 @@ import {
   Min,
 } from 'class-validator';
 
+const trim = ({ value }: TransformFnParams): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
 export class CreateWitnessReportDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(128)
+  @Transform(trim)
   puestoId: string;
 
   @Type(() => Number)
@@ -24,6 +28,7 @@ export class CreateWitnessReportDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(2048)
+  @Transform(trim)
   e14ImageUrl: string;
 
   @Type(() => Number)
@@ -39,7 +44,9 @@ export class CreateWitnessReportDto {
   totalTableVotes: number;
 
   @IsOptional()
+  @Transform(trim)
   @IsString()
+  @IsNotEmpty()
   @MaxLength(1000)
   observations?: string;
 }

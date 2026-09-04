@@ -38,6 +38,15 @@ function buildRevocationTransaction() {
     tenant: {
       findUnique: jest.fn().mockResolvedValue(campaignTenant),
     },
+    user: {
+      findFirst: jest.fn().mockResolvedValue({
+        role: Role.ADMIN,
+        divisionId: null,
+      }),
+    },
+    politicalDivision: {
+      findMany: jest.fn(),
+    },
     voter: {
       findFirst: jest.fn().mockResolvedValue({
         id: 'voter-a',
@@ -124,6 +133,10 @@ describe('VoterService privacy controls', () => {
 
     expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
+    });
+    expect(transaction.user.findFirst).toHaveBeenCalledWith({
+      where: { id: 'admin-a', tenantId: 'tenant-a', isActive: true },
+      select: { role: true, divisionId: true },
     });
     expect(transaction.voter.findFirst).toHaveBeenCalledWith({
       where: { id: 'voter-a', tenantId: 'tenant-a' },
@@ -239,6 +252,27 @@ describe('VoterService privacy controls', () => {
     },
   );
 
+  it('denies a revocation when the persisted role was removed after authentication', async () => {
+    const transaction = buildRevocationTransaction();
+    transaction.user.findFirst.mockResolvedValue({
+      role: Role.VOLUNTEER,
+      divisionId: null,
+    });
+    const { runTransaction, service } =
+      buildServiceWithTransaction(transaction);
+
+    await expect(
+      service.revokeConsent(admin, 'voter-a', {
+        reason: 'Solicitud expresa del titular.',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction.voter.findFirst).not.toHaveBeenCalled();
+    expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
   it('returns a conflict when the latest event already revoked the purpose', async () => {
     const transaction = buildRevocationTransaction();
     transaction.consentRecord.findFirst.mockResolvedValue({
@@ -324,7 +358,7 @@ describe('VoterService privacy controls', () => {
       {} as ConsentEvidenceService,
     );
 
-    const result = await service.findAll(
+    const result = await service.search(
       { ...admin, role: Role.ZONE_COORDINATOR },
       {
         page: 2,
@@ -343,8 +377,17 @@ describe('VoterService privacy controls', () => {
     const countArgs = countCalls[0]?.[0];
     expect(findManyArgs).toMatchObject({ skip: 10, take: 10 });
     expect(findManyArgs?.where).toMatchObject({ tenantId: 'tenant-a' });
-    expect(JSON.stringify(findManyArgs?.where)).not.toContain('documentId');
-    expect(JSON.stringify(findManyArgs?.where)).not.toContain('phone');
+    expect(findManyArgs?.where).toMatchObject({
+      OR: expect.arrayContaining([
+        { documentId: { equals: 'ana', mode: 'insensitive' } },
+        { phone: { equals: 'ana' } },
+      ]),
+    });
+    const exactPiiPredicates = (
+      findManyArgs?.where.OR as Array<Record<string, unknown>>
+    ).filter((predicate) => 'documentId' in predicate || 'phone' in predicate);
+    expect(exactPiiPredicates).toHaveLength(2);
+    expect(JSON.stringify(exactPiiPredicates)).not.toContain('contains');
     expect(countArgs?.where).toMatchObject({ tenantId: 'tenant-a' });
     expect(result.pagination).toEqual({
       page: 2,
@@ -360,6 +403,9 @@ describe('VoterService privacy controls', () => {
     expect(result.items[0]).not.toHaveProperty('documentId');
     expect(result.items[0]).not.toHaveProperty('phone');
     expect(result.items[0]).not.toHaveProperty('email');
+    expect(JSON.stringify(result)).not.toContain('1012345678');
+    expect(JSON.stringify(result)).not.toContain('3001234567');
+    expect(JSON.stringify(result)).not.toContain('must-not-leak@example.test');
   });
 
   it('scopes a coordinator list to the persisted division and descendants', async () => {

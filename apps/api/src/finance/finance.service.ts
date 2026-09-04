@@ -4,12 +4,10 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
-  NotImplementedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ColombiaValidator } from '../common/utils/colombia-validator.util';
 import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';
-import { ValidateExpenseDto } from './dto/validate-expense.dto';
 import { buildCsvRow } from '../common/utils/csv.util';
 import {
   AuditActorType,
@@ -214,81 +212,54 @@ export class FinanceService {
 
   async findAll(tenantId: string, viewerId?: string) {
     await this.assertCampaignMode(tenantId);
-    try {
-      const entries = await this.prisma.financialEntry.findMany({
-        where: { tenantId },
-        select: FINANCIAL_ENTRY_VIEW_SELECT,
-        orderBy: { date: 'desc' },
-      });
-      return entries.map((entry) => this.toFinancialEntryView(entry, viewerId));
-    } catch (error) {
-      console.error('❌ Error in FinanceService.findAll:', error);
-      throw error;
-    }
+    const entries = await this.prisma.financialEntry.findMany({
+      where: { tenantId },
+      select: FINANCIAL_ENTRY_VIEW_SELECT,
+      orderBy: { date: 'desc' },
+    });
+    return entries.map((entry) => this.toFinancialEntryView(entry, viewerId));
   }
 
   async getSummary(tenantId: string) {
     await this.assertCampaignMode(tenantId);
-    try {
-      const expenses = await this.prisma.financialEntry.aggregate({
-        where: {
-          tenantId,
-          type: EntryType.EXPENSE,
-          status: { not: FinanceStatus.REJECTED },
-        },
-        _sum: { amount: true },
-      });
-      const income = await this.prisma.financialEntry.aggregate({
-        where: {
-          tenantId,
-          type: EntryType.INCOME,
-          status: { not: FinanceStatus.REJECTED },
-        },
-        _sum: { amount: true },
-      });
-      const settings = await this.prisma.campaignSettings.findUnique({
-        where: { tenantId },
-      });
-      const totalExpensesDecimal = new Prisma.Decimal(
-        expenses._sum.amount ?? 0,
-      );
-      const totalIncomeDecimal = new Prisma.Decimal(income._sum.amount ?? 0);
-      const totalExpenses = totalExpensesDecimal.toNumber();
-      const totalIncome = totalIncomeDecimal.toNumber();
-      const remainingBudget = settings
-        ? new Prisma.Decimal(settings.maxTotalBudget).minus(
-            totalExpensesDecimal,
-          )
-        : null;
-
-      return {
-        totalExpenses,
-        totalIncome,
-        balance: totalIncomeDecimal.minus(totalExpensesDecimal).toNumber(),
-        limitsConfigured: Boolean(settings),
-        maxTotalBudget: settings ? Number(settings.maxTotalBudget) : null,
-        maxPublicityLimit: settings ? Number(settings.maxPublicityLimit) : null,
-        remainingBudget: remainingBudget
-          ? Prisma.Decimal.max(remainingBudget, 0).toNumber()
-          : null,
-      };
-    } catch (error) {
-      console.error('❌ Error in FinanceService.getSummary:', error);
-      throw error;
-    }
-  }
-
-  async validateExpense(
-    tenantId: string,
-    data: ValidateExpenseDto,
-  ): Promise<never> {
-    await this.assertCampaignMode(tenantId);
-    throw new NotImplementedException({
-      code: 'EXTERNAL_PROVIDER_VALIDATION_NOT_CONFIGURED',
-      message:
-        'La validación contra fuentes externas no está configurada. El nombre del proveedor no se usará para inventar un resultado.',
-      vendorNameReceived: Boolean(data.vendorName?.trim()),
+    const expenses = await this.prisma.financialEntry.aggregate({
+      where: {
+        tenantId,
+        type: EntryType.EXPENSE,
+        status: { not: FinanceStatus.REJECTED },
+      },
+      _sum: { amount: true },
     });
+    const income = await this.prisma.financialEntry.aggregate({
+      where: {
+        tenantId,
+        type: EntryType.INCOME,
+        status: { not: FinanceStatus.REJECTED },
+      },
+      _sum: { amount: true },
+    });
+    const settings = await this.prisma.campaignSettings.findUnique({
+      where: { tenantId },
+    });
+    const totalExpensesDecimal = new Prisma.Decimal(expenses._sum.amount ?? 0);
+    const totalIncomeDecimal = new Prisma.Decimal(income._sum.amount ?? 0);
+    const totalExpenses = totalExpensesDecimal.toNumber();
+    const totalIncome = totalIncomeDecimal.toNumber();
+    const remainingBudget = settings
+      ? new Prisma.Decimal(settings.maxTotalBudget).minus(totalExpensesDecimal)
+      : null;
+
+    return {
+      totalExpenses,
+      totalIncome,
+      balance: totalIncomeDecimal.minus(totalExpensesDecimal).toNumber(),
+      limitsConfigured: Boolean(settings),
+      maxTotalBudget: settings ? Number(settings.maxTotalBudget) : null,
+      maxPublicityLimit: settings ? Number(settings.maxPublicityLimit) : null,
+      remainingBudget: remainingBudget
+        ? Prisma.Decimal.max(remainingBudget, 0).toNumber()
+        : null,
+    };
   }
 
   async updateSettings(

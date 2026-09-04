@@ -185,7 +185,7 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
   await page.goto("/dashboard/communications");
 
   await expect(
-    page.getByRole("heading", { name: "Aprobaciones de comunicaciones" }),
+    page.getByRole("heading", { name: "Aprobación de comunicaciones" }),
   ).toBeVisible();
   await expect(
     page.getByText(/Este módulo no envía, programa ni publica/),

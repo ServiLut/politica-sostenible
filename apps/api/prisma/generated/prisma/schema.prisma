@@ -75,40 +75,43 @@ model StoredObject {
 }
 
 model User {
-  id                       String                  @id @default(cuid())
-  email                    String                  @unique
-  password                 String
-  name                     String
-  role                     Role                    @default(VOLUNTEER)
-  isActive                 Boolean                 @default(true)
-  documentId               String
-  phone                    String?
-  points                   Int                     @default(0)
-  tenantId                 String
-  divisionId               String?
-  createdAt                DateTime                @default(now())
-  updatedAt                DateTime                @updatedAt
-  tenant                   Tenant                  @relation(fields: [tenantId], references: [id])
-  division                 PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
-  financialEntriesReported FinancialEntry[]        @relation("FinancialEntryReporter")
-  financialEntriesReviewed FinancialEntry[]        @relation("FinancialEntryReviewer")
-  registeredVoters         Voter[]                 @relation("Registrar")
-  witnessReports           WitnessReport[]
-  pointLogs                PointLog[]
-  inventoryMoves           InventoryMovement[]
-  consentsCaptured         ConsentRecord[]         @relation("ConsentCapturedBy")
-  casesAssigned            IssueCase[]             @relation("CaseAssignee")
-  casesCreated             IssueCase[]             @relation("CaseCreatedBy")
-  interactions             Interaction[]           @relation("InteractionActor")
-  tasksAssigned            Task[]                  @relation("TaskAssignee")
-  tasksCreated             Task[]                  @relation("TaskCreator")
-  commitmentsOwned         Commitment[]            @relation("CommitmentOwner")
-  communicationsRequested  CommunicationApproval[] @relation("CommunicationRequestedBy")
-  communicationsDecided    CommunicationApproval[] @relation("CommunicationDecidedBy")
-  invitationsSent          TeamInvitation[]        @relation("InvitationInviter")
-  eventsResponsible        CampaignEvent[]         @relation("EventResponsible")
-  auditEvents              AuditEvent[]            @relation("AuditActor")
-  storedObjects            StoredObject[]          @relation("StoredObjectUploader")
+  id                         String                  @id @default(cuid())
+  email                      String                  @unique
+  password                   String
+  mustChangePassword         Boolean                 @default(false)
+  temporaryPasswordExpiresAt DateTime?
+  name                       String
+  role                       Role                    @default(VOLUNTEER)
+  isActive                   Boolean                 @default(true)
+  documentId                 String?
+  phone                      String?
+  points                     Int                     @default(0)
+  tenantId                   String
+  divisionId                 String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  tenant                     Tenant                  @relation(fields: [tenantId], references: [id])
+  division                   PoliticalDivision?      @relation(fields: [divisionId, tenantId], references: [id, tenantId])
+  financialEntriesReported   FinancialEntry[]        @relation("FinancialEntryReporter")
+  financialEntriesReviewed   FinancialEntry[]        @relation("FinancialEntryReviewer")
+  registeredVoters           Voter[]                 @relation("Registrar")
+  witnessReports             WitnessReport[]         @relation("WitnessReportReporter")
+  witnessReportsReviewed     WitnessReport[]         @relation("WitnessReportReviewer")
+  pointLogs                  PointLog[]
+  inventoryMoves             InventoryMovement[]
+  consentsCaptured           ConsentRecord[]         @relation("ConsentCapturedBy")
+  casesAssigned              IssueCase[]             @relation("CaseAssignee")
+  casesCreated               IssueCase[]             @relation("CaseCreatedBy")
+  interactions               Interaction[]           @relation("InteractionActor")
+  tasksAssigned              Task[]                  @relation("TaskAssignee")
+  tasksCreated               Task[]                  @relation("TaskCreator")
+  commitmentsOwned           Commitment[]            @relation("CommitmentOwner")
+  communicationsRequested    CommunicationApproval[] @relation("CommunicationRequestedBy")
+  communicationsDecided      CommunicationApproval[] @relation("CommunicationDecidedBy")
+  invitationsSent            TeamInvitation[]        @relation("InvitationInviter")
+  eventsResponsible          CampaignEvent[]         @relation("EventResponsible")
+  auditEvents                AuditEvent[]            @relation("AuditActor")
+  storedObjects              StoredObject[]          @relation("StoredObjectUploader")
 
   @@unique([id, tenantId])
   @@unique([documentId, tenantId])
@@ -139,19 +142,20 @@ model TeamInvitation {
 }
 
 model PoliticalDivision {
-  id         String              @id @default(cuid())
-  code       String
-  name       String
-  type       DivisionType
-  parentId   String?
-  tenantId   String
-  tenant     Tenant              @relation("TenantDivisions", fields: [tenantId], references: [id])
-  parent     PoliticalDivision?  @relation("Hierarchy", fields: [parentId, tenantId], references: [id, tenantId])
-  children   PoliticalDivision[] @relation("Hierarchy")
-  users      User[]
-  voters     Voter[]             @relation("VoterPuesto")
-  witnesses  WitnessReport[]
-  issueCases IssueCase[]
+  id             String              @id @default(cuid())
+  code           String
+  name           String
+  type           DivisionType
+  parentId       String?
+  tenantId       String
+  expectedTables Int?
+  tenant         Tenant              @relation("TenantDivisions", fields: [tenantId], references: [id])
+  parent         PoliticalDivision?  @relation("Hierarchy", fields: [parentId, tenantId], references: [id, tenantId])
+  children       PoliticalDivision[] @relation("Hierarchy")
+  users          User[]
+  voters         Voter[]             @relation("VoterPuesto")
+  witnesses      WitnessReport[]
+  issueCases     IssueCase[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code, type])
@@ -221,25 +225,37 @@ model FinancialEntry {
 }
 
 model WitnessReport {
-  id              String            @id @default(cuid())
-  tenantId        String
-  witnessId       String
-  puestoId        String
-  mesa            Int
-  e14ImageUrl     String            @unique
-  candidateVotes  Int
-  totalTableVotes Int
-  observations    String?
-  isSynced        Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  tenant          Tenant            @relation(fields: [tenantId], references: [id])
-  puesto          PoliticalDivision @relation(fields: [puestoId, tenantId], references: [id, tenantId])
-  witness         User              @relation(fields: [witnessId, tenantId], references: [id, tenantId])
+  id                String              @id @default(cuid())
+  tenantId          String
+  witnessId         String
+  puestoId          String
+  mesa              Int
+  e14ImageUrl       String              @unique
+  candidateVotes    Int
+  totalTableVotes   Int
+  observations      String?
+  isSynced          Boolean             @default(false)
+  status            WitnessReportStatus @default(PENDING)
+  reviewerId        String?
+  reviewReason      String?             @db.VarChar(1000)
+  reviewedAt        DateTime?
+  supersededById    String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  puesto            PoliticalDivision   @relation(fields: [puestoId, tenantId], references: [id, tenantId])
+  witness           User                @relation("WitnessReportReporter", fields: [witnessId, tenantId], references: [id, tenantId])
+  reviewer          User?               @relation("WitnessReportReviewer", fields: [reviewerId, tenantId], references: [id, tenantId])
+  supersededBy      WitnessReport?      @relation("WitnessReportSupersession", fields: [supersededById, tenantId], references: [id, tenantId])
+  supersededReports WitnessReport[]     @relation("WitnessReportSupersession")
 
   @@unique([id, tenantId])
-  @@unique([tenantId, puestoId, mesa])
   @@index([tenantId, witnessId, createdAt])
   @@index([tenantId, isSynced])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, puestoId, mesa, status, createdAt])
+  @@index([tenantId, reviewerId, reviewedAt])
+  @@index([tenantId, supersededById])
 }
 
 model CampaignEvent {
@@ -579,6 +595,13 @@ enum FinanceStatus {
   APPROVED
   REJECTED
   REPORTED_CNE
+}
+
+enum WitnessReportStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
 }
 
 enum MovementType {

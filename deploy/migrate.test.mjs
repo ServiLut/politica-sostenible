@@ -90,9 +90,16 @@ test("resolveDirectUrl rechaza protocolos y placeholders invalidos", () => {
     () =>
       resolveDirectUrl({
         DIRECT_URL:
-          "postgresql://postgres.your-tenant-id:password@database.internal:5432/politica",
+          "postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=politica-sostenible",
       }),
     /placeholder sin resolver/,
+  );
+  assert.equal(
+    resolveDirectUrl({
+      DIRECT_URL:
+        "postgresql://postgres.your-tenant-id:password@database.internal:5432/politica",
+    }).source,
+    "DIRECT_URL",
   );
 });
 

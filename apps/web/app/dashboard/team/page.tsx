@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertCircle,
   Check,
@@ -10,6 +17,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  KeyRound,
   UserPlus,
   Users,
   X,
@@ -22,6 +30,8 @@ import {
   listPendingTeamInvitations,
   listAssignableTeamDivisions,
   listTeamMembers,
+  resetTeamMemberAccess,
+  TeamMemberAccessReset,
   TeamDivision,
   TeamInvitation,
   TeamMember,
@@ -79,6 +89,7 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-CO", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "America/Bogota",
   }).format(date);
 }
 
@@ -108,6 +119,18 @@ export default function TeamPage() {
   const [divisionOptions, setDivisionOptions] = useState<TeamDivision[]>([]);
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const [loadingDivisions, setLoadingDivisions] = useState(false);
+  const [divisionError, setDivisionError] = useState<string | null>(null);
+  const [divisionReload, setDivisionReload] = useState(0);
+  const resetDialogRef = useRef<HTMLElement>(null);
+  const resetBusyRef = useRef(false);
+  const [resetMember, setResetMember] = useState<TeamMember | null>(null);
+  const [resetResult, setResetResult] =
+    useState<TeamMemberAccessReset | null>(null);
+  const [resettingAccess, setResettingAccess] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetCopyStatus, setResetCopyStatus] = useState<
+    "idle" | "copied" | "failed"
+  >("idle");
 
   useEffect(() => {
     if (!roleOptions.some((option) => option.value === role)) {
@@ -123,8 +146,8 @@ export default function TeamPage() {
         listTeamMembers(signal),
         listPendingTeamInvitations(signal),
       ]);
-      setMembers(memberResult.items);
-      setInvitations(invitationResult.items);
+      setMembers(memberResult);
+      setInvitations(invitationResult);
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(readableError(error));
@@ -143,8 +166,9 @@ export default function TeamPage() {
     if (!divisionMember) return;
 
     const controller = new AbortController();
+    setLoadingDivisions(true);
+    setDivisionError(null);
     const timeout = window.setTimeout(() => {
-      setLoadingDivisions(true);
       void listAssignableTeamDivisions(
         divisionMember.role,
         divisionSearch,
@@ -161,7 +185,7 @@ export default function TeamPage() {
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          setMutationError(readableError(error));
+          setDivisionError(readableError(error));
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoadingDivisions(false);
@@ -172,7 +196,66 @@ export default function TeamPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [divisionMember, divisionSearch]);
+  }, [divisionMember, divisionReload, divisionSearch]);
+
+  useEffect(() => {
+    resetBusyRef.current = resettingAccess;
+  }, [resettingAccess]);
+
+  useEffect(() => {
+    if (!resetMember) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    document.body.style.overflow = "hidden";
+
+    const focusTimer = window.setTimeout(() => {
+      resetDialogRef.current
+        ?.querySelector<HTMLElement>("[data-reset-initial-focus]")
+        ?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (resetBusyRef.current) return;
+        event.preventDefault();
+        setResetMember(null);
+        setResetResult(null);
+        setResetError(null);
+        setResetCopyStatus("idle");
+        return;
+      }
+      if (event.key !== "Tab" || !resetDialogRef.current) return;
+
+      const focusable = Array.from(
+        resetDialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [resetMember]);
 
   async function handleInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -238,10 +321,11 @@ export default function TeamPage() {
     setDivisionOptions(member.division ? [member.division] : []);
     setSelectedDivisionId(member.divisionId ?? "");
     setMutationError(null);
+    setDivisionError(null);
   }
 
   async function saveDivisionAssignment() {
-    if (!divisionMember) return;
+    if (!divisionMember || loadingDivisions) return;
     setUpdatingMemberId(divisionMember.id);
     setMutationError(null);
     try {
@@ -271,6 +355,45 @@ export default function TeamPage() {
       setMutationError(readableError(error));
     } finally {
       setUpdatingMemberId(null);
+    }
+  }
+
+  function openAccessReset(member: TeamMember) {
+    setResetMember(member);
+    setResetResult(null);
+    setResetError(null);
+    setResetCopyStatus("idle");
+  }
+
+  function closeAccessReset() {
+    if (resettingAccess) return;
+    setResetMember(null);
+    setResetResult(null);
+    setResetError(null);
+    setResetCopyStatus("idle");
+  }
+
+  async function confirmAccessReset() {
+    if (!resetMember) return;
+    setResettingAccess(true);
+    setResetError(null);
+    try {
+      const result = await resetTeamMemberAccess(resetMember.id);
+      setResetResult(result);
+    } catch (error: unknown) {
+      setResetError(readableError(error));
+    } finally {
+      setResettingAccess(false);
+    }
+  }
+
+  async function copyTemporaryPassword() {
+    if (!resetResult) return;
+    try {
+      await navigator.clipboard.writeText(resetResult.temporaryPassword);
+      setResetCopyStatus("copied");
+    } catch {
+      setResetCopyStatus("failed");
     }
   }
 
@@ -461,9 +584,14 @@ export default function TeamPage() {
                     size={21}
                     aria-hidden="true"
                   />
-                  <h2 className="text-lg font-black text-slate-950">
-                    Miembros
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950">
+                      Miembros
+                    </h2>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Listado completo del alcance autorizado
+                    </p>
+                  </div>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
                   {members.length}
@@ -583,6 +711,19 @@ export default function TeamPage() {
                           )}
                         </div>
                       )}
+                      {member.isActive &&
+                        member.id !== user?.id &&
+                        member.role !== "ADMIN" && (
+                        <button
+                          type="button"
+                          disabled={updatingMemberId === member.id}
+                          onClick={() => openAccessReset(member)}
+                          className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-black text-amber-900 transition hover:bg-amber-100 disabled:opacity-60"
+                        >
+                          <KeyRound size={17} aria-hidden="true" />
+                          Restablecer acceso de {member.name}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -591,9 +732,14 @@ export default function TeamPage() {
 
             <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 p-5">
-                <h2 className="text-lg font-black text-slate-950">
-                  Invitaciones pendientes
-                </h2>
+                <div>
+                  <h2 className="text-lg font-black text-slate-950">
+                    Invitaciones pendientes
+                  </h2>
+                  <p className="text-xs font-semibold text-slate-500">
+                    Todas las invitaciones vigentes del alcance autorizado
+                  </p>
+                </div>
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
                   {invitations.length}
                 </span>
@@ -705,7 +851,22 @@ export default function TeamPage() {
                 Consultando territorio…
               </p>
             )}
-            {!loadingDivisions && divisionOptions.length === 0 && (
+            {!loadingDivisions && divisionError && (
+              <div
+                role="alert"
+                className="mt-3 flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span>{divisionError}</span>
+                <button
+                  type="button"
+                  onClick={() => setDivisionReload((value) => value + 1)}
+                  className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-white px-4 text-xs font-black text-red-800"
+                >
+                  Reintentar territorio
+                </button>
+              </div>
+            )}
+            {!loadingDivisions && !divisionError && divisionOptions.length === 0 && (
               <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">
                 No hay resultados compatibles. Crea la zona o puesto desde
                 Organización territorial y vuelve a buscar.
@@ -722,7 +883,10 @@ export default function TeamPage() {
               <button
                 type="button"
                 onClick={() => void saveDivisionAssignment()}
-                disabled={updatingMemberId === divisionMember.id}
+                disabled={
+                  loadingDivisions ||
+                  updatingMemberId === divisionMember.id
+                }
                 className="min-h-11 rounded-xl bg-blue-700 px-5 text-sm font-black text-white disabled:opacity-50"
               >
                 {updatingMemberId === divisionMember.id
@@ -730,6 +894,155 @@ export default function TeamPage() {
                   : "Guardar alcance"}
               </button>
             </div>
+          </section>
+        </div>
+      )}
+
+      {resetMember && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/75 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeAccessReset();
+          }}
+        >
+          <section
+            ref={resetDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="access-reset-title"
+            aria-busy={resettingAccess}
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto overscroll-contain rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+          >
+            {!resetResult ? (
+              <>
+                <div className="flex items-start gap-4">
+                  <span className="rounded-2xl bg-amber-100 p-3 text-amber-900">
+                    <KeyRound size={24} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">
+                      Acción sensible
+                    </p>
+                    <h2
+                      id="access-reset-title"
+                      className="mt-2 text-2xl font-black text-slate-950"
+                    >
+                      Restablecer acceso de {resetMember.name}
+                    </h2>
+                  </div>
+                </div>
+                <p className="mt-5 text-sm font-semibold leading-6 text-slate-700">
+                  Confirma primero la identidad de la persona por un canal
+                  verificado. Su contraseña actual dejará de funcionar y se
+                  generará una contraseña nueva. Su valor solo se mostrará una
+                  vez en esta pantalla.
+                </p>
+                {resetError && (
+                  <p
+                    role="alert"
+                    className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"
+                  >
+                    {resetError}
+                  </p>
+                )}
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={resettingAccess}
+                    onClick={closeAccessReset}
+                    className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-black text-slate-700 disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    autoFocus
+                    data-reset-initial-focus
+                    type="button"
+                    disabled={resettingAccess}
+                    onClick={() => void confirmAccessReset()}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-700 px-5 text-sm font-black text-white disabled:opacity-50"
+                  >
+                    {resettingAccess ? (
+                      <Loader2
+                        className="animate-spin"
+                        size={17}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <KeyRound size={17} aria-hidden="true" />
+                    )}
+                    Confirmar restablecimiento
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
+                  Acceso restablecido
+                </p>
+                <h2
+                  id="access-reset-title"
+                  className="mt-2 text-2xl font-black text-slate-950"
+                >
+                  Entrega ahora la contraseña generada
+                </h2>
+                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+                  Compártela únicamente con {resetMember.name} por el canal
+                  verificado. Este valor no podrá volver a consultarse en la
+                  plataforma después de cerrar.
+                </p>
+                <label className="mt-5 block text-xs font-black uppercase tracking-wider text-slate-600">
+                  Nueva contraseña generada
+                  <textarea
+                    readOnly
+                    rows={2}
+                    value={resetResult.temporaryPassword}
+                    aria-label="Nueva contraseña generada"
+                    onFocus={(event) => event.currentTarget.select()}
+                    className="mt-2 w-full resize-none rounded-xl border border-slate-300 bg-slate-950 p-4 font-mono text-base font-bold normal-case tracking-normal text-white"
+                  />
+                </label>
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+                  Esta contraseña vence el{" "}
+                  {formatDate(resetResult.temporaryPasswordExpiresAt)} (hora de
+                  Colombia). Al iniciar sesión, la persona solo podrá abrir Mi
+                  perfil hasta crear su contraseña personal. No la guardes en
+                  notas, correos ni chats no verificados.
+                </div>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void copyTemporaryPassword()}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-black text-slate-800"
+                  >
+                    {resetCopyStatus === "copied" ? (
+                      <Check size={17} aria-hidden="true" />
+                    ) : (
+                      <Clipboard size={17} aria-hidden="true" />
+                    )}
+                    {resetCopyStatus === "copied"
+                      ? "Contraseña copiada"
+                      : "Copiar contraseña"}
+                  </button>
+                  <button
+                    autoFocus
+                    data-reset-initial-focus
+                    type="button"
+                    onClick={closeAccessReset}
+                    className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-black text-white"
+                  >
+                    Ya la entregué; cerrar
+                  </button>
+                </div>
+                {resetCopyStatus === "failed" && (
+                  <p role="alert" className="mt-3 text-xs font-bold text-red-700">
+                    No se pudo usar el portapapeles. Selecciona la contraseña y
+                    cópiala manualmente antes de cerrar.
+                  </p>
+                )}
+              </>
+            )}
           </section>
         </div>
       )}

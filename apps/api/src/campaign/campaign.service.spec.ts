@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Logger,
   ServiceUnavailableException,
@@ -78,16 +79,32 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         }),
       );
     const deleteMany = jest.fn();
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-sync-a' });
     const fetchMunicipalities = jest.fn().mockResolvedValue(daneData);
+    const prismaClient = {
+      $queryRaw: jest.fn().mockResolvedValue([{ acquired: true }]),
+      tenant: { findUnique: tenantFindUnique },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+      politicalDivision: { upsert, deleteMany },
+      auditEvent: { create: auditCreate },
+    };
+    const runTransaction = jest.fn(
+      async (
+        callback: (client: typeof prismaClient) => Promise<unknown>,
+      ) => callback(prismaClient),
+    );
     const service = new CampaignService(
       {
-        tenant: { findUnique: tenantFindUnique },
-        politicalDivision: { upsert, deleteMany },
+        ...prismaClient,
+        $transaction: runTransaction,
       } as unknown as PrismaService,
       { fetchMunicipalities } as unknown as DaneDivipolaClient,
     );
 
-    const result = await service.initializeElectoralData('tenant-a');
+    const result = await service.initializeElectoralData({
+      userId: 'admin-a',
+      tenantId: 'tenant-a',
+    });
 
     expect(tenantFindUnique).toHaveBeenCalledWith({
       where: { id: 'tenant-a' },
@@ -100,6 +117,13 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       },
     });
     expect(fetchMunicipalities).toHaveBeenCalledTimes(1);
+    expect(tenantFindUnique).toHaveBeenCalledTimes(2);
+    expect(prismaClient.user.findFirst).toHaveBeenCalledTimes(2);
+    expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 120_000,
+    });
     expect(upsert).toHaveBeenCalledTimes(4);
     for (const [input] of upsert.mock.calls) {
       expect(input.where.tenantId_code_type.tenantId).toBe('tenant-a');
@@ -122,6 +146,20 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       }),
     );
     expect(deleteMany).not.toHaveBeenCalled();
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        actorUserId: 'admin-a',
+        action: 'POLITICAL_GEOGRAPHY_SYNCHRONIZED',
+        resourceType: 'Tenant',
+        resourceId: 'tenant-a',
+        metadata: expect.objectContaining({
+          version: '2025',
+          departments: 2,
+          municipalities: 2,
+        }) as object,
+      }),
+    });
     expect(result.synchronized).toEqual({
       departments: 2,
       municipalities: 2,
@@ -135,28 +173,48 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       .mockImplementation(({ create }) =>
         Promise.resolve({ id: `${create.type}-${create.code}` }),
       );
+    const prismaClient = {
+      $queryRaw: jest.fn().mockResolvedValue([{ acquired: true }]),
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'tenant-a',
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+      politicalDivision: { upsert },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'audit-sync-a' }),
+      },
+    };
+    const runTransaction = jest.fn(
+      async (
+        callback: (client: typeof prismaClient) => Promise<unknown>,
+      ) => callback(prismaClient),
+    );
     const service = new CampaignService(
       {
-        tenant: {
-          findUnique: jest.fn().mockResolvedValue({
-            id: 'tenant-a',
-            defaultMode: PoliticalOperationMode.CAMPAIGN,
-            type: TenantType.CANDIDACY,
-          }),
-        },
-        politicalDivision: { upsert },
+        ...prismaClient,
+        $transaction: runTransaction,
       } as unknown as PrismaService,
       {
         fetchMunicipalities: jest.fn().mockResolvedValue(daneData),
       } as unknown as DaneDivipolaClient,
     );
 
-    await service.initializeElectoralData('tenant-a');
+    await service.initializeElectoralData({
+      userId: 'admin-a',
+      tenantId: 'tenant-a',
+    });
     const firstRunKeys = upsert.mock.calls.map(
       ([input]) => input.where.tenantId_code_type,
     );
     upsert.mockClear();
-    await service.initializeElectoralData('tenant-a');
+    await service.initializeElectoralData({
+      userId: 'admin-a',
+      tenantId: 'tenant-a',
+    });
     const secondRunKeys = upsert.mock.calls.map(
       ([input]) => input.where.tenantId_code_type,
     );
@@ -181,6 +239,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
             type: TenantType.CANDIDACY,
           }),
         },
+        user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
         politicalDivision: { upsert },
       } as unknown as PrismaService,
       {
@@ -191,9 +250,127 @@ describe('CampaignService DIVIPOLA synchronization', () => {
     );
 
     await expect(
-      service.initializeElectoralData('tenant-a'),
+      service.initializeElectoralData({
+        userId: 'admin-a',
+        tenantId: 'tenant-a',
+      }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('blocks a stale admin before contacting DANE or mutating territory', async () => {
+    const fetchMunicipalities = jest.fn();
+    const upsert = jest.fn();
+    const service = new CampaignService(
+      {
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'tenant-a',
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type: TenantType.CANDIDACY,
+          }),
+        },
+        user: { findFirst: jest.fn().mockResolvedValue(null) },
+        politicalDivision: { upsert },
+      } as unknown as PrismaService,
+      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.initializeElectoralData({
+        userId: 'inactive-admin',
+        tenantId: 'tenant-a',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(fetchMunicipalities).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('revalidates the admin after the DANE download and before any write', async () => {
+    const fetchMunicipalities = jest.fn().mockResolvedValue(daneData);
+    const upsert = jest.fn();
+    const auditCreate = jest.fn();
+    const userFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'admin-a' })
+      .mockResolvedValueOnce(null);
+    const prismaClient = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'tenant-a',
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: userFindFirst },
+      politicalDivision: { upsert },
+      auditEvent: { create: auditCreate },
+    };
+    const runTransaction = jest.fn(
+      async (
+        callback: (client: typeof prismaClient) => Promise<unknown>,
+      ) => callback(prismaClient),
+    );
+    const service = new CampaignService(
+      {
+        ...prismaClient,
+        $transaction: runTransaction,
+      } as unknown as PrismaService,
+      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.initializeElectoralData({
+        userId: 'admin-a',
+        tenantId: 'tenant-a',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(fetchMunicipalities).toHaveBeenCalledTimes(1);
+    expect(userFindFirst).toHaveBeenCalledTimes(2);
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(upsert).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a concurrent territorial synchronization before any upsert', async () => {
+    const fetchMunicipalities = jest.fn().mockResolvedValue(daneData);
+    const upsert = jest.fn();
+    const auditCreate = jest.fn();
+    const prismaClient = {
+      $queryRaw: jest.fn().mockResolvedValue([{ acquired: false }]),
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'tenant-a',
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+      politicalDivision: { upsert },
+      auditEvent: { create: auditCreate },
+    };
+    const service = new CampaignService(
+      {
+        ...prismaClient,
+        $transaction: jest.fn(
+          async (callback: (client: typeof prismaClient) => Promise<unknown>) =>
+            callback(prismaClient),
+        ),
+      } as unknown as PrismaService,
+      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.initializeElectoralData({
+        userId: 'admin-a',
+        tenantId: 'tenant-a',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prismaClient.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(upsert).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
   });
 
   it('lists operational divisions with an immutable tenant scope', async () => {
@@ -201,25 +378,40 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       .fn<Promise<Array<{ id: string }>>, [DivisionFindManyInput]>()
       .mockResolvedValue([{ id: 'puesto-a' }]);
     const count = jest.fn().mockResolvedValue(1);
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany, count },
+    };
     const service = new CampaignService(
       {
-        tenant: {
-          findUnique: jest.fn().mockResolvedValue({
-            defaultMode: PoliticalOperationMode.CAMPAIGN,
-            type: TenantType.CANDIDACY,
-          }),
-        },
-        politicalDivision: { findMany, count },
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
       } as unknown as PrismaService,
       {} as DaneDivipolaClient,
     );
 
-    const result = await service.findDivisions('tenant-a', {
-      type: DivisionType.PUESTO,
-      search: 'central',
-      page: 2,
-      limit: 10,
-    });
+    const result = await service.findDivisions(
+      { userId: 'admin-a', tenantId: 'tenant-a' },
+      {
+        type: DivisionType.PUESTO,
+        search: 'central',
+        page: 2,
+        limit: 10,
+      },
+    );
 
     const expectedWhere = {
       tenantId: 'tenant-a',
@@ -246,6 +438,95 @@ describe('CampaignService DIVIPOLA synchronization', () => {
     });
   });
 
+  it('limits coordinators to their current division and descendants', async () => {
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        { id: 'zone-a', parentId: 'municipality-a' },
+        { id: 'place-a', parentId: 'zone-a' },
+        { id: 'zone-b', parentId: 'municipality-a' },
+        { id: 'place-b', parentId: 'zone-b' },
+      ])
+      .mockResolvedValueOnce([{ id: 'place-a' }]);
+    const count = jest.fn().mockResolvedValue(1);
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ZONE_COORDINATOR,
+          divisionId: 'zone-a',
+        }),
+      },
+      politicalDivision: { findMany, count },
+    };
+    const service = new CampaignService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+
+    await service.findDivisions(
+      { userId: 'coordinator-a', tenantId: 'tenant-a' },
+      { type: DivisionType.PUESTO, page: 1, limit: 25 },
+    );
+
+    expect(findMany).toHaveBeenNthCalledWith(1, {
+      where: { tenantId: 'tenant-a' },
+      select: { id: true, parentId: true },
+    });
+    const scopedWhere = findMany.mock.calls[1]?.[0].where;
+    expect(scopedWhere).toEqual({
+      tenantId: 'tenant-a',
+      type: DivisionType.PUESTO,
+      id: { in: ['zone-a', 'place-a'] },
+    });
+    expect(scopedWhere.id.in).not.toContain('zone-b');
+    expect(scopedWhere.id.in).not.toContain('place-b');
+    expect(count).toHaveBeenCalledWith({ where: scopedWhere });
+  });
+
+  it('rejects a stale or inactive actor before listing divisions', async () => {
+    const findMany = jest.fn();
+    const count = jest.fn();
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue(null) },
+      politicalDivision: { findMany, count },
+    };
+    const service = new CampaignService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+
+    await expect(
+      service.findDivisions(
+        { userId: 'inactive-a', tenantId: 'tenant-a' },
+        { type: DivisionType.PUESTO, page: 1, limit: 25 },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(findMany).not.toHaveBeenCalled();
+    expect(count).not.toHaveBeenCalled();
+  });
+
   it('blocks initialization before contacting DANE in public-office mode', async () => {
     const fetchMunicipalities = jest.fn();
     const upsert = jest.fn();
@@ -258,13 +539,17 @@ describe('CampaignService DIVIPOLA synchronization', () => {
             type: TenantType.PUBLIC_OFFICE,
           }),
         },
+        user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
         politicalDivision: { upsert },
       } as unknown as PrismaService,
       { fetchMunicipalities } as unknown as DaneDivipolaClient,
     );
 
     await expect(
-      service.initializeElectoralData('tenant-office'),
+      service.initializeElectoralData({
+        userId: 'admin-a',
+        tenantId: 'tenant-office',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(fetchMunicipalities).not.toHaveBeenCalled();
     expect(upsert).not.toHaveBeenCalled();
@@ -273,6 +558,17 @@ describe('CampaignService DIVIPOLA synchronization', () => {
   it('blocks campaign reads and divisions in public-office mode', async () => {
     const findMany = jest.fn();
     const count = jest.fn();
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'tenant-office',
+          defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+          type: TenantType.PUBLIC_OFFICE,
+        }),
+      },
+      user: { findFirst: jest.fn() },
+      politicalDivision: { findMany, count },
+    };
     const service = new CampaignService(
       {
         tenant: {
@@ -282,7 +578,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
             type: TenantType.PUBLIC_OFFICE,
           }),
         },
-        politicalDivision: { findMany, count },
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
       } as unknown as PrismaService,
       {} as DaneDivipolaClient,
     );
@@ -291,11 +590,14 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       ForbiddenException,
     );
     await expect(
-      service.findDivisions('tenant-office', {
-        type: DivisionType.PUESTO,
-        page: 1,
-        limit: 25,
-      }),
+      service.findDivisions(
+        { userId: 'office-user', tenantId: 'tenant-office' },
+        {
+          type: DivisionType.PUESTO,
+          page: 1,
+          limit: 25,
+        },
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(findMany).not.toHaveBeenCalled();
     expect(count).not.toHaveBeenCalled();

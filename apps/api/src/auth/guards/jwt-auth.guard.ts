@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import type {
   AuthenticatedUser,
   JwtTokenPayload,
 } from '../interfaces/authenticated-user.interface';
+import { isCurrentSessionVersion } from '../session-version';
+import { ALLOW_REQUIRED_PASSWORD_CHANGE_KEY } from '../decorators/allow-required-password-change.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -31,6 +34,12 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) {
       return true;
     }
+
+    const allowsRequiredPasswordChange =
+      this.reflector.getAllAndOverride<boolean>(
+        ALLOW_REQUIRED_PASSWORD_CHANGE_KEY,
+        [context.getHandler(), context.getClass()],
+      ) === true;
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractBearerToken(request.headers.authorization);
@@ -54,11 +63,31 @@ export class JwtAuthGuard implements CanActivate {
         select: {
           email: true,
           role: true,
+          password: true,
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: true,
         },
       });
 
       if (!currentUser) {
         throw new UnauthorizedException('Token invalido o expirado');
+      }
+      if (
+        !isCurrentSessionVersion(
+          payload.sessionVersion,
+          identity.userId,
+          currentUser.password,
+        )
+      ) {
+        throw new UnauthorizedException('Token invalido o expirado');
+      }
+
+      if (
+        currentUser.mustChangePassword &&
+        (!currentUser.temporaryPasswordExpiresAt ||
+          currentUser.temporaryPasswordExpiresAt.getTime() <= Date.now())
+      ) {
+        throw new UnauthorizedException('La credencial temporal vencio');
       }
 
       // El rol del JWT puede estar obsoleto. Autorizamos exclusivamente con el
@@ -67,9 +96,23 @@ export class JwtAuthGuard implements CanActivate {
         ...identity,
         email: currentUser.email,
         role: currentUser.role,
+        mustChangePassword: currentUser.mustChangePassword,
+        temporaryPasswordExpiresAt: currentUser.mustChangePassword
+          ? currentUser.temporaryPasswordExpiresAt
+          : null,
       });
+      if (
+        currentUser.mustChangePassword &&
+        !allowsRequiredPasswordChange
+      ) {
+        throw new ForbiddenException({
+          code: 'PASSWORD_CHANGE_REQUIRED',
+          message: 'Debes cambiar la contrasena temporal antes de continuar',
+        });
+      }
       return true;
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof ForbiddenException) throw error;
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }

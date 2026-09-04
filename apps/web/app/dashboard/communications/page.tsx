@@ -290,7 +290,7 @@ export default function CommunicationsPage() {
             <ShieldCheck size={16} aria-hidden="true" /> Control editorial
           </div>
           <h1 className="text-3xl font-black tracking-tight text-slate-950">
-            Aprobaciones de comunicaciones
+            Aprobación de comunicaciones
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
             Revisión humana de cuatro ojos para mensajes de campaña o gestión

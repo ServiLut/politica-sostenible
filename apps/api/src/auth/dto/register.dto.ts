@@ -64,15 +64,19 @@ export class RegisterDto {
   })
   phone?: string;
 
-  @ApiProperty({ example: '1012345678' })
-  @Transform(trim)
+  @ApiProperty({ example: '1012345678', required: false })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+    const normalized = value.trim();
+    return normalized || undefined;
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'El número de documento es requerido' })
   @MaxLength(30)
   @Matches(/^[\p{L}\p{N}.-]+$/u, {
     message: 'El documento contiene caracteres no permitidos',
   })
-  documentId: string;
+  documentId?: string;
 
   @ApiProperty({ example: true })
   @IsBoolean()

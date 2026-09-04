@@ -9,12 +9,11 @@ import {
   Res,
 } from '@nestjs/common';
 import { FinanceService } from './finance.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';
-import { ValidateExpenseDto } from './dto/validate-expense.dto';
 import { Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
@@ -63,15 +62,6 @@ export class FinanceController {
     return this.financeService.getSummary(user.tenantId);
   }
 
-  @Post('validate')
-  @Roles(...FINANCE_WRITE_ROLES)
-  validateExpense(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() data: ValidateExpenseDto,
-  ) {
-    return this.financeService.validateExpense(user.tenantId, data);
-  }
-
   @Put('settings')
   @Roles(...FINANCE_WRITE_ROLES)
   updateSettings(
@@ -96,15 +86,22 @@ export class FinanceController {
     );
   }
 
-  @Get('cne-report')
+  @Get('cne-review-draft')
   @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({
+    summary: 'Descarga borrador interno para revisión CNE',
+    operationId: 'downloadCneReviewDraft',
+  })
   async getCneReport(
     @CurrentUser() user: AuthenticatedUser,
     @Res() res: Response,
   ) {
     const csv = await this.financeService.generateCneReport(user.tenantId);
     res.header('Content-Type', 'text/csv; charset=utf-8');
-    res.header('Content-Disposition', 'attachment; filename=cne_report.csv');
+    res.header(
+      'Content-Disposition',
+      'attachment; filename=borrador-interno-revision-cne.csv',
+    );
     res.header('Cache-Control', 'private, no-store');
     res.header('X-Content-Type-Options', 'nosniff');
     return res.send(csv);

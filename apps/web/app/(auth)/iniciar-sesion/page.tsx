@@ -15,6 +15,10 @@ import {
 import { Tenant, User } from "@/types/saas-schema";
 
 function getPostLoginPath(user: User, tenant: Tenant) {
+  if (user.mustChangePassword === true) {
+    return "/dashboard/profile";
+  }
+
   if (typeof window !== "undefined") {
     const requestedPath = new URLSearchParams(window.location.search).get(
       "next",
@@ -44,6 +48,14 @@ export default function LoginPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+
+  useEffect(() => {
+    setPasswordChanged(
+      new URLSearchParams(window.location.search).get("passwordChanged") ===
+        "1",
+    );
+  }, []);
 
   useEffect(() => {
     if (!sessionLoading && user && tenant) {
@@ -146,6 +158,16 @@ export default function LoginPage() {
             </div>
           )}
 
+          {passwordChanged && !error && (
+            <div
+              role="status"
+              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-6 text-sm font-bold text-emerald-800 shadow-sm"
+            >
+              Contraseña actualizada. Inicia sesión nuevamente con tu nueva
+              contraseña.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-10">
             <div className="space-y-6">
               <div className="space-y-3">
@@ -181,10 +203,10 @@ export default function LoginPage() {
                   </Label>
                   <Link
                     href="/olvide-mi-contrasena"
-                    title="Recuperar contraseña"
+                    title="Recuperar acceso"
                     className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                   >
-                    ¿Lo olvidaste?
+                    ¿Perdiste el acceso?
                   </Link>
                 </div>
                 <div className="relative group">

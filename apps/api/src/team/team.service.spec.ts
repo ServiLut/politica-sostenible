@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import {
+  AuditActorType,
   PoliticalOperationMode,
   DivisionType,
   Prisma,
@@ -175,6 +176,190 @@ describe('TeamService administration and tenant isolation', () => {
       ForbiddenException,
     );
     expect(tx.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it('resets access atomically and returns the temporary password only once', async () => {
+    const { service, prisma, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce({ id: 'member-a', role: Role.VOLUNTEER });
+    jest.mocked(bcrypt.hash).mockResolvedValue('bcrypt-reset-hash' as never);
+
+    const issuedAfter = Date.now();
+    const result = await service.resetMemberAccess(admin, 'member-a');
+
+    expect(result).toEqual({
+      memberId: 'member-a',
+      temporaryPassword: expect.stringMatching(/^[A-Za-z0-9_-]{32}$/),
+      temporaryPasswordExpiresAt: expect.any(Date),
+    });
+    expect(result.temporaryPasswordExpiresAt.getTime()).toBeGreaterThanOrEqual(
+      issuedAfter + 24 * 60 * 60 * 1_000,
+    );
+    expect(result.temporaryPasswordExpiresAt.getTime()).toBeLessThanOrEqual(
+      Date.now() + 24 * 60 * 60 * 1_000,
+    );
+    expect(bcrypt.hash).toHaveBeenCalledWith(result.temporaryPassword, 12);
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+    expect(tx.user.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: 'member-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { id: true, role: true },
+    });
+    expect(tx.user.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'member-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+        role: Role.VOLUNTEER,
+      },
+      data: {
+        password: 'bcrypt-reset-hash',
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: result.temporaryPasswordExpiresAt,
+      },
+    });
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: 'admin-a',
+        action: 'TEAM_MEMBER_ACCESS_RESET',
+        resourceType: 'User',
+        resourceId: 'member-a',
+        metadata: {
+          delivery: 'MANUAL_TEMPORARY',
+          temporaryPasswordExpiresAt:
+            result.temporaryPasswordExpiresAt.toISOString(),
+        },
+      },
+    });
+
+    const persistedAndAudited = JSON.stringify({
+      update: tx.user.updateMany.mock.calls,
+      audit: tx.auditEvent.create.mock.calls,
+    });
+    expect(persistedAndAudited).not.toContain(result.temporaryPassword);
+    expect(persistedAndAudited).not.toContain('member@example.test');
+  });
+
+  it('does not disclose or mutate a member outside the JWT tenant', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce(null);
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'member-from-tenant-b'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(tx.user.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: 'member-from-tenant-b',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { id: true, role: true },
+    });
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale admin inside the reset transaction', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst.mockResolvedValueOnce(null);
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'member-a'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(tx.user.findFirst).toHaveBeenCalledTimes(1);
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an inactive or missing target without revealing which case applies', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce(null);
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'inactive-member'),
+    ).rejects.toThrow('Miembro activo no encontrado');
+
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('prohibits resetting the current administrator account', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst.mockResolvedValueOnce({ id: admin.userId });
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, admin.userId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(tx.user.findFirst).toHaveBeenCalledTimes(1);
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('prohibits resetting another administrator account', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce({ id: 'admin-b', role: Role.ADMIN });
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'admin-b'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('does not return a secret when the atomic audit write fails', async () => {
+    const { service, prisma, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce({ id: 'member-a', role: Role.VOLUNTEER });
+    tx.auditEvent.create.mockRejectedValueOnce(new Error('audit unavailable'));
+    jest.mocked(bcrypt.hash).mockResolvedValue('bcrypt-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'member-a'),
+    ).rejects.toThrow('audit unavailable');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.user.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.auditEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed if the target changes before the password write', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce({ id: 'member-a', role: Role.VOLUNTEER });
+    tx.user.updateMany.mockResolvedValueOnce({ count: 0 });
+    jest.mocked(bcrypt.hash).mockResolvedValue('bcrypt-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, 'member-a'),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('creates a one-time link while persisting only SHA-256', async () => {

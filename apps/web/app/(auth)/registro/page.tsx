@@ -57,7 +57,6 @@ export default function RegisterPage() {
       return Boolean(
         formData.firstName.trim() &&
         formData.lastName.trim() &&
-        formData.documentId.trim() &&
         formData.organizationName.trim(),
       );
     }
@@ -94,7 +93,6 @@ export default function RegisterPage() {
 
     try {
       await registerAccount({
-        documentId: formData.documentId.trim(),
         email: formData.email.trim().toLowerCase(),
         name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
         organizationName: formData.organizationName.trim(),
@@ -102,6 +100,9 @@ export default function RegisterPage() {
         password: formData.password,
         termsAccepted: true,
         termsVersion: "2026.1",
+        ...(formData.documentId.trim()
+          ? { documentId: formData.documentId.trim() }
+          : {}),
         ...(formData.phone.trim() ? { phone: formData.phone.trim() } : {}),
       });
 
@@ -373,7 +374,7 @@ export default function RegisterPage() {
                       htmlFor="documentId"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Número de documento
+                      Número de documento (opcional)
                     </Label>
                     <div className="relative group">
                       <CreditCard className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
@@ -383,7 +384,6 @@ export default function RegisterPage() {
                         placeholder="12345678"
                         value={formData.documentId}
                         onChange={handleChange}
-                        required
                         autoComplete="off"
                         className="pl-14 rounded-2xl"
                       />

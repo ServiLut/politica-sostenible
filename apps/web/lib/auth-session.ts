@@ -17,6 +17,8 @@ export interface BackendAuthUser {
   email: string;
   name: string;
   role: BackendUserRole;
+  mustChangePassword?: boolean;
+  temporaryPasswordExpiresAt?: string | null;
   tenant: BackendTenant;
 }
 
@@ -65,6 +67,10 @@ function isFrontendRole(value: unknown): value is UserRole {
     typeof value === "string" &&
     Object.values(UserRole).includes(value as UserRole)
   );
+}
+
+function isValidTimestamp(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
 }
 
 function getJwtExpiration(accessToken: string): number | null {
@@ -126,6 +132,15 @@ export function createAuthSession(
     type: backendUser.tenant.type,
     config: backendUser.tenant.config,
   };
+  const mustChangePassword = backendUser.mustChangePassword === true;
+  if (
+    mustChangePassword &&
+    !isValidTimestamp(backendUser.temporaryPasswordExpiresAt)
+  ) {
+    throw new Error(
+      "La API devolvió una credencial temporal sin vencimiento válido.",
+    );
+  }
 
   return {
     accessToken,
@@ -137,6 +152,10 @@ export function createAuthSession(
       name: backendUser.name,
       role: mapBackendRole(backendUser.role),
       backendRole: backendUser.role,
+      mustChangePassword,
+      temporaryPasswordExpiresAt: mustChangePassword
+        ? backendUser.temporaryPasswordExpiresAt
+        : null,
     },
   };
 }
@@ -145,6 +164,12 @@ function isStoredSession(value: unknown): value is AuthSession {
   if (!isRecord(value) || !isRecord(value.user) || !isRecord(value.tenant)) {
     return false;
   }
+
+  const mustChangePassword = value.user.mustChangePassword === true;
+  const hasValidTemporaryPasswordState = mustChangePassword
+    ? isValidTimestamp(value.user.temporaryPasswordExpiresAt)
+    : value.user.temporaryPasswordExpiresAt === undefined ||
+      value.user.temporaryPasswordExpiresAt === null;
 
   return (
     typeof value.accessToken === "string" &&
@@ -155,6 +180,9 @@ function isStoredSession(value: unknown): value is AuthSession {
     typeof value.user.name === "string" &&
     isFrontendRole(value.user.role) &&
     isBackendRole(value.user.backendRole) &&
+    (value.user.mustChangePassword === undefined ||
+      typeof value.user.mustChangePassword === "boolean") &&
+    hasValidTemporaryPasswordState &&
     typeof value.tenant.id === "string" &&
     typeof value.tenant.name === "string" &&
     typeof value.tenant.slug === "string" &&

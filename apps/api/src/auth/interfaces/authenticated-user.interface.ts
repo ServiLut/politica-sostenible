@@ -5,6 +5,7 @@ export interface JwtTokenPayload {
   tenantId: string;
   email?: string;
   role?: string;
+  sessionVersion?: string;
   iat?: number;
   exp?: number;
 }
@@ -14,6 +15,8 @@ export interface AuthenticatedUser {
   tenantId: string;
   email?: string;
   role?: string;
+  mustChangePassword?: boolean;
+  temporaryPasswordExpiresAt?: Date | null;
 }
 
 export interface AuthenticatedRequest extends Request {

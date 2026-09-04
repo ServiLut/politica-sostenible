@@ -20,6 +20,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
 import type { ChangePasswordDto } from './dto/change-password.dto';
+import { createSessionVersion } from './session-version';
 
 // Mantiene un costo de bcrypt equivalente cuando el correo no existe y reduce
 // la utilidad de las diferencias de tiempo para enumerar cuentas.
@@ -48,6 +49,8 @@ export class AuthService {
         name: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: true,
         tenantId: true,
         tenant: {
           select: {
@@ -70,11 +73,22 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    if (
+      user.mustChangePassword &&
+      (!user.temporaryPasswordExpiresAt ||
+        user.temporaryPasswordExpiresAt.getTime() <= Date.now())
+    ) {
+      throw new UnauthorizedException(
+        'La contrasena temporal vencio. Solicita un nuevo restablecimiento al administrador',
+      );
+    }
+
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
+      sessionVersion: createSessionVersion(user.id, user.password),
     };
 
     return {
@@ -84,6 +98,10 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        mustChangePassword: user.mustChangePassword,
+        temporaryPasswordExpiresAt: user.mustChangePassword
+          ? user.temporaryPasswordExpiresAt
+          : null,
         tenant: user.tenant,
       },
     };
@@ -146,7 +164,7 @@ export class AuthService {
             email,
             password: hashedPassword,
             name: normalizedName,
-            documentId: documentId.trim(),
+            documentId: documentId?.trim() || null,
             phone: phone?.trim(),
             tenantId: tenant.id,
             role: Role.ADMIN,
@@ -203,6 +221,8 @@ export class AuthService {
         email: true,
         name: true,
         role: true,
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: true,
         tenant: {
           select: {
             id: true,
@@ -241,6 +261,8 @@ export class AuthService {
       select: {
         id: true,
         password: true,
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: true,
         tenant: { select: { defaultMode: true } },
       },
     });
@@ -253,6 +275,16 @@ export class AuthService {
       throw new UnauthorizedException('La contraseña actual no es correcta');
     }
 
+    if (
+      currentUser.mustChangePassword &&
+      (!currentUser.temporaryPasswordExpiresAt ||
+        currentUser.temporaryPasswordExpiresAt.getTime() <= Date.now())
+    ) {
+      throw new UnauthorizedException(
+        'La contrasena temporal vencio. Solicita un nuevo restablecimiento al administrador',
+      );
+    }
+
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.user.updateMany({
@@ -260,12 +292,29 @@ export class AuthService {
           id: user.userId,
           tenantId: user.tenantId,
           isActive: true,
+          // Impide que una solicitud que valido una clave ya obsoleta pise un
+          // restablecimiento administrativo o un cambio concurrente.
+          password: currentUser.password,
+          mustChangePassword: currentUser.mustChangePassword,
+          ...(currentUser.mustChangePassword
+            ? {
+                temporaryPasswordExpiresAt: {
+                  gt: new Date(),
+                },
+              }
+            : {}),
         },
-        data: { password: passwordHash },
+        data: {
+          password: passwordHash,
+          mustChangePassword: false,
+          temporaryPasswordExpiresAt: null,
+        },
       });
 
       if (updated.count !== 1) {
-        throw new UnauthorizedException('La cuenta ya no está activa');
+        throw new UnauthorizedException(
+          'La cuenta o sus credenciales cambiaron; inicia sesión nuevamente',
+        );
       }
 
       await tx.auditEvent.create({
@@ -277,7 +326,10 @@ export class AuthService {
           action: 'ACCOUNT_PASSWORD_CHANGED',
           resourceType: 'User',
           resourceId: user.userId,
-          metadata: { initiatedBy: 'SELF_SERVICE' },
+          metadata: {
+            initiatedBy: 'SELF_SERVICE',
+            temporaryCredentialReplaced: currentUser.mustChangePassword,
+          },
         },
       });
     });

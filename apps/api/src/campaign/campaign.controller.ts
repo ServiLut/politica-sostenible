@@ -1,12 +1,8 @@
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Post,
-  Query,
-} from '@nestjs/common';
-import { CampaignService } from './campaign.service';
+  CAMPAIGN_DIVISION_READ_ROLES,
+  CampaignService,
+} from './campaign.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,16 +10,8 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { Role } from '../../prisma/generated/prisma';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
 import { CreatePoliticalDivisionDto } from './dto/create-political-division.dto';
+import { Throttle } from '@nestjs/throttler';
 
-const CAMPAIGN_DIVISION_READ_ROLES = [
-  Role.ADMIN,
-  Role.CAMPAIGN_MANAGER,
-  Role.COMPLIANCE_OFFICER,
-  Role.AUDITOR,
-  Role.ZONE_COORDINATOR,
-  Role.WITNESS,
-  Role.VOLUNTEER,
-];
 const CAMPAIGN_CONTEXT_READ_ROLES = [
   ...CAMPAIGN_DIVISION_READ_ROLES,
   Role.FINANCE_MANAGER,
@@ -38,15 +26,14 @@ export class CampaignController {
 
   @Post('init')
   @Roles(Role.ADMIN)
+  @Throttle({
+    default: { limit: 1, ttl: 600_000, blockDuration: 600_000 },
+  })
   @ApiOperation({
     summary: 'Sincroniza la geografía electoral desde DANE DIVIPOLA MGN 2025',
   })
   async init(@CurrentUser() user: AuthenticatedUser) {
-    if (user.role !== Role.ADMIN) {
-      throw new ForbiddenException('Solo un administrador puede inicializar');
-    }
-
-    return this.campaignService.initializeElectoralData(user.tenantId);
+    return this.campaignService.initializeElectoralData(user);
   }
 
   @Get('divisions')
@@ -58,7 +45,7 @@ export class CampaignController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListDivisionsQueryDto,
   ) {
-    return this.campaignService.findDivisions(user.tenantId, query);
+    return this.campaignService.findDivisions(user, query);
   }
 
   @Post('divisions')

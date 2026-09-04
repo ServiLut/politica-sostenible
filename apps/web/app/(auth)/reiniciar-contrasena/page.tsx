@@ -11,16 +11,17 @@ export default function ResetPasswordPage() {
         </div>
 
         <h1 className="text-4xl font-black tracking-tight text-slate-950">
-          Este enlace no puede procesarse
+          El acceso se restablece de forma administrada
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-slate-600">
-          No existe todavía un endpoint de NestJS para validar enlaces y cambiar
-          la contraseña. Esta pantalla no usa Supabase Auth ni acepta una nueva
-          clave sin una verificación emitida por el backend oficial.
+          Política Sostenible no solicita nuevas contraseñas mediante enlaces.
+          Pide a un administrador de tu organización que verifique tu identidad
+          y genere una nueva contraseña desde Equipo y accesos.
         </p>
         <p className="mt-4 text-sm font-medium text-slate-500">
-          Solicita asistencia por el canal verificado de tu campaña y no
-          compartas claves o códigos recibidos por terceros.
+          Recíbela por un canal verificado, úsala para iniciar sesión y cámbiala
+          inmediatamente desde Mi perfil. El valor generado solo se muestra una
+          vez en la pantalla del administrador.
         </p>
 
         <Button asChild className="mt-8 w-full rounded-xl" size="lg">

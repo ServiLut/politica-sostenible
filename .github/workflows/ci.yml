@@ -36,6 +36,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Auditar dependencias de produccion
+        run: pnpm audit --prod --audit-level high
       - name: Probar guard de migraciones del contenedor Dokploy
         run: pnpm test:deploy
       - name: Bloquear deepmerge-ts vulnerable en la resolución de Prisma

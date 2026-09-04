@@ -5,6 +5,7 @@ import {
   ConsentPurpose,
   ConsentStatus,
   ConsentSubjectType,
+  DivisionType,
   PoliticalOperationMode,
   Role,
   TenantType,
@@ -12,6 +13,8 @@ import {
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
+import { ListVotersQueryDto } from './dto/list-voters-query.dto';
+import { SearchVotersDto } from './dto/search-voters.dto';
 import { VoterService } from './voter.service';
 
 describe('VoterService consent transaction', () => {
@@ -267,6 +270,128 @@ describe('VoterService consent transaction', () => {
     expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 
+  it('persists the tenant, collector and allowed puesto from the current assignment', async () => {
+    const transaction = buildTransaction();
+    transaction.user.findFirst.mockResolvedValue({
+      role: Role.VOLUNTEER,
+      divisionId: 'zone-a',
+    });
+    transaction.politicalDivision.findMany.mockResolvedValue([
+      { id: 'zone-a', parentId: null },
+      { id: 'puesto-a', parentId: 'zone-a' },
+      { id: 'puesto-outside', parentId: null },
+    ]);
+    const service = new VoterService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      {
+        hashIp: jest.fn().mockReturnValue('hashed-ip'),
+      } as unknown as ConsentEvidenceService,
+    );
+
+    await expect(
+      service.create(
+        {
+          tenantId: 'tenant-from-token',
+          userId: 'volunteer-a',
+          // La autorización efectiva se toma de la base de datos.
+          role: Role.ADMIN,
+        },
+        '203.0.113.42',
+        { ...dto, puestoId: 'puesto-a' },
+      ),
+    ).resolves.toEqual({ received: true });
+
+    expect(transaction.politicalDivision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'puesto-a',
+        tenantId: 'tenant-from-token',
+        type: DivisionType.PUESTO,
+      },
+      select: { id: true },
+    });
+    expect(transaction.captured.voterData).toMatchObject({
+      tenantId: 'tenant-from-token',
+      registrarId: 'volunteer-a',
+      puestoId: 'puesto-a',
+    });
+    expect(JSON.stringify(transaction.captured.voterData)).not.toContain(
+      'puesto-outside',
+    );
+  });
+
+  it('returns only assigned PUESTO divisions in the capture context', async () => {
+    const divisionFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        { id: 'zone-a', parentId: null },
+        { id: 'puesto-a', parentId: 'zone-a' },
+        { id: 'puesto-b', parentId: 'zone-a' },
+        { id: 'puesto-outside', parentId: null },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'puesto-a', code: 'P-01', name: 'Colegio Central' },
+        { id: 'puesto-b', code: 'P-02', name: 'Escuela Norte' },
+      ]);
+    const prisma = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ZONE_COORDINATOR,
+          divisionId: 'zone-a',
+        }),
+      },
+      politicalDivision: { findMany: divisionFindMany },
+    };
+    const service = new VoterService(
+      prisma as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    const result = await service.getCaptureContext({
+      tenantId: 'tenant-a',
+      userId: 'coordinator-a',
+      role: Role.ADMIN,
+    });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'coordinator-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { role: true, divisionId: true },
+    });
+    const puestosQuery = divisionFindMany.mock.calls[1][0];
+    expect(puestosQuery).toMatchObject({
+      where: {
+        tenantId: 'tenant-a',
+        type: DivisionType.PUESTO,
+      },
+      select: { id: true, code: true, name: true },
+    });
+    expect(puestosQuery.where.id.in).toEqual(
+      expect.arrayContaining(['zone-a', 'puesto-a', 'puesto-b']),
+    );
+    expect(puestosQuery.where.id.in).not.toContain('puesto-outside');
+    expect(result).toEqual({
+      puestos: [
+        { id: 'puesto-a', code: 'P-01', name: 'Colegio Central' },
+        { id: 'puesto-b', code: 'P-02', name: 'Escuela Norte' },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain('tenant-a');
+  });
+
   it('fails closed when a scoped collector has no assigned voting place', async () => {
     const transaction = buildTransaction();
     transaction.user.findFirst.mockResolvedValue({
@@ -332,5 +457,169 @@ describe('VoterService consent transaction', () => {
     expect(hashIp).not.toHaveBeenCalled();
     expect(transaction.voter.create).not.toHaveBeenCalled();
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+  });
+
+  describe('privacy-preserving voter search', () => {
+    const campaignTenant = {
+      defaultMode: PoliticalOperationMode.CAMPAIGN,
+      type: TenantType.CANDIDACY,
+    };
+    const user = {
+      tenantId: 'tenant-a',
+      userId: 'actor-a',
+      role: Role.ADMIN,
+    };
+
+    function buildReadService({
+      actor = { role: Role.ADMIN, divisionId: null },
+      divisions = [],
+      voters = [],
+    }: {
+      actor?: { role: Role; divisionId: string | null };
+      divisions?: Array<{ id: string; parentId: string | null }>;
+      voters?: Array<Record<string, unknown>>;
+    } = {}) {
+      const findMany = jest.fn().mockResolvedValue(voters);
+      const count = jest.fn().mockResolvedValue(voters.length);
+      const prisma = {
+        tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: { findFirst: jest.fn().mockResolvedValue(actor) },
+        politicalDivision: {
+          findMany: jest.fn().mockResolvedValue(divisions),
+        },
+        voter: { findMany, count },
+      };
+
+      return {
+        service: new VoterService(
+          prisma as unknown as PrismaService,
+          {} as ConsentEvidenceService,
+        ),
+        prisma,
+        findMany,
+        count,
+      };
+    }
+
+    it('uses contains for names but only normalized exact equality for document and phone', async () => {
+      const { service, findMany, count } = buildReadService({
+        voters: [
+          {
+            id: 'voter-a',
+            documentId: '1012345678',
+            firstName: 'MarÃ­a',
+            lastName: 'PÃ©rez',
+            phone: '300 123 4567',
+            mesa: 12,
+            isSignatureValid: false,
+            consentAccepted: true,
+            consentTimestamp: new Date('2026-08-01T12:00:00.000Z'),
+            createdAt: new Date('2026-08-01T12:00:00.000Z'),
+            puesto: { name: 'Puesto Central' },
+            registrar: { name: 'Operador autorizado' },
+          },
+        ],
+      });
+
+      const result = await service.search(user, {
+        search: '  +57 (300) 123-4567  ',
+      });
+
+      const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
+      expect(where).toEqual({
+        tenantId: 'tenant-a',
+        OR: [
+          {
+            firstName: {
+              contains: '+57 (300) 123-4567',
+              mode: 'insensitive',
+            },
+          },
+          {
+            lastName: {
+              contains: '+57 (300) 123-4567',
+              mode: 'insensitive',
+            },
+          },
+          {
+            documentId: {
+              equals: '+57 (300) 123-4567',
+              mode: 'insensitive',
+            },
+          },
+          { phone: { equals: '+573001234567' } },
+        ],
+      });
+      expect(JSON.stringify((where.OR as unknown[]).slice(2))).not.toContain(
+        'contains',
+      );
+      expect(count).toHaveBeenCalledWith({ where });
+      expect(result.items[0]).toMatchObject({
+        id: 'voter-a',
+        documentIdMasked: '******5678',
+        phoneMasked: '********4567',
+      });
+      expect(result.items[0]).not.toHaveProperty('documentId');
+      expect(result.items[0]).not.toHaveProperty('phone');
+    });
+
+    it('always scopes exact PII searches to the JWT tenant and ignores injected tenant input', async () => {
+      const { service, findMany, count } = buildReadService();
+      const maliciousBody = {
+        search: '1012345678',
+        tenantId: 'tenant-b',
+      } as unknown as SearchVotersDto;
+
+      await service.search(user, maliciousBody);
+
+      const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
+      expect(where).toMatchObject({ tenantId: 'tenant-a' });
+      expect(where).not.toHaveProperty('tenantId', 'tenant-b');
+      expect(count).toHaveBeenCalledWith({ where });
+    });
+
+    it('keeps GET pagination free of search predicates even with an injected property', async () => {
+      const { service, findMany, count } = buildReadService();
+      const injectedQuery = {
+        page: 1,
+        limit: 25,
+        search: '1012345678',
+      } as unknown as ListVotersQueryDto;
+
+      await service.findAll(user, injectedQuery);
+
+      const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
+      expect(where).toEqual({ tenantId: 'tenant-a' });
+      expect(where).not.toHaveProperty('OR');
+      expect(count).toHaveBeenCalledWith({ where });
+    });
+
+    it('keeps the persisted territorial scope when searching exact PII', async () => {
+      const { service, prisma, findMany, count } = buildReadService({
+        actor: { role: Role.ZONE_COORDINATOR, divisionId: 'zone-a' },
+        divisions: [
+          { id: 'zone-a', parentId: null },
+          { id: 'puesto-a', parentId: 'zone-a' },
+          { id: 'puesto-outside', parentId: null },
+        ],
+      });
+
+      await service.search(
+        { ...user, role: Role.ADMIN },
+        { search: '3001234567' },
+      );
+
+      expect(prisma.politicalDivision.findMany).toHaveBeenCalledWith({
+        where: { tenantId: 'tenant-a' },
+        select: { id: true, parentId: true },
+      });
+      const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
+      expect(where).toMatchObject({
+        tenantId: 'tenant-a',
+        puestoId: { in: ['zone-a', 'puesto-a'] },
+      });
+      expect(JSON.stringify(where)).not.toContain('puesto-outside');
+      expect(count).toHaveBeenCalledWith({ where });
+    });
   });
 });

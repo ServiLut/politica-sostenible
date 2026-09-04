@@ -13,6 +13,10 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  CANONICAL_PHONE_PATTERN,
+  normalizePhoneInput,
+} from '../../common/utils/phone-normalization.util';
 
 const trim = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -46,11 +50,11 @@ export class CreateVoterDto {
   lastName: string;
 
   @ApiProperty({ example: '3001234567', required: false })
-  @Transform(trim)
+  @Transform(({ value }: TransformFnParams) => normalizePhoneInput(value))
   @IsString()
   @IsOptional()
-  @MaxLength(25)
-  @Matches(/^\+?[0-9][0-9 .()-]{6,24}$/, {
+  @MaxLength(16)
+  @Matches(CANONICAL_PHONE_PATTERN, {
     message: 'El teléfono no tiene un formato válido',
   })
   phone?: string;

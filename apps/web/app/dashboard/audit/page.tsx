@@ -19,6 +19,7 @@ import {
   listAuditEvents,
 } from "@/lib/audit-events-api";
 import { ApiError } from "@/lib/api-client";
+import { getRoleLabel } from "@/config/navigation";
 
 const PAGE_SIZE = 20;
 
@@ -50,6 +51,57 @@ const OUTCOME_STYLES: Record<AuditOutcome, string> = {
   FAILURE: "bg-red-50 text-red-800 ring-red-200",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  ACCOUNT_PASSWORD_CHANGED: "Contraseña de cuenta actualizada",
+  ACCOUNT_TERMS_ACCEPTED: "Términos de cuenta aceptados",
+  CAMPAIGN_EVENT_CREATED: "Evento creado",
+  CAMPAIGN_EVENT_DRAFT_DELETED: "Borrador de evento eliminado",
+  CAMPAIGN_EVENT_STATUS_CHANGED: "Estado de evento actualizado",
+  CAMPAIGN_EVENT_UPDATED: "Evento actualizado",
+  CAMPAIGN_FINANCE_SETTINGS_UPSERTED: "Configuración financiera actualizada",
+  CAMPAIGN_FINANCIAL_ENTRY_CREATED: "Movimiento financiero registrado",
+  CAMPAIGN_FINANCIAL_ENTRY_REVIEWED: "Movimiento financiero revisado",
+  CASE_FOLLOW_UP_CONSENT_GRANTED: "Autorización de seguimiento registrada",
+  CASE_FOLLOW_UP_CONSENT_REVOKED: "Autorización de seguimiento revocada",
+  COMMUNICATION_REVIEW_DECIDED: "Comunicación revisada",
+  COMMUNICATION_REVIEW_REQUESTED: "Comunicación enviada a revisión",
+  INTERACTION_RECORDED: "Gestión de contacto registrada",
+  ISSUE_CASE_CREATED: "Caso creado",
+  ISSUE_CASE_UPDATED: "Caso actualizado",
+  CASE_UPDATED: "Caso actualizado",
+  POLITICAL_DIVISION_CREATED: "División territorial creada",
+  POLITICAL_GEOGRAPHY_SYNCHRONIZED: "Geografía oficial sincronizada",
+  STORAGE_DOWNLOAD_AUTHORIZED: "Descarga de soporte autorizada",
+  STORAGE_UPLOAD_CONFIRMED: "Carga de soporte confirmada",
+  TEAM_INVITATION_ACCEPTED: "Invitación de equipo aceptada",
+  TEAM_INVITATION_CREATED: "Invitación de equipo creada",
+  TEAM_MEMBER_ACTIVATED: "Integrante activado",
+  TEAM_MEMBER_DEACTIVATED: "Integrante desactivado",
+  TEAM_MEMBER_DIVISION_CHANGED: "Asignación territorial actualizada",
+  TEAM_MEMBER_ACCESS_RESET: "Acceso de integrante restablecido",
+  TEAM_MEMBER_ROLE_CHANGED: "Rol de integrante actualizado",
+  VOTER_CONSENT_REVOKED: "Consentimiento electoral revocado",
+  VOTER_DATA_CORRECTED: "Datos personales corregidos",
+  VOTER_DATA_EXPORTED: "Ficha personal exportada",
+  VOTER_PII_VIEWED: "Datos personales consultados",
+};
+
+const RESOURCE_LABELS: Record<string, string> = {
+  CampaignEvent: "Evento",
+  CommunicationApproval: "Comunicación",
+  FinancialEntry: "Movimiento financiero",
+  IssueCase: "Caso",
+  PoliticalDivision: "División territorial",
+  StorageObject: "Archivo",
+  TeamInvitation: "Invitación",
+  User: "Integrante",
+  Voter: "Persona vinculada",
+};
+
+function actionLabel(action: string) {
+  return ACTION_LABELS[action] ?? action.replaceAll("_", " ").toLowerCase();
+}
+
 function readableError(error: unknown) {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -76,14 +128,22 @@ function endOfBogotaDay(value: string) {
 
 function AuditRow({ event }: { event: AuditEvent }) {
   return (
-    <tr className="border-t border-slate-100 align-top">
+    <tr
+      data-testid={`audit-row-${event.id}`}
+      className="border-t border-slate-100 align-top"
+    >
       <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-600">
         {formatTimestamp(event.occurredAt)}
       </td>
       <td className="px-4 py-4">
-        <p className="text-sm font-black text-slate-950">{event.action}</p>
+        <p className="text-sm font-black text-slate-950">
+          {actionLabel(event.action)}
+        </p>
+        <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          {event.action}
+        </p>
         <p className="mt-1 text-xs font-semibold text-slate-500">
-          {event.resourceType}
+          {RESOURCE_LABELS[event.resourceType] ?? event.resourceType}
           {event.resourceId ? ` · ${event.resourceId}` : ""}
         </p>
       </td>
@@ -100,7 +160,7 @@ function AuditRow({ event }: { event: AuditEvent }) {
                 {event.actor.name}
               </p>
               <p className="text-xs font-semibold text-slate-500">
-                {event.actor.role}
+                {getRoleLabel(event.actor.role)}
               </p>
             </div>
           </div>
@@ -118,6 +178,83 @@ function AuditRow({ event }: { event: AuditEvent }) {
         </span>
       </td>
     </tr>
+  );
+}
+
+function AuditCard({ event }: { event: AuditEvent }) {
+  const resourceLabel =
+    RESOURCE_LABELS[event.resourceType] ?? event.resourceType;
+
+  return (
+    <li data-testid={`audit-card-${event.id}`} className="px-4 py-5">
+      <article aria-label={`${actionLabel(event.action)}: ${resourceLabel}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-black leading-5 text-slate-950">
+              {actionLabel(event.action)}
+            </h3>
+            <p className="mt-1 break-all font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              {event.action}
+            </p>
+          </div>
+          <span
+            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ${OUTCOME_STYLES[event.outcome]}`}
+          >
+            {OUTCOME_LABELS[event.outcome]}
+          </span>
+        </div>
+
+        <dl className="mt-4 grid gap-3 text-sm">
+          <div>
+            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              Fecha
+            </dt>
+            <dd className="mt-0.5 font-semibold text-slate-700">
+              <time dateTime={event.occurredAt}>
+                {formatTimestamp(event.occurredAt)}
+              </time>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              Recurso
+            </dt>
+            <dd className="mt-0.5 font-semibold text-slate-700">
+              {resourceLabel}
+              {event.resourceId ? (
+                <span className="block break-all text-xs text-slate-500">
+                  {event.resourceId}
+                </span>
+              ) : null}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              Actor
+            </dt>
+            <dd className="mt-1 flex items-start gap-2 text-slate-700">
+              <UserRound
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-slate-400"
+                size={16}
+              />
+              {event.actor ? (
+                <span>
+                  <span className="block font-bold">{event.actor.name}</span>
+                  <span className="block text-xs font-semibold text-slate-500">
+                    {getRoleLabel(event.actor.role)}
+                  </span>
+                </span>
+              ) : (
+                <span className="font-semibold text-slate-500">
+                  Sistema o servicio
+                </span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </li>
   );
 }
 
@@ -376,31 +513,38 @@ export default function AuditPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th scope="col" className="px-4 py-3">
-                    Fecha
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Evento y recurso
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Actor
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Resultado
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((event) => (
-                  <AuditRow key={event.id} event={event} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {items.map((event) => (
+                <AuditCard key={event.id} event={event} />
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">
+                      Fecha
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Evento y recurso
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Actor
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Resultado
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((event) => (
+                    <AuditRow key={event.id} event={event} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {pagination && pagination.totalPages > 1 && (

@@ -30,7 +30,7 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   login: (credentials: LoginDto) => Promise<AuthSession>;
-  signOut: () => void;
+  signOut: (redirectTo?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,9 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback((redirectTo?: string) => {
     clearAuthSession();
     setSession(null);
+    if (redirectTo) {
+      window.location.replace(redirectTo);
+      return;
+    }
     router.replace("/iniciar-sesion");
   }, [router]);
 

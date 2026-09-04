@@ -14,7 +14,7 @@ export interface RegisterDto {
   email: string;
   password: string;
   name: string;
-  documentId: string;
+  documentId?: string;
   phone?: string;
   organizationName: string;
   organizationType: "CANDIDACY" | "PARTY" | "GSC" | "PUBLIC_OFFICE";

@@ -28,6 +28,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
+import { SearchVotersDto } from './dto/search-voters.dto';
+import { normalizePhoneSearch } from '../common/utils/phone-normalization.util';
 
 const CONSENT_REVOKE_ROLES = [
   Role.ADMIN,
@@ -51,6 +53,10 @@ const VOTER_WRITE_ROLES = [
   Role.VOLUNTEER,
 ] as const;
 const VOTER_WRITE_TERRITORIALLY_SCOPED_ROLES = [
+  Role.ZONE_COORDINATOR,
+  Role.VOLUNTEER,
+] as const;
+export const VOTER_CAPTURE_ROLES = [
   Role.ZONE_COORDINATOR,
   Role.VOLUNTEER,
 ] as const;
@@ -194,6 +200,55 @@ export class VoterService {
   }
 
   async findAll(user: AuthenticatedUser, query: ListVotersQueryDto) {
+    return this.findPage(user, query.page ?? 1, query.limit ?? 25);
+  }
+
+  async search(user: AuthenticatedUser, dto: SearchVotersDto) {
+    const search = this.normalizeSearch(dto.search);
+    if (!search) {
+      throw new BadRequestException('La busqueda requiere un termino valido');
+    }
+
+    return this.findPage(user, dto.page ?? 1, dto.limit ?? 25, search);
+  }
+
+  async getCaptureContext(user: AuthenticatedUser) {
+    await this.assertCampaignMode(user.tenantId);
+    const { divisionIds } = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: VOTER_CAPTURE_ROLES,
+      territoriallyScopedRoles: VOTER_CAPTURE_ROLES,
+    });
+
+    // Los dos roles de captura son siempre territoriales. Este control hace
+    // que un cambio futuro en la política de roles falle de forma cerrada.
+    if (divisionIds === null) {
+      throw new ForbiddenException(
+        'La captura requiere una asignación territorial vigente',
+      );
+    }
+
+    const puestos = await this.prisma.politicalDivision.findMany({
+      where: {
+        tenantId: user.tenantId,
+        id: { in: divisionIds },
+        type: DivisionType.PUESTO,
+      },
+      select: { id: true, code: true, name: true },
+      orderBy: [{ name: 'asc' }, { code: 'asc' }, { id: 'asc' }],
+    });
+
+    return { puestos };
+  }
+
+  private async findPage(
+    user: AuthenticatedUser,
+    page: number,
+    limit: number,
+    search?: string,
+  ) {
     await this.assertCampaignMode(user.tenantId);
     const { divisionIds } = await resolveTerritorialAccess({
       client: this.prisma,
@@ -202,9 +257,7 @@ export class VoterService {
       allowedRoles: VOTER_READ_ROLES,
       territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
     });
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 25;
-    const search = query.search?.trim();
+    const phoneSearch = search ? normalizePhoneSearch(search) : undefined;
     const where: Prisma.VoterWhereInput = {
       tenantId: user.tenantId,
       ...(divisionIds ? { puestoId: { in: divisionIds } } : {}),
@@ -213,6 +266,10 @@ export class VoterService {
             OR: [
               { firstName: { contains: search, mode: 'insensitive' } },
               { lastName: { contains: search, mode: 'insensitive' } },
+              {
+                documentId: { equals: search, mode: 'insensitive' },
+              },
+              { phone: { equals: phoneSearch } },
             ],
           }
         : {}),
@@ -261,6 +318,17 @@ export class VoterService {
             select: CAMPAIGN_TENANT_SELECT,
           });
           assertCampaignTenant(tenant);
+
+          // El rol que llega del guard puede cambiar mientras la solicitud ya
+          // esta en curso. Revalidamos dentro de la misma transaccion que
+          // persiste la revocacion para no autorizar con un rol obsoleto.
+          await resolveTerritorialAccess({
+            client: transaction,
+            tenantId: user.tenantId,
+            userId: user.userId,
+            allowedRoles: CONSENT_REVOKE_ROLES,
+            territoriallyScopedRoles: [],
+          });
 
           const voter = await transaction.voter.findFirst({
             where: { id: voterId, tenantId: user.tenantId },
@@ -426,6 +494,11 @@ export class VoterService {
     }
 
     return `${'*'.repeat(value.length - 4)}${value.slice(-4)}`;
+  }
+
+  private normalizeSearch(value: string | undefined): string | undefined {
+    const normalized = value?.trim().replace(/\s+/gu, ' ');
+    return normalized || undefined;
   }
 
   private isPrismaError(error: unknown, code: string): boolean {
