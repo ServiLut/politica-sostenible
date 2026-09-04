@@ -104,10 +104,10 @@ const currentConsentNotice = {
   mode: "CAMPAIGN",
   purpose: "POLITICAL_COMMUNICATION",
   version: "campaign-2026-09-v1",
-  title: "AutorizaciÃ³n para seguimiento del caso",
+  title: "Autorización para seguimiento del caso",
   content:
-    "La persona autoriza de manera previa, expresa e informada el contacto relacionado con este caso y conoce cÃ³mo ejercer sus derechos.",
-  controllerName: "CampaÃ±a verificable",
+    "La persona autoriza de manera previa, expresa e informada el contacto relacionado con este caso y conoce cómo ejercer sus derechos.",
+  controllerName: "Campaña verificable",
   contactEmail: "privacidad@example.test",
   privacyPolicyUrl: null,
   activatedAt: "2026-09-04T12:00:00.000Z",
@@ -281,10 +281,7 @@ test("administra un incidente real con filtros, responsable y transición audita
         status: 201,
         contentType: "application/json",
         body: JSON.stringify(
-          successful(
-            consentStatus(consentState, servedConsentNotice),
-            201,
-          ),
+          successful(consentStatus(consentState, servedConsentNotice), 201),
         ),
       });
       return;
@@ -300,10 +297,7 @@ test("administra un incidente real con filtros, responsable y transición audita
         status: 201,
         contentType: "application/json",
         body: JSON.stringify(
-          successful(
-            consentStatus(consentState, servedConsentNotice),
-            201,
-          ),
+          successful(consentStatus(consentState, servedConsentNotice), 201),
         ),
       });
       return;

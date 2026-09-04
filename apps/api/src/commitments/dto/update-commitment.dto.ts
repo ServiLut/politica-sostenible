@@ -10,8 +10,10 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { CommitmentStatus } from '../../../prisma/generated/prisma';
+import { IsCommitmentFulfillmentProgressValid } from './commitment-fulfillment-progress.validator';
 
 export class UpdateCommitmentDto {
   @IsOptional()
@@ -32,8 +34,9 @@ export class UpdateCommitmentDto {
   @MaxLength(5000)
   description?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsEnum(CommitmentStatus)
+  @IsCommitmentFulfillmentProgressValid(false)
   status?: CommitmentStatus;
 
   @IsOptional()
@@ -52,7 +55,7 @@ export class UpdateCommitmentDto {
   @IsDateString()
   targetDate?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @Type(() => Number)
   @IsInt()
   @Min(0)

@@ -15,10 +15,10 @@ const consentNotice = {
   mode: "CAMPAIGN",
   purpose: "POLITICAL_COMMUNICATION",
   version: "campaign-2026-09-v1",
-  title: "AutorizaciÃ³n de tratamiento de datos",
+  title: "Autorización de tratamiento de datos",
   content:
-    "La persona autoriza de forma previa, expresa e informada el tratamiento para comunicaciones polÃ­ticas.",
-  controllerName: "CampaÃ±a territorial",
+    "La persona autoriza de forma previa, expresa e informada el tratamiento para comunicaciones políticas.",
+  controllerName: "Campaña territorial",
   contactEmail: "privacidad@example.test",
   privacyPolicyUrl: null,
   activatedAt: "2026-09-04T12:00:00.000Z",
@@ -296,9 +296,7 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
   });
   await expect(submit).toBeEnabled();
 
-  await page
-    .getByRole("button", { name: /Actualizar asignaci/ })
-    .click();
+  await page.getByRole("button", { name: /Actualizar asignaci/ }).click();
   await expect(page.getByText(new RegExp(updatedNotice.version))).toBeVisible();
   await expect(channel).toHaveValue("");
   await expect(confirmation).not.toBeChecked();

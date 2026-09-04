@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -13,6 +14,7 @@ import * as bcrypt from 'bcrypt';
 import {
   AuditActorType,
   PoliticalOperationMode,
+  Prisma,
   Role,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -21,6 +23,7 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import { createSessionVersion } from './session-version';
+import type { UpdateOrganizationDto } from './dto/update-organization.dto';
 
 // Mantiene un costo de bcrypt equivalente cuando el correo no existe y reduce
 // la utilidad de las diferencias de tiempo para enumerar cuentas.
@@ -240,6 +243,102 @@ export class AuthService {
     }
 
     return { user: currentUser };
+  }
+
+  async updateOrganization(
+    user: AuthenticatedUser,
+    dto: UpdateOrganizationDto,
+  ) {
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const currentAdmin = await tx.user.findFirst({
+            where: {
+              id: user.userId,
+              tenantId: user.tenantId,
+              role: Role.ADMIN,
+              isActive: true,
+            },
+            select: {
+              id: true,
+              tenant: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  type: true,
+                  defaultMode: true,
+                },
+              },
+            },
+          });
+
+          if (!currentAdmin || currentAdmin.tenant.id !== user.tenantId) {
+            throw new ForbiddenException(
+              'Solo una cuenta administradora activa puede editar la organización',
+            );
+          }
+
+          if (dto.expectedName !== currentAdmin.tenant.name) {
+            throw new ConflictException(
+              'La organización cambió desde que abriste el formulario; revisa el nombre actual e inténtalo de nuevo',
+            );
+          }
+
+          const name = dto.name.trim();
+          if (name === currentAdmin.tenant.name) {
+            return { tenant: currentAdmin.tenant, changed: false };
+          }
+
+          const updated = await tx.tenant.updateMany({
+            where: {
+              id: user.tenantId,
+              name: dto.expectedName,
+            },
+            data: { name },
+          });
+
+          if (updated.count !== 1) {
+            throw new ConflictException(
+              'La organización cambió durante la edición; vuelve a intentarlo',
+            );
+          }
+
+          await tx.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: currentAdmin.tenant.defaultMode,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'ORGANIZATION_NAME_CHANGED',
+              resourceType: 'Tenant',
+              resourceId: user.tenantId,
+              before: { name: currentAdmin.tenant.name },
+              after: { name },
+              metadata: { changedFields: ['name'] },
+            },
+          });
+
+          return {
+            tenant: { ...currentAdmin.tenant, name },
+            changed: true,
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'P2034'
+      ) {
+        throw new ConflictException(
+          'La organización cambió durante la edición; vuelve a intentarlo',
+        );
+      }
+      throw error;
+    }
   }
 
   async changePassword(user: AuthenticatedUser, dto: ChangePasswordDto) {

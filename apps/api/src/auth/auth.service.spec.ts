@@ -1,5 +1,9 @@
 import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
   AuditActorType,
@@ -635,5 +639,212 @@ describe('AuthService password change', () => {
       },
     });
     expect(auditCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService organization profile', () => {
+  const actor = {
+    userId: 'admin-a',
+    tenantId: 'tenant-a',
+    role: Role.ADMIN,
+  };
+  const currentTenant = {
+    id: 'tenant-a',
+    name: 'OrganizaciÃ³n con codificaciÃ³n rota',
+    slug: 'organizacion-estable',
+    type: TenantType.CANDIDACY,
+    defaultMode: PoliticalOperationMode.CAMPAIGN,
+  };
+
+  it('actualiza únicamente el tenant autenticado y audita el nombre anterior y nuevo', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: actor.userId,
+      tenant: currentTenant,
+    });
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
+    const transactionClient = {
+      user: { findFirst },
+      tenant: { updateMany },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.updateOrganization(actor, {
+        name: '  Movimiento Región Viva  ',
+        expectedName: currentTenant.name,
+      }),
+    ).resolves.toEqual({
+      tenant: { ...currentTenant, name: 'Movimiento Región Viva' },
+      changed: true,
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        id: actor.userId,
+        tenantId: actor.tenantId,
+        role: Role.ADMIN,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            type: true,
+            defaultMode: true,
+          },
+        },
+      },
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: actor.tenantId,
+        name: currentTenant.name,
+      },
+      data: { name: 'Movimiento Región Viva' },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: {
+        tenantId: actor.tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: actor.userId,
+        action: 'ORGANIZATION_NAME_CHANGED',
+        resourceType: 'Tenant',
+        resourceId: actor.tenantId,
+        before: { name: currentTenant.name },
+        after: { name: 'Movimiento Región Viva' },
+        metadata: { changedFields: ['name'] },
+      },
+    });
+  });
+
+  it('falla cerrado si la cuenta ya no es administradora activa', async () => {
+    const updateMany = jest.fn();
+    const auditCreate = jest.fn();
+    const transactionClient = {
+      user: { findFirst: jest.fn().mockResolvedValue(null) },
+      tenant: { updateMany },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.updateOrganization(
+        { ...actor, role: Role.VOLUNTEER },
+        {
+          name: 'Nombre no autorizado',
+          expectedName: currentTenant.name,
+        },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('no genera un evento falso cuando el nombre no cambia', async () => {
+    const updateMany = jest.fn();
+    const auditCreate = jest.fn();
+    const transactionClient = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: actor.userId,
+          tenant: currentTenant,
+        }),
+      },
+      tenant: { updateMany },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.updateOrganization(actor, {
+        name: currentTenant.name,
+        expectedName: currentTenant.name,
+      }),
+    ).resolves.toEqual({ tenant: currentTenant, changed: false });
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un formulario obsoleto antes de sobrescribir otro cambio', async () => {
+    const updateMany = jest.fn();
+    const auditCreate = jest.fn();
+    const transactionClient = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: actor.userId,
+          tenant: currentTenant,
+        }),
+      },
+      tenant: { updateMany },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.updateOrganization(actor, {
+        name: 'Nuevo nombre tardío',
+        expectedName: 'Nombre que ya no existe',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('traduce conflictos serializables de Prisma a una respuesta 409', async () => {
+    const prisma = {
+      $transaction: jest.fn().mockRejectedValue({ code: 'P2034' }),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.updateOrganization(actor, {
+        name: 'Nuevo nombre',
+        expectedName: currentTenant.name,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

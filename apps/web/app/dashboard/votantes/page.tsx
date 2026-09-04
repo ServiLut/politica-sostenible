@@ -963,7 +963,7 @@ export default function VotantesPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="grant-consent-title"
-            className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
           >
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>
@@ -1100,7 +1100,7 @@ export default function VotantesPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="revoke-consent-title"
-            className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
           >
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>

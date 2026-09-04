@@ -26,6 +26,7 @@ describe('CasesService tenant and mode isolation', () => {
     user: { findFirst: jest.Mock; findMany: jest.Mock };
     voter: { findFirst: jest.Mock };
     politicalDivision: { findFirst: jest.Mock };
+    interaction: { findFirst: jest.Mock };
     issueCase: {
       findMany: jest.Mock;
       count: jest.Mock;
@@ -51,6 +52,7 @@ describe('CasesService tenant and mode isolation', () => {
       },
       voter: { findFirst: jest.fn() },
       politicalDivision: { findFirst: jest.fn() },
+      interaction: { findFirst: jest.fn() },
       issueCase: {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
@@ -100,6 +102,25 @@ describe('CasesService tenant and mode isolation', () => {
       tenantId: 'tenant-a',
       mode: PoliticalOperationMode.CAMPAIGN,
     });
+  });
+
+  it('reports resolution readiness without exposing the supporting relation', async () => {
+    prisma.issueCase.findMany.mockResolvedValue([
+      {
+        id: 'case-ready',
+        reference: 'PQRS-CAM-2026-READY',
+        interactions: [{ id: 'interaction-result' }],
+      },
+    ]);
+    prisma.issueCase.count.mockResolvedValue(1);
+
+    const result = await service.findAll(currentUser, { page: 1, limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'case-ready',
+      resolutionReady: true,
+    });
+    expect(result.items[0]).not.toHaveProperty('interactions');
   });
 
   it('does not update a case owned by another tenant', async () => {
@@ -378,6 +399,95 @@ describe('CasesService tenant and mode isolation', () => {
       resolvedAt: null,
     });
     expect(updateArgs?.data).not.toHaveProperty('firstResponseAt');
+  });
+
+  it('rejects resolving a case without a prior interaction outcome', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue({
+      id: 'case-without-resolution',
+      reference: 'PQRS-CAM-2026-010',
+      status: IssueCaseStatus.IN_PROGRESS,
+      priority: WorkPriority.HIGH,
+      category: 'Servicios',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      voterId: null,
+      externalContactRef: null,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+    prisma.interaction.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.update(currentUser, 'case-without-resolution', {
+        status: IssueCaseStatus.RESOLVED,
+      }),
+    ).rejects.toThrow(
+      'Registre primero en la bitacora una interaccion con resultado antes de resolver el caso',
+    );
+
+    expect(prisma.interaction.findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        issueCaseId: 'case-without-resolution',
+        outcome: { not: null },
+      },
+      select: { id: true },
+    });
+    expect(prisma.issueCase.update).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('resolves a case when a prior interaction has a traceable outcome', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue({
+      id: 'case-with-resolution',
+      reference: 'PQRS-CAM-2026-011',
+      status: IssueCaseStatus.IN_PROGRESS,
+      priority: WorkPriority.HIGH,
+      category: 'Servicios',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      voterId: null,
+      externalContactRef: null,
+      firstResponseAt: null,
+      resolvedAt: null,
+    });
+    prisma.interaction.findFirst.mockResolvedValue({
+      id: 'interaction-result',
+    });
+    prisma.issueCase.update.mockResolvedValue({
+      id: 'case-with-resolution',
+      reference: 'PQRS-CAM-2026-011',
+      status: IssueCaseStatus.RESOLVED,
+      priority: WorkPriority.HIGH,
+      category: 'Servicios',
+      assigneeId: null,
+      dueAt: null,
+      confidential: false,
+      resolvedAt: new Date(),
+      interactions: [{ id: 'interaction-result' }],
+    });
+
+    await expect(
+      service.update(currentUser, 'case-with-resolution', {
+        status: IssueCaseStatus.RESOLVED,
+      }),
+    ).resolves.toMatchObject({
+      id: 'case-with-resolution',
+      status: IssueCaseStatus.RESOLVED,
+      resolutionReady: true,
+    });
+
+    expect(prisma.issueCase.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: IssueCaseStatus.RESOLVED,
+          resolvedAt: expect.any(Date),
+        }),
+      }),
+    );
   });
 
   it.each([Role.VOLUNTEER, Role.WITNESS])(

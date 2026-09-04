@@ -313,8 +313,19 @@ function CaseCard({
                 {STATUS_OPTIONS.filter(({ value }) =>
                   nextStatuses.includes(value),
                 ).map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    disabled={
+                      option.value === "RESOLVED" &&
+                      issueCase.status !== "RESOLVED" &&
+                      !issueCase.resolutionReady
+                    }
+                  >
                     {option.label}
+                    {option.value === "RESOLVED" && !issueCase.resolutionReady
+                      ? " · requiere resultado en bitácora"
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -336,6 +347,13 @@ function CaseCard({
               </select>
             </label>
           </div>
+          {!issueCase.resolutionReady &&
+            TRANSITIONS[issueCase.status].includes("RESOLVED") && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
+                Para resolver este caso, abre la Bitácora y registra primero una
+                gestión con el campo Resultado.
+              </p>
+            )}
           {canManageAssignments && (
             <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">
               Responsable
@@ -936,9 +954,15 @@ export default function CasesPage() {
                     }
                     className="mt-0.5 h-4 w-4 shrink-0"
                   />
-                  <FileLock2 aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+                  <FileLock2
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0"
+                    size={18}
+                  />
                   <span>
-                    <span className="block">Aplicar etiqueta de manejo especial</span>
+                    <span className="block">
+                      Aplicar etiqueta de manejo especial
+                    </span>
                     <span className="mt-1 block text-xs font-semibold normal-case leading-5 tracking-normal text-violet-700">
                       Es una clasificación operativa. No restringe el acceso: la
                       visibilidad sigue los permisos generales del rol y la
@@ -983,7 +1007,7 @@ export default function CasesPage() {
             user !== null && CONSENT_REVOKE_ROLES.has(user.backendRole)
           }
           onClose={() => setSelectedCase(null)}
-          onCreated={() => {
+          onCreated={(interaction) => {
             setResult((current) =>
               current
                 ? {
@@ -992,6 +1016,9 @@ export default function CasesPage() {
                       item.id === selectedCase.id
                         ? {
                             ...item,
+                            resolutionReady:
+                              item.resolutionReady ||
+                              Boolean(interaction.outcome),
                             _count: {
                               ...item._count,
                               interactions: item._count.interactions + 1,
@@ -1006,6 +1033,8 @@ export default function CasesPage() {
               current
                 ? {
                     ...current,
+                    resolutionReady:
+                      current.resolutionReady || Boolean(interaction.outcome),
                     _count: {
                       ...current._count,
                       interactions: current._count.interactions + 1,

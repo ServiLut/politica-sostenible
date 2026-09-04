@@ -31,6 +31,7 @@ interface AuthContextType {
   loading: boolean;
   login: (credentials: LoginDto) => Promise<AuthSession>;
   signOut: (redirectTo?: string) => void;
+  synchronizeTenant: (tenant: Tenant) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,15 +123,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signOut = useCallback((redirectTo?: string) => {
-    clearAuthSession();
-    setSession(null);
-    if (redirectTo) {
-      window.location.replace(redirectTo);
-      return;
+  const signOut = useCallback(
+    (redirectTo?: string) => {
+      clearAuthSession();
+      setSession(null);
+      if (redirectTo) {
+        window.location.replace(redirectTo);
+        return;
+      }
+      router.replace("/iniciar-sesion");
+    },
+    [router],
+  );
+
+  const synchronizeTenant = useCallback((updatedTenant: Tenant) => {
+    const currentSession = readAuthSession();
+    if (!currentSession || currentSession.tenant.id !== updatedTenant.id) {
+      return false;
     }
-    router.replace("/iniciar-sesion");
-  }, [router]);
+
+    const nextSession: AuthSession = {
+      ...currentSession,
+      tenant: { ...currentSession.tenant, ...updatedTenant },
+    };
+    saveAuthSession(nextSession);
+    setSession(nextSession);
+    return true;
+  }, []);
 
   const value: AuthContextType = {
     user: session?.user ?? null,
@@ -139,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     signOut,
+    synchronizeTenant,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

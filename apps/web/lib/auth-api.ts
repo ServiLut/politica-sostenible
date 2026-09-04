@@ -37,6 +37,11 @@ interface CurrentSessionResponse {
   user: BackendAuthUser;
 }
 
+export interface UpdateOrganizationResponse {
+  tenant: BackendAuthUser["tenant"];
+  changed: boolean;
+}
+
 export async function loginWithCredentials(
   credentials: LoginDto,
 ): Promise<AuthSession> {
@@ -71,5 +76,15 @@ export function changeOwnPassword(data: {
   return apiRequest<{ message: string }>("/auth/change-password", {
     body: JSON.stringify(data),
     method: "POST",
+  });
+}
+
+export function updateOwnOrganization(data: {
+  name: string;
+  expectedName: string;
+}) {
+  return apiRequest<UpdateOrganizationResponse>("/auth/organization", {
+    body: JSON.stringify(data),
+    method: "PATCH",
   });
 }

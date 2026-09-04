@@ -214,6 +214,10 @@ export class CommitmentsService {
       this.getCurrentRole(user.tenantId, user.userId),
     ]);
     this.assertCommitmentManager(currentRole, mode);
+    this.assertFulfillmentProgress(
+      dto.status ?? CommitmentStatus.PROPOSED,
+      dto.progress ?? 0,
+    );
     const isCaseWorker = this.isScopedCaseWorker(currentRole, mode);
     if (isCaseWorker) {
       this.assertCaseWorkerOwner(user.userId, dto.ownerId);
@@ -346,12 +350,6 @@ export class CommitmentsService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.status !== undefined) {
       data.status = dto.status;
-      data.completedAt =
-        dto.status === CommitmentStatus.FULFILLED
-          ? existing.status === CommitmentStatus.FULFILLED
-            ? undefined
-            : new Date()
-          : null;
     }
     if (dto.ownerId !== undefined) data.ownerId = dto.ownerId;
     if (dto.issueCaseId !== undefined) data.issueCaseId = dto.issueCaseId;
@@ -362,31 +360,75 @@ export class CommitmentsService {
     if (dto.progress !== undefined) data.progress = dto.progress;
     if (dto.isPublic !== undefined) data.isPublic = dto.isPublic;
 
-    const updated = await this.prisma.$transaction(async (transaction) => {
-      const commitment = await transaction.commitment.update({
-        where: scopedWhere,
-        data,
-        include: COMMITMENT_INCLUDE,
-      });
+    try {
+      const updated = await this.prisma.$transaction(
+        async (transaction) => {
+          const current = await transaction.commitment.findFirst({
+            where: scopedWhere,
+            select: { status: true, progress: true },
+          });
+          if (!current) {
+            throw new NotFoundException('Compromiso no encontrado');
+          }
 
-      await transaction.auditEvent.create({
-        data: {
-          tenantId: user.tenantId,
-          mode,
-          actorType: AuditActorType.USER,
-          actorUserId: user.userId,
-          action: 'COMMITMENT_UPDATED',
-          resourceType: 'Commitment',
-          resourceId: commitment.id,
-          after: { status: commitment.status },
-          metadata: { changedFields: this.definedFieldNames(dto) },
+          const resultingStatus = dto.status ?? current.status;
+          const resultingProgress = dto.progress ?? current.progress;
+          this.assertFulfillmentProgress(resultingStatus, resultingProgress);
+
+          if (dto.status !== undefined) {
+            data.completedAt =
+              dto.status === CommitmentStatus.FULFILLED
+                ? current.status === CommitmentStatus.FULFILLED
+                  ? undefined
+                  : new Date()
+                : null;
+          }
+
+          const commitment = await transaction.commitment.update({
+            where: scopedWhere,
+            data,
+            include: COMMITMENT_INCLUDE,
+          });
+
+          await transaction.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'COMMITMENT_UPDATED',
+              resourceType: 'Commitment',
+              resourceId: commitment.id,
+              after: { status: commitment.status },
+              metadata: { changedFields: this.definedFieldNames(dto) },
+            },
+          });
+
+          return commitment;
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
 
-      return commitment;
-    });
+      return { ...updated, canUpdate: true };
+    } catch (error: unknown) {
+      if (this.isPrismaError(error, 'P2034')) {
+        throw new ConflictException(
+          'El compromiso cambio durante la actualizacion; vuelve a intentarlo',
+        );
+      }
+      throw error;
+    }
+  }
 
-    return { ...updated, canUpdate: true };
+  private assertFulfillmentProgress(
+    status: CommitmentStatus,
+    progress: number,
+  ): void {
+    if (status === CommitmentStatus.FULFILLED && progress !== 100) {
+      throw new BadRequestException(
+        'El avance debe ser 100 para marcar el compromiso como cumplido',
+      );
+    }
   }
 
   private definedFieldNames(value: object): string[] {
@@ -604,5 +646,14 @@ export class CommitmentsService {
     if (existing) {
       throw new ConflictException('La referencia del compromiso ya existe');
     }
+  }
+
+  private isPrismaError(error: unknown, code: string): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === code
+    );
   }
 }

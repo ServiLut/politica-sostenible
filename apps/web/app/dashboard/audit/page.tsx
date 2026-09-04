@@ -53,6 +53,7 @@ const OUTCOME_STYLES: Record<AuditOutcome, string> = {
 
 const ACTION_LABELS: Record<string, string> = {
   ACCOUNT_PASSWORD_CHANGED: "Contraseña de cuenta actualizada",
+  ORGANIZATION_NAME_CHANGED: "Nombre de organización actualizado",
   ACCOUNT_TERMS_ACCEPTED: "Términos de cuenta aceptados",
   CAMPAIGN_EVENT_CREATED: "Evento creado",
   CAMPAIGN_EVENT_DRAFT_DELETED: "Borrador de evento eliminado",
@@ -69,7 +70,8 @@ const ACTION_LABELS: Record<string, string> = {
   COMMUNICATION_REVIEW_REQUESTED: "Comunicación enviada a revisión",
   COMMITMENT_CREATED: "Compromiso creado",
   COMMITMENT_UPDATED: "Compromiso actualizado",
-  E14_POLLING_PLACE_PROFILE_UPDATED: "Cobertura esperada del puesto actualizada",
+  E14_POLLING_PLACE_PROFILE_UPDATED:
+    "Cobertura esperada del puesto actualizada",
   E14_REPORT_ACCEPTED: "Reporte E-14 aceptado",
   E14_REPORT_REJECTED: "Reporte E-14 rechazado",
   E14_REPORT_SUBMITTED: "Reporte E-14 radicado",

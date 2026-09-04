@@ -1083,7 +1083,11 @@ export function CaseInteractionsPanel({
                     </label>
 
                     <label className="block space-y-1.5 text-xs font-black uppercase tracking-wider text-slate-600">
-                      Resultado (opcional)
+                      Resultado
+                      <span className="font-normal text-slate-400">
+                        {" "}
+                        (habilita marcarlo como resuelto)
+                      </span>
                       <textarea
                         maxLength={1000}
                         rows={3}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -8,6 +8,9 @@ import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
 import { AllowRequiredPasswordChange } from './decorators/allow-required-password-change.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { Role } from '../../prisma/generated/prisma';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +34,15 @@ export class AuthController {
   @AllowRequiredPasswordChange()
   currentSession(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.currentSession(user);
+  }
+
+  @Patch('organization')
+  @Roles(Role.ADMIN)
+  updateOrganization(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    return this.authService.updateOrganization(user, dto);
   }
 
   @Post('change-password')

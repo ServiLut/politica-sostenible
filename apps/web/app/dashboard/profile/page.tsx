@@ -1,10 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { AlertTriangle, KeyRound, ShieldCheck, UserRound } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Building2,
+  KeyRound,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { useAuth } from "@/context/auth";
-import { changeOwnPassword } from "@/lib/auth-api";
+import { changeOwnPassword, updateOwnOrganization } from "@/lib/auth-api";
 import { ApiError } from "@/lib/api-client";
 import { getRoleLabel, getTenantTypeLabel } from "@/config/navigation";
 
@@ -20,17 +26,69 @@ function formatTemporaryPasswordExpiry(value?: string | null) {
 }
 
 export default function ProfilePage() {
-  const { signOut, tenant, user } = useAuth();
+  const { signOut, synchronizeTenant, tenant, user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [organizationName, setOrganizationName] = useState("");
+  const [organizationMessage, setOrganizationMessage] = useState<string | null>(
+    null,
+  );
+  const [organizationError, setOrganizationError] = useState<string | null>(
+    null,
+  );
+  const [savingOrganization, setSavingOrganization] = useState(false);
   const requiresPasswordChange = user?.mustChangePassword === true;
+  const canEditOrganization = user?.backendRole === "ADMIN";
   const temporaryPasswordExpiry = formatTemporaryPasswordExpiry(
     user?.temporaryPasswordExpiresAt,
   );
+
+  useEffect(() => {
+    setOrganizationName(tenant?.name ?? "");
+  }, [tenant?.id, tenant?.name]);
+
+  async function handleOrganizationSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOrganizationMessage(null);
+    setOrganizationError(null);
+
+    const name = organizationName.trim();
+    if (!tenant || !canEditOrganization || !name) {
+      setOrganizationError(
+        "Escribe un nombre válido para actualizar la organización.",
+      );
+      return;
+    }
+
+    setSavingOrganization(true);
+    try {
+      const response = await updateOwnOrganization({
+        name,
+        expectedName: tenant.name,
+      });
+      if (!synchronizeTenant(response.tenant)) {
+        throw new Error("La organización actual no coincide con la sesión.");
+      }
+      setOrganizationName(response.tenant.name);
+      setOrganizationMessage(
+        response.changed
+          ? "Nombre de la organización actualizado correctamente."
+          : "El nombre de la organización ya estaba actualizado.",
+      );
+    } catch (caught) {
+      setOrganizationError(
+        caught instanceof ApiError
+          ? caught.message
+          : "No fue posible actualizar la organización.",
+      );
+    } finally {
+      setSavingOrganization(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,8 +138,8 @@ export default function ProfilePage() {
                 Debes crear tu contraseña personal ahora
               </h1>
               <p className="mt-2 text-sm font-medium leading-6">
-                Ingresaste con una contraseña temporal. Por seguridad, todos
-                los demás módulos permanecerán bloqueados hasta que la cambies.
+                Ingresaste con una contraseña temporal. Por seguridad, todos los
+                demás módulos permanecerán bloqueados hasta que la cambies.
               </p>
               {temporaryPasswordExpiry && (
                 <p className="mt-3 text-sm font-black">
@@ -117,6 +175,89 @@ export default function ProfilePage() {
           </div>
         </div>
       </section>
+
+      {canEditOrganization && tenant && (
+        <section
+          aria-labelledby="organization-profile-title"
+          className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        >
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+              <Building2 aria-hidden="true" size={23} />
+            </span>
+            <div>
+              <h2
+                id="organization-profile-title"
+                className="text-xl font-black text-slate-950"
+              >
+                Nombre de la organización
+              </h2>
+              <p
+                id="organization-name-help"
+                className="mt-1 text-sm leading-6 text-slate-500"
+              >
+                Este nombre identifica a tu equipo en la navegación y los
+                registros internos. El enlace técnico de la organización no
+                cambia.
+              </p>
+            </div>
+          </div>
+
+          <form
+            className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-end"
+            onSubmit={handleOrganizationSubmit}
+          >
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="organization-name">Nombre visible</Label>
+              <Input
+                id="organization-name"
+                aria-describedby="organization-name-help"
+                autoComplete="organization"
+                disabled={requiresPasswordChange || savingOrganization}
+                maxLength={160}
+                required
+                value={organizationName}
+                onChange={(event) => setOrganizationName(event.target.value)}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={
+                requiresPasswordChange ||
+                savingOrganization ||
+                !organizationName.trim() ||
+                organizationName.trim() === tenant.name
+              }
+              className="w-full sm:w-auto"
+            >
+              {savingOrganization ? "Guardando..." : "Guardar nombre"}
+            </Button>
+          </form>
+
+          {requiresPasswordChange && (
+            <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              Cambia primero tu contraseña temporal para editar la organización.
+            </p>
+          )}
+          {organizationError && (
+            <p
+              role="alert"
+              className="mt-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700"
+            >
+              {organizationError}
+            </p>
+          )}
+          {organizationMessage && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"
+            >
+              {organizationMessage}
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

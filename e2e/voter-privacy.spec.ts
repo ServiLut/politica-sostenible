@@ -90,10 +90,10 @@ const currentConsentNotice = {
   mode: "CAMPAIGN",
   purpose: "POLITICAL_COMMUNICATION",
   version: "campaign-2026-09-v1",
-  title: "AutorizaciÃ³n para comunicaciones polÃ­ticas",
+  title: "Autorización para comunicaciones políticas",
   content:
     "La persona autoriza de manera previa, expresa e informada el tratamiento de sus datos para las finalidades comunicadas.",
-  controllerName: "CampaÃ±a verificable",
+  controllerName: "Campaña verificable",
   contactEmail: "privacidad@example.test",
   privacyPolicyUrl: "https://example.test/privacidad",
   activatedAt: "2026-09-04T12:00:00.000Z",

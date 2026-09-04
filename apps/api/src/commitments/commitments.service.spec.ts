@@ -208,6 +208,82 @@ describe('CommitmentsService tenant and mode isolation', () => {
     expect(prisma.commitment.update).not.toHaveBeenCalled();
   });
 
+  it('rejects creating a fulfilled commitment below 100% progress', async () => {
+    await expect(
+      service.create(currentUser, {
+        reference: 'CMP-INCOMPLETE',
+        title: 'Compromiso sin avance final',
+        description: 'No puede declararse cumplido con avance pendiente',
+        status: CommitmentStatus.FULFILLED,
+        progress: 90,
+      }),
+    ).rejects.toThrow(
+      'El avance debe ser 100 para marcar el compromiso como cumplido',
+    );
+
+    expect(prisma.commitment.create).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects fulfilling a commitment whose resulting progress is below 100%', async () => {
+    prisma.commitment.findFirst.mockResolvedValue({
+      id: 'commitment-incomplete',
+      reference: 'CMP-INCOMPLETE',
+      status: CommitmentStatus.IN_PROGRESS,
+      progress: 75,
+      ownerId: 'manager-a',
+      issueCaseId: null,
+    });
+
+    await expect(
+      service.update(currentUser, 'commitment-incomplete', {
+        status: CommitmentStatus.FULFILLED,
+      }),
+    ).rejects.toThrow(
+      'El avance debe ser 100 para marcar el compromiso como cumplido',
+    );
+
+    expect(prisma.commitment.update).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('allows fulfilling a commitment when the resulting progress is 100%', async () => {
+    prisma.commitment.findFirst.mockResolvedValue({
+      id: 'commitment-complete',
+      reference: 'CMP-COMPLETE',
+      status: CommitmentStatus.IN_PROGRESS,
+      progress: 80,
+      ownerId: 'manager-a',
+      issueCaseId: null,
+    });
+    prisma.commitment.update.mockResolvedValue({
+      id: 'commitment-complete',
+      status: CommitmentStatus.FULFILLED,
+      progress: 100,
+    });
+
+    await expect(
+      service.update(currentUser, 'commitment-complete', {
+        status: CommitmentStatus.FULFILLED,
+        progress: 100,
+      }),
+    ).resolves.toMatchObject({
+      id: 'commitment-complete',
+      status: CommitmentStatus.FULFILLED,
+      progress: 100,
+    });
+
+    expect(prisma.commitment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: CommitmentStatus.FULFILLED,
+          progress: 100,
+          completedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
   it('does not let a public-office manager write campaign commitments', async () => {
     prisma.user.findFirst.mockResolvedValue({ role: Role.CASE_WORKER });
     await expect(

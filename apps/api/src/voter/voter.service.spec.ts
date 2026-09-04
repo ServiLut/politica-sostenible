@@ -643,8 +643,8 @@ describe('VoterService consent transaction', () => {
           {
             id: 'voter-a',
             documentId: '1012345678',
-            firstName: 'MarÃ­a',
-            lastName: 'PÃ©rez',
+            firstName: 'María',
+            lastName: 'Pérez',
             phone: '300 123 4567',
             mesa: 12,
             isSignatureValid: false,

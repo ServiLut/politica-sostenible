@@ -683,6 +683,12 @@ export default function TasksPage() {
     status: CommitmentStatus,
   ) {
     if (!commitment.canUpdate) return;
+    if (status === "FULFILLED" && commitment.progress !== 100) {
+      setMutationError(
+        "Guarda primero el avance en 100% antes de marcar el compromiso como cumplido.",
+      );
+      return;
+    }
     const mutationKey = `commitment-status-${commitment.id}`;
     setMutation(mutationKey);
     setMutationError(null);
@@ -699,6 +705,10 @@ export default function TasksPage() {
             }
           : current,
       );
+      setProgressDrafts((current) => ({
+        ...current,
+        [commitment.id]: updated.progress,
+      }));
       showNotice(`Estado de “${commitment.title}” actualizado.`);
     } catch (error) {
       setMutationError(readableError(error));
@@ -831,7 +841,11 @@ export default function TasksPage() {
           className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="inline-flex items-start gap-2 font-semibold">
-            <AlertCircle className="mt-0.5 shrink-0" aria-hidden="true" size={18} />
+            <AlertCircle
+              className="mt-0.5 shrink-0"
+              aria-hidden="true"
+              size={18}
+            />
             {linkedCaseError}
           </span>
           <button
@@ -862,7 +876,8 @@ export default function TasksPage() {
                 {linkedCase.title}
               </p>
               <p className="mt-1 text-xs text-slate-600">
-                Las listas y cualquier registro nuevo se relacionan con este caso.
+                Las listas y cualquier registro nuevo se relacionan con este
+                caso.
               </p>
             </div>
           </div>
@@ -1240,6 +1255,7 @@ export default function TasksPage() {
                     mutation === `commitment-status-${commitment.id}`;
                   const progressMutation =
                     mutation === `commitment-progress-${commitment.id}`;
+                  const progressLocked = commitment.status === "FULFILLED";
                   return (
                     <article
                       key={commitment.id}
@@ -1308,8 +1324,20 @@ export default function TasksPage() {
                             className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
                           >
                             {COMMITMENT_STATUSES.map((status) => (
-                              <option key={status.value} value={status.value}>
+                              <option
+                                key={status.value}
+                                value={status.value}
+                                disabled={
+                                  status.value === "FULFILLED" &&
+                                  commitment.status !== "FULFILLED" &&
+                                  commitment.progress !== 100
+                                }
+                              >
                                 {status.label}
+                                {status.value === "FULFILLED" &&
+                                commitment.progress !== 100
+                                  ? " · requiere 100%"
+                                  : ""}
                               </option>
                             ))}
                           </select>
@@ -1322,6 +1350,12 @@ export default function TasksPage() {
                           )}
                         </span>
                       </label>
+                      {commitment.canUpdate && commitment.progress !== 100 && (
+                        <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
+                          Guarda el avance en 100% para habilitar el estado
+                          Cumplido.
+                        </p>
+                      )}
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between text-xs font-black text-slate-700">
                           <label htmlFor={`progress-${commitment.id}`}>
@@ -1351,7 +1385,9 @@ export default function TasksPage() {
                             step={1}
                             value={currentProgress}
                             disabled={
-                              Boolean(mutation) || !commitment.canUpdate
+                              Boolean(mutation) ||
+                              !commitment.canUpdate ||
+                              progressLocked
                             }
                             onChange={(event) =>
                               setProgressDrafts((current) => ({
@@ -1369,6 +1405,7 @@ export default function TasksPage() {
                             disabled={
                               Boolean(mutation) ||
                               !commitment.canUpdate ||
+                              progressLocked ||
                               currentProgress === commitment.progress
                             }
                             className="min-h-11 rounded-xl bg-slate-900 px-4 text-xs font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"

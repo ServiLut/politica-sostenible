@@ -31,7 +31,16 @@ const CASE_INCLUDE = {
       commitments: true,
     },
   },
+  interactions: {
+    where: { outcome: { not: null } },
+    select: { id: true },
+    take: 1,
+  },
 } satisfies Prisma.IssueCaseInclude;
+
+type IssueCaseWithResolution = Prisma.IssueCaseGetPayload<{
+  include: typeof CASE_INCLUDE;
+}>;
 
 const CASE_WRITE_ROLES = [
   Role.ADMIN,
@@ -222,7 +231,7 @@ export class CasesService {
     ]);
 
     return {
-      items,
+      items: items.map((issueCase) => this.toIssueCaseView(issueCase)),
       pagination: {
         page,
         limit,
@@ -250,7 +259,7 @@ export class CasesService {
       throw new NotFoundException('Caso no encontrado');
     }
 
-    return issueCase;
+    return this.toIssueCaseView(issueCase);
   }
 
   async listAssignees(user: AuthenticatedUser) {
@@ -365,7 +374,7 @@ export class CasesService {
           },
         });
 
-        return issueCase;
+        return this.toIssueCaseView(issueCase);
       });
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
@@ -462,6 +471,17 @@ export class CasesService {
           if (dto.status !== undefined) {
             this.assertStatusTransition(existing.status, dto.status);
           }
+          if (
+            dto.status === IssueCaseStatus.RESOLVED &&
+            existing.status !== IssueCaseStatus.RESOLVED
+          ) {
+            await this.assertResolutionEvidence(
+              tx,
+              user.tenantId,
+              mode,
+              existing.id,
+            );
+          }
           this.assertUnambiguousSubject(
             dto.voterId === undefined ? existing.voterId : dto.voterId,
             normalizedExternalContactRef === undefined
@@ -529,7 +549,7 @@ export class CasesService {
             },
           });
 
-          return updated;
+          return this.toIssueCaseView(updated);
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
@@ -705,6 +725,37 @@ export class CasesService {
         `Transición de estado no permitida: ${current} → ${next}`,
       );
     }
+  }
+
+  private async assertResolutionEvidence(
+    transaction: Prisma.TransactionClient,
+    tenantId: string,
+    mode: PoliticalOperationMode,
+    issueCaseId: string,
+  ): Promise<void> {
+    const evidence = await transaction.interaction.findFirst({
+      where: {
+        tenantId,
+        mode,
+        issueCaseId,
+        outcome: { not: null },
+      },
+      select: { id: true },
+    });
+
+    if (!evidence) {
+      throw new BadRequestException(
+        'Registre primero en la bitacora una interaccion con resultado antes de resolver el caso',
+      );
+    }
+  }
+
+  private toIssueCaseView(issueCase: IssueCaseWithResolution) {
+    const { interactions: resolutionEvidence = [], ...caseData } = issueCase;
+    return {
+      ...caseData,
+      resolutionReady: resolutionEvidence.length > 0,
+    };
   }
 
   private normalizeReference(reference: string): string {

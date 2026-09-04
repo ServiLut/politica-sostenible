@@ -47,6 +47,7 @@ export interface IssueCase {
   dueAt: string | null;
   firstResponseAt: string | null;
   resolvedAt: string | null;
+  resolutionReady: boolean;
   createdAt: string;
   updatedAt: string;
   assignee: CaseUserSummary | null;

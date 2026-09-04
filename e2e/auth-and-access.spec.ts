@@ -70,9 +70,7 @@ test("la recuperación pública explica el restablecimiento administrado real", 
       name: "Recupera el acceso con tu administrador",
     }),
   ).toBeVisible();
-  await expect(page.locator("main")).toContainText(
-    "una nueva contraseña",
-  );
+  await expect(page.locator("main")).toContainText("una nueva contraseña");
   await expect(page.locator("main")).not.toContainText(/todavía|no existe/i);
 
   await page.goto("/reiniciar-contrasena");
@@ -191,6 +189,124 @@ test("cambiar la contraseña propia cierra los JWT y pide iniciar sesión nuevam
       ),
     )
     .toBeNull();
+});
+
+test("administracion corrige el nombre de su organizacion sin enviar tenant", async ({
+  page,
+}) => {
+  let organizationBody: Record<string, unknown> | null = null;
+  let authorizationHeader: string | undefined;
+  const currentUser = {
+    id: "admin-organization",
+    email: "admin@example.test",
+    name: "Administradora",
+    role: "ADMIN",
+    tenant: {
+      id: "tenant-authenticated",
+      name: "Organizacion con nombre incorrecto",
+      slug: "organizacion-estable",
+      type: "CANDIDACY",
+    },
+  };
+
+  await page.addInitScript(
+    ({ storageKey, token, user }) => {
+      window.sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          accessToken: token,
+          expiresAt: null,
+          tenant: user.tenant,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: "AdminCampana",
+            backendRole: user.role,
+          },
+        }),
+      );
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      token: jwt,
+      user: currentUser,
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: { user: currentUser },
+        }),
+      });
+      return;
+    }
+
+    if (pathname === "/api/auth/organization" && request.method() === "PATCH") {
+      organizationBody = request.postDataJSON() as Record<string, unknown>;
+      authorizationHeader = request.headers().authorization;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: {
+            tenant: {
+              ...currentUser.tenant,
+              name: "Movimiento Regi\u00f3n Viva",
+            },
+            changed: true,
+          },
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "Ruta no simulada" });
+  });
+
+  await page.goto("/dashboard/profile");
+  const organizationSection = page.getByRole("region", {
+    name: /Nombre de la organizaci.n/,
+  });
+  await expect(organizationSection).toBeVisible();
+  await page
+    .getByLabel("Nombre visible")
+    .fill("  Movimiento Regi\u00f3n Viva  ");
+  await page.getByRole("button", { name: "Guardar nombre" }).click();
+
+  await expect(organizationSection.getByRole("status")).toContainText(
+    "actualizado correctamente",
+  );
+  await expect(page.getByLabel("Nombre visible")).toHaveValue(
+    "Movimiento Regi\u00f3n Viva",
+  );
+  expect(organizationBody).toEqual({
+    name: "Movimiento Regi\u00f3n Viva",
+    expectedName: "Organizacion con nombre incorrecto",
+  });
+  expect(organizationBody).not.toHaveProperty("tenantId");
+  expect(authorizationHeader).toBe(`Bearer ${jwt}`);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const session = window.sessionStorage.getItem(
+          "politica-sostenible.auth-session",
+        );
+        return session ? JSON.parse(session).tenant.name : null;
+      }),
+    )
+    .toBe("Movimiento Regi\u00f3n Viva");
 });
 
 test("la entrada del panel respeta la ruta disponible para el rol", async ({
