@@ -162,7 +162,7 @@ export default function CapturaTerritorialPage() {
       setForm(EMPTY_FORM);
       setAcceptedNoticeKey(null);
       setNotice(
-        "Nueva vinculacion guardada con trazabilidad. Puedes registrar a la siguiente persona.",
+        "Solicitud recibida y procesada con trazabilidad. Puedes continuar con la siguiente persona.",
       );
     } catch (error: unknown) {
       setFormError(

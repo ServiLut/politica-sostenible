@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   AuditActorType,
   ConsentCollectionChannel,
@@ -523,7 +519,7 @@ describe('VoterService consent transaction', () => {
     expect(transaction.voter.create).not.toHaveBeenCalled();
   });
 
-  it('rejects an existing record instead of reporting a false successful capture', async () => {
+  it('returns an indistinguishable receipt for an existing document', async () => {
     const transaction = buildTransaction();
     transaction.voter.findUnique.mockResolvedValue({ id: 'existing-voter' });
     const hashIp = jest.fn();
@@ -547,9 +543,7 @@ describe('VoterService consent transaction', () => {
         '203.0.113.42',
         dto,
       ),
-    ).rejects.toThrow(
-      'No se creo un registro nuevo porque el documento ya esta vinculado',
-    );
+    ).resolves.toEqual({ received: true });
 
     expect(hashIp).not.toHaveBeenCalled();
     expect(transaction.voter.create).not.toHaveBeenCalled();
@@ -557,7 +551,7 @@ describe('VoterService consent transaction', () => {
     expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
-  it('maps a concurrent duplicate to the same explicit conflict', async () => {
+  it('maps a concurrent duplicate to the same indistinguishable receipt', async () => {
     const service = new VoterService(
       {
         $transaction: jest.fn().mockRejectedValue({ code: 'P2002' }),
@@ -575,7 +569,7 @@ describe('VoterService consent transaction', () => {
         '203.0.113.42',
         dto,
       ),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).resolves.toEqual({ received: true });
   });
 
   it('rejects a capture serialized against a concurrent notice activation', async () => {

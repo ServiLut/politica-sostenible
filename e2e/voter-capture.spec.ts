@@ -177,7 +177,7 @@ test("voluntariado captura únicamente en los puestos devueltos por su alcance",
   await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
 
   await expect(page.getByRole("status")).toContainText(
-    "Nueva vinculacion guardada con trazabilidad",
+    "Solicitud recibida y procesada con trazabilidad",
   );
   expect(posts).toHaveLength(1);
   expect(posts[0]).toEqual({
@@ -223,7 +223,7 @@ test("coordinación territorial usa automáticamente su único puesto asignado",
   await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
 
   await expect(page.getByRole("status")).toContainText(
-    "Nueva vinculacion guardada con trazabilidad",
+    "Solicitud recibida y procesada con trazabilidad",
   );
   expect(posts).toHaveLength(1);
   expect(posts[0]).toMatchObject({
@@ -317,7 +317,7 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
   });
 });
 
-test("un documento duplicado no se presenta como una captura exitosa", async ({
+test("una captura repetida recibe un resultado indistinguible y no enumera personas", async ({
   page,
 }) => {
   await installSession(page, "VOLUNTEER");
@@ -353,13 +353,9 @@ test("un documento duplicado no se presenta como una captura exitosa", async ({
     if (url.pathname === "/api/voters" && request.method() === "POST") {
       postCount += 1;
       await route.fulfill({
-        status: 409,
+        status: 201,
         contentType: "application/json",
-        body: JSON.stringify({
-          statusCode: 409,
-          message:
-            "No se creo un registro nuevo porque el documento ya esta vinculado. Use la busqueda autorizada para revisar su estado o reautorizar el consentimiento.",
-        }),
+        body: JSON.stringify(successful({ received: true })),
       });
       return;
     }
@@ -371,12 +367,10 @@ test("un documento duplicado no se presenta como una captura exitosa", async ({
   await fillCitizenData(page, "1012345678");
   await page.getByRole("button", { name: "Guardar con trazabilidad" }).click();
 
-  await expect(page.locator("form").getByRole("alert")).toContainText(
-    "No se creo un registro nuevo porque el documento ya esta vinculado",
+  await expect(page.getByRole("status")).toContainText(
+    "Solicitud recibida y procesada con trazabilidad",
   );
-  await expect(page.getByLabel("Documento", { exact: true })).toHaveValue(
-    "1012345678",
-  );
-  await expect(page.getByText(/Nueva vinculacion guardada/)).toHaveCount(0);
+  await expect(page.getByLabel("Documento", { exact: true })).toHaveValue("");
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   expect(postCount).toBe(1);
 });

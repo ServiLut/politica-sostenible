@@ -240,7 +240,11 @@ pnpm build
 pnpm test:e2e
 docker compose --env-file .env.production -f compose.production.yml config
 docker compose --env-file .env.production -f compose.production.yml build
-docker build --tag politica-sostenible-local .
+docker build \
+  --build-arg NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:?export NEXT_PUBLIC_APP_URL}" \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:?export NEXT_PUBLIC_SUPABASE_URL}" \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:?export NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+  --tag politica-sostenible-local .
 docker run --rm --entrypoint node politica-sostenible-local apps/api/node_modules/prisma/build/index.js --version
 ```
 

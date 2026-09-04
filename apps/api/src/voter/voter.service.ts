@@ -76,8 +76,6 @@ export const VOTER_CAPTURE_ROLES = [
   Role.VOLUNTEER,
 ] as const;
 const VOTER_CAPTURE_RECEIPT = { received: true } as const;
-const DUPLICATE_VOTER_MESSAGE =
-  'No se creo un registro nuevo porque el documento ya esta vinculado. Use la busqueda autorizada para revisar su estado o reautorizar el consentimiento.';
 
 const VOTER_LIST_SELECT = {
   id: true,
@@ -183,7 +181,10 @@ export class VoterService {
           });
 
           if (existingVoter) {
-            throw new ConflictException(DUPLICATE_VOTER_MESSAGE);
+            // El rol de captura no tiene permiso de lectura. La misma respuesta
+            // para documentos nuevos y existentes evita que pueda enumerar la
+            // pertenencia de una persona a la organizacion.
+            return VOTER_CAPTURE_RECEIPT;
           }
 
           const grantedAt = new Date();
@@ -244,7 +245,9 @@ export class VoterService {
       );
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
-        throw new ConflictException(DUPLICATE_VOTER_MESSAGE);
+        // Una carrera entre dos capturas debe conservar el mismo recibo
+        // indistinguible que la comprobacion previa.
+        return VOTER_CAPTURE_RECEIPT;
       }
       if (this.isPrismaError(error, 'P2034')) {
         throw new ConflictException(

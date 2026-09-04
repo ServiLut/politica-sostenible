@@ -47,6 +47,9 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
     ]);
 
   const migrateService = compose.split(/^  api:/m)[0];
+  const apiService = compose
+    .split(/^  api:/m)[1]
+    .split(/^  web:/m)[0];
   assert.match(migrateService, /target: migrator/);
   assert.match(migrateService, /NODE_ENV: production/);
   assert.match(
@@ -58,6 +61,7 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
     /ALLOW_INSECURE_DATABASE_CONNECTION: \$\{ALLOW_INSECURE_DATABASE_CONNECTION:-false\}/,
   );
   assert.match(migrateService, /DATABASE_URL: \$\{DATABASE_URL:-\}/);
+  assert.match(apiService, /DATABASE_SCHEMA: \$\{DATABASE_SCHEMA:-\}/);
   assert.match(migrateService, /DIRECT_URL: \$\{DIRECT_URL:-\}/);
   assert.match(
     migrateService,
