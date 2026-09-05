@@ -38,6 +38,7 @@ model Tenant {
   storedObjects          StoredObject[]
   operationProfile       OperationProfile?
   politicalProposals     PoliticalProposal[]
+  subscription           TenantSubscription?
 }
 
 model CampaignSettings {
@@ -940,4 +941,65 @@ enum ProposalStatus {
   IN_PROGRESS
   COMPLETED
   WITHDRAWN
+}
+
+model SubscriptionPlan {
+  id              String               @id @default(cuid())
+  name            String               @db.VarChar(100)
+  code            PlanCode             @unique
+  description     String               @db.VarChar(500)
+  maxUsers        Int
+  maxVoters       Int
+  maxStorageMb    Int
+  includesExport  Boolean              @default(false)
+  includesImport  Boolean              @default(false)
+  includesMfa     Boolean              @default(false)
+  includesApi     Boolean              @default(false)
+  monthlyPriceCop Decimal              @db.Decimal(12, 2)
+  yearlyPriceCop  Decimal              @db.Decimal(12, 2)
+  isActive        Boolean              @default(true)
+  sortOrder       Int                  @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  subscriptions   TenantSubscription[]
+}
+
+model TenantSubscription {
+  id                 String             @id @default(cuid())
+  tenantId           String             @unique
+  planId             String
+  status             SubscriptionStatus @default(TRIAL)
+  billingCycle       BillingCycle       @default(MONTHLY)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([planId])
+  @@index([currentPeriodEnd, status])
+}
+
+enum PlanCode {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
 }

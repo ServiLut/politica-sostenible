@@ -85,6 +85,57 @@ body {
 .btn-primary:hover {
   opacity: 0.9;
 }
+.dark {
+  --color-base: #1a1a1a;
+  --color-primary: #F5F1EB; 
+  --color-secondary: #8DA168;
+  --color-accent: #D97E5E;
+  --color-text-main: #F5F1EB;
+  --color-text-secondary: #A0A0A0;
+  --color-border: #333333;
+  --color-white: #222222;
+}
+
+body {
+  color: var(--color-text-main);
+  background-color: var(--color-base);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom utilities based on palette */
+.bg-base { background-color: var(--color-base); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-surface { background-color: var(--color-white); }
+
+/* Dashboard Specific Background Overrides */
+.dashboard-bg-custom {
+  --color-base: #F1F3F5; /* Gris neutro profesional para el dashboard */
+}
+
+.dark .dashboard-bg-custom {
+  --color-base: #1a1a1a; /* Mantiene el fondo oscuro actual */
+}
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-accent { color: var(--color-accent); }
+.text-body { color: var(--color-text-main); }
+.text-muted { color: var(--color-text-secondary); }
+.text-base-color { color: var(--color-base); }
+
+.border-theme { border-color: var(--color-border); }
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-base);
+  transition: opacity 0.2s;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
 
 .btn-secondary {
   background-color: var(--color-secondary);
@@ -99,4 +150,10 @@ body {
 .btn-outline:hover {
   background-color: var(--color-primary);
   color: var(--color-base);
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2;
+  }
 }

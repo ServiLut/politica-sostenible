@@ -110,7 +110,14 @@ export function ActivationChecklist({
                 {completedSteps} de {totalSteps} pasos
               </span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div 
+              className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+              role="progressbar"
+              aria-label="Progreso de activación"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
               <div
                 className={`h-full transition-all duration-500 ${
                   isCampaign ? "bg-emerald-500" : "bg-blue-500"
@@ -120,12 +127,13 @@ export function ActivationChecklist({
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1" role="list">
             {steps.map((step, index) => (
               <Link
                 key={step.code}
                 href={step.href}
-                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
+                role="listitem"
+                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0 focus-ring"
               >
                 <span
                   className={`grid h-8 w-8 place-items-center text-xs font-black ${

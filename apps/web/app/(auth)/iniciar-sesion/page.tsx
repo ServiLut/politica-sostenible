@@ -165,7 +165,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95">
+            <div id="login-error" role="alert" className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95">
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="font-bold">{error}</span>
@@ -240,6 +240,7 @@ export default function LoginPage() {
                       onChange={handleChange}
                       required
                       autoComplete="email"
+                      aria-describedby={error ? "login-error" : undefined}
                     />
                   </div>
                 </div>
@@ -272,6 +273,7 @@ export default function LoginPage() {
                       onChange={handleChange}
                       required
                       autoComplete="current-password"
+                      aria-describedby={error ? "login-error" : undefined}
                     />
                   </div>
                 </div>

@@ -457,7 +457,7 @@ export default function VotantesPage() {
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
-    <div className="space-y-8">
+    <main id="main-content" className="space-y-8">
       {notice && (
         <div
           role="status"
@@ -547,6 +547,7 @@ export default function VotantesPage() {
 
       <section
         aria-busy={loading}
+        aria-live="polite"
         className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
       >
         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 p-5 md:flex-row md:items-center md:justify-between">
@@ -611,7 +612,7 @@ export default function VotantesPage() {
             role="status"
             className="flex items-center justify-center gap-3 py-20 text-sm font-bold text-slate-400"
           >
-            <Loader2 className="animate-spin" size={20} /> Consultando la API
+            <Loader2 className="animate-spin" size={20} role="status" aria-label="Cargando" /> Consultando la API
             segura...
           </div>
         ) : listError && !result ? (
@@ -949,7 +950,7 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-60"
                 >
                   {saving ? (
-                    <Loader2 className="animate-spin" size={16} />
+                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
                   ) : (
                     <ShieldCheck size={16} />
                   )}
@@ -1086,7 +1087,7 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
                 >
                   {granting ? (
-                    <Loader2 className="animate-spin" size={16} />
+                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
                   ) : (
                     <UserCheck aria-hidden="true" size={16} />
                   )}
@@ -1191,7 +1192,7 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
                 >
                   {revoking ? (
-                    <Loader2 className="animate-spin" size={16} />
+                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
                   ) : (
                     <UserMinus size={16} />
                   )}
@@ -1211,6 +1212,6 @@ export default function VotantesPage() {
           onUpdated={() => setReload((value) => value + 1)}
         />
       )}
-    </div>
+    </main>
   );
 }

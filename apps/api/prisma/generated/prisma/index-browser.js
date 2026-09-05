@@ -520,6 +520,40 @@ exports.Prisma.PoliticalProposalScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SubscriptionPlanScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  maxUsers: 'maxUsers',
+  maxVoters: 'maxVoters',
+  maxStorageMb: 'maxStorageMb',
+  includesExport: 'includesExport',
+  includesImport: 'includesImport',
+  includesMfa: 'includesMfa',
+  includesApi: 'includesApi',
+  monthlyPriceCop: 'monthlyPriceCop',
+  yearlyPriceCop: 'yearlyPriceCop',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TenantSubscriptionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  planId: 'planId',
+  status: 'status',
+  billingCycle: 'billingCycle',
+  currentPeriodStart: 'currentPeriodStart',
+  currentPeriodEnd: 'currentPeriodEnd',
+  trialEndsAt: 'trialEndsAt',
+  cancelledAt: 'cancelledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -829,6 +863,26 @@ exports.ProposalStatus = exports.$Enums.ProposalStatus = {
   WITHDRAWN: 'WITHDRAWN'
 };
 
+exports.PlanCode = exports.$Enums.PlanCode = {
+  FREE: 'FREE',
+  STARTER: 'STARTER',
+  PROFESSIONAL: 'PROFESSIONAL',
+  ENTERPRISE: 'ENTERPRISE'
+};
+
+exports.SubscriptionStatus = exports.$Enums.SubscriptionStatus = {
+  TRIAL: 'TRIAL',
+  ACTIVE: 'ACTIVE',
+  PAST_DUE: 'PAST_DUE',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.BillingCycle = exports.$Enums.BillingCycle = {
+  MONTHLY: 'MONTHLY',
+  YEARLY: 'YEARLY'
+};
+
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
@@ -852,7 +906,9 @@ exports.Prisma.ModelName = {
   CommunicationApproval: 'CommunicationApproval',
   AuditEvent: 'AuditEvent',
   OperationProfile: 'OperationProfile',
-  PoliticalProposal: 'PoliticalProposal'
+  PoliticalProposal: 'PoliticalProposal',
+  SubscriptionPlan: 'SubscriptionPlan',
+  TenantSubscription: 'TenantSubscription'
 };
 
 /**

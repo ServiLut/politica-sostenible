@@ -34,6 +34,7 @@ import { ExportModule } from './export/export.module';
 import { ImportModule } from './import/import.module';
 import { ElectionDayModule } from './election-day/election-day.module';
 import { SaasAdminModule } from './saas-admin/saas-admin.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { SaasAdminModule } from './saas-admin/saas-admin.module';
     ImportModule,
     ElectionDayModule,
     SaasAdminModule,
+    BillingModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

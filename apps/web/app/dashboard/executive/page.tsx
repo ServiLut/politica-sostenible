@@ -161,7 +161,7 @@ export default function ExecutivePage() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
+    <main id="main-content" className="mx-auto max-w-[1500px] space-y-6">
       <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9">
         <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_62%)]" />
         <div className="relative grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
@@ -204,7 +204,7 @@ export default function ExecutivePage() {
                 className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-50"
               >
                 {loading ? (
-                  <LoaderCircle className="animate-spin" size={18} />
+                  <LoaderCircle className="animate-spin" size={18} role="status" aria-label="Cargando" />
                 ) : (
                   <RefreshCw size={18} />
                 )}
@@ -355,7 +355,7 @@ export default function ExecutivePage() {
             )}
             {loading && (
               <div className="flex items-center gap-3 py-8 text-sm font-semibold text-slate-500">
-                <LoaderCircle className="animate-spin" size={18} />
+                <LoaderCircle className="animate-spin" size={18} role="status" aria-label="Cargando" />
                 Consolidando controles y vencimientos…
               </div>
             )}
@@ -485,7 +485,7 @@ export default function ExecutivePage() {
           Corte generado {formatDate(briefing.generatedAt)}
         </p>
       )}
-    </div>
+    </main>
   );
 }
 
@@ -521,7 +521,7 @@ function MetricCard({
       </p>
       <p className="mt-1 min-h-10 text-3xl font-black tracking-tight text-slate-950">
         {loading ? (
-          <LoaderCircle className="animate-spin text-slate-300" />
+          <LoaderCircle className="animate-spin text-slate-300" role="status" aria-label="Cargando" />
         ) : (
           value
         )}

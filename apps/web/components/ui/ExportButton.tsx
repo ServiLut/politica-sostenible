@@ -24,12 +24,14 @@ export function ExportButton({ moduleName, label = "Exportar CSV" }: { moduleNam
       <button
         onClick={handleExport}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+        aria-busy={loading}
+        aria-label={label}
+        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 focus-ring"
       >
-        {loading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+        {loading ? <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" /> : <Download size={16} />}
         {label}
       </button>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-600" role="alert">{error}</p>}
     </>
   );
 }
