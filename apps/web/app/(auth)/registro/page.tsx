@@ -411,7 +411,7 @@ export default function RegisterPage() {
                       htmlFor="email"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Email Corporativo
+                      Correo corporativo
                     </Label>
                     <div className="relative group">
                       <Mail className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />
@@ -456,7 +456,7 @@ export default function RegisterPage() {
                         htmlFor="password"
                         className="ml-3 text-[9px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                       >
-                        Password
+                        Contraseña
                       </Label>
                       <div className="relative group">
                         <Lock className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 transition-colors" />

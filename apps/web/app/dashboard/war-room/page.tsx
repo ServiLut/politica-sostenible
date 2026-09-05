@@ -50,8 +50,10 @@ export default function WarRoomPage() {
   const [feed, setFeed] = useState<LiveFeedItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = async () => {
+    setLoadError(null);
     try {
       const [dashRes, tallyRes, alertsRes] = await Promise.all([
         apiRequest<DashboardData>("/election-day/dashboard"),
@@ -62,8 +64,8 @@ export default function WarRoomPage() {
       setTally(tallyRes.items);
       setFeed(alertsRes.feed);
       setAlerts(alertsRes.alerts);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setLoadError("Error al cargar datos electorales. Se reintentará en 30 segundos.");
     } finally {
       setLoading(false);
     }
@@ -96,6 +98,12 @@ export default function WarRoomPage() {
         </button>
       </header>
 
+      {loadError && (
+        <div className="flex items-center gap-2 rounded-lg bg-red-900/50 border border-red-700 px-4 py-3 text-sm font-medium text-red-200">
+          <AlertCircle size={16} />
+          {loadError}
+        </div>
+      )}
       {/* Live Stats Banner */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-lg">

@@ -11,7 +11,8 @@ import {
   Loader2,
   Trash2,
   Pencil,
-  X
+  X,
+  AlertCircle
 } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 
@@ -60,14 +61,16 @@ export default function ProposalsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadProposals = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await apiRequest<{ items: Proposal[] }>("/proposals");
       setProposals(res.items || []);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setFetchError("No se pudieron cargar las propuestas. Intente de nuevo.");
       setProposals([]);
     } finally {
       setLoading(false);
@@ -159,6 +162,12 @@ export default function ProposalsPage() {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Gestión y seguimiento de propuestas y compromisos.
           </p>
+          {fetchError && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm font-medium text-red-700">
+              <AlertCircle size={16} />
+              {fetchError}
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <button

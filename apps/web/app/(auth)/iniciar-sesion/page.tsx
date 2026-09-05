@@ -226,7 +226,7 @@ export default function LoginPage() {
                     htmlFor="email"
                     className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                   >
-                    Email
+                    Correo electrónico
                   </Label>
                   <div className="relative group">
                     <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
@@ -251,7 +251,7 @@ export default function LoginPage() {
                       htmlFor="password"
                       className="text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                     >
-                      Password
+                      Contraseña
                     </Label>
                     <Link
                       href="/olvide-mi-contrasena"

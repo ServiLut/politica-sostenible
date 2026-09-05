@@ -2,15 +2,22 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 import Link from "next/link";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  Voters: "Personas",
+  Users: "Equipo",
+  Proposals: "Propuestas",
+  Documents: "Documentos",
+};
 
 interface SearchResult {
   id: string;
   title: string;
   subtitle?: string;
-  category: "Voters" | "Users" | "Proposals" | "Documents";
+  category: string;
   href: string;
 }
 
@@ -19,6 +26,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -42,21 +50,26 @@ export function CommandPalette() {
     } else {
       setQuery("");
       setResults([]);
+      setError(false);
     }
   }, [open]);
 
   useEffect(() => {
     if (!query) {
       setResults([]);
+      setError(false);
       return;
     }
 
     const timer = setTimeout(async () => {
       setLoading(true);
+      setError(false);
       try {
-        // Fallback mockup in case API doesn't exist
-        const data = await apiRequest(`/search?q=${encodeURIComponent(query)}`).catch(() => []) as SearchResult[];
-        setResults(data);
+        const data = await apiRequest<SearchResult[]>(`/search?q=${encodeURIComponent(query)}`);
+        setResults(data ?? []);
+      } catch {
+        setError(true);
+        setResults([]);
       } finally {
         setLoading(false);
       }
@@ -73,23 +86,30 @@ export function CommandPalette() {
   }, {} as Record<string, SearchResult[]>);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 bg-black/50 p-4">
-      <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 bg-black/50 p-4" onClick={() => setOpen(false)}>
+      <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center px-4 py-3 border-b border-slate-200">
           <Search className="text-slate-400 mr-3" size={20} />
           <input
             ref={inputRef}
             className="flex-1 outline-none text-lg bg-transparent"
-            placeholder="Buscar..."
+            placeholder="Buscar personas, propuestas, documentos..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {loading && <Loader2 className="animate-spin text-slate-400" size={20} />}
         </div>
         
-        {query && results.length === 0 && !loading && (
+        {error && (
+          <div className="p-4 flex items-center gap-2 text-red-600 bg-red-50">
+            <AlertCircle size={16} />
+            <span className="text-sm font-medium">Error al buscar. Intente de nuevo.</span>
+          </div>
+        )}
+
+        {query && results.length === 0 && !loading && !error && (
           <div className="p-8 text-center text-slate-500">
-            No se encontraron resultados para "{query}"
+            No se encontraron resultados para &quot;{query}&quot;
           </div>
         )}
 
@@ -98,7 +118,7 @@ export function CommandPalette() {
             {Object.entries(grouped).map(([category, items]) => (
               <div key={category} className="mb-4">
                 <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {category}
+                  {CATEGORY_LABELS[category] ?? category}
                 </div>
                 {items.map((item) => (
                   <Link
