@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
 
 type AlertSeverity = "critical" | "attention" | "ok";
 
@@ -362,50 +363,7 @@ export default function PublicOfficePage() {
           </div>
         </article>
 
-        <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
-            Ruta de activación
-          </p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
-            Del primer caso a la rendición
-          </h2>
-          <div className="mt-6">
-            {(briefing?.activation.steps ?? []).map((step, index) => (
-              <Link
-                key={step.code}
-                href={step.href}
-                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
-              >
-                <span
-                  className={`grid h-8 w-8 place-items-center text-xs font-black ${
-                    step.complete
-                      ? "bg-blue-700 text-white"
-                      : "border border-slate-300 text-slate-500"
-                  }`}
-                >
-                  {step.complete ? <Check size={15} /> : index + 1}
-                </span>
-                <span>
-                  <span className="block text-sm font-black text-slate-900">
-                    {step.title}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    {step.detail}
-                  </span>
-                </span>
-                <ArrowRight
-                  className="mt-2 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
-                  size={16}
-                />
-              </Link>
-            ))}
-            {!loading && !briefing && (
-              <p className="py-6 text-sm text-slate-500">
-                La ruta de activación no está disponible. Reintenta la consulta.
-              </p>
-            )}
-          </div>
-        </article>
+        <ActivationChecklist briefing={briefing} loading={loading} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">

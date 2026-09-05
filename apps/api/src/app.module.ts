@@ -22,11 +22,14 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { ScheduleModule } from '@nestjs/schedule';
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
 import { CommandCenterModule } from './command-center/command-center.module';
 import { InteractionsModule } from './interactions/interactions.module';
 import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
+import { RetentionModule } from './retention/retention.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -58,6 +61,9 @@ import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
     CommandCenterModule,
     InteractionsModule,
     ConsentNoticesModule,
+    ScheduleModule.forRoot(),
+    RetentionModule,
+    ExportModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

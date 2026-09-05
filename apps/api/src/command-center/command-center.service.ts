@@ -131,6 +131,68 @@ export class CommandCenterService {
         ? await this.loadCampaignBriefing(user.tenantId, now, actor)
         : await this.loadPublicOfficeBriefing(user.tenantId, now, actor);
 
+    const commonMetrics = await this.prisma.$transaction(async (tx) => {
+      const [
+        topLevelDivisions,
+        overdueTasksCount,
+        overdueCommitmentsCount,
+        activeTeamCount,
+        totalTeamCount,
+        activeConsentNoticeCount,
+        operationProfileCount,
+        campaignSettingsCount,
+        nonAdminTeamMemberCount,
+      ] = await Promise.all([
+        tx.politicalDivision.findMany({
+          where: { tenantId: user.tenantId, parentId: null },
+          select: {
+            name: true,
+            code: true,
+            goal: true,
+            _count: { select: { voters: true } },
+          },
+        }),
+        tx.task.count({
+          where: {
+            tenantId: user.tenantId,
+            status: { in: [...OPEN_TASK_STATUSES] },
+            dueAt: { lt: now },
+          },
+        }),
+        tx.commitment.count({
+          where: {
+            tenantId: user.tenantId,
+            status: { in: [...OPEN_COMMITMENT_STATUSES] },
+            targetDate: { lt: now },
+          },
+        }),
+        tx.user.count({ where: { tenantId: user.tenantId, isActive: true } }),
+        tx.user.count({ where: { tenantId: user.tenantId } }),
+        tx.consentNotice.count({ where: { tenantId: user.tenantId, isActive: true } }),
+        tx.operationProfile.count({ where: { tenantId: user.tenantId } }),
+        tx.campaignSettings.count({ where: { tenantId: user.tenantId } }),
+        tx.user.count({ where: { tenantId: user.tenantId, role: { not: Role.ADMIN } } }),
+      ]);
+
+      return {
+        territorialCoverage: topLevelDivisions.map((div) => ({
+          name: div.name,
+          code: div.code,
+          voterCount: div._count.voters,
+          goal: div.goal,
+          coveragePercent: div.goal ? (div._count.voters / div.goal) * 100 : null,
+        })),
+        overdueItemsCount: overdueTasksCount + overdueCommitmentsCount,
+        teamActivationRate: totalTeamCount ? (activeTeamCount / totalTeamCount) * 100 : 0,
+        complianceStatus: {
+          hasActiveConsentNotice: activeConsentNoticeCount > 0,
+          hasConfiguredOperationProfile: operationProfileCount > 0,
+          hasConfiguredCampaignSettings: campaignSettingsCount > 0,
+          hasNonAdminTeamMember: nonAdminTeamMemberCount > 0,
+        },
+      };
+    });
+
     return {
       generatedAt: now.toISOString(),
       tenant: {
@@ -140,6 +202,7 @@ export class CommandCenterService {
         mode: tenant.defaultMode,
       },
       ...briefing,
+      ...commonMetrics,
     };
   }
 

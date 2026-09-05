@@ -198,7 +198,8 @@ exports.Prisma.PoliticalDivisionScalarFieldEnum = {
   type: 'type',
   parentId: 'parentId',
   tenantId: 'tenantId',
-  expectedTables: 'expectedTables'
+  expectedTables: 'expectedTables',
+  goal: 'goal'
 };
 
 exports.Prisma.VoterScalarFieldEnum = {

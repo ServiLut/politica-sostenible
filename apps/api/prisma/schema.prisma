@@ -156,6 +156,7 @@ model PoliticalDivision {
   parentId       String?
   tenantId       String
   expectedTables Int?
+  goal           Int?      /// Meta de personas a registrar en este territorio
   tenant         Tenant              @relation("TenantDivisions", fields: [tenantId], references: [id])
   parent         PoliticalDivision?  @relation("Hierarchy", fields: [parentId, tenantId], references: [id, tenantId])
   children       PoliticalDivision[] @relation("Hierarchy")

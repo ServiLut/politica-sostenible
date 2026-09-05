@@ -11213,10 +11213,12 @@ export namespace Prisma {
 
   export type PoliticalDivisionAvgAggregateOutputType = {
     expectedTables: number | null
+    goal: number | null
   }
 
   export type PoliticalDivisionSumAggregateOutputType = {
     expectedTables: number | null
+    goal: number | null
   }
 
   export type PoliticalDivisionMinAggregateOutputType = {
@@ -11227,6 +11229,7 @@ export namespace Prisma {
     parentId: string | null
     tenantId: string | null
     expectedTables: number | null
+    goal: number | null
   }
 
   export type PoliticalDivisionMaxAggregateOutputType = {
@@ -11237,6 +11240,7 @@ export namespace Prisma {
     parentId: string | null
     tenantId: string | null
     expectedTables: number | null
+    goal: number | null
   }
 
   export type PoliticalDivisionCountAggregateOutputType = {
@@ -11247,16 +11251,19 @@ export namespace Prisma {
     parentId: number
     tenantId: number
     expectedTables: number
+    goal: number
     _all: number
   }
 
 
   export type PoliticalDivisionAvgAggregateInputType = {
     expectedTables?: true
+    goal?: true
   }
 
   export type PoliticalDivisionSumAggregateInputType = {
     expectedTables?: true
+    goal?: true
   }
 
   export type PoliticalDivisionMinAggregateInputType = {
@@ -11267,6 +11274,7 @@ export namespace Prisma {
     parentId?: true
     tenantId?: true
     expectedTables?: true
+    goal?: true
   }
 
   export type PoliticalDivisionMaxAggregateInputType = {
@@ -11277,6 +11285,7 @@ export namespace Prisma {
     parentId?: true
     tenantId?: true
     expectedTables?: true
+    goal?: true
   }
 
   export type PoliticalDivisionCountAggregateInputType = {
@@ -11287,6 +11296,7 @@ export namespace Prisma {
     parentId?: true
     tenantId?: true
     expectedTables?: true
+    goal?: true
     _all?: true
   }
 
@@ -11384,6 +11394,7 @@ export namespace Prisma {
     parentId: string | null
     tenantId: string
     expectedTables: number | null
+    goal: number | null
     _count: PoliticalDivisionCountAggregateOutputType | null
     _avg: PoliticalDivisionAvgAggregateOutputType | null
     _sum: PoliticalDivisionSumAggregateOutputType | null
@@ -11413,6 +11424,7 @@ export namespace Prisma {
     parentId?: boolean
     tenantId?: boolean
     expectedTables?: boolean
+    goal?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
     children?: boolean | PoliticalDivision$childrenArgs<ExtArgs>
@@ -11431,6 +11443,7 @@ export namespace Prisma {
     parentId?: boolean
     tenantId?: boolean
     expectedTables?: boolean
+    goal?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
   }, ExtArgs["result"]["politicalDivision"]>
@@ -11443,6 +11456,7 @@ export namespace Prisma {
     parentId?: boolean
     tenantId?: boolean
     expectedTables?: boolean
+    goal?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
   }, ExtArgs["result"]["politicalDivision"]>
@@ -11455,9 +11469,10 @@ export namespace Prisma {
     parentId?: boolean
     tenantId?: boolean
     expectedTables?: boolean
+    goal?: boolean
   }
 
-  export type PoliticalDivisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "type" | "parentId" | "tenantId" | "expectedTables", ExtArgs["result"]["politicalDivision"]>
+  export type PoliticalDivisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "type" | "parentId" | "tenantId" | "expectedTables" | "goal", ExtArgs["result"]["politicalDivision"]>
   export type PoliticalDivisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     parent?: boolean | PoliticalDivision$parentArgs<ExtArgs>
@@ -11496,6 +11511,10 @@ export namespace Prisma {
       parentId: string | null
       tenantId: string
       expectedTables: number | null
+      /**
+       * Meta de personas a registrar en este territorio
+       */
+      goal: number | null
     }, ExtArgs["result"]["politicalDivision"]>
     composites: {}
   }
@@ -11933,6 +11952,7 @@ export namespace Prisma {
     readonly parentId: FieldRef<"PoliticalDivision", 'String'>
     readonly tenantId: FieldRef<"PoliticalDivision", 'String'>
     readonly expectedTables: FieldRef<"PoliticalDivision", 'Int'>
+    readonly goal: FieldRef<"PoliticalDivision", 'Int'>
   }
     
 
@@ -33212,7 +33232,8 @@ export namespace Prisma {
     type: 'type',
     parentId: 'parentId',
     tenantId: 'tenantId',
-    expectedTables: 'expectedTables'
+    expectedTables: 'expectedTables',
+    goal: 'goal'
   };
 
   export type PoliticalDivisionScalarFieldEnum = (typeof PoliticalDivisionScalarFieldEnum)[keyof typeof PoliticalDivisionScalarFieldEnum]
@@ -34751,6 +34772,7 @@ export namespace Prisma {
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
     expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
+    goal?: IntNullableFilter<"PoliticalDivision"> | number | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     parent?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     children?: PoliticalDivisionListRelationFilter
@@ -34768,6 +34790,7 @@ export namespace Prisma {
     parentId?: SortOrderInput | SortOrder
     tenantId?: SortOrder
     expectedTables?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
     tenant?: TenantOrderByWithRelationInput
     parent?: PoliticalDivisionOrderByWithRelationInput
     children?: PoliticalDivisionOrderByRelationAggregateInput
@@ -34790,6 +34813,7 @@ export namespace Prisma {
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
     expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
+    goal?: IntNullableFilter<"PoliticalDivision"> | number | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     parent?: XOR<PoliticalDivisionNullableScalarRelationFilter, PoliticalDivisionWhereInput> | null
     children?: PoliticalDivisionListRelationFilter
@@ -34807,6 +34831,7 @@ export namespace Prisma {
     parentId?: SortOrderInput | SortOrder
     tenantId?: SortOrder
     expectedTables?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
     _count?: PoliticalDivisionCountOrderByAggregateInput
     _avg?: PoliticalDivisionAvgOrderByAggregateInput
     _max?: PoliticalDivisionMaxOrderByAggregateInput
@@ -34825,6 +34850,7 @@ export namespace Prisma {
     parentId?: StringNullableWithAggregatesFilter<"PoliticalDivision"> | string | null
     tenantId?: StringWithAggregatesFilter<"PoliticalDivision"> | string
     expectedTables?: IntNullableWithAggregatesFilter<"PoliticalDivision"> | number | null
+    goal?: IntNullableWithAggregatesFilter<"PoliticalDivision"> | number | null
   }
 
   export type VoterWhereInput = {
@@ -37405,6 +37431,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -37422,6 +37449,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -37435,6 +37463,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -37452,6 +37481,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -37467,6 +37497,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
   }
 
   export type PoliticalDivisionUpdateManyMutationInput = {
@@ -37475,6 +37506,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type PoliticalDivisionUncheckedUpdateManyInput = {
@@ -37485,6 +37517,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type VoterCreateInput = {
@@ -40405,10 +40438,12 @@ export namespace Prisma {
     parentId?: SortOrder
     tenantId?: SortOrder
     expectedTables?: SortOrder
+    goal?: SortOrder
   }
 
   export type PoliticalDivisionAvgOrderByAggregateInput = {
     expectedTables?: SortOrder
+    goal?: SortOrder
   }
 
   export type PoliticalDivisionMaxOrderByAggregateInput = {
@@ -40419,6 +40454,7 @@ export namespace Prisma {
     parentId?: SortOrder
     tenantId?: SortOrder
     expectedTables?: SortOrder
+    goal?: SortOrder
   }
 
   export type PoliticalDivisionMinOrderByAggregateInput = {
@@ -40429,10 +40465,12 @@ export namespace Prisma {
     parentId?: SortOrder
     tenantId?: SortOrder
     expectedTables?: SortOrder
+    goal?: SortOrder
   }
 
   export type PoliticalDivisionSumOrderByAggregateInput = {
     expectedTables?: SortOrder
+    goal?: SortOrder
   }
 
   export type EnumDivisionTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -46689,6 +46727,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -46704,6 +46743,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -47631,6 +47671,7 @@ export namespace Prisma {
     parentId?: StringNullableFilter<"PoliticalDivision"> | string | null
     tenantId?: StringFilter<"PoliticalDivision"> | string
     expectedTables?: IntNullableFilter<"PoliticalDivision"> | number | null
+    goal?: IntNullableFilter<"PoliticalDivision"> | number | null
   }
 
   export type VoterUpsertWithWhereUniqueWithoutTenantInput = {
@@ -48853,6 +48894,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -48869,6 +48911,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -50161,6 +50204,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -50177,6 +50221,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -51006,6 +51051,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -51022,6 +51068,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -51039,6 +51086,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
     users?: UserCreateNestedManyWithoutDivisionInput
@@ -51053,6 +51101,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -51420,6 +51469,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -51436,6 +51486,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -51595,6 +51646,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -51611,6 +51663,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutPuestoInput
@@ -51960,6 +52013,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -51976,6 +52030,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutPuestoNestedInput
@@ -52890,6 +52945,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -52906,6 +52962,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -53279,6 +53336,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -53295,6 +53353,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -55841,6 +55900,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
     tenant: TenantCreateNestedOneWithoutDivisionsInput
     parent?: PoliticalDivisionCreateNestedOneWithoutChildrenInput
     children?: PoliticalDivisionCreateNestedManyWithoutParentInput
@@ -55857,6 +55917,7 @@ export namespace Prisma {
     parentId?: string | null
     tenantId: string
     expectedTables?: number | null
+    goal?: number | null
     children?: PoliticalDivisionUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutDivisionInput
     voters?: VoterUncheckedCreateNestedManyWithoutPuestoInput
@@ -56375,6 +56436,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
@@ -56391,6 +56453,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     tenantId?: StringFieldUpdateOperationsInput | string
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -60214,6 +60277,7 @@ export namespace Prisma {
     type: $Enums.DivisionType
     parentId?: string | null
     expectedTables?: number | null
+    goal?: number | null
   }
 
   export type VoterCreateManyTenantInput = {
@@ -60611,6 +60675,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     parent?: PoliticalDivisionUpdateOneWithoutChildrenNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -60626,6 +60691,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -60640,6 +60706,7 @@ export namespace Prisma {
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type VoterUpdateWithoutTenantInput = {
@@ -63361,6 +63428,7 @@ export namespace Prisma {
     name: string
     type: $Enums.DivisionType
     expectedTables?: number | null
+    goal?: number | null
   }
 
   export type UserCreateManyDivisionInput = {
@@ -63444,6 +63512,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     tenant?: TenantUpdateOneRequiredWithoutDivisionsNestedInput
     children?: PoliticalDivisionUpdateManyWithoutParentNestedInput
     users?: UserUpdateManyWithoutDivisionNestedInput
@@ -63458,6 +63527,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
     children?: PoliticalDivisionUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutDivisionNestedInput
     voters?: VoterUncheckedUpdateManyWithoutPuestoNestedInput
@@ -63471,6 +63541,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     type?: EnumDivisionTypeFieldUpdateOperationsInput | $Enums.DivisionType
     expectedTables?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type UserUpdateWithoutDivisionInput = {
