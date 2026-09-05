@@ -199,13 +199,18 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          <a
-            href="#comenzar"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-bold text-white transition hover:border-white/25 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          >
-            Conocer la plataforma
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
+          <div className="flex items-center gap-4">
+            <Link href="/auth/login" className="hidden text-sm font-bold text-white/80 transition hover:text-white sm:block">
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            >
+              Registrarse
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          </div>
         </header>
 
         <div className="mx-auto grid max-w-7xl gap-14 px-5 pb-20 pt-12 sm:px-8 sm:pb-28 sm:pt-20 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-20 lg:px-10 lg:pb-32">
@@ -426,7 +431,7 @@ export default function LandingPage() {
                     <Flag className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <span className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/60">
-                    Campaign
+                    Campaña
                   </span>
                 </div>
                 <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">Campaña responsable</h3>
@@ -453,7 +458,7 @@ export default function LandingPage() {
                     <Landmark className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <span className="rounded-full border border-slate-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                    Public office
+                    Ejercicio del cargo
                   </span>
                 </div>
                 <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">Ejercicio del cargo</h3>
@@ -596,7 +601,7 @@ export default function LandingPage() {
             </div>
             <a
               href="#comenzar"
-              className="inline-flex w-fit items-center gap-3 rounded-full bg-emerald-300 px-6 py-3.5 text-sm font-black text-emerald-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1f1c]"
+              className="inline-flex w-fit items-center gap-3 rounded-full bg-emerald-600 px-6 py-3.5 text-sm font-black text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1f1c]"
             >
               Ver opciones de acceso
               <ArrowRight className="h-4 w-4" aria-hidden="true" />

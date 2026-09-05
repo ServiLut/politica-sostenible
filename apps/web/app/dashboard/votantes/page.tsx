@@ -479,7 +479,7 @@ export default function VotantesPage() {
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
               <ShieldCheck size={13} /> Relacionamiento autorizado
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-950">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
             Personas
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
@@ -502,7 +502,7 @@ export default function VotantesPage() {
               type="button"
               disabled={!consentContext?.notice}
               onClick={openCreate}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserPlus size={16} /> Registrar persona
             </button>
@@ -510,7 +510,7 @@ export default function VotantesPage() {
           {usesTerritorialCapture && (
             <Link
               href="/dashboard/captura-territorial"
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-800"
+              className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-800"
             >
               <UserPlus size={16} /> Jornada territorial
             </Link>
@@ -571,7 +571,7 @@ export default function VotantesPage() {
             </label>
             <button
               type="submit"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-xs font-black uppercase tracking-wider text-white"
+              className="rounded-2xl bg-slate-900 px-5 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700"
             >
               Buscar
             </button>
@@ -585,7 +585,7 @@ export default function VotantesPage() {
         {listError && (
           <div
             role="alert"
-            className="m-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
+            className="m-5 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900"
           >
             <AlertCircle className="mt-0.5 shrink-0" size={18} />
             <div className="flex-1">
@@ -608,19 +608,16 @@ export default function VotantesPage() {
         )}
 
         {loading ? (
-          <div
-            role="status"
-            className="flex items-center justify-center gap-3 py-20 text-sm font-bold text-slate-400"
-          >
-            <Loader2 className="animate-spin" size={20} role="status" aria-label="Cargando" /> Consultando la API
-            segura...
+          <div className="flex items-center justify-center gap-3 p-20 text-sm font-semibold text-slate-600">
+            <Loader2 className="animate-spin text-slate-400" size={24} />
+            Consultando la API segura...
           </div>
         ) : listError && !result ? (
           <div className="px-6 py-20 text-center text-sm font-semibold text-slate-500">
             Consulta no disponible. Usa Reintentar para recuperar el listado.
           </div>
         ) : !result?.items.length ? (
-          <div className="px-6 py-20 text-center">
+          <div className="m-5 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
             <ShieldCheck className="mx-auto mb-4 text-slate-300" size={42} />
             <h2 className="font-black text-slate-900">
               No hay registros para mostrar

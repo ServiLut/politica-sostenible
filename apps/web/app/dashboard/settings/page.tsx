@@ -124,35 +124,33 @@ export default function ConsentSettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
-      <header className="overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-xl sm:px-9">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
-              <ShieldCheck aria-hidden="true" size={14} /> Gobierno de datos
-            </span>
-            <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              Aviso de privacidad de la organización
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              El equipo solo podrá registrar autorizaciones después de activar
-              un aviso propio. Cada nueva versión conserva la anterior y obliga
-              a confirmar nuevamente el consentimiento.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setReload((value) => value + 1)}
-            disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 text-xs font-black uppercase tracking-wider text-slate-200 disabled:opacity-50"
-          >
-            <RefreshCw
-              aria-hidden="true"
-              size={15}
-              className={loading ? "animate-spin" : undefined}
-            />
-            Actualizar
-          </button>
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+            <ShieldCheck aria-hidden="true" size={14} /> Gobierno de datos
+          </span>
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            Aviso de privacidad de la organización
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+            El equipo solo podrá registrar autorizaciones después de activar
+            un aviso propio. Cada nueva versión conserva la anterior y obliga
+            a confirmar nuevamente el consentimiento.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setReload((value) => value + 1)}
+          disabled={loading}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+        >
+          <RefreshCw
+            aria-hidden="true"
+            size={15}
+            className={loading ? "animate-spin" : undefined}
+          />
+          Actualizar
+        </button>
       </header>
 
       {notice && (
@@ -166,23 +164,20 @@ export default function ConsentSettingsPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900"
+          className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900"
         >
           <AlertCircle aria-hidden="true" size={20} /> {error}
         </div>
       )}
 
       {loading ? (
-        <div
-          role="status"
-          className="flex items-center gap-3 rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600"
-        >
-          <Loader2 aria-hidden="true" className="animate-spin" size={20} />
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
+          <Loader2 className="animate-spin text-slate-400" size={24} />
           Consultando el aviso vigente…
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-          <aside className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                 Estado actual
@@ -254,7 +249,7 @@ export default function ConsentSettingsPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+            className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
           >
             <div>
               <h2 className="text-xl font-black text-slate-950">

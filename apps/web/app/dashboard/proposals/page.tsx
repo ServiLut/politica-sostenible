@@ -44,6 +44,19 @@ const CATEGORIES = [
   "OTHER"
 ];
 
+const CATEGORY_LABELS: Record<string, string> = {
+  INFRASTRUCTURE: "Infraestructura",
+  EDUCATION: "Educación",
+  HEALTH: "Salud",
+  SECURITY: "Seguridad",
+  ENVIRONMENT: "Medio Ambiente",
+  ECONOMY: "Economía",
+  SOCIAL: "Social",
+  CULTURE: "Cultura",
+  GOVERNANCE: "Gobernanza",
+  OTHER: "Otro"
+};
+
 const EMPTY_FORM = {
   title: "",
   description: "",
@@ -62,6 +75,7 @@ export default function ProposalsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const loadProposals = async () => {
     setLoading(true);
@@ -99,13 +113,15 @@ export default function ProposalsPage() {
     setDialogProposal(p);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta propuesta?")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await apiRequest(`/proposals/${id}`, { method: "DELETE" });
+      await apiRequest(`/proposals/${deleteTarget}`, { method: "DELETE" });
       loadProposals();
     } catch (error: any) {
-      alert(error.message || "Error al eliminar");
+      setFetchError(error.message || "Error al eliminar");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -156,15 +172,15 @@ export default function ProposalsPage() {
     <div className="mx-auto max-w-7xl space-y-7 p-6">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
             Programa político
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Gestión y seguimiento de propuestas y compromisos.
           </p>
           {fetchError && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm font-medium text-red-700">
-              <AlertCircle size={16} />
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900">
+              <AlertCircle size={20} />
               {fetchError}
             </div>
           )}
@@ -212,16 +228,16 @@ export default function ProposalsPage() {
           >
             <option value="ALL">Todas las categorías</option>
             {categories.map(c => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>
             ))}
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 border-dashed">
-          <Loader2 className="animate-spin text-blue-600" size={32} />
-          <p className="text-sm font-medium text-slate-500">Cargando propuestas...</p>
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
+          <Loader2 className="animate-spin text-slate-400" size={24} />
+          Cargando propuestas...
         </div>
       ) : filteredProposals.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 border-dashed bg-slate-50">
@@ -233,7 +249,7 @@ export default function ProposalsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProposals.map((proposal) => (
-            <div key={proposal.id} onClick={() => openEdit(proposal)} className="cursor-pointer flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+            <div key={proposal.id} onClick={() => openEdit(proposal)} className="cursor-pointer flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex items-start justify-between">
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                   {proposal.referenceCode}
@@ -245,7 +261,7 @@ export default function ProposalsPage() {
                     <Lock size={16} className="text-slate-400" />
                   )}
                   <button 
-                    onClick={(e) => { e.stopPropagation(); handleDelete(proposal.id); }} 
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(proposal.id); }} 
                     className="p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
                     <Trash2 size={16} />
@@ -255,7 +271,7 @@ export default function ProposalsPage() {
               
               <div>
                 <h3 className="font-bold text-slate-900 line-clamp-2">{proposal.title}</h3>
-                <p className="mt-1 text-xs font-medium text-slate-500">{proposal.category}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">{CATEGORY_LABELS[proposal.category] || proposal.category}</p>
               </div>
 
               <div className="mt-auto space-y-3">
@@ -335,7 +351,7 @@ export default function ProposalsPage() {
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                     className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
                   </select>
                 </label>
                 <label className="block text-sm font-black text-slate-800">
@@ -378,6 +394,18 @@ export default function ProposalsPage() {
               </footer>
             </form>
           </section>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-black text-slate-900">¿Eliminar propuesta?</h3>
+            <p className="mt-2 text-sm text-slate-500">Esta acción no se puede deshacer.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+              <button onClick={confirmDelete} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">Eliminar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

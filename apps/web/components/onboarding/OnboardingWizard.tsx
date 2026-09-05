@@ -15,6 +15,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
   // Step 1 state
   const [noticeContent, setNoticeContent] = useState('Esta organización recolecta datos de contacto con fines de gestión política legítima, con consentimiento previo del titular, conforme a la Ley 1581 de 2012.');
+  const [controllerName, setControllerName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
 
   // Step 2 state
   const [inviteName, setInviteName] = useState('');
@@ -47,8 +49,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           version: '2026-v1',
           title: 'Aviso de privacidad',
           content: noticeContent,
-          controllerName: 'Organización política',
-          contactEmail: 'datos@organizacion.co',
+          controllerName: controllerName.trim() || 'Organización política',
+          contactEmail: contactEmail.trim(),
         })
       });
       handleNext();
@@ -135,12 +137,36 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           <form onSubmit={handleStep1} className="flex flex-col gap-4">
             <h2 className="text-2xl font-black text-slate-800">Configura tu aviso de privacidad</h2>
             <p className="text-slate-600">Para cumplir con la ley, necesitas un aviso de privacidad activo.</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">Responsable del tratamiento</label>
+                <input
+                  type="text"
+                  value={controllerName}
+                  onChange={(e) => setControllerName(e.target.value)}
+                  placeholder="Nombre de tu organización"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">Correo para derechos de datos</label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="datos@tuorganizacion.co"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  required
+                />
+              </div>
+            </div>
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">Contenido del aviso</label>
               <textarea
                 value={noticeContent}
                 onChange={(e) => setNoticeContent(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                 rows={4}
                 required
               />
@@ -166,7 +192,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                 required
               />
             </div>
@@ -175,7 +201,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
               >
                 <option value="ZONE_COORDINATOR">Coordinador de zona</option>
                 <option value="CAMPAIGN_MANAGER">Director de campaña</option>
@@ -214,7 +240,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   type="text"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                   required
                 />
               </div>
@@ -224,7 +250,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   type="text"
                   value={contactLastName}
                   onChange={(e) => setContactLastName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                   required
                 />
               </div>
@@ -236,7 +262,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   type="text"
                   value={contactId}
                   onChange={(e) => setContactId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                   required
                 />
               </div>
@@ -246,7 +272,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                 />
               </div>
             </div>
@@ -285,7 +311,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 type="text"
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
                 required
               />
             </div>
@@ -294,7 +320,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <select
                 value={taskPriority}
                 onChange={(e) => setTaskPriority(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
+                className="w-full rounded-xl border border-slate-200 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
               >
                 <option value="HIGH">Alta</option>
                 <option value="MEDIUM">Media</option>

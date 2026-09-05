@@ -106,9 +106,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-white dark:bg-zinc-950">
+    <div className="flex min-h-screen overflow-hidden bg-white dark:bg-slate-950">
       {/* Left side: Brand/Marketing */}
-      <div className="relative hidden w-1/2 flex-col justify-between bg-zinc-900 p-16 text-white lg:flex dark:bg-zinc-900">
+      <div className="relative hidden w-1/2 flex-col justify-between bg-slate-900 p-16 text-white lg:flex dark:bg-slate-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(39,39,42,0.8)_0%,rgba(9,9,11,1)_100%)]" />
 
         <div className="relative z-10">
@@ -125,15 +125,15 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           <h2 className="text-6xl font-black leading-[1] tracking-tighter">
             Una operación <br />
-            <span className="text-zinc-500">que deja evidencia.</span>
+            <span className="text-slate-500">que deja evidencia.</span>
           </h2>
-          <p className="max-w-md text-2xl leading-relaxed text-zinc-400 font-medium">
+          <p className="max-w-md text-2xl leading-relaxed text-slate-400 font-medium">
             Coordina territorio, equipo, finanzas y cumplimiento sin mezclar
             datos ni finalidades.
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-zinc-600">
+        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-600">
           <span>© 2026 POLITICA SOSTENIBLE</span>
           <div className="flex gap-6">
             <Link
@@ -153,13 +153,13 @@ export default function LoginPage() {
       </div>
 
       {/* Right side: Login Form */}
-      <div className="flex w-full flex-col justify-center p-8 lg:w-1/2 xl:p-24 bg-zinc-50/50 dark:bg-transparent">
+      <div className="flex w-full flex-col justify-center p-8 lg:w-1/2 xl:p-24 bg-slate-50/50 dark:bg-transparent">
         <div className="mx-auto w-full max-w-md space-y-12">
           <div className="space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-slate-50">
               Hola de nuevo
             </h1>
-            <p className="text-xl text-zinc-500 dark:text-zinc-400 font-medium italic">
+            <p className="text-xl text-slate-500 dark:text-slate-400 font-medium italic">
               Continúa con la operación de tu organización.
             </p>
           </div>
@@ -189,12 +189,12 @@ export default function LoginPage() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="mfaCode"
-                    className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    className="ml-2 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
                   >
                     Código de autenticación
                   </Label>
                   <div className="relative group">
-                    <ShieldCheck className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <ShieldCheck className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="mfaCode"
                       name="mfaCode"
@@ -224,12 +224,12 @@ export default function LoginPage() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="email"
-                    className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    className="ml-2 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
                   >
                     Correo electrónico
                   </Label>
                   <div className="relative group">
-                    <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="email"
                       name="email"
@@ -249,20 +249,20 @@ export default function LoginPage() {
                   <div className="flex items-center justify-between px-2">
                     <Label
                       htmlFor="password"
-                      className="text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                      className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
                     >
                       Contraseña
                     </Label>
                     <Link
                       href="/olvide-mi-contrasena"
                       title="Recuperar acceso"
-                      className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
                     >
                       ¿Perdiste el acceso?
                     </Link>
                   </div>
                   <div className="relative group">
-                    <Lock className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <Lock className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="password"
                       name="password"
@@ -284,7 +284,7 @@ export default function LoginPage() {
               type="submit"
               disabled={isSubmitting || sessionLoading || (requiresMfa && mfaCode.length !== 6)}
               size="lg"
-              className="w-full rounded-[1.5rem] bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-white shadow-2xl shadow-zinc-300 dark:shadow-none"
+              className="w-full rounded-[1.5rem] bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-white shadow-2xl shadow-slate-300 dark:shadow-none"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-3">
@@ -301,12 +301,12 @@ export default function LoginPage() {
           </form>
 
           <div className="pt-6 text-center">
-            <p className="text-zinc-400 font-bold text-lg">
+            <p className="text-slate-400 font-bold text-lg">
               ¿No tienes cuenta?{" "}
               <Button
                 asChild
                 variant="link"
-                className="p-0 h-auto font-black text-zinc-900 dark:text-zinc-50 hover:no-underline underline underline-offset-8 decoration-2"
+                className="p-0 h-auto font-black text-slate-900 dark:text-slate-50 hover:no-underline underline underline-offset-8 decoration-2"
               >
                 <Link href="/registro">Regístrate aquí</Link>
               </Button>
@@ -317,3 +317,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

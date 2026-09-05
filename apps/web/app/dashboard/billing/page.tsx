@@ -54,8 +54,8 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl space-y-7">
-        <div className="flex items-center gap-3 rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
-          <Loader2 className="animate-spin" size={20} />
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
+          <Loader2 className="animate-spin text-slate-400" size={24} />
           Cargando información de facturación...
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function BillingPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-5xl space-y-7">
-        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900">
+        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900">
           <AlertCircle size={20} /> {error}
         </div>
       </div>
@@ -76,32 +76,24 @@ export default function BillingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
-      <header className="overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-xl sm:px-9">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-blue-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-300">
-              <CreditCard size={14} /> Suscripción
-            </span>
-            <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              Plan y facturación
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Administra tu plan actual, revisa los límites de uso de tu organización y contacta a ventas para mejoras.
-            </p>
-          </div>
-          <a
-            href="mailto:ventas@abogadosencolombiasas.com"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-950"
-          >
-            Contactar ventas para cambiar de plan
-          </a>
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            Plan y facturación
+          </h1>
+          <p className="mt-2 text-base text-slate-500">
+            Administra tu plan actual y revisa los límites de uso de tu organización.
+          </p>
         </div>
+        <a href="mailto:ventas@abogadosencolombiasas.com" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800">
+          Contactar ventas
+        </a>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <h2 className="text-xl font-black text-slate-950">Plan actual</h2>
+            <h2 className="text-xl font-black text-slate-900">Plan actual</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Detalles de tu suscripción activa.
             </p>
@@ -134,9 +126,9 @@ export default function BillingPage() {
           </ul>
         </div>
 
-        <div className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <h2 className="text-xl font-black text-slate-950">Uso de recursos</h2>
+            <h2 className="text-xl font-black text-slate-900">Uso de recursos</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Monitorea el consumo actual frente a los límites de tu plan.
             </p>
