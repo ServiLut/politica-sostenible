@@ -118,7 +118,7 @@ export default function CapturaTerritorialPage() {
 
     if (!context?.consentNotice) {
       setFormError(
-        "La organización debe activar su aviso de privacidad antes de capturar datos.",
+        "La organización debe activar su aviso de privacidad antes de registrar personas.",
       );
       return;
     }
@@ -166,7 +166,7 @@ export default function CapturaTerritorialPage() {
       );
     } catch (error: unknown) {
       setFormError(
-        readableError(error, "No fue posible guardar la captura territorial."),
+        readableError(error, "No fue posible guardar la jornada territorial."),
       );
     } finally {
       setSaving(false);
@@ -188,15 +188,15 @@ export default function CapturaTerritorialPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
-              <ShieldCheck aria-hidden="true" size={14} /> Captura autorizada
+              <ShieldCheck aria-hidden="true" size={14} /> Trabajo de campo
             </span>
             <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              Vinculación en territorio
+              Jornada territorial
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">
-              Registra únicamente información entregada por la persona y
-              confirma su autorización. El sistema fija la organización, el
-              responsable y el alcance territorial desde tu sesión.
+              Registra una actividad de relacionamiento únicamente cuando la
+              persona entrega sus datos y autoriza su uso. El sistema fija la
+              organización, el responsable y el alcance desde tu sesión.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-xs font-bold text-slate-200">
@@ -273,7 +273,8 @@ export default function CapturaTerritorialPage() {
                 size={19}
               />
               No tienes puestos de votación habilitados. Solicita a la
-              administración que revise tu asignación antes de capturar datos.
+              administración que revise tu asignación antes de iniciar la
+              jornada.
             </div>
           ) : puestos.length === 1 ? (
             <div className="mt-5 flex items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
@@ -435,9 +436,9 @@ export default function CapturaTerritorialPage() {
               role="alert"
               className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950"
             >
-              No hay un aviso de privacidad activo. La captura está bloqueada;
+              No hay un aviso de privacidad activo. El registro está bloqueado;
               solicita a Administración que configure el texto que debe
-              comunicarse a la persona.
+              comunicarse a cada persona.
             </div>
           )}
 

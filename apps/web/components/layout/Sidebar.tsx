@@ -26,12 +26,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import {
-  canAccessNavigationItem,
-  dashboardConfig,
+  getNavigationGroupsForRole,
   getRoleLabel,
   getTenantTypeLabel,
+  getVisibleNavigationItems,
   matchesNavigationPath,
-  navigationGroups,
   type NavItem,
   type NavigationIcon,
 } from "@/config/navigation";
@@ -53,29 +52,41 @@ const NAV_ICONS: Record<NavigationIcon, LucideIcon> = {
   settings: SlidersHorizontal,
 };
 
-const CAMPAIGN_MOBILE_ROUTES = [
-  "/dashboard/executive",
-  "/dashboard/territory",
-  "/dashboard/tasks",
-  "/dashboard/events",
-];
-
-const PUBLIC_OFFICE_MOBILE_ROUTES = [
-  "/dashboard/public-office",
-  "/dashboard/cases",
-  "/dashboard/tasks",
-  "/dashboard/events",
-];
+const MOBILE_ROUTES_BY_WORKSPACE = {
+  DIRECTION: [
+    "/dashboard/executive",
+    "/dashboard/public-office",
+    "/dashboard/inbox",
+    "/dashboard/territory",
+    "/dashboard/events",
+  ],
+  COORDINATION: [
+    "/dashboard/inbox",
+    "/dashboard/captura-territorial",
+    "/dashboard/territory",
+    "/dashboard/events",
+  ],
+  FIELD: [
+    "/dashboard/captura-territorial",
+    "/dashboard/war-room",
+    "/dashboard/tasks",
+    "/dashboard/events",
+  ],
+  REVIEW: [
+    "/dashboard/inbox",
+    "/dashboard/communications",
+    "/dashboard/finance",
+    "/dashboard/audit",
+  ],
+} as const;
 
 type ActiveNavItem = NavItem & { isActive: boolean };
 
 function selectMobilePrimaryNavigation(
   navigation: ActiveNavItem[],
-  isPublicOffice: boolean,
+  workspace: keyof typeof MOBILE_ROUTES_BY_WORKSPACE,
 ) {
-  const preferredRoutes = isPublicOffice
-    ? PUBLIC_OFFICE_MOBILE_ROUTES
-    : CAMPAIGN_MOBILE_ROUTES;
+  const preferredRoutes = MOBILE_ROUTES_BY_WORKSPACE[workspace];
   const selected = preferredRoutes
     .map((href) => navigation.find((item) => item.href === href))
     .filter((item): item is ActiveNavItem => Boolean(item));
@@ -128,17 +139,18 @@ export function Sidebar() {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
 
-  const navigation: ActiveNavItem[] = dashboardConfig
-    .filter((item) => {
-      if (!user || !tenant) return false;
-      return canAccessNavigationItem(item, user, tenant);
-    })
-    .map((item) => ({
+  const stage = (tenant?.config as any)?.operationProfile?.stage;
+  const navigation: ActiveNavItem[] = (
+    user && tenant ? getVisibleNavigationItems(user, tenant, stage) : []
+  ).map((item) => ({
       ...item,
       isActive: matchesNavigationPath(pathname, item.href),
-    }));
+  }));
 
-  const groupedNavigation = navigationGroups
+  const roleNavigationGroups = user
+    ? getNavigationGroupsForRole(user.backendRole)
+    : [];
+  const groupedNavigation = roleNavigationGroups
     .map((group) => ({
       ...group,
       items: navigation.filter((item) => item.group === group.id),
@@ -146,7 +158,7 @@ export function Sidebar() {
     .filter((group) => group.items.length > 0);
   const mobilePrimary = selectMobilePrimaryNavigation(
     navigation,
-    tenant?.type === "PUBLIC_OFFICE",
+    roleNavigationGroups[0]?.id ?? "COORDINATION",
   );
   const mobilePrimaryHrefs = new Set(
     mobilePrimary.map((item) => item.href),
@@ -154,7 +166,7 @@ export function Sidebar() {
   const mobileSecondary = navigation.filter(
     (item) => !mobilePrimaryHrefs.has(item.href),
   );
-  const groupedMobileSecondary = navigationGroups
+  const groupedMobileSecondary = roleNavigationGroups
     .map((group) => ({
       ...group,
       items: mobileSecondary.filter((item) => item.group === group.id),
@@ -253,6 +265,11 @@ export function Sidebar() {
               <p className="mt-1 text-xs font-medium text-blue-300">
                 {getTenantTypeLabel(tenant.type)}
               </p>
+              {roleNavigationGroups[0] && (
+                <p className="mt-3 border-t border-slate-800 pt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Tu espacio · {roleNavigationGroups[0].title}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -364,9 +381,16 @@ export function Sidebar() {
                   Más opciones
                 </h2>
                 {tenant && (
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-500">
-                    {tenant.name} · {getTenantTypeLabel(tenant.type)}
-                  </p>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    <p className="truncate">
+                      {tenant.name} · {getTenantTypeLabel(tenant.type)}
+                    </p>
+                    {roleNavigationGroups[0] && (
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-blue-700">
+                        Tu espacio · {roleNavigationGroups[0].title}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
               <button

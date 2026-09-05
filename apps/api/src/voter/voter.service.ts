@@ -114,6 +114,30 @@ export class VoterService {
       );
     }
 
+    const activeNotice = await this.prisma.consentNotice.findFirst({
+      where: {
+        tenantId: user.tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (!activeNotice) {
+      throw new ForbiddenException(
+        'No se puede registrar personas sin un aviso de privacidad activo. Configure uno en Ajustes → Aviso de privacidad.',
+      );
+    }
+
+    const profile = await this.prisma.operationProfile.findUnique({
+      where: { tenantId: user.tenantId },
+      select: { id: true },
+    });
+    if (!profile) {
+      throw new ForbiddenException(
+        'No se puede registrar personas sin configurar el perfil operativo de la organización.',
+      );
+    }
+
     const { consentAccepted, termsVersion, collectionChannel, ...voterData } =
       dto;
     try {

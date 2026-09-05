@@ -124,6 +124,9 @@ export default function ExecutivePage() {
   const [briefing, setBriefing] = useState<CommandCenterBriefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const electionOperationActive = Boolean(
+    briefing && briefing.metrics.electionDay.reports > 0,
+  );
 
   const loadBriefing = useCallback(async () => {
     setLoading(true);
@@ -301,20 +304,29 @@ export default function ExecutivePage() {
           loading={loading}
           accent="blue"
         />
-        <MetricCard
-          icon={FileCheck2}
-          label="Actas sincronizadas"
-          value={
-            briefing ? String(briefing.metrics.electionDay.syncedReports) : "—"
-          }
-          hint={
-            briefing
-              ? `${briefing.metrics.electionDay.reports} reportes recibidos`
-              : "Datos no disponibles"
-          }
-          loading={loading}
-          accent="violet"
-        />
+        {electionOperationActive ? (
+          <MetricCard
+            icon={FileCheck2}
+            label="Actas sincronizadas"
+            value={String(briefing?.metrics.electionDay.syncedReports ?? 0)}
+            hint={`${briefing?.metrics.electionDay.reports ?? 0} reportes recibidos`}
+            loading={loading}
+            accent="violet"
+          />
+        ) : (
+          <MetricCard
+            icon={ListChecks}
+            label="Tareas abiertas"
+            value={briefing ? String(briefing.metrics.tasks.open) : "—"}
+            hint={
+              briefing
+                ? `${briefing.metrics.tasks.overdue} tareas vencidas`
+                : "Datos no disponibles"
+            }
+            loading={loading}
+            accent={briefing?.metrics.tasks.overdue ? "amber" : "emerald"}
+          />
+        )}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
@@ -475,10 +487,16 @@ export default function ExecutivePage() {
         </div>
         <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
           <QuickAction
+            href="/dashboard/inbox"
+            icon={ListChecks}
+            title="Bandeja operativa"
+            detail="Pendientes, bloqueos y decisiones"
+          />
+          <QuickAction
             href="/dashboard/votantes"
             icon={Users}
-            title="Relacionamiento"
-            detail="Consentimiento y trazabilidad"
+            title="Personas"
+            detail="Relacionamiento autorizado"
           />
           <QuickAction
             href="/dashboard/territory"
@@ -492,24 +510,21 @@ export default function ExecutivePage() {
                   : "Datos no disponibles"
             }
           />
-          <QuickAction
-            href="/dashboard/tasks"
-            icon={ListChecks}
-            title="Ejecución"
-            detail={
-              briefing
-                ? `${briefing.metrics.tasks.open} tareas abiertas`
-                : loading
-                  ? "Consultando…"
-                  : "Datos no disponibles"
-            }
-          />
-          <QuickAction
-            href="/dashboard/war-room"
-            icon={FileCheck2}
-            title="Día D"
-            detail="Cobertura, incidentes y actas"
-          />
+          {electionOperationActive ? (
+            <QuickAction
+              href="/dashboard/war-room"
+              icon={FileCheck2}
+              title="Operación electoral"
+              detail="Reportes activos, revisión y actas"
+            />
+          ) : (
+            <QuickAction
+              href="/dashboard/events"
+              icon={CalendarClock}
+              title="Agenda"
+              detail="Próximos hitos y actividades"
+            />
+          )}
         </div>
       </section>
 

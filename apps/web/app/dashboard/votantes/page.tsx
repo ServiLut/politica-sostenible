@@ -162,7 +162,7 @@ export default function VotantesPage() {
           setListError(
             readableError(
               requestError,
-              "No fue posible cargar las personas vinculadas.",
+              "No fue posible cargar las personas autorizadas.",
             ),
           );
         }
@@ -292,7 +292,7 @@ export default function VotantesPage() {
       setSearchDraft("");
       setSearch("");
       setPage(1);
-      setNotice("Nueva vinculacion creada con consentimiento y trazabilidad.");
+      setNotice("Persona registrada con autorización y trazabilidad.");
       setReload((value) => value + 1);
     } catch (requestError: unknown) {
       setMutationError(
@@ -475,14 +475,15 @@ export default function VotantesPage() {
       <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
-            <ShieldCheck size={13} /> Habeas data verificable
+              <ShieldCheck size={13} /> Relacionamiento autorizado
           </div>
           <h1 className="text-4xl font-black tracking-tight text-slate-950">
-            Relacionamiento territorial
+            Personas
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Consulta datos minimizados y conserva una trazabilidad inmutable de
-            cada autorizacion o revocacion electoral.
+            Gestiona únicamente datos entregados y autorizados por cada
+            persona. Este espacio no clasifica intención de voto, ideología ni
+            características sensibles.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -500,7 +501,7 @@ export default function VotantesPage() {
               onClick={openCreate}
               className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <UserPlus size={16} /> Nueva vinculacion
+              <UserPlus size={16} /> Registrar persona
             </button>
           )}
           {usesTerritorialCapture && (
@@ -508,7 +509,7 @@ export default function VotantesPage() {
               href="/dashboard/captura-territorial"
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-800"
             >
-              <UserPlus size={16} /> Capturar en territorio
+              <UserPlus size={16} /> Jornada territorial
             </Link>
           )}
         </div>
@@ -527,7 +528,7 @@ export default function VotantesPage() {
             />
             <p>
               {consentConfigError ??
-                "No hay un aviso de privacidad activo. Las nuevas vinculaciones y reautorizaciones permanecen bloqueadas para no registrar un consentimiento sin información verificable."}
+                "No hay un aviso de privacidad activo. Los nuevos registros y las reautorizaciones permanecen bloqueados para no guardar un consentimiento sin información verificable."}
             </p>
           </div>
           {user?.backendRole === "ADMIN" && (
@@ -572,7 +573,7 @@ export default function VotantesPage() {
             </button>
           </form>
           <p className="shrink-0 text-xs font-bold text-slate-500">
-            {result ? result.pagination.total : "—"} registros · datos
+            {result ? result.pagination.total : "—"} personas · datos
             minimizados
           </p>
         </div>
@@ -621,8 +622,8 @@ export default function VotantesPage() {
               No hay registros para mostrar
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Ajusta la busqueda o crea un registro despues de obtener la
-              autorizacion correspondiente.
+              Ajusta la búsqueda o registra una persona después de obtener su
+              autorización correspondiente.
             </p>
           </div>
         ) : (
@@ -761,7 +762,7 @@ export default function VotantesPage() {
                   id="new-voter-title"
                   className="text-2xl font-black text-slate-950"
                 >
-                  Nueva vinculacion consentida
+                  Registrar persona autorizada
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   La finalidad y la version de terminos quedaran trazadas.

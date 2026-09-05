@@ -473,6 +473,29 @@ exports.Prisma.AuditEventScalarFieldEnum = {
   occurredAt: 'occurredAt'
 };
 
+exports.Prisma.OperationProfileScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationType: 'operationType',
+  stage: 'stage',
+  electionType: 'electionType',
+  circumscriptionType: 'circumscriptionType',
+  circumscriptionName: 'circumscriptionName',
+  circumscriptionCode: 'circumscriptionCode',
+  listType: 'listType',
+  electionDate: 'electionDate',
+  expectedTeamSize: 'expectedTeamSize',
+  candidateCount: 'candidateCount',
+  dataControllerName: 'dataControllerName',
+  responsibleDataUserId: 'responsibleDataUserId',
+  retentionPeriodDays: 'retentionPeriodDays',
+  revocationProcedure: 'revocationProcedure',
+  createdById: 'createdById',
+  updatedById: 'updatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -713,6 +736,54 @@ exports.AuditOutcome = exports.$Enums.AuditOutcome = {
   FAILURE: 'FAILURE'
 };
 
+exports.PoliticalOperationType = exports.$Enums.PoliticalOperationType = {
+  PRE_CANDIDACY: 'PRE_CANDIDACY',
+  SINGLE_CANDIDACY: 'SINGLE_CANDIDACY',
+  CORPORATION_CANDIDACY: 'CORPORATION_CANDIDACY',
+  PARTY_MOVEMENT: 'PARTY_MOVEMENT',
+  SIGNATURE_COMMITTEE: 'SIGNATURE_COMMITTEE',
+  TERRITORIAL_TEAM: 'TERRITORIAL_TEAM'
+};
+
+exports.PoliticalOperationStage = exports.$Enums.PoliticalOperationStage = {
+  EXPLORATION: 'EXPLORATION',
+  PRE_CAMPAIGN: 'PRE_CAMPAIGN',
+  SIGNATURE_COLLECTION: 'SIGNATURE_COLLECTION',
+  CAMPAIGN: 'CAMPAIGN',
+  ELECTION_PREPARATION: 'ELECTION_PREPARATION',
+  SIMULATION: 'SIMULATION',
+  ELECTION_DAY: 'ELECTION_DAY',
+  POST_ELECTION: 'POST_ELECTION',
+  CLOSED: 'CLOSED'
+};
+
+exports.ElectoralContestType = exports.$Enums.ElectoralContestType = {
+  PRESIDENCY: 'PRESIDENCY',
+  GOVERNORSHIP: 'GOVERNORSHIP',
+  MAYORALTY: 'MAYORALTY',
+  SENATE: 'SENATE',
+  HOUSE_OF_REPRESENTATIVES: 'HOUSE_OF_REPRESENTATIVES',
+  DEPARTMENTAL_ASSEMBLY: 'DEPARTMENTAL_ASSEMBLY',
+  MUNICIPAL_COUNCIL: 'MUNICIPAL_COUNCIL',
+  LOCAL_ADMINISTRATIVE_BOARD: 'LOCAL_ADMINISTRATIVE_BOARD',
+  INTERNAL_ELECTION: 'INTERNAL_ELECTION',
+  OTHER: 'OTHER'
+};
+
+exports.ElectoralCircumscriptionType = exports.$Enums.ElectoralCircumscriptionType = {
+  NATIONAL: 'NATIONAL',
+  DEPARTMENTAL: 'DEPARTMENTAL',
+  MUNICIPAL: 'MUNICIPAL',
+  LOCAL: 'LOCAL',
+  SPECIAL: 'SPECIAL',
+  INTERNAL: 'INTERNAL'
+};
+
+exports.CandidateListType = exports.$Enums.CandidateListType = {
+  CLOSED: 'CLOSED',
+  OPEN_PREFERENTIAL: 'OPEN_PREFERENTIAL'
+};
+
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
@@ -734,7 +805,8 @@ exports.Prisma.ModelName = {
   Task: 'Task',
   Commitment: 'Commitment',
   CommunicationApproval: 'CommunicationApproval',
-  AuditEvent: 'AuditEvent'
+  AuditEvent: 'AuditEvent',
+  OperationProfile: 'OperationProfile'
 };
 
 /**

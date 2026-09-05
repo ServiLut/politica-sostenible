@@ -89,6 +89,16 @@ export class FinanceService {
     reporterId: string,
     data: CreateFinancialEntryDto,
   ) {
+    const settings = await this.prisma.campaignSettings.findUnique({
+      where: { tenantId },
+      select: { id: true },
+    });
+    if (!settings) {
+      throw new ForbiddenException(
+        'No se puede registrar movimientos financieros sin configurar los topes de campaña.',
+      );
+    }
+
     if (data.evidenceUrl) {
       this.assertOwnedFinanceEvidence(tenantId, data.evidenceUrl);
     }

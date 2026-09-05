@@ -24,6 +24,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const stage = (tenant?.config as any)?.operationProfile?.stage;
   const currentRouteConfig = dashboardConfig.find((item) =>
     matchesNavigationPath(pathname, item.href),
   );
@@ -35,7 +36,7 @@ export default function DashboardLayout({
     (!requiresPasswordChange || isPersonalAccountRoute) &&
     (isPersonalAccountRoute ||
       (currentRouteConfig &&
-        canAccessNavigationItem(currentRouteConfig, user, tenant))),
+        canAccessNavigationItem(currentRouteConfig, user, tenant, stage))),
   );
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function DashboardLayout({
     }
 
     if (!loading && user && tenant && pathname === "/dashboard") {
-      router.replace(getDefaultDashboardRoute(user, tenant));
+      router.replace(getDefaultDashboardRoute(user, tenant, stage));
     }
   }, [
     user,
@@ -60,6 +61,7 @@ export default function DashboardLayout({
     pathname,
     router,
     isPersonalAccountRoute,
+    stage,
   ]);
 
   if (loading || !user) {
@@ -125,7 +127,7 @@ export default function DashboardLayout({
               type="button"
               onClick={() =>
                 router.replace(
-                  tenant ? getDefaultDashboardRoute(user, tenant) : "/",
+                  tenant ? getDefaultDashboardRoute(user, tenant, stage) : "/",
                 )
               }
               className="flex min-h-12 items-center gap-2 rounded-xl bg-slate-950 px-6 text-xs font-black uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"

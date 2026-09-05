@@ -1,10 +1,10 @@
 import { BackendUserRole, Tenant, User, UserRole } from "../types/saas-schema";
 
 export type NavigationGroupId =
-  | "OPERATE"
-  | "RELATIONSHIPS"
-  | "CONTROL"
-  | "ORGANIZATION";
+  | "DIRECTION"
+  | "COORDINATION"
+  | "FIELD"
+  | "REVIEW";
 
 export type NavigationIcon =
   | "dashboard"
@@ -34,17 +34,75 @@ export interface NavItem {
   allowedBackendRolesByTenantType?: Partial<
     Record<Tenant["type"], BackendUserRole[]>
   >;
+  /**
+   * Restringe solamente la aparicion en el menu. La autorizacion de la ruta
+   * sigue dependiendo de allowedRoles/allowedBackendRoles en el layout y de
+   * los guards de la API.
+   */
+  navigationBackendRoles?: BackendUserRole[];
+  /**
+   * Conserva una ruta especializada como respaldo para roles que no tienen
+   * bandeja, sin duplicarla en el menu de quienes ya trabajan desde ella.
+   */
+  collapsedIntoInbox?: boolean;
+  /** Stages during which this item should be visible in navigation. If omitted, the item is always visible. */
+  allowedStages?: string[];
 }
 
 export const navigationGroups: ReadonlyArray<{
   id: NavigationGroupId;
   title: string;
 }> = [
-  { id: "OPERATE", title: "Operar hoy" },
-  { id: "RELATIONSHIPS", title: "Territorio y relaciones" },
-  { id: "CONTROL", title: "Control y evidencia" },
-  { id: "ORGANIZATION", title: "Organización" },
+  { id: "DIRECTION", title: "Dirección" },
+  { id: "COORDINATION", title: "Coordinación" },
+  { id: "FIELD", title: "Campo" },
+  { id: "REVIEW", title: "Revisión especializada" },
 ];
+
+const PRIMARY_GROUP_BY_ROLE: Record<BackendUserRole, NavigationGroupId> = {
+  ADMIN: "DIRECTION",
+  CAMPAIGN_MANAGER: "DIRECTION",
+  FINANCE_MANAGER: "REVIEW",
+  COMMUNICATIONS_MANAGER: "COORDINATION",
+  CONSTITUENT_SERVICES_MANAGER: "COORDINATION",
+  CASE_WORKER: "COORDINATION",
+  COMPLIANCE_OFFICER: "REVIEW",
+  AUDITOR: "REVIEW",
+  ZONE_COORDINATOR: "COORDINATION",
+  WITNESS: "FIELD",
+  VOLUNTEER: "FIELD",
+};
+
+const DEFAULT_ROUTE_PREFERENCES: Partial<
+  Record<BackendUserRole, readonly string[]>
+> = {
+  FINANCE_MANAGER: ["/dashboard/finance"],
+  COMMUNICATIONS_MANAGER: [
+    "/dashboard/inbox",
+    "/dashboard/communications",
+  ],
+  CONSTITUENT_SERVICES_MANAGER: ["/dashboard/inbox"],
+  CASE_WORKER: ["/dashboard/inbox"],
+  COMPLIANCE_OFFICER: ["/dashboard/inbox", "/dashboard/audit"],
+  AUDITOR: ["/dashboard/audit", "/dashboard/inbox"],
+  ZONE_COORDINATOR: [
+    "/dashboard/inbox",
+    "/dashboard/captura-territorial",
+  ],
+  WITNESS: ["/dashboard/war-room"],
+  VOLUNTEER: [
+    "/dashboard/captura-territorial",
+    "/dashboard/tasks",
+  ],
+};
+
+export function getNavigationGroupsForRole(role: BackendUserRole) {
+  const primaryGroup = PRIMARY_GROUP_BY_ROLE[role];
+  return [
+    ...navigationGroups.filter((group) => group.id === primaryGroup),
+    ...navigationGroups.filter((group) => group.id !== primaryGroup),
+  ];
+}
 
 const BACKEND_ROLE_LABELS: Record<BackendUserRole, string> = {
   ADMIN: "Administración",
@@ -97,7 +155,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Inicio",
     href: "/dashboard/executive",
     icon: "dashboard",
-    group: "OPERATE",
+    group: "DIRECTION",
     allowedRoles: [UserRole.AdminCampana, UserRole.GerenteOps],
     allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER"],
     allowedTenantTypes: CAMPAIGN_TENANTS,
@@ -107,7 +165,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Crisis",
     href: "/dashboard/incidents",
     icon: "siren",
-    group: "OPERATE",
+    group: "COORDINATION",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -115,13 +173,14 @@ export const dashboardConfig: NavItem[] = [
     ],
     allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_OFFICER"],
     allowedTenantTypes: CAMPAIGN_TENANTS,
+    collapsedIntoInbox: true,
   },
   {
     title: "Centro de gestión",
     mobileTitle: "Inicio",
     href: "/dashboard/public-office",
     icon: "publicOffice",
-    group: "OPERATE",
+    group: "DIRECTION",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.Coordinador,
@@ -137,21 +196,79 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: ["PUBLIC_OFFICE"],
   },
   {
-    title: "Captura territorial",
-    mobileTitle: "Capturar",
+    title: "Jornada territorial",
+    mobileTitle: "Jornada",
     href: "/dashboard/captura-territorial",
     icon: "relationships",
-    group: "OPERATE",
+    group: "FIELD",
     allowedRoles: [UserRole.Coordinador, UserRole.Voluntario],
     allowedBackendRoles: ["ZONE_COORDINATOR", "VOLUNTEER"],
     allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
+    title: "Bandeja operativa",
+    mobileTitle: "Bandeja",
+    href: "/dashboard/inbox",
+    icon: "cases",
+    group: "COORDINATION",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "ZONE_COORDINATOR",
+      "COMMUNICATIONS_MANAGER",
+      "CONSTITUENT_SERVICES_MANAGER",
+      "CASE_WORKER",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: ALL_TENANTS,
+    allowedBackendRolesByTenantType: {
+      CANDIDACY: [
+        "ADMIN",
+        "CAMPAIGN_MANAGER",
+        "ZONE_COORDINATOR",
+        "COMMUNICATIONS_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "AUDITOR",
+      ],
+      PARTY: [
+        "ADMIN",
+        "CAMPAIGN_MANAGER",
+        "ZONE_COORDINATOR",
+        "COMMUNICATIONS_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "AUDITOR",
+      ],
+      GSC: [
+        "ADMIN",
+        "CAMPAIGN_MANAGER",
+        "ZONE_COORDINATOR",
+        "COMMUNICATIONS_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "AUDITOR",
+      ],
+      PUBLIC_OFFICE: [
+        "ADMIN",
+        "CONSTITUENT_SERVICES_MANAGER",
+        "CASE_WORKER",
+        "COMMUNICATIONS_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "AUDITOR",
+      ],
+    },
   },
   {
     title: "Territorio",
     mobileTitle: "Territorio",
     href: "/dashboard/territory",
     icon: "territory",
-    group: "RELATIONSHIPS",
+    group: "COORDINATION",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -168,11 +285,11 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
-    title: "Relacionamiento",
+    title: "Personas",
     mobileTitle: "Personas",
     href: "/dashboard/votantes",
     icon: "relationships",
-    group: "RELATIONSHIPS",
+    group: "COORDINATION",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -193,7 +310,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Atención",
     href: "/dashboard/cases",
     icon: "cases",
-    group: "OPERATE",
+    group: "COORDINATION",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.Coordinador,
@@ -207,23 +324,25 @@ export const dashboardConfig: NavItem[] = [
       "AUDITOR",
     ],
     allowedTenantTypes: ["PUBLIC_OFFICE"],
+    collapsedIntoInbox: true,
   },
   {
     title: "Tareas y compromisos",
     mobileTitle: "Tareas",
     href: "/dashboard/tasks",
     icon: "tasks",
-    group: "OPERATE",
+    group: "COORDINATION",
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ALL_BACKEND_ROLES,
     allowedTenantTypes: ALL_TENANTS,
+    collapsedIntoInbox: true,
   },
   {
     title: "Agenda y eventos",
     mobileTitle: "Agenda",
     href: "/dashboard/events",
     icon: "events",
-    group: "OPERATE",
+    group: "COORDINATION",
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ALL_BACKEND_ROLES,
     allowedTenantTypes: ALL_TENANTS,
@@ -276,7 +395,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Equipo",
     href: "/dashboard/team",
     icon: "team",
-    group: "ORGANIZATION",
+    group: "DIRECTION",
     allowedRoles: [UserRole.AdminCampana],
     allowedBackendRoles: ["ADMIN"],
     allowedTenantTypes: ALL_TENANTS,
@@ -286,7 +405,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Privacidad",
     href: "/dashboard/settings",
     icon: "settings",
-    group: "ORGANIZATION",
+    group: "REVIEW",
     allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
     allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER"],
     allowedTenantTypes: ALL_TENANTS,
@@ -296,7 +415,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Aprobación de comunicaciones",
     href: "/dashboard/communications",
     icon: "communications",
-    group: "RELATIONSHIPS",
+    group: "REVIEW",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -350,7 +469,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Auditoría",
     href: "/dashboard/audit",
     icon: "audit",
-    group: "CONTROL",
+    group: "REVIEW",
     allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
     allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedTenantTypes: ALL_TENANTS,
@@ -360,7 +479,7 @@ export const dashboardConfig: NavItem[] = [
     mobileTitle: "Finanzas",
     href: "/dashboard/finance",
     icon: "finance",
-    group: "CONTROL",
+    group: "REVIEW",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -377,11 +496,11 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
-    title: "Día D / E-14",
-    mobileTitle: "E-14",
+    title: "Operación electoral",
+    mobileTitle: "Elección",
     href: "/dashboard/war-room",
     icon: "election",
-    group: "CONTROL",
+    group: "FIELD",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.GerenteOps,
@@ -398,6 +517,8 @@ export const dashboardConfig: NavItem[] = [
       "AUDITOR",
     ],
     allowedTenantTypes: CAMPAIGN_TENANTS,
+    navigationBackendRoles: ["WITNESS", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedStages: ['ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
   },
 ];
 
@@ -405,14 +526,17 @@ export function canAccessNavigationItem(
   item: NavItem,
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,
+  stage?: string
 ) {
   const tenantSpecificRoles =
     item.allowedBackendRolesByTenantType?.[tenant.type];
+  const hasStageAccess = !item.allowedStages || (stage && item.allowedStages.includes(stage));
   return (
     item.allowedRoles.includes(user.role) &&
     item.allowedBackendRoles.includes(user.backendRole) &&
     (!tenantSpecificRoles || tenantSpecificRoles.includes(user.backendRole)) &&
-    item.allowedTenantTypes.includes(tenant.type)
+    item.allowedTenantTypes.includes(tenant.type) &&
+    Boolean(hasStageAccess)
   );
 }
 
@@ -420,12 +544,44 @@ export function matchesNavigationPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+export function getVisibleNavigationItems(
+  user: Pick<User, "role" | "backendRole">,
+  tenant: Pick<Tenant, "type">,
+  stage?: string
+) {
+  const accessibleItems = dashboardConfig.filter((item) =>
+    canAccessNavigationItem(item, user, tenant, stage),
+  );
+  const hasOperationalInbox = accessibleItems.some(
+    (item) => item.href === "/dashboard/inbox",
+  );
+
+  return accessibleItems.filter(
+    (item) =>
+      (!item.navigationBackendRoles ||
+        item.navigationBackendRoles.includes(user.backendRole)) &&
+      !(item.collapsedIntoInbox && hasOperationalInbox),
+  );
+}
+
 export function getDefaultDashboardRoute(
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,
+  stage?: string
 ) {
+  const visibleItems = getVisibleNavigationItems(user, tenant, stage);
+  const preferredRoutes = DEFAULT_ROUTE_PREFERENCES[user.backendRole] ?? [];
+  const preferredItem = preferredRoutes
+    .map((href) => visibleItems.find((item) => item.href === href))
+    .find((item): item is NavItem => Boolean(item));
+  if (preferredItem) return preferredItem.href;
+
+  const orderedGroups = getNavigationGroupsForRole(user.backendRole);
   return (
-    dashboardConfig.find((item) => canAccessNavigationItem(item, user, tenant))
-      ?.href ?? "/"
+    orderedGroups
+      .flatMap((group) =>
+        visibleItems.filter((item) => item.group === group.id),
+      )
+      .at(0)?.href ?? "/"
   );
 }
