@@ -22,13 +22,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const error =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : { message: 'Internal server error' };
+    let message: string = 'Error interno del servidor';
+    if (exception instanceof HttpException) {
+      const body = exception.getResponse();
+      if (typeof body === 'string') {
+        message = body;
+      } else if (typeof body === 'object' && body !== null) {
+        const bodyRecord = body as Record<string, unknown>;
+        if (Array.isArray(bodyRecord.message)) {
+          message = bodyRecord.message.join('. ') + '.';
+        } else if (typeof bodyRecord.message === 'string') {
+          message = bodyRecord.message;
+        }
+      }
+    }
 
-    // No registrar mensajes, stacks ni payloads: los errores de Prisma y de
-    // validación pueden contener datos personales o valores enviados.
     const exceptionType =
       exception instanceof Error ? exception.constructor.name : 'UnknownError';
     this.logger.error(
@@ -37,9 +45,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
+      message,
       timestamp: new Date().toISOString(),
       path: request.path,
-      error,
     });
   }
 }

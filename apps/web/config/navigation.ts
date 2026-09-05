@@ -21,7 +21,8 @@ export type NavigationIcon =
   | "finance"
   | "election"
   | "settings"
-  | "commitments";
+  | "commitments"
+  | "billing";
 
 export interface NavItem {
   title: string;
@@ -530,6 +531,16 @@ export const dashboardConfig: NavItem[] = [
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedTenantTypes: ["CANDIDACY", "PARTY"],
+  },
+  {
+    title: "Plan y facturación",
+    mobileTitle: "Facturación",
+    href: "/dashboard/billing",
+    icon: "billing",
+    group: "REVIEW",
+    allowedRoles: [UserRole.AdminCampana],
+    allowedBackendRoles: ["ADMIN"],
+    allowedTenantTypes: ALL_TENANTS,
   },
 ];
 

@@ -34,11 +34,11 @@ export class NotificationsService {
     let count = 0;
     for (const task of tasks) {
       if (task.assignee && task.assignee.phone) {
-        console.log(`[WhatsApp to ${task.assignee.phone}]: ¡Alerta! La tarea "${task.title}" vence el ${task.dueAt}. Por favor gestionar.`);
+        this.logger.debug(`[Pendiente integración] Recordatorio para ${task.assignee.phone}: "${task.title}" vence ${task.dueAt}`);
         count++;
       }
     }
 
-    this.logger.log(`Recordatorios de tareas completados. ${count} mensajes enviados.`);
+    this.logger.log(`Recordatorios de tareas: ${count} pendientes de canal de envío.`);
   }
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
+  CreditCard,
   FileCheck2,
   Inbox,
   Landmark,
@@ -53,6 +54,7 @@ const NAV_ICONS: Record<NavigationIcon, LucideIcon> = {
   election: FileCheck2,
   commitments: Scroll,
   settings: SlidersHorizontal,
+  billing: CreditCard,
 };
 
 const MOBILE_ROUTES_BY_WORKSPACE = {

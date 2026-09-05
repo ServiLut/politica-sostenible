@@ -30,7 +30,7 @@ export default function CapturaTerritorialPage() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         consentAccepted: true,
-        termsVersion: "v1.0",
+        termsVersion: "2026-v1",
         collectionChannel: "IN_PERSON",
         ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
       });

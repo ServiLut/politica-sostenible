@@ -20,10 +20,10 @@ export class CreateProposalDto {
   @MaxLength(200)
   title: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(2000)
-  description: string;
+  description?: string;
 
   @IsEnum(ProposalCategory)
   category: ProposalCategory;
@@ -63,7 +63,7 @@ export class CreateProposalDto {
   @MaxLength(500)
   sourceUrl?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ownerId: string;
+  ownerId?: string;
 }
