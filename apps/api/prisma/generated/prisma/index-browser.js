@@ -499,6 +499,27 @@ exports.Prisma.OperationProfileScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PoliticalProposalScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  referenceCode: 'referenceCode',
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  targetGroup: 'targetGroup',
+  status: 'status',
+  progressPercent: 'progressPercent',
+  isPublic: 'isPublic',
+  territory: 'territory',
+  estimatedCost: 'estimatedCost',
+  sourceUrl: 'sourceUrl',
+  ownerId: 'ownerId',
+  createdById: 'createdById',
+  updatedById: 'updatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -787,6 +808,27 @@ exports.CandidateListType = exports.$Enums.CandidateListType = {
   OPEN_PREFERENTIAL: 'OPEN_PREFERENTIAL'
 };
 
+exports.ProposalCategory = exports.$Enums.ProposalCategory = {
+  EDUCATION: 'EDUCATION',
+  HEALTH: 'HEALTH',
+  INFRASTRUCTURE: 'INFRASTRUCTURE',
+  SECURITY: 'SECURITY',
+  ECONOMY: 'ECONOMY',
+  ENVIRONMENT: 'ENVIRONMENT',
+  CULTURE: 'CULTURE',
+  SOCIAL: 'SOCIAL',
+  GOVERNANCE: 'GOVERNANCE',
+  OTHER: 'OTHER'
+};
+
+exports.ProposalStatus = exports.$Enums.ProposalStatus = {
+  DRAFT: 'DRAFT',
+  PROPOSED: 'PROPOSED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  WITHDRAWN: 'WITHDRAWN'
+};
+
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
@@ -809,7 +851,8 @@ exports.Prisma.ModelName = {
   Commitment: 'Commitment',
   CommunicationApproval: 'CommunicationApproval',
   AuditEvent: 'AuditEvent',
-  OperationProfile: 'OperationProfile'
+  OperationProfile: 'OperationProfile',
+  PoliticalProposal: 'PoliticalProposal'
 };
 
 /**

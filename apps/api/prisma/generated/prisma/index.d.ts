@@ -130,6 +130,11 @@ export type AuditEvent = $Result.DefaultSelection<Prisma.$AuditEventPayload>
  * 
  */
 export type OperationProfile = $Result.DefaultSelection<Prisma.$OperationProfilePayload>
+/**
+ * Model PoliticalProposal
+ * 
+ */
+export type PoliticalProposal = $Result.DefaultSelection<Prisma.$PoliticalProposalPayload>
 
 /**
  * Enums
@@ -489,6 +494,33 @@ export const CandidateListType: {
 
 export type CandidateListType = (typeof CandidateListType)[keyof typeof CandidateListType]
 
+
+export const ProposalCategory: {
+  EDUCATION: 'EDUCATION',
+  HEALTH: 'HEALTH',
+  INFRASTRUCTURE: 'INFRASTRUCTURE',
+  SECURITY: 'SECURITY',
+  ECONOMY: 'ECONOMY',
+  ENVIRONMENT: 'ENVIRONMENT',
+  CULTURE: 'CULTURE',
+  SOCIAL: 'SOCIAL',
+  GOVERNANCE: 'GOVERNANCE',
+  OTHER: 'OTHER'
+};
+
+export type ProposalCategory = (typeof ProposalCategory)[keyof typeof ProposalCategory]
+
+
+export const ProposalStatus: {
+  DRAFT: 'DRAFT',
+  PROPOSED: 'PROPOSED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  WITHDRAWN: 'WITHDRAWN'
+};
+
+export type ProposalStatus = (typeof ProposalStatus)[keyof typeof ProposalStatus]
+
 }
 
 export type TenantType = $Enums.TenantType
@@ -618,6 +650,14 @@ export const ElectoralCircumscriptionType: typeof $Enums.ElectoralCircumscriptio
 export type CandidateListType = $Enums.CandidateListType
 
 export const CandidateListType: typeof $Enums.CandidateListType
+
+export type ProposalCategory = $Enums.ProposalCategory
+
+export const ProposalCategory: typeof $Enums.ProposalCategory
+
+export type ProposalStatus = $Enums.ProposalStatus
+
+export const ProposalStatus: typeof $Enums.ProposalStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -959,6 +999,16 @@ export class PrismaClient<
     * ```
     */
   get operationProfile(): Prisma.OperationProfileDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.politicalProposal`: Exposes CRUD operations for the **PoliticalProposal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PoliticalProposals
+    * const politicalProposals = await prisma.politicalProposal.findMany()
+    * ```
+    */
+  get politicalProposal(): Prisma.PoliticalProposalDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1427,7 +1477,8 @@ export namespace Prisma {
     Commitment: 'Commitment',
     CommunicationApproval: 'CommunicationApproval',
     AuditEvent: 'AuditEvent',
-    OperationProfile: 'OperationProfile'
+    OperationProfile: 'OperationProfile',
+    PoliticalProposal: 'PoliticalProposal'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1443,7 +1494,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile"
+      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile" | "politicalProposal"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3075,6 +3126,80 @@ export namespace Prisma {
           }
         }
       }
+      PoliticalProposal: {
+        payload: Prisma.$PoliticalProposalPayload<ExtArgs>
+        fields: Prisma.PoliticalProposalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PoliticalProposalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PoliticalProposalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          findFirst: {
+            args: Prisma.PoliticalProposalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PoliticalProposalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          findMany: {
+            args: Prisma.PoliticalProposalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>[]
+          }
+          create: {
+            args: Prisma.PoliticalProposalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          createMany: {
+            args: Prisma.PoliticalProposalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PoliticalProposalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>[]
+          }
+          delete: {
+            args: Prisma.PoliticalProposalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          update: {
+            args: Prisma.PoliticalProposalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          deleteMany: {
+            args: Prisma.PoliticalProposalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PoliticalProposalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PoliticalProposalUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>[]
+          }
+          upsert: {
+            args: Prisma.PoliticalProposalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PoliticalProposalPayload>
+          }
+          aggregate: {
+            args: Prisma.PoliticalProposalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePoliticalProposal>
+          }
+          groupBy: {
+            args: Prisma.PoliticalProposalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PoliticalProposalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PoliticalProposalCountArgs<ExtArgs>
+            result: $Utils.Optional<PoliticalProposalCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3220,6 +3345,7 @@ export namespace Prisma {
     communicationApproval?: CommunicationApprovalOmit
     auditEvent?: AuditEventOmit
     operationProfile?: OperationProfileOmit
+    politicalProposal?: PoliticalProposalOmit
   }
 
   /* Types for Logging */
@@ -3319,6 +3445,7 @@ export namespace Prisma {
     teamInvitations: number
     auditEvents: number
     storedObjects: number
+    politicalProposals: number
   }
 
   export type TenantCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3341,6 +3468,7 @@ export namespace Prisma {
     teamInvitations?: boolean | TenantCountOutputTypeCountTeamInvitationsArgs
     auditEvents?: boolean | TenantCountOutputTypeCountAuditEventsArgs
     storedObjects?: boolean | TenantCountOutputTypeCountStoredObjectsArgs
+    politicalProposals?: boolean | TenantCountOutputTypeCountPoliticalProposalsArgs
   }
 
   // Custom InputTypes
@@ -3487,6 +3615,13 @@ export namespace Prisma {
     where?: StoredObjectWhereInput
   }
 
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountPoliticalProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PoliticalProposalWhereInput
+  }
+
 
   /**
    * Count Type UserCountOutputType
@@ -3518,6 +3653,9 @@ export namespace Prisma {
     operationProfilesResponsible: number
     operationProfilesCreated: number
     operationProfilesUpdated: number
+    proposalsOwned: number
+    proposalsCreated: number
+    proposalsUpdated: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3546,6 +3684,9 @@ export namespace Prisma {
     operationProfilesResponsible?: boolean | UserCountOutputTypeCountOperationProfilesResponsibleArgs
     operationProfilesCreated?: boolean | UserCountOutputTypeCountOperationProfilesCreatedArgs
     operationProfilesUpdated?: boolean | UserCountOutputTypeCountOperationProfilesUpdatedArgs
+    proposalsOwned?: boolean | UserCountOutputTypeCountProposalsOwnedArgs
+    proposalsCreated?: boolean | UserCountOutputTypeCountProposalsCreatedArgs
+    proposalsUpdated?: boolean | UserCountOutputTypeCountProposalsUpdatedArgs
   }
 
   // Custom InputTypes
@@ -3732,6 +3873,27 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountOperationProfilesUpdatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: OperationProfileWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountProposalsOwnedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PoliticalProposalWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountProposalsCreatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PoliticalProposalWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountProposalsUpdatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PoliticalProposalWhereInput
   }
 
 
@@ -4273,6 +4435,7 @@ export namespace Prisma {
     auditEvents?: boolean | Tenant$auditEventsArgs<ExtArgs>
     storedObjects?: boolean | Tenant$storedObjectsArgs<ExtArgs>
     operationProfile?: boolean | Tenant$operationProfileArgs<ExtArgs>
+    politicalProposals?: boolean | Tenant$politicalProposalsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
@@ -4332,6 +4495,7 @@ export namespace Prisma {
     auditEvents?: boolean | Tenant$auditEventsArgs<ExtArgs>
     storedObjects?: boolean | Tenant$storedObjectsArgs<ExtArgs>
     operationProfile?: boolean | Tenant$operationProfileArgs<ExtArgs>
+    politicalProposals?: boolean | Tenant$politicalProposalsArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -4361,6 +4525,7 @@ export namespace Prisma {
       auditEvents: Prisma.$AuditEventPayload<ExtArgs>[]
       storedObjects: Prisma.$StoredObjectPayload<ExtArgs>[]
       operationProfile: Prisma.$OperationProfilePayload<ExtArgs> | null
+      politicalProposals: Prisma.$PoliticalProposalPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4786,6 +4951,7 @@ export namespace Prisma {
     auditEvents<T extends Tenant$auditEventsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$auditEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storedObjects<T extends Tenant$storedObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$storedObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     operationProfile<T extends Tenant$operationProfileArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$operationProfileArgs<ExtArgs>>): Prisma__OperationProfileClient<$Result.GetResult<Prisma.$OperationProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    politicalProposals<T extends Tenant$politicalProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$politicalProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5707,6 +5873,30 @@ export namespace Prisma {
      */
     include?: OperationProfileInclude<ExtArgs> | null
     where?: OperationProfileWhereInput
+  }
+
+  /**
+   * Tenant.politicalProposals
+   */
+  export type Tenant$politicalProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    where?: PoliticalProposalWhereInput
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    cursor?: PoliticalProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
   }
 
   /**
@@ -8428,6 +8618,9 @@ export namespace Prisma {
     operationProfilesResponsible?: boolean | User$operationProfilesResponsibleArgs<ExtArgs>
     operationProfilesCreated?: boolean | User$operationProfilesCreatedArgs<ExtArgs>
     operationProfilesUpdated?: boolean | User$operationProfilesUpdatedArgs<ExtArgs>
+    proposalsOwned?: boolean | User$proposalsOwnedArgs<ExtArgs>
+    proposalsCreated?: boolean | User$proposalsCreatedArgs<ExtArgs>
+    proposalsUpdated?: boolean | User$proposalsUpdatedArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -8524,6 +8717,9 @@ export namespace Prisma {
     operationProfilesResponsible?: boolean | User$operationProfilesResponsibleArgs<ExtArgs>
     operationProfilesCreated?: boolean | User$operationProfilesCreatedArgs<ExtArgs>
     operationProfilesUpdated?: boolean | User$operationProfilesUpdatedArgs<ExtArgs>
+    proposalsOwned?: boolean | User$proposalsOwnedArgs<ExtArgs>
+    proposalsCreated?: boolean | User$proposalsCreatedArgs<ExtArgs>
+    proposalsUpdated?: boolean | User$proposalsUpdatedArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8565,6 +8761,9 @@ export namespace Prisma {
       operationProfilesResponsible: Prisma.$OperationProfilePayload<ExtArgs>[]
       operationProfilesCreated: Prisma.$OperationProfilePayload<ExtArgs>[]
       operationProfilesUpdated: Prisma.$OperationProfilePayload<ExtArgs>[]
+      proposalsOwned: Prisma.$PoliticalProposalPayload<ExtArgs>[]
+      proposalsCreated: Prisma.$PoliticalProposalPayload<ExtArgs>[]
+      proposalsUpdated: Prisma.$PoliticalProposalPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -9011,6 +9210,9 @@ export namespace Prisma {
     operationProfilesResponsible<T extends User$operationProfilesResponsibleArgs<ExtArgs> = {}>(args?: Subset<T, User$operationProfilesResponsibleArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     operationProfilesCreated<T extends User$operationProfilesCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$operationProfilesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     operationProfilesUpdated<T extends User$operationProfilesUpdatedArgs<ExtArgs> = {}>(args?: Subset<T, User$operationProfilesUpdatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    proposalsOwned<T extends User$proposalsOwnedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsOwnedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    proposalsCreated<T extends User$proposalsCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    proposalsUpdated<T extends User$proposalsUpdatedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsUpdatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10074,6 +10276,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: OperationProfileScalarFieldEnum | OperationProfileScalarFieldEnum[]
+  }
+
+  /**
+   * User.proposalsOwned
+   */
+  export type User$proposalsOwnedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    where?: PoliticalProposalWhereInput
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    cursor?: PoliticalProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * User.proposalsCreated
+   */
+  export type User$proposalsCreatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    where?: PoliticalProposalWhereInput
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    cursor?: PoliticalProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * User.proposalsUpdated
+   */
+  export type User$proposalsUpdatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    where?: PoliticalProposalWhereInput
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    cursor?: PoliticalProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
   }
 
   /**
@@ -33158,6 +33432,1300 @@ export namespace Prisma {
 
 
   /**
+   * Model PoliticalProposal
+   */
+
+  export type AggregatePoliticalProposal = {
+    _count: PoliticalProposalCountAggregateOutputType | null
+    _avg: PoliticalProposalAvgAggregateOutputType | null
+    _sum: PoliticalProposalSumAggregateOutputType | null
+    _min: PoliticalProposalMinAggregateOutputType | null
+    _max: PoliticalProposalMaxAggregateOutputType | null
+  }
+
+  export type PoliticalProposalAvgAggregateOutputType = {
+    progressPercent: number | null
+    estimatedCost: Decimal | null
+  }
+
+  export type PoliticalProposalSumAggregateOutputType = {
+    progressPercent: number | null
+    estimatedCost: Decimal | null
+  }
+
+  export type PoliticalProposalMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    referenceCode: string | null
+    title: string | null
+    description: string | null
+    category: $Enums.ProposalCategory | null
+    targetGroup: string | null
+    status: $Enums.ProposalStatus | null
+    progressPercent: number | null
+    isPublic: boolean | null
+    territory: string | null
+    estimatedCost: Decimal | null
+    sourceUrl: string | null
+    ownerId: string | null
+    createdById: string | null
+    updatedById: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PoliticalProposalMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    referenceCode: string | null
+    title: string | null
+    description: string | null
+    category: $Enums.ProposalCategory | null
+    targetGroup: string | null
+    status: $Enums.ProposalStatus | null
+    progressPercent: number | null
+    isPublic: boolean | null
+    territory: string | null
+    estimatedCost: Decimal | null
+    sourceUrl: string | null
+    ownerId: string | null
+    createdById: string | null
+    updatedById: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PoliticalProposalCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    referenceCode: number
+    title: number
+    description: number
+    category: number
+    targetGroup: number
+    status: number
+    progressPercent: number
+    isPublic: number
+    territory: number
+    estimatedCost: number
+    sourceUrl: number
+    ownerId: number
+    createdById: number
+    updatedById: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PoliticalProposalAvgAggregateInputType = {
+    progressPercent?: true
+    estimatedCost?: true
+  }
+
+  export type PoliticalProposalSumAggregateInputType = {
+    progressPercent?: true
+    estimatedCost?: true
+  }
+
+  export type PoliticalProposalMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    referenceCode?: true
+    title?: true
+    description?: true
+    category?: true
+    targetGroup?: true
+    status?: true
+    progressPercent?: true
+    isPublic?: true
+    territory?: true
+    estimatedCost?: true
+    sourceUrl?: true
+    ownerId?: true
+    createdById?: true
+    updatedById?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PoliticalProposalMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    referenceCode?: true
+    title?: true
+    description?: true
+    category?: true
+    targetGroup?: true
+    status?: true
+    progressPercent?: true
+    isPublic?: true
+    territory?: true
+    estimatedCost?: true
+    sourceUrl?: true
+    ownerId?: true
+    createdById?: true
+    updatedById?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PoliticalProposalCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    referenceCode?: true
+    title?: true
+    description?: true
+    category?: true
+    targetGroup?: true
+    status?: true
+    progressPercent?: true
+    isPublic?: true
+    territory?: true
+    estimatedCost?: true
+    sourceUrl?: true
+    ownerId?: true
+    createdById?: true
+    updatedById?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PoliticalProposalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PoliticalProposal to aggregate.
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PoliticalProposals to fetch.
+     */
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PoliticalProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PoliticalProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PoliticalProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PoliticalProposals
+    **/
+    _count?: true | PoliticalProposalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PoliticalProposalAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PoliticalProposalSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PoliticalProposalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PoliticalProposalMaxAggregateInputType
+  }
+
+  export type GetPoliticalProposalAggregateType<T extends PoliticalProposalAggregateArgs> = {
+        [P in keyof T & keyof AggregatePoliticalProposal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePoliticalProposal[P]>
+      : GetScalarType<T[P], AggregatePoliticalProposal[P]>
+  }
+
+
+
+
+  export type PoliticalProposalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PoliticalProposalWhereInput
+    orderBy?: PoliticalProposalOrderByWithAggregationInput | PoliticalProposalOrderByWithAggregationInput[]
+    by: PoliticalProposalScalarFieldEnum[] | PoliticalProposalScalarFieldEnum
+    having?: PoliticalProposalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PoliticalProposalCountAggregateInputType | true
+    _avg?: PoliticalProposalAvgAggregateInputType
+    _sum?: PoliticalProposalSumAggregateInputType
+    _min?: PoliticalProposalMinAggregateInputType
+    _max?: PoliticalProposalMaxAggregateInputType
+  }
+
+  export type PoliticalProposalGroupByOutputType = {
+    id: string
+    tenantId: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup: string | null
+    status: $Enums.ProposalStatus
+    progressPercent: number
+    isPublic: boolean
+    territory: string | null
+    estimatedCost: Decimal | null
+    sourceUrl: string | null
+    ownerId: string
+    createdById: string
+    updatedById: string
+    createdAt: Date
+    updatedAt: Date
+    _count: PoliticalProposalCountAggregateOutputType | null
+    _avg: PoliticalProposalAvgAggregateOutputType | null
+    _sum: PoliticalProposalSumAggregateOutputType | null
+    _min: PoliticalProposalMinAggregateOutputType | null
+    _max: PoliticalProposalMaxAggregateOutputType | null
+  }
+
+  type GetPoliticalProposalGroupByPayload<T extends PoliticalProposalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PoliticalProposalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PoliticalProposalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PoliticalProposalGroupByOutputType[P]>
+            : GetScalarType<T[P], PoliticalProposalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PoliticalProposalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    referenceCode?: boolean
+    title?: boolean
+    description?: boolean
+    category?: boolean
+    targetGroup?: boolean
+    status?: boolean
+    progressPercent?: boolean
+    isPublic?: boolean
+    territory?: boolean
+    estimatedCost?: boolean
+    sourceUrl?: boolean
+    ownerId?: boolean
+    createdById?: boolean
+    updatedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["politicalProposal"]>
+
+  export type PoliticalProposalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    referenceCode?: boolean
+    title?: boolean
+    description?: boolean
+    category?: boolean
+    targetGroup?: boolean
+    status?: boolean
+    progressPercent?: boolean
+    isPublic?: boolean
+    territory?: boolean
+    estimatedCost?: boolean
+    sourceUrl?: boolean
+    ownerId?: boolean
+    createdById?: boolean
+    updatedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["politicalProposal"]>
+
+  export type PoliticalProposalSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    referenceCode?: boolean
+    title?: boolean
+    description?: boolean
+    category?: boolean
+    targetGroup?: boolean
+    status?: boolean
+    progressPercent?: boolean
+    isPublic?: boolean
+    territory?: boolean
+    estimatedCost?: boolean
+    sourceUrl?: boolean
+    ownerId?: boolean
+    createdById?: boolean
+    updatedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["politicalProposal"]>
+
+  export type PoliticalProposalSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    referenceCode?: boolean
+    title?: boolean
+    description?: boolean
+    category?: boolean
+    targetGroup?: boolean
+    status?: boolean
+    progressPercent?: boolean
+    isPublic?: boolean
+    territory?: boolean
+    estimatedCost?: boolean
+    sourceUrl?: boolean
+    ownerId?: boolean
+    createdById?: boolean
+    updatedById?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PoliticalProposalOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "referenceCode" | "title" | "description" | "category" | "targetGroup" | "status" | "progressPercent" | "isPublic" | "territory" | "estimatedCost" | "sourceUrl" | "ownerId" | "createdById" | "updatedById" | "createdAt" | "updatedAt", ExtArgs["result"]["politicalProposal"]>
+  export type PoliticalProposalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PoliticalProposalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PoliticalProposalIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    createdBy?: boolean | UserDefaultArgs<ExtArgs>
+    updatedBy?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $PoliticalProposalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PoliticalProposal"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+      owner: Prisma.$UserPayload<ExtArgs>
+      createdBy: Prisma.$UserPayload<ExtArgs>
+      updatedBy: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      referenceCode: string
+      title: string
+      description: string
+      category: $Enums.ProposalCategory
+      targetGroup: string | null
+      status: $Enums.ProposalStatus
+      progressPercent: number
+      isPublic: boolean
+      territory: string | null
+      estimatedCost: Prisma.Decimal | null
+      sourceUrl: string | null
+      ownerId: string
+      createdById: string
+      updatedById: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["politicalProposal"]>
+    composites: {}
+  }
+
+  type PoliticalProposalGetPayload<S extends boolean | null | undefined | PoliticalProposalDefaultArgs> = $Result.GetResult<Prisma.$PoliticalProposalPayload, S>
+
+  type PoliticalProposalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PoliticalProposalFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PoliticalProposalCountAggregateInputType | true
+    }
+
+  export interface PoliticalProposalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PoliticalProposal'], meta: { name: 'PoliticalProposal' } }
+    /**
+     * Find zero or one PoliticalProposal that matches the filter.
+     * @param {PoliticalProposalFindUniqueArgs} args - Arguments to find a PoliticalProposal
+     * @example
+     * // Get one PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PoliticalProposalFindUniqueArgs>(args: SelectSubset<T, PoliticalProposalFindUniqueArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PoliticalProposal that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PoliticalProposalFindUniqueOrThrowArgs} args - Arguments to find a PoliticalProposal
+     * @example
+     * // Get one PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PoliticalProposalFindUniqueOrThrowArgs>(args: SelectSubset<T, PoliticalProposalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PoliticalProposal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalFindFirstArgs} args - Arguments to find a PoliticalProposal
+     * @example
+     * // Get one PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PoliticalProposalFindFirstArgs>(args?: SelectSubset<T, PoliticalProposalFindFirstArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PoliticalProposal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalFindFirstOrThrowArgs} args - Arguments to find a PoliticalProposal
+     * @example
+     * // Get one PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PoliticalProposalFindFirstOrThrowArgs>(args?: SelectSubset<T, PoliticalProposalFindFirstOrThrowArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PoliticalProposals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PoliticalProposals
+     * const politicalProposals = await prisma.politicalProposal.findMany()
+     * 
+     * // Get first 10 PoliticalProposals
+     * const politicalProposals = await prisma.politicalProposal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const politicalProposalWithIdOnly = await prisma.politicalProposal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PoliticalProposalFindManyArgs>(args?: SelectSubset<T, PoliticalProposalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PoliticalProposal.
+     * @param {PoliticalProposalCreateArgs} args - Arguments to create a PoliticalProposal.
+     * @example
+     * // Create one PoliticalProposal
+     * const PoliticalProposal = await prisma.politicalProposal.create({
+     *   data: {
+     *     // ... data to create a PoliticalProposal
+     *   }
+     * })
+     * 
+     */
+    create<T extends PoliticalProposalCreateArgs>(args: SelectSubset<T, PoliticalProposalCreateArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PoliticalProposals.
+     * @param {PoliticalProposalCreateManyArgs} args - Arguments to create many PoliticalProposals.
+     * @example
+     * // Create many PoliticalProposals
+     * const politicalProposal = await prisma.politicalProposal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PoliticalProposalCreateManyArgs>(args?: SelectSubset<T, PoliticalProposalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PoliticalProposals and returns the data saved in the database.
+     * @param {PoliticalProposalCreateManyAndReturnArgs} args - Arguments to create many PoliticalProposals.
+     * @example
+     * // Create many PoliticalProposals
+     * const politicalProposal = await prisma.politicalProposal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PoliticalProposals and only return the `id`
+     * const politicalProposalWithIdOnly = await prisma.politicalProposal.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PoliticalProposalCreateManyAndReturnArgs>(args?: SelectSubset<T, PoliticalProposalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PoliticalProposal.
+     * @param {PoliticalProposalDeleteArgs} args - Arguments to delete one PoliticalProposal.
+     * @example
+     * // Delete one PoliticalProposal
+     * const PoliticalProposal = await prisma.politicalProposal.delete({
+     *   where: {
+     *     // ... filter to delete one PoliticalProposal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PoliticalProposalDeleteArgs>(args: SelectSubset<T, PoliticalProposalDeleteArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PoliticalProposal.
+     * @param {PoliticalProposalUpdateArgs} args - Arguments to update one PoliticalProposal.
+     * @example
+     * // Update one PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PoliticalProposalUpdateArgs>(args: SelectSubset<T, PoliticalProposalUpdateArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PoliticalProposals.
+     * @param {PoliticalProposalDeleteManyArgs} args - Arguments to filter PoliticalProposals to delete.
+     * @example
+     * // Delete a few PoliticalProposals
+     * const { count } = await prisma.politicalProposal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PoliticalProposalDeleteManyArgs>(args?: SelectSubset<T, PoliticalProposalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PoliticalProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PoliticalProposals
+     * const politicalProposal = await prisma.politicalProposal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PoliticalProposalUpdateManyArgs>(args: SelectSubset<T, PoliticalProposalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PoliticalProposals and returns the data updated in the database.
+     * @param {PoliticalProposalUpdateManyAndReturnArgs} args - Arguments to update many PoliticalProposals.
+     * @example
+     * // Update many PoliticalProposals
+     * const politicalProposal = await prisma.politicalProposal.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PoliticalProposals and only return the `id`
+     * const politicalProposalWithIdOnly = await prisma.politicalProposal.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PoliticalProposalUpdateManyAndReturnArgs>(args: SelectSubset<T, PoliticalProposalUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PoliticalProposal.
+     * @param {PoliticalProposalUpsertArgs} args - Arguments to update or create a PoliticalProposal.
+     * @example
+     * // Update or create a PoliticalProposal
+     * const politicalProposal = await prisma.politicalProposal.upsert({
+     *   create: {
+     *     // ... data to create a PoliticalProposal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PoliticalProposal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PoliticalProposalUpsertArgs>(args: SelectSubset<T, PoliticalProposalUpsertArgs<ExtArgs>>): Prisma__PoliticalProposalClient<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PoliticalProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalCountArgs} args - Arguments to filter PoliticalProposals to count.
+     * @example
+     * // Count the number of PoliticalProposals
+     * const count = await prisma.politicalProposal.count({
+     *   where: {
+     *     // ... the filter for the PoliticalProposals we want to count
+     *   }
+     * })
+    **/
+    count<T extends PoliticalProposalCountArgs>(
+      args?: Subset<T, PoliticalProposalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PoliticalProposalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PoliticalProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PoliticalProposalAggregateArgs>(args: Subset<T, PoliticalProposalAggregateArgs>): Prisma.PrismaPromise<GetPoliticalProposalAggregateType<T>>
+
+    /**
+     * Group by PoliticalProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PoliticalProposalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PoliticalProposalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PoliticalProposalGroupByArgs['orderBy'] }
+        : { orderBy?: PoliticalProposalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PoliticalProposalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPoliticalProposalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PoliticalProposal model
+   */
+  readonly fields: PoliticalProposalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PoliticalProposal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PoliticalProposalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    owner<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    createdBy<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    updatedBy<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PoliticalProposal model
+   */
+  interface PoliticalProposalFieldRefs {
+    readonly id: FieldRef<"PoliticalProposal", 'String'>
+    readonly tenantId: FieldRef<"PoliticalProposal", 'String'>
+    readonly referenceCode: FieldRef<"PoliticalProposal", 'String'>
+    readonly title: FieldRef<"PoliticalProposal", 'String'>
+    readonly description: FieldRef<"PoliticalProposal", 'String'>
+    readonly category: FieldRef<"PoliticalProposal", 'ProposalCategory'>
+    readonly targetGroup: FieldRef<"PoliticalProposal", 'String'>
+    readonly status: FieldRef<"PoliticalProposal", 'ProposalStatus'>
+    readonly progressPercent: FieldRef<"PoliticalProposal", 'Int'>
+    readonly isPublic: FieldRef<"PoliticalProposal", 'Boolean'>
+    readonly territory: FieldRef<"PoliticalProposal", 'String'>
+    readonly estimatedCost: FieldRef<"PoliticalProposal", 'Decimal'>
+    readonly sourceUrl: FieldRef<"PoliticalProposal", 'String'>
+    readonly ownerId: FieldRef<"PoliticalProposal", 'String'>
+    readonly createdById: FieldRef<"PoliticalProposal", 'String'>
+    readonly updatedById: FieldRef<"PoliticalProposal", 'String'>
+    readonly createdAt: FieldRef<"PoliticalProposal", 'DateTime'>
+    readonly updatedAt: FieldRef<"PoliticalProposal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PoliticalProposal findUnique
+   */
+  export type PoliticalProposalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which PoliticalProposal to fetch.
+     */
+    where: PoliticalProposalWhereUniqueInput
+  }
+
+  /**
+   * PoliticalProposal findUniqueOrThrow
+   */
+  export type PoliticalProposalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which PoliticalProposal to fetch.
+     */
+    where: PoliticalProposalWhereUniqueInput
+  }
+
+  /**
+   * PoliticalProposal findFirst
+   */
+  export type PoliticalProposalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which PoliticalProposal to fetch.
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PoliticalProposals to fetch.
+     */
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PoliticalProposals.
+     */
+    cursor?: PoliticalProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PoliticalProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PoliticalProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PoliticalProposals.
+     */
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * PoliticalProposal findFirstOrThrow
+   */
+  export type PoliticalProposalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which PoliticalProposal to fetch.
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PoliticalProposals to fetch.
+     */
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PoliticalProposals.
+     */
+    cursor?: PoliticalProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PoliticalProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PoliticalProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PoliticalProposals.
+     */
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * PoliticalProposal findMany
+   */
+  export type PoliticalProposalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which PoliticalProposals to fetch.
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PoliticalProposals to fetch.
+     */
+    orderBy?: PoliticalProposalOrderByWithRelationInput | PoliticalProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PoliticalProposals.
+     */
+    cursor?: PoliticalProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PoliticalProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PoliticalProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PoliticalProposals.
+     */
+    distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * PoliticalProposal create
+   */
+  export type PoliticalProposalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PoliticalProposal.
+     */
+    data: XOR<PoliticalProposalCreateInput, PoliticalProposalUncheckedCreateInput>
+  }
+
+  /**
+   * PoliticalProposal createMany
+   */
+  export type PoliticalProposalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PoliticalProposals.
+     */
+    data: PoliticalProposalCreateManyInput | PoliticalProposalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PoliticalProposal createManyAndReturn
+   */
+  export type PoliticalProposalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * The data used to create many PoliticalProposals.
+     */
+    data: PoliticalProposalCreateManyInput | PoliticalProposalCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PoliticalProposal update
+   */
+  export type PoliticalProposalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PoliticalProposal.
+     */
+    data: XOR<PoliticalProposalUpdateInput, PoliticalProposalUncheckedUpdateInput>
+    /**
+     * Choose, which PoliticalProposal to update.
+     */
+    where: PoliticalProposalWhereUniqueInput
+  }
+
+  /**
+   * PoliticalProposal updateMany
+   */
+  export type PoliticalProposalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PoliticalProposals.
+     */
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which PoliticalProposals to update
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * Limit how many PoliticalProposals to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PoliticalProposal updateManyAndReturn
+   */
+  export type PoliticalProposalUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * The data used to update PoliticalProposals.
+     */
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which PoliticalProposals to update
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * Limit how many PoliticalProposals to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PoliticalProposal upsert
+   */
+  export type PoliticalProposalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PoliticalProposal to update in case it exists.
+     */
+    where: PoliticalProposalWhereUniqueInput
+    /**
+     * In case the PoliticalProposal found by the `where` argument doesn't exist, create a new PoliticalProposal with this data.
+     */
+    create: XOR<PoliticalProposalCreateInput, PoliticalProposalUncheckedCreateInput>
+    /**
+     * In case the PoliticalProposal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PoliticalProposalUpdateInput, PoliticalProposalUncheckedUpdateInput>
+  }
+
+  /**
+   * PoliticalProposal delete
+   */
+  export type PoliticalProposalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+    /**
+     * Filter which PoliticalProposal to delete.
+     */
+    where: PoliticalProposalWhereUniqueInput
+  }
+
+  /**
+   * PoliticalProposal deleteMany
+   */
+  export type PoliticalProposalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PoliticalProposals to delete
+     */
+    where?: PoliticalProposalWhereInput
+    /**
+     * Limit how many PoliticalProposals to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PoliticalProposal without action
+   */
+  export type PoliticalProposalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PoliticalProposal
+     */
+    select?: PoliticalProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PoliticalProposal
+     */
+    omit?: PoliticalProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PoliticalProposalInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -33614,6 +35182,30 @@ export namespace Prisma {
   };
 
   export type OperationProfileScalarFieldEnum = (typeof OperationProfileScalarFieldEnum)[keyof typeof OperationProfileScalarFieldEnum]
+
+
+  export const PoliticalProposalScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    referenceCode: 'referenceCode',
+    title: 'title',
+    description: 'description',
+    category: 'category',
+    targetGroup: 'targetGroup',
+    status: 'status',
+    progressPercent: 'progressPercent',
+    isPublic: 'isPublic',
+    territory: 'territory',
+    estimatedCost: 'estimatedCost',
+    sourceUrl: 'sourceUrl',
+    ownerId: 'ownerId',
+    createdById: 'createdById',
+    updatedById: 'updatedById',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PoliticalProposalScalarFieldEnum = (typeof PoliticalProposalScalarFieldEnum)[keyof typeof PoliticalProposalScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -34195,6 +35787,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProposalCategory'
+   */
+  export type EnumProposalCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProposalCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProposalCategory[]'
+   */
+  export type ListEnumProposalCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProposalCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProposalStatus'
+   */
+  export type EnumProposalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProposalStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProposalStatus[]'
+   */
+  export type ListEnumProposalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProposalStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -34244,6 +35864,7 @@ export namespace Prisma {
     auditEvents?: AuditEventListRelationFilter
     storedObjects?: StoredObjectListRelationFilter
     operationProfile?: XOR<OperationProfileNullableScalarRelationFilter, OperationProfileWhereInput> | null
+    politicalProposals?: PoliticalProposalListRelationFilter
   }
 
   export type TenantOrderByWithRelationInput = {
@@ -34276,6 +35897,7 @@ export namespace Prisma {
     auditEvents?: AuditEventOrderByRelationAggregateInput
     storedObjects?: StoredObjectOrderByRelationAggregateInput
     operationProfile?: OperationProfileOrderByWithRelationInput
+    politicalProposals?: PoliticalProposalOrderByRelationAggregateInput
   }
 
   export type TenantWhereUniqueInput = Prisma.AtLeast<{
@@ -34311,6 +35933,7 @@ export namespace Prisma {
     auditEvents?: AuditEventListRelationFilter
     storedObjects?: StoredObjectListRelationFilter
     operationProfile?: XOR<OperationProfileNullableScalarRelationFilter, OperationProfileWhereInput> | null
+    politicalProposals?: PoliticalProposalListRelationFilter
   }, "id" | "slug">
 
   export type TenantOrderByWithAggregationInput = {
@@ -34572,6 +36195,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileListRelationFilter
     operationProfilesCreated?: OperationProfileListRelationFilter
     operationProfilesUpdated?: OperationProfileListRelationFilter
+    proposalsOwned?: PoliticalProposalListRelationFilter
+    proposalsCreated?: PoliticalProposalListRelationFilter
+    proposalsUpdated?: PoliticalProposalListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -34619,6 +36245,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileOrderByRelationAggregateInput
     operationProfilesCreated?: OperationProfileOrderByRelationAggregateInput
     operationProfilesUpdated?: OperationProfileOrderByRelationAggregateInput
+    proposalsOwned?: PoliticalProposalOrderByRelationAggregateInput
+    proposalsCreated?: PoliticalProposalOrderByRelationAggregateInput
+    proposalsUpdated?: PoliticalProposalOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -34671,6 +36300,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileListRelationFilter
     operationProfilesCreated?: OperationProfileListRelationFilter
     operationProfilesUpdated?: OperationProfileListRelationFilter
+    proposalsOwned?: PoliticalProposalListRelationFilter
+    proposalsCreated?: PoliticalProposalListRelationFilter
+    proposalsUpdated?: PoliticalProposalListRelationFilter
   }, "id" | "email" | "id_tenantId" | "documentId_tenantId">
 
   export type UserOrderByWithAggregationInput = {
@@ -36795,6 +38427,139 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"OperationProfile"> | Date | string
   }
 
+  export type PoliticalProposalWhereInput = {
+    AND?: PoliticalProposalWhereInput | PoliticalProposalWhereInput[]
+    OR?: PoliticalProposalWhereInput[]
+    NOT?: PoliticalProposalWhereInput | PoliticalProposalWhereInput[]
+    id?: StringFilter<"PoliticalProposal"> | string
+    tenantId?: StringFilter<"PoliticalProposal"> | string
+    referenceCode?: StringFilter<"PoliticalProposal"> | string
+    title?: StringFilter<"PoliticalProposal"> | string
+    description?: StringFilter<"PoliticalProposal"> | string
+    category?: EnumProposalCategoryFilter<"PoliticalProposal"> | $Enums.ProposalCategory
+    targetGroup?: StringNullableFilter<"PoliticalProposal"> | string | null
+    status?: EnumProposalStatusFilter<"PoliticalProposal"> | $Enums.ProposalStatus
+    progressPercent?: IntFilter<"PoliticalProposal"> | number
+    isPublic?: BoolFilter<"PoliticalProposal"> | boolean
+    territory?: StringNullableFilter<"PoliticalProposal"> | string | null
+    estimatedCost?: DecimalNullableFilter<"PoliticalProposal"> | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: StringNullableFilter<"PoliticalProposal"> | string | null
+    ownerId?: StringFilter<"PoliticalProposal"> | string
+    createdById?: StringFilter<"PoliticalProposal"> | string
+    updatedById?: StringFilter<"PoliticalProposal"> | string
+    createdAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    owner?: XOR<UserScalarRelationFilter, UserWhereInput>
+    createdBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+    updatedBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type PoliticalProposalOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    referenceCode?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    targetGroup?: SortOrderInput | SortOrder
+    status?: SortOrder
+    progressPercent?: SortOrder
+    isPublic?: SortOrder
+    territory?: SortOrderInput | SortOrder
+    estimatedCost?: SortOrderInput | SortOrder
+    sourceUrl?: SortOrderInput | SortOrder
+    ownerId?: SortOrder
+    createdById?: SortOrder
+    updatedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+    owner?: UserOrderByWithRelationInput
+    createdBy?: UserOrderByWithRelationInput
+    updatedBy?: UserOrderByWithRelationInput
+  }
+
+  export type PoliticalProposalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    id_tenantId?: PoliticalProposalIdTenantIdCompoundUniqueInput
+    referenceCode_tenantId?: PoliticalProposalReferenceCodeTenantIdCompoundUniqueInput
+    AND?: PoliticalProposalWhereInput | PoliticalProposalWhereInput[]
+    OR?: PoliticalProposalWhereInput[]
+    NOT?: PoliticalProposalWhereInput | PoliticalProposalWhereInput[]
+    tenantId?: StringFilter<"PoliticalProposal"> | string
+    referenceCode?: StringFilter<"PoliticalProposal"> | string
+    title?: StringFilter<"PoliticalProposal"> | string
+    description?: StringFilter<"PoliticalProposal"> | string
+    category?: EnumProposalCategoryFilter<"PoliticalProposal"> | $Enums.ProposalCategory
+    targetGroup?: StringNullableFilter<"PoliticalProposal"> | string | null
+    status?: EnumProposalStatusFilter<"PoliticalProposal"> | $Enums.ProposalStatus
+    progressPercent?: IntFilter<"PoliticalProposal"> | number
+    isPublic?: BoolFilter<"PoliticalProposal"> | boolean
+    territory?: StringNullableFilter<"PoliticalProposal"> | string | null
+    estimatedCost?: DecimalNullableFilter<"PoliticalProposal"> | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: StringNullableFilter<"PoliticalProposal"> | string | null
+    ownerId?: StringFilter<"PoliticalProposal"> | string
+    createdById?: StringFilter<"PoliticalProposal"> | string
+    updatedById?: StringFilter<"PoliticalProposal"> | string
+    createdAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    owner?: XOR<UserScalarRelationFilter, UserWhereInput>
+    createdBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+    updatedBy?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "id_tenantId" | "referenceCode_tenantId">
+
+  export type PoliticalProposalOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    referenceCode?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    targetGroup?: SortOrderInput | SortOrder
+    status?: SortOrder
+    progressPercent?: SortOrder
+    isPublic?: SortOrder
+    territory?: SortOrderInput | SortOrder
+    estimatedCost?: SortOrderInput | SortOrder
+    sourceUrl?: SortOrderInput | SortOrder
+    ownerId?: SortOrder
+    createdById?: SortOrder
+    updatedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PoliticalProposalCountOrderByAggregateInput
+    _avg?: PoliticalProposalAvgOrderByAggregateInput
+    _max?: PoliticalProposalMaxOrderByAggregateInput
+    _min?: PoliticalProposalMinOrderByAggregateInput
+    _sum?: PoliticalProposalSumOrderByAggregateInput
+  }
+
+  export type PoliticalProposalScalarWhereWithAggregatesInput = {
+    AND?: PoliticalProposalScalarWhereWithAggregatesInput | PoliticalProposalScalarWhereWithAggregatesInput[]
+    OR?: PoliticalProposalScalarWhereWithAggregatesInput[]
+    NOT?: PoliticalProposalScalarWhereWithAggregatesInput | PoliticalProposalScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    tenantId?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    referenceCode?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    title?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    description?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    category?: EnumProposalCategoryWithAggregatesFilter<"PoliticalProposal"> | $Enums.ProposalCategory
+    targetGroup?: StringNullableWithAggregatesFilter<"PoliticalProposal"> | string | null
+    status?: EnumProposalStatusWithAggregatesFilter<"PoliticalProposal"> | $Enums.ProposalStatus
+    progressPercent?: IntWithAggregatesFilter<"PoliticalProposal"> | number
+    isPublic?: BoolWithAggregatesFilter<"PoliticalProposal"> | boolean
+    territory?: StringNullableWithAggregatesFilter<"PoliticalProposal"> | string | null
+    estimatedCost?: DecimalNullableWithAggregatesFilter<"PoliticalProposal"> | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: StringNullableWithAggregatesFilter<"PoliticalProposal"> | string | null
+    ownerId?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    createdById?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    updatedById?: StringWithAggregatesFilter<"PoliticalProposal"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PoliticalProposal"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PoliticalProposal"> | Date | string
+  }
+
   export type TenantCreateInput = {
     id?: string
     slug: string
@@ -36825,6 +38590,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateInput = {
@@ -36857,6 +38623,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUpdateInput = {
@@ -36889,6 +38656,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateInput = {
@@ -36921,6 +38689,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateManyInput = {
@@ -37199,6 +38968,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -37244,6 +39016,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUpdateInput = {
@@ -37289,6 +39064,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -37334,6 +39112,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -39637,6 +41418,149 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PoliticalProposalCreateInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutPoliticalProposalsInput
+    owner: UserCreateNestedOneWithoutProposalsOwnedInput
+    createdBy: UserCreateNestedOneWithoutProposalsCreatedInput
+    updatedBy: UserCreateNestedOneWithoutProposalsUpdatedInput
+  }
+
+  export type PoliticalProposalUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutPoliticalProposalsNestedInput
+    owner?: UserUpdateOneRequiredWithoutProposalsOwnedNestedInput
+    createdBy?: UserUpdateOneRequiredWithoutProposalsCreatedNestedInput
+    updatedBy?: UserUpdateOneRequiredWithoutProposalsUpdatedNestedInput
+  }
+
+  export type PoliticalProposalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalCreateManyInput = {
+    id?: string
+    tenantId: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -39824,6 +41748,12 @@ export namespace Prisma {
     isNot?: OperationProfileWhereInput | null
   }
 
+  export type PoliticalProposalListRelationFilter = {
+    every?: PoliticalProposalWhereInput
+    some?: PoliticalProposalWhereInput
+    none?: PoliticalProposalWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -39902,6 +41832,10 @@ export namespace Prisma {
   }
 
   export type StoredObjectOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PoliticalProposalOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -42118,6 +44052,150 @@ export namespace Prisma {
     _max?: NestedEnumCandidateListTypeNullableFilter<$PrismaModel>
   }
 
+  export type EnumProposalCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalCategory | EnumProposalCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalCategoryFilter<$PrismaModel> | $Enums.ProposalCategory
+  }
+
+  export type EnumProposalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalStatus | EnumProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalStatusFilter<$PrismaModel> | $Enums.ProposalStatus
+  }
+
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type PoliticalProposalIdTenantIdCompoundUniqueInput = {
+    id: string
+    tenantId: string
+  }
+
+  export type PoliticalProposalReferenceCodeTenantIdCompoundUniqueInput = {
+    referenceCode: string
+    tenantId: string
+  }
+
+  export type PoliticalProposalCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    referenceCode?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    targetGroup?: SortOrder
+    status?: SortOrder
+    progressPercent?: SortOrder
+    isPublic?: SortOrder
+    territory?: SortOrder
+    estimatedCost?: SortOrder
+    sourceUrl?: SortOrder
+    ownerId?: SortOrder
+    createdById?: SortOrder
+    updatedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PoliticalProposalAvgOrderByAggregateInput = {
+    progressPercent?: SortOrder
+    estimatedCost?: SortOrder
+  }
+
+  export type PoliticalProposalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    referenceCode?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    targetGroup?: SortOrder
+    status?: SortOrder
+    progressPercent?: SortOrder
+    isPublic?: SortOrder
+    territory?: SortOrder
+    estimatedCost?: SortOrder
+    sourceUrl?: SortOrder
+    ownerId?: SortOrder
+    createdById?: SortOrder
+    updatedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PoliticalProposalMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    referenceCode?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    targetGroup?: SortOrder
+    status?: SortOrder
+    progressPercent?: SortOrder
+    isPublic?: SortOrder
+    territory?: SortOrder
+    estimatedCost?: SortOrder
+    sourceUrl?: SortOrder
+    ownerId?: SortOrder
+    createdById?: SortOrder
+    updatedById?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PoliticalProposalSumOrderByAggregateInput = {
+    progressPercent?: SortOrder
+    estimatedCost?: SortOrder
+  }
+
+  export type EnumProposalCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalCategory | EnumProposalCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalCategoryWithAggregatesFilter<$PrismaModel> | $Enums.ProposalCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProposalCategoryFilter<$PrismaModel>
+    _max?: NestedEnumProposalCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumProposalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalStatus | EnumProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProposalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProposalStatusFilter<$PrismaModel>
+    _max?: NestedEnumProposalStatusFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type CampaignSettingsCreateNestedOneWithoutTenantInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -42263,6 +44341,13 @@ export namespace Prisma {
     connect?: OperationProfileWhereUniqueInput
   }
 
+  export type PoliticalProposalCreateNestedManyWithoutTenantInput = {
+    create?: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput> | PoliticalProposalCreateWithoutTenantInput[] | PoliticalProposalUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutTenantInput | PoliticalProposalCreateOrConnectWithoutTenantInput[]
+    createMany?: PoliticalProposalCreateManyTenantInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
   export type CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -42406,6 +44491,13 @@ export namespace Prisma {
     create?: XOR<OperationProfileCreateWithoutTenantInput, OperationProfileUncheckedCreateWithoutTenantInput>
     connectOrCreate?: OperationProfileCreateOrConnectWithoutTenantInput
     connect?: OperationProfileWhereUniqueInput
+  }
+
+  export type PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput> | PoliticalProposalCreateWithoutTenantInput[] | PoliticalProposalUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutTenantInput | PoliticalProposalCreateOrConnectWithoutTenantInput[]
+    createMany?: PoliticalProposalCreateManyTenantInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -42710,6 +44802,20 @@ export namespace Prisma {
     update?: XOR<XOR<OperationProfileUpdateToOneWithWhereWithoutTenantInput, OperationProfileUpdateWithoutTenantInput>, OperationProfileUncheckedUpdateWithoutTenantInput>
   }
 
+  export type PoliticalProposalUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput> | PoliticalProposalCreateWithoutTenantInput[] | PoliticalProposalUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutTenantInput | PoliticalProposalCreateOrConnectWithoutTenantInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutTenantInput | PoliticalProposalUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: PoliticalProposalCreateManyTenantInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutTenantInput | PoliticalProposalUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutTenantInput | PoliticalProposalUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
   export type CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -42996,6 +45102,20 @@ export namespace Prisma {
     update?: XOR<XOR<OperationProfileUpdateToOneWithWhereWithoutTenantInput, OperationProfileUpdateWithoutTenantInput>, OperationProfileUncheckedUpdateWithoutTenantInput>
   }
 
+  export type PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput> | PoliticalProposalCreateWithoutTenantInput[] | PoliticalProposalUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutTenantInput | PoliticalProposalCreateOrConnectWithoutTenantInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutTenantInput | PoliticalProposalUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: PoliticalProposalCreateManyTenantInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutTenantInput | PoliticalProposalUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutTenantInput | PoliticalProposalUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
   export type TenantCreateNestedOneWithoutSettingsInput = {
     create?: XOR<TenantCreateWithoutSettingsInput, TenantUncheckedCreateWithoutSettingsInput>
     connectOrCreate?: TenantCreateOrConnectWithoutSettingsInput
@@ -43265,6 +45385,27 @@ export namespace Prisma {
     connect?: OperationProfileWhereUniqueInput | OperationProfileWhereUniqueInput[]
   }
 
+  export type PoliticalProposalCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput> | PoliticalProposalCreateWithoutOwnerInput[] | PoliticalProposalUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutOwnerInput | PoliticalProposalCreateOrConnectWithoutOwnerInput[]
+    createMany?: PoliticalProposalCreateManyOwnerInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
+  export type PoliticalProposalCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput> | PoliticalProposalCreateWithoutCreatedByInput[] | PoliticalProposalUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutCreatedByInput | PoliticalProposalCreateOrConnectWithoutCreatedByInput[]
+    createMany?: PoliticalProposalCreateManyCreatedByInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
+  export type PoliticalProposalCreateNestedManyWithoutUpdatedByInput = {
+    create?: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput> | PoliticalProposalCreateWithoutUpdatedByInput[] | PoliticalProposalUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutUpdatedByInput | PoliticalProposalCreateOrConnectWithoutUpdatedByInput[]
+    createMany?: PoliticalProposalCreateManyUpdatedByInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
   export type FinancialEntryUncheckedCreateNestedManyWithoutReporterInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
@@ -43438,6 +45579,27 @@ export namespace Prisma {
     connectOrCreate?: OperationProfileCreateOrConnectWithoutUpdatedByInput | OperationProfileCreateOrConnectWithoutUpdatedByInput[]
     createMany?: OperationProfileCreateManyUpdatedByInputEnvelope
     connect?: OperationProfileWhereUniqueInput | OperationProfileWhereUniqueInput[]
+  }
+
+  export type PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput> | PoliticalProposalCreateWithoutOwnerInput[] | PoliticalProposalUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutOwnerInput | PoliticalProposalCreateOrConnectWithoutOwnerInput[]
+    createMany?: PoliticalProposalCreateManyOwnerInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
+  export type PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput> | PoliticalProposalCreateWithoutCreatedByInput[] | PoliticalProposalUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutCreatedByInput | PoliticalProposalCreateOrConnectWithoutCreatedByInput[]
+    createMany?: PoliticalProposalCreateManyCreatedByInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
+  export type PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput = {
+    create?: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput> | PoliticalProposalCreateWithoutUpdatedByInput[] | PoliticalProposalUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutUpdatedByInput | PoliticalProposalCreateOrConnectWithoutUpdatedByInput[]
+    createMany?: PoliticalProposalCreateManyUpdatedByInputEnvelope
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -43816,6 +45978,48 @@ export namespace Prisma {
     deleteMany?: OperationProfileScalarWhereInput | OperationProfileScalarWhereInput[]
   }
 
+  export type PoliticalProposalUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput> | PoliticalProposalCreateWithoutOwnerInput[] | PoliticalProposalUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutOwnerInput | PoliticalProposalCreateOrConnectWithoutOwnerInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutOwnerInput | PoliticalProposalUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: PoliticalProposalCreateManyOwnerInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutOwnerInput | PoliticalProposalUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutOwnerInput | PoliticalProposalUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
+  export type PoliticalProposalUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput> | PoliticalProposalCreateWithoutCreatedByInput[] | PoliticalProposalUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutCreatedByInput | PoliticalProposalCreateOrConnectWithoutCreatedByInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutCreatedByInput | PoliticalProposalUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: PoliticalProposalCreateManyCreatedByInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutCreatedByInput | PoliticalProposalUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutCreatedByInput | PoliticalProposalUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
+  export type PoliticalProposalUpdateManyWithoutUpdatedByNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput> | PoliticalProposalCreateWithoutUpdatedByInput[] | PoliticalProposalUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutUpdatedByInput | PoliticalProposalCreateOrConnectWithoutUpdatedByInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutUpdatedByInput | PoliticalProposalUpsertWithWhereUniqueWithoutUpdatedByInput[]
+    createMany?: PoliticalProposalCreateManyUpdatedByInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput | PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput | PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
   export type FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
@@ -44164,6 +46368,48 @@ export namespace Prisma {
     update?: OperationProfileUpdateWithWhereUniqueWithoutUpdatedByInput | OperationProfileUpdateWithWhereUniqueWithoutUpdatedByInput[]
     updateMany?: OperationProfileUpdateManyWithWhereWithoutUpdatedByInput | OperationProfileUpdateManyWithWhereWithoutUpdatedByInput[]
     deleteMany?: OperationProfileScalarWhereInput | OperationProfileScalarWhereInput[]
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput> | PoliticalProposalCreateWithoutOwnerInput[] | PoliticalProposalUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutOwnerInput | PoliticalProposalCreateOrConnectWithoutOwnerInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutOwnerInput | PoliticalProposalUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: PoliticalProposalCreateManyOwnerInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutOwnerInput | PoliticalProposalUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutOwnerInput | PoliticalProposalUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput> | PoliticalProposalCreateWithoutCreatedByInput[] | PoliticalProposalUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutCreatedByInput | PoliticalProposalCreateOrConnectWithoutCreatedByInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutCreatedByInput | PoliticalProposalUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: PoliticalProposalCreateManyCreatedByInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutCreatedByInput | PoliticalProposalUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutCreatedByInput | PoliticalProposalUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput = {
+    create?: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput> | PoliticalProposalCreateWithoutUpdatedByInput[] | PoliticalProposalUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: PoliticalProposalCreateOrConnectWithoutUpdatedByInput | PoliticalProposalCreateOrConnectWithoutUpdatedByInput[]
+    upsert?: PoliticalProposalUpsertWithWhereUniqueWithoutUpdatedByInput | PoliticalProposalUpsertWithWhereUniqueWithoutUpdatedByInput[]
+    createMany?: PoliticalProposalCreateManyUpdatedByInputEnvelope
+    set?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    disconnect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    delete?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+    update?: PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput | PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput[]
+    updateMany?: PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput | PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput[]
+    deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
   }
 
   export type TenantCreateNestedOneWithoutTeamInvitationsInput = {
@@ -45852,6 +48098,78 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOperationProfilesUpdatedInput, UserUpdateWithoutOperationProfilesUpdatedInput>, UserUncheckedUpdateWithoutOperationProfilesUpdatedInput>
   }
 
+  export type TenantCreateNestedOneWithoutPoliticalProposalsInput = {
+    create?: XOR<TenantCreateWithoutPoliticalProposalsInput, TenantUncheckedCreateWithoutPoliticalProposalsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutPoliticalProposalsInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutProposalsOwnedInput = {
+    create?: XOR<UserCreateWithoutProposalsOwnedInput, UserUncheckedCreateWithoutProposalsOwnedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsOwnedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutProposalsCreatedInput = {
+    create?: XOR<UserCreateWithoutProposalsCreatedInput, UserUncheckedCreateWithoutProposalsCreatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsCreatedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutProposalsUpdatedInput = {
+    create?: XOR<UserCreateWithoutProposalsUpdatedInput, UserUncheckedCreateWithoutProposalsUpdatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsUpdatedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type EnumProposalCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.ProposalCategory
+  }
+
+  export type EnumProposalStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ProposalStatus
+  }
+
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type TenantUpdateOneRequiredWithoutPoliticalProposalsNestedInput = {
+    create?: XOR<TenantCreateWithoutPoliticalProposalsInput, TenantUncheckedCreateWithoutPoliticalProposalsInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutPoliticalProposalsInput
+    upsert?: TenantUpsertWithoutPoliticalProposalsInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutPoliticalProposalsInput, TenantUpdateWithoutPoliticalProposalsInput>, TenantUncheckedUpdateWithoutPoliticalProposalsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutProposalsOwnedNestedInput = {
+    create?: XOR<UserCreateWithoutProposalsOwnedInput, UserUncheckedCreateWithoutProposalsOwnedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsOwnedInput
+    upsert?: UserUpsertWithoutProposalsOwnedInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProposalsOwnedInput, UserUpdateWithoutProposalsOwnedInput>, UserUncheckedUpdateWithoutProposalsOwnedInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutProposalsCreatedNestedInput = {
+    create?: XOR<UserCreateWithoutProposalsCreatedInput, UserUncheckedCreateWithoutProposalsCreatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsCreatedInput
+    upsert?: UserUpsertWithoutProposalsCreatedInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProposalsCreatedInput, UserUpdateWithoutProposalsCreatedInput>, UserUncheckedUpdateWithoutProposalsCreatedInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutProposalsUpdatedNestedInput = {
+    create?: XOR<UserCreateWithoutProposalsUpdatedInput, UserUncheckedCreateWithoutProposalsUpdatedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProposalsUpdatedInput
+    upsert?: UserUpsertWithoutProposalsUpdatedInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProposalsUpdatedInput, UserUpdateWithoutProposalsUpdatedInput>, UserUncheckedUpdateWithoutProposalsUpdatedInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -46670,6 +48988,67 @@ export namespace Prisma {
     _max?: NestedEnumCandidateListTypeNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumProposalCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalCategory | EnumProposalCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalCategoryFilter<$PrismaModel> | $Enums.ProposalCategory
+  }
+
+  export type NestedEnumProposalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalStatus | EnumProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalStatusFilter<$PrismaModel> | $Enums.ProposalStatus
+  }
+
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedEnumProposalCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalCategory | EnumProposalCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalCategory[] | ListEnumProposalCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalCategoryWithAggregatesFilter<$PrismaModel> | $Enums.ProposalCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProposalCategoryFilter<$PrismaModel>
+    _max?: NestedEnumProposalCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumProposalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProposalStatus | EnumProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProposalStatus[] | ListEnumProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProposalStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProposalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProposalStatusFilter<$PrismaModel>
+    _max?: NestedEnumProposalStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type CampaignSettingsCreateWithoutTenantInput = {
     id?: string
     maxTotalBudget: Decimal | DecimalJsLike | number | string
@@ -46733,6 +49112,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutTenantInput = {
@@ -46777,6 +49159,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutTenantInput = {
@@ -47648,6 +50033,56 @@ export namespace Prisma {
     create: XOR<OperationProfileCreateWithoutTenantInput, OperationProfileUncheckedCreateWithoutTenantInput>
   }
 
+  export type PoliticalProposalCreateWithoutTenantInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutProposalsOwnedInput
+    createdBy: UserCreateNestedOneWithoutProposalsCreatedInput
+    updatedBy: UserCreateNestedOneWithoutProposalsUpdatedInput
+  }
+
+  export type PoliticalProposalUncheckedCreateWithoutTenantInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateOrConnectWithoutTenantInput = {
+    where: PoliticalProposalWhereUniqueInput
+    create: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput>
+  }
+
+  export type PoliticalProposalCreateManyTenantInputEnvelope = {
+    data: PoliticalProposalCreateManyTenantInput | PoliticalProposalCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
   export type CampaignSettingsUpsertWithoutTenantInput = {
     update: XOR<CampaignSettingsUpdateWithoutTenantInput, CampaignSettingsUncheckedUpdateWithoutTenantInput>
     create: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
@@ -48427,6 +50862,46 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PoliticalProposalUpsertWithWhereUniqueWithoutTenantInput = {
+    where: PoliticalProposalWhereUniqueInput
+    update: XOR<PoliticalProposalUpdateWithoutTenantInput, PoliticalProposalUncheckedUpdateWithoutTenantInput>
+    create: XOR<PoliticalProposalCreateWithoutTenantInput, PoliticalProposalUncheckedCreateWithoutTenantInput>
+  }
+
+  export type PoliticalProposalUpdateWithWhereUniqueWithoutTenantInput = {
+    where: PoliticalProposalWhereUniqueInput
+    data: XOR<PoliticalProposalUpdateWithoutTenantInput, PoliticalProposalUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type PoliticalProposalUpdateManyWithWhereWithoutTenantInput = {
+    where: PoliticalProposalScalarWhereInput
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type PoliticalProposalScalarWhereInput = {
+    AND?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+    OR?: PoliticalProposalScalarWhereInput[]
+    NOT?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+    id?: StringFilter<"PoliticalProposal"> | string
+    tenantId?: StringFilter<"PoliticalProposal"> | string
+    referenceCode?: StringFilter<"PoliticalProposal"> | string
+    title?: StringFilter<"PoliticalProposal"> | string
+    description?: StringFilter<"PoliticalProposal"> | string
+    category?: EnumProposalCategoryFilter<"PoliticalProposal"> | $Enums.ProposalCategory
+    targetGroup?: StringNullableFilter<"PoliticalProposal"> | string | null
+    status?: EnumProposalStatusFilter<"PoliticalProposal"> | $Enums.ProposalStatus
+    progressPercent?: IntFilter<"PoliticalProposal"> | number
+    isPublic?: BoolFilter<"PoliticalProposal"> | boolean
+    territory?: StringNullableFilter<"PoliticalProposal"> | string | null
+    estimatedCost?: DecimalNullableFilter<"PoliticalProposal"> | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: StringNullableFilter<"PoliticalProposal"> | string | null
+    ownerId?: StringFilter<"PoliticalProposal"> | string
+    createdById?: StringFilter<"PoliticalProposal"> | string
+    updatedById?: StringFilter<"PoliticalProposal"> | string
+    createdAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"PoliticalProposal"> | Date | string
+  }
+
   export type TenantCreateWithoutSettingsInput = {
     id?: string
     slug: string
@@ -48456,6 +50931,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutSettingsInput = {
@@ -48487,6 +50963,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutSettingsInput = {
@@ -48534,6 +51011,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutSettingsInput = {
@@ -48565,6 +51043,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateWithoutStoredObjectsInput = {
@@ -48596,6 +51075,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutStoredObjectsInput = {
@@ -48627,6 +51107,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutStoredObjectsInput = {
@@ -48676,6 +51157,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutStoredObjectsInput = {
@@ -48720,6 +51204,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutStoredObjectsInput = {
@@ -48767,6 +51254,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutStoredObjectsInput = {
@@ -48798,6 +51286,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutStoredObjectsInput = {
@@ -48853,6 +51342,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutStoredObjectsInput = {
@@ -48897,6 +51389,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutUsersInput = {
@@ -48928,6 +51423,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutUsersInput = {
@@ -48959,6 +51455,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutUsersInput = {
@@ -50192,6 +52689,153 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type PoliticalProposalCreateWithoutOwnerInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutPoliticalProposalsInput
+    createdBy: UserCreateNestedOneWithoutProposalsCreatedInput
+    updatedBy: UserCreateNestedOneWithoutProposalsUpdatedInput
+  }
+
+  export type PoliticalProposalUncheckedCreateWithoutOwnerInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateOrConnectWithoutOwnerInput = {
+    where: PoliticalProposalWhereUniqueInput
+    create: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type PoliticalProposalCreateManyOwnerInputEnvelope = {
+    data: PoliticalProposalCreateManyOwnerInput | PoliticalProposalCreateManyOwnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PoliticalProposalCreateWithoutCreatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutPoliticalProposalsInput
+    owner: UserCreateNestedOneWithoutProposalsOwnedInput
+    updatedBy: UserCreateNestedOneWithoutProposalsUpdatedInput
+  }
+
+  export type PoliticalProposalUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateOrConnectWithoutCreatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    create: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type PoliticalProposalCreateManyCreatedByInputEnvelope = {
+    data: PoliticalProposalCreateManyCreatedByInput | PoliticalProposalCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PoliticalProposalCreateWithoutUpdatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutPoliticalProposalsInput
+    owner: UserCreateNestedOneWithoutProposalsOwnedInput
+    createdBy: UserCreateNestedOneWithoutProposalsCreatedInput
+  }
+
+  export type PoliticalProposalUncheckedCreateWithoutUpdatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    createdById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateOrConnectWithoutUpdatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    create: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput>
+  }
+
+  export type PoliticalProposalCreateManyUpdatedByInputEnvelope = {
+    data: PoliticalProposalCreateManyUpdatedByInput | PoliticalProposalCreateManyUpdatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type TenantUpsertWithoutUsersInput = {
     update: XOR<TenantUpdateWithoutUsersInput, TenantUncheckedUpdateWithoutUsersInput>
     create: XOR<TenantCreateWithoutUsersInput, TenantUncheckedCreateWithoutUsersInput>
@@ -50232,6 +52876,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutUsersInput = {
@@ -50263,6 +52908,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutUsersInput = {
@@ -50732,6 +53378,54 @@ export namespace Prisma {
     data: XOR<OperationProfileUpdateManyMutationInput, OperationProfileUncheckedUpdateManyWithoutUpdatedByInput>
   }
 
+  export type PoliticalProposalUpsertWithWhereUniqueWithoutOwnerInput = {
+    where: PoliticalProposalWhereUniqueInput
+    update: XOR<PoliticalProposalUpdateWithoutOwnerInput, PoliticalProposalUncheckedUpdateWithoutOwnerInput>
+    create: XOR<PoliticalProposalCreateWithoutOwnerInput, PoliticalProposalUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type PoliticalProposalUpdateWithWhereUniqueWithoutOwnerInput = {
+    where: PoliticalProposalWhereUniqueInput
+    data: XOR<PoliticalProposalUpdateWithoutOwnerInput, PoliticalProposalUncheckedUpdateWithoutOwnerInput>
+  }
+
+  export type PoliticalProposalUpdateManyWithWhereWithoutOwnerInput = {
+    where: PoliticalProposalScalarWhereInput
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyWithoutOwnerInput>
+  }
+
+  export type PoliticalProposalUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    update: XOR<PoliticalProposalUpdateWithoutCreatedByInput, PoliticalProposalUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<PoliticalProposalCreateWithoutCreatedByInput, PoliticalProposalUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type PoliticalProposalUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    data: XOR<PoliticalProposalUpdateWithoutCreatedByInput, PoliticalProposalUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type PoliticalProposalUpdateManyWithWhereWithoutCreatedByInput = {
+    where: PoliticalProposalScalarWhereInput
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type PoliticalProposalUpsertWithWhereUniqueWithoutUpdatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    update: XOR<PoliticalProposalUpdateWithoutUpdatedByInput, PoliticalProposalUncheckedUpdateWithoutUpdatedByInput>
+    create: XOR<PoliticalProposalCreateWithoutUpdatedByInput, PoliticalProposalUncheckedCreateWithoutUpdatedByInput>
+  }
+
+  export type PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput = {
+    where: PoliticalProposalWhereUniqueInput
+    data: XOR<PoliticalProposalUpdateWithoutUpdatedByInput, PoliticalProposalUncheckedUpdateWithoutUpdatedByInput>
+  }
+
+  export type PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput = {
+    where: PoliticalProposalScalarWhereInput
+    data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyWithoutUpdatedByInput>
+  }
+
   export type TenantCreateWithoutTeamInvitationsInput = {
     id?: string
     slug: string
@@ -50761,6 +53455,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTeamInvitationsInput = {
@@ -50792,6 +53487,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTeamInvitationsInput = {
@@ -50841,6 +53537,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutInvitationsSentInput = {
@@ -50885,6 +53584,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutInvitationsSentInput = {
@@ -50932,6 +53634,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTeamInvitationsInput = {
@@ -50963,6 +53666,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutInvitationsSentInput = {
@@ -51018,6 +53722,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInvitationsSentInput = {
@@ -51062,6 +53769,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutDivisionsInput = {
@@ -51093,6 +53803,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutDivisionsInput = {
@@ -51124,6 +53835,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutDivisionsInput = {
@@ -51247,6 +53959,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutDivisionInput = {
@@ -51290,6 +54005,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutDivisionInput = {
@@ -51509,6 +54227,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutDivisionsInput = {
@@ -51540,6 +54259,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutChildrenInput = {
@@ -51692,6 +54412,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutVotersInput = {
@@ -51723,6 +54444,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutVotersInput = {
@@ -51807,6 +54529,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutRegisteredVotersInput = {
@@ -51851,6 +54576,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutRegisteredVotersInput = {
@@ -52057,6 +54785,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutVotersInput = {
@@ -52088,6 +54817,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutVotersInput = {
@@ -52184,6 +54914,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRegisteredVotersInput = {
@@ -52228,6 +54961,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutVoterInput = {
@@ -52307,6 +55043,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutFinancesInput = {
@@ -52338,6 +55075,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutFinancesInput = {
@@ -52387,6 +55125,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesReportedInput = {
@@ -52431,6 +55172,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesReportedInput = {
@@ -52480,6 +55224,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesReviewedInput = {
@@ -52524,6 +55271,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesReviewedInput = {
@@ -52573,6 +55323,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput = {
@@ -52617,6 +55370,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesCneMarkedInput = {
@@ -52664,6 +55420,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutFinancesInput = {
@@ -52695,6 +55452,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesReportedInput = {
@@ -52750,6 +55508,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesReportedInput = {
@@ -52794,6 +55555,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesReviewedInput = {
@@ -52849,6 +55613,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesReviewedInput = {
@@ -52893,6 +55660,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesCneMarkedInput = {
@@ -52948,6 +55718,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput = {
@@ -52992,6 +55765,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutWitnessesInput = {
@@ -53023,6 +55799,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutWitnessesInput = {
@@ -53054,6 +55831,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutWitnessesInput = {
@@ -53138,6 +55916,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutWitnessReportsInput = {
@@ -53182,6 +55963,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutWitnessReportsInput = {
@@ -53231,6 +56015,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutWitnessReportsReviewedInput = {
@@ -53275,6 +56062,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutWitnessReportsReviewedInput = {
@@ -53416,6 +56206,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutWitnessesInput = {
@@ -53447,6 +56238,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutWitnessesInput = {
@@ -53543,6 +56335,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWitnessReportsInput = {
@@ -53587,6 +56382,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutWitnessReportsReviewedInput = {
@@ -53642,6 +56440,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWitnessReportsReviewedInput = {
@@ -53686,6 +56487,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type WitnessReportUpsertWithoutSupersededReportsInput = {
@@ -53784,6 +56588,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutEventsInput = {
@@ -53815,6 +56620,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutEventsInput = {
@@ -53864,6 +56670,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutEventsResponsibleInput = {
@@ -53908,6 +56717,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutEventsResponsibleInput = {
@@ -53982,6 +56794,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutEventsInput = {
@@ -54013,6 +56826,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutEventsResponsibleInput = {
@@ -54068,6 +56882,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEventsResponsibleInput = {
@@ -54112,6 +56929,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type PointLogUpsertWithWhereUniqueWithoutEventInput = {
@@ -54159,6 +56979,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutPointLogsInput = {
@@ -54190,6 +57011,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutPointLogsInput = {
@@ -54239,6 +57061,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutPointLogsInput = {
@@ -54283,6 +57108,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutPointLogsInput = {
@@ -54369,6 +57197,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutPointLogsInput = {
@@ -54400,6 +57229,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutPointLogsInput = {
@@ -54455,6 +57285,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPointLogsInput = {
@@ -54499,6 +57332,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type CampaignEventUpsertWithoutAttendeesInput = {
@@ -54575,6 +57411,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryInput = {
@@ -54606,6 +57443,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryInput = {
@@ -54682,6 +57520,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryInput = {
@@ -54713,6 +57552,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryMovementUpsertWithWhereUniqueWithoutItemInput = {
@@ -54760,6 +57600,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryMovementsInput = {
@@ -54791,6 +57632,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryMovementsInput = {
@@ -54867,6 +57709,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutInventoryMovesInput = {
@@ -54911,6 +57756,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutInventoryMovesInput = {
@@ -54958,6 +57806,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryMovementsInput = {
@@ -54989,6 +57838,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryItemUpsertWithoutMovementsInput = {
@@ -55077,6 +57927,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInventoryMovesInput = {
@@ -55121,6 +57974,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutConsentRecordsInput = {
@@ -55152,6 +58008,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutConsentRecordsInput = {
@@ -55183,6 +58040,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutConsentRecordsInput = {
@@ -55283,6 +58141,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutConsentsCapturedInput = {
@@ -55327,6 +58188,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutConsentsCapturedInput = {
@@ -55417,6 +58281,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutConsentRecordsInput = {
@@ -55448,6 +58313,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutConsentRecordsInput = {
@@ -55560,6 +58426,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConsentsCapturedInput = {
@@ -55604,6 +58473,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutConsentRecordInput = {
@@ -55651,6 +58523,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutConsentNoticesInput = {
@@ -55682,6 +58555,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutConsentNoticesInput = {
@@ -55731,6 +58605,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutConsentNoticesCreatedInput = {
@@ -55775,6 +58652,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutConsentNoticesCreatedInput = {
@@ -55822,6 +58702,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutConsentNoticesInput = {
@@ -55853,6 +58734,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutConsentNoticesCreatedInput = {
@@ -55908,6 +58790,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConsentNoticesCreatedInput = {
@@ -55952,6 +58837,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutIssueCasesInput = {
@@ -55983,6 +58871,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutIssueCasesInput = {
@@ -56014,6 +58903,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutIssueCasesInput = {
@@ -56149,6 +59039,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutCasesAssignedInput = {
@@ -56193,6 +59086,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutCasesAssignedInput = {
@@ -56242,6 +59138,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutCasesCreatedInput = {
@@ -56286,6 +59185,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutCasesCreatedInput = {
@@ -56515,6 +59417,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutIssueCasesInput = {
@@ -56546,6 +59449,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutIssueCasesInput = {
@@ -56699,6 +59603,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesAssignedInput = {
@@ -56743,6 +59650,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutCasesCreatedInput = {
@@ -56798,6 +59708,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesCreatedInput = {
@@ -56842,6 +59755,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutIssueCaseInput = {
@@ -56937,6 +59853,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInteractionsInput = {
@@ -56968,6 +59885,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInteractionsInput = {
@@ -57127,6 +60045,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutInteractionsInput = {
@@ -57171,6 +60092,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutInteractionsInput = {
@@ -57267,6 +60191,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInteractionsInput = {
@@ -57298,6 +60223,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutInteractionsInput = {
@@ -57475,6 +60401,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInteractionsInput = {
@@ -57519,6 +60448,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type ConsentRecordUpsertWithoutInteractionsInput = {
@@ -57605,6 +60537,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTasksInput = {
@@ -57636,6 +60569,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTasksInput = {
@@ -57787,6 +60721,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutTasksAssignedInput = {
@@ -57831,6 +60768,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutTasksAssignedInput = {
@@ -57880,6 +60820,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutTasksCreatedInput = {
@@ -57924,6 +60867,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutTasksCreatedInput = {
@@ -57971,6 +60917,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTasksInput = {
@@ -58002,6 +60949,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutTasksInput = {
@@ -58171,6 +61119,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksAssignedInput = {
@@ -58215,6 +61166,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutTasksCreatedInput = {
@@ -58270,6 +61224,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksCreatedInput = {
@@ -58314,6 +61271,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutCommitmentsInput = {
@@ -58345,6 +61305,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommitmentsInput = {
@@ -58376,6 +61337,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommitmentsInput = {
@@ -58425,6 +61387,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutCommitmentsOwnedInput = {
@@ -58469,6 +61434,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutCommitmentsOwnedInput = {
@@ -58618,6 +61586,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommitmentsInput = {
@@ -58649,6 +61618,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutCommitmentsOwnedInput = {
@@ -58704,6 +61674,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommitmentsOwnedInput = {
@@ -58748,6 +61721,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommitmentsInput = {
@@ -58860,6 +61836,7 @@ export namespace Prisma {
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommunicationApprovalsInput = {
@@ -58891,6 +61868,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommunicationApprovalsInput = {
@@ -58999,6 +61977,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsRequestedInput = {
@@ -59043,6 +62024,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsRequestedInput = {
@@ -59092,6 +62076,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsDecidedInput = {
@@ -59136,6 +62123,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsDecidedInput = {
@@ -59183,6 +62173,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommunicationApprovalsInput = {
@@ -59214,6 +62205,7 @@ export namespace Prisma {
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommunicationApprovalsInput = {
@@ -59334,6 +62326,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsRequestedInput = {
@@ -59378,6 +62373,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutCommunicationsDecidedInput = {
@@ -59433,6 +62431,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsDecidedInput = {
@@ -59477,6 +62478,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutAuditEventsInput = {
@@ -59508,6 +62512,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutAuditEventsInput = {
@@ -59539,6 +62544,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutAuditEventsInput = {
@@ -59588,6 +62594,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutAuditEventsInput = {
@@ -59632,6 +62641,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutAuditEventsInput = {
@@ -59679,6 +62691,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutAuditEventsInput = {
@@ -59710,6 +62723,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutAuditEventsInput = {
@@ -59765,6 +62779,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditEventsInput = {
@@ -59809,6 +62826,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type TenantCreateWithoutOperationProfileInput = {
@@ -59840,6 +62860,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutOperationProfileInput = {
@@ -59871,6 +62892,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
     auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutOperationProfileInput = {
@@ -59920,6 +62942,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesResponsibleInput = {
@@ -59964,6 +62989,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesResponsibleInput = {
@@ -60013,6 +63041,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesCreatedInput = {
@@ -60057,6 +63088,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesCreatedInput = {
@@ -60106,6 +63140,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
     operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesUpdatedInput = {
@@ -60150,6 +63187,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
     operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
     operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesUpdatedInput = {
@@ -60197,6 +63237,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutOperationProfileInput = {
@@ -60228,6 +63269,7 @@ export namespace Prisma {
     teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesResponsibleInput = {
@@ -60283,6 +63325,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesResponsibleInput = {
@@ -60327,6 +63372,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesCreatedInput = {
@@ -60382,6 +63430,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesCreatedInput = {
@@ -60426,6 +63477,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesUpdatedInput = {
@@ -60481,6 +63535,9 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesUpdatedInput = {
@@ -60525,6 +63582,765 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type TenantCreateWithoutPoliticalProposalsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutPoliticalProposalsInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutPoliticalProposalsInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutPoliticalProposalsInput, TenantUncheckedCreateWithoutPoliticalProposalsInput>
+  }
+
+  export type UserCreateWithoutProposalsOwnedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutProposalsOwnedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutProposalsOwnedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutProposalsOwnedInput, UserUncheckedCreateWithoutProposalsOwnedInput>
+  }
+
+  export type UserCreateWithoutProposalsCreatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutProposalsCreatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutProposalsCreatedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutProposalsCreatedInput, UserUncheckedCreateWithoutProposalsCreatedInput>
+  }
+
+  export type UserCreateWithoutProposalsUpdatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutProposalsUpdatedInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutProposalsUpdatedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutProposalsUpdatedInput, UserUncheckedCreateWithoutProposalsUpdatedInput>
+  }
+
+  export type TenantUpsertWithoutPoliticalProposalsInput = {
+    update: XOR<TenantUpdateWithoutPoliticalProposalsInput, TenantUncheckedUpdateWithoutPoliticalProposalsInput>
+    create: XOR<TenantCreateWithoutPoliticalProposalsInput, TenantUncheckedCreateWithoutPoliticalProposalsInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutPoliticalProposalsInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutPoliticalProposalsInput, TenantUncheckedUpdateWithoutPoliticalProposalsInput>
+  }
+
+  export type TenantUpdateWithoutPoliticalProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutPoliticalProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+  }
+
+  export type UserUpsertWithoutProposalsOwnedInput = {
+    update: XOR<UserUpdateWithoutProposalsOwnedInput, UserUncheckedUpdateWithoutProposalsOwnedInput>
+    create: XOR<UserCreateWithoutProposalsOwnedInput, UserUncheckedCreateWithoutProposalsOwnedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutProposalsOwnedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutProposalsOwnedInput, UserUncheckedUpdateWithoutProposalsOwnedInput>
+  }
+
+  export type UserUpdateWithoutProposalsOwnedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutProposalsOwnedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type UserUpsertWithoutProposalsCreatedInput = {
+    update: XOR<UserUpdateWithoutProposalsCreatedInput, UserUncheckedUpdateWithoutProposalsCreatedInput>
+    create: XOR<UserCreateWithoutProposalsCreatedInput, UserUncheckedCreateWithoutProposalsCreatedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutProposalsCreatedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutProposalsCreatedInput, UserUncheckedUpdateWithoutProposalsCreatedInput>
+  }
+
+  export type UserUpdateWithoutProposalsCreatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutProposalsCreatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type UserUpsertWithoutProposalsUpdatedInput = {
+    update: XOR<UserUpdateWithoutProposalsUpdatedInput, UserUncheckedUpdateWithoutProposalsUpdatedInput>
+    create: XOR<UserCreateWithoutProposalsUpdatedInput, UserUncheckedCreateWithoutProposalsUpdatedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutProposalsUpdatedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutProposalsUpdatedInput, UserUncheckedUpdateWithoutProposalsUpdatedInput>
+  }
+
+  export type UserUpdateWithoutProposalsUpdatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutProposalsUpdatedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateManyTenantInput = {
@@ -60844,6 +64660,26 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type PoliticalProposalCreateManyTenantInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type UserUpdateWithoutTenantInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -60886,6 +64722,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTenantInput = {
@@ -60930,6 +64769,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutTenantInput = {
@@ -61879,6 +65721,66 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PoliticalProposalUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutProposalsOwnedNestedInput
+    createdBy?: UserUpdateOneRequiredWithoutProposalsCreatedNestedInput
+    updatedBy?: UserUpdateOneRequiredWithoutProposalsUpdatedNestedInput
+  }
+
+  export type PoliticalProposalUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type FinancialEntryCreateManyReporterInput = {
     id?: string
     type: $Enums.EntryType
@@ -62316,6 +66218,63 @@ export namespace Prisma {
     responsibleDataUserId: string
     retentionPeriodDays: number
     revocationProcedure: string
+    createdById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateManyOwnerInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    createdById: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateManyCreatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
+    updatedById: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PoliticalProposalCreateManyUpdatedByInput = {
+    id?: string
+    referenceCode: string
+    title: string
+    description: string
+    category: $Enums.ProposalCategory
+    targetGroup?: string | null
+    status?: $Enums.ProposalStatus
+    progressPercent?: number
+    isPublic?: boolean
+    territory?: string | null
+    estimatedCost?: Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: string | null
+    ownerId: string
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -63704,6 +67663,180 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PoliticalProposalUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutPoliticalProposalsNestedInput
+    createdBy?: UserUpdateOneRequiredWithoutProposalsCreatedNestedInput
+    updatedBy?: UserUpdateOneRequiredWithoutProposalsUpdatedNestedInput
+  }
+
+  export type PoliticalProposalUncheckedUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdById?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutPoliticalProposalsNestedInput
+    owner?: UserUpdateOneRequiredWithoutProposalsOwnedNestedInput
+    updatedBy?: UserUpdateOneRequiredWithoutProposalsUpdatedNestedInput
+  }
+
+  export type PoliticalProposalUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    updatedById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUpdateWithoutUpdatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutPoliticalProposalsNestedInput
+    owner?: UserUpdateOneRequiredWithoutProposalsOwnedNestedInput
+    createdBy?: UserUpdateOneRequiredWithoutProposalsCreatedNestedInput
+  }
+
+  export type PoliticalProposalUncheckedUpdateWithoutUpdatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PoliticalProposalUncheckedUpdateManyWithoutUpdatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    referenceCode?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: EnumProposalCategoryFieldUpdateOperationsInput | $Enums.ProposalCategory
+    targetGroup?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    territory?: NullableStringFieldUpdateOperationsInput | string | null
+    estimatedCost?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PoliticalDivisionCreateManyParentInput = {
     id?: string
     code: string
@@ -63870,6 +68003,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutDivisionInput = {
@@ -63913,6 +68049,9 @@ export namespace Prisma {
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
     operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutDivisionInput = {

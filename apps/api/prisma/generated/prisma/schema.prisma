@@ -37,6 +37,7 @@ model Tenant {
   auditEvents            AuditEvent[]
   storedObjects          StoredObject[]
   operationProfile       OperationProfile?
+  politicalProposals     PoliticalProposal[]
 }
 
 model CampaignSettings {
@@ -121,6 +122,9 @@ model User {
   operationProfilesResponsible OperationProfile[]      @relation("OperationProfileResponsible")
   operationProfilesCreated     OperationProfile[]      @relation("OperationProfileCreatedBy")
   operationProfilesUpdated     OperationProfile[]      @relation("OperationProfileUpdatedBy")
+  proposalsOwned               PoliticalProposal[]     @relation("ProposalOwner")
+  proposalsCreated             PoliticalProposal[]     @relation("ProposalCreatedBy")
+  proposalsUpdated             PoliticalProposal[]     @relation("ProposalUpdatedBy")
 
   @@unique([id, tenantId])
   @@unique([documentId, tenantId])
@@ -885,4 +889,55 @@ enum ElectoralCircumscriptionType {
 enum CandidateListType {
   CLOSED
   OPEN_PREFERENTIAL
+}
+
+model PoliticalProposal {
+  id              String           @id @default(cuid())
+  tenantId        String
+  referenceCode   String           @db.VarChar(20)
+  title           String           @db.VarChar(200)
+  description     String           @db.VarChar(2000)
+  category        ProposalCategory
+  targetGroup     String?          @db.VarChar(200)
+  status          ProposalStatus   @default(DRAFT)
+  progressPercent Int              @default(0)
+  isPublic        Boolean          @default(false)
+  territory       String?          @db.VarChar(200)
+  estimatedCost   Decimal?         @db.Decimal(15, 2)
+  sourceUrl       String?          @db.VarChar(500)
+  ownerId         String
+  createdById     String
+  updatedById     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  owner           User             @relation("ProposalOwner", fields: [ownerId, tenantId], references: [id, tenantId])
+  createdBy       User             @relation("ProposalCreatedBy", fields: [createdById, tenantId], references: [id, tenantId])
+  updatedBy       User             @relation("ProposalUpdatedBy", fields: [updatedById, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([referenceCode, tenantId])
+  @@index([tenantId, category, status])
+  @@index([tenantId, isPublic])
+}
+
+enum ProposalCategory {
+  EDUCATION
+  HEALTH
+  INFRASTRUCTURE
+  SECURITY
+  ECONOMY
+  ENVIRONMENT
+  CULTURE
+  SOCIAL
+  GOVERNANCE
+  OTHER
+}
+
+enum ProposalStatus {
+  DRAFT
+  PROPOSED
+  IN_PROGRESS
+  COMPLETED
+  WITHDRAWN
 }

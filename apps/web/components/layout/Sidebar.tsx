@@ -16,6 +16,7 @@ import {
   MessageSquareText,
   MoreHorizontal,
   ShieldCheck,
+  Scroll,
   SlidersHorizontal,
   Siren,
   UserCog,
@@ -49,6 +50,7 @@ const NAV_ICONS: Record<NavigationIcon, LucideIcon> = {
   audit: ClipboardList,
   finance: WalletCards,
   election: FileCheck2,
+  commitments: Scroll,
   settings: SlidersHorizontal,
 };
 

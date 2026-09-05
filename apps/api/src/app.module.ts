@@ -11,6 +11,7 @@ import { LogisticsModule } from './logistics/logistics.module';
 import { StorageModule } from './storage/storage.module';
 import { TasksModule } from './tasks/tasks.module';
 import { CommitmentsModule } from './commitments/commitments.module';
+import { ProposalsModule } from './proposals/proposals.module';
 import { CasesModule } from './cases/cases.module';
 import { CommunicationsModule } from './communications/communications.module';
 import { TeamModule } from './team/team.module';
@@ -31,6 +32,8 @@ import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
 import { RetentionModule } from './retention/retention.module';
 import { ExportModule } from './export/export.module';
 import { ImportModule } from './import/import.module';
+import { ElectionDayModule } from './election-day/election-day.module';
+import { SaasAdminModule } from './saas-admin/saas-admin.module';
 
 @Module({
   imports: [
@@ -54,6 +57,7 @@ import { ImportModule } from './import/import.module';
     StorageModule,
     TasksModule,
     CommitmentsModule,
+    ProposalsModule,
     CasesModule,
     CommunicationsModule,
     TeamModule,
@@ -66,6 +70,8 @@ import { ImportModule } from './import/import.module';
     RetentionModule,
     ExportModule,
     ImportModule,
+    ElectionDayModule,
+    SaasAdminModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

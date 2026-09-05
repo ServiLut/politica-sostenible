@@ -20,7 +20,8 @@ export type NavigationIcon =
   | "audit"
   | "finance"
   | "election"
-  | "settings";
+  | "settings"
+  | "commitments";
 
 export interface NavItem {
   title: string;
@@ -519,6 +520,16 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
     navigationBackendRoles: ["WITNESS", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedStages: ['ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
+  },
+  {
+    title: "Programa político",
+    mobileTitle: "Programa",
+    href: "/dashboard/proposals",
+    icon: "commitments",
+    group: "DIRECTION",
+    allowedRoles: Object.values(UserRole),
+    allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedTenantTypes: ["CANDIDACY", "PARTY"],
   },
 ];
 
