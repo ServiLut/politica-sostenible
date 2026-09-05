@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   ShieldCheck,
   Scroll,
+  Search,
   SlidersHorizontal,
   Siren,
   UserCog,
@@ -280,6 +281,15 @@ export function Sidebar() {
           aria-label="Navegación principal"
           className="flex-1 space-y-6 overflow-y-auto px-4 py-5"
         >
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 bg-slate-900 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <Search size={18} />
+            <span className="flex-1 text-left">Buscar...</span>
+            <span className="text-[10px] uppercase tracking-widest font-black opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">Cmd+K</span>
+          </button>
+
           {groupedNavigation.map((group) => {
             const headingId = `desktop-navigation-${group.id.toLowerCase()}`;
             return (

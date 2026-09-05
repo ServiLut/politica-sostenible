@@ -38,6 +38,8 @@ import { BillingModule } from './billing/billing.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ElectronicSignatureModule } from './electronic-signature/electronic-signature.module';
 import { TransitionHandoverModule } from './transition-handover/transition-handover.module';
+import { SearchModule } from './search/search.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -79,6 +81,7 @@ import { TransitionHandoverModule } from './transition-handover/transition-hando
     NotificationsModule,
     ElectronicSignatureModule,
     TransitionHandoverModule,
+    SearchModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
