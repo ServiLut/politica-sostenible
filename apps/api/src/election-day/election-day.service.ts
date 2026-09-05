@@ -11,7 +11,8 @@ export class ElectionDayService {
       expectedTablesResult,
       statusGroups,
       puestos,
-      reports,
+      distinctPuestos,
+      totalSubmittedCount,
       alertCount,
       lastReports
     ] = await Promise.all([
@@ -30,7 +31,11 @@ export class ElectionDayService {
       }),
       this.prisma.witnessReport.findMany({
         where: { tenantId },
-        select: { puestoId: true, candidateVotes: true, totalTableVotes: true, status: true }
+        select: { puestoId: true },
+        distinct: ['puestoId']
+      }),
+      this.prisma.witnessReport.count({
+        where: { tenantId }
       }),
       this.prisma.witnessReport.count({
         where: { tenantId, observations: { not: null } }
@@ -47,7 +52,7 @@ export class ElectionDayService {
     ]);
 
     const expectedTables = expectedTablesResult._sum.expectedTables || 0;
-    const totalSubmitted = reports.length;
+    const totalSubmitted = totalSubmittedCount;
 
     const reportsByStatus = {
       PENDING: 0,
@@ -61,7 +66,7 @@ export class ElectionDayService {
       if (group.status === WitnessReportStatus.REJECTED) reportsByStatus.REJECTED = group._count._all;
     }
 
-    const puestosWithReports = new Set(reports.map(r => r.puestoId));
+    const puestosWithReports = new Set(distinctPuestos.map(r => r.puestoId));
     const coverageMap = {
       covered: puestos.filter(p => puestosWithReports.has(p.id)),
       uncovered: puestos.filter(p => !puestosWithReports.has(p.id))
@@ -84,18 +89,29 @@ export class ElectionDayService {
   }
 
   async getVoteTally(tenantId: string) {
-    const acceptedReports = await this.prisma.witnessReport.findMany({
+    const reportAggregations = await this.prisma.witnessReport.groupBy({
+      by: ['puestoId'],
       where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+      _sum: {
+        candidateVotes: true,
+        totalTableVotes: true,
+      },
+      _count: {
+        _all: true
+      }
+    });
+
+    const puestos = await this.prisma.politicalDivision.findMany({
+      where: {
+        tenantId,
+        id: { in: reportAggregations.map(r => r.puestoId) }
+      },
       include: {
-        puesto: {
+        parent: {
           include: {
             parent: {
               include: {
-                parent: {
-                  include: {
-                    parent: true
-                  }
-                }
+                parent: true
               }
             }
           }
@@ -103,16 +119,19 @@ export class ElectionDayService {
       }
     });
 
+    const puestoMap = new Map(puestos.map(p => [p.id, p]));
     const tallyByDivision = new Map<string, { division: string, totalVotes: number, ourVotes: number, reportCount: number }>();
 
-    for (const report of acceptedReports) {
-      // Find top-level division
-      let topLevel = report.puesto;
-      let current: any = report.puesto;
+    for (const agg of reportAggregations) {
+      const puesto = puestoMap.get(agg.puestoId);
+      if (!puesto) continue;
+
+      let topLevel = puesto;
+      let current: any = puesto;
       while (current && current.parentId && current.parent) {
         current = current.parent;
       }
-      topLevel = current || report.puesto;
+      topLevel = current || puesto;
 
       const divisionName = topLevel.name;
       if (!tallyByDivision.has(divisionName)) {
@@ -120,9 +139,9 @@ export class ElectionDayService {
       }
 
       const tally = tallyByDivision.get(divisionName)!;
-      tally.totalVotes += report.totalTableVotes;
-      tally.ourVotes += report.candidateVotes;
-      tally.reportCount += 1;
+      tally.totalVotes += agg._sum.totalTableVotes || 0;
+      tally.ourVotes += agg._sum.candidateVotes || 0;
+      tally.reportCount += agg._count._all;
     }
 
     return Array.from(tallyByDivision.values()).map(t => ({

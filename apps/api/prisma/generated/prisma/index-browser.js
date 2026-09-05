@@ -288,38 +288,6 @@ exports.Prisma.CampaignEventScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.PointLogScalarFieldEnum = {
-  id: 'id',
-  tenantId: 'tenantId',
-  userId: 'userId',
-  amount: 'amount',
-  reason: 'reason',
-  eventId: 'eventId',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.InventoryItemScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  sku: 'sku',
-  quantity: 'quantity',
-  warehouse: 'warehouse',
-  tenantId: 'tenantId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.InventoryMovementScalarFieldEnum = {
-  id: 'id',
-  tenantId: 'tenantId',
-  itemId: 'itemId',
-  userId: 'userId',
-  quantity: 'quantity',
-  type: 'type',
-  reason: 'reason',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.ConsentRecordScalarFieldEnum = {
   id: 'id',
   tenantId: 'tenantId',
@@ -693,12 +661,6 @@ exports.CampaignEventStatus = exports.$Enums.CampaignEventStatus = {
   CANCELLED: 'CANCELLED'
 };
 
-exports.MovementType = exports.$Enums.MovementType = {
-  IN: 'IN',
-  OUT: 'OUT',
-  ADJUSTMENT: 'ADJUSTMENT'
-};
-
 exports.ConsentSubjectType = exports.$Enums.ConsentSubjectType = {
   VOTER: 'VOTER',
   CITIZEN: 'CITIZEN',
@@ -923,9 +885,6 @@ exports.Prisma.ModelName = {
   FinancialEntry: 'FinancialEntry',
   WitnessReport: 'WitnessReport',
   CampaignEvent: 'CampaignEvent',
-  PointLog: 'PointLog',
-  InventoryItem: 'InventoryItem',
-  InventoryMovement: 'InventoryMovement',
   ConsentRecord: 'ConsentRecord',
   ConsentNotice: 'ConsentNotice',
   IssueCase: 'IssueCase',

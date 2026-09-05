@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -153,6 +154,7 @@ export default function ExecutivePage() {
           subtitle={`${formatCop(expenses)} gastados de ${formatCop(income)}`}
           status={budgetStatus}
           icon={CircleDollarSign}
+          href="/dashboard/finance"
         />
         <TrafficCard
           title="Cumplimiento de Metas"
@@ -160,6 +162,7 @@ export default function ExecutivePage() {
           subtitle="Cobertura territorial y votantes contactados"
           status={territoryStatus}
           icon={Users}
+          href="/dashboard/territory"
         />
         <TrafficCard
           title="Procesos Críticos"
@@ -167,6 +170,7 @@ export default function ExecutivePage() {
           subtitle={overdue === 1 ? "Tarea vencida o caso urgente" : "Tareas vencidas o casos urgentes"}
           status={overdueStatus}
           icon={ListChecks}
+          href="/dashboard/tasks"
         />
         <TrafficCard
           title="Termómetro del Equipo"
@@ -174,6 +178,7 @@ export default function ExecutivePage() {
           subtitle="Activación del equipo de campaña"
           status={teamStatus}
           icon={Activity}
+          href="/dashboard/team"
         />
       </section>
 
@@ -192,12 +197,14 @@ function TrafficCard({
   subtitle,
   status,
   icon: Icon,
+  href,
 }: {
   title: string;
   value: string;
   subtitle: string;
   status: "red" | "yellow" | "green";
   icon: typeof CircleDollarSign;
+  href: string;
 }) {
   const statusColors = {
     red: "bg-red-500 text-white border-red-600",
@@ -212,30 +219,32 @@ function TrafficCard({
   };
 
   return (
-    <article
-      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border-b-8 p-8 shadow-lg ${statusColors[status]}`}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider opacity-90">
-            {title}
-          </h2>
-          <p className="mt-6 text-7xl font-black tracking-tighter">
-            {value}
+    <Link href={href} className="block cursor-pointer hover:scale-[1.02] transition-transform">
+      <article
+        className={`h-full relative flex flex-col justify-between overflow-hidden rounded-3xl border-b-8 p-8 shadow-lg ${statusColors[status]}`}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-wider opacity-90">
+              {title}
+            </h2>
+            <p className="mt-6 text-7xl font-black tracking-tighter">
+              {value}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-md">
+            <Icon size={48} />
+          </div>
+        </div>
+        
+        <div className="mt-8 flex items-center gap-4">
+          {statusIcons[status]}
+          <p className="text-xl font-medium leading-tight opacity-90">
+            {subtitle}
           </p>
         </div>
-        <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-md">
-          <Icon size={48} />
-        </div>
-      </div>
-      
-      <div className="mt-8 flex items-center gap-4">
-        {statusIcons[status]}
-        <p className="text-xl font-medium leading-tight opacity-90">
-          {subtitle}
-        </p>
-      </div>
-    </article>
+      </article>
+    </Link>
   );
 }
 

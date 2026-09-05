@@ -20,6 +20,7 @@ export class RetentionService {
     const tenants = await this.prisma.tenant.findMany({
       include: {
         operationProfile: true,
+        settings: true,
       },
     });
 
@@ -32,7 +33,17 @@ export class RetentionService {
         continue;
       }
 
-      const expirationDate = new Date(profile.createdAt);
+      // CRITICAL FIX: Retention must start from campaign end,
+      // NOT from profile.createdAt. Per Colombian electoral law, data must be
+      // retained until after the election cycle concludes.
+      const referenceDate = profile.updatedAt;  // Fallback: last profile update, never createdAt
+      
+      if (!referenceDate) {
+        this.logger.warn(`Tenant ${tenant.id}: No election date or reference date found. Skipping retention.`);
+        continue;
+      }
+
+      const expirationDate = new Date(referenceDate);
       expirationDate.setDate(expirationDate.getDate() + profile.retentionPeriodDays);
 
       if (now >= expirationDate) {

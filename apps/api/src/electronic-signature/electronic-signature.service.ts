@@ -35,9 +35,20 @@ export class ElectronicSignatureService {
       throw new ForbiddenException('Código OTP inválido');
     }
 
-    const timestamp = Date.now().toString();
-    const dataToHash = `${document.id}${document.path}${document.expectedSize}${timestamp}`;
-    const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || '';
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: fileData, error } = await supabase.storage.from(bucket).download(document.path);
+
+    if (error || !fileData) {
+      throw new NotFoundException('El archivo del documento no pudo ser verificado');
+    }
+
+    const buffer = Buffer.from(await fileData.arrayBuffer());
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
 
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },

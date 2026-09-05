@@ -26,9 +26,6 @@ model Tenant {
   finances               FinancialEntry[]
   witnesses              WitnessReport[]
   events                 CampaignEvent[]
-  pointLogs              PointLog[]
-  inventory              InventoryItem[]
-  inventoryMovements     InventoryMovement[]
   consentRecords         ConsentRecord[]
   consentNotices         ConsentNotice[]
   issueCases             IssueCase[]
@@ -111,8 +108,6 @@ model User {
   registeredVoters             Voter[]                 @relation("Registrar")
   witnessReports               WitnessReport[]         @relation("WitnessReportReporter")
   witnessReportsReviewed       WitnessReport[]         @relation("WitnessReportReviewer")
-  pointLogs                    PointLog[]
-  inventoryMoves               InventoryMovement[]
   consentsCaptured             ConsentRecord[]         @relation("ConsentCapturedBy")
   consentNoticesCreated        ConsentNotice[]         @relation("ConsentNoticeCreatedBy")
   casesAssigned                IssueCase[]             @relation("CaseAssignee")
@@ -303,62 +298,11 @@ model CampaignEvent {
   updatedAt     DateTime               @updatedAt
   tenant        Tenant                 @relation(fields: [tenantId], references: [id])
   responsible   User?                  @relation("EventResponsible", fields: [responsibleId, tenantId], references: [id, tenantId])
-  attendees     PointLog[]
 
   @@unique([id, tenantId])
   @@index([tenantId, mode, startsAt])
   @@index([tenantId, mode, status, startsAt])
   @@index([tenantId, responsibleId, startsAt])
-}
-
-model PointLog {
-  id        String         @id @default(cuid())
-  tenantId  String
-  userId    String
-  amount    Int
-  reason    String
-  eventId   String?
-  createdAt DateTime       @default(now())
-  tenant    Tenant         @relation(fields: [tenantId], references: [id])
-  user      User           @relation(fields: [userId, tenantId], references: [id, tenantId])
-  event     CampaignEvent? @relation(fields: [eventId, tenantId], references: [id, tenantId])
-
-  @@index([tenantId, userId, createdAt])
-  @@index([tenantId, eventId])
-}
-
-model InventoryItem {
-  id        String              @id @default(cuid())
-  name      String
-  sku       String?
-  quantity  Int                 @default(0)
-  warehouse String?
-  tenantId  String
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  tenant    Tenant              @relation(fields: [tenantId], references: [id])
-  movements InventoryMovement[]
-
-  @@unique([id, tenantId])
-  @@unique([tenantId, sku])
-  @@index([tenantId, name])
-}
-
-model InventoryMovement {
-  id        String        @id @default(cuid())
-  tenantId  String
-  itemId    String
-  userId    String
-  quantity  Int
-  type      MovementType
-  reason    String?
-  createdAt DateTime      @default(now())
-  tenant    Tenant        @relation(fields: [tenantId], references: [id])
-  item      InventoryItem @relation(fields: [itemId, tenantId], references: [id, tenantId])
-  user      User          @relation(fields: [userId, tenantId], references: [id, tenantId])
-
-  @@index([tenantId, itemId, createdAt])
-  @@index([tenantId, userId, createdAt])
 }
 
 /// Historial versionado de autorizaciones de tratamiento de datos. No debe

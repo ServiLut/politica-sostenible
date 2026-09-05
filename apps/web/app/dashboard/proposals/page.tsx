@@ -8,7 +8,10 @@ import {
   RefreshCw,
   Lock,
   Globe,
-  Loader2
+  Loader2,
+  Trash2,
+  Pencil,
+  X
 } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 
@@ -18,11 +21,34 @@ type Proposal = {
   id: string;
   referenceCode: string;
   title: string;
+  description?: string;
   category: string;
+  estimatedCost?: number;
   status: ProposalStatus;
   progressPercent: number;
   isPublic: boolean;
   ownerName: string;
+};
+
+const CATEGORIES = [
+  "INFRASTRUCTURE",
+  "EDUCATION",
+  "HEALTH",
+  "SECURITY",
+  "ENVIRONMENT",
+  "ECONOMY",
+  "SOCIAL",
+  "CULTURE",
+  "GOVERNANCE",
+  "OTHER"
+];
+
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  category: "OTHER",
+  estimatedCost: "",
+  isPublic: false
 };
 
 export default function ProposalsPage() {
@@ -30,6 +56,10 @@ export default function ProposalsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [dialogProposal, setDialogProposal] = useState<Proposal | "new" | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   const loadProposals = async () => {
     setLoading(true);
@@ -38,7 +68,6 @@ export default function ProposalsPage() {
       setProposals(res.items || []);
     } catch (error) {
       console.error(error);
-      // fallback for demo
       setProposals([]);
     } finally {
       setLoading(false);
@@ -48,6 +77,62 @@ export default function ProposalsPage() {
   useEffect(() => {
     loadProposals();
   }, []);
+
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setMutationError(null);
+    setDialogProposal("new");
+  };
+
+  const openEdit = (p: Proposal) => {
+    setForm({
+      title: p.title,
+      description: p.description || "",
+      category: p.category || "OTHER",
+      estimatedCost: p.estimatedCost ? String(p.estimatedCost) : "",
+      isPublic: p.isPublic
+    });
+    setMutationError(null);
+    setDialogProposal(p);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar esta propuesta?")) return;
+    try {
+      await apiRequest(`/proposals/${id}`, { method: "DELETE" });
+      loadProposals();
+    } catch (error: any) {
+      alert(error.message || "Error al eliminar");
+    }
+  };
+
+  const submitForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dialogProposal) return;
+    setSubmitting(true);
+    setMutationError(null);
+    try {
+      const payload = {
+        title: form.title,
+        description: form.description || undefined,
+        category: form.category,
+        estimatedCost: form.estimatedCost ? Number(form.estimatedCost) : undefined,
+        isPublic: form.isPublic
+      };
+
+      if (dialogProposal === "new") {
+        await apiRequest("/proposals", { method: "POST", body: JSON.stringify(payload) });
+      } else {
+        await apiRequest(`/proposals/${dialogProposal.id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      }
+      setDialogProposal(null);
+      loadProposals();
+    } catch (error: any) {
+      setMutationError(error.message || "Error al guardar la propuesta");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredProposals = proposals.filter((p) => {
     if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
@@ -84,7 +169,7 @@ export default function ProposalsPage() {
             <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
             Actualizar
           </button>
-          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800">
+          <button onClick={openCreate} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800">
             <Plus size={16} /> Nueva Propuesta
           </button>
         </div>
@@ -139,16 +224,24 @@ export default function ProposalsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProposals.map((proposal) => (
-            <div key={proposal.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+            <div key={proposal.id} onClick={() => openEdit(proposal)} className="cursor-pointer flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex items-start justify-between">
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                   {proposal.referenceCode}
                 </span>
-                {proposal.isPublic ? (
-                  <Globe size={16} className="text-emerald-600" />
-                ) : (
-                  <Lock size={16} className="text-slate-400" />
-                )}
+                <div className="flex items-center gap-3">
+                  {proposal.isPublic ? (
+                    <Globe size={16} className="text-emerald-600" />
+                  ) : (
+                    <Lock size={16} className="text-slate-400" />
+                  )}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDelete(proposal.id); }} 
+                    className="p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               
               <div>
@@ -183,6 +276,99 @@ export default function ProposalsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {dialogProposal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
+              <h2 className="text-xl font-black text-slate-950">
+                {dialogProposal === "new" ? "Nueva Propuesta" : "Editar Propuesta"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDialogProposal(null)}
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X size={21} />
+              </button>
+            </header>
+            <form onSubmit={submitForm} className="space-y-5 p-6">
+              {mutationError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900">
+                  {mutationError}
+                </div>
+              )}
+              <label className="block text-sm font-black text-slate-800">
+                Título
+                <input
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+              <label className="block text-sm font-black text-slate-800">
+                Descripción (opcional)
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-black text-slate-800">
+                  Categoría
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm font-black text-slate-800">
+                  Costo Estimado (opcional)
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.estimatedCost}
+                    onChange={(e) => setForm({ ...form, estimatedCost: e.target.value })}
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  />
+                </label>
+              </div>
+              <label className="flex items-center gap-3 text-sm font-black text-slate-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isPublic}
+                  onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
+                  className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                />
+                Es Pública
+              </label>
+
+              <footer className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDialogProposal(null)}
+                  className="rounded-xl px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {submitting && <Loader2 className="animate-spin" size={18} />}
+                  Guardar
+                </button>
+              </footer>
+            </form>
+          </section>
         </div>
       )}
     </div>

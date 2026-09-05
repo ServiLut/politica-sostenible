@@ -18,16 +18,14 @@ export default function ModuleInConstruction() {
         <div className="flex items-center justify-center gap-2 mb-2">
           <Sparkles className="h-4 w-4 text-[#0047AB]" />
           <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
-            Módulo en Desarrollo
+            Página no encontrada
           </span>
         </div>
         <h2 className="text-3xl font-black text-[#111827] tracking-tighter">
-          Bajo Construcción
+          Página no encontrada
         </h2>
         <p className="text-zinc-500 font-medium italic leading-relaxed">
-          Esta ruta no corresponde a un módulo habilitado para tu organización.
-          Vuelve al panel para continuar con una función disponible y
-          verificable.
+          Esta página no existe o no tienes acceso a ella.
         </p>
       </div>
 

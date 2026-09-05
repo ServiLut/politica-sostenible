@@ -518,8 +518,7 @@ export class EventsService {
           const existing = await tx.campaignEvent.findFirst({
             where: { id, tenantId: user.tenantId, mode },
             select: {
-              ...EVENT_SELECT,
-              _count: { select: { attendees: true } },
+              ...EVENT_SELECT
             },
           });
 
@@ -530,12 +529,6 @@ export class EventsService {
           if (existing.status !== CampaignEventStatus.DRAFT) {
             throw new ConflictException(
               'Sólo se pueden eliminar borradores; cancele los eventos publicados',
-            );
-          }
-
-          if (existing._count.attendees > 0) {
-            throw new ConflictException(
-              'No se puede eliminar un evento con asistencias registradas',
             );
           }
 

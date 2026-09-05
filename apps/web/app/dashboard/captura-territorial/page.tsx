@@ -16,6 +16,7 @@ export default function CapturaTerritorialPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,6 +36,7 @@ export default function CapturaTerritorialPage() {
       });
       
       setForm(EMPTY_FORM);
+      setConsentAccepted(false);
       setNotice("¡Guardado correctamente! Listo para el siguiente.");
       
       // Auto-hide notice after a short time to keep UI clean
@@ -126,9 +128,21 @@ export default function CapturaTerritorialPage() {
           </label>
         </div>
 
+        <label className="mt-6 flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={consentAccepted}
+            onChange={(e) => setConsentAccepted(e.target.checked)}
+            className="mt-1 h-6 w-6 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+          />
+          <span className="text-sm font-medium text-slate-700 leading-relaxed">
+            Confirmo que la persona autoriza verbalmente el tratamiento de sus datos personales conforme al aviso de privacidad vigente de la organización.
+          </span>
+        </label>
+
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || !consentAccepted}
           className="mt-8 flex h-28 w-full items-center justify-center gap-4 rounded-3xl bg-blue-700 text-4xl font-black uppercase tracking-wider text-white shadow-xl transition-transform hover:scale-[1.02] hover:bg-blue-800 disabled:scale-100 disabled:opacity-50"
         >
           {saving ? (

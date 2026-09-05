@@ -65,21 +65,6 @@ export type WitnessReport = $Result.DefaultSelection<Prisma.$WitnessReportPayloa
  */
 export type CampaignEvent = $Result.DefaultSelection<Prisma.$CampaignEventPayload>
 /**
- * Model PointLog
- * 
- */
-export type PointLog = $Result.DefaultSelection<Prisma.$PointLogPayload>
-/**
- * Model InventoryItem
- * 
- */
-export type InventoryItem = $Result.DefaultSelection<Prisma.$InventoryItemPayload>
-/**
- * Model InventoryMovement
- * 
- */
-export type InventoryMovement = $Result.DefaultSelection<Prisma.$InventoryMovementPayload>
-/**
  * Model ConsentRecord
  * Historial versionado de autorizaciones de tratamiento de datos. No debe
  * sobrescribirse al revocar: se agrega un nuevo evento y se conserva la prueba.
@@ -967,36 +952,6 @@ export class PrismaClient<
   get campaignEvent(): Prisma.CampaignEventDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.pointLog`: Exposes CRUD operations for the **PointLog** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more PointLogs
-    * const pointLogs = await prisma.pointLog.findMany()
-    * ```
-    */
-  get pointLog(): Prisma.PointLogDelegate<ExtArgs, ClientOptions>;
-
-  /**
-   * `prisma.inventoryItem`: Exposes CRUD operations for the **InventoryItem** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more InventoryItems
-    * const inventoryItems = await prisma.inventoryItem.findMany()
-    * ```
-    */
-  get inventoryItem(): Prisma.InventoryItemDelegate<ExtArgs, ClientOptions>;
-
-  /**
-   * `prisma.inventoryMovement`: Exposes CRUD operations for the **InventoryMovement** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more InventoryMovements
-    * const inventoryMovements = await prisma.inventoryMovement.findMany()
-    * ```
-    */
-  get inventoryMovement(): Prisma.InventoryMovementDelegate<ExtArgs, ClientOptions>;
-
-  /**
    * `prisma.consentRecord`: Exposes CRUD operations for the **ConsentRecord** model.
     * Example usage:
     * ```ts
@@ -1582,9 +1537,6 @@ export namespace Prisma {
     FinancialEntry: 'FinancialEntry',
     WitnessReport: 'WitnessReport',
     CampaignEvent: 'CampaignEvent',
-    PointLog: 'PointLog',
-    InventoryItem: 'InventoryItem',
-    InventoryMovement: 'InventoryMovement',
     ConsentRecord: 'ConsentRecord',
     ConsentNotice: 'ConsentNotice',
     IssueCase: 'IssueCase',
@@ -1613,7 +1565,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile" | "politicalProposal" | "subscriptionPlan" | "tenantSubscription" | "electronicSignature"
+      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile" | "politicalProposal" | "subscriptionPlan" | "tenantSubscription" | "electronicSignature"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2354,228 +2306,6 @@ export namespace Prisma {
           count: {
             args: Prisma.CampaignEventCountArgs<ExtArgs>
             result: $Utils.Optional<CampaignEventCountAggregateOutputType> | number
-          }
-        }
-      }
-      PointLog: {
-        payload: Prisma.$PointLogPayload<ExtArgs>
-        fields: Prisma.PointLogFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.PointLogFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.PointLogFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          findFirst: {
-            args: Prisma.PointLogFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.PointLogFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          findMany: {
-            args: Prisma.PointLogFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>[]
-          }
-          create: {
-            args: Prisma.PointLogCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          createMany: {
-            args: Prisma.PointLogCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.PointLogCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>[]
-          }
-          delete: {
-            args: Prisma.PointLogDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          update: {
-            args: Prisma.PointLogUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          deleteMany: {
-            args: Prisma.PointLogDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.PointLogUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.PointLogUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>[]
-          }
-          upsert: {
-            args: Prisma.PointLogUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$PointLogPayload>
-          }
-          aggregate: {
-            args: Prisma.PointLogAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregatePointLog>
-          }
-          groupBy: {
-            args: Prisma.PointLogGroupByArgs<ExtArgs>
-            result: $Utils.Optional<PointLogGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.PointLogCountArgs<ExtArgs>
-            result: $Utils.Optional<PointLogCountAggregateOutputType> | number
-          }
-        }
-      }
-      InventoryItem: {
-        payload: Prisma.$InventoryItemPayload<ExtArgs>
-        fields: Prisma.InventoryItemFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.InventoryItemFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.InventoryItemFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          findFirst: {
-            args: Prisma.InventoryItemFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.InventoryItemFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          findMany: {
-            args: Prisma.InventoryItemFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>[]
-          }
-          create: {
-            args: Prisma.InventoryItemCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          createMany: {
-            args: Prisma.InventoryItemCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.InventoryItemCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>[]
-          }
-          delete: {
-            args: Prisma.InventoryItemDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          update: {
-            args: Prisma.InventoryItemUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          deleteMany: {
-            args: Prisma.InventoryItemDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.InventoryItemUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.InventoryItemUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>[]
-          }
-          upsert: {
-            args: Prisma.InventoryItemUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryItemPayload>
-          }
-          aggregate: {
-            args: Prisma.InventoryItemAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateInventoryItem>
-          }
-          groupBy: {
-            args: Prisma.InventoryItemGroupByArgs<ExtArgs>
-            result: $Utils.Optional<InventoryItemGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.InventoryItemCountArgs<ExtArgs>
-            result: $Utils.Optional<InventoryItemCountAggregateOutputType> | number
-          }
-        }
-      }
-      InventoryMovement: {
-        payload: Prisma.$InventoryMovementPayload<ExtArgs>
-        fields: Prisma.InventoryMovementFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.InventoryMovementFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.InventoryMovementFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          findFirst: {
-            args: Prisma.InventoryMovementFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.InventoryMovementFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          findMany: {
-            args: Prisma.InventoryMovementFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>[]
-          }
-          create: {
-            args: Prisma.InventoryMovementCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          createMany: {
-            args: Prisma.InventoryMovementCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.InventoryMovementCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>[]
-          }
-          delete: {
-            args: Prisma.InventoryMovementDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          update: {
-            args: Prisma.InventoryMovementUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          deleteMany: {
-            args: Prisma.InventoryMovementDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.InventoryMovementUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.InventoryMovementUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>[]
-          }
-          upsert: {
-            args: Prisma.InventoryMovementUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$InventoryMovementPayload>
-          }
-          aggregate: {
-            args: Prisma.InventoryMovementAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateInventoryMovement>
-          }
-          groupBy: {
-            args: Prisma.InventoryMovementGroupByArgs<ExtArgs>
-            result: $Utils.Optional<InventoryMovementGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.InventoryMovementCountArgs<ExtArgs>
-            result: $Utils.Optional<InventoryMovementCountAggregateOutputType> | number
           }
         }
       }
@@ -3674,9 +3404,6 @@ export namespace Prisma {
     financialEntry?: FinancialEntryOmit
     witnessReport?: WitnessReportOmit
     campaignEvent?: CampaignEventOmit
-    pointLog?: PointLogOmit
-    inventoryItem?: InventoryItemOmit
-    inventoryMovement?: InventoryMovementOmit
     consentRecord?: ConsentRecordOmit
     consentNotice?: ConsentNoticeOmit
     issueCase?: IssueCaseOmit
@@ -3777,9 +3504,6 @@ export namespace Prisma {
     finances: number
     witnesses: number
     events: number
-    pointLogs: number
-    inventory: number
-    inventoryMovements: number
     consentRecords: number
     consentNotices: number
     issueCases: number
@@ -3802,9 +3526,6 @@ export namespace Prisma {
     finances?: boolean | TenantCountOutputTypeCountFinancesArgs
     witnesses?: boolean | TenantCountOutputTypeCountWitnessesArgs
     events?: boolean | TenantCountOutputTypeCountEventsArgs
-    pointLogs?: boolean | TenantCountOutputTypeCountPointLogsArgs
-    inventory?: boolean | TenantCountOutputTypeCountInventoryArgs
-    inventoryMovements?: boolean | TenantCountOutputTypeCountInventoryMovementsArgs
     consentRecords?: boolean | TenantCountOutputTypeCountConsentRecordsArgs
     consentNotices?: boolean | TenantCountOutputTypeCountConsentNoticesArgs
     issueCases?: boolean | TenantCountOutputTypeCountIssueCasesArgs
@@ -3877,27 +3598,6 @@ export namespace Prisma {
    */
   export type TenantCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CampaignEventWhereInput
-  }
-
-  /**
-   * TenantCountOutputType without action
-   */
-  export type TenantCountOutputTypeCountPointLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: PointLogWhereInput
-  }
-
-  /**
-   * TenantCountOutputType without action
-   */
-  export type TenantCountOutputTypeCountInventoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryItemWhereInput
-  }
-
-  /**
-   * TenantCountOutputType without action
-   */
-  export type TenantCountOutputTypeCountInventoryMovementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryMovementWhereInput
   }
 
   /**
@@ -4027,8 +3727,6 @@ export namespace Prisma {
     registeredVoters: number
     witnessReports: number
     witnessReportsReviewed: number
-    pointLogs: number
-    inventoryMoves: number
     consentsCaptured: number
     consentNoticesCreated: number
     casesAssigned: number
@@ -4059,8 +3757,6 @@ export namespace Prisma {
     registeredVoters?: boolean | UserCountOutputTypeCountRegisteredVotersArgs
     witnessReports?: boolean | UserCountOutputTypeCountWitnessReportsArgs
     witnessReportsReviewed?: boolean | UserCountOutputTypeCountWitnessReportsReviewedArgs
-    pointLogs?: boolean | UserCountOutputTypeCountPointLogsArgs
-    inventoryMoves?: boolean | UserCountOutputTypeCountInventoryMovesArgs
     consentsCaptured?: boolean | UserCountOutputTypeCountConsentsCapturedArgs
     consentNoticesCreated?: boolean | UserCountOutputTypeCountConsentNoticesCreatedArgs
     casesAssigned?: boolean | UserCountOutputTypeCountCasesAssignedArgs
@@ -4135,20 +3831,6 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountWitnessReportsReviewedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WitnessReportWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountPointLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: PointLogWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountInventoryMovesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryMovementWhereInput
   }
 
   /**
@@ -4443,68 +4125,6 @@ export namespace Prisma {
    */
   export type WitnessReportCountOutputTypeCountSupersededReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WitnessReportWhereInput
-  }
-
-
-  /**
-   * Count Type CampaignEventCountOutputType
-   */
-
-  export type CampaignEventCountOutputType = {
-    attendees: number
-  }
-
-  export type CampaignEventCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    attendees?: boolean | CampaignEventCountOutputTypeCountAttendeesArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * CampaignEventCountOutputType without action
-   */
-  export type CampaignEventCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CampaignEventCountOutputType
-     */
-    select?: CampaignEventCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * CampaignEventCountOutputType without action
-   */
-  export type CampaignEventCountOutputTypeCountAttendeesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: PointLogWhereInput
-  }
-
-
-  /**
-   * Count Type InventoryItemCountOutputType
-   */
-
-  export type InventoryItemCountOutputType = {
-    movements: number
-  }
-
-  export type InventoryItemCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    movements?: boolean | InventoryItemCountOutputTypeCountMovementsArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * InventoryItemCountOutputType without action
-   */
-  export type InventoryItemCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItemCountOutputType
-     */
-    select?: InventoryItemCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * InventoryItemCountOutputType without action
-   */
-  export type InventoryItemCountOutputTypeCountMovementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryMovementWhereInput
   }
 
 
@@ -4864,9 +4484,6 @@ export namespace Prisma {
     finances?: boolean | Tenant$financesArgs<ExtArgs>
     witnesses?: boolean | Tenant$witnessesArgs<ExtArgs>
     events?: boolean | Tenant$eventsArgs<ExtArgs>
-    pointLogs?: boolean | Tenant$pointLogsArgs<ExtArgs>
-    inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
-    inventoryMovements?: boolean | Tenant$inventoryMovementsArgs<ExtArgs>
     consentRecords?: boolean | Tenant$consentRecordsArgs<ExtArgs>
     consentNotices?: boolean | Tenant$consentNoticesArgs<ExtArgs>
     issueCases?: boolean | Tenant$issueCasesArgs<ExtArgs>
@@ -4933,9 +4550,6 @@ export namespace Prisma {
     finances?: boolean | Tenant$financesArgs<ExtArgs>
     witnesses?: boolean | Tenant$witnessesArgs<ExtArgs>
     events?: boolean | Tenant$eventsArgs<ExtArgs>
-    pointLogs?: boolean | Tenant$pointLogsArgs<ExtArgs>
-    inventory?: boolean | Tenant$inventoryArgs<ExtArgs>
-    inventoryMovements?: boolean | Tenant$inventoryMovementsArgs<ExtArgs>
     consentRecords?: boolean | Tenant$consentRecordsArgs<ExtArgs>
     consentNotices?: boolean | Tenant$consentNoticesArgs<ExtArgs>
     issueCases?: boolean | Tenant$issueCasesArgs<ExtArgs>
@@ -4971,9 +4585,6 @@ export namespace Prisma {
       finances: Prisma.$FinancialEntryPayload<ExtArgs>[]
       witnesses: Prisma.$WitnessReportPayload<ExtArgs>[]
       events: Prisma.$CampaignEventPayload<ExtArgs>[]
-      pointLogs: Prisma.$PointLogPayload<ExtArgs>[]
-      inventory: Prisma.$InventoryItemPayload<ExtArgs>[]
-      inventoryMovements: Prisma.$InventoryMovementPayload<ExtArgs>[]
       consentRecords: Prisma.$ConsentRecordPayload<ExtArgs>[]
       consentNotices: Prisma.$ConsentNoticePayload<ExtArgs>[]
       issueCases: Prisma.$IssueCasePayload<ExtArgs>[]
@@ -5402,9 +5013,6 @@ export namespace Prisma {
     finances<T extends Tenant$financesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$financesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FinancialEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnesses<T extends Tenant$witnessesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$witnessesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     events<T extends Tenant$eventsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CampaignEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    pointLogs<T extends Tenant$pointLogsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$pointLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    inventory<T extends Tenant$inventoryArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$inventoryArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    inventoryMovements<T extends Tenant$inventoryMovementsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$inventoryMovementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentRecords<T extends Tenant$consentRecordsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$consentRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentNotices<T extends Tenant$consentNoticesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$consentNoticesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     issueCases<T extends Tenant$issueCasesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$issueCasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IssueCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -6061,78 +5669,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: CampaignEventScalarFieldEnum | CampaignEventScalarFieldEnum[]
-  }
-
-  /**
-   * Tenant.pointLogs
-   */
-  export type Tenant$pointLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    where?: PointLogWhereInput
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    cursor?: PointLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
-   * Tenant.inventory
-   */
-  export type Tenant$inventoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    where?: InventoryItemWhereInput
-    orderBy?: InventoryItemOrderByWithRelationInput | InventoryItemOrderByWithRelationInput[]
-    cursor?: InventoryItemWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: InventoryItemScalarFieldEnum | InventoryItemScalarFieldEnum[]
-  }
-
-  /**
-   * Tenant.inventoryMovements
-   */
-  export type Tenant$inventoryMovementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    where?: InventoryMovementWhereInput
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    cursor?: InventoryMovementWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
   }
 
   /**
@@ -9217,8 +8753,6 @@ export namespace Prisma {
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
-    pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
-    inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
     consentNoticesCreated?: boolean | User$consentNoticesCreatedArgs<ExtArgs>
     casesAssigned?: boolean | User$casesAssignedArgs<ExtArgs>
@@ -9317,8 +8851,6 @@ export namespace Prisma {
     registeredVoters?: boolean | User$registeredVotersArgs<ExtArgs>
     witnessReports?: boolean | User$witnessReportsArgs<ExtArgs>
     witnessReportsReviewed?: boolean | User$witnessReportsReviewedArgs<ExtArgs>
-    pointLogs?: boolean | User$pointLogsArgs<ExtArgs>
-    inventoryMoves?: boolean | User$inventoryMovesArgs<ExtArgs>
     consentsCaptured?: boolean | User$consentsCapturedArgs<ExtArgs>
     consentNoticesCreated?: boolean | User$consentNoticesCreatedArgs<ExtArgs>
     casesAssigned?: boolean | User$casesAssignedArgs<ExtArgs>
@@ -9362,8 +8894,6 @@ export namespace Prisma {
       registeredVoters: Prisma.$VoterPayload<ExtArgs>[]
       witnessReports: Prisma.$WitnessReportPayload<ExtArgs>[]
       witnessReportsReviewed: Prisma.$WitnessReportPayload<ExtArgs>[]
-      pointLogs: Prisma.$PointLogPayload<ExtArgs>[]
-      inventoryMoves: Prisma.$InventoryMovementPayload<ExtArgs>[]
       consentsCaptured: Prisma.$ConsentRecordPayload<ExtArgs>[]
       consentNoticesCreated: Prisma.$ConsentNoticePayload<ExtArgs>[]
       casesAssigned: Prisma.$IssueCasePayload<ExtArgs>[]
@@ -9812,8 +9342,6 @@ export namespace Prisma {
     registeredVoters<T extends User$registeredVotersArgs<ExtArgs> = {}>(args?: Subset<T, User$registeredVotersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VoterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReports<T extends User$witnessReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     witnessReportsReviewed<T extends User$witnessReportsReviewedArgs<ExtArgs> = {}>(args?: Subset<T, User$witnessReportsReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WitnessReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    pointLogs<T extends User$pointLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$pointLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    inventoryMoves<T extends User$inventoryMovesArgs<ExtArgs> = {}>(args?: Subset<T, User$inventoryMovesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentsCaptured<T extends User$consentsCapturedArgs<ExtArgs> = {}>(args?: Subset<T, User$consentsCapturedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentNoticesCreated<T extends User$consentNoticesCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$consentNoticesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     casesAssigned<T extends User$casesAssignedArgs<ExtArgs> = {}>(args?: Subset<T, User$casesAssignedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IssueCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -10442,54 +9970,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: WitnessReportScalarFieldEnum | WitnessReportScalarFieldEnum[]
-  }
-
-  /**
-   * User.pointLogs
-   */
-  export type User$pointLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    where?: PointLogWhereInput
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    cursor?: PointLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
-   * User.inventoryMoves
-   */
-  export type User$inventoryMovesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    where?: InventoryMovementWhereInput
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    cursor?: InventoryMovementWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
   }
 
   /**
@@ -17837,8 +17317,6 @@ export namespace Prisma {
     updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     responsible?: boolean | CampaignEvent$responsibleArgs<ExtArgs>
-    attendees?: boolean | CampaignEvent$attendeesArgs<ExtArgs>
-    _count?: boolean | CampaignEventCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["campaignEvent"]>
 
   export type CampaignEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -17900,8 +17378,6 @@ export namespace Prisma {
   export type CampaignEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     responsible?: boolean | CampaignEvent$responsibleArgs<ExtArgs>
-    attendees?: boolean | CampaignEvent$attendeesArgs<ExtArgs>
-    _count?: boolean | CampaignEventCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type CampaignEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -17917,7 +17393,6 @@ export namespace Prisma {
     objects: {
       tenant: Prisma.$TenantPayload<ExtArgs>
       responsible: Prisma.$UserPayload<ExtArgs> | null
-      attendees: Prisma.$PointLogPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -18330,7 +17805,6 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     responsible<T extends CampaignEvent$responsibleArgs<ExtArgs> = {}>(args?: Subset<T, CampaignEvent$responsibleArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    attendees<T extends CampaignEvent$attendeesArgs<ExtArgs> = {}>(args?: Subset<T, CampaignEvent$attendeesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -18794,30 +18268,6 @@ export namespace Prisma {
   }
 
   /**
-   * CampaignEvent.attendees
-   */
-  export type CampaignEvent$attendeesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    where?: PointLogWhereInput
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    cursor?: PointLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
    * CampaignEvent without action
    */
   export type CampaignEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -18833,3482 +18283,6 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: CampaignEventInclude<ExtArgs> | null
-  }
-
-
-  /**
-   * Model PointLog
-   */
-
-  export type AggregatePointLog = {
-    _count: PointLogCountAggregateOutputType | null
-    _avg: PointLogAvgAggregateOutputType | null
-    _sum: PointLogSumAggregateOutputType | null
-    _min: PointLogMinAggregateOutputType | null
-    _max: PointLogMaxAggregateOutputType | null
-  }
-
-  export type PointLogAvgAggregateOutputType = {
-    amount: number | null
-  }
-
-  export type PointLogSumAggregateOutputType = {
-    amount: number | null
-  }
-
-  export type PointLogMinAggregateOutputType = {
-    id: string | null
-    tenantId: string | null
-    userId: string | null
-    amount: number | null
-    reason: string | null
-    eventId: string | null
-    createdAt: Date | null
-  }
-
-  export type PointLogMaxAggregateOutputType = {
-    id: string | null
-    tenantId: string | null
-    userId: string | null
-    amount: number | null
-    reason: string | null
-    eventId: string | null
-    createdAt: Date | null
-  }
-
-  export type PointLogCountAggregateOutputType = {
-    id: number
-    tenantId: number
-    userId: number
-    amount: number
-    reason: number
-    eventId: number
-    createdAt: number
-    _all: number
-  }
-
-
-  export type PointLogAvgAggregateInputType = {
-    amount?: true
-  }
-
-  export type PointLogSumAggregateInputType = {
-    amount?: true
-  }
-
-  export type PointLogMinAggregateInputType = {
-    id?: true
-    tenantId?: true
-    userId?: true
-    amount?: true
-    reason?: true
-    eventId?: true
-    createdAt?: true
-  }
-
-  export type PointLogMaxAggregateInputType = {
-    id?: true
-    tenantId?: true
-    userId?: true
-    amount?: true
-    reason?: true
-    eventId?: true
-    createdAt?: true
-  }
-
-  export type PointLogCountAggregateInputType = {
-    id?: true
-    tenantId?: true
-    userId?: true
-    amount?: true
-    reason?: true
-    eventId?: true
-    createdAt?: true
-    _all?: true
-  }
-
-  export type PointLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which PointLog to aggregate.
-     */
-    where?: PointLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of PointLogs to fetch.
-     */
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: PointLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` PointLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` PointLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned PointLogs
-    **/
-    _count?: true | PointLogCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: PointLogAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: PointLogSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: PointLogMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: PointLogMaxAggregateInputType
-  }
-
-  export type GetPointLogAggregateType<T extends PointLogAggregateArgs> = {
-        [P in keyof T & keyof AggregatePointLog]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregatePointLog[P]>
-      : GetScalarType<T[P], AggregatePointLog[P]>
-  }
-
-
-
-
-  export type PointLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: PointLogWhereInput
-    orderBy?: PointLogOrderByWithAggregationInput | PointLogOrderByWithAggregationInput[]
-    by: PointLogScalarFieldEnum[] | PointLogScalarFieldEnum
-    having?: PointLogScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: PointLogCountAggregateInputType | true
-    _avg?: PointLogAvgAggregateInputType
-    _sum?: PointLogSumAggregateInputType
-    _min?: PointLogMinAggregateInputType
-    _max?: PointLogMaxAggregateInputType
-  }
-
-  export type PointLogGroupByOutputType = {
-    id: string
-    tenantId: string
-    userId: string
-    amount: number
-    reason: string
-    eventId: string | null
-    createdAt: Date
-    _count: PointLogCountAggregateOutputType | null
-    _avg: PointLogAvgAggregateOutputType | null
-    _sum: PointLogSumAggregateOutputType | null
-    _min: PointLogMinAggregateOutputType | null
-    _max: PointLogMaxAggregateOutputType | null
-  }
-
-  type GetPointLogGroupByPayload<T extends PointLogGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<PointLogGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof PointLogGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], PointLogGroupByOutputType[P]>
-            : GetScalarType<T[P], PointLogGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type PointLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    userId?: boolean
-    amount?: boolean
-    reason?: boolean
-    eventId?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }, ExtArgs["result"]["pointLog"]>
-
-  export type PointLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    userId?: boolean
-    amount?: boolean
-    reason?: boolean
-    eventId?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }, ExtArgs["result"]["pointLog"]>
-
-  export type PointLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    userId?: boolean
-    amount?: boolean
-    reason?: boolean
-    eventId?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }, ExtArgs["result"]["pointLog"]>
-
-  export type PointLogSelectScalar = {
-    id?: boolean
-    tenantId?: boolean
-    userId?: boolean
-    amount?: boolean
-    reason?: boolean
-    eventId?: boolean
-    createdAt?: boolean
-  }
-
-  export type PointLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "userId" | "amount" | "reason" | "eventId" | "createdAt", ExtArgs["result"]["pointLog"]>
-  export type PointLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }
-  export type PointLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }
-  export type PointLogIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-    event?: boolean | PointLog$eventArgs<ExtArgs>
-  }
-
-  export type $PointLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "PointLog"
-    objects: {
-      tenant: Prisma.$TenantPayload<ExtArgs>
-      user: Prisma.$UserPayload<ExtArgs>
-      event: Prisma.$CampaignEventPayload<ExtArgs> | null
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      tenantId: string
-      userId: string
-      amount: number
-      reason: string
-      eventId: string | null
-      createdAt: Date
-    }, ExtArgs["result"]["pointLog"]>
-    composites: {}
-  }
-
-  type PointLogGetPayload<S extends boolean | null | undefined | PointLogDefaultArgs> = $Result.GetResult<Prisma.$PointLogPayload, S>
-
-  type PointLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<PointLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: PointLogCountAggregateInputType | true
-    }
-
-  export interface PointLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PointLog'], meta: { name: 'PointLog' } }
-    /**
-     * Find zero or one PointLog that matches the filter.
-     * @param {PointLogFindUniqueArgs} args - Arguments to find a PointLog
-     * @example
-     * // Get one PointLog
-     * const pointLog = await prisma.pointLog.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends PointLogFindUniqueArgs>(args: SelectSubset<T, PointLogFindUniqueArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one PointLog that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {PointLogFindUniqueOrThrowArgs} args - Arguments to find a PointLog
-     * @example
-     * // Get one PointLog
-     * const pointLog = await prisma.pointLog.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends PointLogFindUniqueOrThrowArgs>(args: SelectSubset<T, PointLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first PointLog that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogFindFirstArgs} args - Arguments to find a PointLog
-     * @example
-     * // Get one PointLog
-     * const pointLog = await prisma.pointLog.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends PointLogFindFirstArgs>(args?: SelectSubset<T, PointLogFindFirstArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first PointLog that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogFindFirstOrThrowArgs} args - Arguments to find a PointLog
-     * @example
-     * // Get one PointLog
-     * const pointLog = await prisma.pointLog.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends PointLogFindFirstOrThrowArgs>(args?: SelectSubset<T, PointLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more PointLogs that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all PointLogs
-     * const pointLogs = await prisma.pointLog.findMany()
-     * 
-     * // Get first 10 PointLogs
-     * const pointLogs = await prisma.pointLog.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const pointLogWithIdOnly = await prisma.pointLog.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends PointLogFindManyArgs>(args?: SelectSubset<T, PointLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a PointLog.
-     * @param {PointLogCreateArgs} args - Arguments to create a PointLog.
-     * @example
-     * // Create one PointLog
-     * const PointLog = await prisma.pointLog.create({
-     *   data: {
-     *     // ... data to create a PointLog
-     *   }
-     * })
-     * 
-     */
-    create<T extends PointLogCreateArgs>(args: SelectSubset<T, PointLogCreateArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many PointLogs.
-     * @param {PointLogCreateManyArgs} args - Arguments to create many PointLogs.
-     * @example
-     * // Create many PointLogs
-     * const pointLog = await prisma.pointLog.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends PointLogCreateManyArgs>(args?: SelectSubset<T, PointLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many PointLogs and returns the data saved in the database.
-     * @param {PointLogCreateManyAndReturnArgs} args - Arguments to create many PointLogs.
-     * @example
-     * // Create many PointLogs
-     * const pointLog = await prisma.pointLog.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many PointLogs and only return the `id`
-     * const pointLogWithIdOnly = await prisma.pointLog.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends PointLogCreateManyAndReturnArgs>(args?: SelectSubset<T, PointLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a PointLog.
-     * @param {PointLogDeleteArgs} args - Arguments to delete one PointLog.
-     * @example
-     * // Delete one PointLog
-     * const PointLog = await prisma.pointLog.delete({
-     *   where: {
-     *     // ... filter to delete one PointLog
-     *   }
-     * })
-     * 
-     */
-    delete<T extends PointLogDeleteArgs>(args: SelectSubset<T, PointLogDeleteArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one PointLog.
-     * @param {PointLogUpdateArgs} args - Arguments to update one PointLog.
-     * @example
-     * // Update one PointLog
-     * const pointLog = await prisma.pointLog.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends PointLogUpdateArgs>(args: SelectSubset<T, PointLogUpdateArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more PointLogs.
-     * @param {PointLogDeleteManyArgs} args - Arguments to filter PointLogs to delete.
-     * @example
-     * // Delete a few PointLogs
-     * const { count } = await prisma.pointLog.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends PointLogDeleteManyArgs>(args?: SelectSubset<T, PointLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more PointLogs.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many PointLogs
-     * const pointLog = await prisma.pointLog.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends PointLogUpdateManyArgs>(args: SelectSubset<T, PointLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more PointLogs and returns the data updated in the database.
-     * @param {PointLogUpdateManyAndReturnArgs} args - Arguments to update many PointLogs.
-     * @example
-     * // Update many PointLogs
-     * const pointLog = await prisma.pointLog.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more PointLogs and only return the `id`
-     * const pointLogWithIdOnly = await prisma.pointLog.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends PointLogUpdateManyAndReturnArgs>(args: SelectSubset<T, PointLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one PointLog.
-     * @param {PointLogUpsertArgs} args - Arguments to update or create a PointLog.
-     * @example
-     * // Update or create a PointLog
-     * const pointLog = await prisma.pointLog.upsert({
-     *   create: {
-     *     // ... data to create a PointLog
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the PointLog we want to update
-     *   }
-     * })
-     */
-    upsert<T extends PointLogUpsertArgs>(args: SelectSubset<T, PointLogUpsertArgs<ExtArgs>>): Prisma__PointLogClient<$Result.GetResult<Prisma.$PointLogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of PointLogs.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogCountArgs} args - Arguments to filter PointLogs to count.
-     * @example
-     * // Count the number of PointLogs
-     * const count = await prisma.pointLog.count({
-     *   where: {
-     *     // ... the filter for the PointLogs we want to count
-     *   }
-     * })
-    **/
-    count<T extends PointLogCountArgs>(
-      args?: Subset<T, PointLogCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], PointLogCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a PointLog.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends PointLogAggregateArgs>(args: Subset<T, PointLogAggregateArgs>): Prisma.PrismaPromise<GetPointLogAggregateType<T>>
-
-    /**
-     * Group by PointLog.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {PointLogGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends PointLogGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: PointLogGroupByArgs['orderBy'] }
-        : { orderBy?: PointLogGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, PointLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPointLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the PointLog model
-   */
-  readonly fields: PointLogFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for PointLog.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__PointLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    event<T extends PointLog$eventArgs<ExtArgs> = {}>(args?: Subset<T, PointLog$eventArgs<ExtArgs>>): Prisma__CampaignEventClient<$Result.GetResult<Prisma.$CampaignEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the PointLog model
-   */
-  interface PointLogFieldRefs {
-    readonly id: FieldRef<"PointLog", 'String'>
-    readonly tenantId: FieldRef<"PointLog", 'String'>
-    readonly userId: FieldRef<"PointLog", 'String'>
-    readonly amount: FieldRef<"PointLog", 'Int'>
-    readonly reason: FieldRef<"PointLog", 'String'>
-    readonly eventId: FieldRef<"PointLog", 'String'>
-    readonly createdAt: FieldRef<"PointLog", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * PointLog findUnique
-   */
-  export type PointLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter, which PointLog to fetch.
-     */
-    where: PointLogWhereUniqueInput
-  }
-
-  /**
-   * PointLog findUniqueOrThrow
-   */
-  export type PointLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter, which PointLog to fetch.
-     */
-    where: PointLogWhereUniqueInput
-  }
-
-  /**
-   * PointLog findFirst
-   */
-  export type PointLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter, which PointLog to fetch.
-     */
-    where?: PointLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of PointLogs to fetch.
-     */
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for PointLogs.
-     */
-    cursor?: PointLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` PointLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` PointLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of PointLogs.
-     */
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
-   * PointLog findFirstOrThrow
-   */
-  export type PointLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter, which PointLog to fetch.
-     */
-    where?: PointLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of PointLogs to fetch.
-     */
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for PointLogs.
-     */
-    cursor?: PointLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` PointLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` PointLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of PointLogs.
-     */
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
-   * PointLog findMany
-   */
-  export type PointLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter, which PointLogs to fetch.
-     */
-    where?: PointLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of PointLogs to fetch.
-     */
-    orderBy?: PointLogOrderByWithRelationInput | PointLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing PointLogs.
-     */
-    cursor?: PointLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` PointLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` PointLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of PointLogs.
-     */
-    distinct?: PointLogScalarFieldEnum | PointLogScalarFieldEnum[]
-  }
-
-  /**
-   * PointLog create
-   */
-  export type PointLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * The data needed to create a PointLog.
-     */
-    data: XOR<PointLogCreateInput, PointLogUncheckedCreateInput>
-  }
-
-  /**
-   * PointLog createMany
-   */
-  export type PointLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many PointLogs.
-     */
-    data: PointLogCreateManyInput | PointLogCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * PointLog createManyAndReturn
-   */
-  export type PointLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * The data used to create many PointLogs.
-     */
-    data: PointLogCreateManyInput | PointLogCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogIncludeCreateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * PointLog update
-   */
-  export type PointLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * The data needed to update a PointLog.
-     */
-    data: XOR<PointLogUpdateInput, PointLogUncheckedUpdateInput>
-    /**
-     * Choose, which PointLog to update.
-     */
-    where: PointLogWhereUniqueInput
-  }
-
-  /**
-   * PointLog updateMany
-   */
-  export type PointLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update PointLogs.
-     */
-    data: XOR<PointLogUpdateManyMutationInput, PointLogUncheckedUpdateManyInput>
-    /**
-     * Filter which PointLogs to update
-     */
-    where?: PointLogWhereInput
-    /**
-     * Limit how many PointLogs to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * PointLog updateManyAndReturn
-   */
-  export type PointLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * The data used to update PointLogs.
-     */
-    data: XOR<PointLogUpdateManyMutationInput, PointLogUncheckedUpdateManyInput>
-    /**
-     * Filter which PointLogs to update
-     */
-    where?: PointLogWhereInput
-    /**
-     * Limit how many PointLogs to update.
-     */
-    limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogIncludeUpdateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * PointLog upsert
-   */
-  export type PointLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * The filter to search for the PointLog to update in case it exists.
-     */
-    where: PointLogWhereUniqueInput
-    /**
-     * In case the PointLog found by the `where` argument doesn't exist, create a new PointLog with this data.
-     */
-    create: XOR<PointLogCreateInput, PointLogUncheckedCreateInput>
-    /**
-     * In case the PointLog was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<PointLogUpdateInput, PointLogUncheckedUpdateInput>
-  }
-
-  /**
-   * PointLog delete
-   */
-  export type PointLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-    /**
-     * Filter which PointLog to delete.
-     */
-    where: PointLogWhereUniqueInput
-  }
-
-  /**
-   * PointLog deleteMany
-   */
-  export type PointLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which PointLogs to delete
-     */
-    where?: PointLogWhereInput
-    /**
-     * Limit how many PointLogs to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * PointLog.event
-   */
-  export type PointLog$eventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CampaignEvent
-     */
-    select?: CampaignEventSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the CampaignEvent
-     */
-    omit?: CampaignEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CampaignEventInclude<ExtArgs> | null
-    where?: CampaignEventWhereInput
-  }
-
-  /**
-   * PointLog without action
-   */
-  export type PointLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PointLog
-     */
-    select?: PointLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PointLog
-     */
-    omit?: PointLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PointLogInclude<ExtArgs> | null
-  }
-
-
-  /**
-   * Model InventoryItem
-   */
-
-  export type AggregateInventoryItem = {
-    _count: InventoryItemCountAggregateOutputType | null
-    _avg: InventoryItemAvgAggregateOutputType | null
-    _sum: InventoryItemSumAggregateOutputType | null
-    _min: InventoryItemMinAggregateOutputType | null
-    _max: InventoryItemMaxAggregateOutputType | null
-  }
-
-  export type InventoryItemAvgAggregateOutputType = {
-    quantity: number | null
-  }
-
-  export type InventoryItemSumAggregateOutputType = {
-    quantity: number | null
-  }
-
-  export type InventoryItemMinAggregateOutputType = {
-    id: string | null
-    name: string | null
-    sku: string | null
-    quantity: number | null
-    warehouse: string | null
-    tenantId: string | null
-    createdAt: Date | null
-    updatedAt: Date | null
-  }
-
-  export type InventoryItemMaxAggregateOutputType = {
-    id: string | null
-    name: string | null
-    sku: string | null
-    quantity: number | null
-    warehouse: string | null
-    tenantId: string | null
-    createdAt: Date | null
-    updatedAt: Date | null
-  }
-
-  export type InventoryItemCountAggregateOutputType = {
-    id: number
-    name: number
-    sku: number
-    quantity: number
-    warehouse: number
-    tenantId: number
-    createdAt: number
-    updatedAt: number
-    _all: number
-  }
-
-
-  export type InventoryItemAvgAggregateInputType = {
-    quantity?: true
-  }
-
-  export type InventoryItemSumAggregateInputType = {
-    quantity?: true
-  }
-
-  export type InventoryItemMinAggregateInputType = {
-    id?: true
-    name?: true
-    sku?: true
-    quantity?: true
-    warehouse?: true
-    tenantId?: true
-    createdAt?: true
-    updatedAt?: true
-  }
-
-  export type InventoryItemMaxAggregateInputType = {
-    id?: true
-    name?: true
-    sku?: true
-    quantity?: true
-    warehouse?: true
-    tenantId?: true
-    createdAt?: true
-    updatedAt?: true
-  }
-
-  export type InventoryItemCountAggregateInputType = {
-    id?: true
-    name?: true
-    sku?: true
-    quantity?: true
-    warehouse?: true
-    tenantId?: true
-    createdAt?: true
-    updatedAt?: true
-    _all?: true
-  }
-
-  export type InventoryItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which InventoryItem to aggregate.
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryItems to fetch.
-     */
-    orderBy?: InventoryItemOrderByWithRelationInput | InventoryItemOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: InventoryItemWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryItems from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryItems.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned InventoryItems
-    **/
-    _count?: true | InventoryItemCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: InventoryItemAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: InventoryItemSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: InventoryItemMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: InventoryItemMaxAggregateInputType
-  }
-
-  export type GetInventoryItemAggregateType<T extends InventoryItemAggregateArgs> = {
-        [P in keyof T & keyof AggregateInventoryItem]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateInventoryItem[P]>
-      : GetScalarType<T[P], AggregateInventoryItem[P]>
-  }
-
-
-
-
-  export type InventoryItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryItemWhereInput
-    orderBy?: InventoryItemOrderByWithAggregationInput | InventoryItemOrderByWithAggregationInput[]
-    by: InventoryItemScalarFieldEnum[] | InventoryItemScalarFieldEnum
-    having?: InventoryItemScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: InventoryItemCountAggregateInputType | true
-    _avg?: InventoryItemAvgAggregateInputType
-    _sum?: InventoryItemSumAggregateInputType
-    _min?: InventoryItemMinAggregateInputType
-    _max?: InventoryItemMaxAggregateInputType
-  }
-
-  export type InventoryItemGroupByOutputType = {
-    id: string
-    name: string
-    sku: string | null
-    quantity: number
-    warehouse: string | null
-    tenantId: string
-    createdAt: Date
-    updatedAt: Date
-    _count: InventoryItemCountAggregateOutputType | null
-    _avg: InventoryItemAvgAggregateOutputType | null
-    _sum: InventoryItemSumAggregateOutputType | null
-    _min: InventoryItemMinAggregateOutputType | null
-    _max: InventoryItemMaxAggregateOutputType | null
-  }
-
-  type GetInventoryItemGroupByPayload<T extends InventoryItemGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<InventoryItemGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof InventoryItemGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], InventoryItemGroupByOutputType[P]>
-            : GetScalarType<T[P], InventoryItemGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type InventoryItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    sku?: boolean
-    quantity?: boolean
-    warehouse?: boolean
-    tenantId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    movements?: boolean | InventoryItem$movementsArgs<ExtArgs>
-    _count?: boolean | InventoryItemCountOutputTypeDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryItem"]>
-
-  export type InventoryItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    sku?: boolean
-    quantity?: boolean
-    warehouse?: boolean
-    tenantId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryItem"]>
-
-  export type InventoryItemSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    sku?: boolean
-    quantity?: boolean
-    warehouse?: boolean
-    tenantId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryItem"]>
-
-  export type InventoryItemSelectScalar = {
-    id?: boolean
-    name?: boolean
-    sku?: boolean
-    quantity?: boolean
-    warehouse?: boolean
-    tenantId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }
-
-  export type InventoryItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "sku" | "quantity" | "warehouse" | "tenantId" | "createdAt" | "updatedAt", ExtArgs["result"]["inventoryItem"]>
-  export type InventoryItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    movements?: boolean | InventoryItem$movementsArgs<ExtArgs>
-    _count?: boolean | InventoryItemCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type InventoryItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-  }
-  export type InventoryItemIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-  }
-
-  export type $InventoryItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "InventoryItem"
-    objects: {
-      tenant: Prisma.$TenantPayload<ExtArgs>
-      movements: Prisma.$InventoryMovementPayload<ExtArgs>[]
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      name: string
-      sku: string | null
-      quantity: number
-      warehouse: string | null
-      tenantId: string
-      createdAt: Date
-      updatedAt: Date
-    }, ExtArgs["result"]["inventoryItem"]>
-    composites: {}
-  }
-
-  type InventoryItemGetPayload<S extends boolean | null | undefined | InventoryItemDefaultArgs> = $Result.GetResult<Prisma.$InventoryItemPayload, S>
-
-  type InventoryItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<InventoryItemFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: InventoryItemCountAggregateInputType | true
-    }
-
-  export interface InventoryItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InventoryItem'], meta: { name: 'InventoryItem' } }
-    /**
-     * Find zero or one InventoryItem that matches the filter.
-     * @param {InventoryItemFindUniqueArgs} args - Arguments to find a InventoryItem
-     * @example
-     * // Get one InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends InventoryItemFindUniqueArgs>(args: SelectSubset<T, InventoryItemFindUniqueArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one InventoryItem that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {InventoryItemFindUniqueOrThrowArgs} args - Arguments to find a InventoryItem
-     * @example
-     * // Get one InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends InventoryItemFindUniqueOrThrowArgs>(args: SelectSubset<T, InventoryItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first InventoryItem that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemFindFirstArgs} args - Arguments to find a InventoryItem
-     * @example
-     * // Get one InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends InventoryItemFindFirstArgs>(args?: SelectSubset<T, InventoryItemFindFirstArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first InventoryItem that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemFindFirstOrThrowArgs} args - Arguments to find a InventoryItem
-     * @example
-     * // Get one InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends InventoryItemFindFirstOrThrowArgs>(args?: SelectSubset<T, InventoryItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more InventoryItems that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all InventoryItems
-     * const inventoryItems = await prisma.inventoryItem.findMany()
-     * 
-     * // Get first 10 InventoryItems
-     * const inventoryItems = await prisma.inventoryItem.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const inventoryItemWithIdOnly = await prisma.inventoryItem.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends InventoryItemFindManyArgs>(args?: SelectSubset<T, InventoryItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a InventoryItem.
-     * @param {InventoryItemCreateArgs} args - Arguments to create a InventoryItem.
-     * @example
-     * // Create one InventoryItem
-     * const InventoryItem = await prisma.inventoryItem.create({
-     *   data: {
-     *     // ... data to create a InventoryItem
-     *   }
-     * })
-     * 
-     */
-    create<T extends InventoryItemCreateArgs>(args: SelectSubset<T, InventoryItemCreateArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many InventoryItems.
-     * @param {InventoryItemCreateManyArgs} args - Arguments to create many InventoryItems.
-     * @example
-     * // Create many InventoryItems
-     * const inventoryItem = await prisma.inventoryItem.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends InventoryItemCreateManyArgs>(args?: SelectSubset<T, InventoryItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many InventoryItems and returns the data saved in the database.
-     * @param {InventoryItemCreateManyAndReturnArgs} args - Arguments to create many InventoryItems.
-     * @example
-     * // Create many InventoryItems
-     * const inventoryItem = await prisma.inventoryItem.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many InventoryItems and only return the `id`
-     * const inventoryItemWithIdOnly = await prisma.inventoryItem.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends InventoryItemCreateManyAndReturnArgs>(args?: SelectSubset<T, InventoryItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a InventoryItem.
-     * @param {InventoryItemDeleteArgs} args - Arguments to delete one InventoryItem.
-     * @example
-     * // Delete one InventoryItem
-     * const InventoryItem = await prisma.inventoryItem.delete({
-     *   where: {
-     *     // ... filter to delete one InventoryItem
-     *   }
-     * })
-     * 
-     */
-    delete<T extends InventoryItemDeleteArgs>(args: SelectSubset<T, InventoryItemDeleteArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one InventoryItem.
-     * @param {InventoryItemUpdateArgs} args - Arguments to update one InventoryItem.
-     * @example
-     * // Update one InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends InventoryItemUpdateArgs>(args: SelectSubset<T, InventoryItemUpdateArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more InventoryItems.
-     * @param {InventoryItemDeleteManyArgs} args - Arguments to filter InventoryItems to delete.
-     * @example
-     * // Delete a few InventoryItems
-     * const { count } = await prisma.inventoryItem.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends InventoryItemDeleteManyArgs>(args?: SelectSubset<T, InventoryItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more InventoryItems.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many InventoryItems
-     * const inventoryItem = await prisma.inventoryItem.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends InventoryItemUpdateManyArgs>(args: SelectSubset<T, InventoryItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more InventoryItems and returns the data updated in the database.
-     * @param {InventoryItemUpdateManyAndReturnArgs} args - Arguments to update many InventoryItems.
-     * @example
-     * // Update many InventoryItems
-     * const inventoryItem = await prisma.inventoryItem.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more InventoryItems and only return the `id`
-     * const inventoryItemWithIdOnly = await prisma.inventoryItem.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends InventoryItemUpdateManyAndReturnArgs>(args: SelectSubset<T, InventoryItemUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one InventoryItem.
-     * @param {InventoryItemUpsertArgs} args - Arguments to update or create a InventoryItem.
-     * @example
-     * // Update or create a InventoryItem
-     * const inventoryItem = await prisma.inventoryItem.upsert({
-     *   create: {
-     *     // ... data to create a InventoryItem
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the InventoryItem we want to update
-     *   }
-     * })
-     */
-    upsert<T extends InventoryItemUpsertArgs>(args: SelectSubset<T, InventoryItemUpsertArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of InventoryItems.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemCountArgs} args - Arguments to filter InventoryItems to count.
-     * @example
-     * // Count the number of InventoryItems
-     * const count = await prisma.inventoryItem.count({
-     *   where: {
-     *     // ... the filter for the InventoryItems we want to count
-     *   }
-     * })
-    **/
-    count<T extends InventoryItemCountArgs>(
-      args?: Subset<T, InventoryItemCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], InventoryItemCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a InventoryItem.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends InventoryItemAggregateArgs>(args: Subset<T, InventoryItemAggregateArgs>): Prisma.PrismaPromise<GetInventoryItemAggregateType<T>>
-
-    /**
-     * Group by InventoryItem.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryItemGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends InventoryItemGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: InventoryItemGroupByArgs['orderBy'] }
-        : { orderBy?: InventoryItemGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, InventoryItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInventoryItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the InventoryItem model
-   */
-  readonly fields: InventoryItemFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for InventoryItem.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__InventoryItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    movements<T extends InventoryItem$movementsArgs<ExtArgs> = {}>(args?: Subset<T, InventoryItem$movementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the InventoryItem model
-   */
-  interface InventoryItemFieldRefs {
-    readonly id: FieldRef<"InventoryItem", 'String'>
-    readonly name: FieldRef<"InventoryItem", 'String'>
-    readonly sku: FieldRef<"InventoryItem", 'String'>
-    readonly quantity: FieldRef<"InventoryItem", 'Int'>
-    readonly warehouse: FieldRef<"InventoryItem", 'String'>
-    readonly tenantId: FieldRef<"InventoryItem", 'String'>
-    readonly createdAt: FieldRef<"InventoryItem", 'DateTime'>
-    readonly updatedAt: FieldRef<"InventoryItem", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * InventoryItem findUnique
-   */
-  export type InventoryItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryItem to fetch.
-     */
-    where: InventoryItemWhereUniqueInput
-  }
-
-  /**
-   * InventoryItem findUniqueOrThrow
-   */
-  export type InventoryItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryItem to fetch.
-     */
-    where: InventoryItemWhereUniqueInput
-  }
-
-  /**
-   * InventoryItem findFirst
-   */
-  export type InventoryItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryItem to fetch.
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryItems to fetch.
-     */
-    orderBy?: InventoryItemOrderByWithRelationInput | InventoryItemOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for InventoryItems.
-     */
-    cursor?: InventoryItemWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryItems from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryItems.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryItems.
-     */
-    distinct?: InventoryItemScalarFieldEnum | InventoryItemScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryItem findFirstOrThrow
-   */
-  export type InventoryItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryItem to fetch.
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryItems to fetch.
-     */
-    orderBy?: InventoryItemOrderByWithRelationInput | InventoryItemOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for InventoryItems.
-     */
-    cursor?: InventoryItemWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryItems from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryItems.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryItems.
-     */
-    distinct?: InventoryItemScalarFieldEnum | InventoryItemScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryItem findMany
-   */
-  export type InventoryItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryItems to fetch.
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryItems to fetch.
-     */
-    orderBy?: InventoryItemOrderByWithRelationInput | InventoryItemOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing InventoryItems.
-     */
-    cursor?: InventoryItemWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryItems from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryItems.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryItems.
-     */
-    distinct?: InventoryItemScalarFieldEnum | InventoryItemScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryItem create
-   */
-  export type InventoryItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * The data needed to create a InventoryItem.
-     */
-    data: XOR<InventoryItemCreateInput, InventoryItemUncheckedCreateInput>
-  }
-
-  /**
-   * InventoryItem createMany
-   */
-  export type InventoryItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many InventoryItems.
-     */
-    data: InventoryItemCreateManyInput | InventoryItemCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * InventoryItem createManyAndReturn
-   */
-  export type InventoryItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * The data used to create many InventoryItems.
-     */
-    data: InventoryItemCreateManyInput | InventoryItemCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemIncludeCreateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * InventoryItem update
-   */
-  export type InventoryItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * The data needed to update a InventoryItem.
-     */
-    data: XOR<InventoryItemUpdateInput, InventoryItemUncheckedUpdateInput>
-    /**
-     * Choose, which InventoryItem to update.
-     */
-    where: InventoryItemWhereUniqueInput
-  }
-
-  /**
-   * InventoryItem updateMany
-   */
-  export type InventoryItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update InventoryItems.
-     */
-    data: XOR<InventoryItemUpdateManyMutationInput, InventoryItemUncheckedUpdateManyInput>
-    /**
-     * Filter which InventoryItems to update
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * Limit how many InventoryItems to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * InventoryItem updateManyAndReturn
-   */
-  export type InventoryItemUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * The data used to update InventoryItems.
-     */
-    data: XOR<InventoryItemUpdateManyMutationInput, InventoryItemUncheckedUpdateManyInput>
-    /**
-     * Filter which InventoryItems to update
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * Limit how many InventoryItems to update.
-     */
-    limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemIncludeUpdateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * InventoryItem upsert
-   */
-  export type InventoryItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * The filter to search for the InventoryItem to update in case it exists.
-     */
-    where: InventoryItemWhereUniqueInput
-    /**
-     * In case the InventoryItem found by the `where` argument doesn't exist, create a new InventoryItem with this data.
-     */
-    create: XOR<InventoryItemCreateInput, InventoryItemUncheckedCreateInput>
-    /**
-     * In case the InventoryItem was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<InventoryItemUpdateInput, InventoryItemUncheckedUpdateInput>
-  }
-
-  /**
-   * InventoryItem delete
-   */
-  export type InventoryItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-    /**
-     * Filter which InventoryItem to delete.
-     */
-    where: InventoryItemWhereUniqueInput
-  }
-
-  /**
-   * InventoryItem deleteMany
-   */
-  export type InventoryItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which InventoryItems to delete
-     */
-    where?: InventoryItemWhereInput
-    /**
-     * Limit how many InventoryItems to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * InventoryItem.movements
-   */
-  export type InventoryItem$movementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    where?: InventoryMovementWhereInput
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    cursor?: InventoryMovementWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryItem without action
-   */
-  export type InventoryItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryItem
-     */
-    select?: InventoryItemSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryItem
-     */
-    omit?: InventoryItemOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryItemInclude<ExtArgs> | null
-  }
-
-
-  /**
-   * Model InventoryMovement
-   */
-
-  export type AggregateInventoryMovement = {
-    _count: InventoryMovementCountAggregateOutputType | null
-    _avg: InventoryMovementAvgAggregateOutputType | null
-    _sum: InventoryMovementSumAggregateOutputType | null
-    _min: InventoryMovementMinAggregateOutputType | null
-    _max: InventoryMovementMaxAggregateOutputType | null
-  }
-
-  export type InventoryMovementAvgAggregateOutputType = {
-    quantity: number | null
-  }
-
-  export type InventoryMovementSumAggregateOutputType = {
-    quantity: number | null
-  }
-
-  export type InventoryMovementMinAggregateOutputType = {
-    id: string | null
-    tenantId: string | null
-    itemId: string | null
-    userId: string | null
-    quantity: number | null
-    type: $Enums.MovementType | null
-    reason: string | null
-    createdAt: Date | null
-  }
-
-  export type InventoryMovementMaxAggregateOutputType = {
-    id: string | null
-    tenantId: string | null
-    itemId: string | null
-    userId: string | null
-    quantity: number | null
-    type: $Enums.MovementType | null
-    reason: string | null
-    createdAt: Date | null
-  }
-
-  export type InventoryMovementCountAggregateOutputType = {
-    id: number
-    tenantId: number
-    itemId: number
-    userId: number
-    quantity: number
-    type: number
-    reason: number
-    createdAt: number
-    _all: number
-  }
-
-
-  export type InventoryMovementAvgAggregateInputType = {
-    quantity?: true
-  }
-
-  export type InventoryMovementSumAggregateInputType = {
-    quantity?: true
-  }
-
-  export type InventoryMovementMinAggregateInputType = {
-    id?: true
-    tenantId?: true
-    itemId?: true
-    userId?: true
-    quantity?: true
-    type?: true
-    reason?: true
-    createdAt?: true
-  }
-
-  export type InventoryMovementMaxAggregateInputType = {
-    id?: true
-    tenantId?: true
-    itemId?: true
-    userId?: true
-    quantity?: true
-    type?: true
-    reason?: true
-    createdAt?: true
-  }
-
-  export type InventoryMovementCountAggregateInputType = {
-    id?: true
-    tenantId?: true
-    itemId?: true
-    userId?: true
-    quantity?: true
-    type?: true
-    reason?: true
-    createdAt?: true
-    _all?: true
-  }
-
-  export type InventoryMovementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which InventoryMovement to aggregate.
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryMovements to fetch.
-     */
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: InventoryMovementWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryMovements from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryMovements.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned InventoryMovements
-    **/
-    _count?: true | InventoryMovementCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: InventoryMovementAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: InventoryMovementSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: InventoryMovementMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: InventoryMovementMaxAggregateInputType
-  }
-
-  export type GetInventoryMovementAggregateType<T extends InventoryMovementAggregateArgs> = {
-        [P in keyof T & keyof AggregateInventoryMovement]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateInventoryMovement[P]>
-      : GetScalarType<T[P], AggregateInventoryMovement[P]>
-  }
-
-
-
-
-  export type InventoryMovementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: InventoryMovementWhereInput
-    orderBy?: InventoryMovementOrderByWithAggregationInput | InventoryMovementOrderByWithAggregationInput[]
-    by: InventoryMovementScalarFieldEnum[] | InventoryMovementScalarFieldEnum
-    having?: InventoryMovementScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: InventoryMovementCountAggregateInputType | true
-    _avg?: InventoryMovementAvgAggregateInputType
-    _sum?: InventoryMovementSumAggregateInputType
-    _min?: InventoryMovementMinAggregateInputType
-    _max?: InventoryMovementMaxAggregateInputType
-  }
-
-  export type InventoryMovementGroupByOutputType = {
-    id: string
-    tenantId: string
-    itemId: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason: string | null
-    createdAt: Date
-    _count: InventoryMovementCountAggregateOutputType | null
-    _avg: InventoryMovementAvgAggregateOutputType | null
-    _sum: InventoryMovementSumAggregateOutputType | null
-    _min: InventoryMovementMinAggregateOutputType | null
-    _max: InventoryMovementMaxAggregateOutputType | null
-  }
-
-  type GetInventoryMovementGroupByPayload<T extends InventoryMovementGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<InventoryMovementGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof InventoryMovementGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], InventoryMovementGroupByOutputType[P]>
-            : GetScalarType<T[P], InventoryMovementGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type InventoryMovementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    itemId?: boolean
-    userId?: boolean
-    quantity?: boolean
-    type?: boolean
-    reason?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryMovement"]>
-
-  export type InventoryMovementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    itemId?: boolean
-    userId?: boolean
-    quantity?: boolean
-    type?: boolean
-    reason?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryMovement"]>
-
-  export type InventoryMovementSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    tenantId?: boolean
-    itemId?: boolean
-    userId?: boolean
-    quantity?: boolean
-    type?: boolean
-    reason?: boolean
-    createdAt?: boolean
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["inventoryMovement"]>
-
-  export type InventoryMovementSelectScalar = {
-    id?: boolean
-    tenantId?: boolean
-    itemId?: boolean
-    userId?: boolean
-    quantity?: boolean
-    type?: boolean
-    reason?: boolean
-    createdAt?: boolean
-  }
-
-  export type InventoryMovementOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "itemId" | "userId" | "quantity" | "type" | "reason" | "createdAt", ExtArgs["result"]["inventoryMovement"]>
-  export type InventoryMovementInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type InventoryMovementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type InventoryMovementIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    tenant?: boolean | TenantDefaultArgs<ExtArgs>
-    item?: boolean | InventoryItemDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-
-  export type $InventoryMovementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "InventoryMovement"
-    objects: {
-      tenant: Prisma.$TenantPayload<ExtArgs>
-      item: Prisma.$InventoryItemPayload<ExtArgs>
-      user: Prisma.$UserPayload<ExtArgs>
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      tenantId: string
-      itemId: string
-      userId: string
-      quantity: number
-      type: $Enums.MovementType
-      reason: string | null
-      createdAt: Date
-    }, ExtArgs["result"]["inventoryMovement"]>
-    composites: {}
-  }
-
-  type InventoryMovementGetPayload<S extends boolean | null | undefined | InventoryMovementDefaultArgs> = $Result.GetResult<Prisma.$InventoryMovementPayload, S>
-
-  type InventoryMovementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<InventoryMovementFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: InventoryMovementCountAggregateInputType | true
-    }
-
-  export interface InventoryMovementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InventoryMovement'], meta: { name: 'InventoryMovement' } }
-    /**
-     * Find zero or one InventoryMovement that matches the filter.
-     * @param {InventoryMovementFindUniqueArgs} args - Arguments to find a InventoryMovement
-     * @example
-     * // Get one InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends InventoryMovementFindUniqueArgs>(args: SelectSubset<T, InventoryMovementFindUniqueArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one InventoryMovement that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {InventoryMovementFindUniqueOrThrowArgs} args - Arguments to find a InventoryMovement
-     * @example
-     * // Get one InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends InventoryMovementFindUniqueOrThrowArgs>(args: SelectSubset<T, InventoryMovementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first InventoryMovement that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementFindFirstArgs} args - Arguments to find a InventoryMovement
-     * @example
-     * // Get one InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends InventoryMovementFindFirstArgs>(args?: SelectSubset<T, InventoryMovementFindFirstArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first InventoryMovement that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementFindFirstOrThrowArgs} args - Arguments to find a InventoryMovement
-     * @example
-     * // Get one InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends InventoryMovementFindFirstOrThrowArgs>(args?: SelectSubset<T, InventoryMovementFindFirstOrThrowArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more InventoryMovements that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all InventoryMovements
-     * const inventoryMovements = await prisma.inventoryMovement.findMany()
-     * 
-     * // Get first 10 InventoryMovements
-     * const inventoryMovements = await prisma.inventoryMovement.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const inventoryMovementWithIdOnly = await prisma.inventoryMovement.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends InventoryMovementFindManyArgs>(args?: SelectSubset<T, InventoryMovementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a InventoryMovement.
-     * @param {InventoryMovementCreateArgs} args - Arguments to create a InventoryMovement.
-     * @example
-     * // Create one InventoryMovement
-     * const InventoryMovement = await prisma.inventoryMovement.create({
-     *   data: {
-     *     // ... data to create a InventoryMovement
-     *   }
-     * })
-     * 
-     */
-    create<T extends InventoryMovementCreateArgs>(args: SelectSubset<T, InventoryMovementCreateArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many InventoryMovements.
-     * @param {InventoryMovementCreateManyArgs} args - Arguments to create many InventoryMovements.
-     * @example
-     * // Create many InventoryMovements
-     * const inventoryMovement = await prisma.inventoryMovement.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends InventoryMovementCreateManyArgs>(args?: SelectSubset<T, InventoryMovementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many InventoryMovements and returns the data saved in the database.
-     * @param {InventoryMovementCreateManyAndReturnArgs} args - Arguments to create many InventoryMovements.
-     * @example
-     * // Create many InventoryMovements
-     * const inventoryMovement = await prisma.inventoryMovement.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many InventoryMovements and only return the `id`
-     * const inventoryMovementWithIdOnly = await prisma.inventoryMovement.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends InventoryMovementCreateManyAndReturnArgs>(args?: SelectSubset<T, InventoryMovementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a InventoryMovement.
-     * @param {InventoryMovementDeleteArgs} args - Arguments to delete one InventoryMovement.
-     * @example
-     * // Delete one InventoryMovement
-     * const InventoryMovement = await prisma.inventoryMovement.delete({
-     *   where: {
-     *     // ... filter to delete one InventoryMovement
-     *   }
-     * })
-     * 
-     */
-    delete<T extends InventoryMovementDeleteArgs>(args: SelectSubset<T, InventoryMovementDeleteArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one InventoryMovement.
-     * @param {InventoryMovementUpdateArgs} args - Arguments to update one InventoryMovement.
-     * @example
-     * // Update one InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends InventoryMovementUpdateArgs>(args: SelectSubset<T, InventoryMovementUpdateArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more InventoryMovements.
-     * @param {InventoryMovementDeleteManyArgs} args - Arguments to filter InventoryMovements to delete.
-     * @example
-     * // Delete a few InventoryMovements
-     * const { count } = await prisma.inventoryMovement.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends InventoryMovementDeleteManyArgs>(args?: SelectSubset<T, InventoryMovementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more InventoryMovements.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many InventoryMovements
-     * const inventoryMovement = await prisma.inventoryMovement.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends InventoryMovementUpdateManyArgs>(args: SelectSubset<T, InventoryMovementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more InventoryMovements and returns the data updated in the database.
-     * @param {InventoryMovementUpdateManyAndReturnArgs} args - Arguments to update many InventoryMovements.
-     * @example
-     * // Update many InventoryMovements
-     * const inventoryMovement = await prisma.inventoryMovement.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more InventoryMovements and only return the `id`
-     * const inventoryMovementWithIdOnly = await prisma.inventoryMovement.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends InventoryMovementUpdateManyAndReturnArgs>(args: SelectSubset<T, InventoryMovementUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one InventoryMovement.
-     * @param {InventoryMovementUpsertArgs} args - Arguments to update or create a InventoryMovement.
-     * @example
-     * // Update or create a InventoryMovement
-     * const inventoryMovement = await prisma.inventoryMovement.upsert({
-     *   create: {
-     *     // ... data to create a InventoryMovement
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the InventoryMovement we want to update
-     *   }
-     * })
-     */
-    upsert<T extends InventoryMovementUpsertArgs>(args: SelectSubset<T, InventoryMovementUpsertArgs<ExtArgs>>): Prisma__InventoryMovementClient<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of InventoryMovements.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementCountArgs} args - Arguments to filter InventoryMovements to count.
-     * @example
-     * // Count the number of InventoryMovements
-     * const count = await prisma.inventoryMovement.count({
-     *   where: {
-     *     // ... the filter for the InventoryMovements we want to count
-     *   }
-     * })
-    **/
-    count<T extends InventoryMovementCountArgs>(
-      args?: Subset<T, InventoryMovementCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], InventoryMovementCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a InventoryMovement.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends InventoryMovementAggregateArgs>(args: Subset<T, InventoryMovementAggregateArgs>): Prisma.PrismaPromise<GetInventoryMovementAggregateType<T>>
-
-    /**
-     * Group by InventoryMovement.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {InventoryMovementGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends InventoryMovementGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: InventoryMovementGroupByArgs['orderBy'] }
-        : { orderBy?: InventoryMovementGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, InventoryMovementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInventoryMovementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the InventoryMovement model
-   */
-  readonly fields: InventoryMovementFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for InventoryMovement.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__InventoryMovementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    item<T extends InventoryItemDefaultArgs<ExtArgs> = {}>(args?: Subset<T, InventoryItemDefaultArgs<ExtArgs>>): Prisma__InventoryItemClient<$Result.GetResult<Prisma.$InventoryItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the InventoryMovement model
-   */
-  interface InventoryMovementFieldRefs {
-    readonly id: FieldRef<"InventoryMovement", 'String'>
-    readonly tenantId: FieldRef<"InventoryMovement", 'String'>
-    readonly itemId: FieldRef<"InventoryMovement", 'String'>
-    readonly userId: FieldRef<"InventoryMovement", 'String'>
-    readonly quantity: FieldRef<"InventoryMovement", 'Int'>
-    readonly type: FieldRef<"InventoryMovement", 'MovementType'>
-    readonly reason: FieldRef<"InventoryMovement", 'String'>
-    readonly createdAt: FieldRef<"InventoryMovement", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * InventoryMovement findUnique
-   */
-  export type InventoryMovementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryMovement to fetch.
-     */
-    where: InventoryMovementWhereUniqueInput
-  }
-
-  /**
-   * InventoryMovement findUniqueOrThrow
-   */
-  export type InventoryMovementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryMovement to fetch.
-     */
-    where: InventoryMovementWhereUniqueInput
-  }
-
-  /**
-   * InventoryMovement findFirst
-   */
-  export type InventoryMovementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryMovement to fetch.
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryMovements to fetch.
-     */
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for InventoryMovements.
-     */
-    cursor?: InventoryMovementWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryMovements from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryMovements.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryMovements.
-     */
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryMovement findFirstOrThrow
-   */
-  export type InventoryMovementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryMovement to fetch.
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryMovements to fetch.
-     */
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for InventoryMovements.
-     */
-    cursor?: InventoryMovementWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryMovements from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryMovements.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryMovements.
-     */
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryMovement findMany
-   */
-  export type InventoryMovementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter, which InventoryMovements to fetch.
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of InventoryMovements to fetch.
-     */
-    orderBy?: InventoryMovementOrderByWithRelationInput | InventoryMovementOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing InventoryMovements.
-     */
-    cursor?: InventoryMovementWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` InventoryMovements from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` InventoryMovements.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of InventoryMovements.
-     */
-    distinct?: InventoryMovementScalarFieldEnum | InventoryMovementScalarFieldEnum[]
-  }
-
-  /**
-   * InventoryMovement create
-   */
-  export type InventoryMovementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * The data needed to create a InventoryMovement.
-     */
-    data: XOR<InventoryMovementCreateInput, InventoryMovementUncheckedCreateInput>
-  }
-
-  /**
-   * InventoryMovement createMany
-   */
-  export type InventoryMovementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many InventoryMovements.
-     */
-    data: InventoryMovementCreateManyInput | InventoryMovementCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * InventoryMovement createManyAndReturn
-   */
-  export type InventoryMovementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * The data used to create many InventoryMovements.
-     */
-    data: InventoryMovementCreateManyInput | InventoryMovementCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementIncludeCreateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * InventoryMovement update
-   */
-  export type InventoryMovementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * The data needed to update a InventoryMovement.
-     */
-    data: XOR<InventoryMovementUpdateInput, InventoryMovementUncheckedUpdateInput>
-    /**
-     * Choose, which InventoryMovement to update.
-     */
-    where: InventoryMovementWhereUniqueInput
-  }
-
-  /**
-   * InventoryMovement updateMany
-   */
-  export type InventoryMovementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update InventoryMovements.
-     */
-    data: XOR<InventoryMovementUpdateManyMutationInput, InventoryMovementUncheckedUpdateManyInput>
-    /**
-     * Filter which InventoryMovements to update
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * Limit how many InventoryMovements to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * InventoryMovement updateManyAndReturn
-   */
-  export type InventoryMovementUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * The data used to update InventoryMovements.
-     */
-    data: XOR<InventoryMovementUpdateManyMutationInput, InventoryMovementUncheckedUpdateManyInput>
-    /**
-     * Filter which InventoryMovements to update
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * Limit how many InventoryMovements to update.
-     */
-    limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementIncludeUpdateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * InventoryMovement upsert
-   */
-  export type InventoryMovementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * The filter to search for the InventoryMovement to update in case it exists.
-     */
-    where: InventoryMovementWhereUniqueInput
-    /**
-     * In case the InventoryMovement found by the `where` argument doesn't exist, create a new InventoryMovement with this data.
-     */
-    create: XOR<InventoryMovementCreateInput, InventoryMovementUncheckedCreateInput>
-    /**
-     * In case the InventoryMovement was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<InventoryMovementUpdateInput, InventoryMovementUncheckedUpdateInput>
-  }
-
-  /**
-   * InventoryMovement delete
-   */
-  export type InventoryMovementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
-    /**
-     * Filter which InventoryMovement to delete.
-     */
-    where: InventoryMovementWhereUniqueInput
-  }
-
-  /**
-   * InventoryMovement deleteMany
-   */
-  export type InventoryMovementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which InventoryMovements to delete
-     */
-    where?: InventoryMovementWhereInput
-    /**
-     * Limit how many InventoryMovements to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * InventoryMovement without action
-   */
-  export type InventoryMovementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the InventoryMovement
-     */
-    select?: InventoryMovementSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the InventoryMovement
-     */
-    omit?: InventoryMovementOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: InventoryMovementInclude<ExtArgs> | null
   }
 
 
@@ -39122,47 +35096,6 @@ export namespace Prisma {
   export type CampaignEventScalarFieldEnum = (typeof CampaignEventScalarFieldEnum)[keyof typeof CampaignEventScalarFieldEnum]
 
 
-  export const PointLogScalarFieldEnum: {
-    id: 'id',
-    tenantId: 'tenantId',
-    userId: 'userId',
-    amount: 'amount',
-    reason: 'reason',
-    eventId: 'eventId',
-    createdAt: 'createdAt'
-  };
-
-  export type PointLogScalarFieldEnum = (typeof PointLogScalarFieldEnum)[keyof typeof PointLogScalarFieldEnum]
-
-
-  export const InventoryItemScalarFieldEnum: {
-    id: 'id',
-    name: 'name',
-    sku: 'sku',
-    quantity: 'quantity',
-    warehouse: 'warehouse',
-    tenantId: 'tenantId',
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  };
-
-  export type InventoryItemScalarFieldEnum = (typeof InventoryItemScalarFieldEnum)[keyof typeof InventoryItemScalarFieldEnum]
-
-
-  export const InventoryMovementScalarFieldEnum: {
-    id: 'id',
-    tenantId: 'tenantId',
-    itemId: 'itemId',
-    userId: 'userId',
-    quantity: 'quantity',
-    type: 'type',
-    reason: 'reason',
-    createdAt: 'createdAt'
-  };
-
-  export type InventoryMovementScalarFieldEnum = (typeof InventoryMovementScalarFieldEnum)[keyof typeof InventoryMovementScalarFieldEnum]
-
-
   export const ConsentRecordScalarFieldEnum: {
     id: 'id',
     tenantId: 'tenantId',
@@ -39762,20 +35695,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'MovementType'
-   */
-  export type EnumMovementTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MovementType'>
-    
-
-
-  /**
-   * Reference to a field of type 'MovementType[]'
-   */
-  export type ListEnumMovementTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MovementType[]'>
-    
-
-
-  /**
    * Reference to a field of type 'ConsentSubjectType'
    */
   export type EnumConsentSubjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConsentSubjectType'>
@@ -40164,9 +36083,6 @@ export namespace Prisma {
     finances?: FinancialEntryListRelationFilter
     witnesses?: WitnessReportListRelationFilter
     events?: CampaignEventListRelationFilter
-    pointLogs?: PointLogListRelationFilter
-    inventory?: InventoryItemListRelationFilter
-    inventoryMovements?: InventoryMovementListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
     consentNotices?: ConsentNoticeListRelationFilter
     issueCases?: IssueCaseListRelationFilter
@@ -40202,9 +36118,6 @@ export namespace Prisma {
     finances?: FinancialEntryOrderByRelationAggregateInput
     witnesses?: WitnessReportOrderByRelationAggregateInput
     events?: CampaignEventOrderByRelationAggregateInput
-    pointLogs?: PointLogOrderByRelationAggregateInput
-    inventory?: InventoryItemOrderByRelationAggregateInput
-    inventoryMovements?: InventoryMovementOrderByRelationAggregateInput
     consentRecords?: ConsentRecordOrderByRelationAggregateInput
     consentNotices?: ConsentNoticeOrderByRelationAggregateInput
     issueCases?: IssueCaseOrderByRelationAggregateInput
@@ -40243,9 +36156,6 @@ export namespace Prisma {
     finances?: FinancialEntryListRelationFilter
     witnesses?: WitnessReportListRelationFilter
     events?: CampaignEventListRelationFilter
-    pointLogs?: PointLogListRelationFilter
-    inventory?: InventoryItemListRelationFilter
-    inventoryMovements?: InventoryMovementListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
     consentNotices?: ConsentNoticeListRelationFilter
     issueCases?: IssueCaseListRelationFilter
@@ -40517,8 +36427,6 @@ export namespace Prisma {
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     witnessReportsReviewed?: WitnessReportListRelationFilter
-    pointLogs?: PointLogListRelationFilter
-    inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
     consentNoticesCreated?: ConsentNoticeListRelationFilter
     casesAssigned?: IssueCaseListRelationFilter
@@ -40568,8 +36476,6 @@ export namespace Prisma {
     registeredVoters?: VoterOrderByRelationAggregateInput
     witnessReports?: WitnessReportOrderByRelationAggregateInput
     witnessReportsReviewed?: WitnessReportOrderByRelationAggregateInput
-    pointLogs?: PointLogOrderByRelationAggregateInput
-    inventoryMoves?: InventoryMovementOrderByRelationAggregateInput
     consentsCaptured?: ConsentRecordOrderByRelationAggregateInput
     consentNoticesCreated?: ConsentNoticeOrderByRelationAggregateInput
     casesAssigned?: IssueCaseOrderByRelationAggregateInput
@@ -40624,8 +36530,6 @@ export namespace Prisma {
     registeredVoters?: VoterListRelationFilter
     witnessReports?: WitnessReportListRelationFilter
     witnessReportsReviewed?: WitnessReportListRelationFilter
-    pointLogs?: PointLogListRelationFilter
-    inventoryMoves?: InventoryMovementListRelationFilter
     consentsCaptured?: ConsentRecordListRelationFilter
     consentNoticesCreated?: ConsentNoticeListRelationFilter
     casesAssigned?: IssueCaseListRelationFilter
@@ -41307,7 +37211,6 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"CampaignEvent"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     responsible?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
-    attendees?: PointLogListRelationFilter
   }
 
   export type CampaignEventOrderByWithRelationInput = {
@@ -41327,7 +37230,6 @@ export namespace Prisma {
     updatedAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     responsible?: UserOrderByWithRelationInput
-    attendees?: PointLogOrderByRelationAggregateInput
   }
 
   export type CampaignEventWhereUniqueInput = Prisma.AtLeast<{
@@ -41351,7 +37253,6 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"CampaignEvent"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     responsible?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
-    attendees?: PointLogListRelationFilter
   }, "id" | "id_tenantId">
 
   export type CampaignEventOrderByWithAggregationInput = {
@@ -41394,234 +37295,6 @@ export namespace Prisma {
     tenantId?: StringWithAggregatesFilter<"CampaignEvent"> | string
     createdAt?: DateTimeWithAggregatesFilter<"CampaignEvent"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CampaignEvent"> | Date | string
-  }
-
-  export type PointLogWhereInput = {
-    AND?: PointLogWhereInput | PointLogWhereInput[]
-    OR?: PointLogWhereInput[]
-    NOT?: PointLogWhereInput | PointLogWhereInput[]
-    id?: StringFilter<"PointLog"> | string
-    tenantId?: StringFilter<"PointLog"> | string
-    userId?: StringFilter<"PointLog"> | string
-    amount?: IntFilter<"PointLog"> | number
-    reason?: StringFilter<"PointLog"> | string
-    eventId?: StringNullableFilter<"PointLog"> | string | null
-    createdAt?: DateTimeFilter<"PointLog"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    event?: XOR<CampaignEventNullableScalarRelationFilter, CampaignEventWhereInput> | null
-  }
-
-  export type PointLogOrderByWithRelationInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    userId?: SortOrder
-    amount?: SortOrder
-    reason?: SortOrder
-    eventId?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    tenant?: TenantOrderByWithRelationInput
-    user?: UserOrderByWithRelationInput
-    event?: CampaignEventOrderByWithRelationInput
-  }
-
-  export type PointLogWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    AND?: PointLogWhereInput | PointLogWhereInput[]
-    OR?: PointLogWhereInput[]
-    NOT?: PointLogWhereInput | PointLogWhereInput[]
-    tenantId?: StringFilter<"PointLog"> | string
-    userId?: StringFilter<"PointLog"> | string
-    amount?: IntFilter<"PointLog"> | number
-    reason?: StringFilter<"PointLog"> | string
-    eventId?: StringNullableFilter<"PointLog"> | string | null
-    createdAt?: DateTimeFilter<"PointLog"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    event?: XOR<CampaignEventNullableScalarRelationFilter, CampaignEventWhereInput> | null
-  }, "id">
-
-  export type PointLogOrderByWithAggregationInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    userId?: SortOrder
-    amount?: SortOrder
-    reason?: SortOrder
-    eventId?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    _count?: PointLogCountOrderByAggregateInput
-    _avg?: PointLogAvgOrderByAggregateInput
-    _max?: PointLogMaxOrderByAggregateInput
-    _min?: PointLogMinOrderByAggregateInput
-    _sum?: PointLogSumOrderByAggregateInput
-  }
-
-  export type PointLogScalarWhereWithAggregatesInput = {
-    AND?: PointLogScalarWhereWithAggregatesInput | PointLogScalarWhereWithAggregatesInput[]
-    OR?: PointLogScalarWhereWithAggregatesInput[]
-    NOT?: PointLogScalarWhereWithAggregatesInput | PointLogScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"PointLog"> | string
-    tenantId?: StringWithAggregatesFilter<"PointLog"> | string
-    userId?: StringWithAggregatesFilter<"PointLog"> | string
-    amount?: IntWithAggregatesFilter<"PointLog"> | number
-    reason?: StringWithAggregatesFilter<"PointLog"> | string
-    eventId?: StringNullableWithAggregatesFilter<"PointLog"> | string | null
-    createdAt?: DateTimeWithAggregatesFilter<"PointLog"> | Date | string
-  }
-
-  export type InventoryItemWhereInput = {
-    AND?: InventoryItemWhereInput | InventoryItemWhereInput[]
-    OR?: InventoryItemWhereInput[]
-    NOT?: InventoryItemWhereInput | InventoryItemWhereInput[]
-    id?: StringFilter<"InventoryItem"> | string
-    name?: StringFilter<"InventoryItem"> | string
-    sku?: StringNullableFilter<"InventoryItem"> | string | null
-    quantity?: IntFilter<"InventoryItem"> | number
-    warehouse?: StringNullableFilter<"InventoryItem"> | string | null
-    tenantId?: StringFilter<"InventoryItem"> | string
-    createdAt?: DateTimeFilter<"InventoryItem"> | Date | string
-    updatedAt?: DateTimeFilter<"InventoryItem"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    movements?: InventoryMovementListRelationFilter
-  }
-
-  export type InventoryItemOrderByWithRelationInput = {
-    id?: SortOrder
-    name?: SortOrder
-    sku?: SortOrderInput | SortOrder
-    quantity?: SortOrder
-    warehouse?: SortOrderInput | SortOrder
-    tenantId?: SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-    tenant?: TenantOrderByWithRelationInput
-    movements?: InventoryMovementOrderByRelationAggregateInput
-  }
-
-  export type InventoryItemWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    id_tenantId?: InventoryItemIdTenantIdCompoundUniqueInput
-    tenantId_sku?: InventoryItemTenantIdSkuCompoundUniqueInput
-    AND?: InventoryItemWhereInput | InventoryItemWhereInput[]
-    OR?: InventoryItemWhereInput[]
-    NOT?: InventoryItemWhereInput | InventoryItemWhereInput[]
-    name?: StringFilter<"InventoryItem"> | string
-    sku?: StringNullableFilter<"InventoryItem"> | string | null
-    quantity?: IntFilter<"InventoryItem"> | number
-    warehouse?: StringNullableFilter<"InventoryItem"> | string | null
-    tenantId?: StringFilter<"InventoryItem"> | string
-    createdAt?: DateTimeFilter<"InventoryItem"> | Date | string
-    updatedAt?: DateTimeFilter<"InventoryItem"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    movements?: InventoryMovementListRelationFilter
-  }, "id" | "id_tenantId" | "tenantId_sku">
-
-  export type InventoryItemOrderByWithAggregationInput = {
-    id?: SortOrder
-    name?: SortOrder
-    sku?: SortOrderInput | SortOrder
-    quantity?: SortOrder
-    warehouse?: SortOrderInput | SortOrder
-    tenantId?: SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-    _count?: InventoryItemCountOrderByAggregateInput
-    _avg?: InventoryItemAvgOrderByAggregateInput
-    _max?: InventoryItemMaxOrderByAggregateInput
-    _min?: InventoryItemMinOrderByAggregateInput
-    _sum?: InventoryItemSumOrderByAggregateInput
-  }
-
-  export type InventoryItemScalarWhereWithAggregatesInput = {
-    AND?: InventoryItemScalarWhereWithAggregatesInput | InventoryItemScalarWhereWithAggregatesInput[]
-    OR?: InventoryItemScalarWhereWithAggregatesInput[]
-    NOT?: InventoryItemScalarWhereWithAggregatesInput | InventoryItemScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"InventoryItem"> | string
-    name?: StringWithAggregatesFilter<"InventoryItem"> | string
-    sku?: StringNullableWithAggregatesFilter<"InventoryItem"> | string | null
-    quantity?: IntWithAggregatesFilter<"InventoryItem"> | number
-    warehouse?: StringNullableWithAggregatesFilter<"InventoryItem"> | string | null
-    tenantId?: StringWithAggregatesFilter<"InventoryItem"> | string
-    createdAt?: DateTimeWithAggregatesFilter<"InventoryItem"> | Date | string
-    updatedAt?: DateTimeWithAggregatesFilter<"InventoryItem"> | Date | string
-  }
-
-  export type InventoryMovementWhereInput = {
-    AND?: InventoryMovementWhereInput | InventoryMovementWhereInput[]
-    OR?: InventoryMovementWhereInput[]
-    NOT?: InventoryMovementWhereInput | InventoryMovementWhereInput[]
-    id?: StringFilter<"InventoryMovement"> | string
-    tenantId?: StringFilter<"InventoryMovement"> | string
-    itemId?: StringFilter<"InventoryMovement"> | string
-    userId?: StringFilter<"InventoryMovement"> | string
-    quantity?: IntFilter<"InventoryMovement"> | number
-    type?: EnumMovementTypeFilter<"InventoryMovement"> | $Enums.MovementType
-    reason?: StringNullableFilter<"InventoryMovement"> | string | null
-    createdAt?: DateTimeFilter<"InventoryMovement"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    item?: XOR<InventoryItemScalarRelationFilter, InventoryItemWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }
-
-  export type InventoryMovementOrderByWithRelationInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    itemId?: SortOrder
-    userId?: SortOrder
-    quantity?: SortOrder
-    type?: SortOrder
-    reason?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    tenant?: TenantOrderByWithRelationInput
-    item?: InventoryItemOrderByWithRelationInput
-    user?: UserOrderByWithRelationInput
-  }
-
-  export type InventoryMovementWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    AND?: InventoryMovementWhereInput | InventoryMovementWhereInput[]
-    OR?: InventoryMovementWhereInput[]
-    NOT?: InventoryMovementWhereInput | InventoryMovementWhereInput[]
-    tenantId?: StringFilter<"InventoryMovement"> | string
-    itemId?: StringFilter<"InventoryMovement"> | string
-    userId?: StringFilter<"InventoryMovement"> | string
-    quantity?: IntFilter<"InventoryMovement"> | number
-    type?: EnumMovementTypeFilter<"InventoryMovement"> | $Enums.MovementType
-    reason?: StringNullableFilter<"InventoryMovement"> | string | null
-    createdAt?: DateTimeFilter<"InventoryMovement"> | Date | string
-    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
-    item?: XOR<InventoryItemScalarRelationFilter, InventoryItemWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id">
-
-  export type InventoryMovementOrderByWithAggregationInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    itemId?: SortOrder
-    userId?: SortOrder
-    quantity?: SortOrder
-    type?: SortOrder
-    reason?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    _count?: InventoryMovementCountOrderByAggregateInput
-    _avg?: InventoryMovementAvgOrderByAggregateInput
-    _max?: InventoryMovementMaxOrderByAggregateInput
-    _min?: InventoryMovementMinOrderByAggregateInput
-    _sum?: InventoryMovementSumOrderByAggregateInput
-  }
-
-  export type InventoryMovementScalarWhereWithAggregatesInput = {
-    AND?: InventoryMovementScalarWhereWithAggregatesInput | InventoryMovementScalarWhereWithAggregatesInput[]
-    OR?: InventoryMovementScalarWhereWithAggregatesInput[]
-    NOT?: InventoryMovementScalarWhereWithAggregatesInput | InventoryMovementScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"InventoryMovement"> | string
-    tenantId?: StringWithAggregatesFilter<"InventoryMovement"> | string
-    itemId?: StringWithAggregatesFilter<"InventoryMovement"> | string
-    userId?: StringWithAggregatesFilter<"InventoryMovement"> | string
-    quantity?: IntWithAggregatesFilter<"InventoryMovement"> | number
-    type?: EnumMovementTypeWithAggregatesFilter<"InventoryMovement"> | $Enums.MovementType
-    reason?: StringNullableWithAggregatesFilter<"InventoryMovement"> | string | null
-    createdAt?: DateTimeWithAggregatesFilter<"InventoryMovement"> | Date | string
   }
 
   export type ConsentRecordWhereInput = {
@@ -43198,9 +38871,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -43235,9 +38905,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -43272,9 +38939,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -43309,9 +38973,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -43605,8 +39266,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -43654,8 +39313,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -43703,8 +39360,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -43752,8 +39407,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -44486,7 +40139,6 @@ export namespace Prisma {
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutEventsInput
     responsible?: UserCreateNestedOneWithoutEventsResponsibleInput
-    attendees?: PointLogCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventUncheckedCreateInput = {
@@ -44504,7 +40156,6 @@ export namespace Prisma {
     tenantId: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    attendees?: PointLogUncheckedCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventUpdateInput = {
@@ -44522,7 +40173,6 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutEventsNestedInput
     responsible?: UserUpdateOneWithoutEventsResponsibleNestedInput
-    attendees?: PointLogUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventUncheckedUpdateInput = {
@@ -44540,7 +40190,6 @@ export namespace Prisma {
     tenantId?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    attendees?: PointLogUncheckedUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventCreateManyInput = {
@@ -44590,227 +40239,6 @@ export namespace Prisma {
     tenantId?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogCreateInput = {
-    id?: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutPointLogsInput
-    user: UserCreateNestedOneWithoutPointLogsInput
-    event?: CampaignEventCreateNestedOneWithoutAttendeesInput
-  }
-
-  export type PointLogUncheckedCreateInput = {
-    id?: string
-    tenantId: string
-    userId: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type PointLogUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutPointLogsNestedInput
-    user?: UserUpdateOneRequiredWithoutPointLogsNestedInput
-    event?: CampaignEventUpdateOneWithoutAttendeesNestedInput
-  }
-
-  export type PointLogUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    tenantId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogCreateManyInput = {
-    id?: string
-    tenantId: string
-    userId: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type PointLogUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    tenantId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryItemCreateInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutInventoryInput
-    movements?: InventoryMovementCreateNestedManyWithoutItemInput
-  }
-
-  export type InventoryItemUncheckedCreateInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    tenantId: string
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    movements?: InventoryMovementUncheckedCreateNestedManyWithoutItemInput
-  }
-
-  export type InventoryItemUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutInventoryNestedInput
-    movements?: InventoryMovementUpdateManyWithoutItemNestedInput
-  }
-
-  export type InventoryItemUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    tenantId?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    movements?: InventoryMovementUncheckedUpdateManyWithoutItemNestedInput
-  }
-
-  export type InventoryItemCreateManyInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    tenantId: string
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type InventoryItemUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryItemUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    tenantId?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementCreateInput = {
-    id?: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutInventoryMovementsInput
-    item: InventoryItemCreateNestedOneWithoutMovementsInput
-    user: UserCreateNestedOneWithoutInventoryMovesInput
-  }
-
-  export type InventoryMovementUncheckedCreateInput = {
-    id?: string
-    tenantId: string
-    itemId: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutInventoryMovementsNestedInput
-    item?: InventoryItemUpdateOneRequiredWithoutMovementsNestedInput
-    user?: UserUpdateOneRequiredWithoutInventoryMovesNestedInput
-  }
-
-  export type InventoryMovementUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    tenantId?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementCreateManyInput = {
-    id?: string
-    tenantId: string
-    itemId: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    tenantId?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ConsentRecordCreateInput = {
@@ -46658,24 +42086,6 @@ export namespace Prisma {
     none?: CampaignEventWhereInput
   }
 
-  export type PointLogListRelationFilter = {
-    every?: PointLogWhereInput
-    some?: PointLogWhereInput
-    none?: PointLogWhereInput
-  }
-
-  export type InventoryItemListRelationFilter = {
-    every?: InventoryItemWhereInput
-    some?: InventoryItemWhereInput
-    none?: InventoryItemWhereInput
-  }
-
-  export type InventoryMovementListRelationFilter = {
-    every?: InventoryMovementWhereInput
-    some?: InventoryMovementWhereInput
-    none?: InventoryMovementWhereInput
-  }
-
   export type ConsentRecordListRelationFilter = {
     every?: ConsentRecordWhereInput
     some?: ConsentRecordWhereInput
@@ -46788,18 +42198,6 @@ export namespace Prisma {
   }
 
   export type CampaignEventOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type PointLogOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type InventoryItemOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type InventoryMovementOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -47923,163 +43321,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCampaignEventStatusFilter<$PrismaModel>
     _max?: NestedEnumCampaignEventStatusFilter<$PrismaModel>
-  }
-
-  export type CampaignEventNullableScalarRelationFilter = {
-    is?: CampaignEventWhereInput | null
-    isNot?: CampaignEventWhereInput | null
-  }
-
-  export type PointLogCountOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    userId?: SortOrder
-    amount?: SortOrder
-    reason?: SortOrder
-    eventId?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type PointLogAvgOrderByAggregateInput = {
-    amount?: SortOrder
-  }
-
-  export type PointLogMaxOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    userId?: SortOrder
-    amount?: SortOrder
-    reason?: SortOrder
-    eventId?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type PointLogMinOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    userId?: SortOrder
-    amount?: SortOrder
-    reason?: SortOrder
-    eventId?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type PointLogSumOrderByAggregateInput = {
-    amount?: SortOrder
-  }
-
-  export type InventoryItemIdTenantIdCompoundUniqueInput = {
-    id: string
-    tenantId: string
-  }
-
-  export type InventoryItemTenantIdSkuCompoundUniqueInput = {
-    tenantId: string
-    sku: string
-  }
-
-  export type InventoryItemCountOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    sku?: SortOrder
-    quantity?: SortOrder
-    warehouse?: SortOrder
-    tenantId?: SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type InventoryItemAvgOrderByAggregateInput = {
-    quantity?: SortOrder
-  }
-
-  export type InventoryItemMaxOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    sku?: SortOrder
-    quantity?: SortOrder
-    warehouse?: SortOrder
-    tenantId?: SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type InventoryItemMinOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    sku?: SortOrder
-    quantity?: SortOrder
-    warehouse?: SortOrder
-    tenantId?: SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type InventoryItemSumOrderByAggregateInput = {
-    quantity?: SortOrder
-  }
-
-  export type EnumMovementTypeFilter<$PrismaModel = never> = {
-    equals?: $Enums.MovementType | EnumMovementTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumMovementTypeFilter<$PrismaModel> | $Enums.MovementType
-  }
-
-  export type InventoryItemScalarRelationFilter = {
-    is?: InventoryItemWhereInput
-    isNot?: InventoryItemWhereInput
-  }
-
-  export type InventoryMovementCountOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    itemId?: SortOrder
-    userId?: SortOrder
-    quantity?: SortOrder
-    type?: SortOrder
-    reason?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type InventoryMovementAvgOrderByAggregateInput = {
-    quantity?: SortOrder
-  }
-
-  export type InventoryMovementMaxOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    itemId?: SortOrder
-    userId?: SortOrder
-    quantity?: SortOrder
-    type?: SortOrder
-    reason?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type InventoryMovementMinOrderByAggregateInput = {
-    id?: SortOrder
-    tenantId?: SortOrder
-    itemId?: SortOrder
-    userId?: SortOrder
-    quantity?: SortOrder
-    type?: SortOrder
-    reason?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type InventoryMovementSumOrderByAggregateInput = {
-    quantity?: SortOrder
-  }
-
-  export type EnumMovementTypeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.MovementType | EnumMovementTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumMovementTypeWithAggregatesFilter<$PrismaModel> | $Enums.MovementType
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumMovementTypeFilter<$PrismaModel>
-    _max?: NestedEnumMovementTypeFilter<$PrismaModel>
   }
 
   export type EnumConsentSubjectTypeFilter<$PrismaModel = never> = {
@@ -49518,27 +44759,6 @@ export namespace Prisma {
     connect?: CampaignEventWhereUniqueInput | CampaignEventWhereUniqueInput[]
   }
 
-  export type PointLogCreateNestedManyWithoutTenantInput = {
-    create?: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput> | PointLogCreateWithoutTenantInput[] | PointLogUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutTenantInput | PointLogCreateOrConnectWithoutTenantInput[]
-    createMany?: PointLogCreateManyTenantInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
-  export type InventoryItemCreateNestedManyWithoutTenantInput = {
-    create?: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput> | InventoryItemCreateWithoutTenantInput[] | InventoryItemUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutTenantInput | InventoryItemCreateOrConnectWithoutTenantInput[]
-    createMany?: InventoryItemCreateManyTenantInputEnvelope
-    connect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-  }
-
-  export type InventoryMovementCreateNestedManyWithoutTenantInput = {
-    create?: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput> | InventoryMovementCreateWithoutTenantInput[] | InventoryMovementUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutTenantInput | InventoryMovementCreateOrConnectWithoutTenantInput[]
-    createMany?: InventoryMovementCreateManyTenantInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-  }
-
   export type ConsentRecordCreateNestedManyWithoutTenantInput = {
     create?: XOR<ConsentRecordCreateWithoutTenantInput, ConsentRecordUncheckedCreateWithoutTenantInput> | ConsentRecordCreateWithoutTenantInput[] | ConsentRecordUncheckedCreateWithoutTenantInput[]
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutTenantInput | ConsentRecordCreateOrConnectWithoutTenantInput[]
@@ -49688,27 +44908,6 @@ export namespace Prisma {
     connectOrCreate?: CampaignEventCreateOrConnectWithoutTenantInput | CampaignEventCreateOrConnectWithoutTenantInput[]
     createMany?: CampaignEventCreateManyTenantInputEnvelope
     connect?: CampaignEventWhereUniqueInput | CampaignEventWhereUniqueInput[]
-  }
-
-  export type PointLogUncheckedCreateNestedManyWithoutTenantInput = {
-    create?: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput> | PointLogCreateWithoutTenantInput[] | PointLogUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutTenantInput | PointLogCreateOrConnectWithoutTenantInput[]
-    createMany?: PointLogCreateManyTenantInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
-  export type InventoryItemUncheckedCreateNestedManyWithoutTenantInput = {
-    create?: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput> | InventoryItemCreateWithoutTenantInput[] | InventoryItemUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutTenantInput | InventoryItemCreateOrConnectWithoutTenantInput[]
-    createMany?: InventoryItemCreateManyTenantInputEnvelope
-    connect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-  }
-
-  export type InventoryMovementUncheckedCreateNestedManyWithoutTenantInput = {
-    create?: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput> | InventoryMovementCreateWithoutTenantInput[] | InventoryMovementUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutTenantInput | InventoryMovementCreateOrConnectWithoutTenantInput[]
-    createMany?: InventoryMovementCreateManyTenantInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
   }
 
   export type ConsentRecordUncheckedCreateNestedManyWithoutTenantInput = {
@@ -49939,48 +45138,6 @@ export namespace Prisma {
     update?: CampaignEventUpdateWithWhereUniqueWithoutTenantInput | CampaignEventUpdateWithWhereUniqueWithoutTenantInput[]
     updateMany?: CampaignEventUpdateManyWithWhereWithoutTenantInput | CampaignEventUpdateManyWithWhereWithoutTenantInput[]
     deleteMany?: CampaignEventScalarWhereInput | CampaignEventScalarWhereInput[]
-  }
-
-  export type PointLogUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput> | PointLogCreateWithoutTenantInput[] | PointLogUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutTenantInput | PointLogCreateOrConnectWithoutTenantInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutTenantInput | PointLogUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: PointLogCreateManyTenantInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutTenantInput | PointLogUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutTenantInput | PointLogUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type InventoryItemUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput> | InventoryItemCreateWithoutTenantInput[] | InventoryItemUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutTenantInput | InventoryItemCreateOrConnectWithoutTenantInput[]
-    upsert?: InventoryItemUpsertWithWhereUniqueWithoutTenantInput | InventoryItemUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: InventoryItemCreateManyTenantInputEnvelope
-    set?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    disconnect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    delete?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    connect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    update?: InventoryItemUpdateWithWhereUniqueWithoutTenantInput | InventoryItemUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: InventoryItemUpdateManyWithWhereWithoutTenantInput | InventoryItemUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: InventoryItemScalarWhereInput | InventoryItemScalarWhereInput[]
-  }
-
-  export type InventoryMovementUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput> | InventoryMovementCreateWithoutTenantInput[] | InventoryMovementUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutTenantInput | InventoryMovementCreateOrConnectWithoutTenantInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutTenantInput | InventoryMovementUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: InventoryMovementCreateManyTenantInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutTenantInput | InventoryMovementUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutTenantInput | InventoryMovementUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
   }
 
   export type ConsentRecordUpdateManyWithoutTenantNestedInput = {
@@ -50281,48 +45438,6 @@ export namespace Prisma {
     update?: CampaignEventUpdateWithWhereUniqueWithoutTenantInput | CampaignEventUpdateWithWhereUniqueWithoutTenantInput[]
     updateMany?: CampaignEventUpdateManyWithWhereWithoutTenantInput | CampaignEventUpdateManyWithWhereWithoutTenantInput[]
     deleteMany?: CampaignEventScalarWhereInput | CampaignEventScalarWhereInput[]
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput> | PointLogCreateWithoutTenantInput[] | PointLogUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutTenantInput | PointLogCreateOrConnectWithoutTenantInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutTenantInput | PointLogUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: PointLogCreateManyTenantInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutTenantInput | PointLogUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutTenantInput | PointLogUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type InventoryItemUncheckedUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput> | InventoryItemCreateWithoutTenantInput[] | InventoryItemUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutTenantInput | InventoryItemCreateOrConnectWithoutTenantInput[]
-    upsert?: InventoryItemUpsertWithWhereUniqueWithoutTenantInput | InventoryItemUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: InventoryItemCreateManyTenantInputEnvelope
-    set?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    disconnect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    delete?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    connect?: InventoryItemWhereUniqueInput | InventoryItemWhereUniqueInput[]
-    update?: InventoryItemUpdateWithWhereUniqueWithoutTenantInput | InventoryItemUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: InventoryItemUpdateManyWithWhereWithoutTenantInput | InventoryItemUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: InventoryItemScalarWhereInput | InventoryItemScalarWhereInput[]
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput> | InventoryMovementCreateWithoutTenantInput[] | InventoryMovementUncheckedCreateWithoutTenantInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutTenantInput | InventoryMovementCreateOrConnectWithoutTenantInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutTenantInput | InventoryMovementUpsertWithWhereUniqueWithoutTenantInput[]
-    createMany?: InventoryMovementCreateManyTenantInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutTenantInput | InventoryMovementUpdateWithWhereUniqueWithoutTenantInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutTenantInput | InventoryMovementUpdateManyWithWhereWithoutTenantInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput = {
@@ -50695,20 +45810,6 @@ export namespace Prisma {
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
   }
 
-  export type PointLogCreateNestedManyWithoutUserInput = {
-    create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
-    createMany?: PointLogCreateManyUserInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
-  export type InventoryMovementCreateNestedManyWithoutUserInput = {
-    create?: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput> | InventoryMovementCreateWithoutUserInput[] | InventoryMovementUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutUserInput | InventoryMovementCreateOrConnectWithoutUserInput[]
-    createMany?: InventoryMovementCreateManyUserInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-  }
-
   export type ConsentRecordCreateNestedManyWithoutCapturedByInput = {
     create?: XOR<ConsentRecordCreateWithoutCapturedByInput, ConsentRecordUncheckedCreateWithoutCapturedByInput> | ConsentRecordCreateWithoutCapturedByInput[] | ConsentRecordUncheckedCreateWithoutCapturedByInput[]
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutCapturedByInput | ConsentRecordCreateOrConnectWithoutCapturedByInput[]
@@ -50896,20 +45997,6 @@ export namespace Prisma {
     connectOrCreate?: WitnessReportCreateOrConnectWithoutReviewerInput | WitnessReportCreateOrConnectWithoutReviewerInput[]
     createMany?: WitnessReportCreateManyReviewerInputEnvelope
     connect?: WitnessReportWhereUniqueInput | WitnessReportWhereUniqueInput[]
-  }
-
-  export type PointLogUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
-    createMany?: PointLogCreateManyUserInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
-  export type InventoryMovementUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput> | InventoryMovementCreateWithoutUserInput[] | InventoryMovementUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutUserInput | InventoryMovementCreateOrConnectWithoutUserInput[]
-    createMany?: InventoryMovementCreateManyUserInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
   }
 
   export type ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput = {
@@ -51167,34 +46254,6 @@ export namespace Prisma {
     update?: WitnessReportUpdateWithWhereUniqueWithoutReviewerInput | WitnessReportUpdateWithWhereUniqueWithoutReviewerInput[]
     updateMany?: WitnessReportUpdateManyWithWhereWithoutReviewerInput | WitnessReportUpdateManyWithWhereWithoutReviewerInput[]
     deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
-  }
-
-  export type PointLogUpdateManyWithoutUserNestedInput = {
-    create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutUserInput | PointLogUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: PointLogCreateManyUserInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutUserInput | PointLogUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutUserInput | PointLogUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type InventoryMovementUpdateManyWithoutUserNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput> | InventoryMovementCreateWithoutUserInput[] | InventoryMovementUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutUserInput | InventoryMovementCreateOrConnectWithoutUserInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutUserInput | InventoryMovementUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: InventoryMovementCreateManyUserInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutUserInput | InventoryMovementUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutUserInput | InventoryMovementUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
   }
 
   export type ConsentRecordUpdateManyWithoutCapturedByNestedInput = {
@@ -51573,34 +46632,6 @@ export namespace Prisma {
     update?: WitnessReportUpdateWithWhereUniqueWithoutReviewerInput | WitnessReportUpdateWithWhereUniqueWithoutReviewerInput[]
     updateMany?: WitnessReportUpdateManyWithWhereWithoutReviewerInput | WitnessReportUpdateManyWithWhereWithoutReviewerInput[]
     deleteMany?: WitnessReportScalarWhereInput | WitnessReportScalarWhereInput[]
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput> | PointLogCreateWithoutUserInput[] | PointLogUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutUserInput | PointLogCreateOrConnectWithoutUserInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutUserInput | PointLogUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: PointLogCreateManyUserInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutUserInput | PointLogUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutUserInput | PointLogUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput> | InventoryMovementCreateWithoutUserInput[] | InventoryMovementUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutUserInput | InventoryMovementCreateOrConnectWithoutUserInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutUserInput | InventoryMovementUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: InventoryMovementCreateManyUserInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutUserInput | InventoryMovementUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutUserInput | InventoryMovementUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput = {
@@ -52543,20 +47574,6 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
-  export type PointLogCreateNestedManyWithoutEventInput = {
-    create?: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput> | PointLogCreateWithoutEventInput[] | PointLogUncheckedCreateWithoutEventInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutEventInput | PointLogCreateOrConnectWithoutEventInput[]
-    createMany?: PointLogCreateManyEventInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
-  export type PointLogUncheckedCreateNestedManyWithoutEventInput = {
-    create?: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput> | PointLogCreateWithoutEventInput[] | PointLogUncheckedCreateWithoutEventInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutEventInput | PointLogCreateOrConnectWithoutEventInput[]
-    createMany?: PointLogCreateManyEventInputEnvelope
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-  }
-
   export type EnumCampaignEventStatusFieldUpdateOperationsInput = {
     set?: $Enums.CampaignEventStatus
   }
@@ -52577,180 +47594,6 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutEventsResponsibleInput, UserUpdateWithoutEventsResponsibleInput>, UserUncheckedUpdateWithoutEventsResponsibleInput>
-  }
-
-  export type PointLogUpdateManyWithoutEventNestedInput = {
-    create?: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput> | PointLogCreateWithoutEventInput[] | PointLogUncheckedCreateWithoutEventInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutEventInput | PointLogCreateOrConnectWithoutEventInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutEventInput | PointLogUpsertWithWhereUniqueWithoutEventInput[]
-    createMany?: PointLogCreateManyEventInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutEventInput | PointLogUpdateWithWhereUniqueWithoutEventInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutEventInput | PointLogUpdateManyWithWhereWithoutEventInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutEventNestedInput = {
-    create?: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput> | PointLogCreateWithoutEventInput[] | PointLogUncheckedCreateWithoutEventInput[]
-    connectOrCreate?: PointLogCreateOrConnectWithoutEventInput | PointLogCreateOrConnectWithoutEventInput[]
-    upsert?: PointLogUpsertWithWhereUniqueWithoutEventInput | PointLogUpsertWithWhereUniqueWithoutEventInput[]
-    createMany?: PointLogCreateManyEventInputEnvelope
-    set?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    disconnect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    delete?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    connect?: PointLogWhereUniqueInput | PointLogWhereUniqueInput[]
-    update?: PointLogUpdateWithWhereUniqueWithoutEventInput | PointLogUpdateWithWhereUniqueWithoutEventInput[]
-    updateMany?: PointLogUpdateManyWithWhereWithoutEventInput | PointLogUpdateManyWithWhereWithoutEventInput[]
-    deleteMany?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-  }
-
-  export type TenantCreateNestedOneWithoutPointLogsInput = {
-    create?: XOR<TenantCreateWithoutPointLogsInput, TenantUncheckedCreateWithoutPointLogsInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutPointLogsInput
-    connect?: TenantWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutPointLogsInput = {
-    create?: XOR<UserCreateWithoutPointLogsInput, UserUncheckedCreateWithoutPointLogsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutPointLogsInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type CampaignEventCreateNestedOneWithoutAttendeesInput = {
-    create?: XOR<CampaignEventCreateWithoutAttendeesInput, CampaignEventUncheckedCreateWithoutAttendeesInput>
-    connectOrCreate?: CampaignEventCreateOrConnectWithoutAttendeesInput
-    connect?: CampaignEventWhereUniqueInput
-  }
-
-  export type TenantUpdateOneRequiredWithoutPointLogsNestedInput = {
-    create?: XOR<TenantCreateWithoutPointLogsInput, TenantUncheckedCreateWithoutPointLogsInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutPointLogsInput
-    upsert?: TenantUpsertWithoutPointLogsInput
-    connect?: TenantWhereUniqueInput
-    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutPointLogsInput, TenantUpdateWithoutPointLogsInput>, TenantUncheckedUpdateWithoutPointLogsInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutPointLogsNestedInput = {
-    create?: XOR<UserCreateWithoutPointLogsInput, UserUncheckedCreateWithoutPointLogsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutPointLogsInput
-    upsert?: UserUpsertWithoutPointLogsInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPointLogsInput, UserUpdateWithoutPointLogsInput>, UserUncheckedUpdateWithoutPointLogsInput>
-  }
-
-  export type CampaignEventUpdateOneWithoutAttendeesNestedInput = {
-    create?: XOR<CampaignEventCreateWithoutAttendeesInput, CampaignEventUncheckedCreateWithoutAttendeesInput>
-    connectOrCreate?: CampaignEventCreateOrConnectWithoutAttendeesInput
-    upsert?: CampaignEventUpsertWithoutAttendeesInput
-    disconnect?: CampaignEventWhereInput | boolean
-    delete?: CampaignEventWhereInput | boolean
-    connect?: CampaignEventWhereUniqueInput
-    update?: XOR<XOR<CampaignEventUpdateToOneWithWhereWithoutAttendeesInput, CampaignEventUpdateWithoutAttendeesInput>, CampaignEventUncheckedUpdateWithoutAttendeesInput>
-  }
-
-  export type TenantCreateNestedOneWithoutInventoryInput = {
-    create?: XOR<TenantCreateWithoutInventoryInput, TenantUncheckedCreateWithoutInventoryInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutInventoryInput
-    connect?: TenantWhereUniqueInput
-  }
-
-  export type InventoryMovementCreateNestedManyWithoutItemInput = {
-    create?: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput> | InventoryMovementCreateWithoutItemInput[] | InventoryMovementUncheckedCreateWithoutItemInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutItemInput | InventoryMovementCreateOrConnectWithoutItemInput[]
-    createMany?: InventoryMovementCreateManyItemInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-  }
-
-  export type InventoryMovementUncheckedCreateNestedManyWithoutItemInput = {
-    create?: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput> | InventoryMovementCreateWithoutItemInput[] | InventoryMovementUncheckedCreateWithoutItemInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutItemInput | InventoryMovementCreateOrConnectWithoutItemInput[]
-    createMany?: InventoryMovementCreateManyItemInputEnvelope
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-  }
-
-  export type TenantUpdateOneRequiredWithoutInventoryNestedInput = {
-    create?: XOR<TenantCreateWithoutInventoryInput, TenantUncheckedCreateWithoutInventoryInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutInventoryInput
-    upsert?: TenantUpsertWithoutInventoryInput
-    connect?: TenantWhereUniqueInput
-    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutInventoryInput, TenantUpdateWithoutInventoryInput>, TenantUncheckedUpdateWithoutInventoryInput>
-  }
-
-  export type InventoryMovementUpdateManyWithoutItemNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput> | InventoryMovementCreateWithoutItemInput[] | InventoryMovementUncheckedCreateWithoutItemInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutItemInput | InventoryMovementCreateOrConnectWithoutItemInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutItemInput | InventoryMovementUpsertWithWhereUniqueWithoutItemInput[]
-    createMany?: InventoryMovementCreateManyItemInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutItemInput | InventoryMovementUpdateWithWhereUniqueWithoutItemInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutItemInput | InventoryMovementUpdateManyWithWhereWithoutItemInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutItemNestedInput = {
-    create?: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput> | InventoryMovementCreateWithoutItemInput[] | InventoryMovementUncheckedCreateWithoutItemInput[]
-    connectOrCreate?: InventoryMovementCreateOrConnectWithoutItemInput | InventoryMovementCreateOrConnectWithoutItemInput[]
-    upsert?: InventoryMovementUpsertWithWhereUniqueWithoutItemInput | InventoryMovementUpsertWithWhereUniqueWithoutItemInput[]
-    createMany?: InventoryMovementCreateManyItemInputEnvelope
-    set?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    disconnect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    delete?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-    update?: InventoryMovementUpdateWithWhereUniqueWithoutItemInput | InventoryMovementUpdateWithWhereUniqueWithoutItemInput[]
-    updateMany?: InventoryMovementUpdateManyWithWhereWithoutItemInput | InventoryMovementUpdateManyWithWhereWithoutItemInput[]
-    deleteMany?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
-  }
-
-  export type TenantCreateNestedOneWithoutInventoryMovementsInput = {
-    create?: XOR<TenantCreateWithoutInventoryMovementsInput, TenantUncheckedCreateWithoutInventoryMovementsInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutInventoryMovementsInput
-    connect?: TenantWhereUniqueInput
-  }
-
-  export type InventoryItemCreateNestedOneWithoutMovementsInput = {
-    create?: XOR<InventoryItemCreateWithoutMovementsInput, InventoryItemUncheckedCreateWithoutMovementsInput>
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutMovementsInput
-    connect?: InventoryItemWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutInventoryMovesInput = {
-    create?: XOR<UserCreateWithoutInventoryMovesInput, UserUncheckedCreateWithoutInventoryMovesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutInventoryMovesInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type EnumMovementTypeFieldUpdateOperationsInput = {
-    set?: $Enums.MovementType
-  }
-
-  export type TenantUpdateOneRequiredWithoutInventoryMovementsNestedInput = {
-    create?: XOR<TenantCreateWithoutInventoryMovementsInput, TenantUncheckedCreateWithoutInventoryMovementsInput>
-    connectOrCreate?: TenantCreateOrConnectWithoutInventoryMovementsInput
-    upsert?: TenantUpsertWithoutInventoryMovementsInput
-    connect?: TenantWhereUniqueInput
-    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutInventoryMovementsInput, TenantUpdateWithoutInventoryMovementsInput>, TenantUncheckedUpdateWithoutInventoryMovementsInput>
-  }
-
-  export type InventoryItemUpdateOneRequiredWithoutMovementsNestedInput = {
-    create?: XOR<InventoryItemCreateWithoutMovementsInput, InventoryItemUncheckedCreateWithoutMovementsInput>
-    connectOrCreate?: InventoryItemCreateOrConnectWithoutMovementsInput
-    upsert?: InventoryItemUpsertWithoutMovementsInput
-    connect?: InventoryItemWhereUniqueInput
-    update?: XOR<XOR<InventoryItemUpdateToOneWithWhereWithoutMovementsInput, InventoryItemUpdateWithoutMovementsInput>, InventoryItemUncheckedUpdateWithoutMovementsInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutInventoryMovesNestedInput = {
-    create?: XOR<UserCreateWithoutInventoryMovesInput, UserUncheckedCreateWithoutInventoryMovesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutInventoryMovesInput
-    upsert?: UserUpsertWithoutInventoryMovesInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutInventoryMovesInput, UserUpdateWithoutInventoryMovesInput>, UserUncheckedUpdateWithoutInventoryMovesInput>
   }
 
   export type TenantCreateNestedOneWithoutConsentRecordsInput = {
@@ -54251,23 +49094,6 @@ export namespace Prisma {
     _max?: NestedEnumCampaignEventStatusFilter<$PrismaModel>
   }
 
-  export type NestedEnumMovementTypeFilter<$PrismaModel = never> = {
-    equals?: $Enums.MovementType | EnumMovementTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumMovementTypeFilter<$PrismaModel> | $Enums.MovementType
-  }
-
-  export type NestedEnumMovementTypeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.MovementType | EnumMovementTypeFieldRefInput<$PrismaModel>
-    in?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    notIn?: $Enums.MovementType[] | ListEnumMovementTypeFieldRefInput<$PrismaModel>
-    not?: NestedEnumMovementTypeWithAggregatesFilter<$PrismaModel> | $Enums.MovementType
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumMovementTypeFilter<$PrismaModel>
-    _max?: NestedEnumMovementTypeFilter<$PrismaModel>
-  }
-
   export type NestedEnumConsentSubjectTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.ConsentSubjectType | EnumConsentSubjectTypeFieldRefInput<$PrismaModel>
     in?: $Enums.ConsentSubjectType[] | ListEnumConsentSubjectTypeFieldRefInput<$PrismaModel>
@@ -54760,9 +49586,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -54796,9 +49619,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -54837,9 +49657,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -54873,9 +49690,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -54946,8 +49760,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -54994,8 +49806,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -55243,7 +50053,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     responsible?: UserCreateNestedOneWithoutEventsResponsibleInput
-    attendees?: PointLogCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventUncheckedCreateWithoutTenantInput = {
@@ -55260,7 +50069,6 @@ export namespace Prisma {
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
-    attendees?: PointLogUncheckedCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventCreateOrConnectWithoutTenantInput = {
@@ -55270,96 +50078,6 @@ export namespace Prisma {
 
   export type CampaignEventCreateManyTenantInputEnvelope = {
     data: CampaignEventCreateManyTenantInput | CampaignEventCreateManyTenantInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type PointLogCreateWithoutTenantInput = {
-    id?: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-    user: UserCreateNestedOneWithoutPointLogsInput
-    event?: CampaignEventCreateNestedOneWithoutAttendeesInput
-  }
-
-  export type PointLogUncheckedCreateWithoutTenantInput = {
-    id?: string
-    userId: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type PointLogCreateOrConnectWithoutTenantInput = {
-    where: PointLogWhereUniqueInput
-    create: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput>
-  }
-
-  export type PointLogCreateManyTenantInputEnvelope = {
-    data: PointLogCreateManyTenantInput | PointLogCreateManyTenantInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type InventoryItemCreateWithoutTenantInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    movements?: InventoryMovementCreateNestedManyWithoutItemInput
-  }
-
-  export type InventoryItemUncheckedCreateWithoutTenantInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    movements?: InventoryMovementUncheckedCreateNestedManyWithoutItemInput
-  }
-
-  export type InventoryItemCreateOrConnectWithoutTenantInput = {
-    where: InventoryItemWhereUniqueInput
-    create: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput>
-  }
-
-  export type InventoryItemCreateManyTenantInputEnvelope = {
-    data: InventoryItemCreateManyTenantInput | InventoryItemCreateManyTenantInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type InventoryMovementCreateWithoutTenantInput = {
-    id?: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-    item: InventoryItemCreateNestedOneWithoutMovementsInput
-    user: UserCreateNestedOneWithoutInventoryMovesInput
-  }
-
-  export type InventoryMovementUncheckedCreateWithoutTenantInput = {
-    id?: string
-    itemId: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementCreateOrConnectWithoutTenantInput = {
-    where: InventoryMovementWhereUniqueInput
-    create: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput>
-  }
-
-  export type InventoryMovementCreateManyTenantInputEnvelope = {
-    data: InventoryMovementCreateManyTenantInput | InventoryMovementCreateManyTenantInput[]
     skipDuplicates?: boolean
   }
 
@@ -56031,9 +50749,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -56067,9 +50782,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -56368,95 +51080,6 @@ export namespace Prisma {
     tenantId?: StringFilter<"CampaignEvent"> | string
     createdAt?: DateTimeFilter<"CampaignEvent"> | Date | string
     updatedAt?: DateTimeFilter<"CampaignEvent"> | Date | string
-  }
-
-  export type PointLogUpsertWithWhereUniqueWithoutTenantInput = {
-    where: PointLogWhereUniqueInput
-    update: XOR<PointLogUpdateWithoutTenantInput, PointLogUncheckedUpdateWithoutTenantInput>
-    create: XOR<PointLogCreateWithoutTenantInput, PointLogUncheckedCreateWithoutTenantInput>
-  }
-
-  export type PointLogUpdateWithWhereUniqueWithoutTenantInput = {
-    where: PointLogWhereUniqueInput
-    data: XOR<PointLogUpdateWithoutTenantInput, PointLogUncheckedUpdateWithoutTenantInput>
-  }
-
-  export type PointLogUpdateManyWithWhereWithoutTenantInput = {
-    where: PointLogScalarWhereInput
-    data: XOR<PointLogUpdateManyMutationInput, PointLogUncheckedUpdateManyWithoutTenantInput>
-  }
-
-  export type PointLogScalarWhereInput = {
-    AND?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-    OR?: PointLogScalarWhereInput[]
-    NOT?: PointLogScalarWhereInput | PointLogScalarWhereInput[]
-    id?: StringFilter<"PointLog"> | string
-    tenantId?: StringFilter<"PointLog"> | string
-    userId?: StringFilter<"PointLog"> | string
-    amount?: IntFilter<"PointLog"> | number
-    reason?: StringFilter<"PointLog"> | string
-    eventId?: StringNullableFilter<"PointLog"> | string | null
-    createdAt?: DateTimeFilter<"PointLog"> | Date | string
-  }
-
-  export type InventoryItemUpsertWithWhereUniqueWithoutTenantInput = {
-    where: InventoryItemWhereUniqueInput
-    update: XOR<InventoryItemUpdateWithoutTenantInput, InventoryItemUncheckedUpdateWithoutTenantInput>
-    create: XOR<InventoryItemCreateWithoutTenantInput, InventoryItemUncheckedCreateWithoutTenantInput>
-  }
-
-  export type InventoryItemUpdateWithWhereUniqueWithoutTenantInput = {
-    where: InventoryItemWhereUniqueInput
-    data: XOR<InventoryItemUpdateWithoutTenantInput, InventoryItemUncheckedUpdateWithoutTenantInput>
-  }
-
-  export type InventoryItemUpdateManyWithWhereWithoutTenantInput = {
-    where: InventoryItemScalarWhereInput
-    data: XOR<InventoryItemUpdateManyMutationInput, InventoryItemUncheckedUpdateManyWithoutTenantInput>
-  }
-
-  export type InventoryItemScalarWhereInput = {
-    AND?: InventoryItemScalarWhereInput | InventoryItemScalarWhereInput[]
-    OR?: InventoryItemScalarWhereInput[]
-    NOT?: InventoryItemScalarWhereInput | InventoryItemScalarWhereInput[]
-    id?: StringFilter<"InventoryItem"> | string
-    name?: StringFilter<"InventoryItem"> | string
-    sku?: StringNullableFilter<"InventoryItem"> | string | null
-    quantity?: IntFilter<"InventoryItem"> | number
-    warehouse?: StringNullableFilter<"InventoryItem"> | string | null
-    tenantId?: StringFilter<"InventoryItem"> | string
-    createdAt?: DateTimeFilter<"InventoryItem"> | Date | string
-    updatedAt?: DateTimeFilter<"InventoryItem"> | Date | string
-  }
-
-  export type InventoryMovementUpsertWithWhereUniqueWithoutTenantInput = {
-    where: InventoryMovementWhereUniqueInput
-    update: XOR<InventoryMovementUpdateWithoutTenantInput, InventoryMovementUncheckedUpdateWithoutTenantInput>
-    create: XOR<InventoryMovementCreateWithoutTenantInput, InventoryMovementUncheckedCreateWithoutTenantInput>
-  }
-
-  export type InventoryMovementUpdateWithWhereUniqueWithoutTenantInput = {
-    where: InventoryMovementWhereUniqueInput
-    data: XOR<InventoryMovementUpdateWithoutTenantInput, InventoryMovementUncheckedUpdateWithoutTenantInput>
-  }
-
-  export type InventoryMovementUpdateManyWithWhereWithoutTenantInput = {
-    where: InventoryMovementScalarWhereInput
-    data: XOR<InventoryMovementUpdateManyMutationInput, InventoryMovementUncheckedUpdateManyWithoutTenantInput>
-  }
-
-  export type InventoryMovementScalarWhereInput = {
-    AND?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
-    OR?: InventoryMovementScalarWhereInput[]
-    NOT?: InventoryMovementScalarWhereInput | InventoryMovementScalarWhereInput[]
-    id?: StringFilter<"InventoryMovement"> | string
-    tenantId?: StringFilter<"InventoryMovement"> | string
-    itemId?: StringFilter<"InventoryMovement"> | string
-    userId?: StringFilter<"InventoryMovement"> | string
-    quantity?: IntFilter<"InventoryMovement"> | number
-    type?: EnumMovementTypeFilter<"InventoryMovement"> | $Enums.MovementType
-    reason?: StringNullableFilter<"InventoryMovement"> | string | null
-    createdAt?: DateTimeFilter<"InventoryMovement"> | Date | string
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutTenantInput = {
@@ -57021,9 +51644,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -57057,9 +51677,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -57109,9 +51726,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -57145,9 +51759,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -57182,9 +51793,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -57218,9 +51826,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -57265,8 +51870,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -57313,8 +51916,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -57398,9 +51999,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -57434,9 +52032,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -57487,8 +52082,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -57535,8 +52128,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -57592,9 +52183,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -57628,9 +52216,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -57996,62 +52581,6 @@ export namespace Prisma {
 
   export type WitnessReportCreateManyReviewerInputEnvelope = {
     data: WitnessReportCreateManyReviewerInput | WitnessReportCreateManyReviewerInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type PointLogCreateWithoutUserInput = {
-    id?: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutPointLogsInput
-    event?: CampaignEventCreateNestedOneWithoutAttendeesInput
-  }
-
-  export type PointLogUncheckedCreateWithoutUserInput = {
-    id?: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type PointLogCreateOrConnectWithoutUserInput = {
-    where: PointLogWhereUniqueInput
-    create: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput>
-  }
-
-  export type PointLogCreateManyUserInputEnvelope = {
-    data: PointLogCreateManyUserInput | PointLogCreateManyUserInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type InventoryMovementCreateWithoutUserInput = {
-    id?: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutInventoryMovementsInput
-    item: InventoryItemCreateNestedOneWithoutMovementsInput
-  }
-
-  export type InventoryMovementUncheckedCreateWithoutUserInput = {
-    id?: string
-    itemId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementCreateOrConnectWithoutUserInput = {
-    where: InventoryMovementWhereUniqueInput
-    create: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput>
-  }
-
-  export type InventoryMovementCreateManyUserInputEnvelope = {
-    data: InventoryMovementCreateManyUserInput | InventoryMovementCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -58598,7 +53127,6 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutEventsInput
-    attendees?: PointLogCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventUncheckedCreateWithoutResponsibleInput = {
@@ -58614,7 +53142,6 @@ export namespace Prisma {
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
-    attendees?: PointLogUncheckedCreateNestedManyWithoutEventInput
   }
 
   export type CampaignEventCreateOrConnectWithoutResponsibleInput = {
@@ -59086,9 +53613,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -59122,9 +53646,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -59276,38 +53797,6 @@ export namespace Prisma {
   export type WitnessReportUpdateManyWithWhereWithoutReviewerInput = {
     where: WitnessReportScalarWhereInput
     data: XOR<WitnessReportUpdateManyMutationInput, WitnessReportUncheckedUpdateManyWithoutReviewerInput>
-  }
-
-  export type PointLogUpsertWithWhereUniqueWithoutUserInput = {
-    where: PointLogWhereUniqueInput
-    update: XOR<PointLogUpdateWithoutUserInput, PointLogUncheckedUpdateWithoutUserInput>
-    create: XOR<PointLogCreateWithoutUserInput, PointLogUncheckedCreateWithoutUserInput>
-  }
-
-  export type PointLogUpdateWithWhereUniqueWithoutUserInput = {
-    where: PointLogWhereUniqueInput
-    data: XOR<PointLogUpdateWithoutUserInput, PointLogUncheckedUpdateWithoutUserInput>
-  }
-
-  export type PointLogUpdateManyWithWhereWithoutUserInput = {
-    where: PointLogScalarWhereInput
-    data: XOR<PointLogUpdateManyMutationInput, PointLogUncheckedUpdateManyWithoutUserInput>
-  }
-
-  export type InventoryMovementUpsertWithWhereUniqueWithoutUserInput = {
-    where: InventoryMovementWhereUniqueInput
-    update: XOR<InventoryMovementUpdateWithoutUserInput, InventoryMovementUncheckedUpdateWithoutUserInput>
-    create: XOR<InventoryMovementCreateWithoutUserInput, InventoryMovementUncheckedCreateWithoutUserInput>
-  }
-
-  export type InventoryMovementUpdateWithWhereUniqueWithoutUserInput = {
-    where: InventoryMovementWhereUniqueInput
-    data: XOR<InventoryMovementUpdateWithoutUserInput, InventoryMovementUncheckedUpdateWithoutUserInput>
-  }
-
-  export type InventoryMovementUpdateManyWithWhereWithoutUserInput = {
-    where: InventoryMovementScalarWhereInput
-    data: XOR<InventoryMovementUpdateManyMutationInput, InventoryMovementUncheckedUpdateManyWithoutUserInput>
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutCapturedByInput = {
@@ -59690,9 +54179,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -59726,9 +54212,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -59773,8 +54256,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -59821,8 +54302,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -59879,9 +54358,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -59915,9 +54391,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -59968,8 +54441,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -60016,8 +54487,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -60057,9 +54526,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -60093,9 +54559,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -60214,8 +54677,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -60261,8 +54722,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -60491,9 +54950,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -60527,9 +54983,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -60684,9 +55137,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -60720,9 +55170,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -60802,8 +55249,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -60850,8 +55295,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -61067,9 +55510,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -61103,9 +55543,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -61197,8 +55634,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -61245,8 +55680,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -61335,9 +55768,6 @@ export namespace Prisma {
     voters?: VoterCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -61371,9 +55801,6 @@ export namespace Prisma {
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -61418,8 +55845,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -61466,8 +55891,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -61519,8 +55942,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -61567,8 +55988,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -61620,8 +56039,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -61668,8 +56085,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -61726,9 +56141,6 @@ export namespace Prisma {
     voters?: VoterUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -61762,9 +56174,6 @@ export namespace Prisma {
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -61815,8 +56224,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -61863,8 +56270,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -61922,8 +56327,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -61970,8 +56373,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -62029,8 +56430,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -62077,8 +56476,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -62119,9 +56516,6 @@ export namespace Prisma {
     voters?: VoterCreateNestedManyWithoutTenantInput
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -62155,9 +56549,6 @@ export namespace Prisma {
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -62237,8 +56628,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -62285,8 +56674,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -62338,8 +56725,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -62386,8 +56771,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -62538,9 +56921,6 @@ export namespace Prisma {
     voters?: VoterUpdateManyWithoutTenantNestedInput
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -62574,9 +56954,6 @@ export namespace Prisma {
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -62668,8 +57045,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -62716,8 +57091,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -62775,8 +57148,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -62823,8 +57194,6 @@ export namespace Prisma {
     financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -62932,9 +57301,6 @@ export namespace Prisma {
     voters?: VoterCreateNestedManyWithoutTenantInput
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -62968,9 +57334,6 @@ export namespace Prisma {
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -63016,8 +57379,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -63064,8 +57425,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -63091,33 +57450,6 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutEventsResponsibleInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutEventsResponsibleInput, UserUncheckedCreateWithoutEventsResponsibleInput>
-  }
-
-  export type PointLogCreateWithoutEventInput = {
-    id?: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutPointLogsInput
-    user: UserCreateNestedOneWithoutPointLogsInput
-  }
-
-  export type PointLogUncheckedCreateWithoutEventInput = {
-    id?: string
-    userId: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-  }
-
-  export type PointLogCreateOrConnectWithoutEventInput = {
-    where: PointLogWhereUniqueInput
-    create: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput>
-  }
-
-  export type PointLogCreateManyEventInputEnvelope = {
-    data: PointLogCreateManyEventInput | PointLogCreateManyEventInput[]
-    skipDuplicates?: boolean
   }
 
   export type TenantUpsertWithoutEventsInput = {
@@ -63148,9 +57480,6 @@ export namespace Prisma {
     voters?: VoterUpdateManyWithoutTenantNestedInput
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -63184,9 +57513,6 @@ export namespace Prisma {
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -63238,8 +57564,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -63286,8 +57610,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -63299,1107 +57621,6 @@ export namespace Prisma {
     communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
     communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
     invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
-    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
-    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
-    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
-    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
-    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
-    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
-    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
-    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
-    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
-  }
-
-  export type PointLogUpsertWithWhereUniqueWithoutEventInput = {
-    where: PointLogWhereUniqueInput
-    update: XOR<PointLogUpdateWithoutEventInput, PointLogUncheckedUpdateWithoutEventInput>
-    create: XOR<PointLogCreateWithoutEventInput, PointLogUncheckedCreateWithoutEventInput>
-  }
-
-  export type PointLogUpdateWithWhereUniqueWithoutEventInput = {
-    where: PointLogWhereUniqueInput
-    data: XOR<PointLogUpdateWithoutEventInput, PointLogUncheckedUpdateWithoutEventInput>
-  }
-
-  export type PointLogUpdateManyWithWhereWithoutEventInput = {
-    where: PointLogScalarWhereInput
-    data: XOR<PointLogUpdateManyMutationInput, PointLogUncheckedUpdateManyWithoutEventInput>
-  }
-
-  export type TenantCreateWithoutPointLogsInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    parent?: TenantCreateNestedOneWithoutChildrenInput
-    children?: TenantCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
-    users?: UserCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
-    voters?: VoterCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
-    events?: CampaignEventCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
-    interactions?: InteractionCreateNestedManyWithoutTenantInput
-    tasks?: TaskCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantUncheckedCreateWithoutPointLogsInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    children?: TenantUncheckedCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
-    users?: UserUncheckedCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
-    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
-    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
-    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
-    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantCreateOrConnectWithoutPointLogsInput = {
-    where: TenantWhereUniqueInput
-    create: XOR<TenantCreateWithoutPointLogsInput, TenantUncheckedCreateWithoutPointLogsInput>
-  }
-
-  export type UserCreateWithoutPointLogsInput = {
-    id?: string
-    email: string
-    password: string
-    mustChangePassword?: boolean
-    temporaryPasswordExpiresAt?: Date | string | null
-    name: string
-    role?: $Enums.Role
-    isActive?: boolean
-    documentId?: string | null
-    phone?: string | null
-    totpSecret?: string | null
-    totpEnabledAt?: Date | string | null
-    points?: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutUsersInput
-    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
-    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
-    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
-    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
-    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
-    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
-    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
-    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
-    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
-    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
-    interactions?: InteractionCreateNestedManyWithoutActorInput
-    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
-    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
-    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
-    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
-    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
-    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
-    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
-    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
-    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
-    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
-    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
-    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
-    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
-    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
-    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
-    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
-  }
-
-  export type UserUncheckedCreateWithoutPointLogsInput = {
-    id?: string
-    email: string
-    password: string
-    mustChangePassword?: boolean
-    temporaryPasswordExpiresAt?: Date | string | null
-    name: string
-    role?: $Enums.Role
-    isActive?: boolean
-    documentId?: string | null
-    phone?: string | null
-    totpSecret?: string | null
-    totpEnabledAt?: Date | string | null
-    points?: number
-    tenantId: string
-    divisionId?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
-    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
-    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
-    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
-    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
-    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
-    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
-    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
-    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
-    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
-    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
-    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
-    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
-    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
-    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
-    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
-    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
-    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
-    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
-    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
-    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
-    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
-    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
-    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
-    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
-    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
-    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
-  }
-
-  export type UserCreateOrConnectWithoutPointLogsInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutPointLogsInput, UserUncheckedCreateWithoutPointLogsInput>
-  }
-
-  export type CampaignEventCreateWithoutAttendeesInput = {
-    id?: string
-    name: string
-    description?: string | null
-    startsAt: Date | string
-    endsAt: Date | string
-    location?: string | null
-    status?: $Enums.CampaignEventStatus
-    capacity?: number | null
-    mode: $Enums.PoliticalOperationMode
-    points?: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutEventsInput
-    responsible?: UserCreateNestedOneWithoutEventsResponsibleInput
-  }
-
-  export type CampaignEventUncheckedCreateWithoutAttendeesInput = {
-    id?: string
-    name: string
-    description?: string | null
-    startsAt: Date | string
-    endsAt: Date | string
-    location?: string | null
-    status?: $Enums.CampaignEventStatus
-    capacity?: number | null
-    responsibleId?: string | null
-    mode: $Enums.PoliticalOperationMode
-    points?: number
-    tenantId: string
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type CampaignEventCreateOrConnectWithoutAttendeesInput = {
-    where: CampaignEventWhereUniqueInput
-    create: XOR<CampaignEventCreateWithoutAttendeesInput, CampaignEventUncheckedCreateWithoutAttendeesInput>
-  }
-
-  export type TenantUpsertWithoutPointLogsInput = {
-    update: XOR<TenantUpdateWithoutPointLogsInput, TenantUncheckedUpdateWithoutPointLogsInput>
-    create: XOR<TenantCreateWithoutPointLogsInput, TenantUncheckedCreateWithoutPointLogsInput>
-    where?: TenantWhereInput
-  }
-
-  export type TenantUpdateToOneWithWhereWithoutPointLogsInput = {
-    where?: TenantWhereInput
-    data: XOR<TenantUpdateWithoutPointLogsInput, TenantUncheckedUpdateWithoutPointLogsInput>
-  }
-
-  export type TenantUpdateWithoutPointLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    parent?: TenantUpdateOneWithoutChildrenNestedInput
-    children?: TenantUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
-    users?: UserUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
-    voters?: VoterUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
-  }
-
-  export type TenantUncheckedUpdateWithoutPointLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
-    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
-    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
-  }
-
-  export type UserUpsertWithoutPointLogsInput = {
-    update: XOR<UserUpdateWithoutPointLogsInput, UserUncheckedUpdateWithoutPointLogsInput>
-    create: XOR<UserCreateWithoutPointLogsInput, UserUncheckedCreateWithoutPointLogsInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutPointLogsInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutPointLogsInput, UserUncheckedUpdateWithoutPointLogsInput>
-  }
-
-  export type UserUpdateWithoutPointLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
-    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
-    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
-    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    points?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
-    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
-    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
-    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
-    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
-    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
-    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
-    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
-    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
-    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
-    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
-    interactions?: InteractionUpdateManyWithoutActorNestedInput
-    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
-    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
-    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
-    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
-    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
-    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
-    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
-    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
-    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
-    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
-    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
-    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
-    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
-    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
-    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
-    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutPointLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
-    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
-    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
-    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    points?: IntFieldUpdateOperationsInput | number
-    tenantId?: StringFieldUpdateOperationsInput | string
-    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
-    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
-    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
-    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
-    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
-    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
-    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
-    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
-    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
-    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
-    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
-    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
-    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
-    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
-    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
-    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
-    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
-    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
-    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
-    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
-    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
-    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
-    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
-    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
-    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
-    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
-    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
-  }
-
-  export type CampaignEventUpsertWithoutAttendeesInput = {
-    update: XOR<CampaignEventUpdateWithoutAttendeesInput, CampaignEventUncheckedUpdateWithoutAttendeesInput>
-    create: XOR<CampaignEventCreateWithoutAttendeesInput, CampaignEventUncheckedCreateWithoutAttendeesInput>
-    where?: CampaignEventWhereInput
-  }
-
-  export type CampaignEventUpdateToOneWithWhereWithoutAttendeesInput = {
-    where?: CampaignEventWhereInput
-    data: XOR<CampaignEventUpdateWithoutAttendeesInput, CampaignEventUncheckedUpdateWithoutAttendeesInput>
-  }
-
-  export type CampaignEventUpdateWithoutAttendeesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    startsAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    endsAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    location?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: EnumCampaignEventStatusFieldUpdateOperationsInput | $Enums.CampaignEventStatus
-    capacity?: NullableIntFieldUpdateOperationsInput | number | null
-    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    points?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutEventsNestedInput
-    responsible?: UserUpdateOneWithoutEventsResponsibleNestedInput
-  }
-
-  export type CampaignEventUncheckedUpdateWithoutAttendeesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    startsAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    endsAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    location?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: EnumCampaignEventStatusFieldUpdateOperationsInput | $Enums.CampaignEventStatus
-    capacity?: NullableIntFieldUpdateOperationsInput | number | null
-    responsibleId?: NullableStringFieldUpdateOperationsInput | string | null
-    mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    points?: IntFieldUpdateOperationsInput | number
-    tenantId?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type TenantCreateWithoutInventoryInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    parent?: TenantCreateNestedOneWithoutChildrenInput
-    children?: TenantCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
-    users?: UserCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
-    voters?: VoterCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
-    events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
-    interactions?: InteractionCreateNestedManyWithoutTenantInput
-    tasks?: TaskCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantUncheckedCreateWithoutInventoryInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    children?: TenantUncheckedCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
-    users?: UserUncheckedCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
-    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
-    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
-    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
-    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantCreateOrConnectWithoutInventoryInput = {
-    where: TenantWhereUniqueInput
-    create: XOR<TenantCreateWithoutInventoryInput, TenantUncheckedCreateWithoutInventoryInput>
-  }
-
-  export type InventoryMovementCreateWithoutItemInput = {
-    id?: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutInventoryMovementsInput
-    user: UserCreateNestedOneWithoutInventoryMovesInput
-  }
-
-  export type InventoryMovementUncheckedCreateWithoutItemInput = {
-    id?: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementCreateOrConnectWithoutItemInput = {
-    where: InventoryMovementWhereUniqueInput
-    create: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput>
-  }
-
-  export type InventoryMovementCreateManyItemInputEnvelope = {
-    data: InventoryMovementCreateManyItemInput | InventoryMovementCreateManyItemInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type TenantUpsertWithoutInventoryInput = {
-    update: XOR<TenantUpdateWithoutInventoryInput, TenantUncheckedUpdateWithoutInventoryInput>
-    create: XOR<TenantCreateWithoutInventoryInput, TenantUncheckedCreateWithoutInventoryInput>
-    where?: TenantWhereInput
-  }
-
-  export type TenantUpdateToOneWithWhereWithoutInventoryInput = {
-    where?: TenantWhereInput
-    data: XOR<TenantUpdateWithoutInventoryInput, TenantUncheckedUpdateWithoutInventoryInput>
-  }
-
-  export type TenantUpdateWithoutInventoryInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    parent?: TenantUpdateOneWithoutChildrenNestedInput
-    children?: TenantUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
-    users?: UserUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
-    voters?: VoterUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
-  }
-
-  export type TenantUncheckedUpdateWithoutInventoryInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
-    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
-    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
-  }
-
-  export type InventoryMovementUpsertWithWhereUniqueWithoutItemInput = {
-    where: InventoryMovementWhereUniqueInput
-    update: XOR<InventoryMovementUpdateWithoutItemInput, InventoryMovementUncheckedUpdateWithoutItemInput>
-    create: XOR<InventoryMovementCreateWithoutItemInput, InventoryMovementUncheckedCreateWithoutItemInput>
-  }
-
-  export type InventoryMovementUpdateWithWhereUniqueWithoutItemInput = {
-    where: InventoryMovementWhereUniqueInput
-    data: XOR<InventoryMovementUpdateWithoutItemInput, InventoryMovementUncheckedUpdateWithoutItemInput>
-  }
-
-  export type InventoryMovementUpdateManyWithWhereWithoutItemInput = {
-    where: InventoryMovementScalarWhereInput
-    data: XOR<InventoryMovementUpdateManyMutationInput, InventoryMovementUncheckedUpdateManyWithoutItemInput>
-  }
-
-  export type TenantCreateWithoutInventoryMovementsInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    parent?: TenantCreateNestedOneWithoutChildrenInput
-    children?: TenantCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
-    users?: UserCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
-    voters?: VoterCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
-    events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
-    interactions?: InteractionCreateNestedManyWithoutTenantInput
-    tasks?: TaskCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantUncheckedCreateWithoutInventoryMovementsInput = {
-    id?: string
-    slug: string
-    name: string
-    type?: $Enums.TenantType
-    defaultMode?: $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    children?: TenantUncheckedCreateNestedManyWithoutParentInput
-    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
-    users?: UserUncheckedCreateNestedManyWithoutTenantInput
-    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
-    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
-    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
-    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
-    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
-    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
-    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
-    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
-    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
-    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
-    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
-    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
-    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
-    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
-    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
-    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
-    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
-    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
-  }
-
-  export type TenantCreateOrConnectWithoutInventoryMovementsInput = {
-    where: TenantWhereUniqueInput
-    create: XOR<TenantCreateWithoutInventoryMovementsInput, TenantUncheckedCreateWithoutInventoryMovementsInput>
-  }
-
-  export type InventoryItemCreateWithoutMovementsInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutInventoryInput
-  }
-
-  export type InventoryItemUncheckedCreateWithoutMovementsInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    tenantId: string
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type InventoryItemCreateOrConnectWithoutMovementsInput = {
-    where: InventoryItemWhereUniqueInput
-    create: XOR<InventoryItemCreateWithoutMovementsInput, InventoryItemUncheckedCreateWithoutMovementsInput>
-  }
-
-  export type UserCreateWithoutInventoryMovesInput = {
-    id?: string
-    email: string
-    password: string
-    mustChangePassword?: boolean
-    temporaryPasswordExpiresAt?: Date | string | null
-    name: string
-    role?: $Enums.Role
-    isActive?: boolean
-    documentId?: string | null
-    phone?: string | null
-    totpSecret?: string | null
-    totpEnabledAt?: Date | string | null
-    points?: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    tenant: TenantCreateNestedOneWithoutUsersInput
-    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
-    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
-    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
-    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
-    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
-    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
-    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
-    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
-    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
-    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
-    interactions?: InteractionCreateNestedManyWithoutActorInput
-    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
-    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
-    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
-    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
-    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
-    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
-    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
-    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
-    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
-    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
-    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
-    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
-    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
-    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
-    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
-    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
-  }
-
-  export type UserUncheckedCreateWithoutInventoryMovesInput = {
-    id?: string
-    email: string
-    password: string
-    mustChangePassword?: boolean
-    temporaryPasswordExpiresAt?: Date | string | null
-    name: string
-    role?: $Enums.Role
-    isActive?: boolean
-    documentId?: string | null
-    phone?: string | null
-    totpSecret?: string | null
-    totpEnabledAt?: Date | string | null
-    points?: number
-    tenantId: string
-    divisionId?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
-    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
-    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
-    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
-    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
-    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
-    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
-    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
-    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
-    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
-    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
-    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
-    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
-    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
-    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
-    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
-    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
-    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
-    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
-    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
-    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
-    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
-    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
-    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
-    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
-    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
-  }
-
-  export type UserCreateOrConnectWithoutInventoryMovesInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutInventoryMovesInput, UserUncheckedCreateWithoutInventoryMovesInput>
-  }
-
-  export type TenantUpsertWithoutInventoryMovementsInput = {
-    update: XOR<TenantUpdateWithoutInventoryMovementsInput, TenantUncheckedUpdateWithoutInventoryMovementsInput>
-    create: XOR<TenantCreateWithoutInventoryMovementsInput, TenantUncheckedCreateWithoutInventoryMovementsInput>
-    where?: TenantWhereInput
-  }
-
-  export type TenantUpdateToOneWithWhereWithoutInventoryMovementsInput = {
-    where?: TenantWhereInput
-    data: XOR<TenantUpdateWithoutInventoryMovementsInput, TenantUncheckedUpdateWithoutInventoryMovementsInput>
-  }
-
-  export type TenantUpdateWithoutInventoryMovementsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    parent?: TenantUpdateOneWithoutChildrenNestedInput
-    children?: TenantUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
-    users?: UserUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
-    voters?: VoterUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
-  }
-
-  export type TenantUncheckedUpdateWithoutInventoryMovementsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    slug?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
-    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
-    config?: NullableJsonNullValueInput | InputJsonValue
-    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
-    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
-    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
-    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
-    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
-    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
-    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
-    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
-    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
-    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
-    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
-    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
-    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
-    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
-    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
-    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
-    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
-    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
-    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
-    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
-    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
-  }
-
-  export type InventoryItemUpsertWithoutMovementsInput = {
-    update: XOR<InventoryItemUpdateWithoutMovementsInput, InventoryItemUncheckedUpdateWithoutMovementsInput>
-    create: XOR<InventoryItemCreateWithoutMovementsInput, InventoryItemUncheckedCreateWithoutMovementsInput>
-    where?: InventoryItemWhereInput
-  }
-
-  export type InventoryItemUpdateToOneWithWhereWithoutMovementsInput = {
-    where?: InventoryItemWhereInput
-    data: XOR<InventoryItemUpdateWithoutMovementsInput, InventoryItemUncheckedUpdateWithoutMovementsInput>
-  }
-
-  export type InventoryItemUpdateWithoutMovementsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutInventoryNestedInput
-  }
-
-  export type InventoryItemUncheckedUpdateWithoutMovementsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    tenantId?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type UserUpsertWithoutInventoryMovesInput = {
-    update: XOR<UserUpdateWithoutInventoryMovesInput, UserUncheckedUpdateWithoutInventoryMovesInput>
-    create: XOR<UserCreateWithoutInventoryMovesInput, UserUncheckedCreateWithoutInventoryMovesInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutInventoryMovesInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutInventoryMovesInput, UserUncheckedUpdateWithoutInventoryMovesInput>
-  }
-
-  export type UserUpdateWithoutInventoryMovesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
-    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
-    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
-    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    points?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
-    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
-    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
-    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
-    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
-    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
-    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
-    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
-    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
-    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
-    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
-    interactions?: InteractionUpdateManyWithoutActorNestedInput
-    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
-    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
-    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
-    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
-    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
-    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
-    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
-    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
-    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
-    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
-    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
-    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
-    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
-    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
-    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
-    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutInventoryMovesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
-    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
-    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    documentId?: NullableStringFieldUpdateOperationsInput | string | null
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
-    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
-    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    points?: IntFieldUpdateOperationsInput | number
-    tenantId?: StringFieldUpdateOperationsInput | string
-    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
-    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
-    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
-    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
-    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
-    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
-    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
-    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
-    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
-    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
-    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
-    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
-    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
-    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
-    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
-    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
-    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
     auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
     operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
@@ -64429,9 +57650,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
@@ -64465,9 +57683,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
@@ -64563,8 +57778,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
@@ -64611,8 +57824,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
@@ -64712,9 +57923,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
@@ -64748,9 +57956,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
@@ -64858,8 +58063,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
@@ -64906,8 +58109,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -64964,9 +58165,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
@@ -65000,9 +58198,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
@@ -65047,8 +58242,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
@@ -65095,8 +58288,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
@@ -65153,9 +58344,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
@@ -65189,9 +58377,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
@@ -65242,8 +58427,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
@@ -65290,8 +58473,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -65332,9 +58513,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     interactions?: InteractionCreateNestedManyWithoutTenantInput
@@ -65368,9 +58546,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
@@ -65501,8 +58676,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
@@ -65549,8 +58722,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
@@ -65602,8 +58773,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -65650,8 +58819,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -65890,9 +59057,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUpdateManyWithoutTenantNestedInput
@@ -65926,9 +59090,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
@@ -66077,8 +59238,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
@@ -66125,8 +59284,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -66184,8 +59341,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -66232,8 +59387,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -66338,9 +59491,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -66374,9 +59524,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -66531,8 +59678,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -66579,8 +59724,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -66686,9 +59829,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -66722,9 +59862,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -66897,8 +60034,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -66945,8 +60080,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -67042,9 +60175,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -67078,9 +60208,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -67227,8 +60354,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -67275,8 +60400,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -67328,8 +60451,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -67376,8 +60497,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -67434,9 +60553,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -67470,9 +60586,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -67637,8 +60750,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -67685,8 +60796,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -67744,8 +60853,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -67792,8 +60899,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -67834,9 +60939,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -67870,9 +60972,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -67917,8 +61016,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -67965,8 +61062,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -68125,9 +61220,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -68161,9 +61253,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -68214,8 +61303,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -68262,8 +61349,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -68385,9 +61470,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -68421,9 +61503,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -68527,8 +61606,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -68575,8 +61652,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -68628,8 +61703,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -68676,8 +61749,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -68734,9 +61805,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -68770,9 +61838,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -68888,8 +61953,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -68936,8 +61999,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -68995,8 +62056,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -69043,8 +62102,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -69085,9 +62142,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -69121,9 +62175,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -69168,8 +62219,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -69216,8 +62265,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -69274,9 +62321,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -69310,9 +62354,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -69363,8 +62404,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -69411,8 +62450,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -69453,9 +62490,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -69489,9 +62523,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -69536,8 +62567,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -69584,8 +62613,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -69637,8 +62664,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -69685,8 +62710,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -69738,8 +62761,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -69786,8 +62807,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -69844,9 +62863,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -69880,9 +62896,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -69933,8 +62946,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -69981,8 +62992,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -70040,8 +63049,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -70088,8 +63095,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -70147,8 +63152,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -70195,8 +63198,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -70237,9 +63238,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -70273,9 +63271,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -70320,8 +63315,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -70368,8 +63361,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -70421,8 +63412,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -70469,8 +63458,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -70522,8 +63509,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -70570,8 +63555,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -70628,9 +63611,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -70664,9 +63644,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -70717,8 +63694,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -70765,8 +63740,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -70824,8 +63797,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -70872,8 +63843,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -70931,8 +63900,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -70979,8 +63946,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -71090,9 +64055,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -71126,9 +64088,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -71223,9 +64182,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -71259,9 +64215,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -71346,9 +64299,6 @@ export namespace Prisma {
     finances?: FinancialEntryCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
     events?: CampaignEventCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
@@ -71382,9 +64332,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
     witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
     events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
-    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
-    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
     consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
     issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
@@ -71478,8 +64425,6 @@ export namespace Prisma {
     registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
@@ -71526,8 +64471,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
     witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
     witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
-    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
-    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
     consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
     consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
     casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
@@ -71584,9 +64527,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -71620,9 +64560,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -71728,8 +64665,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -71776,8 +64711,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -71915,35 +64848,6 @@ export namespace Prisma {
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
-  }
-
-  export type PointLogCreateManyTenantInput = {
-    id?: string
-    userId: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryItemCreateManyTenantInput = {
-    id?: string
-    name: string
-    sku?: string | null
-    quantity?: number
-    warehouse?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type InventoryMovementCreateManyTenantInput = {
-    id?: string
-    itemId: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
   }
 
   export type ConsentRecordCreateManyTenantInput = {
@@ -72176,9 +65080,6 @@ export namespace Prisma {
     finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
@@ -72212,9 +65113,6 @@ export namespace Prisma {
     finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
     witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
     events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
-    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
-    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
     consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
     issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
@@ -72265,8 +65163,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -72313,8 +65209,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -72602,7 +65496,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     responsible?: UserUpdateOneWithoutEventsResponsibleNestedInput
-    attendees?: PointLogUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventUncheckedUpdateWithoutTenantInput = {
@@ -72619,7 +65512,6 @@ export namespace Prisma {
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    attendees?: PointLogUncheckedUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventUncheckedUpdateManyWithoutTenantInput = {
@@ -72636,95 +65528,6 @@ export namespace Prisma {
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneRequiredWithoutPointLogsNestedInput
-    event?: CampaignEventUpdateOneWithoutAttendeesNestedInput
-  }
-
-  export type PointLogUncheckedUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryItemUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    movements?: InventoryMovementUpdateManyWithoutItemNestedInput
-  }
-
-  export type InventoryItemUncheckedUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    movements?: InventoryMovementUncheckedUpdateManyWithoutItemNestedInput
-  }
-
-  export type InventoryItemUncheckedUpdateManyWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    sku?: NullableStringFieldUpdateOperationsInput | string | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    warehouse?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    item?: InventoryItemUpdateOneRequiredWithoutMovementsNestedInput
-    user?: UserUpdateOneRequiredWithoutInventoryMovesNestedInput
-  }
-
-  export type InventoryMovementUncheckedUpdateWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutTenantInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ConsentRecordUpdateWithoutTenantInput = {
@@ -73531,23 +66334,6 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
-  export type PointLogCreateManyUserInput = {
-    id?: string
-    amount: number
-    reason: string
-    eventId?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementCreateManyUserInput = {
-    id?: string
-    itemId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
   export type ConsentRecordCreateManyCapturedByInput = {
     id?: string
     mode: $Enums.PoliticalOperationMode
@@ -74292,59 +67078,6 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type PointLogUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutPointLogsNestedInput
-    event?: CampaignEventUpdateOneWithoutAttendeesNestedInput
-  }
-
-  export type PointLogUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    eventId?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutInventoryMovementsNestedInput
-    item?: InventoryItemUpdateOneRequiredWithoutMovementsNestedInput
-  }
-
-  export type InventoryMovementUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itemId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
   export type ConsentRecordUpdateWithoutCapturedByInput = {
     id?: StringFieldUpdateOperationsInput | string
     mode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
@@ -74972,7 +67705,6 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutEventsNestedInput
-    attendees?: PointLogUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventUncheckedUpdateWithoutResponsibleInput = {
@@ -74988,7 +67720,6 @@ export namespace Prisma {
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    attendees?: PointLogUncheckedUpdateManyWithoutEventNestedInput
   }
 
   export type CampaignEventUncheckedUpdateManyWithoutResponsibleInput = {
@@ -75659,8 +68390,6 @@ export namespace Prisma {
     registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
@@ -75706,8 +68435,6 @@ export namespace Prisma {
     registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
     witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
     witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
-    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
-    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
     consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
     consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
     casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
@@ -76263,76 +68990,6 @@ export namespace Prisma {
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogCreateManyEventInput = {
-    id?: string
-    userId: string
-    amount: number
-    reason: string
-    createdAt?: Date | string
-  }
-
-  export type PointLogUpdateWithoutEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutPointLogsNestedInput
-    user?: UserUpdateOneRequiredWithoutPointLogsNestedInput
-  }
-
-  export type PointLogUncheckedUpdateWithoutEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type PointLogUncheckedUpdateManyWithoutEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    amount?: IntFieldUpdateOperationsInput | number
-    reason?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementCreateManyItemInput = {
-    id?: string
-    userId: string
-    quantity: number
-    type: $Enums.MovementType
-    reason?: string | null
-    createdAt?: Date | string
-  }
-
-  export type InventoryMovementUpdateWithoutItemInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    tenant?: TenantUpdateOneRequiredWithoutInventoryMovementsNestedInput
-    user?: UserUpdateOneRequiredWithoutInventoryMovesNestedInput
-  }
-
-  export type InventoryMovementUncheckedUpdateWithoutItemInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type InventoryMovementUncheckedUpdateManyWithoutItemInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    quantity?: IntFieldUpdateOperationsInput | number
-    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
-    reason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type InteractionCreateManyConsentRecordInput = {

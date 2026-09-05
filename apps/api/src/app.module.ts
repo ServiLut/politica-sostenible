@@ -39,6 +39,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ElectronicSignatureModule } from './electronic-signature/electronic-signature.module';
 import { TransitionHandoverModule } from './transition-handover/transition-handover.module';
 import { SearchModule } from './search/search.module';
+import { OperationProfileModule } from './operation-profile/operation-profile.module';
+import { OperationalInboxModule } from './operational-inbox/operational-inbox.module';
 
 @Module({
   imports: [
@@ -82,6 +84,8 @@ import { SearchModule } from './search/search.module';
     ElectronicSignatureModule,
     TransitionHandoverModule,
     SearchModule,
+    OperationProfileModule,
+    OperationalInboxModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
