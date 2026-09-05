@@ -13,6 +13,7 @@ import { useAuth } from "@/context/auth";
 import { changeOwnPassword, updateOwnOrganization } from "@/lib/auth-api";
 import { ApiError } from "@/lib/api-client";
 import { getRoleLabel, getTenantTypeLabel } from "@/config/navigation";
+import { MfaSetup } from "@/components/profile/MfaSetup";
 
 function formatTemporaryPasswordExpiry(value?: string | null) {
   if (!value) return null;
@@ -364,6 +365,8 @@ export default function ProfilePage() {
           </ul>
         </aside>
       </div>
+
+      <MfaSetup />
     </div>
   );
 }

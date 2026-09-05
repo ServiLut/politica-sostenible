@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Label } from "@/components/ui";
-import { LogIn, Mail, Lock, Sparkles, Loader2 } from "lucide-react";
+import { LogIn, Mail, Lock, Sparkles, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import {
   canAccessNavigationItem,
@@ -46,6 +46,8 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+  const [mfaCode, setMfaCode] = useState("");
+  const [requiresMfa, setRequiresMfa] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordChanged, setPasswordChanged] = useState(false);
@@ -74,10 +76,23 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const session = await login({
+      const payload: any = {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
-      });
+      };
+      
+      if (requiresMfa) {
+        payload.code = mfaCode;
+      }
+
+      const session = await login(payload);
+      
+      if ('requiresMfa' in session) {
+        setRequiresMfa(true);
+        setMfaCode("");
+        return;
+      }
+      
       router.replace(getPostLoginPath(session.user, session.tenant));
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -169,66 +184,103 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-10">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label
-                  htmlFor="email"
-                  className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
-                >
-                  Email
-                </Label>
-                <div className="relative group">
-                  <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    className="pl-14 h-15 rounded-[1.5rem]"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-2">
+            {requiresMfa ? (
+              <div className="space-y-6">
+                <div className="space-y-3">
                   <Label
-                    htmlFor="password"
-                    className="text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    htmlFor="mfaCode"
+                    className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
                   >
-                    Password
+                    Código de autenticación
                   </Label>
-                  <Link
-                    href="/olvide-mi-contrasena"
-                    title="Recuperar acceso"
-                    className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                  >
-                    ¿Perdiste el acceso?
-                  </Link>
+                  <div className="relative group">
+                    <ShieldCheck className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <Input
+                      id="mfaCode"
+                      name="mfaCode"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      placeholder="000000"
+                      className="pl-14 h-15 rounded-[1.5rem] text-center tracking-widest font-mono text-lg"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="relative group">
-                  <Lock className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-14 h-15 rounded-[1.5rem]"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    autoComplete="current-password"
-                  />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { setRequiresMfa(false); setMfaCode(""); }}
+                  className="w-full text-sm font-medium"
+                >
+                  Regresar
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="email"
+                    className="ml-2 text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                  >
+                    Email
+                  </Label>
+                  <div className="relative group">
+                    <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="tu@correo.com"
+                      className="pl-14 h-15 rounded-[1.5rem]"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-2">
+                    <Label
+                      htmlFor="password"
+                      className="text-xs font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-200"
+                    >
+                      Password
+                    </Label>
+                    <Link
+                      href="/olvide-mi-contrasena"
+                      title="Recuperar acceso"
+                      className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                    >
+                      ¿Perdiste el acceso?
+                    </Link>
+                  </div>
+                  <div className="relative group">
+                    <Lock className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-zinc-300 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-14 h-15 rounded-[1.5rem]"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
-              disabled={isSubmitting || sessionLoading}
+              disabled={isSubmitting || sessionLoading || (requiresMfa && mfaCode.length !== 6)}
               size="lg"
               className="w-full rounded-[1.5rem] bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-white shadow-2xl shadow-zinc-300 dark:shadow-none"
             >
@@ -240,7 +292,7 @@ export default function LoginPage() {
               ) : (
                 <div className="flex items-center gap-3">
                   <LogIn className="h-5 w-5 ml-5" />
-                  <span>Entrar ahora</span>
+                  <span>{requiresMfa ? "Verificar" : "Entrar ahora"}</span>
                 </div>
               )}
             </Button>

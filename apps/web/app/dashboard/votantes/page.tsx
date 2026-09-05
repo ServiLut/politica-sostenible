@@ -37,6 +37,8 @@ import {
 } from "@/lib/voters-api";
 import { BackendUserRole } from "@/types/saas-schema";
 
+import { ExportButton } from "@/components/ui/ExportButton";
+
 const PAGE_SIZE = 25;
 const CREATE_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
 const TERRITORIAL_CAPTURE_ROLES = new Set<BackendUserRole>([
@@ -486,7 +488,8 @@ export default function VotantesPage() {
             características sensibles.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ExportButton moduleName="personas" />
           <button
             type="button"
             onClick={() => setReload((value) => value + 1)}

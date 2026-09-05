@@ -35,6 +35,7 @@ import {
   WorkPriority,
 } from "@/lib/cases-api";
 import { BackendUserRole } from "@/types/saas-schema";
+import { ExportButton } from "@/components/ui/ExportButton";
 
 const PAGE_SIZE = 12;
 
@@ -595,18 +596,21 @@ export default function CasesPage() {
             sesión validada por la API.
           </p>
         </div>
-        {canMutate && (
-          <button
-            type="button"
-            onClick={() => {
-              setMutationError(null);
-              setIsCreateOpen(true);
-            }}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
-          >
-            <Plus size={17} /> Radicar PQRS
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <ExportButton moduleName="casos" />
+          {canMutate && (
+            <button
+              type="button"
+              onClick={() => {
+                setMutationError(null);
+                setIsCreateOpen(true);
+              }}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
+            >
+              <Plus size={17} /> Radicar PQRS
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">

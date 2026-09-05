@@ -5,6 +5,8 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsOptional,
+  Length,
 } from 'class-validator';
 
 export class LoginDto {
@@ -21,4 +23,9 @@ export class LoginDto {
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   @MaxLength(128)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(6, 6, { message: 'El código debe tener exactamente 6 dígitos' })
+  totpCode?: string;
 }

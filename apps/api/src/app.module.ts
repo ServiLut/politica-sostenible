@@ -30,6 +30,7 @@ import { InteractionsModule } from './interactions/interactions.module';
 import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
 import { RetentionModule } from './retention/retention.module';
 import { ExportModule } from './export/export.module';
+import { ImportModule } from './import/import.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { ExportModule } from './export/export.module';
     ScheduleModule.forRoot(),
     RetentionModule,
     ExportModule,
+    ImportModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

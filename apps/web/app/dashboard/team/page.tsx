@@ -40,6 +40,7 @@ import {
   updateTeamMemberStatus,
 } from "@/lib/team-api";
 import { BackendUserRole } from "@/types/saas-schema";
+import { ExportButton } from "@/components/ui/ExportButton";
 
 const CAMPAIGN_ROLES: ReadonlyArray<{
   value: BackendUserRole;
@@ -415,18 +416,23 @@ export default function TeamPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header>
-        <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700">
-          <ShieldCheck size={16} aria-hidden="true" /> Administración de acceso
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700">
+            <ShieldCheck size={16} aria-hidden="true" /> Administración de acceso
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-950">
+            Equipo y accesos
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+            Invita a cada persona con el menor privilegio necesario. Los enlaces
+            vencen en 72 horas y se usan una sola vez. Si necesitas continuidad,
+            puedes designar explícitamente una administración de respaldo.
+          </p>
         </div>
-        <h1 className="text-3xl font-black tracking-tight text-slate-950">
-          Equipo y accesos
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
-          Invita a cada persona con el menor privilegio necesario. Los enlaces
-          vencen en 72 horas y se usan una sola vez. Si necesitas continuidad,
-          puedes designar explícitamente una administración de respaldo.
-        </p>
+        <div className="flex items-center gap-3">
+          <ExportButton moduleName="equipo" />
+        </div>
       </header>
 
       <section className="grid gap-6 xl:grid-cols-[24rem_1fr]">

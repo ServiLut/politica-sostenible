@@ -171,6 +171,8 @@ exports.Prisma.UserScalarFieldEnum = {
   isActive: 'isActive',
   documentId: 'documentId',
   phone: 'phone',
+  totpSecret: 'totpSecret',
+  totpEnabledAt: 'totpEnabledAt',
   points: 'points',
   tenantId: 'tenantId',
   divisionId: 'divisionId',

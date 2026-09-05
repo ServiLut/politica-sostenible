@@ -8,6 +8,7 @@ import {
 export interface LoginDto {
   email: string;
   password: string;
+  code?: string;
 }
 
 export interface RegisterDto {
@@ -23,8 +24,9 @@ export interface RegisterDto {
 }
 
 interface LoginResponse {
-  access_token: string;
-  user: BackendAuthUser;
+  access_token?: string;
+  user?: BackendAuthUser;
+  requiresMfa?: boolean;
 }
 
 export interface RegisterResponse {
@@ -44,14 +46,18 @@ export interface UpdateOrganizationResponse {
 
 export async function loginWithCredentials(
   credentials: LoginDto,
-): Promise<AuthSession> {
+): Promise<AuthSession | { requiresMfa: true }> {
   const response = await apiRequest<LoginResponse>("/auth/login", {
     auth: false,
     body: JSON.stringify(credentials),
     method: "POST",
   });
 
-  return createAuthSession(response.access_token, response.user);
+  if (response.requiresMfa) {
+    return { requiresMfa: true };
+  }
+
+  return createAuthSession(response.access_token!, response.user!);
 }
 
 export function registerAccount(data: RegisterDto) {

@@ -25,6 +25,8 @@ import type { ChangePasswordDto } from './dto/change-password.dto';
 import { createSessionVersion } from './session-version';
 import type { UpdateOrganizationDto } from './dto/update-organization.dto';
 
+import { MfaService } from './mfa.service';
+
 // Mantiene un costo de bcrypt equivalente cuando el correo no existe y reduce
 // la utilidad de las diferencias de tiempo para enumerar cuentas.
 const DUMMY_PASSWORD_HASH =
@@ -37,10 +39,11 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private mfaService: MfaService,
   ) {}
 
   async login(dto: LoginDto) {
-    const { email, password } = dto;
+    const { email, password, totpCode } = dto;
     this.assertBcryptPasswordSize(password);
 
     const user = await this.prisma.user.findUnique({
@@ -55,6 +58,7 @@ export class AuthService {
         mustChangePassword: true,
         temporaryPasswordExpiresAt: true,
         tenantId: true,
+        totpEnabledAt: true,
         tenant: {
           select: {
             id: true,
@@ -74,6 +78,17 @@ export class AuthService {
 
     if (!user || !passwordMatches || !user.isActive) {
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (user.totpEnabledAt) {
+      if (!totpCode) {
+        return { requiresMfa: true };
+      }
+      
+      const isMfaValid = await this.mfaService.verifyCode(user.id, totpCode);
+      if (!isMfaValid) {
+        throw new UnauthorizedException('Código de verificación incorrecto');
+      }
     }
 
     if (

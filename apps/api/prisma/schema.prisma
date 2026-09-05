@@ -87,6 +87,8 @@ model User {
   isActive                   Boolean                 @default(true)
   documentId                 String?
   phone                      String?
+  totpSecret                 String?   /// Encrypted TOTP secret (null = MFA not enabled)
+  totpEnabledAt              DateTime? /// When MFA was enabled
   points                     Int                     @default(0)
   tenantId                   String
   divisionId                 String?

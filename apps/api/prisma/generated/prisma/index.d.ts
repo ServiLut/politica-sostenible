@@ -8138,6 +8138,8 @@ export namespace Prisma {
     isActive: boolean | null
     documentId: string | null
     phone: string | null
+    totpSecret: string | null
+    totpEnabledAt: Date | null
     points: number | null
     tenantId: string | null
     divisionId: string | null
@@ -8156,6 +8158,8 @@ export namespace Prisma {
     isActive: boolean | null
     documentId: string | null
     phone: string | null
+    totpSecret: string | null
+    totpEnabledAt: Date | null
     points: number | null
     tenantId: string | null
     divisionId: string | null
@@ -8174,6 +8178,8 @@ export namespace Prisma {
     isActive: number
     documentId: number
     phone: number
+    totpSecret: number
+    totpEnabledAt: number
     points: number
     tenantId: number
     divisionId: number
@@ -8202,6 +8208,8 @@ export namespace Prisma {
     isActive?: true
     documentId?: true
     phone?: true
+    totpSecret?: true
+    totpEnabledAt?: true
     points?: true
     tenantId?: true
     divisionId?: true
@@ -8220,6 +8228,8 @@ export namespace Prisma {
     isActive?: true
     documentId?: true
     phone?: true
+    totpSecret?: true
+    totpEnabledAt?: true
     points?: true
     tenantId?: true
     divisionId?: true
@@ -8238,6 +8248,8 @@ export namespace Prisma {
     isActive?: true
     documentId?: true
     phone?: true
+    totpSecret?: true
+    totpEnabledAt?: true
     points?: true
     tenantId?: true
     divisionId?: true
@@ -8343,6 +8355,8 @@ export namespace Prisma {
     isActive: boolean
     documentId: string | null
     phone: string | null
+    totpSecret: string | null
+    totpEnabledAt: Date | null
     points: number
     tenantId: string
     divisionId: string | null
@@ -8380,6 +8394,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: boolean
     phone?: boolean
+    totpSecret?: boolean
+    totpEnabledAt?: boolean
     points?: boolean
     tenantId?: boolean
     divisionId?: boolean
@@ -8426,6 +8442,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: boolean
     phone?: boolean
+    totpSecret?: boolean
+    totpEnabledAt?: boolean
     points?: boolean
     tenantId?: boolean
     divisionId?: boolean
@@ -8446,6 +8464,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: boolean
     phone?: boolean
+    totpSecret?: boolean
+    totpEnabledAt?: boolean
     points?: boolean
     tenantId?: boolean
     divisionId?: boolean
@@ -8466,6 +8486,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: boolean
     phone?: boolean
+    totpSecret?: boolean
+    totpEnabledAt?: boolean
     points?: boolean
     tenantId?: boolean
     divisionId?: boolean
@@ -8473,7 +8495,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "mustChangePassword" | "temporaryPasswordExpiresAt" | "name" | "role" | "isActive" | "documentId" | "phone" | "points" | "tenantId" | "divisionId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "mustChangePassword" | "temporaryPasswordExpiresAt" | "name" | "role" | "isActive" | "documentId" | "phone" | "totpSecret" | "totpEnabledAt" | "points" | "tenantId" | "divisionId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     division?: boolean | User$divisionArgs<ExtArgs>
@@ -8555,6 +8577,14 @@ export namespace Prisma {
       isActive: boolean
       documentId: string | null
       phone: string | null
+      /**
+       * Encrypted TOTP secret (null = MFA not enabled)
+       */
+      totpSecret: string | null
+      /**
+       * When MFA was enabled
+       */
+      totpEnabledAt: Date | null
       points: number
       tenantId: string
       divisionId: string | null
@@ -9020,6 +9050,8 @@ export namespace Prisma {
     readonly isActive: FieldRef<"User", 'Boolean'>
     readonly documentId: FieldRef<"User", 'String'>
     readonly phone: FieldRef<"User", 'String'>
+    readonly totpSecret: FieldRef<"User", 'String'>
+    readonly totpEnabledAt: FieldRef<"User", 'DateTime'>
     readonly points: FieldRef<"User", 'Int'>
     readonly tenantId: FieldRef<"User", 'String'>
     readonly divisionId: FieldRef<"User", 'String'>
@@ -33199,6 +33231,8 @@ export namespace Prisma {
     isActive: 'isActive',
     documentId: 'documentId',
     phone: 'phone',
+    totpSecret: 'totpSecret',
+    totpEnabledAt: 'totpEnabledAt',
     points: 'points',
     tenantId: 'tenantId',
     divisionId: 'divisionId',
@@ -34504,6 +34538,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
+    totpSecret?: StringNullableFilter<"User"> | string | null
+    totpEnabledAt?: DateTimeNullableFilter<"User"> | Date | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
     divisionId?: StringNullableFilter<"User"> | string | null
@@ -34549,6 +34585,8 @@ export namespace Prisma {
     isActive?: SortOrder
     documentId?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
+    totpSecret?: SortOrderInput | SortOrder
+    totpEnabledAt?: SortOrderInput | SortOrder
     points?: SortOrder
     tenantId?: SortOrder
     divisionId?: SortOrderInput | SortOrder
@@ -34599,6 +34637,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
+    totpSecret?: StringNullableFilter<"User"> | string | null
+    totpEnabledAt?: DateTimeNullableFilter<"User"> | Date | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
     divisionId?: StringNullableFilter<"User"> | string | null
@@ -34644,6 +34684,8 @@ export namespace Prisma {
     isActive?: SortOrder
     documentId?: SortOrderInput | SortOrder
     phone?: SortOrderInput | SortOrder
+    totpSecret?: SortOrderInput | SortOrder
+    totpEnabledAt?: SortOrderInput | SortOrder
     points?: SortOrder
     tenantId?: SortOrder
     divisionId?: SortOrderInput | SortOrder
@@ -34670,6 +34712,8 @@ export namespace Prisma {
     isActive?: BoolWithAggregatesFilter<"User"> | boolean
     documentId?: StringNullableWithAggregatesFilter<"User"> | string | null
     phone?: StringNullableWithAggregatesFilter<"User"> | string | null
+    totpSecret?: StringNullableWithAggregatesFilter<"User"> | string | null
+    totpEnabledAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     points?: IntWithAggregatesFilter<"User"> | number
     tenantId?: StringWithAggregatesFilter<"User"> | string
     divisionId?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -37123,6 +37167,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -37166,6 +37212,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -37209,6 +37257,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -37252,6 +37302,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37295,6 +37347,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -37313,6 +37367,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -37329,6 +37385,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -40299,6 +40357,8 @@ export namespace Prisma {
     isActive?: SortOrder
     documentId?: SortOrder
     phone?: SortOrder
+    totpSecret?: SortOrder
+    totpEnabledAt?: SortOrder
     points?: SortOrder
     tenantId?: SortOrder
     divisionId?: SortOrder
@@ -40321,6 +40381,8 @@ export namespace Prisma {
     isActive?: SortOrder
     documentId?: SortOrder
     phone?: SortOrder
+    totpSecret?: SortOrder
+    totpEnabledAt?: SortOrder
     points?: SortOrder
     tenantId?: SortOrder
     divisionId?: SortOrder
@@ -40339,6 +40401,8 @@ export namespace Prisma {
     isActive?: SortOrder
     documentId?: SortOrder
     phone?: SortOrder
+    totpSecret?: SortOrder
+    totpEnabledAt?: SortOrder
     points?: SortOrder
     tenantId?: SortOrder
     divisionId?: SortOrder
@@ -46638,6 +46702,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -46680,6 +46746,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     divisionId?: string | null
     createdAt?: Date | string
@@ -47637,6 +47705,8 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     documentId?: StringNullableFilter<"User"> | string | null
     phone?: StringNullableFilter<"User"> | string | null
+    totpSecret?: StringNullableFilter<"User"> | string | null
+    totpEnabledAt?: DateTimeNullableFilter<"User"> | Date | string | null
     points?: IntFilter<"User"> | number
     tenantId?: StringFilter<"User"> | string
     divisionId?: StringNullableFilter<"User"> | string | null
@@ -48575,6 +48645,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48617,6 +48689,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -48748,6 +48822,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48790,6 +48866,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50732,6 +50810,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -50774,6 +50854,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -50905,6 +50987,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50947,6 +51031,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -51130,6 +51216,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -51172,6 +51260,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -51686,6 +51776,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -51728,6 +51820,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -52059,6 +52153,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -52101,6 +52197,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52258,6 +52356,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -52300,6 +52400,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -52347,6 +52449,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -52389,6 +52493,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -52436,6 +52542,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -52478,6 +52586,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -52609,6 +52719,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -52651,6 +52763,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52704,6 +52818,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -52746,6 +52862,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52799,6 +52917,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -52841,6 +52961,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -52985,6 +53107,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53027,6 +53151,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -53074,6 +53200,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53116,6 +53244,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -53382,6 +53512,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53424,6 +53556,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -53477,6 +53611,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53519,6 +53655,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -53695,6 +53833,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -53737,6 +53877,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -53895,6 +54037,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -53937,6 +54081,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -54062,6 +54208,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -54104,6 +54252,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -54274,6 +54424,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54316,6 +54468,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -54682,6 +54836,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -54724,6 +54880,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -54888,6 +55046,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -54930,6 +55090,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -55090,6 +55252,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -55132,6 +55296,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -55363,6 +55529,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -55405,6 +55573,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -55530,6 +55700,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -55572,6 +55744,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -55703,6 +55877,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -55745,6 +55921,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -55940,6 +56118,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -55982,6 +56162,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -56029,6 +56211,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -56071,6 +56255,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -56482,6 +56668,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -56524,6 +56712,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -56577,6 +56767,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -56619,6 +56811,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -56902,6 +57096,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -56944,6 +57140,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -57246,6 +57444,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -57288,6 +57488,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57554,6 +57756,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -57596,6 +57800,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -57643,6 +57849,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -57685,6 +57893,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -57930,6 +58140,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -57972,6 +58184,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58025,6 +58239,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -58067,6 +58283,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58176,6 +58394,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -58218,6 +58438,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -58451,6 +58673,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -58493,6 +58717,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58742,6 +58968,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -58784,6 +59012,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -58831,6 +59061,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -58873,6 +59105,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -59069,6 +59303,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -59111,6 +59347,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -59164,6 +59402,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -59206,6 +59446,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -59315,6 +59557,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -59357,6 +59601,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -59488,6 +59734,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -59530,6 +59778,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -59639,6 +59889,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -59681,6 +59933,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -59728,6 +59982,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -59770,6 +60026,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -59817,6 +60075,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -59859,6 +60119,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     tenantId: string
     divisionId?: string | null
@@ -59990,6 +60252,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -60032,6 +60296,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -60085,6 +60351,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -60127,6 +60395,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -60180,6 +60450,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -60222,6 +60494,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     tenantId?: StringFieldUpdateOperationsInput | string
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -60264,6 +60538,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     divisionId?: string | null
     createdAt?: Date | string
@@ -60579,6 +60855,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -60621,6 +60899,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -60663,6 +60943,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     divisionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -63442,6 +63724,8 @@ export namespace Prisma {
     isActive?: boolean
     documentId?: string | null
     phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
     points?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -63555,6 +63839,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -63597,6 +63883,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -63638,6 +63926,8 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     documentId?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     points?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

@@ -43,6 +43,7 @@ import {
 } from "@/lib/work-api";
 import type { BackendUserRole } from "@/types/saas-schema";
 import { getRoleLabel } from "@/config/navigation";
+import { ExportButton } from "@/components/ui/ExportButton";
 
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
@@ -811,17 +812,20 @@ export default function TasksPage() {
         {(view === "tasks"
           ? canCreateTask
           : commitmentResult?.permissions.canCreate) && (
-          <button
-            type="button"
-            onClick={() => {
-              setMutationError(null);
-              setDialog(view === "tasks" ? "task" : "commitment");
-            }}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
-          >
-            <Plus aria-hidden="true" size={19} />
-            {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
-          </button>
+          <div className="flex items-center gap-3">
+            <ExportButton moduleName="tareas" />
+            <button
+              type="button"
+              onClick={() => {
+                setMutationError(null);
+                setDialog(view === "tasks" ? "task" : "commitment");
+              }}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
+            >
+              <Plus aria-hidden="true" size={19} />
+              {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
+            </button>
+          </div>
         )}
       </header>
 

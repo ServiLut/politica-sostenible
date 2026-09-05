@@ -12,9 +12,15 @@ import { Roles } from './decorators/roles.decorator';
 import { Role } from '../../prisma/generated/prisma';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
+import { MfaService } from './mfa.service';
+import { MfaVerifyDto } from './dto/mfa-verify.dto';
+
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   @Post('login')
   @Public()
@@ -55,5 +61,32 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(user, dto);
+  }
+
+  @Post('mfa/setup')
+  async setupMfa(@CurrentUser() user: AuthenticatedUser) {
+    return this.mfaService.generateSecret(user.userId, user.tenantId);
+  }
+
+  @Post('mfa/verify')
+  async verifyMfa(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: MfaVerifyDto,
+  ) {
+    return this.mfaService.verifyAndEnable(user.userId, user.tenantId, body.code);
+  }
+
+  @Post('mfa/disable')
+  async disableMfa(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: MfaVerifyDto,
+  ) {
+    return this.mfaService.disable(user.userId, user.tenantId, body.code);
+  }
+
+  @Get('mfa/status')
+  async mfaStatus(@CurrentUser() user: AuthenticatedUser) {
+    const enabled = await this.mfaService.hasMfaEnabled(user.userId);
+    return { enabled };
   }
 }
