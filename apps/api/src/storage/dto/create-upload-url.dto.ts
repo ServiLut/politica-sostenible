@@ -8,12 +8,14 @@ import {
   Max,
   MaxLength,
   Min,
+  IsOptional,
 } from 'class-validator';
 import {
   STORAGE_MAX_FILE_NAME_LENGTH,
   STORAGE_MAX_UPLOAD_BYTES,
   StorageModuleName,
 } from '../storage.constants';
+import { DocumentCategory, RetentionPhase } from '../../../prisma/generated/prisma';
 
 export class CreateUploadUrlDto {
   @IsEnum(StorageModuleName)
@@ -34,4 +36,12 @@ export class CreateUploadUrlDto {
   @Min(1)
   @Max(STORAGE_MAX_UPLOAD_BYTES)
   size: number;
+
+  @IsEnum(DocumentCategory)
+  @IsOptional()
+  documentCategory?: DocumentCategory;
+
+  @IsEnum(RetentionPhase)
+  @IsOptional()
+  retentionPhase?: RetentionPhase;
 }

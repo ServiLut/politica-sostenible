@@ -14,6 +14,9 @@ model Tenant {
   type                   TenantType              @default(CANDIDACY)
   defaultMode            PoliticalOperationMode  @default(CAMPAIGN)
   config                 Json?
+  parentTenantId         String?
+  parent                 Tenant?                 @relation("TenantHierarchy", fields: [parentTenantId], references: [id])
+  children               Tenant[]                @relation("TenantHierarchy")
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   settings               CampaignSettings?
@@ -39,6 +42,7 @@ model Tenant {
   operationProfile       OperationProfile?
   politicalProposals     PoliticalProposal[]
   subscription           TenantSubscription?
+  electronicSignatures   ElectronicSignature[]
 }
 
 model CampaignSettings {
@@ -52,25 +56,28 @@ model CampaignSettings {
 }
 
 model StoredObject {
-  id             String              @id @default(cuid())
-  tenantId       String
-  uploaderId     String
-  path           String              @unique @db.VarChar(512)
-  module         StorageObjectModule
-  contentType    String              @db.VarChar(150)
-  expectedSize   Int
-  actualSize     Int?
-  etag           String?             @db.VarChar(255)
-  status         StoredObjectStatus  @default(ISSUED)
-  expiresAt      DateTime
-  confirmedAt    DateTime?
-  consumedAt     DateTime?
-  consumedByType String?             @db.VarChar(64)
-  consumedById   String?             @db.VarChar(128)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  tenant         Tenant              @relation(fields: [tenantId], references: [id])
-  uploader       User                @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+  id               String                @id @default(cuid())
+  tenantId         String
+  uploaderId       String
+  path             String                @unique @db.VarChar(512)
+  module           StorageObjectModule
+  contentType      String                @db.VarChar(150)
+  expectedSize     Int
+  actualSize       Int?
+  etag             String?               @db.VarChar(255)
+  status           StoredObjectStatus    @default(ISSUED)
+  expiresAt        DateTime
+  confirmedAt      DateTime?
+  consumedAt       DateTime?
+  consumedByType   String?               @db.VarChar(64)
+  consumedById     String?               @db.VarChar(128)
+  documentCategory DocumentCategory?
+  retentionPhase   RetentionPhase        @default(MANAGEMENT)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  tenant           Tenant                @relation(fields: [tenantId], references: [id])
+  uploader         User                  @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+  signatures       ElectronicSignature[]
 
   @@unique([id, tenantId])
   @@index([tenantId, status, expiresAt])
@@ -126,6 +133,7 @@ model User {
   proposalsOwned               PoliticalProposal[]     @relation("ProposalOwner")
   proposalsCreated             PoliticalProposal[]     @relation("ProposalCreatedBy")
   proposalsUpdated             PoliticalProposal[]     @relation("ProposalUpdatedBy")
+  electronicSignatures         ElectronicSignature[]
 
   @@unique([id, tenantId])
   @@unique([documentId, tenantId])
@@ -1002,4 +1010,37 @@ enum SubscriptionStatus {
 enum BillingCycle {
   MONTHLY
   YEARLY
+}
+
+model ElectronicSignature {
+  id           String   @id @default(cuid())
+  tenantId     String
+  documentId   String
+  signerId     String
+  documentHash String   @db.VarChar(255)
+  ipAddress    String?  @db.VarChar(45)
+  signedAt     DateTime @default(now())
+
+  tenant   Tenant       @relation(fields: [tenantId], references: [id])
+  document StoredObject @relation(fields: [documentId, tenantId], references: [id, tenantId])
+  signer   User         @relation(fields: [signerId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, documentId])
+  @@index([tenantId, signerId])
+}
+
+enum DocumentCategory {
+  CONTRACT
+  ACT
+  RESOLUTION
+  MEMORANDUM
+  REPORT
+  FINANCIAL
+  OTHER
+}
+
+enum RetentionPhase {
+  MANAGEMENT
+  CENTRAL
+  HISTORICAL
 }

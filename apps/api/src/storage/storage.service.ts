@@ -130,6 +130,8 @@ export class StorageService {
           contentType: metadata.contentType,
           expectedSize: metadata.size,
           expiresAt,
+          documentCategory: dto.documentCategory,
+          retentionPhase: dto.retentionPhase,
         },
         select: { id: true },
       });

@@ -127,6 +127,7 @@ exports.Prisma.TenantScalarFieldEnum = {
   type: 'type',
   defaultMode: 'defaultMode',
   config: 'config',
+  parentTenantId: 'parentTenantId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -156,6 +157,8 @@ exports.Prisma.StoredObjectScalarFieldEnum = {
   consumedAt: 'consumedAt',
   consumedByType: 'consumedByType',
   consumedById: 'consumedById',
+  documentCategory: 'documentCategory',
+  retentionPhase: 'retentionPhase',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -554,6 +557,16 @@ exports.Prisma.TenantSubscriptionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ElectronicSignatureScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  documentId: 'documentId',
+  signerId: 'signerId',
+  documentHash: 'documentHash',
+  ipAddress: 'ipAddress',
+  signedAt: 'signedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -605,6 +618,22 @@ exports.StoredObjectStatus = exports.$Enums.StoredObjectStatus = {
   CONFIRMED: 'CONFIRMED',
   CONSUMED: 'CONSUMED',
   EXPIRED: 'EXPIRED'
+};
+
+exports.DocumentCategory = exports.$Enums.DocumentCategory = {
+  CONTRACT: 'CONTRACT',
+  ACT: 'ACT',
+  RESOLUTION: 'RESOLUTION',
+  MEMORANDUM: 'MEMORANDUM',
+  REPORT: 'REPORT',
+  FINANCIAL: 'FINANCIAL',
+  OTHER: 'OTHER'
+};
+
+exports.RetentionPhase = exports.$Enums.RetentionPhase = {
+  MANAGEMENT: 'MANAGEMENT',
+  CENTRAL: 'CENTRAL',
+  HISTORICAL: 'HISTORICAL'
 };
 
 exports.Role = exports.$Enums.Role = {
@@ -908,7 +937,8 @@ exports.Prisma.ModelName = {
   OperationProfile: 'OperationProfile',
   PoliticalProposal: 'PoliticalProposal',
   SubscriptionPlan: 'SubscriptionPlan',
-  TenantSubscription: 'TenantSubscription'
+  TenantSubscription: 'TenantSubscription',
+  ElectronicSignature: 'ElectronicSignature'
 };
 
 /**

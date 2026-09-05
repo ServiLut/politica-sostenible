@@ -145,6 +145,11 @@ export type SubscriptionPlan = $Result.DefaultSelection<Prisma.$SubscriptionPlan
  * 
  */
 export type TenantSubscription = $Result.DefaultSelection<Prisma.$TenantSubscriptionPayload>
+/**
+ * Model ElectronicSignature
+ * 
+ */
+export type ElectronicSignature = $Result.DefaultSelection<Prisma.$ElectronicSignaturePayload>
 
 /**
  * Enums
@@ -560,6 +565,28 @@ export const BillingCycle: {
 
 export type BillingCycle = (typeof BillingCycle)[keyof typeof BillingCycle]
 
+
+export const DocumentCategory: {
+  CONTRACT: 'CONTRACT',
+  ACT: 'ACT',
+  RESOLUTION: 'RESOLUTION',
+  MEMORANDUM: 'MEMORANDUM',
+  REPORT: 'REPORT',
+  FINANCIAL: 'FINANCIAL',
+  OTHER: 'OTHER'
+};
+
+export type DocumentCategory = (typeof DocumentCategory)[keyof typeof DocumentCategory]
+
+
+export const RetentionPhase: {
+  MANAGEMENT: 'MANAGEMENT',
+  CENTRAL: 'CENTRAL',
+  HISTORICAL: 'HISTORICAL'
+};
+
+export type RetentionPhase = (typeof RetentionPhase)[keyof typeof RetentionPhase]
+
 }
 
 export type TenantType = $Enums.TenantType
@@ -709,6 +736,14 @@ export const SubscriptionStatus: typeof $Enums.SubscriptionStatus
 export type BillingCycle = $Enums.BillingCycle
 
 export const BillingCycle: typeof $Enums.BillingCycle
+
+export type DocumentCategory = $Enums.DocumentCategory
+
+export const DocumentCategory: typeof $Enums.DocumentCategory
+
+export type RetentionPhase = $Enums.RetentionPhase
+
+export const RetentionPhase: typeof $Enums.RetentionPhase
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1080,6 +1115,16 @@ export class PrismaClient<
     * ```
     */
   get tenantSubscription(): Prisma.TenantSubscriptionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.electronicSignature`: Exposes CRUD operations for the **ElectronicSignature** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ElectronicSignatures
+    * const electronicSignatures = await prisma.electronicSignature.findMany()
+    * ```
+    */
+  get electronicSignature(): Prisma.ElectronicSignatureDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1551,7 +1596,8 @@ export namespace Prisma {
     OperationProfile: 'OperationProfile',
     PoliticalProposal: 'PoliticalProposal',
     SubscriptionPlan: 'SubscriptionPlan',
-    TenantSubscription: 'TenantSubscription'
+    TenantSubscription: 'TenantSubscription',
+    ElectronicSignature: 'ElectronicSignature'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1567,7 +1613,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile" | "politicalProposal" | "subscriptionPlan" | "tenantSubscription"
+      modelProps: "tenant" | "campaignSettings" | "storedObject" | "user" | "teamInvitation" | "politicalDivision" | "voter" | "financialEntry" | "witnessReport" | "campaignEvent" | "pointLog" | "inventoryItem" | "inventoryMovement" | "consentRecord" | "consentNotice" | "issueCase" | "interaction" | "task" | "commitment" | "communicationApproval" | "auditEvent" | "operationProfile" | "politicalProposal" | "subscriptionPlan" | "tenantSubscription" | "electronicSignature"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3421,6 +3467,80 @@ export namespace Prisma {
           }
         }
       }
+      ElectronicSignature: {
+        payload: Prisma.$ElectronicSignaturePayload<ExtArgs>
+        fields: Prisma.ElectronicSignatureFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ElectronicSignatureFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ElectronicSignatureFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          findFirst: {
+            args: Prisma.ElectronicSignatureFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ElectronicSignatureFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          findMany: {
+            args: Prisma.ElectronicSignatureFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>[]
+          }
+          create: {
+            args: Prisma.ElectronicSignatureCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          createMany: {
+            args: Prisma.ElectronicSignatureCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ElectronicSignatureCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>[]
+          }
+          delete: {
+            args: Prisma.ElectronicSignatureDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          update: {
+            args: Prisma.ElectronicSignatureUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          deleteMany: {
+            args: Prisma.ElectronicSignatureDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ElectronicSignatureUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ElectronicSignatureUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>[]
+          }
+          upsert: {
+            args: Prisma.ElectronicSignatureUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ElectronicSignaturePayload>
+          }
+          aggregate: {
+            args: Prisma.ElectronicSignatureAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateElectronicSignature>
+          }
+          groupBy: {
+            args: Prisma.ElectronicSignatureGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ElectronicSignatureGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ElectronicSignatureCountArgs<ExtArgs>
+            result: $Utils.Optional<ElectronicSignatureCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3569,6 +3689,7 @@ export namespace Prisma {
     politicalProposal?: PoliticalProposalOmit
     subscriptionPlan?: SubscriptionPlanOmit
     tenantSubscription?: TenantSubscriptionOmit
+    electronicSignature?: ElectronicSignatureOmit
   }
 
   /* Types for Logging */
@@ -3649,6 +3770,7 @@ export namespace Prisma {
    */
 
   export type TenantCountOutputType = {
+    children: number
     users: number
     divisions: number
     voters: number
@@ -3669,9 +3791,11 @@ export namespace Prisma {
     auditEvents: number
     storedObjects: number
     politicalProposals: number
+    electronicSignatures: number
   }
 
   export type TenantCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    children?: boolean | TenantCountOutputTypeCountChildrenArgs
     users?: boolean | TenantCountOutputTypeCountUsersArgs
     divisions?: boolean | TenantCountOutputTypeCountDivisionsArgs
     voters?: boolean | TenantCountOutputTypeCountVotersArgs
@@ -3692,6 +3816,7 @@ export namespace Prisma {
     auditEvents?: boolean | TenantCountOutputTypeCountAuditEventsArgs
     storedObjects?: boolean | TenantCountOutputTypeCountStoredObjectsArgs
     politicalProposals?: boolean | TenantCountOutputTypeCountPoliticalProposalsArgs
+    electronicSignatures?: boolean | TenantCountOutputTypeCountElectronicSignaturesArgs
   }
 
   // Custom InputTypes
@@ -3703,6 +3828,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the TenantCountOutputType
      */
     select?: TenantCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountChildrenArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TenantWhereInput
   }
 
   /**
@@ -3845,6 +3977,44 @@ export namespace Prisma {
     where?: PoliticalProposalWhereInput
   }
 
+  /**
+   * TenantCountOutputType without action
+   */
+  export type TenantCountOutputTypeCountElectronicSignaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ElectronicSignatureWhereInput
+  }
+
+
+  /**
+   * Count Type StoredObjectCountOutputType
+   */
+
+  export type StoredObjectCountOutputType = {
+    signatures: number
+  }
+
+  export type StoredObjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    signatures?: boolean | StoredObjectCountOutputTypeCountSignaturesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * StoredObjectCountOutputType without action
+   */
+  export type StoredObjectCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StoredObjectCountOutputType
+     */
+    select?: StoredObjectCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * StoredObjectCountOutputType without action
+   */
+  export type StoredObjectCountOutputTypeCountSignaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ElectronicSignatureWhereInput
+  }
+
 
   /**
    * Count Type UserCountOutputType
@@ -3879,6 +4049,7 @@ export namespace Prisma {
     proposalsOwned: number
     proposalsCreated: number
     proposalsUpdated: number
+    electronicSignatures: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3910,6 +4081,7 @@ export namespace Prisma {
     proposalsOwned?: boolean | UserCountOutputTypeCountProposalsOwnedArgs
     proposalsCreated?: boolean | UserCountOutputTypeCountProposalsCreatedArgs
     proposalsUpdated?: boolean | UserCountOutputTypeCountProposalsUpdatedArgs
+    electronicSignatures?: boolean | UserCountOutputTypeCountElectronicSignaturesArgs
   }
 
   // Custom InputTypes
@@ -4117,6 +4289,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountProposalsUpdatedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PoliticalProposalWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountElectronicSignaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ElectronicSignatureWhereInput
   }
 
 
@@ -4500,6 +4679,7 @@ export namespace Prisma {
     name: string | null
     type: $Enums.TenantType | null
     defaultMode: $Enums.PoliticalOperationMode | null
+    parentTenantId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4510,6 +4690,7 @@ export namespace Prisma {
     name: string | null
     type: $Enums.TenantType | null
     defaultMode: $Enums.PoliticalOperationMode | null
+    parentTenantId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4521,6 +4702,7 @@ export namespace Prisma {
     type: number
     defaultMode: number
     config: number
+    parentTenantId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -4533,6 +4715,7 @@ export namespace Prisma {
     name?: true
     type?: true
     defaultMode?: true
+    parentTenantId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4543,6 +4726,7 @@ export namespace Prisma {
     name?: true
     type?: true
     defaultMode?: true
+    parentTenantId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4554,6 +4738,7 @@ export namespace Prisma {
     type?: true
     defaultMode?: true
     config?: true
+    parentTenantId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -4638,6 +4823,7 @@ export namespace Prisma {
     type: $Enums.TenantType
     defaultMode: $Enums.PoliticalOperationMode
     config: JsonValue | null
+    parentTenantId: string | null
     createdAt: Date
     updatedAt: Date
     _count: TenantCountAggregateOutputType | null
@@ -4666,8 +4852,11 @@ export namespace Prisma {
     type?: boolean
     defaultMode?: boolean
     config?: boolean
+    parentTenantId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
+    children?: boolean | Tenant$childrenArgs<ExtArgs>
     settings?: boolean | Tenant$settingsArgs<ExtArgs>
     users?: boolean | Tenant$usersArgs<ExtArgs>
     divisions?: boolean | Tenant$divisionsArgs<ExtArgs>
@@ -4691,6 +4880,7 @@ export namespace Prisma {
     operationProfile?: boolean | Tenant$operationProfileArgs<ExtArgs>
     politicalProposals?: boolean | Tenant$politicalProposalsArgs<ExtArgs>
     subscription?: boolean | Tenant$subscriptionArgs<ExtArgs>
+    electronicSignatures?: boolean | Tenant$electronicSignaturesArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
@@ -4701,8 +4891,10 @@ export namespace Prisma {
     type?: boolean
     defaultMode?: boolean
     config?: boolean
+    parentTenantId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
   export type TenantSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -4712,8 +4904,10 @@ export namespace Prisma {
     type?: boolean
     defaultMode?: boolean
     config?: boolean
+    parentTenantId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
   }, ExtArgs["result"]["tenant"]>
 
   export type TenantSelectScalar = {
@@ -4723,12 +4917,15 @@ export namespace Prisma {
     type?: boolean
     defaultMode?: boolean
     config?: boolean
+    parentTenantId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type TenantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "type" | "defaultMode" | "config" | "createdAt" | "updatedAt", ExtArgs["result"]["tenant"]>
+  export type TenantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "type" | "defaultMode" | "config" | "parentTenantId" | "createdAt" | "updatedAt", ExtArgs["result"]["tenant"]>
   export type TenantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
+    children?: boolean | Tenant$childrenArgs<ExtArgs>
     settings?: boolean | Tenant$settingsArgs<ExtArgs>
     users?: boolean | Tenant$usersArgs<ExtArgs>
     divisions?: boolean | Tenant$divisionsArgs<ExtArgs>
@@ -4752,14 +4949,21 @@ export namespace Prisma {
     operationProfile?: boolean | Tenant$operationProfileArgs<ExtArgs>
     politicalProposals?: boolean | Tenant$politicalProposalsArgs<ExtArgs>
     subscription?: boolean | Tenant$subscriptionArgs<ExtArgs>
+    electronicSignatures?: boolean | Tenant$electronicSignaturesArgs<ExtArgs>
     _count?: boolean | TenantCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type TenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type TenantIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type TenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
+  }
+  export type TenantIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    parent?: boolean | Tenant$parentArgs<ExtArgs>
+  }
 
   export type $TenantPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Tenant"
     objects: {
+      parent: Prisma.$TenantPayload<ExtArgs> | null
+      children: Prisma.$TenantPayload<ExtArgs>[]
       settings: Prisma.$CampaignSettingsPayload<ExtArgs> | null
       users: Prisma.$UserPayload<ExtArgs>[]
       divisions: Prisma.$PoliticalDivisionPayload<ExtArgs>[]
@@ -4783,6 +4987,7 @@ export namespace Prisma {
       operationProfile: Prisma.$OperationProfilePayload<ExtArgs> | null
       politicalProposals: Prisma.$PoliticalProposalPayload<ExtArgs>[]
       subscription: Prisma.$TenantSubscriptionPayload<ExtArgs> | null
+      electronicSignatures: Prisma.$ElectronicSignaturePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4791,6 +4996,7 @@ export namespace Prisma {
       type: $Enums.TenantType
       defaultMode: $Enums.PoliticalOperationMode
       config: Prisma.JsonValue | null
+      parentTenantId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["tenant"]>
@@ -5187,6 +5393,8 @@ export namespace Prisma {
    */
   export interface Prisma__TenantClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    parent<T extends Tenant$parentArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$parentArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    children<T extends Tenant$childrenArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     settings<T extends Tenant$settingsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$settingsArgs<ExtArgs>>): Prisma__CampaignSettingsClient<$Result.GetResult<Prisma.$CampaignSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     users<T extends Tenant$usersArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$usersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     divisions<T extends Tenant$divisionsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$divisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalDivisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -5210,6 +5418,7 @@ export namespace Prisma {
     operationProfile<T extends Tenant$operationProfileArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$operationProfileArgs<ExtArgs>>): Prisma__OperationProfileClient<$Result.GetResult<Prisma.$OperationProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     politicalProposals<T extends Tenant$politicalProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$politicalProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     subscription<T extends Tenant$subscriptionArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$subscriptionArgs<ExtArgs>>): Prisma__TenantSubscriptionClient<$Result.GetResult<Prisma.$TenantSubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    electronicSignatures<T extends Tenant$electronicSignaturesArgs<ExtArgs> = {}>(args?: Subset<T, Tenant$electronicSignaturesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5245,6 +5454,7 @@ export namespace Prisma {
     readonly type: FieldRef<"Tenant", 'TenantType'>
     readonly defaultMode: FieldRef<"Tenant", 'PoliticalOperationMode'>
     readonly config: FieldRef<"Tenant", 'Json'>
+    readonly parentTenantId: FieldRef<"Tenant", 'String'>
     readonly createdAt: FieldRef<"Tenant", 'DateTime'>
     readonly updatedAt: FieldRef<"Tenant", 'DateTime'>
   }
@@ -5501,6 +5711,10 @@ export namespace Prisma {
      */
     data: TenantCreateManyInput | TenantCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TenantIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -5571,6 +5785,10 @@ export namespace Prisma {
      * Limit how many Tenants to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TenantIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -5637,6 +5855,49 @@ export namespace Prisma {
      * Limit how many Tenants to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Tenant.parent
+   */
+  export type Tenant$parentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Tenant
+     */
+    select?: TenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Tenant
+     */
+    omit?: TenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TenantInclude<ExtArgs> | null
+    where?: TenantWhereInput
+  }
+
+  /**
+   * Tenant.children
+   */
+  export type Tenant$childrenArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Tenant
+     */
+    select?: TenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Tenant
+     */
+    omit?: TenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TenantInclude<ExtArgs> | null
+    where?: TenantWhereInput
+    orderBy?: TenantOrderByWithRelationInput | TenantOrderByWithRelationInput[]
+    cursor?: TenantWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TenantScalarFieldEnum | TenantScalarFieldEnum[]
   }
 
   /**
@@ -6174,6 +6435,30 @@ export namespace Prisma {
      */
     include?: TenantSubscriptionInclude<ExtArgs> | null
     where?: TenantSubscriptionWhereInput
+  }
+
+  /**
+   * Tenant.electronicSignatures
+   */
+  export type Tenant$electronicSignaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    where?: ElectronicSignatureWhereInput
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    cursor?: ElectronicSignatureWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
   }
 
   /**
@@ -7347,6 +7632,8 @@ export namespace Prisma {
     consumedAt: Date | null
     consumedByType: string | null
     consumedById: string | null
+    documentCategory: $Enums.DocumentCategory | null
+    retentionPhase: $Enums.RetentionPhase | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7367,6 +7654,8 @@ export namespace Prisma {
     consumedAt: Date | null
     consumedByType: string | null
     consumedById: string | null
+    documentCategory: $Enums.DocumentCategory | null
+    retentionPhase: $Enums.RetentionPhase | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7387,6 +7676,8 @@ export namespace Prisma {
     consumedAt: number
     consumedByType: number
     consumedById: number
+    documentCategory: number
+    retentionPhase: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7419,6 +7710,8 @@ export namespace Prisma {
     consumedAt?: true
     consumedByType?: true
     consumedById?: true
+    documentCategory?: true
+    retentionPhase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7439,6 +7732,8 @@ export namespace Prisma {
     consumedAt?: true
     consumedByType?: true
     consumedById?: true
+    documentCategory?: true
+    retentionPhase?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7459,6 +7754,8 @@ export namespace Prisma {
     consumedAt?: true
     consumedByType?: true
     consumedById?: true
+    documentCategory?: true
+    retentionPhase?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7566,6 +7863,8 @@ export namespace Prisma {
     consumedAt: Date | null
     consumedByType: string | null
     consumedById: string | null
+    documentCategory: $Enums.DocumentCategory | null
+    retentionPhase: $Enums.RetentionPhase
     createdAt: Date
     updatedAt: Date
     _count: StoredObjectCountAggregateOutputType | null
@@ -7605,10 +7904,14 @@ export namespace Prisma {
     consumedAt?: boolean
     consumedByType?: boolean
     consumedById?: boolean
+    documentCategory?: boolean
+    retentionPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     uploader?: boolean | UserDefaultArgs<ExtArgs>
+    signatures?: boolean | StoredObject$signaturesArgs<ExtArgs>
+    _count?: boolean | StoredObjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["storedObject"]>
 
   export type StoredObjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -7627,6 +7930,8 @@ export namespace Prisma {
     consumedAt?: boolean
     consumedByType?: boolean
     consumedById?: boolean
+    documentCategory?: boolean
+    retentionPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -7649,6 +7954,8 @@ export namespace Prisma {
     consumedAt?: boolean
     consumedByType?: boolean
     consumedById?: boolean
+    documentCategory?: boolean
+    retentionPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -7671,14 +7978,18 @@ export namespace Prisma {
     consumedAt?: boolean
     consumedByType?: boolean
     consumedById?: boolean
+    documentCategory?: boolean
+    retentionPhase?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type StoredObjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "uploaderId" | "path" | "module" | "contentType" | "expectedSize" | "actualSize" | "etag" | "status" | "expiresAt" | "confirmedAt" | "consumedAt" | "consumedByType" | "consumedById" | "createdAt" | "updatedAt", ExtArgs["result"]["storedObject"]>
+  export type StoredObjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "uploaderId" | "path" | "module" | "contentType" | "expectedSize" | "actualSize" | "etag" | "status" | "expiresAt" | "confirmedAt" | "consumedAt" | "consumedByType" | "consumedById" | "documentCategory" | "retentionPhase" | "createdAt" | "updatedAt", ExtArgs["result"]["storedObject"]>
   export type StoredObjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     uploader?: boolean | UserDefaultArgs<ExtArgs>
+    signatures?: boolean | StoredObject$signaturesArgs<ExtArgs>
+    _count?: boolean | StoredObjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type StoredObjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
@@ -7694,6 +8005,7 @@ export namespace Prisma {
     objects: {
       tenant: Prisma.$TenantPayload<ExtArgs>
       uploader: Prisma.$UserPayload<ExtArgs>
+      signatures: Prisma.$ElectronicSignaturePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7711,6 +8023,8 @@ export namespace Prisma {
       consumedAt: Date | null
       consumedByType: string | null
       consumedById: string | null
+      documentCategory: $Enums.DocumentCategory | null
+      retentionPhase: $Enums.RetentionPhase
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["storedObject"]>
@@ -8109,6 +8423,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     uploader<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    signatures<T extends StoredObject$signaturesArgs<ExtArgs> = {}>(args?: Subset<T, StoredObject$signaturesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8153,6 +8468,8 @@ export namespace Prisma {
     readonly consumedAt: FieldRef<"StoredObject", 'DateTime'>
     readonly consumedByType: FieldRef<"StoredObject", 'String'>
     readonly consumedById: FieldRef<"StoredObject", 'String'>
+    readonly documentCategory: FieldRef<"StoredObject", 'DocumentCategory'>
+    readonly retentionPhase: FieldRef<"StoredObject", 'RetentionPhase'>
     readonly createdAt: FieldRef<"StoredObject", 'DateTime'>
     readonly updatedAt: FieldRef<"StoredObject", 'DateTime'>
   }
@@ -8556,6 +8873,30 @@ export namespace Prisma {
   }
 
   /**
+   * StoredObject.signatures
+   */
+  export type StoredObject$signaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    where?: ElectronicSignatureWhereInput
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    cursor?: ElectronicSignatureWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
+  }
+
+  /**
    * StoredObject without action
    */
   export type StoredObjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8898,6 +9239,7 @@ export namespace Prisma {
     proposalsOwned?: boolean | User$proposalsOwnedArgs<ExtArgs>
     proposalsCreated?: boolean | User$proposalsCreatedArgs<ExtArgs>
     proposalsUpdated?: boolean | User$proposalsUpdatedArgs<ExtArgs>
+    electronicSignatures?: boolean | User$electronicSignaturesArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -8997,6 +9339,7 @@ export namespace Prisma {
     proposalsOwned?: boolean | User$proposalsOwnedArgs<ExtArgs>
     proposalsCreated?: boolean | User$proposalsCreatedArgs<ExtArgs>
     proposalsUpdated?: boolean | User$proposalsUpdatedArgs<ExtArgs>
+    electronicSignatures?: boolean | User$electronicSignaturesArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9041,6 +9384,7 @@ export namespace Prisma {
       proposalsOwned: Prisma.$PoliticalProposalPayload<ExtArgs>[]
       proposalsCreated: Prisma.$PoliticalProposalPayload<ExtArgs>[]
       proposalsUpdated: Prisma.$PoliticalProposalPayload<ExtArgs>[]
+      electronicSignatures: Prisma.$ElectronicSignaturePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -9490,6 +9834,7 @@ export namespace Prisma {
     proposalsOwned<T extends User$proposalsOwnedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsOwnedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     proposalsCreated<T extends User$proposalsCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     proposalsUpdated<T extends User$proposalsUpdatedArgs<ExtArgs> = {}>(args?: Subset<T, User$proposalsUpdatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PoliticalProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    electronicSignatures<T extends User$electronicSignaturesArgs<ExtArgs> = {}>(args?: Subset<T, User$electronicSignaturesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10625,6 +10970,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PoliticalProposalScalarFieldEnum | PoliticalProposalScalarFieldEnum[]
+  }
+
+  /**
+   * User.electronicSignatures
+   */
+  export type User$electronicSignaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    where?: ElectronicSignatureWhereInput
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    cursor?: ElectronicSignatureWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
   }
 
   /**
@@ -37437,6 +37806,1111 @@ export namespace Prisma {
 
 
   /**
+   * Model ElectronicSignature
+   */
+
+  export type AggregateElectronicSignature = {
+    _count: ElectronicSignatureCountAggregateOutputType | null
+    _min: ElectronicSignatureMinAggregateOutputType | null
+    _max: ElectronicSignatureMaxAggregateOutputType | null
+  }
+
+  export type ElectronicSignatureMinAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    documentId: string | null
+    signerId: string | null
+    documentHash: string | null
+    ipAddress: string | null
+    signedAt: Date | null
+  }
+
+  export type ElectronicSignatureMaxAggregateOutputType = {
+    id: string | null
+    tenantId: string | null
+    documentId: string | null
+    signerId: string | null
+    documentHash: string | null
+    ipAddress: string | null
+    signedAt: Date | null
+  }
+
+  export type ElectronicSignatureCountAggregateOutputType = {
+    id: number
+    tenantId: number
+    documentId: number
+    signerId: number
+    documentHash: number
+    ipAddress: number
+    signedAt: number
+    _all: number
+  }
+
+
+  export type ElectronicSignatureMinAggregateInputType = {
+    id?: true
+    tenantId?: true
+    documentId?: true
+    signerId?: true
+    documentHash?: true
+    ipAddress?: true
+    signedAt?: true
+  }
+
+  export type ElectronicSignatureMaxAggregateInputType = {
+    id?: true
+    tenantId?: true
+    documentId?: true
+    signerId?: true
+    documentHash?: true
+    ipAddress?: true
+    signedAt?: true
+  }
+
+  export type ElectronicSignatureCountAggregateInputType = {
+    id?: true
+    tenantId?: true
+    documentId?: true
+    signerId?: true
+    documentHash?: true
+    ipAddress?: true
+    signedAt?: true
+    _all?: true
+  }
+
+  export type ElectronicSignatureAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ElectronicSignature to aggregate.
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ElectronicSignatures to fetch.
+     */
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ElectronicSignatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ElectronicSignatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ElectronicSignatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ElectronicSignatures
+    **/
+    _count?: true | ElectronicSignatureCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ElectronicSignatureMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ElectronicSignatureMaxAggregateInputType
+  }
+
+  export type GetElectronicSignatureAggregateType<T extends ElectronicSignatureAggregateArgs> = {
+        [P in keyof T & keyof AggregateElectronicSignature]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateElectronicSignature[P]>
+      : GetScalarType<T[P], AggregateElectronicSignature[P]>
+  }
+
+
+
+
+  export type ElectronicSignatureGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ElectronicSignatureWhereInput
+    orderBy?: ElectronicSignatureOrderByWithAggregationInput | ElectronicSignatureOrderByWithAggregationInput[]
+    by: ElectronicSignatureScalarFieldEnum[] | ElectronicSignatureScalarFieldEnum
+    having?: ElectronicSignatureScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ElectronicSignatureCountAggregateInputType | true
+    _min?: ElectronicSignatureMinAggregateInputType
+    _max?: ElectronicSignatureMaxAggregateInputType
+  }
+
+  export type ElectronicSignatureGroupByOutputType = {
+    id: string
+    tenantId: string
+    documentId: string
+    signerId: string
+    documentHash: string
+    ipAddress: string | null
+    signedAt: Date
+    _count: ElectronicSignatureCountAggregateOutputType | null
+    _min: ElectronicSignatureMinAggregateOutputType | null
+    _max: ElectronicSignatureMaxAggregateOutputType | null
+  }
+
+  type GetElectronicSignatureGroupByPayload<T extends ElectronicSignatureGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ElectronicSignatureGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ElectronicSignatureGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ElectronicSignatureGroupByOutputType[P]>
+            : GetScalarType<T[P], ElectronicSignatureGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ElectronicSignatureSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    documentId?: boolean
+    signerId?: boolean
+    documentHash?: boolean
+    ipAddress?: boolean
+    signedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["electronicSignature"]>
+
+  export type ElectronicSignatureSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    documentId?: boolean
+    signerId?: boolean
+    documentHash?: boolean
+    ipAddress?: boolean
+    signedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["electronicSignature"]>
+
+  export type ElectronicSignatureSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tenantId?: boolean
+    documentId?: boolean
+    signerId?: boolean
+    documentHash?: boolean
+    ipAddress?: boolean
+    signedAt?: boolean
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["electronicSignature"]>
+
+  export type ElectronicSignatureSelectScalar = {
+    id?: boolean
+    tenantId?: boolean
+    documentId?: boolean
+    signerId?: boolean
+    documentHash?: boolean
+    ipAddress?: boolean
+    signedAt?: boolean
+  }
+
+  export type ElectronicSignatureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "documentId" | "signerId" | "documentHash" | "ipAddress" | "signedAt", ExtArgs["result"]["electronicSignature"]>
+  export type ElectronicSignatureInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ElectronicSignatureIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ElectronicSignatureIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | TenantDefaultArgs<ExtArgs>
+    document?: boolean | StoredObjectDefaultArgs<ExtArgs>
+    signer?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ElectronicSignaturePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ElectronicSignature"
+    objects: {
+      tenant: Prisma.$TenantPayload<ExtArgs>
+      document: Prisma.$StoredObjectPayload<ExtArgs>
+      signer: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tenantId: string
+      documentId: string
+      signerId: string
+      documentHash: string
+      ipAddress: string | null
+      signedAt: Date
+    }, ExtArgs["result"]["electronicSignature"]>
+    composites: {}
+  }
+
+  type ElectronicSignatureGetPayload<S extends boolean | null | undefined | ElectronicSignatureDefaultArgs> = $Result.GetResult<Prisma.$ElectronicSignaturePayload, S>
+
+  type ElectronicSignatureCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ElectronicSignatureFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ElectronicSignatureCountAggregateInputType | true
+    }
+
+  export interface ElectronicSignatureDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ElectronicSignature'], meta: { name: 'ElectronicSignature' } }
+    /**
+     * Find zero or one ElectronicSignature that matches the filter.
+     * @param {ElectronicSignatureFindUniqueArgs} args - Arguments to find a ElectronicSignature
+     * @example
+     * // Get one ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ElectronicSignatureFindUniqueArgs>(args: SelectSubset<T, ElectronicSignatureFindUniqueArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ElectronicSignature that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ElectronicSignatureFindUniqueOrThrowArgs} args - Arguments to find a ElectronicSignature
+     * @example
+     * // Get one ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ElectronicSignatureFindUniqueOrThrowArgs>(args: SelectSubset<T, ElectronicSignatureFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ElectronicSignature that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureFindFirstArgs} args - Arguments to find a ElectronicSignature
+     * @example
+     * // Get one ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ElectronicSignatureFindFirstArgs>(args?: SelectSubset<T, ElectronicSignatureFindFirstArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ElectronicSignature that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureFindFirstOrThrowArgs} args - Arguments to find a ElectronicSignature
+     * @example
+     * // Get one ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ElectronicSignatureFindFirstOrThrowArgs>(args?: SelectSubset<T, ElectronicSignatureFindFirstOrThrowArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ElectronicSignatures that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ElectronicSignatures
+     * const electronicSignatures = await prisma.electronicSignature.findMany()
+     * 
+     * // Get first 10 ElectronicSignatures
+     * const electronicSignatures = await prisma.electronicSignature.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const electronicSignatureWithIdOnly = await prisma.electronicSignature.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ElectronicSignatureFindManyArgs>(args?: SelectSubset<T, ElectronicSignatureFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ElectronicSignature.
+     * @param {ElectronicSignatureCreateArgs} args - Arguments to create a ElectronicSignature.
+     * @example
+     * // Create one ElectronicSignature
+     * const ElectronicSignature = await prisma.electronicSignature.create({
+     *   data: {
+     *     // ... data to create a ElectronicSignature
+     *   }
+     * })
+     * 
+     */
+    create<T extends ElectronicSignatureCreateArgs>(args: SelectSubset<T, ElectronicSignatureCreateArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ElectronicSignatures.
+     * @param {ElectronicSignatureCreateManyArgs} args - Arguments to create many ElectronicSignatures.
+     * @example
+     * // Create many ElectronicSignatures
+     * const electronicSignature = await prisma.electronicSignature.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ElectronicSignatureCreateManyArgs>(args?: SelectSubset<T, ElectronicSignatureCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ElectronicSignatures and returns the data saved in the database.
+     * @param {ElectronicSignatureCreateManyAndReturnArgs} args - Arguments to create many ElectronicSignatures.
+     * @example
+     * // Create many ElectronicSignatures
+     * const electronicSignature = await prisma.electronicSignature.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ElectronicSignatures and only return the `id`
+     * const electronicSignatureWithIdOnly = await prisma.electronicSignature.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ElectronicSignatureCreateManyAndReturnArgs>(args?: SelectSubset<T, ElectronicSignatureCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ElectronicSignature.
+     * @param {ElectronicSignatureDeleteArgs} args - Arguments to delete one ElectronicSignature.
+     * @example
+     * // Delete one ElectronicSignature
+     * const ElectronicSignature = await prisma.electronicSignature.delete({
+     *   where: {
+     *     // ... filter to delete one ElectronicSignature
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ElectronicSignatureDeleteArgs>(args: SelectSubset<T, ElectronicSignatureDeleteArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ElectronicSignature.
+     * @param {ElectronicSignatureUpdateArgs} args - Arguments to update one ElectronicSignature.
+     * @example
+     * // Update one ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ElectronicSignatureUpdateArgs>(args: SelectSubset<T, ElectronicSignatureUpdateArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ElectronicSignatures.
+     * @param {ElectronicSignatureDeleteManyArgs} args - Arguments to filter ElectronicSignatures to delete.
+     * @example
+     * // Delete a few ElectronicSignatures
+     * const { count } = await prisma.electronicSignature.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ElectronicSignatureDeleteManyArgs>(args?: SelectSubset<T, ElectronicSignatureDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ElectronicSignatures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ElectronicSignatures
+     * const electronicSignature = await prisma.electronicSignature.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ElectronicSignatureUpdateManyArgs>(args: SelectSubset<T, ElectronicSignatureUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ElectronicSignatures and returns the data updated in the database.
+     * @param {ElectronicSignatureUpdateManyAndReturnArgs} args - Arguments to update many ElectronicSignatures.
+     * @example
+     * // Update many ElectronicSignatures
+     * const electronicSignature = await prisma.electronicSignature.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ElectronicSignatures and only return the `id`
+     * const electronicSignatureWithIdOnly = await prisma.electronicSignature.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ElectronicSignatureUpdateManyAndReturnArgs>(args: SelectSubset<T, ElectronicSignatureUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ElectronicSignature.
+     * @param {ElectronicSignatureUpsertArgs} args - Arguments to update or create a ElectronicSignature.
+     * @example
+     * // Update or create a ElectronicSignature
+     * const electronicSignature = await prisma.electronicSignature.upsert({
+     *   create: {
+     *     // ... data to create a ElectronicSignature
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ElectronicSignature we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ElectronicSignatureUpsertArgs>(args: SelectSubset<T, ElectronicSignatureUpsertArgs<ExtArgs>>): Prisma__ElectronicSignatureClient<$Result.GetResult<Prisma.$ElectronicSignaturePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ElectronicSignatures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureCountArgs} args - Arguments to filter ElectronicSignatures to count.
+     * @example
+     * // Count the number of ElectronicSignatures
+     * const count = await prisma.electronicSignature.count({
+     *   where: {
+     *     // ... the filter for the ElectronicSignatures we want to count
+     *   }
+     * })
+    **/
+    count<T extends ElectronicSignatureCountArgs>(
+      args?: Subset<T, ElectronicSignatureCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ElectronicSignatureCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ElectronicSignature.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ElectronicSignatureAggregateArgs>(args: Subset<T, ElectronicSignatureAggregateArgs>): Prisma.PrismaPromise<GetElectronicSignatureAggregateType<T>>
+
+    /**
+     * Group by ElectronicSignature.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ElectronicSignatureGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ElectronicSignatureGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ElectronicSignatureGroupByArgs['orderBy'] }
+        : { orderBy?: ElectronicSignatureGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ElectronicSignatureGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetElectronicSignatureGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ElectronicSignature model
+   */
+  readonly fields: ElectronicSignatureFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ElectronicSignature.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ElectronicSignatureClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends TenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TenantDefaultArgs<ExtArgs>>): Prisma__TenantClient<$Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    document<T extends StoredObjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, StoredObjectDefaultArgs<ExtArgs>>): Prisma__StoredObjectClient<$Result.GetResult<Prisma.$StoredObjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    signer<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ElectronicSignature model
+   */
+  interface ElectronicSignatureFieldRefs {
+    readonly id: FieldRef<"ElectronicSignature", 'String'>
+    readonly tenantId: FieldRef<"ElectronicSignature", 'String'>
+    readonly documentId: FieldRef<"ElectronicSignature", 'String'>
+    readonly signerId: FieldRef<"ElectronicSignature", 'String'>
+    readonly documentHash: FieldRef<"ElectronicSignature", 'String'>
+    readonly ipAddress: FieldRef<"ElectronicSignature", 'String'>
+    readonly signedAt: FieldRef<"ElectronicSignature", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ElectronicSignature findUnique
+   */
+  export type ElectronicSignatureFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter, which ElectronicSignature to fetch.
+     */
+    where: ElectronicSignatureWhereUniqueInput
+  }
+
+  /**
+   * ElectronicSignature findUniqueOrThrow
+   */
+  export type ElectronicSignatureFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter, which ElectronicSignature to fetch.
+     */
+    where: ElectronicSignatureWhereUniqueInput
+  }
+
+  /**
+   * ElectronicSignature findFirst
+   */
+  export type ElectronicSignatureFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter, which ElectronicSignature to fetch.
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ElectronicSignatures to fetch.
+     */
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ElectronicSignatures.
+     */
+    cursor?: ElectronicSignatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ElectronicSignatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ElectronicSignatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ElectronicSignatures.
+     */
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
+  }
+
+  /**
+   * ElectronicSignature findFirstOrThrow
+   */
+  export type ElectronicSignatureFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter, which ElectronicSignature to fetch.
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ElectronicSignatures to fetch.
+     */
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ElectronicSignatures.
+     */
+    cursor?: ElectronicSignatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ElectronicSignatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ElectronicSignatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ElectronicSignatures.
+     */
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
+  }
+
+  /**
+   * ElectronicSignature findMany
+   */
+  export type ElectronicSignatureFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter, which ElectronicSignatures to fetch.
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ElectronicSignatures to fetch.
+     */
+    orderBy?: ElectronicSignatureOrderByWithRelationInput | ElectronicSignatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ElectronicSignatures.
+     */
+    cursor?: ElectronicSignatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ElectronicSignatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ElectronicSignatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ElectronicSignatures.
+     */
+    distinct?: ElectronicSignatureScalarFieldEnum | ElectronicSignatureScalarFieldEnum[]
+  }
+
+  /**
+   * ElectronicSignature create
+   */
+  export type ElectronicSignatureCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ElectronicSignature.
+     */
+    data: XOR<ElectronicSignatureCreateInput, ElectronicSignatureUncheckedCreateInput>
+  }
+
+  /**
+   * ElectronicSignature createMany
+   */
+  export type ElectronicSignatureCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ElectronicSignatures.
+     */
+    data: ElectronicSignatureCreateManyInput | ElectronicSignatureCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ElectronicSignature createManyAndReturn
+   */
+  export type ElectronicSignatureCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * The data used to create many ElectronicSignatures.
+     */
+    data: ElectronicSignatureCreateManyInput | ElectronicSignatureCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ElectronicSignature update
+   */
+  export type ElectronicSignatureUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ElectronicSignature.
+     */
+    data: XOR<ElectronicSignatureUpdateInput, ElectronicSignatureUncheckedUpdateInput>
+    /**
+     * Choose, which ElectronicSignature to update.
+     */
+    where: ElectronicSignatureWhereUniqueInput
+  }
+
+  /**
+   * ElectronicSignature updateMany
+   */
+  export type ElectronicSignatureUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ElectronicSignatures.
+     */
+    data: XOR<ElectronicSignatureUpdateManyMutationInput, ElectronicSignatureUncheckedUpdateManyInput>
+    /**
+     * Filter which ElectronicSignatures to update
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * Limit how many ElectronicSignatures to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ElectronicSignature updateManyAndReturn
+   */
+  export type ElectronicSignatureUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * The data used to update ElectronicSignatures.
+     */
+    data: XOR<ElectronicSignatureUpdateManyMutationInput, ElectronicSignatureUncheckedUpdateManyInput>
+    /**
+     * Filter which ElectronicSignatures to update
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * Limit how many ElectronicSignatures to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ElectronicSignature upsert
+   */
+  export type ElectronicSignatureUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ElectronicSignature to update in case it exists.
+     */
+    where: ElectronicSignatureWhereUniqueInput
+    /**
+     * In case the ElectronicSignature found by the `where` argument doesn't exist, create a new ElectronicSignature with this data.
+     */
+    create: XOR<ElectronicSignatureCreateInput, ElectronicSignatureUncheckedCreateInput>
+    /**
+     * In case the ElectronicSignature was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ElectronicSignatureUpdateInput, ElectronicSignatureUncheckedUpdateInput>
+  }
+
+  /**
+   * ElectronicSignature delete
+   */
+  export type ElectronicSignatureDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+    /**
+     * Filter which ElectronicSignature to delete.
+     */
+    where: ElectronicSignatureWhereUniqueInput
+  }
+
+  /**
+   * ElectronicSignature deleteMany
+   */
+  export type ElectronicSignatureDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ElectronicSignatures to delete
+     */
+    where?: ElectronicSignatureWhereInput
+    /**
+     * Limit how many ElectronicSignatures to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ElectronicSignature without action
+   */
+  export type ElectronicSignatureDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ElectronicSignature
+     */
+    select?: ElectronicSignatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ElectronicSignature
+     */
+    omit?: ElectronicSignatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ElectronicSignatureInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -37457,6 +38931,7 @@ export namespace Prisma {
     type: 'type',
     defaultMode: 'defaultMode',
     config: 'config',
+    parentTenantId: 'parentTenantId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -37492,6 +38967,8 @@ export namespace Prisma {
     consumedAt: 'consumedAt',
     consumedByType: 'consumedByType',
     consumedById: 'consumedById',
+    documentCategory: 'documentCategory',
+    retentionPhase: 'retentionPhase',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -37959,6 +39436,19 @@ export namespace Prisma {
   export type TenantSubscriptionScalarFieldEnum = (typeof TenantSubscriptionScalarFieldEnum)[keyof typeof TenantSubscriptionScalarFieldEnum]
 
 
+  export const ElectronicSignatureScalarFieldEnum: {
+    id: 'id',
+    tenantId: 'tenantId',
+    documentId: 'documentId',
+    signerId: 'signerId',
+    documentHash: 'documentHash',
+    ipAddress: 'ipAddress',
+    signedAt: 'signedAt'
+  };
+
+  export type ElectronicSignatureScalarFieldEnum = (typeof ElectronicSignatureScalarFieldEnum)[keyof typeof ElectronicSignatureScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -38135,6 +39625,34 @@ export namespace Prisma {
    * Reference to a field of type 'StoredObjectStatus[]'
    */
   export type ListEnumStoredObjectStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StoredObjectStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DocumentCategory'
+   */
+  export type EnumDocumentCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'DocumentCategory[]'
+   */
+  export type ListEnumDocumentCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'RetentionPhase'
+   */
+  export type EnumRetentionPhaseFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RetentionPhase'>
+    
+
+
+  /**
+   * Reference to a field of type 'RetentionPhase[]'
+   */
+  export type ListEnumRetentionPhaseFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RetentionPhase[]'>
     
 
 
@@ -38634,8 +40152,11 @@ export namespace Prisma {
     type?: EnumTenantTypeFilter<"Tenant"> | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFilter<"Tenant"> | $Enums.PoliticalOperationMode
     config?: JsonNullableFilter<"Tenant">
+    parentTenantId?: StringNullableFilter<"Tenant"> | string | null
     createdAt?: DateTimeFilter<"Tenant"> | Date | string
     updatedAt?: DateTimeFilter<"Tenant"> | Date | string
+    parent?: XOR<TenantNullableScalarRelationFilter, TenantWhereInput> | null
+    children?: TenantListRelationFilter
     settings?: XOR<CampaignSettingsNullableScalarRelationFilter, CampaignSettingsWhereInput> | null
     users?: UserListRelationFilter
     divisions?: PoliticalDivisionListRelationFilter
@@ -38659,6 +40180,7 @@ export namespace Prisma {
     operationProfile?: XOR<OperationProfileNullableScalarRelationFilter, OperationProfileWhereInput> | null
     politicalProposals?: PoliticalProposalListRelationFilter
     subscription?: XOR<TenantSubscriptionNullableScalarRelationFilter, TenantSubscriptionWhereInput> | null
+    electronicSignatures?: ElectronicSignatureListRelationFilter
   }
 
   export type TenantOrderByWithRelationInput = {
@@ -38668,8 +40190,11 @@ export namespace Prisma {
     type?: SortOrder
     defaultMode?: SortOrder
     config?: SortOrderInput | SortOrder
+    parentTenantId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    parent?: TenantOrderByWithRelationInput
+    children?: TenantOrderByRelationAggregateInput
     settings?: CampaignSettingsOrderByWithRelationInput
     users?: UserOrderByRelationAggregateInput
     divisions?: PoliticalDivisionOrderByRelationAggregateInput
@@ -38693,6 +40218,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileOrderByWithRelationInput
     politicalProposals?: PoliticalProposalOrderByRelationAggregateInput
     subscription?: TenantSubscriptionOrderByWithRelationInput
+    electronicSignatures?: ElectronicSignatureOrderByRelationAggregateInput
   }
 
   export type TenantWhereUniqueInput = Prisma.AtLeast<{
@@ -38705,8 +40231,11 @@ export namespace Prisma {
     type?: EnumTenantTypeFilter<"Tenant"> | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFilter<"Tenant"> | $Enums.PoliticalOperationMode
     config?: JsonNullableFilter<"Tenant">
+    parentTenantId?: StringNullableFilter<"Tenant"> | string | null
     createdAt?: DateTimeFilter<"Tenant"> | Date | string
     updatedAt?: DateTimeFilter<"Tenant"> | Date | string
+    parent?: XOR<TenantNullableScalarRelationFilter, TenantWhereInput> | null
+    children?: TenantListRelationFilter
     settings?: XOR<CampaignSettingsNullableScalarRelationFilter, CampaignSettingsWhereInput> | null
     users?: UserListRelationFilter
     divisions?: PoliticalDivisionListRelationFilter
@@ -38730,6 +40259,7 @@ export namespace Prisma {
     operationProfile?: XOR<OperationProfileNullableScalarRelationFilter, OperationProfileWhereInput> | null
     politicalProposals?: PoliticalProposalListRelationFilter
     subscription?: XOR<TenantSubscriptionNullableScalarRelationFilter, TenantSubscriptionWhereInput> | null
+    electronicSignatures?: ElectronicSignatureListRelationFilter
   }, "id" | "slug">
 
   export type TenantOrderByWithAggregationInput = {
@@ -38739,6 +40269,7 @@ export namespace Prisma {
     type?: SortOrder
     defaultMode?: SortOrder
     config?: SortOrderInput | SortOrder
+    parentTenantId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: TenantCountOrderByAggregateInput
@@ -38756,6 +40287,7 @@ export namespace Prisma {
     type?: EnumTenantTypeWithAggregatesFilter<"Tenant"> | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeWithAggregatesFilter<"Tenant"> | $Enums.PoliticalOperationMode
     config?: JsonNullableWithAggregatesFilter<"Tenant">
+    parentTenantId?: StringNullableWithAggregatesFilter<"Tenant"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Tenant"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Tenant"> | Date | string
   }
@@ -38841,10 +40373,13 @@ export namespace Prisma {
     consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
     consumedByType?: StringNullableFilter<"StoredObject"> | string | null
     consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    documentCategory?: EnumDocumentCategoryNullableFilter<"StoredObject"> | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFilter<"StoredObject"> | $Enums.RetentionPhase
     createdAt?: DateTimeFilter<"StoredObject"> | Date | string
     updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     uploader?: XOR<UserScalarRelationFilter, UserWhereInput>
+    signatures?: ElectronicSignatureListRelationFilter
   }
 
   export type StoredObjectOrderByWithRelationInput = {
@@ -38863,10 +40398,13 @@ export namespace Prisma {
     consumedAt?: SortOrderInput | SortOrder
     consumedByType?: SortOrderInput | SortOrder
     consumedById?: SortOrderInput | SortOrder
+    documentCategory?: SortOrderInput | SortOrder
+    retentionPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     tenant?: TenantOrderByWithRelationInput
     uploader?: UserOrderByWithRelationInput
+    signatures?: ElectronicSignatureOrderByRelationAggregateInput
   }
 
   export type StoredObjectWhereUniqueInput = Prisma.AtLeast<{
@@ -38889,10 +40427,13 @@ export namespace Prisma {
     consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
     consumedByType?: StringNullableFilter<"StoredObject"> | string | null
     consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    documentCategory?: EnumDocumentCategoryNullableFilter<"StoredObject"> | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFilter<"StoredObject"> | $Enums.RetentionPhase
     createdAt?: DateTimeFilter<"StoredObject"> | Date | string
     updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     uploader?: XOR<UserScalarRelationFilter, UserWhereInput>
+    signatures?: ElectronicSignatureListRelationFilter
   }, "id" | "path" | "id_tenantId">
 
   export type StoredObjectOrderByWithAggregationInput = {
@@ -38911,6 +40452,8 @@ export namespace Prisma {
     consumedAt?: SortOrderInput | SortOrder
     consumedByType?: SortOrderInput | SortOrder
     consumedById?: SortOrderInput | SortOrder
+    documentCategory?: SortOrderInput | SortOrder
+    retentionPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: StoredObjectCountOrderByAggregateInput
@@ -38939,6 +40482,8 @@ export namespace Prisma {
     consumedAt?: DateTimeNullableWithAggregatesFilter<"StoredObject"> | Date | string | null
     consumedByType?: StringNullableWithAggregatesFilter<"StoredObject"> | string | null
     consumedById?: StringNullableWithAggregatesFilter<"StoredObject"> | string | null
+    documentCategory?: EnumDocumentCategoryNullableWithAggregatesFilter<"StoredObject"> | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseWithAggregatesFilter<"StoredObject"> | $Enums.RetentionPhase
     createdAt?: DateTimeWithAggregatesFilter<"StoredObject"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"StoredObject"> | Date | string
   }
@@ -38994,6 +40539,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalListRelationFilter
     proposalsCreated?: PoliticalProposalListRelationFilter
     proposalsUpdated?: PoliticalProposalListRelationFilter
+    electronicSignatures?: ElectronicSignatureListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -39044,6 +40590,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalOrderByRelationAggregateInput
     proposalsCreated?: PoliticalProposalOrderByRelationAggregateInput
     proposalsUpdated?: PoliticalProposalOrderByRelationAggregateInput
+    electronicSignatures?: ElectronicSignatureOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -39099,6 +40646,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalListRelationFilter
     proposalsCreated?: PoliticalProposalListRelationFilter
     proposalsUpdated?: PoliticalProposalListRelationFilter
+    electronicSignatures?: ElectronicSignatureListRelationFilter
   }, "id" | "email" | "id_tenantId" | "documentId_tenantId">
 
   export type UserOrderByWithAggregationInput = {
@@ -41561,6 +43109,77 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"TenantSubscription"> | Date | string
   }
 
+  export type ElectronicSignatureWhereInput = {
+    AND?: ElectronicSignatureWhereInput | ElectronicSignatureWhereInput[]
+    OR?: ElectronicSignatureWhereInput[]
+    NOT?: ElectronicSignatureWhereInput | ElectronicSignatureWhereInput[]
+    id?: StringFilter<"ElectronicSignature"> | string
+    tenantId?: StringFilter<"ElectronicSignature"> | string
+    documentId?: StringFilter<"ElectronicSignature"> | string
+    signerId?: StringFilter<"ElectronicSignature"> | string
+    documentHash?: StringFilter<"ElectronicSignature"> | string
+    ipAddress?: StringNullableFilter<"ElectronicSignature"> | string | null
+    signedAt?: DateTimeFilter<"ElectronicSignature"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    document?: XOR<StoredObjectScalarRelationFilter, StoredObjectWhereInput>
+    signer?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type ElectronicSignatureOrderByWithRelationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    documentId?: SortOrder
+    signerId?: SortOrder
+    documentHash?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    signedAt?: SortOrder
+    tenant?: TenantOrderByWithRelationInput
+    document?: StoredObjectOrderByWithRelationInput
+    signer?: UserOrderByWithRelationInput
+  }
+
+  export type ElectronicSignatureWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ElectronicSignatureWhereInput | ElectronicSignatureWhereInput[]
+    OR?: ElectronicSignatureWhereInput[]
+    NOT?: ElectronicSignatureWhereInput | ElectronicSignatureWhereInput[]
+    tenantId?: StringFilter<"ElectronicSignature"> | string
+    documentId?: StringFilter<"ElectronicSignature"> | string
+    signerId?: StringFilter<"ElectronicSignature"> | string
+    documentHash?: StringFilter<"ElectronicSignature"> | string
+    ipAddress?: StringNullableFilter<"ElectronicSignature"> | string | null
+    signedAt?: DateTimeFilter<"ElectronicSignature"> | Date | string
+    tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
+    document?: XOR<StoredObjectScalarRelationFilter, StoredObjectWhereInput>
+    signer?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type ElectronicSignatureOrderByWithAggregationInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    documentId?: SortOrder
+    signerId?: SortOrder
+    documentHash?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    signedAt?: SortOrder
+    _count?: ElectronicSignatureCountOrderByAggregateInput
+    _max?: ElectronicSignatureMaxOrderByAggregateInput
+    _min?: ElectronicSignatureMinOrderByAggregateInput
+  }
+
+  export type ElectronicSignatureScalarWhereWithAggregatesInput = {
+    AND?: ElectronicSignatureScalarWhereWithAggregatesInput | ElectronicSignatureScalarWhereWithAggregatesInput[]
+    OR?: ElectronicSignatureScalarWhereWithAggregatesInput[]
+    NOT?: ElectronicSignatureScalarWhereWithAggregatesInput | ElectronicSignatureScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ElectronicSignature"> | string
+    tenantId?: StringWithAggregatesFilter<"ElectronicSignature"> | string
+    documentId?: StringWithAggregatesFilter<"ElectronicSignature"> | string
+    signerId?: StringWithAggregatesFilter<"ElectronicSignature"> | string
+    documentHash?: StringWithAggregatesFilter<"ElectronicSignature"> | string
+    ipAddress?: StringNullableWithAggregatesFilter<"ElectronicSignature"> | string | null
+    signedAt?: DateTimeWithAggregatesFilter<"ElectronicSignature"> | Date | string
+  }
+
   export type TenantCreateInput = {
     id?: string
     slug: string
@@ -41570,6 +43189,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -41593,6 +43214,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateInput = {
@@ -41602,8 +43224,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -41627,6 +43251,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUpdateInput = {
@@ -41638,6 +43263,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -41661,6 +43288,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateInput = {
@@ -41670,8 +43298,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -41695,6 +43325,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateManyInput = {
@@ -41704,6 +43335,7 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -41726,6 +43358,7 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -41806,10 +43439,13 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutStoredObjectsInput
     uploader: UserCreateNestedOneWithoutStoredObjectsInput
+    signatures?: ElectronicSignatureCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectUncheckedCreateInput = {
@@ -41828,8 +43464,11 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
+    signatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectUpdateInput = {
@@ -41846,10 +43485,13 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutStoredObjectsNestedInput
     uploader?: UserUpdateOneRequiredWithoutStoredObjectsNestedInput
+    signatures?: ElectronicSignatureUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectUncheckedUpdateInput = {
@@ -41868,8 +43510,11 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    signatures?: ElectronicSignatureUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectCreateManyInput = {
@@ -41888,6 +43533,8 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -41906,6 +43553,8 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -41926,6 +43575,8 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -41976,6 +43627,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -42024,6 +43676,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserUpdateInput = {
@@ -42072,6 +43725,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -42120,6 +43774,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -44806,6 +46461,73 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ElectronicSignatureCreateInput = {
+    id?: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutElectronicSignaturesInput
+    document: StoredObjectCreateNestedOneWithoutSignaturesInput
+    signer: UserCreateNestedOneWithoutElectronicSignaturesInput
+  }
+
+  export type ElectronicSignatureUncheckedCreateInput = {
+    id?: string
+    tenantId: string
+    documentId: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+    document?: StoredObjectUpdateOneRequiredWithoutSignaturesNestedInput
+    signer?: UserUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+  }
+
+  export type ElectronicSignatureUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureCreateManyInput = {
+    id?: string
+    tenantId: string
+    documentId: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -44858,6 +46580,21 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -44867,6 +46604,17 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type TenantNullableScalarRelationFilter = {
+    is?: TenantWhereInput | null
+    isNot?: TenantWhereInput | null
+  }
+
+  export type TenantListRelationFilter = {
+    every?: TenantWhereInput
+    some?: TenantWhereInput
+    none?: TenantWhereInput
   }
 
   export type CampaignSettingsNullableScalarRelationFilter = {
@@ -45004,9 +46752,19 @@ export namespace Prisma {
     isNot?: TenantSubscriptionWhereInput | null
   }
 
+  export type ElectronicSignatureListRelationFilter = {
+    every?: ElectronicSignatureWhereInput
+    some?: ElectronicSignatureWhereInput
+    none?: ElectronicSignatureWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
+  }
+
+  export type TenantOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type UserOrderByRelationAggregateInput = {
@@ -45089,6 +46847,10 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type ElectronicSignatureOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type TenantCountOrderByAggregateInput = {
     id?: SortOrder
     slug?: SortOrder
@@ -45096,6 +46858,7 @@ export namespace Prisma {
     type?: SortOrder
     defaultMode?: SortOrder
     config?: SortOrder
+    parentTenantId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45106,6 +46869,7 @@ export namespace Prisma {
     name?: SortOrder
     type?: SortOrder
     defaultMode?: SortOrder
+    parentTenantId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45116,6 +46880,7 @@ export namespace Prisma {
     name?: SortOrder
     type?: SortOrder
     defaultMode?: SortOrder
+    parentTenantId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45182,6 +46947,24 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -45296,21 +47079,6 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type EnumStoredObjectStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
@@ -45327,6 +47095,20 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type EnumDocumentCategoryNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.DocumentCategory | EnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel> | $Enums.DocumentCategory | null
+  }
+
+  export type EnumRetentionPhaseFilter<$PrismaModel = never> = {
+    equals?: $Enums.RetentionPhase | EnumRetentionPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumRetentionPhaseFilter<$PrismaModel> | $Enums.RetentionPhase
   }
 
   export type UserScalarRelationFilter = {
@@ -45355,6 +47137,8 @@ export namespace Prisma {
     consumedAt?: SortOrder
     consumedByType?: SortOrder
     consumedById?: SortOrder
+    documentCategory?: SortOrder
+    retentionPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45380,6 +47164,8 @@ export namespace Prisma {
     consumedAt?: SortOrder
     consumedByType?: SortOrder
     consumedById?: SortOrder
+    documentCategory?: SortOrder
+    retentionPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45400,6 +47186,8 @@ export namespace Prisma {
     consumedAt?: SortOrder
     consumedByType?: SortOrder
     consumedById?: SortOrder
+    documentCategory?: SortOrder
+    retentionPhase?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -45451,24 +47239,6 @@ export namespace Prisma {
     _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type EnumStoredObjectStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
@@ -45491,6 +47261,26 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumDocumentCategoryNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DocumentCategory | EnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumDocumentCategoryNullableWithAggregatesFilter<$PrismaModel> | $Enums.DocumentCategory | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel>
+    _max?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel>
+  }
+
+  export type EnumRetentionPhaseWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RetentionPhase | EnumRetentionPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumRetentionPhaseWithAggregatesFilter<$PrismaModel> | $Enums.RetentionPhase
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRetentionPhaseFilter<$PrismaModel>
+    _max?: NestedEnumRetentionPhaseFilter<$PrismaModel>
   }
 
   export type BoolFilter<$PrismaModel = never> = {
@@ -47632,6 +49422,54 @@ export namespace Prisma {
     _max?: NestedEnumBillingCycleFilter<$PrismaModel>
   }
 
+  export type StoredObjectScalarRelationFilter = {
+    is?: StoredObjectWhereInput
+    isNot?: StoredObjectWhereInput
+  }
+
+  export type ElectronicSignatureCountOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    documentId?: SortOrder
+    signerId?: SortOrder
+    documentHash?: SortOrder
+    ipAddress?: SortOrder
+    signedAt?: SortOrder
+  }
+
+  export type ElectronicSignatureMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    documentId?: SortOrder
+    signerId?: SortOrder
+    documentHash?: SortOrder
+    ipAddress?: SortOrder
+    signedAt?: SortOrder
+  }
+
+  export type ElectronicSignatureMinOrderByAggregateInput = {
+    id?: SortOrder
+    tenantId?: SortOrder
+    documentId?: SortOrder
+    signerId?: SortOrder
+    documentHash?: SortOrder
+    ipAddress?: SortOrder
+    signedAt?: SortOrder
+  }
+
+  export type TenantCreateNestedOneWithoutChildrenInput = {
+    create?: XOR<TenantCreateWithoutChildrenInput, TenantUncheckedCreateWithoutChildrenInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutChildrenInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type TenantCreateNestedManyWithoutParentInput = {
+    create?: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput> | TenantCreateWithoutParentInput[] | TenantUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: TenantCreateOrConnectWithoutParentInput | TenantCreateOrConnectWithoutParentInput[]
+    createMany?: TenantCreateManyParentInputEnvelope
+    connect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+  }
+
   export type CampaignSettingsCreateNestedOneWithoutTenantInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -47788,6 +49626,20 @@ export namespace Prisma {
     create?: XOR<TenantSubscriptionCreateWithoutTenantInput, TenantSubscriptionUncheckedCreateWithoutTenantInput>
     connectOrCreate?: TenantSubscriptionCreateOrConnectWithoutTenantInput
     connect?: TenantSubscriptionWhereUniqueInput
+  }
+
+  export type ElectronicSignatureCreateNestedManyWithoutTenantInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput> | ElectronicSignatureCreateWithoutTenantInput[] | ElectronicSignatureUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutTenantInput | ElectronicSignatureCreateOrConnectWithoutTenantInput[]
+    createMany?: ElectronicSignatureCreateManyTenantInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+  }
+
+  export type TenantUncheckedCreateNestedManyWithoutParentInput = {
+    create?: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput> | TenantCreateWithoutParentInput[] | TenantUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: TenantCreateOrConnectWithoutParentInput | TenantCreateOrConnectWithoutParentInput[]
+    createMany?: TenantCreateManyParentInputEnvelope
+    connect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
   }
 
   export type CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput = {
@@ -47948,6 +49800,13 @@ export namespace Prisma {
     connect?: TenantSubscriptionWhereUniqueInput
   }
 
+  export type ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput> | ElectronicSignatureCreateWithoutTenantInput[] | ElectronicSignatureUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutTenantInput | ElectronicSignatureCreateOrConnectWithoutTenantInput[]
+    createMany?: ElectronicSignatureCreateManyTenantInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -47962,6 +49821,30 @@ export namespace Prisma {
 
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
+  }
+
+  export type TenantUpdateOneWithoutChildrenNestedInput = {
+    create?: XOR<TenantCreateWithoutChildrenInput, TenantUncheckedCreateWithoutChildrenInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutChildrenInput
+    upsert?: TenantUpsertWithoutChildrenInput
+    disconnect?: TenantWhereInput | boolean
+    delete?: TenantWhereInput | boolean
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutChildrenInput, TenantUpdateWithoutChildrenInput>, TenantUncheckedUpdateWithoutChildrenInput>
+  }
+
+  export type TenantUpdateManyWithoutParentNestedInput = {
+    create?: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput> | TenantCreateWithoutParentInput[] | TenantUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: TenantCreateOrConnectWithoutParentInput | TenantCreateOrConnectWithoutParentInput[]
+    upsert?: TenantUpsertWithWhereUniqueWithoutParentInput | TenantUpsertWithWhereUniqueWithoutParentInput[]
+    createMany?: TenantCreateManyParentInputEnvelope
+    set?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    disconnect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    delete?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    connect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    update?: TenantUpdateWithWhereUniqueWithoutParentInput | TenantUpdateWithWhereUniqueWithoutParentInput[]
+    updateMany?: TenantUpdateManyWithWhereWithoutParentInput | TenantUpdateManyWithWhereWithoutParentInput[]
+    deleteMany?: TenantScalarWhereInput | TenantScalarWhereInput[]
   }
 
   export type CampaignSettingsUpdateOneWithoutTenantNestedInput = {
@@ -48274,6 +50157,38 @@ export namespace Prisma {
     update?: XOR<XOR<TenantSubscriptionUpdateToOneWithWhereWithoutTenantInput, TenantSubscriptionUpdateWithoutTenantInput>, TenantSubscriptionUncheckedUpdateWithoutTenantInput>
   }
 
+  export type ElectronicSignatureUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput> | ElectronicSignatureCreateWithoutTenantInput[] | ElectronicSignatureUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutTenantInput | ElectronicSignatureCreateOrConnectWithoutTenantInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutTenantInput | ElectronicSignatureUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: ElectronicSignatureCreateManyTenantInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutTenantInput | ElectronicSignatureUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutTenantInput | ElectronicSignatureUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type TenantUncheckedUpdateManyWithoutParentNestedInput = {
+    create?: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput> | TenantCreateWithoutParentInput[] | TenantUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: TenantCreateOrConnectWithoutParentInput | TenantCreateOrConnectWithoutParentInput[]
+    upsert?: TenantUpsertWithWhereUniqueWithoutParentInput | TenantUpsertWithWhereUniqueWithoutParentInput[]
+    createMany?: TenantCreateManyParentInputEnvelope
+    set?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    disconnect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    delete?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    connect?: TenantWhereUniqueInput | TenantWhereUniqueInput[]
+    update?: TenantUpdateWithWhereUniqueWithoutParentInput | TenantUpdateWithWhereUniqueWithoutParentInput[]
+    updateMany?: TenantUpdateManyWithWhereWithoutParentInput | TenantUpdateManyWithWhereWithoutParentInput[]
+    deleteMany?: TenantScalarWhereInput | TenantScalarWhereInput[]
+  }
+
   export type CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput = {
     create?: XOR<CampaignSettingsCreateWithoutTenantInput, CampaignSettingsUncheckedCreateWithoutTenantInput>
     connectOrCreate?: CampaignSettingsCreateOrConnectWithoutTenantInput
@@ -48584,6 +50499,20 @@ export namespace Prisma {
     update?: XOR<XOR<TenantSubscriptionUpdateToOneWithWhereWithoutTenantInput, TenantSubscriptionUpdateWithoutTenantInput>, TenantSubscriptionUncheckedUpdateWithoutTenantInput>
   }
 
+  export type ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput> | ElectronicSignatureCreateWithoutTenantInput[] | ElectronicSignatureUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutTenantInput | ElectronicSignatureCreateOrConnectWithoutTenantInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutTenantInput | ElectronicSignatureUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: ElectronicSignatureCreateManyTenantInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutTenantInput | ElectronicSignatureUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutTenantInput | ElectronicSignatureUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+  }
+
   export type TenantCreateNestedOneWithoutSettingsInput = {
     create?: XOR<TenantCreateWithoutSettingsInput, TenantUncheckedCreateWithoutSettingsInput>
     connectOrCreate?: TenantCreateOrConnectWithoutSettingsInput
@@ -48618,6 +50547,20 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type ElectronicSignatureCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput> | ElectronicSignatureCreateWithoutDocumentInput[] | ElectronicSignatureUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutDocumentInput | ElectronicSignatureCreateOrConnectWithoutDocumentInput[]
+    createMany?: ElectronicSignatureCreateManyDocumentInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+  }
+
+  export type ElectronicSignatureUncheckedCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput> | ElectronicSignatureCreateWithoutDocumentInput[] | ElectronicSignatureUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutDocumentInput | ElectronicSignatureCreateOrConnectWithoutDocumentInput[]
+    createMany?: ElectronicSignatureCreateManyDocumentInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+  }
+
   export type EnumStorageObjectModuleFieldUpdateOperationsInput = {
     set?: $Enums.StorageObjectModule
   }
@@ -48638,16 +50581,20 @@ export namespace Prisma {
     divide?: number
   }
 
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type EnumStoredObjectStatusFieldUpdateOperationsInput = {
     set?: $Enums.StoredObjectStatus
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+  }
+
+  export type NullableEnumDocumentCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.DocumentCategory | null
+  }
+
+  export type EnumRetentionPhaseFieldUpdateOperationsInput = {
+    set?: $Enums.RetentionPhase
   }
 
   export type TenantUpdateOneRequiredWithoutStoredObjectsNestedInput = {
@@ -48664,6 +50611,34 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutStoredObjectsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutStoredObjectsInput, UserUpdateWithoutStoredObjectsInput>, UserUncheckedUpdateWithoutStoredObjectsInput>
+  }
+
+  export type ElectronicSignatureUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput> | ElectronicSignatureCreateWithoutDocumentInput[] | ElectronicSignatureUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutDocumentInput | ElectronicSignatureCreateOrConnectWithoutDocumentInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutDocumentInput | ElectronicSignatureUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: ElectronicSignatureCreateManyDocumentInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutDocumentInput | ElectronicSignatureUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutDocumentInput | ElectronicSignatureUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput> | ElectronicSignatureCreateWithoutDocumentInput[] | ElectronicSignatureUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutDocumentInput | ElectronicSignatureCreateOrConnectWithoutDocumentInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutDocumentInput | ElectronicSignatureUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: ElectronicSignatureCreateManyDocumentInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutDocumentInput | ElectronicSignatureUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutDocumentInput | ElectronicSignatureUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
   }
 
   export type TenantCreateNestedOneWithoutUsersInput = {
@@ -48874,6 +50849,13 @@ export namespace Prisma {
     connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
   }
 
+  export type ElectronicSignatureCreateNestedManyWithoutSignerInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput> | ElectronicSignatureCreateWithoutSignerInput[] | ElectronicSignatureUncheckedCreateWithoutSignerInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutSignerInput | ElectronicSignatureCreateOrConnectWithoutSignerInput[]
+    createMany?: ElectronicSignatureCreateManySignerInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+  }
+
   export type FinancialEntryUncheckedCreateNestedManyWithoutReporterInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
@@ -49068,6 +51050,13 @@ export namespace Prisma {
     connectOrCreate?: PoliticalProposalCreateOrConnectWithoutUpdatedByInput | PoliticalProposalCreateOrConnectWithoutUpdatedByInput[]
     createMany?: PoliticalProposalCreateManyUpdatedByInputEnvelope
     connect?: PoliticalProposalWhereUniqueInput | PoliticalProposalWhereUniqueInput[]
+  }
+
+  export type ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput> | ElectronicSignatureCreateWithoutSignerInput[] | ElectronicSignatureUncheckedCreateWithoutSignerInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutSignerInput | ElectronicSignatureCreateOrConnectWithoutSignerInput[]
+    createMany?: ElectronicSignatureCreateManySignerInputEnvelope
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -49488,6 +51477,20 @@ export namespace Prisma {
     deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
   }
 
+  export type ElectronicSignatureUpdateManyWithoutSignerNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput> | ElectronicSignatureCreateWithoutSignerInput[] | ElectronicSignatureUncheckedCreateWithoutSignerInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutSignerInput | ElectronicSignatureCreateOrConnectWithoutSignerInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutSignerInput | ElectronicSignatureUpsertWithWhereUniqueWithoutSignerInput[]
+    createMany?: ElectronicSignatureCreateManySignerInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutSignerInput | ElectronicSignatureUpdateWithWhereUniqueWithoutSignerInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutSignerInput | ElectronicSignatureUpdateManyWithWhereWithoutSignerInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+  }
+
   export type FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput = {
     create?: XOR<FinancialEntryCreateWithoutReporterInput, FinancialEntryUncheckedCreateWithoutReporterInput> | FinancialEntryCreateWithoutReporterInput[] | FinancialEntryUncheckedCreateWithoutReporterInput[]
     connectOrCreate?: FinancialEntryCreateOrConnectWithoutReporterInput | FinancialEntryCreateOrConnectWithoutReporterInput[]
@@ -49878,6 +51881,20 @@ export namespace Prisma {
     update?: PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput | PoliticalProposalUpdateWithWhereUniqueWithoutUpdatedByInput[]
     updateMany?: PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput | PoliticalProposalUpdateManyWithWhereWithoutUpdatedByInput[]
     deleteMany?: PoliticalProposalScalarWhereInput | PoliticalProposalScalarWhereInput[]
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput = {
+    create?: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput> | ElectronicSignatureCreateWithoutSignerInput[] | ElectronicSignatureUncheckedCreateWithoutSignerInput[]
+    connectOrCreate?: ElectronicSignatureCreateOrConnectWithoutSignerInput | ElectronicSignatureCreateOrConnectWithoutSignerInput[]
+    upsert?: ElectronicSignatureUpsertWithWhereUniqueWithoutSignerInput | ElectronicSignatureUpsertWithWhereUniqueWithoutSignerInput[]
+    createMany?: ElectronicSignatureCreateManySignerInputEnvelope
+    set?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    disconnect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    delete?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    connect?: ElectronicSignatureWhereUniqueInput | ElectronicSignatureWhereUniqueInput[]
+    update?: ElectronicSignatureUpdateWithWhereUniqueWithoutSignerInput | ElectronicSignatureUpdateWithWhereUniqueWithoutSignerInput[]
+    updateMany?: ElectronicSignatureUpdateManyWithWhereWithoutSignerInput | ElectronicSignatureUpdateManyWithWhereWithoutSignerInput[]
+    deleteMany?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
   }
 
   export type TenantCreateNestedOneWithoutTeamInvitationsInput = {
@@ -51720,6 +53737,48 @@ export namespace Prisma {
     update?: XOR<XOR<SubscriptionPlanUpdateToOneWithWhereWithoutSubscriptionsInput, SubscriptionPlanUpdateWithoutSubscriptionsInput>, SubscriptionPlanUncheckedUpdateWithoutSubscriptionsInput>
   }
 
+  export type TenantCreateNestedOneWithoutElectronicSignaturesInput = {
+    create?: XOR<TenantCreateWithoutElectronicSignaturesInput, TenantUncheckedCreateWithoutElectronicSignaturesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutElectronicSignaturesInput
+    connect?: TenantWhereUniqueInput
+  }
+
+  export type StoredObjectCreateNestedOneWithoutSignaturesInput = {
+    create?: XOR<StoredObjectCreateWithoutSignaturesInput, StoredObjectUncheckedCreateWithoutSignaturesInput>
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutSignaturesInput
+    connect?: StoredObjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutElectronicSignaturesInput = {
+    create?: XOR<UserCreateWithoutElectronicSignaturesInput, UserUncheckedCreateWithoutElectronicSignaturesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutElectronicSignaturesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type TenantUpdateOneRequiredWithoutElectronicSignaturesNestedInput = {
+    create?: XOR<TenantCreateWithoutElectronicSignaturesInput, TenantUncheckedCreateWithoutElectronicSignaturesInput>
+    connectOrCreate?: TenantCreateOrConnectWithoutElectronicSignaturesInput
+    upsert?: TenantUpsertWithoutElectronicSignaturesInput
+    connect?: TenantWhereUniqueInput
+    update?: XOR<XOR<TenantUpdateToOneWithWhereWithoutElectronicSignaturesInput, TenantUpdateWithoutElectronicSignaturesInput>, TenantUncheckedUpdateWithoutElectronicSignaturesInput>
+  }
+
+  export type StoredObjectUpdateOneRequiredWithoutSignaturesNestedInput = {
+    create?: XOR<StoredObjectCreateWithoutSignaturesInput, StoredObjectUncheckedCreateWithoutSignaturesInput>
+    connectOrCreate?: StoredObjectCreateOrConnectWithoutSignaturesInput
+    upsert?: StoredObjectUpsertWithoutSignaturesInput
+    connect?: StoredObjectWhereUniqueInput
+    update?: XOR<XOR<StoredObjectUpdateToOneWithWhereWithoutSignaturesInput, StoredObjectUpdateWithoutSignaturesInput>, StoredObjectUncheckedUpdateWithoutSignaturesInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutElectronicSignaturesNestedInput = {
+    create?: XOR<UserCreateWithoutElectronicSignaturesInput, UserUncheckedCreateWithoutElectronicSignaturesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutElectronicSignaturesInput
+    upsert?: UserUpsertWithoutElectronicSignaturesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutElectronicSignaturesInput, UserUpdateWithoutElectronicSignaturesInput>, UserUncheckedUpdateWithoutElectronicSignaturesInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -51746,6 +53805,20 @@ export namespace Prisma {
     in?: $Enums.PoliticalOperationMode[] | ListEnumPoliticalOperationModeFieldRefInput<$PrismaModel>
     notIn?: $Enums.PoliticalOperationMode[] | ListEnumPoliticalOperationModeFieldRefInput<$PrismaModel>
     not?: NestedEnumPoliticalOperationModeFilter<$PrismaModel> | $Enums.PoliticalOperationMode
+  }
+
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -51841,6 +53914,23 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -51889,20 +53979,6 @@ export namespace Prisma {
     not?: NestedEnumStorageObjectModuleFilter<$PrismaModel> | $Enums.StorageObjectModule
   }
 
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type NestedEnumStoredObjectStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
@@ -51919,6 +53995,20 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedEnumDocumentCategoryNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.DocumentCategory | EnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel> | $Enums.DocumentCategory | null
+  }
+
+  export type NestedEnumRetentionPhaseFilter<$PrismaModel = never> = {
+    equals?: $Enums.RetentionPhase | EnumRetentionPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumRetentionPhaseFilter<$PrismaModel> | $Enums.RetentionPhase
   }
 
   export type NestedEnumStorageObjectModuleWithAggregatesFilter<$PrismaModel = never> = {
@@ -51985,23 +54075,6 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type NestedEnumStoredObjectStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.StoredObjectStatus | EnumStoredObjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.StoredObjectStatus[] | ListEnumStoredObjectStatusFieldRefInput<$PrismaModel>
@@ -52024,6 +54097,26 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDocumentCategoryNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DocumentCategory | EnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    in?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.DocumentCategory[] | ListEnumDocumentCategoryFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumDocumentCategoryNullableWithAggregatesFilter<$PrismaModel> | $Enums.DocumentCategory | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel>
+    _max?: NestedEnumDocumentCategoryNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumRetentionPhaseWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RetentionPhase | EnumRetentionPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RetentionPhase[] | ListEnumRetentionPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumRetentionPhaseWithAggregatesFilter<$PrismaModel> | $Enums.RetentionPhase
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRetentionPhaseFilter<$PrismaModel>
+    _max?: NestedEnumRetentionPhaseFilter<$PrismaModel>
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -52650,6 +54743,165 @@ export namespace Prisma {
     _max?: NestedEnumBillingCycleFilter<$PrismaModel>
   }
 
+  export type TenantCreateWithoutChildrenInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutChildrenInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutChildrenInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutChildrenInput, TenantUncheckedCreateWithoutChildrenInput>
+  }
+
+  export type TenantCreateWithoutParentInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    children?: TenantCreateNestedManyWithoutParentInput
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutParentInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutParentInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput>
+  }
+
+  export type TenantCreateManyParentInputEnvelope = {
+    data: TenantCreateManyParentInput | TenantCreateManyParentInput[]
+    skipDuplicates?: boolean
+  }
+
   export type CampaignSettingsCreateWithoutTenantInput = {
     id?: string
     maxTotalBudget: Decimal | DecimalJsLike | number | string
@@ -52716,6 +54968,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutTenantInput = {
@@ -52763,6 +55016,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutTenantInput = {
@@ -53551,9 +55805,12 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
     uploader: UserCreateNestedOneWithoutStoredObjectsInput
+    signatures?: ElectronicSignatureCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectUncheckedCreateWithoutTenantInput = {
@@ -53571,8 +55828,11 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
+    signatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectCreateOrConnectWithoutTenantInput = {
@@ -53713,6 +55973,148 @@ export namespace Prisma {
   export type TenantSubscriptionCreateOrConnectWithoutTenantInput = {
     where: TenantSubscriptionWhereUniqueInput
     create: XOR<TenantSubscriptionCreateWithoutTenantInput, TenantSubscriptionUncheckedCreateWithoutTenantInput>
+  }
+
+  export type ElectronicSignatureCreateWithoutTenantInput = {
+    id?: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+    document: StoredObjectCreateNestedOneWithoutSignaturesInput
+    signer: UserCreateNestedOneWithoutElectronicSignaturesInput
+  }
+
+  export type ElectronicSignatureUncheckedCreateWithoutTenantInput = {
+    id?: string
+    documentId: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureCreateOrConnectWithoutTenantInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    create: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput>
+  }
+
+  export type ElectronicSignatureCreateManyTenantInputEnvelope = {
+    data: ElectronicSignatureCreateManyTenantInput | ElectronicSignatureCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TenantUpsertWithoutChildrenInput = {
+    update: XOR<TenantUpdateWithoutChildrenInput, TenantUncheckedUpdateWithoutChildrenInput>
+    create: XOR<TenantCreateWithoutChildrenInput, TenantUncheckedCreateWithoutChildrenInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutChildrenInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutChildrenInput, TenantUncheckedUpdateWithoutChildrenInput>
+  }
+
+  export type TenantUpdateWithoutChildrenInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutChildrenInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUpsertWithWhereUniqueWithoutParentInput = {
+    where: TenantWhereUniqueInput
+    update: XOR<TenantUpdateWithoutParentInput, TenantUncheckedUpdateWithoutParentInput>
+    create: XOR<TenantCreateWithoutParentInput, TenantUncheckedCreateWithoutParentInput>
+  }
+
+  export type TenantUpdateWithWhereUniqueWithoutParentInput = {
+    where: TenantWhereUniqueInput
+    data: XOR<TenantUpdateWithoutParentInput, TenantUncheckedUpdateWithoutParentInput>
+  }
+
+  export type TenantUpdateManyWithWhereWithoutParentInput = {
+    where: TenantScalarWhereInput
+    data: XOR<TenantUpdateManyMutationInput, TenantUncheckedUpdateManyWithoutParentInput>
+  }
+
+  export type TenantScalarWhereInput = {
+    AND?: TenantScalarWhereInput | TenantScalarWhereInput[]
+    OR?: TenantScalarWhereInput[]
+    NOT?: TenantScalarWhereInput | TenantScalarWhereInput[]
+    id?: StringFilter<"Tenant"> | string
+    slug?: StringFilter<"Tenant"> | string
+    name?: StringFilter<"Tenant"> | string
+    type?: EnumTenantTypeFilter<"Tenant"> | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFilter<"Tenant"> | $Enums.PoliticalOperationMode
+    config?: JsonNullableFilter<"Tenant">
+    parentTenantId?: StringNullableFilter<"Tenant"> | string | null
+    createdAt?: DateTimeFilter<"Tenant"> | Date | string
+    updatedAt?: DateTimeFilter<"Tenant"> | Date | string
   }
 
   export type CampaignSettingsUpsertWithoutTenantInput = {
@@ -54435,6 +56837,8 @@ export namespace Prisma {
     consumedAt?: DateTimeNullableFilter<"StoredObject"> | Date | string | null
     consumedByType?: StringNullableFilter<"StoredObject"> | string | null
     consumedById?: StringNullableFilter<"StoredObject"> | string | null
+    documentCategory?: EnumDocumentCategoryNullableFilter<"StoredObject"> | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFilter<"StoredObject"> | $Enums.RetentionPhase
     createdAt?: DateTimeFilter<"StoredObject"> | Date | string
     updatedAt?: DateTimeFilter<"StoredObject"> | Date | string
   }
@@ -54571,6 +56975,35 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ElectronicSignatureUpsertWithWhereUniqueWithoutTenantInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    update: XOR<ElectronicSignatureUpdateWithoutTenantInput, ElectronicSignatureUncheckedUpdateWithoutTenantInput>
+    create: XOR<ElectronicSignatureCreateWithoutTenantInput, ElectronicSignatureUncheckedCreateWithoutTenantInput>
+  }
+
+  export type ElectronicSignatureUpdateWithWhereUniqueWithoutTenantInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    data: XOR<ElectronicSignatureUpdateWithoutTenantInput, ElectronicSignatureUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type ElectronicSignatureUpdateManyWithWhereWithoutTenantInput = {
+    where: ElectronicSignatureScalarWhereInput
+    data: XOR<ElectronicSignatureUpdateManyMutationInput, ElectronicSignatureUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type ElectronicSignatureScalarWhereInput = {
+    AND?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+    OR?: ElectronicSignatureScalarWhereInput[]
+    NOT?: ElectronicSignatureScalarWhereInput | ElectronicSignatureScalarWhereInput[]
+    id?: StringFilter<"ElectronicSignature"> | string
+    tenantId?: StringFilter<"ElectronicSignature"> | string
+    documentId?: StringFilter<"ElectronicSignature"> | string
+    signerId?: StringFilter<"ElectronicSignature"> | string
+    documentHash?: StringFilter<"ElectronicSignature"> | string
+    ipAddress?: StringNullableFilter<"ElectronicSignature"> | string | null
+    signedAt?: DateTimeFilter<"ElectronicSignature"> | Date | string
+  }
+
   export type TenantCreateWithoutSettingsInput = {
     id?: string
     slug: string
@@ -54580,6 +57013,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
     voters?: VoterCreateNestedManyWithoutTenantInput
@@ -54602,6 +57037,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutSettingsInput = {
@@ -54611,8 +57047,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
@@ -54635,6 +57073,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutSettingsInput = {
@@ -54662,6 +57101,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
     voters?: VoterUpdateManyWithoutTenantNestedInput
@@ -54684,6 +57125,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutSettingsInput = {
@@ -54693,8 +57135,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
@@ -54717,6 +57161,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantCreateWithoutStoredObjectsInput = {
@@ -54728,6 +57173,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -54750,6 +57197,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutStoredObjectsInput = {
@@ -54759,8 +57207,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -54783,6 +57233,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutStoredObjectsInput = {
@@ -54835,6 +57286,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutStoredObjectsInput = {
@@ -54882,11 +57334,39 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutStoredObjectsInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutStoredObjectsInput, UserUncheckedCreateWithoutStoredObjectsInput>
+  }
+
+  export type ElectronicSignatureCreateWithoutDocumentInput = {
+    id?: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutElectronicSignaturesInput
+    signer: UserCreateNestedOneWithoutElectronicSignaturesInput
+  }
+
+  export type ElectronicSignatureUncheckedCreateWithoutDocumentInput = {
+    id?: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureCreateOrConnectWithoutDocumentInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    create: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type ElectronicSignatureCreateManyDocumentInputEnvelope = {
+    data: ElectronicSignatureCreateManyDocumentInput | ElectronicSignatureCreateManyDocumentInput[]
+    skipDuplicates?: boolean
   }
 
   export type TenantUpsertWithoutStoredObjectsInput = {
@@ -54909,6 +57389,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -54931,6 +57413,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutStoredObjectsInput = {
@@ -54940,8 +57423,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -54964,6 +57449,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutStoredObjectsInput = {
@@ -55022,6 +57508,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutStoredObjectsInput = {
@@ -55069,6 +57556,23 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
+  }
+
+  export type ElectronicSignatureUpsertWithWhereUniqueWithoutDocumentInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    update: XOR<ElectronicSignatureUpdateWithoutDocumentInput, ElectronicSignatureUncheckedUpdateWithoutDocumentInput>
+    create: XOR<ElectronicSignatureCreateWithoutDocumentInput, ElectronicSignatureUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type ElectronicSignatureUpdateWithWhereUniqueWithoutDocumentInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    data: XOR<ElectronicSignatureUpdateWithoutDocumentInput, ElectronicSignatureUncheckedUpdateWithoutDocumentInput>
+  }
+
+  export type ElectronicSignatureUpdateManyWithWhereWithoutDocumentInput = {
+    where: ElectronicSignatureScalarWhereInput
+    data: XOR<ElectronicSignatureUpdateManyMutationInput, ElectronicSignatureUncheckedUpdateManyWithoutDocumentInput>
   }
 
   export type TenantCreateWithoutUsersInput = {
@@ -55080,6 +57584,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
     voters?: VoterCreateNestedManyWithoutTenantInput
@@ -55102,6 +57608,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutUsersInput = {
@@ -55111,8 +57618,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
@@ -55135,6 +57644,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutUsersInput = {
@@ -56176,9 +58686,12 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
     tenant: TenantCreateNestedOneWithoutStoredObjectsInput
+    signatures?: ElectronicSignatureCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectUncheckedCreateWithoutUploaderInput = {
@@ -56195,8 +58708,11 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
+    signatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutDocumentInput
   }
 
   export type StoredObjectCreateOrConnectWithoutUploaderInput = {
@@ -56515,6 +59031,33 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ElectronicSignatureCreateWithoutSignerInput = {
+    id?: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutElectronicSignaturesInput
+    document: StoredObjectCreateNestedOneWithoutSignaturesInput
+  }
+
+  export type ElectronicSignatureUncheckedCreateWithoutSignerInput = {
+    id?: string
+    documentId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureCreateOrConnectWithoutSignerInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    create: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput>
+  }
+
+  export type ElectronicSignatureCreateManySignerInputEnvelope = {
+    data: ElectronicSignatureCreateManySignerInput | ElectronicSignatureCreateManySignerInput[]
+    skipDuplicates?: boolean
+  }
+
   export type TenantUpsertWithoutUsersInput = {
     update: XOR<TenantUpdateWithoutUsersInput, TenantUncheckedUpdateWithoutUsersInput>
     create: XOR<TenantCreateWithoutUsersInput, TenantUncheckedCreateWithoutUsersInput>
@@ -56535,6 +59078,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
     voters?: VoterUpdateManyWithoutTenantNestedInput
@@ -56557,6 +59102,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutUsersInput = {
@@ -56566,8 +59112,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
@@ -56590,6 +59138,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutUsersInput = {
@@ -57107,6 +59656,22 @@ export namespace Prisma {
     data: XOR<PoliticalProposalUpdateManyMutationInput, PoliticalProposalUncheckedUpdateManyWithoutUpdatedByInput>
   }
 
+  export type ElectronicSignatureUpsertWithWhereUniqueWithoutSignerInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    update: XOR<ElectronicSignatureUpdateWithoutSignerInput, ElectronicSignatureUncheckedUpdateWithoutSignerInput>
+    create: XOR<ElectronicSignatureCreateWithoutSignerInput, ElectronicSignatureUncheckedCreateWithoutSignerInput>
+  }
+
+  export type ElectronicSignatureUpdateWithWhereUniqueWithoutSignerInput = {
+    where: ElectronicSignatureWhereUniqueInput
+    data: XOR<ElectronicSignatureUpdateWithoutSignerInput, ElectronicSignatureUncheckedUpdateWithoutSignerInput>
+  }
+
+  export type ElectronicSignatureUpdateManyWithWhereWithoutSignerInput = {
+    where: ElectronicSignatureScalarWhereInput
+    data: XOR<ElectronicSignatureUpdateManyMutationInput, ElectronicSignatureUncheckedUpdateManyWithoutSignerInput>
+  }
+
   export type TenantCreateWithoutTeamInvitationsInput = {
     id?: string
     slug: string
@@ -57116,6 +59681,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -57138,6 +59705,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTeamInvitationsInput = {
@@ -57147,8 +59715,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -57171,6 +59741,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTeamInvitationsInput = {
@@ -57223,6 +59794,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutInvitationsSentInput = {
@@ -57270,6 +59842,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutInvitationsSentInput = {
@@ -57297,6 +59870,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -57319,6 +59894,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTeamInvitationsInput = {
@@ -57328,8 +59904,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -57352,6 +59930,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutInvitationsSentInput = {
@@ -57410,6 +59989,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInvitationsSentInput = {
@@ -57457,6 +60037,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutDivisionsInput = {
@@ -57468,6 +60049,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     voters?: VoterCreateNestedManyWithoutTenantInput
@@ -57490,6 +60073,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutDivisionsInput = {
@@ -57499,8 +60083,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
@@ -57523,6 +60109,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutDivisionsInput = {
@@ -57649,6 +60236,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutDivisionInput = {
@@ -57695,6 +60283,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutDivisionInput = {
@@ -57894,6 +60483,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     voters?: VoterUpdateManyWithoutTenantNestedInput
@@ -57916,6 +60507,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutDivisionsInput = {
@@ -57925,8 +60517,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
@@ -57949,6 +60543,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutChildrenInput = {
@@ -58081,6 +60676,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -58103,6 +60700,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutVotersInput = {
@@ -58112,8 +60710,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -58136,6 +60736,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutVotersInput = {
@@ -58223,6 +60824,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutRegisteredVotersInput = {
@@ -58270,6 +60872,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutRegisteredVotersInput = {
@@ -58456,6 +61059,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -58478,6 +61083,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutVotersInput = {
@@ -58487,8 +61093,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -58511,6 +61119,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutVotersInput = {
@@ -58610,6 +61219,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRegisteredVotersInput = {
@@ -58657,6 +61267,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutVoterInput = {
@@ -58716,6 +61327,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -58738,6 +61351,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutFinancesInput = {
@@ -58747,8 +61361,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -58771,6 +61387,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutFinancesInput = {
@@ -58823,6 +61440,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesReportedInput = {
@@ -58870,6 +61488,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesReportedInput = {
@@ -58922,6 +61541,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesReviewedInput = {
@@ -58969,6 +61589,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesReviewedInput = {
@@ -59021,6 +61642,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutFinancialEntriesCneMarkedInput = {
@@ -59068,6 +61690,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutFinancialEntriesCneMarkedInput = {
@@ -59095,6 +61718,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -59117,6 +61742,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutFinancesInput = {
@@ -59126,8 +61752,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -59150,6 +61778,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesReportedInput = {
@@ -59208,6 +61837,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesReportedInput = {
@@ -59255,6 +61885,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesReviewedInput = {
@@ -59313,6 +61944,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesReviewedInput = {
@@ -59360,6 +61992,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutFinancialEntriesCneMarkedInput = {
@@ -59418,6 +62051,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFinancialEntriesCneMarkedInput = {
@@ -59465,6 +62099,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutWitnessesInput = {
@@ -59476,6 +62111,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -59498,6 +62135,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutWitnessesInput = {
@@ -59507,8 +62145,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -59531,6 +62171,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutWitnessesInput = {
@@ -59618,6 +62259,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutWitnessReportsInput = {
@@ -59665,6 +62307,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutWitnessReportsInput = {
@@ -59717,6 +62360,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutWitnessReportsReviewedInput = {
@@ -59764,6 +62408,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutWitnessReportsReviewedInput = {
@@ -59885,6 +62530,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -59907,6 +62554,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutWitnessesInput = {
@@ -59916,8 +62564,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -59940,6 +62590,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type PoliticalDivisionUpsertWithoutWitnessesInput = {
@@ -60039,6 +62690,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWitnessReportsInput = {
@@ -60086,6 +62738,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutWitnessReportsReviewedInput = {
@@ -60144,6 +62797,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWitnessReportsReviewedInput = {
@@ -60191,6 +62845,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type WitnessReportUpsertWithoutSupersededReportsInput = {
@@ -60269,6 +62924,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -60291,6 +62948,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutEventsInput = {
@@ -60300,8 +62958,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -60324,6 +62984,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutEventsInput = {
@@ -60376,6 +63037,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutEventsResponsibleInput = {
@@ -60423,6 +63085,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutEventsResponsibleInput = {
@@ -60477,6 +63140,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -60499,6 +63164,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutEventsInput = {
@@ -60508,8 +63174,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -60532,6 +63200,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutEventsResponsibleInput = {
@@ -60590,6 +63259,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEventsResponsibleInput = {
@@ -60637,6 +63307,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type PointLogUpsertWithWhereUniqueWithoutEventInput = {
@@ -60664,6 +63335,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -60686,6 +63359,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutPointLogsInput = {
@@ -60695,8 +63369,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -60719,6 +63395,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutPointLogsInput = {
@@ -60771,6 +63448,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutPointLogsInput = {
@@ -60818,6 +63496,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutPointLogsInput = {
@@ -60884,6 +63563,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -60906,6 +63587,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutPointLogsInput = {
@@ -60915,8 +63597,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -60939,6 +63623,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutPointLogsInput = {
@@ -60997,6 +63682,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPointLogsInput = {
@@ -61044,6 +63730,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type CampaignEventUpsertWithoutAttendeesInput = {
@@ -61100,6 +63787,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -61122,6 +63811,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryInput = {
@@ -61131,8 +63821,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -61155,6 +63847,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryInput = {
@@ -61211,6 +63904,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -61233,6 +63928,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryInput = {
@@ -61242,8 +63938,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -61266,6 +63964,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryMovementUpsertWithWhereUniqueWithoutItemInput = {
@@ -61293,6 +63992,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -61315,6 +64016,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInventoryMovementsInput = {
@@ -61324,8 +64026,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -61348,6 +64052,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInventoryMovementsInput = {
@@ -61427,6 +64132,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutInventoryMovesInput = {
@@ -61474,6 +64180,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutInventoryMovesInput = {
@@ -61501,6 +64208,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -61523,6 +64232,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInventoryMovementsInput = {
@@ -61532,8 +64242,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -61556,6 +64268,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type InventoryItemUpsertWithoutMovementsInput = {
@@ -61647,6 +64360,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInventoryMovesInput = {
@@ -61694,6 +64408,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutConsentRecordsInput = {
@@ -61705,6 +64420,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -61727,6 +64444,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutConsentRecordsInput = {
@@ -61736,8 +64454,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -61760,6 +64480,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutConsentRecordsInput = {
@@ -61863,6 +64584,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutConsentsCapturedInput = {
@@ -61910,6 +64632,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutConsentsCapturedInput = {
@@ -61980,6 +64703,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -62002,6 +64727,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutConsentRecordsInput = {
@@ -62011,8 +64737,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -62035,6 +64763,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutConsentRecordsInput = {
@@ -62150,6 +64879,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConsentsCapturedInput = {
@@ -62197,6 +64927,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutConsentRecordInput = {
@@ -62224,6 +64955,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -62246,6 +64979,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutConsentNoticesInput = {
@@ -62255,8 +64989,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -62279,6 +65015,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutConsentNoticesInput = {
@@ -62331,6 +65068,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutConsentNoticesCreatedInput = {
@@ -62378,6 +65116,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutConsentNoticesCreatedInput = {
@@ -62405,6 +65144,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -62427,6 +65168,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutConsentNoticesInput = {
@@ -62436,8 +65178,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -62460,6 +65204,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutConsentNoticesCreatedInput = {
@@ -62518,6 +65263,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConsentNoticesCreatedInput = {
@@ -62565,6 +65311,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutIssueCasesInput = {
@@ -62576,6 +65323,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -62598,6 +65347,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutIssueCasesInput = {
@@ -62607,8 +65357,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -62631,6 +65383,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutIssueCasesInput = {
@@ -62769,6 +65522,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutCasesAssignedInput = {
@@ -62816,6 +65570,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutCasesAssignedInput = {
@@ -62868,6 +65623,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutCasesCreatedInput = {
@@ -62915,6 +65671,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutCasesCreatedInput = {
@@ -63124,6 +65881,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -63146,6 +65905,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutIssueCasesInput = {
@@ -63155,8 +65915,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -63179,6 +65941,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type VoterUpsertWithoutIssueCasesInput = {
@@ -63335,6 +66098,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesAssignedInput = {
@@ -63382,6 +66146,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutCasesCreatedInput = {
@@ -63440,6 +66205,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCasesCreatedInput = {
@@ -63487,6 +66253,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type InteractionUpsertWithWhereUniqueWithoutIssueCaseInput = {
@@ -63562,6 +66329,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -63584,6 +66353,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutInteractionsInput = {
@@ -63593,8 +66363,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -63617,6 +66389,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutInteractionsInput = {
@@ -63779,6 +66552,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutInteractionsInput = {
@@ -63826,6 +66600,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutInteractionsInput = {
@@ -63902,6 +66677,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -63924,6 +66701,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutInteractionsInput = {
@@ -63933,8 +66711,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -63957,6 +66737,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutInteractionsInput = {
@@ -64137,6 +66918,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInteractionsInput = {
@@ -64184,6 +66966,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type ConsentRecordUpsertWithoutInteractionsInput = {
@@ -64250,6 +67033,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -64272,6 +67057,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutTasksInput = {
@@ -64281,8 +67067,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -64305,6 +67093,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutTasksInput = {
@@ -64459,6 +67248,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutTasksAssignedInput = {
@@ -64506,6 +67296,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutTasksAssignedInput = {
@@ -64558,6 +67349,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutTasksCreatedInput = {
@@ -64605,6 +67397,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutTasksCreatedInput = {
@@ -64632,6 +67425,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -64654,6 +67449,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutTasksInput = {
@@ -64663,8 +67459,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -64687,6 +67485,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutTasksInput = {
@@ -64859,6 +67658,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksAssignedInput = {
@@ -64906,6 +67706,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutTasksCreatedInput = {
@@ -64964,6 +67765,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTasksCreatedInput = {
@@ -65011,6 +67813,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutCommitmentsInput = {
@@ -65022,6 +67825,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -65044,6 +67849,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommitmentsInput = {
@@ -65053,8 +67859,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -65077,6 +67885,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommitmentsInput = {
@@ -65129,6 +67938,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutCommitmentsOwnedInput = {
@@ -65176,6 +67986,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutCommitmentsOwnedInput = {
@@ -65305,6 +68116,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -65327,6 +68140,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommitmentsInput = {
@@ -65336,8 +68150,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -65360,6 +68176,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutCommitmentsOwnedInput = {
@@ -65418,6 +68235,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommitmentsOwnedInput = {
@@ -65465,6 +68283,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommitmentsInput = {
@@ -65557,6 +68376,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -65579,6 +68400,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutCommunicationApprovalsInput = {
@@ -65588,8 +68410,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -65612,6 +68436,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutCommunicationApprovalsInput = {
@@ -65723,6 +68548,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsRequestedInput = {
@@ -65770,6 +68596,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsRequestedInput = {
@@ -65822,6 +68649,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutCommunicationsDecidedInput = {
@@ -65869,6 +68697,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutCommunicationsDecidedInput = {
@@ -65896,6 +68725,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -65918,6 +68749,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutCommunicationApprovalsInput = {
@@ -65927,8 +68759,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -65951,6 +68785,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type IssueCaseUpsertWithoutCommunicationApprovalsInput = {
@@ -66074,6 +68909,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsRequestedInput = {
@@ -66121,6 +68957,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutCommunicationsDecidedInput = {
@@ -66179,6 +69016,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommunicationsDecidedInput = {
@@ -66226,6 +69064,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutAuditEventsInput = {
@@ -66237,6 +69076,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -66259,6 +69100,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutAuditEventsInput = {
@@ -66268,8 +69110,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -66292,6 +69136,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutAuditEventsInput = {
@@ -66344,6 +69189,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutAuditEventsInput = {
@@ -66391,6 +69237,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutAuditEventsInput = {
@@ -66418,6 +69265,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -66440,6 +69289,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutAuditEventsInput = {
@@ -66449,8 +69299,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -66473,6 +69325,7 @@ export namespace Prisma {
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutAuditEventsInput = {
@@ -66531,6 +69384,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditEventsInput = {
@@ -66578,6 +69432,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutOperationProfileInput = {
@@ -66589,6 +69444,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -66611,6 +69468,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutOperationProfileInput = {
@@ -66620,8 +69478,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -66644,6 +69504,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutOperationProfileInput = {
@@ -66696,6 +69557,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesResponsibleInput = {
@@ -66743,6 +69605,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesResponsibleInput = {
@@ -66795,6 +69658,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesCreatedInput = {
@@ -66842,6 +69706,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesCreatedInput = {
@@ -66894,6 +69759,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutOperationProfilesUpdatedInput = {
@@ -66941,6 +69807,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutOperationProfilesUpdatedInput = {
@@ -66968,6 +69835,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -66990,6 +69859,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutOperationProfileInput = {
@@ -66999,8 +69869,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -67023,6 +69895,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesResponsibleInput = {
@@ -67081,6 +69954,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesResponsibleInput = {
@@ -67128,6 +70002,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesCreatedInput = {
@@ -67186,6 +70061,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesCreatedInput = {
@@ -67233,6 +70109,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutOperationProfilesUpdatedInput = {
@@ -67291,6 +70168,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOperationProfilesUpdatedInput = {
@@ -67338,6 +70216,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantCreateWithoutPoliticalProposalsInput = {
@@ -67349,6 +70228,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -67371,6 +70252,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutPoliticalProposalsInput = {
@@ -67380,8 +70262,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -67404,6 +70288,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutPoliticalProposalsInput = {
@@ -67456,6 +70341,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutProposalsOwnedInput = {
@@ -67503,6 +70389,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutProposalsOwnedInput = {
@@ -67555,6 +70442,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutProposalsCreatedInput = {
@@ -67602,6 +70490,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutProposalsCreatedInput = {
@@ -67654,6 +70543,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
     proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutSignerInput
   }
 
   export type UserUncheckedCreateWithoutProposalsUpdatedInput = {
@@ -67701,6 +70591,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
     proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
     proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutSignerInput
   }
 
   export type UserCreateOrConnectWithoutProposalsUpdatedInput = {
@@ -67728,6 +70619,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -67750,6 +70643,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutPoliticalProposalsInput = {
@@ -67759,8 +70653,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -67783,6 +70679,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type UserUpsertWithoutProposalsOwnedInput = {
@@ -67841,6 +70738,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProposalsOwnedInput = {
@@ -67888,6 +70786,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutProposalsCreatedInput = {
@@ -67946,6 +70845,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProposalsCreatedInput = {
@@ -67993,6 +70893,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUpsertWithoutProposalsUpdatedInput = {
@@ -68051,6 +70952,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProposalsUpdatedInput = {
@@ -68098,6 +71000,7 @@ export namespace Prisma {
     operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type TenantSubscriptionCreateWithoutPlanInput = {
@@ -68178,6 +71081,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
     users?: UserCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
@@ -68200,6 +71105,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureCreateNestedManyWithoutTenantInput
   }
 
   export type TenantUncheckedCreateWithoutSubscriptionInput = {
@@ -68209,8 +71115,10 @@ export namespace Prisma {
     type?: $Enums.TenantType
     defaultMode?: $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
     settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
     users?: UserUncheckedCreateNestedManyWithoutTenantInput
     divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
@@ -68233,6 +71141,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
     operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
     politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
+    electronicSignatures?: ElectronicSignatureUncheckedCreateNestedManyWithoutTenantInput
   }
 
   export type TenantCreateOrConnectWithoutSubscriptionInput = {
@@ -68305,6 +71214,8 @@ export namespace Prisma {
     config?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
     users?: UserUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
@@ -68327,6 +71238,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
   }
 
   export type TenantUncheckedUpdateWithoutSubscriptionInput = {
@@ -68336,8 +71248,10 @@ export namespace Prisma {
     type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
     defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
     config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
     settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
     users?: UserUncheckedUpdateManyWithoutTenantNestedInput
     divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
@@ -68360,6 +71274,7 @@ export namespace Prisma {
     storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
     operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
     politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
   }
 
   export type SubscriptionPlanUpsertWithoutSubscriptionsInput = {
@@ -68411,6 +71326,489 @@ export namespace Prisma {
     sortOrder?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TenantCreateWithoutElectronicSignaturesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    parent?: TenantCreateNestedOneWithoutChildrenInput
+    children?: TenantCreateNestedManyWithoutParentInput
+    settings?: CampaignSettingsCreateNestedOneWithoutTenantInput
+    users?: UserCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionCreateNestedManyWithoutTenantInput
+    voters?: VoterCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportCreateNestedManyWithoutTenantInput
+    events?: CampaignEventCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseCreateNestedManyWithoutTenantInput
+    interactions?: InteractionCreateNestedManyWithoutTenantInput
+    tasks?: TaskCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionCreateNestedOneWithoutTenantInput
+  }
+
+  export type TenantUncheckedCreateWithoutElectronicSignaturesInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    children?: TenantUncheckedCreateNestedManyWithoutParentInput
+    settings?: CampaignSettingsUncheckedCreateNestedOneWithoutTenantInput
+    users?: UserUncheckedCreateNestedManyWithoutTenantInput
+    divisions?: PoliticalDivisionUncheckedCreateNestedManyWithoutTenantInput
+    voters?: VoterUncheckedCreateNestedManyWithoutTenantInput
+    finances?: FinancialEntryUncheckedCreateNestedManyWithoutTenantInput
+    witnesses?: WitnessReportUncheckedCreateNestedManyWithoutTenantInput
+    events?: CampaignEventUncheckedCreateNestedManyWithoutTenantInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutTenantInput
+    inventory?: InventoryItemUncheckedCreateNestedManyWithoutTenantInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutTenantInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutTenantInput
+    consentNotices?: ConsentNoticeUncheckedCreateNestedManyWithoutTenantInput
+    issueCases?: IssueCaseUncheckedCreateNestedManyWithoutTenantInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutTenantInput
+    tasks?: TaskUncheckedCreateNestedManyWithoutTenantInput
+    commitments?: CommitmentUncheckedCreateNestedManyWithoutTenantInput
+    communicationApprovals?: CommunicationApprovalUncheckedCreateNestedManyWithoutTenantInput
+    teamInvitations?: TeamInvitationUncheckedCreateNestedManyWithoutTenantInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutTenantInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutTenantInput
+    operationProfile?: OperationProfileUncheckedCreateNestedOneWithoutTenantInput
+    politicalProposals?: PoliticalProposalUncheckedCreateNestedManyWithoutTenantInput
+    subscription?: TenantSubscriptionUncheckedCreateNestedOneWithoutTenantInput
+  }
+
+  export type TenantCreateOrConnectWithoutElectronicSignaturesInput = {
+    where: TenantWhereUniqueInput
+    create: XOR<TenantCreateWithoutElectronicSignaturesInput, TenantUncheckedCreateWithoutElectronicSignaturesInput>
+  }
+
+  export type StoredObjectCreateWithoutSignaturesInput = {
+    id?: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutStoredObjectsInput
+    uploader: UserCreateNestedOneWithoutStoredObjectsInput
+  }
+
+  export type StoredObjectUncheckedCreateWithoutSignaturesInput = {
+    id?: string
+    tenantId: string
+    uploaderId: string
+    path: string
+    module: $Enums.StorageObjectModule
+    contentType: string
+    expectedSize: number
+    actualSize?: number | null
+    etag?: string | null
+    status?: $Enums.StoredObjectStatus
+    expiresAt: Date | string
+    confirmedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    consumedByType?: string | null
+    consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type StoredObjectCreateOrConnectWithoutSignaturesInput = {
+    where: StoredObjectWhereUniqueInput
+    create: XOR<StoredObjectCreateWithoutSignaturesInput, StoredObjectUncheckedCreateWithoutSignaturesInput>
+  }
+
+  export type UserCreateWithoutElectronicSignaturesInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: TenantCreateNestedOneWithoutUsersInput
+    division?: PoliticalDivisionCreateNestedOneWithoutUsersInput
+    financialEntriesReported?: FinancialEntryCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutElectronicSignaturesInput = {
+    id?: string
+    email: string
+    password: string
+    mustChangePassword?: boolean
+    temporaryPasswordExpiresAt?: Date | string | null
+    name: string
+    role?: $Enums.Role
+    isActive?: boolean
+    documentId?: string | null
+    phone?: string | null
+    totpSecret?: string | null
+    totpEnabledAt?: Date | string | null
+    points?: number
+    tenantId: string
+    divisionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    financialEntriesReported?: FinancialEntryUncheckedCreateNestedManyWithoutReporterInput
+    financialEntriesReviewed?: FinancialEntryUncheckedCreateNestedManyWithoutReviewedByInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedCreateNestedManyWithoutCneReportedByInput
+    registeredVoters?: VoterUncheckedCreateNestedManyWithoutRegistrarInput
+    witnessReports?: WitnessReportUncheckedCreateNestedManyWithoutWitnessInput
+    witnessReportsReviewed?: WitnessReportUncheckedCreateNestedManyWithoutReviewerInput
+    pointLogs?: PointLogUncheckedCreateNestedManyWithoutUserInput
+    inventoryMoves?: InventoryMovementUncheckedCreateNestedManyWithoutUserInput
+    consentsCaptured?: ConsentRecordUncheckedCreateNestedManyWithoutCapturedByInput
+    consentNoticesCreated?: ConsentNoticeUncheckedCreateNestedManyWithoutCreatedByInput
+    casesAssigned?: IssueCaseUncheckedCreateNestedManyWithoutAssigneeInput
+    casesCreated?: IssueCaseUncheckedCreateNestedManyWithoutCreatedByInput
+    interactions?: InteractionUncheckedCreateNestedManyWithoutActorInput
+    tasksAssigned?: TaskUncheckedCreateNestedManyWithoutAssigneeInput
+    tasksCreated?: TaskUncheckedCreateNestedManyWithoutCreatedByInput
+    commitmentsOwned?: CommitmentUncheckedCreateNestedManyWithoutOwnerInput
+    communicationsRequested?: CommunicationApprovalUncheckedCreateNestedManyWithoutRequestedByInput
+    communicationsDecided?: CommunicationApprovalUncheckedCreateNestedManyWithoutDecidedByInput
+    invitationsSent?: TeamInvitationUncheckedCreateNestedManyWithoutInvitedByInput
+    eventsResponsible?: CampaignEventUncheckedCreateNestedManyWithoutResponsibleInput
+    auditEvents?: AuditEventUncheckedCreateNestedManyWithoutActorUserInput
+    storedObjects?: StoredObjectUncheckedCreateNestedManyWithoutUploaderInput
+    operationProfilesResponsible?: OperationProfileUncheckedCreateNestedManyWithoutResponsibleDataUserInput
+    operationProfilesCreated?: OperationProfileUncheckedCreateNestedManyWithoutCreatedByInput
+    operationProfilesUpdated?: OperationProfileUncheckedCreateNestedManyWithoutUpdatedByInput
+    proposalsOwned?: PoliticalProposalUncheckedCreateNestedManyWithoutOwnerInput
+    proposalsCreated?: PoliticalProposalUncheckedCreateNestedManyWithoutCreatedByInput
+    proposalsUpdated?: PoliticalProposalUncheckedCreateNestedManyWithoutUpdatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutElectronicSignaturesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutElectronicSignaturesInput, UserUncheckedCreateWithoutElectronicSignaturesInput>
+  }
+
+  export type TenantUpsertWithoutElectronicSignaturesInput = {
+    update: XOR<TenantUpdateWithoutElectronicSignaturesInput, TenantUncheckedUpdateWithoutElectronicSignaturesInput>
+    create: XOR<TenantCreateWithoutElectronicSignaturesInput, TenantUncheckedCreateWithoutElectronicSignaturesInput>
+    where?: TenantWhereInput
+  }
+
+  export type TenantUpdateToOneWithWhereWithoutElectronicSignaturesInput = {
+    where?: TenantWhereInput
+    data: XOR<TenantUpdateWithoutElectronicSignaturesInput, TenantUncheckedUpdateWithoutElectronicSignaturesInput>
+  }
+
+  export type TenantUpdateWithoutElectronicSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    parent?: TenantUpdateOneWithoutChildrenNestedInput
+    children?: TenantUpdateManyWithoutParentNestedInput
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutElectronicSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    parentTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+  }
+
+  export type StoredObjectUpsertWithoutSignaturesInput = {
+    update: XOR<StoredObjectUpdateWithoutSignaturesInput, StoredObjectUncheckedUpdateWithoutSignaturesInput>
+    create: XOR<StoredObjectCreateWithoutSignaturesInput, StoredObjectUncheckedCreateWithoutSignaturesInput>
+    where?: StoredObjectWhereInput
+  }
+
+  export type StoredObjectUpdateToOneWithWhereWithoutSignaturesInput = {
+    where?: StoredObjectWhereInput
+    data: XOR<StoredObjectUpdateWithoutSignaturesInput, StoredObjectUncheckedUpdateWithoutSignaturesInput>
+  }
+
+  export type StoredObjectUpdateWithoutSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutStoredObjectsNestedInput
+    uploader?: UserUpdateOneRequiredWithoutStoredObjectsNestedInput
+  }
+
+  export type StoredObjectUncheckedUpdateWithoutSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tenantId?: StringFieldUpdateOperationsInput | string
+    uploaderId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    module?: EnumStorageObjectModuleFieldUpdateOperationsInput | $Enums.StorageObjectModule
+    contentType?: StringFieldUpdateOperationsInput | string
+    expectedSize?: IntFieldUpdateOperationsInput | number
+    actualSize?: NullableIntFieldUpdateOperationsInput | number | null
+    etag?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumStoredObjectStatusFieldUpdateOperationsInput | $Enums.StoredObjectStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
+    consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserUpsertWithoutElectronicSignaturesInput = {
+    update: XOR<UserUpdateWithoutElectronicSignaturesInput, UserUncheckedUpdateWithoutElectronicSignaturesInput>
+    create: XOR<UserCreateWithoutElectronicSignaturesInput, UserUncheckedCreateWithoutElectronicSignaturesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutElectronicSignaturesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutElectronicSignaturesInput, UserUncheckedUpdateWithoutElectronicSignaturesInput>
+  }
+
+  export type UserUpdateWithoutElectronicSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutUsersNestedInput
+    division?: PoliticalDivisionUpdateOneWithoutUsersNestedInput
+    financialEntriesReported?: FinancialEntryUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutElectronicSignaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    mustChangePassword?: BoolFieldUpdateOperationsInput | boolean
+    temporaryPasswordExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    documentId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    totpSecret?: NullableStringFieldUpdateOperationsInput | string | null
+    totpEnabledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    points?: IntFieldUpdateOperationsInput | number
+    tenantId?: StringFieldUpdateOperationsInput | string
+    divisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    financialEntriesReported?: FinancialEntryUncheckedUpdateManyWithoutReporterNestedInput
+    financialEntriesReviewed?: FinancialEntryUncheckedUpdateManyWithoutReviewedByNestedInput
+    financialEntriesCneMarked?: FinancialEntryUncheckedUpdateManyWithoutCneReportedByNestedInput
+    registeredVoters?: VoterUncheckedUpdateManyWithoutRegistrarNestedInput
+    witnessReports?: WitnessReportUncheckedUpdateManyWithoutWitnessNestedInput
+    witnessReportsReviewed?: WitnessReportUncheckedUpdateManyWithoutReviewerNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutUserNestedInput
+    inventoryMoves?: InventoryMovementUncheckedUpdateManyWithoutUserNestedInput
+    consentsCaptured?: ConsentRecordUncheckedUpdateManyWithoutCapturedByNestedInput
+    consentNoticesCreated?: ConsentNoticeUncheckedUpdateManyWithoutCreatedByNestedInput
+    casesAssigned?: IssueCaseUncheckedUpdateManyWithoutAssigneeNestedInput
+    casesCreated?: IssueCaseUncheckedUpdateManyWithoutCreatedByNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutActorNestedInput
+    tasksAssigned?: TaskUncheckedUpdateManyWithoutAssigneeNestedInput
+    tasksCreated?: TaskUncheckedUpdateManyWithoutCreatedByNestedInput
+    commitmentsOwned?: CommitmentUncheckedUpdateManyWithoutOwnerNestedInput
+    communicationsRequested?: CommunicationApprovalUncheckedUpdateManyWithoutRequestedByNestedInput
+    communicationsDecided?: CommunicationApprovalUncheckedUpdateManyWithoutDecidedByNestedInput
+    invitationsSent?: TeamInvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+    eventsResponsible?: CampaignEventUncheckedUpdateManyWithoutResponsibleNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutActorUserNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutUploaderNestedInput
+    operationProfilesResponsible?: OperationProfileUncheckedUpdateManyWithoutResponsibleDataUserNestedInput
+    operationProfilesCreated?: OperationProfileUncheckedUpdateManyWithoutCreatedByNestedInput
+    operationProfilesUpdated?: OperationProfileUncheckedUpdateManyWithoutUpdatedByNestedInput
+    proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
+    proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
+    proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+  }
+
+  export type TenantCreateManyParentInput = {
+    id?: string
+    slug: string
+    name: string
+    type?: $Enums.TenantType
+    defaultMode?: $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type UserCreateManyTenantInput = {
@@ -68726,6 +72124,8 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -68748,6 +72148,98 @@ export namespace Prisma {
     updatedById: string
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type ElectronicSignatureCreateManyTenantInput = {
+    id?: string
+    documentId: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type TenantUpdateWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUpdateManyWithoutParentNestedInput
+    settings?: CampaignSettingsUpdateOneWithoutTenantNestedInput
+    users?: UserUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUpdateManyWithoutTenantNestedInput
+    voters?: VoterUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    children?: TenantUncheckedUpdateManyWithoutParentNestedInput
+    settings?: CampaignSettingsUncheckedUpdateOneWithoutTenantNestedInput
+    users?: UserUncheckedUpdateManyWithoutTenantNestedInput
+    divisions?: PoliticalDivisionUncheckedUpdateManyWithoutTenantNestedInput
+    voters?: VoterUncheckedUpdateManyWithoutTenantNestedInput
+    finances?: FinancialEntryUncheckedUpdateManyWithoutTenantNestedInput
+    witnesses?: WitnessReportUncheckedUpdateManyWithoutTenantNestedInput
+    events?: CampaignEventUncheckedUpdateManyWithoutTenantNestedInput
+    pointLogs?: PointLogUncheckedUpdateManyWithoutTenantNestedInput
+    inventory?: InventoryItemUncheckedUpdateManyWithoutTenantNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutTenantNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutTenantNestedInput
+    consentNotices?: ConsentNoticeUncheckedUpdateManyWithoutTenantNestedInput
+    issueCases?: IssueCaseUncheckedUpdateManyWithoutTenantNestedInput
+    interactions?: InteractionUncheckedUpdateManyWithoutTenantNestedInput
+    tasks?: TaskUncheckedUpdateManyWithoutTenantNestedInput
+    commitments?: CommitmentUncheckedUpdateManyWithoutTenantNestedInput
+    communicationApprovals?: CommunicationApprovalUncheckedUpdateManyWithoutTenantNestedInput
+    teamInvitations?: TeamInvitationUncheckedUpdateManyWithoutTenantNestedInput
+    auditEvents?: AuditEventUncheckedUpdateManyWithoutTenantNestedInput
+    storedObjects?: StoredObjectUncheckedUpdateManyWithoutTenantNestedInput
+    operationProfile?: OperationProfileUncheckedUpdateOneWithoutTenantNestedInput
+    politicalProposals?: PoliticalProposalUncheckedUpdateManyWithoutTenantNestedInput
+    subscription?: TenantSubscriptionUncheckedUpdateOneWithoutTenantNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type TenantUncheckedUpdateManyWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    type?: EnumTenantTypeFieldUpdateOperationsInput | $Enums.TenantType
+    defaultMode?: EnumPoliticalOperationModeFieldUpdateOperationsInput | $Enums.PoliticalOperationMode
+    config?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type UserUpdateWithoutTenantInput = {
@@ -68795,6 +72287,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTenantInput = {
@@ -68842,6 +72335,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutTenantInput = {
@@ -69748,9 +73242,12 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     uploader?: UserUpdateOneRequiredWithoutStoredObjectsNestedInput
+    signatures?: ElectronicSignatureUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectUncheckedUpdateWithoutTenantInput = {
@@ -69768,8 +73265,11 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    signatures?: ElectronicSignatureUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectUncheckedUpdateManyWithoutTenantInput = {
@@ -69787,6 +73287,8 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -69849,6 +73351,66 @@ export namespace Prisma {
     updatedById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    document?: StoredObjectUpdateOneRequiredWithoutSignaturesNestedInput
+    signer?: UserUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+  }
+
+  export type ElectronicSignatureUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureCreateManyDocumentInput = {
+    id?: string
+    signerId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
+  }
+
+  export type ElectronicSignatureUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+    signer?: UserUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+  }
+
+  export type ElectronicSignatureUncheckedUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    signerId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type FinancialEntryCreateManyReporterInput = {
@@ -70226,6 +73788,8 @@ export namespace Prisma {
     consumedAt?: Date | string | null
     consumedByType?: string | null
     consumedById?: string | null
+    documentCategory?: $Enums.DocumentCategory | null
+    retentionPhase?: $Enums.RetentionPhase
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -70348,6 +73912,14 @@ export namespace Prisma {
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type ElectronicSignatureCreateManySignerInput = {
+    id?: string
+    documentId: string
+    documentHash: string
+    ipAddress?: string | null
+    signedAt?: Date | string
   }
 
   export type FinancialEntryUpdateWithoutReporterInput = {
@@ -71500,9 +75072,12 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tenant?: TenantUpdateOneRequiredWithoutStoredObjectsNestedInput
+    signatures?: ElectronicSignatureUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectUncheckedUpdateWithoutUploaderInput = {
@@ -71519,8 +75094,11 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    signatures?: ElectronicSignatureUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
   export type StoredObjectUncheckedUpdateManyWithoutUploaderInput = {
@@ -71537,6 +75115,8 @@ export namespace Prisma {
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     consumedByType?: NullableStringFieldUpdateOperationsInput | string | null
     consumedById?: NullableStringFieldUpdateOperationsInput | string | null
+    documentCategory?: NullableEnumDocumentCategoryFieldUpdateOperationsInput | $Enums.DocumentCategory | null
+    retentionPhase?: EnumRetentionPhaseFieldUpdateOperationsInput | $Enums.RetentionPhase
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -71907,6 +75487,31 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ElectronicSignatureUpdateWithoutSignerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: TenantUpdateOneRequiredWithoutElectronicSignaturesNestedInput
+    document?: StoredObjectUpdateOneRequiredWithoutSignaturesNestedInput
+  }
+
+  export type ElectronicSignatureUncheckedUpdateWithoutSignerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ElectronicSignatureUncheckedUpdateManyWithoutSignerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    documentHash?: StringFieldUpdateOperationsInput | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    signedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PoliticalDivisionCreateManyParentInput = {
     id?: string
     code: string
@@ -72076,6 +75681,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutDivisionInput = {
@@ -72122,6 +75728,7 @@ export namespace Prisma {
     proposalsOwned?: PoliticalProposalUncheckedUpdateManyWithoutOwnerNestedInput
     proposalsCreated?: PoliticalProposalUncheckedUpdateManyWithoutCreatedByNestedInput
     proposalsUpdated?: PoliticalProposalUncheckedUpdateManyWithoutUpdatedByNestedInput
+    electronicSignatures?: ElectronicSignatureUncheckedUpdateManyWithoutSignerNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutDivisionInput = {

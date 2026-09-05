@@ -35,7 +35,9 @@ import { ImportModule } from './import/import.module';
 import { ElectionDayModule } from './election-day/election-day.module';
 import { SaasAdminModule } from './saas-admin/saas-admin.module';
 import { BillingModule } from './billing/billing.module';
-
+import { NotificationsModule } from './notifications/notifications.module';
+import { ElectronicSignatureModule } from './electronic-signature/electronic-signature.module';
+import { TransitionHandoverModule } from './transition-handover/transition-handover.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -74,6 +76,9 @@ import { BillingModule } from './billing/billing.module';
     ElectionDayModule,
     SaasAdminModule,
     BillingModule,
+    NotificationsModule,
+    ElectronicSignatureModule,
+    TransitionHandoverModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
