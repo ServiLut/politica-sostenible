@@ -1,7 +1,7 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { BillingService } from './billing.service';
-
-// In a real app we would import JwtAuthGuard. For now we assume req.user.tenantId exists.
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 
 @Controller('billing')
 export class BillingController {
@@ -13,20 +13,12 @@ export class BillingController {
   }
 
   @Get('subscription')
-  async getSubscription(@Request() req: any) {
-    const tenantId = req.user?.tenantId;
-    if (!tenantId) {
-      throw new Error('No tenantId found in request');
-    }
-    return this.billingService.getCurrentSubscription(tenantId);
+  async getSubscription(@CurrentUser() user: AuthenticatedUser) {
+    return this.billingService.getCurrentSubscription(user.tenantId);
   }
 
   @Get('usage')
-  async getUsage(@Request() req: any) {
-    const tenantId = req.user?.tenantId;
-    if (!tenantId) {
-      throw new Error('No tenantId found in request');
-    }
-    return this.billingService.getUsage(tenantId);
+  async getUsage(@CurrentUser() user: AuthenticatedUser) {
+    return this.billingService.getUsage(user.tenantId);
   }
 }

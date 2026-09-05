@@ -19,7 +19,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   // Step 2 state
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('COORDINATOR');
+  const [inviteRole, setInviteRole] = useState('ZONE_COORDINATOR');
 
   // Step 3 state
   const [contactName, setContactName] = useState('');
@@ -41,12 +41,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     setLoading(true);
     setError(null);
     try {
-      await apiRequest('/consent-notices', {
-        method: 'POST',
+      await apiRequest('/consent-notices/current', {
+        method: 'PUT',
         body: JSON.stringify({
+          version: '2026-v1',
           title: 'Aviso de privacidad',
           content: noticeContent,
-          isActive: true
+          controllerName: 'Organización política',
+          contactEmail: 'datos@organizacion.co',
         })
       });
       handleNext();
@@ -66,7 +68,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         method: 'POST',
         body: JSON.stringify({
           email: inviteEmail,
-          name: inviteName,
           role: inviteRole
         })
       });
@@ -88,7 +89,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         body: JSON.stringify({
           firstName: contactName,
           lastName: contactLastName,
-          identification: contactId,
+          documentId: contactId,
           phone: contactPhone || undefined,
           consentAccepted: true,
           termsVersion: '2026-v1',
@@ -160,16 +161,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <h2 className="text-2xl font-black text-slate-800">Invita a tu primer coordinador</h2>
             <p className="text-slate-600">Forma tu equipo para comenzar la campaña.</p>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-700">Nombre completo</label>
-              <input
-                type="text"
-                value={inviteName}
-                onChange={(e) => setInviteName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">Correo electrónico</label>
               <input
                 type="email"
@@ -186,8 +177,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onChange={(e) => setInviteRole(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 p-3 text-slate-700 focus:border-blue-700 focus:ring-blue-700"
               >
-                <option value="COORDINATOR">Coordinador</option>
-                <option value="VIEWER">Visualizador</option>
+                <option value="ZONE_COORDINATOR">Coordinador de zona</option>
+                <option value="CAMPAIGN_MANAGER">Director de campaña</option>
+                <option value="AUDITOR">Auditor</option>
               </select>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
