@@ -1,0 +1,102 @@
+-- Seed the system-wide plan catalog as deploy-time data. This keeps API
+-- startup read-only while making a fresh database immediately usable.
+INSERT INTO "SubscriptionPlan" (
+  "id",
+  "name",
+  "code",
+  "description",
+  "maxUsers",
+  "maxVoters",
+  "maxStorageMb",
+  "includesExport",
+  "includesImport",
+  "includesMfa",
+  "includesApi",
+  "monthlyPriceCop",
+  "yearlyPriceCop",
+  "isActive",
+  "sortOrder",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'seed-subscription-plan-free-v1',
+    'Gratis',
+    'FREE',
+    'Ideal para iniciar',
+    3,
+    100,
+    50,
+    false,
+    false,
+    false,
+    false,
+    0,
+    0,
+    true,
+    1,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'seed-subscription-plan-starter-v1',
+    'Starter',
+    'STARTER',
+    'Para campañas pequeñas',
+    10,
+    1000,
+    500,
+    true,
+    false,
+    false,
+    false,
+    99000,
+    1188000,
+    true,
+    2,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'seed-subscription-plan-professional-v1',
+    'Profesional',
+    'PROFESSIONAL',
+    'Para campañas medianas a grandes',
+    50,
+    10000,
+    2048,
+    true,
+    true,
+    true,
+    false,
+    299000,
+    3588000,
+    true,
+    3,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'seed-subscription-plan-enterprise-v1',
+    'Empresarial',
+    'ENTERPRISE',
+    'Para operaciones de gran escala',
+    999999,
+    999999,
+    999999,
+    true,
+    true,
+    true,
+    false,
+    799000,
+    9588000,
+    true,
+    4,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  )
+-- Existing commercial terms are never overwritten by a schema migration.
+-- The deploy guard verifies the resulting catalog and stops for manual review
+-- when an existing row conflicts with this bootstrap contract.
+ON CONFLICT DO NOTHING;

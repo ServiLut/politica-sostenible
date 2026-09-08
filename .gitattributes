@@ -1,0 +1,9 @@
+* text=auto
+
+# Prisma calcula el checksum sobre los bytes exactos. Las migraciones deben ser
+# idénticas en Windows, CI y los contenedores Linux.
+apps/api/prisma/migrations/**/migration.sql text eol=lf
+
+# Prisma genera documentación tipada con espacios finales. El código fuente
+# escrito a mano conserva el chequeo; el artefacto regenerable no lo bloquea.
+apps/api/prisma/generated/** -whitespace

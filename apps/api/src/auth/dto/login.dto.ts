@@ -6,7 +6,7 @@ import {
   MaxLength,
   MinLength,
   IsOptional,
-  Length,
+  Matches,
 } from 'class-validator';
 
 export class LoginDto {
@@ -26,6 +26,8 @@ export class LoginDto {
 
   @IsOptional()
   @IsString()
-  @Length(6, 6, { message: 'El código debe tener exactamente 6 dígitos' })
+  @Matches(/^\d{6}$/, {
+    message: 'El código debe tener exactamente 6 dígitos',
+  })
   totpCode?: string;
 }

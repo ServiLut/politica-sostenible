@@ -106,20 +106,22 @@ function buildTransaction() {
     },
     operationProfile: {
       findUnique: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockImplementation(({ data }) =>
-        Promise.resolve(
-          savedProfile({
-            ...data,
-            responsibleDataUser: {
-              id: dto.responsibleDataUserId,
-              name: 'Responsable de datos',
-              role: Role.COMPLIANCE_OFFICER,
-            },
-            createdAt: savedAt,
-            updatedAt: savedAt,
-          }),
+      create: jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve(
+            savedProfile({
+              ...data,
+              responsibleDataUser: {
+                id: dto.responsibleDataUserId,
+                name: 'Responsable de datos',
+                role: Role.COMPLIANCE_OFFICER,
+              },
+              createdAt: savedAt,
+              updatedAt: savedAt,
+            }),
+          ),
         ),
-      ),
       update: jest.fn(),
     },
     campaignSettings: {

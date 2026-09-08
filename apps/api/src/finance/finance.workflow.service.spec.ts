@@ -8,6 +8,7 @@ import {
   AuditActorType,
   CneCode,
   EntryType,
+  FinanceReportScope,
   FinanceStatus,
   PoliticalOperationMode,
   Prisma,
@@ -21,6 +22,47 @@ const CAMPAIGN_TENANT = {
   defaultMode: PoliticalOperationMode.CAMPAIGN,
   type: TenantType.CANDIDACY,
 };
+
+const completeSettings = (overrides: Record<string, unknown> = {}) => ({
+  id: 'settings-a',
+  maxTotalBudget: new Prisma.Decimal('1000000'),
+  maxPublicityLimit: new Prisma.Decimal('250000'),
+  electionName: 'Elecciones territoriales 2027',
+  electionDate: new Date('2027-10-31T00:00:00.000Z'),
+  reportScope: FinanceReportScope.CANDIDATE,
+  officialLimitsReference: 'Resolución CNE 0001 de 2027',
+  officialLimitsUrl: 'https://www.cne.gov.co/resoluciones/0001',
+  reportDeadline: new Date('2027-11-30T00:00:00.000Z'),
+  financialManagerName: 'Gerencia financiera',
+  financialManagerDocument: '1234567890',
+  accountantName: 'Contador responsable',
+  accountantDocument: '9876543210',
+  uniqueAccountBank: 'Banco autorizado',
+  uniqueAccountLastFour: '1234',
+  cuentasClarasCode: 'CC-CANDIDATO-001',
+  createdAt: new Date('2026-08-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+  ...overrides,
+});
+
+const completeSettingsDto = (overrides: Record<string, unknown> = {}) => ({
+  maxTotalBudget: 1_000_000,
+  maxPublicityLimit: 250_000,
+  electionName: 'Elecciones territoriales 2027',
+  electionDate: '2027-10-31',
+  reportScope: FinanceReportScope.CANDIDATE,
+  officialLimitsReference: 'Resolución CNE 0001 de 2027',
+  officialLimitsUrl: 'https://www.cne.gov.co/resoluciones/0001',
+  reportDeadline: '2027-11-30',
+  financialManagerName: 'Gerencia financiera',
+  financialManagerDocument: '1234567890',
+  accountantName: 'Contador responsable',
+  accountantDocument: '9876543210',
+  uniqueAccountBank: 'Banco autorizado',
+  uniqueAccountLastFour: '1234',
+  cuentasClarasCode: 'CC-CANDIDATO-001',
+  ...overrides,
+});
 
 const createDto = (amount = 100) => ({
   type: EntryType.EXPENSE,
@@ -44,6 +86,9 @@ const entryViewSource = (overrides: Record<string, unknown> = {}) => ({
   status: FinanceStatus.PENDING,
   createdAt: new Date('2026-08-27T00:00:00.000Z'),
   reviewedAt: null,
+  cneReportedAt: null,
+  cneReportReference: null,
+  cneReportEvidenceUrl: null,
   evidenceUrl: null,
   reporterId: 'reporter-a',
   ...overrides,
@@ -61,10 +106,12 @@ describe('FinanceService controlled workflow', () => {
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'reporter-a' }) },
       campaignSettings: {
-        findUnique: jest.fn().mockResolvedValue({
-          maxTotalBudget: new Prisma.Decimal('0.30'),
-          maxPublicityLimit: new Prisma.Decimal('0.30'),
-        }),
+        findUnique: jest.fn().mockResolvedValue(
+          completeSettings({
+            maxTotalBudget: new Prisma.Decimal('0.30'),
+            maxPublicityLimit: new Prisma.Decimal('0.30'),
+          }),
+        ),
       },
       financialEntry: {
         aggregate: jest.fn().mockResolvedValue({
@@ -79,6 +126,9 @@ describe('FinanceService controlled workflow', () => {
         callback(transaction),
     );
     const service = new FinanceService({
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'settings-a' }),
+      },
       $transaction: runTransaction,
     } as unknown as PrismaService);
 
@@ -92,7 +142,7 @@ describe('FinanceService controlled workflow', () => {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
     expect(transaction.user.findFirst).toHaveBeenCalledWith({
-      where: { id: 'reporter-a', tenantId: 'tenant-a' },
+      where: { id: 'reporter-a', tenantId: 'tenant-a', isActive: true },
       select: { id: true },
     });
     expect(transaction.financialEntry.aggregate).toHaveBeenCalledWith({
@@ -144,10 +194,12 @@ describe('FinanceService controlled workflow', () => {
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'reporter-a' }) },
       campaignSettings: {
-        findUnique: jest.fn().mockResolvedValue({
-          maxTotalBudget: new Prisma.Decimal('100.00'),
-          maxPublicityLimit: new Prisma.Decimal('100.00'),
-        }),
+        findUnique: jest.fn().mockResolvedValue(
+          completeSettings({
+            maxTotalBudget: new Prisma.Decimal('100.00'),
+            maxPublicityLimit: new Prisma.Decimal('100.00'),
+          }),
+        ),
       },
       financialEntry: {
         aggregate: jest.fn().mockResolvedValue({
@@ -158,6 +210,9 @@ describe('FinanceService controlled workflow', () => {
       auditEvent: { create: auditCreate },
     };
     const service = new FinanceService({
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'settings-a' }),
+      },
       $transaction: jest.fn(
         async (callback: (client: typeof transaction) => Promise<unknown>) =>
           callback(transaction),
@@ -173,6 +228,9 @@ describe('FinanceService controlled workflow', () => {
 
   it('maps a serializable create conflict to HTTP 409', async () => {
     const service = new FinanceService({
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'settings-a' }),
+      },
       $transaction: jest.fn().mockRejectedValue({ code: 'P2034' }),
     } as unknown as PrismaService);
 
@@ -194,10 +252,12 @@ describe('FinanceService controlled workflow', () => {
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       financialEntry: { aggregate },
       campaignSettings: {
-        findUnique: jest.fn().mockResolvedValue({
-          maxTotalBudget: new Prisma.Decimal('500.00'),
-          maxPublicityLimit: new Prisma.Decimal('100.00'),
-        }),
+        findUnique: jest.fn().mockResolvedValue(
+          completeSettings({
+            maxTotalBudget: new Prisma.Decimal('500.00'),
+            maxPublicityLimit: new Prisma.Decimal('100.00'),
+          }),
+        ),
       },
     } as unknown as PrismaService);
 
@@ -219,20 +279,26 @@ describe('FinanceService controlled workflow', () => {
       },
       _sum: { amount: true },
     });
-    expect(summary).toEqual({
-      totalExpenses: 125.25,
-      totalIncome: 200.5,
-      balance: 75.25,
-      limitsConfigured: true,
-      maxTotalBudget: 500,
-      maxPublicityLimit: 100,
-      remainingBudget: 374.75,
-    });
+    expect(summary).toEqual(
+      expect.objectContaining({
+        totalExpenses: 125.25,
+        totalIncome: 200.5,
+        balance: 75.25,
+        limitsConfigured: true,
+        maxTotalBudget: 500,
+        maxPublicityLimit: 100,
+        remainingBudget: 374.75,
+      }),
+    );
+    expect(summary.compliance).toEqual(
+      expect.objectContaining({ ready: true, missingFields: [] }),
+    );
   });
 
-  it('exports only approved or CNE-reported expenses and keeps CSV neutralization', async () => {
+  it('exports approved or externally reported income and expenses with neutral labels and CSV protection', async () => {
     const findMany = jest.fn().mockResolvedValue([
       {
+        type: EntryType.EXPENSE,
         date: new Date('2026-08-27T00:00:00.000Z'),
         description: '=HYPERLINK("https://evil.invalid")',
         amount: new Prisma.Decimal('125000.50'),
@@ -240,6 +306,16 @@ describe('FinanceService controlled workflow', () => {
         vendorTaxId: '+900123456',
         cneCode: CneCode.OTROS,
         reporter: { name: '@SUM(1,1)' },
+      },
+      {
+        type: EntryType.INCOME,
+        date: new Date('2026-08-28T00:00:00.000Z'),
+        description: 'Aporte individual',
+        amount: new Prisma.Decimal('200000'),
+        vendorName: 'Aportante identificado',
+        vendorTaxId: '1020304050',
+        cneCode: CneCode.OTROS,
+        reporter: { name: 'Responsable financiero' },
       },
     ]);
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-export' });
@@ -249,6 +325,9 @@ describe('FinanceService controlled workflow', () => {
         findFirst: jest
           .fn()
           .mockResolvedValue({ role: Role.COMPLIANCE_OFFICER }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: { findMany },
       auditEvent: { create: auditCreate },
@@ -265,12 +344,12 @@ describe('FinanceService controlled workflow', () => {
     expect(findMany).toHaveBeenCalledWith({
       where: {
         tenantId: 'tenant-a',
-        type: EntryType.EXPENSE,
         status: {
           in: [FinanceStatus.APPROVED, FinanceStatus.REPORTED_CNE],
         },
       },
       select: {
+        type: true,
         date: true,
         description: true,
         amount: true,
@@ -282,6 +361,11 @@ describe('FinanceService controlled workflow', () => {
       orderBy: { date: 'asc' },
     });
     expect(csv).not.toContain('\r');
+    expect(csv).toContain(
+      '"Tipo","Fecha","Concepto","Monto","Contraparte","Identificación de contraparte","Categoría interna","Responsable"',
+    );
+    expect(csv).toContain('"Gasto"');
+    expect(csv).toContain('"Ingreso"');
     expect(csv).toContain("'=HYPERLINK");
     expect(csv).toContain("'+900123456");
     expect(csv).toContain("'@SUM(1,1)");
@@ -291,7 +375,10 @@ describe('FinanceService controlled workflow', () => {
           tenantId: 'tenant-a',
           actorUserId: 'compliance-a',
           action: 'CAMPAIGN_CNE_REVIEW_DRAFT_EXPORTED',
-          metadata: expect.objectContaining({ recordCount: 1 }) as object,
+          metadata: expect.objectContaining({
+            recordCount: 2,
+            includedTypes: [EntryType.INCOME, EntryType.EXPENSE],
+          }) as object,
         }) as object,
       }),
     );
@@ -304,7 +391,11 @@ describe('FinanceService controlled workflow', () => {
     const upsert = jest.fn();
     const transaction = {
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
-      user: { findFirst: jest.fn().mockResolvedValue({ id: 'manager-a' }) },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'manager-a', role: Role.FINANCE_MANAGER }),
+      },
       financialEntry: {
         aggregate: jest
           .fn()
@@ -326,10 +417,14 @@ describe('FinanceService controlled workflow', () => {
     } as unknown as PrismaService);
 
     await expect(
-      service.updateSettings('tenant-a', 'manager-a', {
-        maxTotalBudget: 800,
-        maxPublicityLimit: 200,
-      }),
+      service.updateSettings(
+        'tenant-a',
+        'manager-a',
+        completeSettingsDto({
+          maxTotalBudget: 800,
+          maxPublicityLimit: 200,
+        }),
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(upsert).not.toHaveBeenCalled();
   });
@@ -340,10 +435,14 @@ describe('FinanceService controlled workflow', () => {
     } as unknown as PrismaService);
 
     await expect(
-      service.updateSettings('tenant-a', 'manager-a', {
-        maxTotalBudget: 1000,
-        maxPublicityLimit: 500,
-      }),
+      service.updateSettings(
+        'tenant-a',
+        'manager-a',
+        completeSettingsDto({
+          maxTotalBudget: 1000,
+          maxPublicityLimit: 500,
+        }),
+      ),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -372,6 +471,9 @@ describe('FinanceService controlled workflow', () => {
           id: 'reviewer-a',
           role: Role.COMPLIANCE_OFFICER,
         }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: { findFirst, updateMany },
       auditEvent: { create: auditCreate },
@@ -467,6 +569,52 @@ describe('FinanceService controlled workflow', () => {
     expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
+  it('blocks approval of a legacy pending movement while the compliance file is incomplete', async () => {
+    const updateMany = jest.fn();
+    const transaction = {
+      tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'reviewer-a',
+          role: Role.COMPLIANCE_OFFICER,
+        }),
+      },
+      campaignSettings: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(
+            completeSettings({ officialLimitsReference: null }),
+          ),
+      },
+      financialEntry: {
+        findFirst: jest.fn().mockResolvedValue(
+          entryViewSource({
+            reporterId: 'reporter-a',
+            evidenceUrl:
+              'tenant-a/finance/123e4567-e89b-42d3-a456-426614174000.pdf',
+          }),
+        ),
+        updateMany,
+      },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.review('tenant-a', 'reviewer-a', 'entry-a', {
+        status: FinanceStatus.APPROVED,
+        reviewReason: 'Revisión independiente completada',
+      }),
+    ).rejects.toThrow('completar el expediente electoral');
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
   it('forbids a reporter from reviewing their own pending entry', async () => {
     const updateMany = jest.fn();
     const transaction = {
@@ -476,6 +624,9 @@ describe('FinanceService controlled workflow', () => {
           id: 'reporter-a',
           role: Role.ADMIN,
         }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: {
         findFirst: jest.fn().mockResolvedValue(
@@ -550,6 +701,9 @@ describe('FinanceService controlled workflow', () => {
           id: 'reviewer-a',
           role: Role.ADMIN,
         }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: {
         findFirst: jest.fn().mockResolvedValue(

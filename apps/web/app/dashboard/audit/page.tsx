@@ -74,7 +74,7 @@ const ACTION_LABELS: Record<string, string> = {
     "Cobertura esperada del puesto actualizada",
   E14_REPORT_ACCEPTED: "Reporte E-14 aceptado",
   E14_REPORT_REJECTED: "Reporte E-14 rechazado",
-  E14_REPORT_SUBMITTED: "Reporte E-14 radicado",
+  E14_REPORT_SUBMITTED: "Reporte E-14 registrado internamente",
   E14_REPORT_SUPERSEDED: "Reporte E-14 reemplazado",
   INTERACTION_RECORDED: "Gestión de contacto registrada",
   ISSUE_CASE_CREATED: "Caso creado",

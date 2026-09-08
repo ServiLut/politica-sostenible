@@ -61,14 +61,36 @@ const secondPageVotingPlace = {
 };
 
 type ReportStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "SUPERSEDED";
+type CredentialType = "E15" | "E16";
+type FormType = "DELEGADOS" | "CLAVEROS" | "TRANSMISION";
+type ReclamationGround =
+  | "VOTERS_EXCEED_AUTHORIZED"
+  | "ARITHMETIC_ERROR"
+  | "CANDIDATE_IDENTIFICATION_ERROR"
+  | "INSUFFICIENT_JUROR_SIGNATURES"
+  | "RECOUNT_REQUEST"
+  | "UNAUTHORIZED_POLLING_PLACE"
+  | "ELECTION_ON_UNAUTHORIZED_DATE"
+  | "BALLOTS_DESTROYED_OR_LOST"
+  | "OTHER_STATUTORY_GROUND";
 
 interface MockReport {
   id: string;
   witnessId: string;
   puestoId: string;
   mesa: number;
+  credentialType: CredentialType | null;
+  credentialReference: string | null;
+  checkedInAt: string | null;
+  e14FormType: FormType | null;
   candidateVotes: number;
+  blankVotes: number | null;
+  nullVotes: number | null;
+  unmarkedVotes: number | null;
   totalTableVotes: number;
+  hasWrittenClaim: boolean | null;
+  reclamationGround: ReclamationGround | null;
+  reclamationDescription: string | null;
   observations: string | null;
   isSynced: boolean;
   status: ReportStatus;
@@ -91,8 +113,18 @@ function report(overrides: Partial<MockReport> = {}): MockReport {
     witnessId: "other-witness",
     puestoId: votingPlace.id,
     mesa: 4,
+    credentialType: "E15",
+    credentialReference: "E15-BOG-001-0004",
+    checkedInAt: "2026-08-21T12:00:00.000Z",
+    e14FormType: "DELEGADOS",
     candidateVotes: 120,
+    blankVotes: 5,
+    nullVotes: 3,
+    unmarkedVotes: 2,
     totalTableVotes: 250,
+    hasWrittenClaim: false,
+    reclamationGround: null,
+    reclamationDescription: null,
     observations: "Lectura inicial",
     isSynced: false,
     status: "ACCEPTED",
@@ -280,8 +312,22 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
         witnessId: "witness-e2e",
         puestoId: String(body.puestoId),
         mesa: Number(body.mesa),
+        credentialType: body.credentialType as CredentialType,
+        credentialReference: String(body.credentialReference),
+        checkedInAt: String(body.checkedInAt),
+        e14FormType: body.e14FormType as FormType,
         candidateVotes: Number(body.candidateVotes),
+        blankVotes: Number(body.blankVotes),
+        nullVotes: Number(body.nullVotes),
+        unmarkedVotes: Number(body.unmarkedVotes),
         totalTableVotes: Number(body.totalTableVotes),
+        hasWrittenClaim: Boolean(body.hasWrittenClaim),
+        reclamationGround:
+          (body.reclamationGround as ReclamationGround | undefined) ?? null,
+        reclamationDescription:
+          body.reclamationDescription === undefined
+            ? null
+            : String(body.reclamationDescription),
         observations: String(body.observations),
         status: "PENDING",
         reviewerId: null,
@@ -336,9 +382,25 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   await dialog
     .getByLabel("Puesto de votación")
     .selectOption(secondPageVotingPlace.id);
+  await dialog.getByLabel("Tipo de credencial").selectOption("E15");
+  await dialog.getByLabel("Referencia de credencial").fill("E15-BOG-001-0012");
+  await dialog.getByLabel("Hora de presencia").fill("2026-08-21T07:00");
+  await dialog
+    .getByLabel("Ejemplar del formulario E-14")
+    .selectOption("DELEGADOS");
   await dialog.getByLabel("Número de mesa").fill("12");
   await dialog.getByLabel("Votos del candidato").fill("80");
-  await dialog.getByLabel("Votos totales de la mesa").fill("180");
+  await dialog.getByLabel("Votos en blanco").fill("5");
+  await dialog.getByLabel("Votos nulos").fill("3");
+  await dialog.getByLabel("Votos no marcados").fill("2");
+  await dialog.getByLabel("Votos totales de la mesa").fill("85");
+  await dialog.getByLabel(/Se presentó reclamación escrita/).check();
+  await dialog
+    .getByLabel("Causal de reclamación")
+    .selectOption("ARITHMETIC_ERROR");
+  await dialog
+    .getByLabel("Descripción de la reclamación")
+    .fill("El total escrito no coincide con la suma visible de los renglones.");
   await dialog.getByLabel(/Observaciones/).fill("Acta revisada por el testigo");
   await dialog.locator('input[type="file"]').setInputFiles({
     name: "e14-mesa-12.pdf",
@@ -346,8 +408,17 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
     buffer: fileBuffer,
   });
   await dialog.getByRole("button", { name: "Enviar reporte" }).click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "no puede superar el total de la mesa",
+  );
+  expect(storageMethods).toEqual([]);
 
-  await expect(page.getByText(/radicado como pendiente/i)).toBeVisible();
+  await dialog.getByLabel("Votos totales de la mesa").fill("180");
+  await dialog.getByRole("button", { name: "Enviar reporte" }).click();
+
+  await expect(
+    page.getByText(/guardado como lectura interna pendiente/i),
+  ).toBeVisible();
   await expect(page.getByTestId("report-row-report-2")).toContainText(
     "Mesa 12",
   );
@@ -361,14 +432,25 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   expect(storageMethods).toEqual(["PUT"]);
   expect(apiBodies).toEqual(
     expect.arrayContaining([
-      {
+      expect.objectContaining({
         puestoId: secondPageVotingPlace.id,
         mesa: 12,
+        credentialType: "E15",
+        credentialReference: "E15-BOG-001-0012",
+        checkedInAt: expect.stringMatching(/^2026-08-21T/),
+        e14FormType: "DELEGADOS",
         candidateVotes: 80,
+        blankVotes: 5,
+        nullVotes: 3,
+        unmarkedVotes: 2,
         totalTableVotes: 180,
+        hasWrittenClaim: true,
+        reclamationGround: "ARITHMETIC_ERROR",
+        reclamationDescription:
+          "El total escrito no coincide con la suma visible de los renglones.",
         observations: "Acta revisada por el testigo",
         e14ImageUrl: confirmedPath,
-      },
+      }),
     ]),
   );
   expect(
@@ -598,4 +680,196 @@ test("un revisor no recibe acción para su propio reporte pendiente", async ({
   const row = page.getByTestId("report-row-own-report");
   await expect(row.getByText("Requiere otro revisor")).toBeVisible();
   await expect(row.getByRole("button", { name: "Revisar" })).toHaveCount(0);
+});
+
+test("un reporte legado solo puede salir de la cola mediante rechazo motivado", async ({
+  page,
+}) => {
+  await storeSession(page, "ADMIN");
+  const reviewBodies: Record<string, unknown>[] = [];
+  let legacy = report({
+    id: "legacy-report",
+    witnessId: "legacy-witness",
+    witness: { id: "legacy-witness", name: "Testigo histórico" },
+    credentialType: null,
+    credentialReference: null,
+    checkedInAt: null,
+    e14FormType: null,
+    blankVotes: null,
+    nullVotes: null,
+    unmarkedVotes: null,
+    hasWrittenClaim: null,
+    reclamationGround: null,
+    reclamationDescription: null,
+    status: "PENDING",
+    reviewerId: null,
+    reviewReason: null,
+    reviewedAt: null,
+    reviewer: null,
+  });
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname === "/api/campaigns/divisions") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [votingPlace],
+            pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+          }),
+        ),
+      });
+      return;
+    }
+    if (url.pathname === "/api/witnesses" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(reportPage([legacy]))),
+      });
+      return;
+    }
+    if (
+      url.pathname === "/api/witnesses/legacy-report/review" &&
+      request.method() === "PATCH"
+    ) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      reviewBodies.push(body);
+      legacy = report({
+        ...legacy,
+        status: "REJECTED",
+        reviewerId: "admin-e2e",
+        reviewReason: String(body.reviewReason),
+        reviewedAt: "2026-08-21T17:00:00.000Z",
+        reviewer: { id: "admin-e2e", name: "Dirección electoral" },
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(legacy)),
+      });
+      return;
+    }
+    await route.fulfill({ status: 503, body: "Unavailable" });
+  });
+
+  await page.goto("/dashboard/war-room");
+  await page.getByRole("button", { name: "Revisar" }).click();
+  const dialog = page.getByRole("dialog", {
+    name: "Revisar reporte E-14",
+  });
+  await expect(dialog).toContainText("el backend no permite aceptarlo");
+  const decision = dialog.getByLabel("Decisión de conciliación");
+  await expect(decision).toHaveValue("REJECTED");
+  await expect(
+    decision.locator('option[value="ACCEPTED"]'),
+  ).toHaveAttribute("disabled", "");
+  await dialog
+    .getByLabel("Motivo de la decisión")
+    .fill("Rechazado porque el reporte histórico no tiene trazabilidad.");
+  await dialog.getByRole("button", { name: "Guardar decisión" }).click();
+
+  await expect(page.getByTestId("report-status-legacy-report")).toHaveText(
+    "Rechazado",
+  );
+  expect(reviewBodies).toEqual([
+    {
+      status: "REJECTED",
+      reviewReason:
+        "Rechazado porque el reporte histórico no tiene trazabilidad.",
+    },
+  ]);
+});
+
+test("valida el filtro de mesa antes de la red y permite recuperarse de un rechazo del servidor", async ({
+  page,
+}) => {
+  const witnessRequests: string[] = [];
+  await storeSession(page, "ADMIN");
+
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.pathname === "/api/campaigns/divisions") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [votingPlace],
+            pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/witnesses") {
+      witnessRequests.push(url.search);
+      if (url.searchParams.get("mesa") === "12") {
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: JSON.stringify({
+            statusCode: 400,
+            error: "Bad Request",
+            message: ["mesa must not be greater than 99999"],
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(reportPage([report()]))),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 503, body: "Unavailable" });
+  });
+
+  await page.goto("/dashboard/war-room");
+  await expect(page.getByTestId("reports-metric")).toHaveText("1");
+  expect(witnessRequests).toHaveLength(1);
+
+  let filters = page.getByRole("form", { name: "Filtrar reportes E-14" });
+  const mesaInput = filters.getByLabel("Mesa");
+  await expect(mesaInput).toHaveAttribute("max", "99999");
+  await mesaInput.fill("100000");
+  await filters.getByRole("button", { name: "Filtrar" }).click();
+
+  await expect(filters.getByRole("alert")).toHaveText(
+    "La mesa debe ser un número entero entre 1 y 99.999.",
+  );
+  await expect(mesaInput).toHaveAttribute("aria-invalid", "true");
+  expect(witnessRequests).toHaveLength(1);
+
+  await mesaInput.fill("12");
+  await expect(filters.getByRole("alert")).toHaveCount(0);
+  await filters.getByRole("button", { name: "Filtrar" }).click();
+
+  await expect(
+    page.getByText(
+      "Los filtros electorales no son válidos. Corrígelos o límpialos para volver a consultar.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("mesa must not be greater than 99999"),
+  ).toHaveCount(0);
+  filters = page.getByRole("form", { name: "Filtrar reportes E-14" });
+  await expect(filters.getByLabel("Mesa")).toHaveValue("12");
+
+  await page.getByRole("button", { name: "Reintentar sin filtros" }).click();
+  await expect.poll(() => witnessRequests.length).toBe(3);
+  expect(witnessRequests[1]).toContain("mesa=12");
+  expect(witnessRequests[2]).not.toContain("mesa=");
+  await expect(page.getByTestId("reports-metric")).toHaveText("1");
+  await expect(
+    page.getByText("No pudimos cargar el control electoral"),
+  ).toHaveCount(0);
 });

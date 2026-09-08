@@ -25,10 +25,7 @@ const PROPOSAL_READ_ROLES = [
   Role.COMPLIANCE_OFFICER,
 ];
 
-const PROPOSAL_MANAGER_ROLES = [
-  Role.ADMIN,
-  Role.CAMPAIGN_MANAGER,
-];
+const PROPOSAL_MANAGER_ROLES = [Role.ADMIN, Role.CAMPAIGN_MANAGER];
 
 @ApiTags('Proposals')
 @ApiBearerAuth()
@@ -49,10 +46,7 @@ export class ProposalsController {
   @Get(':id')
   @Roles(...PROPOSAL_READ_ROLES)
   @ApiOperation({ summary: 'Obtiene una propuesta política por ID' })
-  findOne(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.proposalsService.findOne(user, id);
   }
 
@@ -80,10 +74,7 @@ export class ProposalsController {
   @Delete(':id')
   @Roles(...PROPOSAL_MANAGER_ROLES)
   @ApiOperation({ summary: 'Elimina una propuesta política' })
-  delete(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  delete(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.proposalsService.delete(user, id);
   }
 }

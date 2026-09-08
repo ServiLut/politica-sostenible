@@ -7,7 +7,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "seed:demo": "tsx src/seed/demo-seed.ts",
+    "seed:demo": "node -r ts-node/register src/seed/demo-seed.ts",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -23,7 +23,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "generate": "prisma generate",
-    "migrate:deploy": "prisma migrate deploy",
+    "migrate:deploy": "node ../../deploy/migrate-entrypoint.mjs",
     "migrate:status": "prisma migrate status"
   },
   "dependencies": {

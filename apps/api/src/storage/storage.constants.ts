@@ -1,6 +1,7 @@
 export enum StorageModuleName {
   FINANCE = 'finance',
   E14 = 'e14',
+  CONSENT = 'consent',
 }
 
 export interface StorageUploadPolicy {
@@ -33,6 +34,13 @@ export const STORAGE_UPLOAD_POLICIES: Readonly<
     },
   },
   [StorageModuleName.E14]: {
+    maxBytes: 15 * 1024 * 1024,
+    mimeTypes: {
+      ...IMAGE_MIME_TYPES,
+      ...DOCUMENT_MIME_TYPES,
+    },
+  },
+  [StorageModuleName.CONSENT]: {
     maxBytes: 15 * 1024 * 1024,
     mimeTypes: {
       ...IMAGE_MIME_TYPES,

@@ -6,6 +6,6 @@ import { SupabaseStorageGateway } from './supabase-storage.gateway';
 @Module({
   controllers: [StorageController],
   providers: [StorageService, SupabaseStorageGateway],
-  exports: [StorageService],
+  exports: [StorageService, SupabaseStorageGateway],
 })
 export class StorageModule {}

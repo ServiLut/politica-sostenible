@@ -12,7 +12,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { ProposalCategory, ProposalStatus } from '../../../prisma/generated/prisma';
+import {
+  ProposalCategory,
+  ProposalStatus,
+} from '../../../prisma/generated/prisma';
 
 export class CreateProposalDto {
   @IsString()
@@ -54,9 +57,10 @@ export class CreateProposalDto {
   territory?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
-  estimatedCost?: number;
+  estimatedCost?: number | null;
 
   @IsOptional()
   @IsUrl()

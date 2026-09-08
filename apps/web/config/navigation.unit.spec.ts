@@ -22,7 +22,7 @@ test("cumplimiento puede conciliar E-14 pero no administrar accesos", () => {
   const tenant = { type: "CANDIDACY" as const };
 
   expect(
-    canAccessNavigationItem(item("/dashboard/war-room"), user, tenant, "ELECTION_DAY"),
+    canAccessNavigationItem(item("/dashboard/war-room"), user, tenant),
   ).toBe(true);
   expect(canAccessNavigationItem(item("/dashboard/team"), user, tenant)).toBe(
     false,
@@ -38,8 +38,26 @@ test("una organización de gestión pública nunca muestra operación E-14", () 
   expect(
     canAccessNavigationItem(item("/dashboard/war-room"), user, {
       type: "PUBLIC_OFFICE",
-    }, "ELECTION_DAY"),
+    }),
   ).toBe(false);
+});
+
+test("partidos y grupos ciudadanos no acceden al consolidado de candidatura", () => {
+  const user = {
+    role: UserRole.Testigo,
+    backendRole: "WITNESS" as const,
+  };
+  const warRoom = item("/dashboard/war-room");
+
+  for (const type of ["PARTY", "GSC"] as const) {
+    const tenant = { type };
+    expect(canAccessNavigationItem(warRoom, user, tenant)).toBe(false);
+    expect(
+      getVisibleNavigationItems(user, tenant, "ELECTION_DAY").map(
+        ({ href }) => href,
+      ),
+    ).not.toContain("/dashboard/war-room");
+  }
 });
 
 test("la navegación usa lenguaje neutral y cuatro espacios de trabajo", () => {
@@ -55,21 +73,16 @@ test("la navegación usa lenguaje neutral y cuatro espacios de trabajo", () => {
     expect.arrayContaining(["Votantes", "Captura territorial", "Día D / E-14"]),
   );
   expect(
-    [
-      "ADMIN",
-      "ZONE_COORDINATOR",
-      "VOLUNTEER",
-      "COMPLIANCE_OFFICER",
-    ].map(
+    ["ADMIN", "ZONE_COORDINATOR", "VOLUNTEER", "COMPLIANCE_OFFICER"].map(
       (role) =>
-        getNavigationGroupsForRole(role as Parameters<
-          typeof getNavigationGroupsForRole
-        >[0])[0].title,
+        getNavigationGroupsForRole(
+          role as Parameters<typeof getNavigationGroupsForRole>[0],
+        )[0].title,
     ),
   ).toEqual(["Dirección", "Coordinación", "Campo", "Revisión especializada"]);
 });
 
-test("la bandeja reemplaza duplicados del menú sin desautorizar sus rutas", () => {
+test("la bandeja convive con los accesos operativos especializados", () => {
   const user = {
     role: UserRole.AdminCampana,
     backendRole: "ADMIN" as const,
@@ -80,17 +93,66 @@ test("la bandeja reemplaza duplicados del menú sin desautorizar sus rutas", () 
   );
 
   expect(visibleHrefs).toContain("/dashboard/inbox");
-  expect(visibleHrefs).not.toContain("/dashboard/incidents");
-  expect(visibleHrefs).not.toContain("/dashboard/tasks");
+  expect(visibleHrefs).toContain("/dashboard/incidents");
+  expect(visibleHrefs).toContain("/dashboard/tasks");
   expect(visibleHrefs).not.toContain("/dashboard/war-room");
-  expect(canAccessNavigationItem(item("/dashboard/incidents"), user, tenant)).toBe(
-    true,
-  );
+  expect(
+    canAccessNavigationItem(item("/dashboard/incidents"), user, tenant),
+  ).toBe(true);
   expect(canAccessNavigationItem(item("/dashboard/tasks"), user, tenant)).toBe(
     true,
   );
-  expect(canAccessNavigationItem(item("/dashboard/war-room"), user, tenant, "ELECTION_DAY")).toBe(
-    true,
+  expect(
+    canAccessNavigationItem(item("/dashboard/war-room"), user, tenant),
+  ).toBe(true);
+});
+
+test("auditoría mantiene visible el acceso a incidentes para revisión", () => {
+  const user = {
+    role: UserRole.Auditor,
+    backendRole: "AUDITOR" as const,
+  };
+  const tenant = { type: "CANDIDACY" as const };
+
+  expect(
+    canAccessNavigationItem(item("/dashboard/incidents"), user, tenant),
+  ).toBe(true);
+  expect(
+    getVisibleNavigationItems(user, tenant).map(({ href }) => href),
+  ).toContain("/dashboard/incidents");
+});
+
+test("comunicaciones y coordinación pueden iniciar tareas desde la navegación", () => {
+  const tenant = { type: "CANDIDACY" as const };
+
+  for (const backendRole of [
+    "COMMUNICATIONS_MANAGER",
+    "ZONE_COORDINATOR",
+  ] as const) {
+    expect(
+      getVisibleNavigationItems(
+        { role: UserRole.AdminCampana, backendRole },
+        tenant,
+      ).map(({ href }) => href),
+    ).toContain("/dashboard/tasks");
+  }
+});
+
+test("gestión pública mantiene visibles casos y tareas junto a la bandeja", () => {
+  const visibleHrefs = getVisibleNavigationItems(
+    {
+      role: UserRole.AdminCampana,
+      backendRole: "CONSTITUENT_SERVICES_MANAGER",
+    },
+    { type: "PUBLIC_OFFICE" },
+  ).map(({ href }) => href);
+
+  expect(visibleHrefs).toEqual(
+    expect.arrayContaining([
+      "/dashboard/inbox",
+      "/dashboard/cases",
+      "/dashboard/tasks",
+    ]),
   );
 });
 
@@ -109,7 +171,7 @@ test("campo conserva sus acciones grandes y operación electoral solo aparece pa
       backendRole: "WITNESS",
     },
     tenant,
-    "ELECTION_DAY"
+    "ELECTION_DAY",
   );
 
   expect(volunteerItems.map(({ title }) => title)).toEqual(
@@ -143,7 +205,7 @@ test("cada rol abre primero su espacio de trabajo accionable", () => {
       },
       { type: "PUBLIC_OFFICE" },
     ),
-  ).toBe("/dashboard/inbox");
+  ).toBe("/dashboard/public-office");
   expect(
     getDefaultDashboardRoute(
       {
@@ -160,7 +222,7 @@ test("cada rol abre primero su espacio de trabajo accionable", () => {
         backendRole: "WITNESS",
       },
       { type: "CANDIDACY" },
-      "ELECTION_DAY"
+      "ELECTION_DAY",
     ),
   ).toBe("/dashboard/war-room");
 });
@@ -201,11 +263,58 @@ test("administracion configura privacidad y cumplimiento puede verificarla", () 
   ).toBe(false);
 });
 
+test("todos los roles de campaña pueden consultar el perfil operativo sin exponerlo a gestión pública", () => {
+  const operationProfile = item("/dashboard/operation-profile");
+  const backendRoles = [
+    "ADMIN",
+    "CAMPAIGN_MANAGER",
+    "FINANCE_MANAGER",
+    "COMMUNICATIONS_MANAGER",
+    "CONSTITUENT_SERVICES_MANAGER",
+    "CASE_WORKER",
+    "COMPLIANCE_OFFICER",
+    "AUDITOR",
+    "ZONE_COORDINATOR",
+    "WITNESS",
+    "VOLUNTEER",
+  ] as const;
+
+  for (const backendRole of backendRoles) {
+    expect(
+      canAccessNavigationItem(
+        { ...operationProfile },
+        { role: UserRole.AdminCampana, backendRole },
+        { type: "CANDIDACY" },
+      ),
+    ).toBe(true);
+  }
+
+  expect(
+    canAccessNavigationItem(
+      operationProfile,
+      { role: UserRole.AdminCampana, backendRole: "ADMIN" },
+      { type: "PUBLIC_OFFICE" },
+    ),
+  ).toBe(false);
+});
+
 test("war-room solo se muestra en las etapas permitidas", () => {
   const user = { role: UserRole.Testigo, backendRole: "WITNESS" as const };
   const tenant = { type: "CANDIDACY" as const };
-  
-  expect(getVisibleNavigationItems(user, tenant).some(i => i.href === "/dashboard/war-room")).toBe(false);
-  expect(getVisibleNavigationItems(user, tenant, "PRE_CAMPAIGN").some(i => i.href === "/dashboard/war-room")).toBe(false);
-  expect(getVisibleNavigationItems(user, tenant, "ELECTION_DAY").some(i => i.href === "/dashboard/war-room")).toBe(true);
+
+  expect(
+    getVisibleNavigationItems(user, tenant).some(
+      (i) => i.href === "/dashboard/war-room",
+    ),
+  ).toBe(false);
+  expect(
+    getVisibleNavigationItems(user, tenant, "PRE_CAMPAIGN").some(
+      (i) => i.href === "/dashboard/war-room",
+    ),
+  ).toBe(false);
+  expect(
+    getVisibleNavigationItems(user, tenant, "ELECTION_DAY").some(
+      (i) => i.href === "/dashboard/war-room",
+    ),
+  ).toBe(true);
 });

@@ -10,7 +10,7 @@ export const CAMPAIGN_TENANT_SELECT = {
   type: true,
 } satisfies Prisma.TenantSelect;
 
-interface CampaignTenantState {
+export interface CampaignTenantState {
   defaultMode: PoliticalOperationMode;
   type: TenantType;
 }
@@ -25,6 +25,23 @@ export function assertCampaignTenant(
   ) {
     throw new ForbiddenException(
       'Este módulo sólo está disponible en organizaciones con modo campaña activo',
+    );
+  }
+}
+
+/**
+ * The current E-14 domain stores a single `candidateVotes` value. Until the
+ * ballot model supports parties, lists and signature committees, only a
+ * candidacy tenant can use that consolidation safely.
+ */
+export function assertCandidacyCampaignTenant(
+  tenant: CampaignTenantState | null | undefined,
+): asserts tenant is CampaignTenantState {
+  assertCampaignTenant(tenant);
+
+  if (tenant.type !== TenantType.CANDIDACY) {
+    throw new ForbiddenException(
+      'La conciliación E-14 con votos de candidatura sólo está disponible para organizaciones de tipo candidatura',
     );
   }
 }

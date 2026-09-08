@@ -305,6 +305,59 @@ describe('CasesService tenant and mode isolation', () => {
     expect(audit?.data.after).not.toHaveProperty('externalContactRef');
   });
 
+  it('uses an incident reference for campaign records instead of presenting them as public PQRSD', async () => {
+    prisma.issueCase.findFirst.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue({ id: currentUser.userId });
+    prisma.issueCase.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 'incident-created', ...data }),
+    );
+
+    await service.create(currentUser, {
+      title: 'Novedad logística de campaña',
+      description: 'Incidente interno verificable de la operación territorial.',
+      category: 'Logística',
+      sourceChannel: CommunicationChannel.INTERNAL,
+    });
+
+    expect(prisma.issueCase.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        reference: expect.stringMatching(/^INC-CAM-\d{4}-[A-F0-9]{10}$/),
+      }),
+      include: expect.any(Object),
+    });
+  });
+
+  it('uses a neutral internal-case reference in public-office mode', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+    prisma.issueCase.findFirst.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue({ id: currentUser.userId });
+    prisma.issueCase.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 'internal-case-created', ...data }),
+    );
+
+    await service.create(currentUser, {
+      title: 'Solicitud interna de atención',
+      description: 'Registro operativo sin radicación jurídica automática.',
+      category: 'Atención ciudadana',
+      sourceChannel: CommunicationChannel.WEB,
+    });
+
+    expect(prisma.issueCase.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.PUBLIC_OFFICE,
+        reference: expect.stringMatching(/^CAS-GP-\d{4}-[A-F0-9]{10}$/),
+      }),
+      include: expect.any(Object),
+    });
+  });
+
   it('rejects invalid status jumps and never writes an audit event', async () => {
     prisma.issueCase.findFirst.mockResolvedValue({
       id: 'case-a',

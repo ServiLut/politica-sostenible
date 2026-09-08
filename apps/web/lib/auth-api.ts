@@ -8,12 +8,13 @@ import {
 export interface LoginDto {
   email: string;
   password: string;
-  code?: string;
+  totpCode?: string;
 }
 
 export interface RegisterDto {
   email: string;
   password: string;
+  passwordConfirmation: string;
   name: string;
   documentId?: string;
   phone?: string;
@@ -81,6 +82,14 @@ export function changeOwnPassword(data: {
 }) {
   return apiRequest<{ message: string }>("/auth/change-password", {
     body: JSON.stringify(data),
+    method: "POST",
+  });
+}
+
+export function logoutAllSessions() {
+  return apiRequest<{ message: string }>("/auth/logout", {
+    auth: true,
+    keepalive: true,
     method: "POST",
   });
 }

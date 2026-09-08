@@ -518,7 +518,7 @@ export class EventsService {
           const existing = await tx.campaignEvent.findFirst({
             where: { id, tenantId: user.tenantId, mode },
             select: {
-              ...EVENT_SELECT
+              ...EVENT_SELECT,
             },
           });
 

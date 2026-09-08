@@ -24,7 +24,10 @@ const consentNotice = {
   activatedAt: "2026-09-04T12:00:00.000Z",
 };
 
-function sessionFor(role: CaptureRole) {
+function sessionFor(
+  role: CaptureRole,
+  tenantType: "CANDIDACY" | "GSC" = "CANDIDACY",
+) {
   return {
     accessToken: jwt,
     expiresAt: null,
@@ -32,7 +35,7 @@ function sessionFor(role: CaptureRole) {
       id: "tenant-e2e",
       name: "Campaña territorial",
       slug: "campana-territorial",
-      type: "CANDIDACY",
+      type: tenantType,
     },
     user: {
       id: role === "VOLUNTEER" ? "volunteer-e2e" : "coordinator-e2e",
@@ -44,14 +47,18 @@ function sessionFor(role: CaptureRole) {
   };
 }
 
-async function installSession(page: Page, role: CaptureRole) {
+async function installSession(
+  page: Page,
+  role: CaptureRole,
+  tenantType: "CANDIDACY" | "GSC" = "CANDIDACY",
+) {
   await page.addInitScript(
     ({ storageKey, authSession }) => {
       window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
     },
     {
       storageKey: "politica-sostenible.auth-session",
-      authSession: sessionFor(role),
+      authSession: sessionFor(role, tenantType),
     },
   );
 }
@@ -371,4 +378,22 @@ test("una captura repetida recibe un resultado indistinguible y no enumera perso
   await expect(page.getByLabel("Documento", { exact: true })).toHaveValue("");
   await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   expect(postCount).toBe(1);
+});
+
+test("un GSC no confunde contactos autorizados con firmas electorales", async ({
+  page,
+}) => {
+  await installSession(page, "VOLUNTEER", "GSC");
+  await mockCaptureApi(page, [
+    { id: "puesto-central", code: "P-10", name: "Puesto Central" },
+  ]);
+
+  await page.goto("/dashboard/captura-territorial");
+
+  await expect(
+    page.getByText("Esta captura no recoge firmas electorales."),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/no sustituye formularios, requisitos, radicación/i),
+  ).toBeVisible();
 });

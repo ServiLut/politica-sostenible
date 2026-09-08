@@ -4,7 +4,11 @@ import { Button } from "@/components/ui";
 
 export default function ResetPasswordPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none"
+    >
       <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 sm:p-12">
         <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-950 text-white">
           <LockKeyhole className="h-10 w-10" aria-hidden="true" />

@@ -6,6 +6,9 @@ import {
 } from '@nestjs/common';
 import {
   AuditActorType,
+  ConsentPurpose,
+  ConsentStatus,
+  ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
   Role,
@@ -67,6 +70,31 @@ function buildTransaction() {
       findFirst: jest.fn().mockResolvedValue(voter),
       update: jest.fn().mockResolvedValue(voter),
     },
+    consentNotice: {
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'notice-current',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+        version: '2026.1',
+        title: 'Aviso vigente',
+        content: 'Contenido vigente',
+        controllerName: 'Organizacion',
+        contactEmail: 'privacy@example.test',
+        privacyPolicyUrl: null,
+        activatedAt: new Date('2026-04-01T12:00:00.000Z'),
+      }),
+    },
+    consentRecord: {
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'grant-a',
+        status: ConsentStatus.GRANTED,
+        noticeVersion: '2026.1',
+        grantedAt: voter.consentTimestamp,
+        expiresAt: null,
+        revokedAt: null,
+        createdAt: voter.consentTimestamp,
+      }),
+    },
     auditEvent: {
       create: jest.fn().mockResolvedValue({ id: 'audit-a' }),
     },
@@ -120,7 +148,15 @@ describe('VoterDataRightsService', () => {
   it('entrega la ficha con PII solo dentro del tenant JWT y audita el acceso', async () => {
     const { service, transaction, runTransaction } = buildService();
 
-    await expect(service.findOne(admin, 'voter-a')).resolves.toEqual(voter);
+    await expect(service.findOne(admin, 'voter-a')).resolves.toMatchObject({
+      ...voter,
+      consentCurrent: true,
+      consentRequiresReconsent: false,
+      consentState: 'CURRENT',
+      consentRecordStatus: ConsentStatus.GRANTED,
+      consentNoticeVersion: '2026.1',
+      currentConsentNoticeVersion: '2026.1',
+    });
 
     expect(runTransaction).toHaveBeenCalledTimes(1);
     expect(transaction.tenant.findUnique).toHaveBeenCalledWith({
@@ -157,6 +193,41 @@ describe('VoterDataRightsService', () => {
     assertAuditContainsNoRawPii(transaction.auditEvent.create.mock.calls[0]);
   });
 
+  it('marca una autorizacion anterior para reconsentir sin alterar su decision historica', async () => {
+    const transaction = buildTransaction();
+    transaction.consentRecord.findFirst.mockResolvedValue({
+      id: 'grant-old',
+      status: ConsentStatus.GRANTED,
+      noticeVersion: '2025.1',
+      grantedAt: voter.consentTimestamp,
+      expiresAt: null,
+      revokedAt: null,
+      createdAt: voter.consentTimestamp,
+    });
+    const { service } = buildService(transaction);
+
+    await expect(service.findOne(admin, voter.id)).resolves.toMatchObject({
+      consentAccepted: true,
+      consentCurrent: false,
+      consentRequiresReconsent: true,
+      consentState: 'OUTDATED_NOTICE',
+      consentNoticeVersion: '2025.1',
+      currentConsentNoticeVersion: '2026.1',
+    });
+    expect(transaction.consentRecord.findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        voterId: voter.id,
+        subjectType: ConsentSubjectType.VOTER,
+        purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: expect.any(Object),
+    });
+    expect(transaction.voter.update).not.toHaveBeenCalled();
+  });
+
   it('autoriza usando el rol activo persistido, no el rol del JWT', async () => {
     const allowed = buildTransaction();
     allowed.user.findFirst.mockResolvedValue({
@@ -168,7 +239,7 @@ describe('VoterDataRightsService', () => {
         { ...admin, role: Role.ADMIN },
         'voter-a',
       ),
-    ).resolves.toEqual(voter);
+    ).resolves.toMatchObject({ ...voter, consentCurrent: true });
 
     const denied = buildTransaction();
     denied.user.findFirst.mockResolvedValue({

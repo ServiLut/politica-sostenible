@@ -16,6 +16,7 @@ import {
 } from "@/config/navigation";
 
 import { CommandPalette } from "@/components/ui/CommandPalette";
+import { buildLoginRedirectHref } from "@/lib/post-login-navigation";
 
 export default function DashboardLayout({
   children,
@@ -26,7 +27,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  const stage = (tenant?.config as any)?.operationProfile?.stage;
+  const stage = tenant?.operationStage;
   const currentRouteConfig = dashboardConfig.find((item) =>
     matchesNavigationPath(pathname, item.href),
   );
@@ -38,13 +39,12 @@ export default function DashboardLayout({
     (!requiresPasswordChange || isPersonalAccountRoute) &&
     (isPersonalAccountRoute ||
       (currentRouteConfig &&
-        canAccessNavigationItem(currentRouteConfig, user, tenant, stage))),
+        canAccessNavigationItem(currentRouteConfig, user, tenant))),
   );
 
   useEffect(() => {
     if (!loading && !user) {
-      const nextPath = encodeURIComponent(pathname);
-      router.replace(`/iniciar-sesion?next=${nextPath}`);
+      router.replace(buildLoginRedirectHref(pathname, window.location.search));
       return;
     }
 
@@ -56,21 +56,15 @@ export default function DashboardLayout({
     if (!loading && user && tenant && pathname === "/dashboard") {
       router.replace(getDefaultDashboardRoute(user, tenant, stage));
     }
-  }, [
-    user,
-    tenant,
-    loading,
-    pathname,
-    router,
-    isPersonalAccountRoute,
-    stage,
-  ]);
+  }, [user, tenant, loading, pathname, router, isPersonalAccountRoute, stage]);
 
   if (loading || !user) {
     return (
       <div
+        id="dashboard-content"
+        tabIndex={-1}
         role="status"
-        className="flex h-screen items-center justify-center bg-slate-50"
+        className="flex h-screen items-center justify-center bg-slate-50 outline-none"
       >
         <div className="flex flex-col items-center gap-4">
           <div
@@ -91,13 +85,15 @@ export default function DashboardLayout({
   ) {
     return (
       <div
+        id="dashboard-content"
+        tabIndex={-1}
         role="status"
         aria-label={
           requiresPasswordChange
             ? "Abriendo el cambio de contraseña obligatorio"
             : "Abriendo el panel disponible"
         }
-        className="flex h-screen items-center justify-center bg-slate-50"
+        className="flex h-screen items-center justify-center bg-slate-50 outline-none"
       >
         <div
           aria-hidden="true"
@@ -111,7 +107,11 @@ export default function DashboardLayout({
     return (
       <div className="flex min-h-screen bg-slate-50">
         {!requiresPasswordChange && <Sidebar />}
-        <main className="flex min-h-screen min-w-0 flex-1 items-center justify-center p-6 pb-24 text-center lg:pb-6">
+        <main
+          id="dashboard-content"
+          tabIndex={-1}
+          className="flex min-h-screen min-w-0 flex-1 items-center justify-center p-6 pb-24 text-center outline-none lg:pb-6"
+        >
           <div className="flex max-w-md flex-col items-center gap-6 rounded-[2rem] border border-red-100 bg-red-50 p-8 shadow-xl shadow-red-900/5">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-100 text-red-600">
               <ShieldAlert aria-hidden="true" size={44} />
@@ -144,12 +144,6 @@ export default function DashboardLayout({
 
   return (
     <>
-      <a
-        href="#dashboard-content"
-        className="fixed left-4 top-4 z-[120] -translate-y-24 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition-transform focus:translate-y-0"
-      >
-        Saltar al contenido
-      </a>
       <div className="flex min-h-screen bg-slate-50">
         {!requiresPasswordChange && <Sidebar />}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
@@ -170,7 +164,9 @@ export default function DashboardLayout({
                 role={requiresPasswordChange ? "status" : undefined}
                 aria-live={requiresPasswordChange ? "assertive" : undefined}
                 className={`items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
-                  requiresPasswordChange ? "inline-flex" : "hidden md:inline-flex"
+                  requiresPasswordChange
+                    ? "inline-flex"
+                    : "hidden md:inline-flex"
                 } ${
                   requiresPasswordChange
                     ? "bg-amber-50 text-amber-800"
@@ -206,4 +202,3 @@ export default function DashboardLayout({
     </>
   );
 }
-

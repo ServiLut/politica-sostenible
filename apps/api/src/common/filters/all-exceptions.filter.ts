@@ -39,9 +39,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const exceptionType =
       exception instanceof Error ? exception.constructor.name : 'UnknownError';
-    this.logger.error(
-      `HTTP Error: ${status} - Method: ${request.method} - Path: ${request.path} - Type: ${exceptionType}`,
-    );
+    const logMessage =
+      `HTTP response: ${status} - Method: ${request.method} - ` +
+      `Path: ${request.path} - Type: ${exceptionType}`;
+
+    if (status >= 500) {
+      this.logger.error(
+        logMessage,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    } else {
+      this.logger.warn(logMessage);
+    }
 
     response.status(status).json({
       statusCode: status,

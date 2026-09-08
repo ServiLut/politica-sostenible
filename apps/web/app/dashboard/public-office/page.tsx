@@ -7,7 +7,6 @@ import {
   ArrowRight,
   BriefcaseBusiness,
   CalendarClock,
-  Check,
   CheckCircle2,
   ClipboardCheck,
   FileText,
@@ -54,7 +53,7 @@ interface PublicOfficeBriefing {
       open: number;
       atRisk: number;
       overdue: number;
-      public: number;
+      teamVisible: number;
     };
     events: { upcoming: number };
     communications: { pendingApproval: number };
@@ -271,7 +270,9 @@ export default function PublicOfficePage() {
         <MetricCard
           label="Casos vencidos"
           value={briefing?.metrics.cases.overdue ?? null}
-          detail={briefing ? "Superaron la fecha de atención" : "Datos no disponibles"}
+          detail={
+            briefing ? "Superaron la fecha de atención" : "Datos no disponibles"
+          }
           icon={Siren}
           testId="overdue-cases-metric"
           href="/dashboard/cases"
@@ -291,15 +292,15 @@ export default function PublicOfficePage() {
           accent="amber"
         />
         <MetricCard
-          label="Compromisos públicos"
-          value={briefing?.metrics.commitments.public ?? null}
+          label="Compromisos visibles para el equipo"
+          value={briefing?.metrics.commitments.teamVisible ?? null}
           detail={
             briefing
               ? `${briefing.metrics.commitments.atRisk} en riesgo`
               : "Datos no disponibles"
           }
           icon={Target}
-          testId="public-commitments-metric"
+          testId="team-visible-commitments-metric"
           href="/dashboard/tasks"
           accent="emerald"
         />

@@ -764,9 +764,9 @@ export class CasesService {
 
   private generateReference(mode: PoliticalOperationMode): string {
     const modePrefix =
-      mode === PoliticalOperationMode.PUBLIC_OFFICE ? 'GP' : 'CAM';
+      mode === PoliticalOperationMode.PUBLIC_OFFICE ? 'CAS-GP' : 'INC-CAM';
     const suffix = randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
-    return `PQRS-${modePrefix}-${new Date().getUTCFullYear()}-${suffix}`;
+    return `${modePrefix}-${new Date().getUTCFullYear()}-${suffix}`;
   }
 
   private auditSnapshot(value: CaseAuditSource): Prisma.InputJsonObject {

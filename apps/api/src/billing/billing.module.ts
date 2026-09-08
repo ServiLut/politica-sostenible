@@ -1,18 +1,13 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { BillingController } from './billing.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PlanLimitsService } from '../auth/guards/plan-limits.guard';
 
 @Module({
   imports: [PrismaModule],
-  providers: [BillingService],
+  providers: [BillingService, PlanLimitsService],
   controllers: [BillingController],
-  exports: [BillingService],
+  exports: [BillingService, PlanLimitsService],
 })
-export class BillingModule implements OnModuleInit {
-  constructor(private readonly billingService: BillingService) {}
-
-  async onModuleInit() {
-    await this.billingService.seedDefaultPlans();
-  }
-}
+export class BillingModule {}

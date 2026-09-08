@@ -14,6 +14,12 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
 import { MfaService } from './mfa.service';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
+import { MfaSetupDto } from './dto/mfa-setup.dto';
+import {
+  PlanFeature,
+  RequiresPlanFeature,
+} from './decorators/requires-plan-feature.decorator';
+import { AllowSaasAdminMfaEnrollment } from './decorators/allow-saas-admin-mfa-enrollment.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -63,20 +69,51 @@ export class AuthController {
     return this.authService.changePassword(user, dto);
   }
 
+  @Post('logout')
+  @AllowRequiredPasswordChange()
+  @Throttle({ default: { limit: 10, ttl: 60_000, blockDuration: 60_000 } })
+  logout(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.logout(user);
+  }
+
   @Post('mfa/setup')
-  async setupMfa(@CurrentUser() user: AuthenticatedUser) {
-    return this.mfaService.generateSecret(user.userId, user.tenantId);
+  @RequiresPlanFeature(PlanFeature.MFA)
+  @AllowSaasAdminMfaEnrollment()
+  @Throttle({
+    default: { limit: 3, ttl: 15 * 60_000, blockDuration: 15 * 60_000 },
+  })
+  async setupMfa(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: MfaSetupDto,
+  ) {
+    return this.mfaService.generateSecret(
+      user.userId,
+      user.tenantId,
+      body.currentPassword,
+    );
   }
 
   @Post('mfa/verify')
+  @RequiresPlanFeature(PlanFeature.MFA)
+  @AllowSaasAdminMfaEnrollment()
+  @Throttle({
+    default: { limit: 5, ttl: 5 * 60_000, blockDuration: 15 * 60_000 },
+  })
   async verifyMfa(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: MfaVerifyDto,
   ) {
-    return this.mfaService.verifyAndEnable(user.userId, user.tenantId, body.code);
+    return this.mfaService.verifyAndEnable(
+      user.userId,
+      user.tenantId,
+      body.code,
+    );
   }
 
   @Post('mfa/disable')
+  @Throttle({
+    default: { limit: 5, ttl: 5 * 60_000, blockDuration: 15 * 60_000 },
+  })
   async disableMfa(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: MfaVerifyDto,
@@ -86,7 +123,10 @@ export class AuthController {
 
   @Get('mfa/status')
   async mfaStatus(@CurrentUser() user: AuthenticatedUser) {
-    const enabled = await this.mfaService.hasMfaEnabled(user.userId);
+    const enabled = await this.mfaService.hasMfaEnabled(
+      user.userId,
+      user.tenantId,
+    );
     return { enabled };
   }
 }

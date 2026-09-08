@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 import {
   AuditActorType,
+  FinanceReportScope,
   FinanceStatus,
   PoliticalOperationMode,
+  Prisma,
   Role,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -27,8 +29,17 @@ const baseEntry = {
   reviewedAt: new Date('2026-09-02T12:00:00.000Z'),
   cneReportedAt: null,
   cneReportReference: null,
+  cneReportEvidenceUrl: null,
   evidenceUrl: 'tenant-a/finance/evidence.pdf',
   reporterId: 'reporter-a',
+};
+
+const cneEvidencePath =
+  'tenant-a/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
+
+const reportDto = {
+  externalReference: 'CC-2026/004219',
+  cneReportEvidenceUrl: cneEvidencePath,
 };
 
 function campaignTenant() {
@@ -38,6 +49,28 @@ function campaignTenant() {
   };
 }
 
+const completeSettings = (overrides: Record<string, unknown> = {}) => ({
+  id: 'settings-a',
+  maxTotalBudget: new Prisma.Decimal('1000000'),
+  maxPublicityLimit: new Prisma.Decimal('250000'),
+  electionName: 'Elecciones territoriales 2027',
+  electionDate: new Date('2027-10-31T00:00:00.000Z'),
+  reportScope: FinanceReportScope.CANDIDATE,
+  officialLimitsReference: 'Resolución CNE 0001 de 2027',
+  officialLimitsUrl: 'https://www.cne.gov.co/resoluciones/0001',
+  reportDeadline: new Date('2027-11-30T00:00:00.000Z'),
+  financialManagerName: 'Gerencia financiera',
+  financialManagerDocument: '1234567890',
+  accountantName: 'Contador responsable',
+  accountantDocument: '9876543210',
+  uniqueAccountBank: 'Banco autorizado',
+  uniqueAccountLastFour: '1234',
+  cuentasClarasCode: 'CC-CANDIDATO-001',
+  createdAt: new Date('2026-08-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+  ...overrides,
+});
+
 describe('FinanceService external CNE reporting', () => {
   it('atomically marks an approved tenant entry and audits the external reference', async () => {
     const updated = {
@@ -45,6 +78,7 @@ describe('FinanceService external CNE reporting', () => {
       status: FinanceStatus.REPORTED_CNE,
       cneReportedAt: new Date('2026-09-04T15:00:00.000Z'),
       cneReportReference: 'CC-2026/004219',
+      cneReportEvidenceUrl: cneEvidencePath,
     };
     const findFirst = jest
       .fn()
@@ -57,8 +91,14 @@ describe('FinanceService external CNE reporting', () => {
           .fn()
           .mockResolvedValue({ id: 'finance-a', role: Role.FINANCE_MANAGER }),
       },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
+      },
       financialEntry: {
         findFirst,
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      storedObject: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
@@ -74,7 +114,7 @@ describe('FinanceService external CNE reporting', () => {
       'tenant-a',
       'finance-a',
       'entry-a',
-      { externalReference: 'CC-2026/004219' },
+      reportDto,
     );
 
     expect(transaction.user.findFirst).toHaveBeenCalledWith({
@@ -92,6 +132,19 @@ describe('FinanceService external CNE reporting', () => {
         cneReportedById: 'finance-a',
         cneReportedAt: expect.any(Date),
         cneReportReference: 'CC-2026/004219',
+        cneReportEvidenceUrl: cneEvidencePath,
+      }),
+    });
+    expect(transaction.storedObject.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        tenantId: 'tenant-a',
+        path: cneEvidencePath,
+        uploaderId: 'finance-a',
+        consumedAt: null,
+      }),
+      data: expect.objectContaining({
+        consumedByType: 'FinancialEntryCneReportEvidence',
+        consumedById: 'entry-a',
       }),
     });
     expect(transaction.auditEvent.create).toHaveBeenCalledWith({
@@ -104,7 +157,12 @@ describe('FinanceService external CNE reporting', () => {
         resourceType: 'FinancialEntry',
         resourceId: 'entry-a',
         before: { status: FinanceStatus.APPROVED },
-        metadata: { externalReference: 'CC-2026/004219' },
+        metadata: {
+          externalReference: 'CC-2026/004219',
+          evidenceType: 'USER_DECLARED_EXTERNAL_FILING',
+          hasCneReportEvidence: true,
+          platformVerified: false,
+        },
       }),
     });
     expect(result).toEqual(
@@ -115,6 +173,61 @@ describe('FinanceService external CNE reporting', () => {
       }),
     );
     expect(result).not.toHaveProperty('evidenceUrl');
+    expect(result).not.toHaveProperty('cneReportEvidenceUrl');
+    expect(result).toHaveProperty('hasCneReportEvidence', true);
+    expect(
+      JSON.stringify(transaction.auditEvent.create.mock.calls),
+    ).not.toContain(cneEvidencePath);
+  });
+
+  it('rolls back the transition contract when the private receipt is not confirmed', async () => {
+    const transaction = {
+      tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'finance-a', role: Role.FINANCE_MANAGER }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
+      },
+      financialEntry: {
+        findFirst: jest.fn().mockResolvedValue(baseEntry),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      storedObject: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.markReportedToCne('tenant-a', 'finance-a', 'entry-a', reportDto),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(transaction.storedObject.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a receipt path owned by another tenant before opening a transaction', async () => {
+    const runTransaction = jest.fn();
+    const service = new FinanceService({
+      $transaction: runTransaction,
+    } as unknown as PrismaService);
+
+    await expect(
+      service.markReportedToCne('tenant-a', 'finance-a', 'entry-a', {
+        ...reportDto,
+        cneReportEvidenceUrl:
+          'tenant-b/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(runTransaction).not.toHaveBeenCalled();
   });
 
   it('rejects a non-approved state without writing or auditing', async () => {
@@ -124,6 +237,9 @@ describe('FinanceService external CNE reporting', () => {
         findFirst: jest
           .fn()
           .mockResolvedValue({ id: 'finance-a', role: Role.FINANCE_MANAGER }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: {
         findFirst: jest.fn().mockResolvedValue({
@@ -142,9 +258,7 @@ describe('FinanceService external CNE reporting', () => {
     } as unknown as PrismaService);
 
     await expect(
-      service.markReportedToCne('tenant-a', 'finance-a', 'entry-a', {
-        externalReference: 'CC-2026/004219',
-      }),
+      service.markReportedToCne('tenant-a', 'finance-a', 'entry-a', reportDto),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(transaction.financialEntry.updateMany).not.toHaveBeenCalled();
     expect(transaction.auditEvent.create).not.toHaveBeenCalled();
@@ -157,6 +271,9 @@ describe('FinanceService external CNE reporting', () => {
         findFirst: jest
           .fn()
           .mockResolvedValue({ id: 'admin-a', role: Role.ADMIN }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(completeSettings()),
       },
       financialEntry: {
         findFirst: jest.fn().mockResolvedValue({
@@ -175,11 +292,49 @@ describe('FinanceService external CNE reporting', () => {
     } as unknown as PrismaService);
 
     await expect(
-      service.markReportedToCne('tenant-a', 'admin-a', 'entry-a', {
-        externalReference: 'CC-2026/004219',
-      }),
+      service.markReportedToCne('tenant-a', 'admin-a', 'entry-a', reportDto),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(transaction.financialEntry.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('blocks an external filing transition while the legacy compliance file is incomplete', async () => {
+    const transaction = {
+      tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'finance-a', role: Role.FINANCE_MANAGER }),
+      },
+      campaignSettings: {
+        findUnique: jest.fn().mockResolvedValue(
+          completeSettings({
+            accountantName: null,
+            accountantDocument: null,
+          }),
+        ),
+      },
+      financialEntry: {
+        findFirst: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new FinanceService({
+      $transaction: jest.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.markReportedToCne('tenant-a', 'finance-a', 'entry-a', reportDto),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(transaction.campaignSettings.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { tenantId: 'tenant-a' } }),
+    );
+    expect(transaction.financialEntry.findFirst).not.toHaveBeenCalled();
+    expect(transaction.financialEntry.updateMany).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('revalidates the persisted actor role before reading the entry', async () => {
@@ -202,9 +357,12 @@ describe('FinanceService external CNE reporting', () => {
     } as unknown as PrismaService);
 
     await expect(
-      service.markReportedToCne('tenant-a', 'volunteer-a', 'entry-a', {
-        externalReference: 'CC-2026/004219',
-      }),
+      service.markReportedToCne(
+        'tenant-a',
+        'volunteer-a',
+        'entry-a',
+        reportDto,
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(transaction.financialEntry.findFirst).not.toHaveBeenCalled();
   });

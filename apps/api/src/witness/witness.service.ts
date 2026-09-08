@@ -8,10 +8,13 @@ import {
 import {
   AuditActorType,
   DivisionType,
+  E14FormType,
   PoliticalOperationMode,
   Prisma,
   Role,
   StorageObjectModule,
+  WitnessCredentialType,
+  WitnessReclamationGround,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +24,7 @@ import { ReviewWitnessReportDto } from './dto/review-witness-report.dto';
 import { UpdatePollingPlaceProfileDto } from './dto/update-polling-place-profile.dto';
 import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
 import {
-  assertCampaignTenant,
+  assertCandidacyCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
@@ -56,13 +59,25 @@ const WITNESS_READ_ROLES = [
   Role.AUDITOR,
 ] as const;
 
+const CHECK_IN_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
 const WITNESS_REPORT_VIEW_SELECT = {
   id: true,
   witnessId: true,
   puestoId: true,
   mesa: true,
+  credentialType: true,
+  credentialReference: true,
+  checkedInAt: true,
+  e14FormType: true,
   candidateVotes: true,
+  blankVotes: true,
+  nullVotes: true,
+  unmarkedVotes: true,
   totalTableVotes: true,
+  hasWrittenClaim: true,
+  reclamationGround: true,
+  reclamationDescription: true,
   observations: true,
   isSynced: true,
   status: true,
@@ -92,8 +107,24 @@ interface TableFingerprint {
   puestoId: string;
   mesa: number;
   candidateVotes: number;
+  blankVotes: number | null;
+  nullVotes: number | null;
+  unmarkedVotes: number | null;
   totalTableVotes: number;
   status: WitnessReportStatus;
+}
+
+interface NormalizedWitnessTraceability {
+  credentialType: WitnessCredentialType;
+  credentialReference: string;
+  checkedInAt: Date;
+  e14FormType: E14FormType;
+  blankVotes: number;
+  nullVotes: number;
+  unmarkedVotes: number;
+  hasWrittenClaim: boolean;
+  reclamationGround?: WitnessReclamationGround;
+  reclamationDescription?: string;
 }
 
 @Injectable()
@@ -107,7 +138,8 @@ export class WitnessService {
     options: CreateWitnessReportOptions = {},
   ) {
     await this.assertCampaignMode(tenantId);
-    this.assertVoteTotals(data.candidateVotes, data.totalTableVotes);
+    const traceability = this.normalizeTraceability(data);
+    this.assertVoteTotals(data);
     this.assertPrivateEvidencePath(tenantId, data.e14ImageUrl);
 
     try {
@@ -151,8 +183,18 @@ export class WitnessService {
               witnessId: true,
               puestoId: true,
               mesa: true,
+              credentialType: true,
+              credentialReference: true,
+              checkedInAt: true,
+              e14FormType: true,
               candidateVotes: true,
+              blankVotes: true,
+              nullVotes: true,
+              unmarkedVotes: true,
               totalTableVotes: true,
+              hasWrittenClaim: true,
+              reclamationGround: true,
+              reclamationDescription: true,
               observations: true,
               isSynced: true,
             },
@@ -163,8 +205,24 @@ export class WitnessService {
               existingByEvidence.witnessId === witnessId &&
               existingByEvidence.puestoId === data.puestoId &&
               existingByEvidence.mesa === data.mesa &&
+              existingByEvidence.credentialType ===
+                traceability.credentialType &&
+              existingByEvidence.credentialReference ===
+                traceability.credentialReference &&
+              existingByEvidence.checkedInAt?.getTime() ===
+                traceability.checkedInAt.getTime() &&
+              existingByEvidence.e14FormType === traceability.e14FormType &&
               existingByEvidence.candidateVotes === data.candidateVotes &&
+              existingByEvidence.blankVotes === traceability.blankVotes &&
+              existingByEvidence.nullVotes === traceability.nullVotes &&
+              existingByEvidence.unmarkedVotes === traceability.unmarkedVotes &&
               existingByEvidence.totalTableVotes === data.totalTableVotes &&
+              existingByEvidence.hasWrittenClaim ===
+                traceability.hasWrittenClaim &&
+              (existingByEvidence.reclamationGround ?? undefined) ===
+                traceability.reclamationGround &&
+              (existingByEvidence.reclamationDescription ?? undefined) ===
+                traceability.reclamationDescription &&
               (existingByEvidence.observations ?? undefined) ===
                 data.observations &&
               existingByEvidence.isSynced === (options.isSynced ?? false)
@@ -200,6 +258,7 @@ export class WitnessService {
               witnessId,
               puestoId: data.puestoId,
               mesa: data.mesa,
+              ...traceability,
               e14ImageUrl: data.e14ImageUrl,
               candidateVotes: data.candidateVotes,
               totalTableVotes: data.totalTableVotes,
@@ -335,6 +394,9 @@ export class WitnessService {
               'puestoId',
               'mesa',
               'candidateVotes',
+              'blankVotes',
+              'nullVotes',
+              'unmarkedVotes',
               'totalTableVotes',
               'status',
             ],
@@ -444,6 +506,14 @@ export class WitnessService {
           if (current.status !== WitnessReportStatus.PENDING) {
             throw new ConflictException(
               'Solo un reporte pendiente puede recibir una decision',
+            );
+          }
+          if (
+            dto.status === WitnessReportStatus.ACCEPTED &&
+            !this.hasCompleteTraceability(current)
+          ) {
+            throw new BadRequestException(
+              'Un reporte historico sin trazabilidad completa no puede aceptarse; verifique el soporte y registre un rechazo motivado',
             );
           }
 
@@ -634,15 +704,121 @@ export class WitnessService {
     }
   }
 
-  private assertVoteTotals(
-    candidateVotes: number,
-    totalTableVotes: number,
-  ): void {
-    if (candidateVotes > totalTableVotes) {
+  private assertVoteTotals(data: CreateWitnessReportDto): void {
+    const counts = [
+      data.candidateVotes,
+      data.blankVotes,
+      data.nullVotes,
+      data.unmarkedVotes,
+      data.totalTableVotes,
+    ];
+    if (
+      counts.some(
+        (count) => !Number.isInteger(count) || count < 0 || count > 99_999,
+      )
+    ) {
       throw new BadRequestException(
-        'Los votos del candidato no pueden superar el total de votos de la mesa',
+        'Todos los conteos de la mesa deben ser enteros entre 0 y 99.999',
       );
     }
+
+    const classifiedVotes =
+      data.candidateVotes +
+      data.blankVotes +
+      data.nullVotes +
+      data.unmarkedVotes;
+    if (classifiedVotes > data.totalTableVotes) {
+      throw new BadRequestException(
+        'La suma de votos del candidato, en blanco, nulos y no marcados no puede superar el total de la mesa',
+      );
+    }
+  }
+
+  private normalizeTraceability(
+    data: CreateWitnessReportDto,
+  ): NormalizedWitnessTraceability {
+    if (!Object.values(WitnessCredentialType).includes(data.credentialType)) {
+      throw new BadRequestException('El tipo de credencial debe ser E15 o E16');
+    }
+    if (!Object.values(E14FormType).includes(data.e14FormType)) {
+      throw new BadRequestException(
+        'Selecciona el ejemplar del formulario E-14',
+      );
+    }
+
+    const credentialReference = data.credentialReference?.trim();
+    if (!credentialReference || credentialReference.length > 120) {
+      throw new BadRequestException(
+        'La referencia de la credencial es obligatoria y admite hasta 120 caracteres',
+      );
+    }
+
+    const checkedInAt = new Date(data.checkedInAt);
+    if (Number.isNaN(checkedInAt.getTime())) {
+      throw new BadRequestException(
+        'La hora de presencia del testigo no es valida',
+      );
+    }
+    if (checkedInAt.getTime() > Date.now() + CHECK_IN_CLOCK_SKEW_MS) {
+      throw new BadRequestException(
+        'La hora de presencia no puede estar en el futuro',
+      );
+    }
+
+    if (typeof data.hasWrittenClaim !== 'boolean') {
+      throw new BadRequestException(
+        'Indica si se presento una reclamacion escrita',
+      );
+    }
+
+    const reclamationDescription = data.reclamationDescription?.trim();
+    if (data.hasWrittenClaim) {
+      if (
+        !data.reclamationGround ||
+        !Object.values(WitnessReclamationGround).includes(
+          data.reclamationGround,
+        ) ||
+        !reclamationDescription ||
+        reclamationDescription.length < 20 ||
+        reclamationDescription.length > 2000
+      ) {
+        throw new BadRequestException(
+          'Una reclamacion escrita requiere causal valida y descripcion de 20 a 2.000 caracteres',
+        );
+      }
+      if (
+        data.reclamationGround ===
+          WitnessReclamationGround.OTHER_STATUTORY_GROUND &&
+        !/(art(?:[íi]culo)?\.?|ley|decreto|numeral)\s+/i.test(
+          reclamationDescription,
+        )
+      ) {
+        throw new BadRequestException(
+          'La otra causal taxativa debe identificar la norma o el numeral aplicable',
+        );
+      }
+    } else if (data.reclamationGround || reclamationDescription) {
+      throw new BadRequestException(
+        'No envies causal ni descripcion cuando no hubo reclamacion escrita',
+      );
+    }
+
+    return {
+      credentialType: data.credentialType,
+      credentialReference,
+      checkedInAt,
+      e14FormType: data.e14FormType,
+      blankVotes: data.blankVotes,
+      nullVotes: data.nullVotes,
+      unmarkedVotes: data.unmarkedVotes,
+      hasWrittenClaim: data.hasWrittenClaim,
+      ...(data.hasWrittenClaim
+        ? {
+            reclamationGround: data.reclamationGround,
+            reclamationDescription,
+          }
+        : {}),
+    };
   }
 
   private assertPrivateEvidencePath(tenantId: string, path: string): void {
@@ -691,8 +867,18 @@ export class WitnessService {
       witnessId: report.witnessId,
       puestoId: report.puestoId,
       mesa: report.mesa,
+      credentialType: report.credentialType,
+      credentialReference: report.credentialReference,
+      checkedInAt: report.checkedInAt?.toISOString() ?? null,
+      e14FormType: report.e14FormType,
       candidateVotes: report.candidateVotes,
+      blankVotes: report.blankVotes,
+      nullVotes: report.nullVotes,
+      unmarkedVotes: report.unmarkedVotes,
       totalTableVotes: report.totalTableVotes,
+      hasWrittenClaim: report.hasWrittenClaim,
+      reclamationGround: report.reclamationGround,
+      reclamationDescriptionPresent: report.reclamationDescription !== null,
       isSynced: report.isSynced,
       status: report.status,
       reviewerId: report.reviewerId,
@@ -722,6 +908,9 @@ export class WitnessService {
       },
       select: {
         candidateVotes: true,
+        blankVotes: true,
+        nullVotes: true,
+        unmarkedVotes: true,
         totalTableVotes: true,
         status: true,
       },
@@ -729,12 +918,7 @@ export class WitnessService {
 
     return (
       reports.some(({ status }) => status === WitnessReportStatus.PENDING) &&
-      new Set(
-        reports.map(
-          ({ candidateVotes, totalTableVotes }) =>
-            `${candidateVotes}:${totalTableVotes}`,
-        ),
-      ).size > 1
+      new Set(reports.map((report) => this.voteFingerprint(report))).size > 1
     );
   }
 
@@ -753,9 +937,7 @@ export class WitnessService {
         fingerprints: new Set<string>(),
       };
       table.hasPending ||= report.status === WitnessReportStatus.PENDING;
-      table.fingerprints.add(
-        `${report.candidateVotes}:${report.totalTableVotes}`,
-      );
+      table.fingerprints.add(this.voteFingerprint(report));
       tables.set(key, table);
     }
 
@@ -770,12 +952,46 @@ export class WitnessService {
     return `${puestoId}:${mesa}`;
   }
 
+  private voteFingerprint(
+    report: Pick<
+      TableFingerprint,
+      | 'candidateVotes'
+      | 'blankVotes'
+      | 'nullVotes'
+      | 'unmarkedVotes'
+      | 'totalTableVotes'
+    >,
+  ): string {
+    return [
+      report.candidateVotes,
+      report.blankVotes ?? 'legacy',
+      report.nullVotes ?? 'legacy',
+      report.unmarkedVotes ?? 'legacy',
+      report.totalTableVotes,
+    ].join(':');
+  }
+
+  private hasCompleteTraceability(report: WitnessReportView): boolean {
+    return Boolean(
+      report.credentialType &&
+      report.credentialReference?.trim() &&
+      report.checkedInAt &&
+      report.e14FormType &&
+      report.blankVotes !== null &&
+      report.nullVotes !== null &&
+      report.unmarkedVotes !== null &&
+      report.hasWrittenClaim !== null &&
+      (!report.hasWrittenClaim ||
+        (report.reclamationGround && report.reclamationDescription?.trim())),
+    );
+  }
+
   private async assertCampaignMode(tenantId: string): Promise<void> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: CAMPAIGN_TENANT_SELECT,
     });
-    assertCampaignTenant(tenant);
+    assertCandidacyCampaignTenant(tenant);
   }
 
   private rethrowConcurrencyConflict(error: unknown): never {

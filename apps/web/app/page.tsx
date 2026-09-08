@@ -58,7 +58,7 @@ const journey = [
     number: "05",
     title: "Rendir cuentas",
     description:
-      "Da seguimiento a casos y compromisos con responsables, fechas, progreso y evidencia de resultado.",
+      "Da seguimiento interno a casos y compromisos con responsables, fechas y progreso declarado.",
     icon: Eye,
   },
 ];
@@ -95,7 +95,7 @@ const capabilities = [
   {
     title: "Atención ciudadana",
     description:
-      "Gestiona casos, responsables y tiempos de respuesta en un espacio separado de los datos de campaña.",
+      "Gestiona casos, responsables y fechas operativas en un espacio separado de los datos de campaña.",
     icon: Landmark,
     accent: "bg-rose-50 text-rose-700 ring-rose-100",
   },
@@ -145,7 +145,11 @@ const operatingPrinciples = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f6f7f2] text-slate-950 selection:bg-emerald-200 selection:text-emerald-950">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen overflow-hidden bg-[#f6f7f2] text-slate-950 outline-none selection:bg-emerald-200 selection:text-emerald-950"
+    >
       <section className="relative isolate border-b border-slate-900/10 bg-[#0b1f1c] text-white">
         <div
           className="absolute inset-0 -z-20 opacity-40"
@@ -200,11 +204,11 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="hidden text-sm font-bold text-white/80 transition hover:text-white sm:block">
-              Iniciar sesión
+            <Link href="/iniciar-sesion" className="hidden text-sm font-bold text-white/80 transition hover:text-white sm:block">
+              Acceder
             </Link>
             <Link
-              href="/auth/register"
+              href="/registro"
               className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
             >
               Registrarse
@@ -228,7 +232,8 @@ export default function LandingPage() {
             </p>
             <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
               Coordina equipo, ciudadanía, finanzas, control electoral y
-              compromisos con responsables, finalidad y evidencia en cada paso.
+              compromisos con responsables, finalidad y trazabilidad en los
+              flujos implementados.
             </p>
 
             <div id="comenzar" className="mt-9 scroll-mt-8">

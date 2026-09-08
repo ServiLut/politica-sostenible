@@ -115,6 +115,7 @@ export class TasksService {
     const where: Prisma.TaskWhereInput = {
       tenantId: user.tenantId,
       mode,
+      ...(query.entityId ? { id: query.entityId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
       ...(assigneeId ? { assigneeId } : {}),

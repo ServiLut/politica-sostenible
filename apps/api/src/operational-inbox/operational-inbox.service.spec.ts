@@ -145,7 +145,26 @@ describe('OperationalInboxService secure unified read model', () => {
       kind: 'INCIDENT',
       kindLabel: 'Incidente',
       overdue: true,
-      cta: { href: '/dashboard/incidents' },
+      cta: {
+        label: 'Gestionar incidente',
+        href: '/dashboard/incidents?view=detail&entityId=case-a',
+      },
+    });
+    expect(result.items.find((item) => item.kind === 'TASK')?.cta).toEqual({
+      label: 'Gestionar tarea',
+      href: '/dashboard/tasks?view=tasks&entityId=task-a',
+    });
+    expect(
+      result.items.find((item) => item.kind === 'COMMITMENT')?.cta,
+    ).toEqual({
+      label: 'Gestionar compromiso',
+      href: '/dashboard/tasks?view=commitments&entityId=commitment-a',
+    });
+    expect(
+      result.items.find((item) => item.kind === 'COMMUNICATION_APPROVAL')?.cta,
+    ).toEqual({
+      label: 'Revisar y decidir',
+      href: '/dashboard/communications?view=review&entityId=approval-a',
     });
     expect(JSON.stringify(result)).not.toContain('description');
     expect(JSON.stringify(result)).not.toContain('externalContactRef');
@@ -197,7 +216,7 @@ describe('OperationalInboxService secure unified read model', () => {
       divisionId: null,
     });
 
-    await service.findAll(
+    const result = await service.findAll(
       {
         userId: 'worker-a',
         tenantId: 'tenant-a',
@@ -224,6 +243,12 @@ describe('OperationalInboxService secure unified read model', () => {
     expect(approvalWhere).toEqual(
       expect.objectContaining({ AND: [{ requestedById: 'worker-a' }] }),
     );
+    expect(
+      result.items.find((item) => item.kind === 'COMMUNICATION_APPROVAL')?.cta,
+    ).toEqual({
+      label: 'Revisar solicitud',
+      href: '/dashboard/communications?view=review&entityId=approval-a',
+    });
   });
 
   it('uses the persisted role and rejects an incompatible or inactive actor', async () => {
@@ -258,7 +283,7 @@ describe('OperationalInboxService secure unified read model', () => {
       { id: 'division-foreign', parentId: null },
     ]);
 
-    await service.findAll(
+    const result = await service.findAll(
       {
         userId: 'coordinator-a',
         tenantId: 'tenant-a',
@@ -271,6 +296,54 @@ describe('OperationalInboxService secure unified read model', () => {
     expect(JSON.stringify(taskScope)).toContain('division-parent');
     expect(JSON.stringify(taskScope)).toContain('division-child');
     expect(JSON.stringify(taskScope)).not.toContain('division-foreign');
+    expect(prisma.issueCase.findMany).not.toHaveBeenCalled();
+    expect(prisma.issueCase.count).not.toHaveBeenCalled();
     expect(prisma.communicationApproval.findMany).not.toHaveBeenCalled();
+    expect(result.summary.byKind.incidents).toBe(0);
+    expect(result.items.some((item) => item.kind === 'INCIDENT')).toBe(false);
+    expect(
+      result.items.find((item) => item.kind === 'COMMITMENT')?.cta.label,
+    ).toBe('Revisar compromiso');
+  });
+
+  it('uses review language for audit roles without hiding real decision capability', async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.COMPLIANCE_OFFICER,
+      divisionId: null,
+    });
+
+    const complianceResult = await service.findAll(
+      { ...leader, role: Role.ADMIN },
+      {},
+    );
+
+    expect(
+      complianceResult.items.find((item) => item.kind === 'INCIDENT')?.cta
+        .label,
+    ).toBe('Revisar incidente');
+    expect(
+      complianceResult.items.find((item) => item.kind === 'TASK')?.cta.label,
+    ).toBe('Revisar tarea');
+    expect(
+      complianceResult.items.find(
+        (item) => item.kind === 'COMMUNICATION_APPROVAL',
+      )?.cta.label,
+    ).toBe('Revisar y decidir');
+
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.AUDITOR,
+      divisionId: null,
+    });
+    const auditorResult = await service.findAll(
+      { ...leader, role: Role.ADMIN },
+      {},
+    );
+    expect(
+      auditorResult.items.find((item) => item.kind === 'INCIDENT')?.cta.label,
+    ).toBe('Revisar incidente');
+    expect(
+      auditorResult.items.find((item) => item.kind === 'COMMUNICATION_APPROVAL')
+        ?.cta.label,
+    ).toBe('Revisar solicitud');
   });
 });

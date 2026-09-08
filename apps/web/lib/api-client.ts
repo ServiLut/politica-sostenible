@@ -111,7 +111,12 @@ export async function apiRequest<T>(
   const payload = await readResponsePayload(response);
 
   if (!response.ok) {
-    if (response.status === 401 && auth && accessToken) {
+    if (
+      response.status === 401 &&
+      auth &&
+      accessToken &&
+      getStoredAccessToken() === accessToken
+    ) {
       clearAuthSession();
     }
 
@@ -160,7 +165,12 @@ export async function apiDownload(
 
   if (!response.ok) {
     const payload = await readResponsePayload(response);
-    if (response.status === 401 && auth && accessToken) {
+    if (
+      response.status === 401 &&
+      auth &&
+      accessToken &&
+      getStoredAccessToken() === accessToken
+    ) {
       clearAuthSession();
     }
     throw new ApiError(

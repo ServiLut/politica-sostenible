@@ -45,8 +45,13 @@ const firstPageVoter = {
   documentIdMasked: "******5678",
   phoneMasked: "******0199",
   mesa: 8,
-  isSignatureValid: true,
   consentAccepted: true,
+  consentCurrent: true,
+  consentRequiresReconsent: false,
+  consentState: "CURRENT",
+  consentRecordStatus: "GRANTED",
+  consentNoticeVersion: "campaign-2026-09-v1",
+  currentConsentNoticeVersion: "campaign-2026-09-v1",
   consentTimestamp: "2026-08-19T14:00:00.000Z",
   createdAt: "2026-08-19T14:00:00.000Z",
   puesto: { name: "Colegio Central" },
@@ -61,8 +66,13 @@ const secondPageVoter = {
   documentIdMasked: "******2222",
   phoneMasked: "******3333",
   mesa: 14,
-  isSignatureValid: true,
   consentAccepted: true,
+  consentCurrent: true,
+  consentRequiresReconsent: false,
+  consentState: "CURRENT",
+  consentRecordStatus: "GRANTED",
+  consentNoticeVersion: "campaign-2026-09-v1",
+  currentConsentNoticeVersion: "campaign-2026-09-v1",
   consentTimestamp: "2026-08-20T14:00:00.000Z",
   createdAt: "2026-08-20T14:00:00.000Z",
   puesto: { name: "Escuela Norte" },
@@ -76,8 +86,13 @@ const createdVoter = {
   documentIdMasked: "******5432",
   phoneMasked: "******7788",
   mesa: 12,
-  isSignatureValid: true,
   consentAccepted: true,
+  consentCurrent: true,
+  consentRequiresReconsent: false,
+  consentState: "CURRENT",
+  consentRecordStatus: "GRANTED",
+  consentNoticeVersion: "campaign-2026-09-v1",
+  currentConsentNoticeVersion: "campaign-2026-09-v1",
   consentTimestamp: "2026-08-21T15:00:00.000Z",
   createdAt: "2026-08-21T15:00:00.000Z",
   puesto: null,
@@ -143,6 +158,12 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
     email: existingRawPii.email,
     mesa: firstPageVoter.mesa,
     consentAccepted: true,
+    consentCurrent: true,
+    consentRequiresReconsent: false,
+    consentState: "CURRENT",
+    consentRecordStatus: "GRANTED",
+    consentNoticeVersion: currentConsentNotice.version,
+    currentConsentNoticeVersion: currentConsentNotice.version,
     consentTimestamp: firstPageVoter.consentTimestamp,
     termsVersion: "2026.1",
     createdAt: firstPageVoter.createdAt,
@@ -411,9 +432,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
 
   await page.goto("/dashboard/votantes");
 
-  await expect(
-    page.getByRole("heading", { name: "Relacionamiento territorial" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Personas" })).toBeVisible();
   await expect(page.getByText(firstPageVoter.documentIdMasked)).toBeVisible();
   await expect(page.getByText(firstPageVoter.phoneMasked)).toBeVisible();
   await expect(page.getByText("Pagina 1 de 2")).toBeVisible();
@@ -532,9 +551,9 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
   await page.getByRole("button", { name: "Anterior" }).click();
   await expect(page.getByText("Carlos Rojas")).toBeVisible();
 
-  await page.getByRole("button", { name: "Nueva vinculacion" }).click();
+  await page.getByRole("button", { name: "Registrar persona" }).click();
   const createDialog = page.getByRole("dialog", {
-    name: "Nueva vinculacion consentida",
+    name: "Registrar persona autorizada",
   });
   await createDialog.getByLabel("Nombres").fill(createdVoter.firstName);
   await createDialog.getByLabel("Apellidos").fill(createdVoter.lastName);
@@ -565,7 +584,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
     .getByRole("button", { name: "Cerrar registro de persona" })
     .click();
   await expect(createDialog).toHaveCount(0);
-  await page.getByRole("button", { name: "Nueva vinculacion" }).click();
+  await page.getByRole("button", { name: "Registrar persona" }).click();
   await expect(createChannel).toHaveValue("");
   await expect(createConfirmation).not.toBeChecked();
   await expect(createButton).toBeDisabled();
@@ -575,9 +594,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
   await createButton.click();
 
   await expect(
-    page.getByText(
-      "Nueva vinculacion creada con consentimiento y trazabilidad.",
-    ),
+    page.getByText("Persona registrada con autorización y trazabilidad."),
   ).toBeVisible();
   await expect(page.getByText(createdVoter.documentIdMasked)).toBeVisible();
   await expect(page.getByText(createdVoter.phoneMasked)).toBeVisible();
@@ -608,7 +625,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
       "Consentimiento revocado; el historial legal fue conservado.",
     ),
   ).toBeVisible();
-  await expect(createdRow).toContainText("No vigente");
+  await expect(createdRow).toContainText("Revocado");
 
   await createdRow.getByRole("button", { name: "Reautorizar" }).click();
   const grantDialog = page.getByRole("dialog", {
@@ -814,6 +831,12 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
             ...existingRawPii,
             mesa: firstPageVoter.mesa,
             consentAccepted: true,
+            consentCurrent: true,
+            consentRequiresReconsent: false,
+            consentState: "CURRENT",
+            consentRecordStatus: "GRANTED",
+            consentNoticeVersion: currentConsentNotice.version,
+            currentConsentNoticeVersion: currentConsentNotice.version,
             consentTimestamp: firstPageVoter.consentTimestamp,
             termsVersion: "2026.1",
             createdAt: firstPageVoter.createdAt,
@@ -878,7 +901,7 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
   await page.goto("/dashboard/votantes");
   await expectRawPiiAbsentFromDom(page, Object.values(existingRawPii));
   await expect(
-    page.getByRole("button", { name: "Nueva vinculacion" }),
+    page.getByRole("button", { name: "Registrar persona" }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: /Ver datos protegidos de Carlos Rojas/ })

@@ -22,6 +22,7 @@ export function ExportButton({ moduleName, label = "Exportar CSV" }: { moduleNam
   return (
     <>
       <button
+        type="button"
         onClick={handleExport}
         disabled={loading}
         aria-busy={loading}

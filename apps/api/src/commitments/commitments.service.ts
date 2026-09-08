@@ -105,6 +105,7 @@ export class CommitmentsService {
     const where: Prisma.CommitmentWhereInput = {
       tenantId: user.tenantId,
       mode,
+      ...(query.entityId ? { id: query.entityId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(canReadInternal && query.ownerId ? { ownerId: query.ownerId } : {}),
       ...(canReadInternal && query.issueCaseId

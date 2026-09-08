@@ -19,6 +19,10 @@ import {
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import {
+  CONSENT_EFFECTIVENESS_RECORD_SELECT,
+  evaluateConsentEffectiveness,
+} from '../common/utils/consent-effectiveness.util';
+import {
   findActiveConsentNotice,
   requireActiveConsentNotice,
 } from '../common/utils/consent-notice.util';
@@ -34,6 +38,10 @@ import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
 import { normalizePhoneSearch } from '../common/utils/phone-normalization.util';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
 
 const CONSENT_REVOKE_ROLES = [
   Role.ADMIN,
@@ -77,14 +85,13 @@ export const VOTER_CAPTURE_ROLES = [
 ] as const;
 const VOTER_CAPTURE_RECEIPT = { received: true } as const;
 
-const VOTER_LIST_SELECT = {
+const VOTER_LIST_BASE_SELECT = {
   id: true,
   documentId: true,
   firstName: true,
   lastName: true,
   phone: true,
   mesa: true,
-  isSignatureValid: true,
   consentAccepted: true,
   consentTimestamp: true,
   createdAt: true,
@@ -92,8 +99,25 @@ const VOTER_LIST_SELECT = {
   registrar: { select: { name: true } },
 } satisfies Prisma.VoterSelect;
 
+function voterListSelect(tenantId: string) {
+  return {
+    ...VOTER_LIST_BASE_SELECT,
+    consentRecords: {
+      where: {
+        tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        subjectType: ConsentSubjectType.VOTER,
+        purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      },
+      orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
+      take: 1,
+      select: CONSENT_EFFECTIVENESS_RECORD_SELECT,
+    },
+  } satisfies Prisma.VoterSelect;
+}
+
 type VoterListSource = Prisma.VoterGetPayload<{
-  select: typeof VOTER_LIST_SELECT;
+  select: ReturnType<typeof voterListSelect>;
 }>;
 
 @Injectable()
@@ -137,6 +161,8 @@ export class VoterService {
         'No se puede registrar personas sin configurar el perfil operativo de la organización.',
       );
     }
+
+    await ensureTenantSubscription(this.prisma, user.tenantId);
 
     const { consentAccepted, termsVersion, collectionChannel, ...voterData } =
       dto;
@@ -193,6 +219,12 @@ export class VoterService {
               );
             }
           }
+
+          await assertPlanQuotaInTransaction(
+            transaction,
+            user.tenantId,
+            'voters',
+          );
 
           const existingVoter = await transaction.voter.findUnique({
             where: {
@@ -265,7 +297,7 @@ export class VoterService {
 
           return VOTER_CAPTURE_RECEIPT;
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
       );
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
@@ -283,7 +315,13 @@ export class VoterService {
   }
 
   async findAll(user: AuthenticatedUser, query: ListVotersQueryDto) {
-    return this.findPage(user, query.page ?? 1, query.limit ?? 25);
+    return this.findPage(
+      user,
+      query.page ?? 1,
+      query.limit ?? 25,
+      undefined,
+      query.entityId,
+    );
   }
 
   async search(user: AuthenticatedUser, dto: SearchVotersDto) {
@@ -339,6 +377,7 @@ export class VoterService {
     page: number,
     limit: number,
     search?: string,
+    entityId?: string,
   ) {
     await this.assertCampaignMode(user.tenantId);
     const { divisionIds } = await resolveTerritorialAccess({
@@ -348,10 +387,17 @@ export class VoterService {
       allowedRoles: VOTER_READ_ROLES,
       territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
     });
+    const currentNotice = await findActiveConsentNotice(
+      this.prisma,
+      user.tenantId,
+      PoliticalOperationMode.CAMPAIGN,
+      ConsentPurpose.POLITICAL_COMMUNICATION,
+    );
     const phoneSearch = search ? normalizePhoneSearch(search) : undefined;
     const where: Prisma.VoterWhereInput = {
       tenantId: user.tenantId,
       ...(divisionIds ? { puestoId: { in: divisionIds } } : {}),
+      ...(entityId ? { id: entityId } : {}),
       ...(search
         ? {
             OR: [
@@ -369,7 +415,7 @@ export class VoterService {
     const [voters, total] = await Promise.all([
       this.prisma.voter.findMany({
         where,
-        select: VOTER_LIST_SELECT,
+        select: voterListSelect(user.tenantId),
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
@@ -377,8 +423,11 @@ export class VoterService {
       this.prisma.voter.count({ where }),
     ]);
 
+    const checkedAt = new Date();
     return {
-      items: voters.map((voter) => this.toVoterListItem(voter)),
+      items: voters.map((voter) =>
+        this.toVoterListItem(voter, currentNotice?.version ?? null, checkedAt),
+      ),
       pagination: {
         page,
         limit,
@@ -566,7 +615,7 @@ export class VoterService {
                 ? { puestoId: { in: divisionIds } }
                 : {}),
             },
-            select: { id: true, consentAccepted: true },
+            select: { id: true },
           });
           if (!voter) {
             throw new NotFoundException('Ciudadano no encontrado');
@@ -581,20 +630,30 @@ export class VoterService {
               purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
             },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            select: { id: true, status: true, noticeVersion: true },
+            select: CONSENT_EFFECTIVENESS_RECORD_SELECT,
           });
 
-          const hasOutdatedGrant =
-            latestConsent?.status === ConsentStatus.GRANTED &&
-            latestConsent.noticeVersion !== consentNotice.version;
-          if (
-            !latestConsent ||
-            (latestConsent.status !== ConsentStatus.REVOKED &&
-              !hasOutdatedGrant) ||
-            voter.consentAccepted
-          ) {
+          if (!latestConsent) {
             throw new ConflictException(
-              latestConsent?.status === ConsentStatus.GRANTED
+              'No existe una revocacion vigente que pueda reautorizarse',
+            );
+          }
+
+          const previousEffectiveness = evaluateConsentEffectiveness(
+            latestConsent,
+            consentNotice.version,
+            new Date(),
+          );
+          const canReauthorize = Boolean(
+            latestConsent.status === ConsentStatus.REVOKED ||
+            latestConsent.status === ConsentStatus.EXPIRED ||
+            (latestConsent.status === ConsentStatus.GRANTED &&
+              (previousEffectiveness.reason === 'OUTDATED_NOTICE' ||
+                previousEffectiveness.reason === 'EXPIRED')),
+          );
+          if (!canReauthorize) {
+            throw new ConflictException(
+              previousEffectiveness.active
                 ? 'El consentimiento ya esta vigente'
                 : 'No existe una revocacion vigente que pueda reautorizarse',
             );
@@ -647,12 +706,12 @@ export class VoterService {
               resourceId: grant.id,
               before: {
                 status: latestConsent.status,
-                consentAccepted: false,
                 noticeVersion: latestConsent.noticeVersion,
+                activeForCurrentNotice: previousEffectiveness.active,
               },
               after: {
                 status: ConsentStatus.GRANTED,
-                consentAccepted: true,
+                activeForCurrentNotice: true,
               },
               metadata: {
                 purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
@@ -691,17 +750,44 @@ export class VoterService {
       allowedRoles: VOTER_READ_ROLES,
       territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
     });
+    const currentNotice = await findActiveConsentNotice(
+      this.prisma,
+      user.tenantId,
+      PoliticalOperationMode.CAMPAIGN,
+      ConsentPurpose.POLITICAL_COMMUNICATION,
+    );
     const where: Prisma.VoterWhereInput = {
       tenantId: user.tenantId,
       ...(divisionIds ? { puestoId: { in: divisionIds } } : {}),
     };
-    const [total, signatures, consented] = await Promise.all([
+    const checkedAt = new Date();
+    const [total, consented] = await Promise.all([
       this.prisma.voter.count({ where }),
-      this.prisma.voter.count({ where: { ...where, isSignatureValid: true } }),
-      this.prisma.voter.count({ where: { ...where, consentAccepted: true } }),
+      currentNotice
+        ? this.prisma.voter.count({
+            where: {
+              ...where,
+              consentAccepted: true,
+              termsVersion: currentNotice.version,
+              consentRecords: {
+                some: {
+                  tenantId: user.tenantId,
+                  mode: PoliticalOperationMode.CAMPAIGN,
+                  subjectType: ConsentSubjectType.VOTER,
+                  purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+                  status: ConsentStatus.GRANTED,
+                  noticeVersion: currentNotice.version,
+                  revokedAt: null,
+                  grantedAt: { lte: checkedAt },
+                  OR: [{ expiresAt: null }, { expiresAt: { gt: checkedAt } }],
+                },
+              },
+            },
+          })
+        : Promise.resolve(0),
     ]);
 
-    return { total, signatures, consented };
+    return { total, consented };
   }
 
   private async assertCampaignMode(tenantId: string): Promise<void> {
@@ -736,7 +822,18 @@ export class VoterService {
     }
   }
 
-  private toVoterListItem(voter: VoterListSource) {
+  private toVoterListItem(
+    voter: VoterListSource,
+    currentNoticeVersion: string | null,
+    checkedAt: Date,
+  ) {
+    const latestConsent = voter.consentRecords?.[0] ?? null;
+    const effectiveness = evaluateConsentEffectiveness(
+      latestConsent,
+      currentNoticeVersion,
+      checkedAt,
+    );
+
     return {
       id: voter.id,
       firstName: voter.firstName,
@@ -744,8 +841,13 @@ export class VoterService {
       documentIdMasked: this.maskSensitiveValue(voter.documentId),
       phoneMasked: voter.phone ? this.maskSensitiveValue(voter.phone) : null,
       mesa: voter.mesa,
-      isSignatureValid: voter.isSignatureValid,
       consentAccepted: voter.consentAccepted,
+      consentCurrent: effectiveness.active,
+      consentRequiresReconsent: effectiveness.requiresReconsent,
+      consentState: effectiveness.reason,
+      consentRecordStatus: latestConsent?.status ?? null,
+      consentNoticeVersion: latestConsent?.noticeVersion ?? null,
+      currentConsentNoticeVersion: currentNoticeVersion,
       consentTimestamp: voter.consentTimestamp,
       createdAt: voter.createdAt,
       puesto: voter.puesto,

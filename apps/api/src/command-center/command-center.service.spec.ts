@@ -1,8 +1,12 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
   CampaignEventStatus,
+  ConsentPurpose,
+  ConsentStatus,
+  ConsentSubjectType,
   DivisionType,
   EntryType,
+  FinanceReportScope,
   PoliticalOperationMode,
   Prisma,
   Role,
@@ -20,6 +24,27 @@ import {
 } from './command-center.controller';
 import { CommandCenterService } from './command-center.service';
 
+const completeFinanceSettings = {
+  id: 'settings-a',
+  maxTotalBudget: new Prisma.Decimal('1000000'),
+  maxPublicityLimit: new Prisma.Decimal('250000'),
+  electionName: 'Elecciones territoriales 2027',
+  electionDate: new Date('2027-10-31T00:00:00.000Z'),
+  reportScope: FinanceReportScope.CANDIDATE,
+  officialLimitsReference: 'Resolución CNE 0001 de 2027',
+  officialLimitsUrl: 'https://www.cne.gov.co/resoluciones/0001',
+  reportDeadline: new Date('2027-11-30T00:00:00.000Z'),
+  financialManagerName: 'Gerencia financiera',
+  financialManagerDocument: '1234567890',
+  accountantName: 'Contador responsable',
+  accountantDocument: '9876543210',
+  uniqueAccountBank: 'Banco autorizado',
+  uniqueAccountLastFour: '1234',
+  cuentasClarasCode: 'CC-CANDIDATO-001',
+  createdAt: new Date('2026-09-07T00:00:00.000Z'),
+  updatedAt: new Date('2026-09-07T00:00:00.000Z'),
+};
+
 describe('CommandCenterService secure briefing', () => {
   const campaignLeader: AuthenticatedUser = {
     userId: 'leader-a',
@@ -31,9 +56,11 @@ describe('CommandCenterService secure briefing', () => {
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock; count: jest.Mock };
     teamInvitation: { count: jest.Mock };
-    politicalDivision: { groupBy: jest.Mock };
+    politicalDivision: { groupBy: jest.Mock; findMany: jest.Mock };
     voter: { count: jest.Mock };
-    campaignSettings: { findUnique: jest.Mock };
+    consentNotice: { count: jest.Mock; findFirst: jest.Mock };
+    operationProfile: { count: jest.Mock };
+    campaignSettings: { findUnique: jest.Mock; count: jest.Mock };
     financialEntry: { groupBy: jest.Mock; count: jest.Mock };
     witnessReport: { count: jest.Mock };
     task: { count: jest.Mock; findMany: jest.Mock };
@@ -61,6 +88,14 @@ describe('CommandCenterService secure briefing', () => {
       },
       teamInvitation: { count: jest.fn().mockResolvedValue(1) },
       politicalDivision: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            name: 'Departamento A',
+            code: 'DEP-A',
+            goal: 20,
+            _count: { voters: 10 },
+          },
+        ]),
         groupBy: jest.fn().mockResolvedValue([
           { type: DivisionType.DEPARTAMENTO, _count: { _all: 1 } },
           { type: DivisionType.MUNICIPIO, _count: { _all: 5 } },
@@ -74,8 +109,14 @@ describe('CommandCenterService secure briefing', () => {
             Promise.resolve(where.consentAccepted === true ? 8 : 10),
           ),
       },
+      consentNotice: {
+        count: jest.fn().mockResolvedValue(1),
+        findFirst: jest.fn().mockResolvedValue({ version: 'campaign-v1' }),
+      },
+      operationProfile: { count: jest.fn().mockResolvedValue(1) },
       campaignSettings: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'settings-a' }),
+        findUnique: jest.fn().mockResolvedValue(completeFinanceSettings),
+        count: jest.fn().mockResolvedValue(1),
       },
       financialEntry: {
         groupBy: jest.fn().mockResolvedValue([
@@ -176,6 +217,8 @@ describe('CommandCenterService secure briefing', () => {
     expect(serialized).not.toContain('phone');
     expect(serialized).not.toContain('evidenceUrl');
     expect(serialized).not.toContain('description');
+    expect(serialized).not.toContain('1234567890');
+    expect(serialized).not.toContain('9876543210');
     expect(serialized).not.toContain('/dashboard/team');
   });
 
@@ -198,6 +241,46 @@ describe('CommandCenterService secure briefing', () => {
     );
   });
 
+  it('keeps executive activation red for legacy budget-only settings', async () => {
+    prisma.campaignSettings.findUnique.mockResolvedValue({
+      id: 'legacy-settings',
+      maxTotalBudget: new Prisma.Decimal('1000000'),
+      maxPublicityLimit: new Prisma.Decimal('250000'),
+    });
+
+    const result = await service.getBriefing(campaignLeader);
+
+    expect(result.activation).toMatchObject({
+      ready: false,
+      completedSteps: 3,
+      totalSteps: 4,
+    });
+    expect(result.activation.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'FINANCE_LIMITS',
+          title: 'Completar expediente financiero electoral',
+          complete: false,
+          href: '/dashboard/finance',
+        }),
+      ]),
+    );
+    expect(result.complianceStatus.hasConfiguredCampaignSettings).toBe(false);
+  });
+
+  it('reports zero effective consent coverage when no campaign notice is active', async () => {
+    prisma.consentNotice.findFirst.mockResolvedValue(null);
+
+    const result = await service.getBriefing(campaignLeader);
+
+    expect('people' in result.metrics && result.metrics.people).toMatchObject({
+      total: 10,
+      consented: 0,
+      consentCoverage: 0,
+    });
+    expect(prisma.voter.count).toHaveBeenCalledTimes(1);
+  });
+
   it('scopes every campaign query to the JWT tenant and server-side mode', async () => {
     await service.getBriefing(campaignLeader);
 
@@ -217,18 +300,30 @@ describe('CommandCenterService secure briefing', () => {
       where: {
         tenantId: 'tenant-a',
         consentAccepted: true,
+        termsVersion: 'campaign-v1',
         consentRecords: {
           some: {
             tenantId: 'tenant-a',
             mode: PoliticalOperationMode.CAMPAIGN,
-            purpose: 'POLITICAL_COMMUNICATION',
-            status: 'GRANTED',
+            subjectType: ConsentSubjectType.VOTER,
+            purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+            status: ConsentStatus.GRANTED,
+            noticeVersion: 'campaign-v1',
             revokedAt: null,
             grantedAt: { lte: expect.any(Date) },
             OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
           },
         },
       },
+    });
+    expect(prisma.consentNotice.findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        mode: PoliticalOperationMode.CAMPAIGN,
+        purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+        isActive: true,
+      },
+      select: { version: true },
     });
     for (const query of [
       prisma.user.count,
@@ -312,9 +407,18 @@ describe('CommandCenterService secure briefing', () => {
       metrics: {
         cases: { open: 5, overdue: 2, urgent: 1 },
         tasks: { open: 6, overdue: 2 },
-        commitments: { open: 4, atRisk: 1, overdue: 2, public: 3 },
+        commitments: { open: 4, atRisk: 1, overdue: 2, teamVisible: 3 },
       },
     });
+    expect(result.activation.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'FIRST_TEAM_VISIBLE_COMMITMENT',
+          title: 'Compartir el primer compromiso con el equipo',
+          complete: true,
+        }),
+      ]),
+    );
     expect(prisma.issueCase.count).toHaveBeenCalledWith({
       where: expect.objectContaining({
         tenantId: 'tenant-a',

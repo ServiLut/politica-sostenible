@@ -21,7 +21,12 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
+import {
   assertCampaignTenant,
+  assertCandidacyCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import {
@@ -66,6 +71,11 @@ const STORAGE_MODULE_ROLES: Partial<
     Role.ZONE_COORDINATOR,
     Role.WITNESS,
   ],
+  [StorageModuleName.CONSENT]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.COMPLIANCE_OFFICER,
+  ],
 };
 
 const STORAGE_AUTHORIZATION_TTL_MS = 15 * 60 * 1_000;
@@ -73,6 +83,10 @@ const MAX_UPLOADS_PER_USER_PER_HOUR = 30;
 const MAX_UPLOADS_PER_TENANT_PER_HOUR = 300;
 const MAX_STORED_BYTES_PER_TENANT = 10 * 1024 * 1024 * 1024;
 const DOWNLOAD_URL_TTL_SECONDS = 300;
+const DOWNLOADABLE_STORAGE_MODULES: readonly StorageModuleName[] = [
+  StorageModuleName.FINANCE,
+  StorageModuleName.E14,
+];
 const CONFIRMED_ORPHAN_RETENTION_MS = 24 * 60 * 60 * 1_000;
 const ORPHAN_CLEANUP_BATCH_SIZE = 10;
 
@@ -111,9 +125,10 @@ export class StorageService {
     const expiresAt = new Date(Date.now() + STORAGE_AUTHORIZATION_TTL_MS);
 
     await this.assertModuleAccess(user, dto.module, tenantId);
+    await ensureTenantSubscription(this.prisma, tenantId);
     await this.cleanupOrphanedObjects(tenantId);
 
-    await this.runSerializable(async (transaction) => {
+    await this.runQuotaTransaction(async (transaction) => {
       await this.assertModuleAccess(user, dto.module, tenantId, transaction);
       await this.assertUploadQuota(
         transaction,
@@ -322,6 +337,12 @@ export class StorageService {
   }
 
   async createDownloadUrl(user: AuthenticatedUser, dto: CreateDownloadUrlDto) {
+    if (!DOWNLOADABLE_STORAGE_MODULES.includes(dto.module)) {
+      throw new BadRequestException(
+        'El módulo no admite lectura desde este flujo',
+      );
+    }
+
     const tenantId = this.requireIdentitySegment(user.tenantId, 'tenant');
     const userId = this.requireIdentitySegment(user.userId, 'usuario');
     let path: string;
@@ -335,7 +356,10 @@ export class StorageService {
         allowedRoles: FINANCE_DOWNLOAD_ROLES,
         territoriallyScopedRoles: [],
       });
-      await this.assertCampaignModeForDownload(tenantId);
+      await this.assertCampaignModeForDownload(
+        tenantId,
+        StorageModuleName.FINANCE,
+      );
       const entry = await this.prisma.financialEntry.findFirst({
         where: { id: dto.resourceId, tenantId, evidenceUrl: { not: null } },
         select: { evidenceUrl: true },
@@ -353,7 +377,7 @@ export class StorageService {
         allowedRoles: E14_DOWNLOAD_ROLES,
         territoriallyScopedRoles: [Role.ZONE_COORDINATOR, Role.WITNESS],
       });
-      await this.assertCampaignModeForDownload(tenantId);
+      await this.assertCampaignModeForDownload(tenantId, StorageModuleName.E14);
       const report = await this.prisma.witnessReport.findFirst({
         where: {
           id: dto.resourceId,
@@ -485,7 +509,11 @@ export class StorageService {
       where: { id: tenantId },
       select: CAMPAIGN_TENANT_SELECT,
     });
-    assertCampaignTenant(tenant);
+    if (module === StorageModuleName.E14) {
+      assertCandidacyCampaignTenant(tenant);
+    } else {
+      assertCampaignTenant(tenant);
+    }
     return PoliticalOperationMode.CAMPAIGN;
   }
 
@@ -504,6 +532,13 @@ export class StorageService {
       },
       data: { status: StoredObjectStatus.EXPIRED },
     });
+
+    await assertPlanQuotaInTransaction(
+      transaction,
+      tenantId,
+      'storage',
+      requestedSize,
+    );
 
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1_000);
     const activeStatuses = [
@@ -618,13 +653,14 @@ export class StorageService {
     }
   }
 
-  private async runSerializable<T>(
+  private async runQuotaTransaction<T>(
     operation: (transaction: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         return await this.prisma.$transaction(operation, {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          // The plan advisory lock is followed by fresh quota reads.
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
         });
       } catch (error) {
         const errorCode =
@@ -653,16 +689,24 @@ export class StorageService {
     const mapping: Record<StorageModuleName, StorageObjectModule> = {
       [StorageModuleName.FINANCE]: StorageObjectModule.FINANCE,
       [StorageModuleName.E14]: StorageObjectModule.E14,
+      [StorageModuleName.CONSENT]: StorageObjectModule.CONSENT,
     };
     return mapping[module];
   }
 
-  private async assertCampaignModeForDownload(tenantId: string) {
+  private async assertCampaignModeForDownload(
+    tenantId: string,
+    module: StorageModuleName,
+  ) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: CAMPAIGN_TENANT_SELECT,
     });
-    assertCampaignTenant(tenant);
+    if (module === StorageModuleName.E14) {
+      assertCandidacyCampaignTenant(tenant);
+    } else {
+      assertCampaignTenant(tenant);
+    }
   }
 
   private validateFileName(value: unknown): string {

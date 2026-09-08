@@ -63,6 +63,12 @@ export class FinanceController {
     return this.financeService.getSummary(user.tenantId);
   }
 
+  @Get('settings')
+  @Roles(...FINANCE_WRITE_ROLES)
+  getSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.financeService.getSettings(user.tenantId, user.userId);
+  }
+
   @Put('settings')
   @Roles(...FINANCE_WRITE_ROLES)
   updateSettings(
@@ -85,7 +91,7 @@ export class FinanceController {
   @Patch(':id/cne-report')
   @Roles(...FINANCE_REVIEW_ROLES)
   @ApiOperation({
-    summary: 'Confirma una radicación realizada externamente en Cuentas Claras',
+    summary: 'Guarda una referencia externa declarada y su soporte privado',
   })
   markReportedToCne(
     @CurrentUser() user: AuthenticatedUser,

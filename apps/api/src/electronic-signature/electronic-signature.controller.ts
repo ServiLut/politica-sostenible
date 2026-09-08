@@ -1,41 +1,62 @@
-import { Controller, Post, Get, Body, Param, Req, UseGuards, Ip } from '@nestjs/common';
+import { Body, Controller, Get, Ip, Param, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { Role } from '../../prisma/generated/prisma';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  PlanFeature,
+  RequiresPlanFeature,
+} from '../auth/decorators/requires-plan-feature.decorator';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ElectronicSignatureService } from './electronic-signature.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../auth/interfaces/authenticated-user.interface';
-import { IsString, IsNotEmpty } from 'class-validator';
+import {
+  SignatureParamsDto,
+  SignDocumentDto,
+  VerifySignatureQueryDto,
+} from './dto/electronic-signature.dto';
 
-export class SignDocumentDto {
-  @IsString()
-  @IsNotEmpty()
-  documentId: string;
+const SIGNATURE_SIGN_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+];
 
-  @IsString()
-  @IsNotEmpty()
-  otpCode: string;
-}
+const SIGNATURE_VERIFY_ROLES = [
+  ...SIGNATURE_SIGN_ROLES,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+];
 
+@ApiTags('Electronic signatures')
+@ApiBearerAuth()
 @Controller('electronic-signature')
-@UseGuards(JwtAuthGuard)
 export class ElectronicSignatureController {
   constructor(private readonly signatureService: ElectronicSignatureService) {}
 
   @Post('sign')
+  @Roles(...SIGNATURE_SIGN_ROLES)
+  @RequiresPlanFeature(PlanFeature.MFA)
+  @Throttle({
+    default: { limit: 5, ttl: 60_000, blockDuration: 5 * 60_000 },
+  })
   async signDocument(
-    @Req() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: SignDocumentDto,
     @Ip() ip: string,
   ) {
-    const tenantId = req.user.tenantId;
-    const userId = req.user.userId;
-    return this.signatureService.signDocument(tenantId, dto.documentId, userId, dto.otpCode, ip);
+    return this.signatureService.signDocument(user, dto, ip);
   }
 
   @Get(':id/verify')
+  @Roles(...SIGNATURE_VERIFY_ROLES)
   async verifySignature(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') signatureId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: SignatureParamsDto,
+    @Query() query: VerifySignatureQueryDto,
   ) {
-    const tenantId = req.user.tenantId;
-    return this.signatureService.verifySignature(tenantId, signatureId);
+    return this.signatureService.verifySignature(user, params.id, query);
   }
 }

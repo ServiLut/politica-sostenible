@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AuditActorType,
@@ -13,86 +12,85 @@ export class RetentionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron('0 3 * * *')
-  async handleDataRetention() {
-    this.logger.log('Starting data retention job');
+  async handleDataRetention(tenantId: string): Promise<void> {
+    this.logger.log(`Starting data retention for tenant ${tenantId}`);
 
-    const tenants = await this.prisma.tenant.findMany({
-      include: {
-        operationProfile: true,
-        settings: true,
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        defaultMode: true,
+        operationProfile: {
+          select: {
+            electionDate: true,
+            retentionPeriodDays: true,
+          },
+        },
       },
     });
 
-    let processedCount = 0;
-    const now = new Date();
-
-    for (const tenant of tenants) {
-      const profile = tenant.operationProfile;
-      if (!profile || !profile.retentionPeriodDays) {
-        continue;
-      }
-
-      // CRITICAL FIX: Retention must start from campaign end,
-      // NOT from profile.createdAt. Per Colombian electoral law, data must be
-      // retained until after the election cycle concludes.
-      const referenceDate = profile.updatedAt;  // Fallback: last profile update, never createdAt
-      
-      if (!referenceDate) {
-        this.logger.warn(`Tenant ${tenant.id}: No election date or reference date found. Skipping retention.`);
-        continue;
-      }
-
-      const expirationDate = new Date(referenceDate);
-      expirationDate.setDate(expirationDate.getDate() + profile.retentionPeriodDays);
-
-      if (now >= expirationDate) {
-        this.logger.log(`Retention period expired for tenant ${tenant.id}. Deleting data.`);
-        
-        try {
-          await this.prisma.$transaction(async (tx) => {
-            // Update consent records to EXPIRED before deletion
-            await tx.consentRecord.updateMany({
-              where: { tenantId: tenant.id },
-              data: { status: ConsentStatus.EXPIRED },
-            });
-
-            const interactionsDeleted = await tx.interaction.deleteMany({
-              where: { tenantId: tenant.id },
-            });
-
-            const consentRecordsDeleted = await tx.consentRecord.deleteMany({
-              where: { tenantId: tenant.id },
-            });
-
-            const votersDeleted = await tx.voter.deleteMany({
-              where: { tenantId: tenant.id },
-            });
-
-            await tx.auditEvent.create({
-              data: {
-                tenantId: tenant.id,
-                mode: tenant.defaultMode,
-                actorType: AuditActorType.SYSTEM,
-                action: 'DATA_RETENTION_EXECUTED',
-                resourceType: 'Tenant',
-                resourceId: tenant.id,
-                outcome: AuditOutcome.SUCCESS,
-                metadata: {
-                  deletedInteractions: interactionsDeleted.count,
-                  deletedConsentRecords: consentRecordsDeleted.count,
-                  deletedVoters: votersDeleted.count,
-                },
-              },
-            });
-          });
-          processedCount++;
-        } catch (error) {
-          this.logger.error(`Error processing retention for tenant ${tenant.id}`, error);
-        }
-      }
+    const profile = tenant?.operationProfile;
+    if (!tenant || !profile) {
+      this.logger.warn(
+        `Tenant ${tenantId}: No operation profile found. Skipping retention.`,
+      );
+      return;
     }
 
-    this.logger.log(`Data retention job completed. Processed ${processedCount} tenants.`);
+    const expirationDate = new Date(profile.electionDate);
+    expirationDate.setUTCDate(
+      expirationDate.getUTCDate() + profile.retentionPeriodDays,
+    );
+
+    if (new Date() < expirationDate) {
+      this.logger.log(`Tenant ${tenantId}: Retention period has not expired.`);
+      return;
+    }
+
+    this.logger.log(
+      `Retention period expired for tenant ${tenantId}. Deleting data.`,
+    );
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.consentRecord.updateMany({
+          where: { tenantId },
+          data: { status: ConsentStatus.EXPIRED },
+        });
+
+        const interactionsDeleted = await tx.interaction.deleteMany({
+          where: { tenantId },
+        });
+
+        const consentRecordsDeleted = await tx.consentRecord.deleteMany({
+          where: { tenantId },
+        });
+
+        const votersDeleted = await tx.voter.deleteMany({
+          where: { tenantId },
+        });
+
+        await tx.auditEvent.create({
+          data: {
+            tenantId,
+            mode: tenant.defaultMode,
+            actorType: AuditActorType.SYSTEM,
+            action: 'DATA_RETENTION_EXECUTED',
+            resourceType: 'Tenant',
+            resourceId: tenantId,
+            outcome: AuditOutcome.SUCCESS,
+            metadata: {
+              deletedInteractions: interactionsDeleted.count,
+              deletedConsentRecords: consentRecordsDeleted.count,
+              deletedVoters: votersDeleted.count,
+            },
+          },
+        });
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error processing retention for tenant ${tenantId}`,
+        error,
+      );
+    }
   }
 }

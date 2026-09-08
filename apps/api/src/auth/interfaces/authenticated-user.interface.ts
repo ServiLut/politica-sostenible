@@ -6,6 +6,7 @@ export interface JwtTokenPayload {
   email?: string;
   role?: string;
   sessionVersion?: string;
+  authVersion?: number;
   iat?: number;
   exp?: number;
 }

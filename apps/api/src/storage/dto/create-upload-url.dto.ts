@@ -15,7 +15,10 @@ import {
   STORAGE_MAX_UPLOAD_BYTES,
   StorageModuleName,
 } from '../storage.constants';
-import { DocumentCategory, RetentionPhase } from '../../../prisma/generated/prisma';
+import {
+  DocumentCategory,
+  RetentionPhase,
+} from '../../../prisma/generated/prisma';
 
 export class CreateUploadUrlDto {
   @IsEnum(StorageModuleName)

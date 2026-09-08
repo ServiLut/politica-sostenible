@@ -137,6 +137,19 @@ exports.Prisma.CampaignSettingsScalarFieldEnum = {
   tenantId: 'tenantId',
   maxTotalBudget: 'maxTotalBudget',
   maxPublicityLimit: 'maxPublicityLimit',
+  electionName: 'electionName',
+  electionDate: 'electionDate',
+  reportScope: 'reportScope',
+  officialLimitsReference: 'officialLimitsReference',
+  officialLimitsUrl: 'officialLimitsUrl',
+  reportDeadline: 'reportDeadline',
+  financialManagerName: 'financialManagerName',
+  financialManagerDocument: 'financialManagerDocument',
+  accountantName: 'accountantName',
+  accountantDocument: 'accountantDocument',
+  uniqueAccountBank: 'uniqueAccountBank',
+  uniqueAccountLastFour: 'uniqueAccountLastFour',
+  cuentasClarasCode: 'cuentasClarasCode',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -167,6 +180,7 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
   password: 'password',
+  authVersion: 'authVersion',
   mustChangePassword: 'mustChangePassword',
   temporaryPasswordExpiresAt: 'temporaryPasswordExpiresAt',
   name: 'name',
@@ -176,6 +190,7 @@ exports.Prisma.UserScalarFieldEnum = {
   phone: 'phone',
   totpSecret: 'totpSecret',
   totpEnabledAt: 'totpEnabledAt',
+  lastTotpTimeStep: 'lastTotpTimeStep',
   points: 'points',
   tenantId: 'tenantId',
   divisionId: 'divisionId',
@@ -246,6 +261,7 @@ exports.Prisma.FinancialEntryScalarFieldEnum = {
   cneReportedById: 'cneReportedById',
   cneReportedAt: 'cneReportedAt',
   cneReportReference: 'cneReportReference',
+  cneReportEvidenceUrl: 'cneReportEvidenceUrl',
   status: 'status',
   auditLog: 'auditLog',
   createdAt: 'createdAt'
@@ -258,8 +274,18 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   puestoId: 'puestoId',
   mesa: 'mesa',
   e14ImageUrl: 'e14ImageUrl',
+  credentialType: 'credentialType',
+  credentialReference: 'credentialReference',
+  checkedInAt: 'checkedInAt',
+  e14FormType: 'e14FormType',
   candidateVotes: 'candidateVotes',
+  blankVotes: 'blankVotes',
+  nullVotes: 'nullVotes',
+  unmarkedVotes: 'unmarkedVotes',
   totalTableVotes: 'totalTableVotes',
+  hasWrittenClaim: 'hasWrittenClaim',
+  reclamationGround: 'reclamationGround',
+  reclamationDescription: 'reclamationDescription',
   observations: 'observations',
   isSynced: 'isSynced',
   status: 'status',
@@ -286,6 +312,38 @@ exports.Prisma.CampaignEventScalarFieldEnum = {
   tenantId: 'tenantId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PointLogScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  userId: 'userId',
+  amount: 'amount',
+  reason: 'reason',
+  eventId: 'eventId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InventoryItemScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  sku: 'sku',
+  quantity: 'quantity',
+  warehouse: 'warehouse',
+  tenantId: 'tenantId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventoryMovementScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  itemId: 'itemId',
+  userId: 'userId',
+  quantity: 'quantity',
+  type: 'type',
+  reason: 'reason',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ConsentRecordScalarFieldEnum = {
@@ -525,6 +583,12 @@ exports.Prisma.TenantSubscriptionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SystemDatabaseIdentityScalarFieldEnum = {
+  id: 'id',
+  fingerprint: 'fingerprint',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ElectronicSignatureScalarFieldEnum = {
   id: 'id',
   tenantId: 'tenantId',
@@ -576,9 +640,15 @@ exports.PoliticalOperationMode = exports.$Enums.PoliticalOperationMode = {
   PUBLIC_OFFICE: 'PUBLIC_OFFICE'
 };
 
+exports.FinanceReportScope = exports.$Enums.FinanceReportScope = {
+  CANDIDATE: 'CANDIDATE',
+  POLITICAL_ORGANIZATION: 'POLITICAL_ORGANIZATION'
+};
+
 exports.StorageObjectModule = exports.$Enums.StorageObjectModule = {
   FINANCE: 'FINANCE',
-  E14: 'E14'
+  E14: 'E14',
+  CONSENT: 'CONSENT'
 };
 
 exports.StoredObjectStatus = exports.$Enums.StoredObjectStatus = {
@@ -646,6 +716,29 @@ exports.FinanceStatus = exports.$Enums.FinanceStatus = {
   REPORTED_CNE: 'REPORTED_CNE'
 };
 
+exports.WitnessCredentialType = exports.$Enums.WitnessCredentialType = {
+  E15: 'E15',
+  E16: 'E16'
+};
+
+exports.E14FormType = exports.$Enums.E14FormType = {
+  DELEGADOS: 'DELEGADOS',
+  CLAVEROS: 'CLAVEROS',
+  TRANSMISION: 'TRANSMISION'
+};
+
+exports.WitnessReclamationGround = exports.$Enums.WitnessReclamationGround = {
+  VOTERS_EXCEED_AUTHORIZED: 'VOTERS_EXCEED_AUTHORIZED',
+  ARITHMETIC_ERROR: 'ARITHMETIC_ERROR',
+  CANDIDATE_IDENTIFICATION_ERROR: 'CANDIDATE_IDENTIFICATION_ERROR',
+  INSUFFICIENT_JUROR_SIGNATURES: 'INSUFFICIENT_JUROR_SIGNATURES',
+  RECOUNT_REQUEST: 'RECOUNT_REQUEST',
+  UNAUTHORIZED_POLLING_PLACE: 'UNAUTHORIZED_POLLING_PLACE',
+  ELECTION_ON_UNAUTHORIZED_DATE: 'ELECTION_ON_UNAUTHORIZED_DATE',
+  BALLOTS_DESTROYED_OR_LOST: 'BALLOTS_DESTROYED_OR_LOST',
+  OTHER_STATUTORY_GROUND: 'OTHER_STATUTORY_GROUND'
+};
+
 exports.WitnessReportStatus = exports.$Enums.WitnessReportStatus = {
   PENDING: 'PENDING',
   ACCEPTED: 'ACCEPTED',
@@ -659,6 +752,12 @@ exports.CampaignEventStatus = exports.$Enums.CampaignEventStatus = {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED'
+};
+
+exports.MovementType = exports.$Enums.MovementType = {
+  IN: 'IN',
+  OUT: 'OUT',
+  ADJUSTMENT: 'ADJUSTMENT'
 };
 
 exports.ConsentSubjectType = exports.$Enums.ConsentSubjectType = {
@@ -885,6 +984,9 @@ exports.Prisma.ModelName = {
   FinancialEntry: 'FinancialEntry',
   WitnessReport: 'WitnessReport',
   CampaignEvent: 'CampaignEvent',
+  PointLog: 'PointLog',
+  InventoryItem: 'InventoryItem',
+  InventoryMovement: 'InventoryMovement',
   ConsentRecord: 'ConsentRecord',
   ConsentNotice: 'ConsentNotice',
   IssueCase: 'IssueCase',
@@ -897,6 +999,7 @@ exports.Prisma.ModelName = {
   PoliticalProposal: 'PoliticalProposal',
   SubscriptionPlan: 'SubscriptionPlan',
   TenantSubscription: 'TenantSubscription',
+  SystemDatabaseIdentity: 'SystemDatabaseIdentity',
   ElectronicSignature: 'ElectronicSignature'
 };
 

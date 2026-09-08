@@ -238,11 +238,16 @@ describe('TasksService tenant and mode isolation', () => {
   });
 
   it('always scopes paginated reads to JWT tenant and server-side mode', async () => {
-    await service.findAll(currentUser, { page: 2, limit: 10 });
+    await service.findAll(currentUser, {
+      page: 2,
+      limit: 10,
+      entityId: 'task-deep-link',
+    });
 
     expect(prisma.task.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          id: 'task-deep-link',
           tenantId: 'tenant-a',
           mode: PoliticalOperationMode.CAMPAIGN,
         },
@@ -252,6 +257,7 @@ describe('TasksService tenant and mode isolation', () => {
     );
     expect(prisma.task.count).toHaveBeenCalledWith({
       where: {
+        id: 'task-deep-link',
         tenantId: 'tenant-a',
         mode: PoliticalOperationMode.CAMPAIGN,
       },

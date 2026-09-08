@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
+import { readEntityDeepLink } from "@/lib/entity-deep-links";
 import {
   createTeamInvitation,
   CreatedTeamInvitation,
@@ -64,11 +65,6 @@ const PUBLIC_OFFICE_ROLES: typeof CAMPAIGN_ROLES = [
   { value: "AUDITOR", label: "Auditoría" },
 ];
 
-const BACKUP_ADMIN_ROLE = {
-  value: "ADMIN",
-  label: "Administración de respaldo",
-} as const satisfies { value: BackendUserRole; label: string };
-
 const ROLE_LABELS = new Map(
   [
     ...CAMPAIGN_ROLES,
@@ -78,9 +74,7 @@ const ROLE_LABELS = new Map(
 );
 
 function invitationRoleLabel(role: BackendUserRole): string {
-  return role === BACKUP_ADMIN_ROLE.value
-    ? BACKUP_ADMIN_ROLE.label
-    : (ROLE_LABELS.get(role) ?? role);
+  return ROLE_LABELS.get(role) ?? role;
 }
 
 const TERRITORIAL_ROLES = new Set<BackendUserRole>([
@@ -112,14 +106,12 @@ export default function TeamPage() {
       tenant?.type === "PUBLIC_OFFICE" ? PUBLIC_OFFICE_ROLES : CAMPAIGN_ROLES,
     [tenant?.type],
   );
-  const invitationRoleOptions = useMemo(
-    () => [...roleOptions, BACKUP_ADMIN_ROLE],
-    [roleOptions],
-  );
+  const invitationRoleOptions = roleOptions;
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deepLinkMemberId, setDeepLinkMemberId] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<BackendUserRole>(roleOptions[0].value);
@@ -150,6 +142,10 @@ export default function TeamPage() {
   >("idle");
 
   useEffect(() => {
+    setDeepLinkMemberId(readEntityDeepLink(window.location.search));
+  }, []);
+
+  useEffect(() => {
     if (!invitationRoleOptions.some((option) => option.value === role)) {
       setRole(roleOptions[0].value);
     }
@@ -178,6 +174,16 @@ export default function TeamPage() {
     void loadTeam(controller.signal);
     return () => controller.abort();
   }, [loadTeam, reloadVersion]);
+
+  useEffect(() => {
+    if (!deepLinkMemberId || loading || loadError) return;
+    const target = document.getElementById(
+      `team-member-result-${deepLinkMemberId}`,
+    );
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+    target.focus({ preventScroll: true });
+  }, [deepLinkMemberId, loadError, loading, members]);
 
   useEffect(() => {
     if (!divisionMember) return;
@@ -414,26 +420,43 @@ export default function TeamPage() {
     }
   }
 
+  const deepLinkedMemberIsMissing = Boolean(
+    deepLinkMemberId &&
+    !loading &&
+    !loadError &&
+    !members.some((member) => member.id === deepLinkMemberId),
+  );
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700">
-            <ShieldCheck size={16} aria-hidden="true" /> Administración de acceso
+            <ShieldCheck size={16} aria-hidden="true" /> Administración de
+            acceso
           </div>
           <h1 className="text-3xl font-black tracking-tight text-slate-950">
             Equipo y accesos
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
             Invita a cada persona con el menor privilegio necesario. Los enlaces
-            vencen en 72 horas y se usan una sola vez. Si necesitas continuidad,
-            puedes designar explícitamente una administración de respaldo.
+            vencen en 72 horas y se usan una sola vez. Los privilegios ADMIN no
+            se delegan mediante invitaciones ordinarias.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <ExportButton moduleName="equipo" />
         </div>
       </header>
+
+      {deepLinkedMemberIsMissing && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-900"
+        >
+          El miembro buscado ya no está disponible en esta organización.
+        </p>
+      )}
 
       <section className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -482,23 +505,6 @@ export default function TeamPage() {
                 ))}
               </select>
             </label>
-            {role === "ADMIN" && (
-              <div
-                role="alert"
-                className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950"
-              >
-                <p className="font-black">
-                  Privilegios administrativos totales
-                </p>
-                <p className="mt-1">
-                  Esta persona podrá gestionar todo el equipo, invitar a otras
-                  personas, restablecer accesos y consultar información
-                  sensible. Asígnalo únicamente a alguien de absoluta confianza:
-                  luego no podrás degradar ni desactivar esta cuenta desde
-                  Equipo.
-                </p>
-              </div>
-            )}
             {mutationError && (
               <p
                 role="alert"
@@ -644,7 +650,19 @@ export default function TeamPage() {
               ) : (
                 <ul className="divide-y divide-slate-100">
                   {members.map((member) => (
-                    <li key={member.id} className="p-5">
+                    <li
+                      key={member.id}
+                      id={`team-member-result-${member.id}`}
+                      tabIndex={-1}
+                      aria-current={
+                        member.id === deepLinkMemberId ? "true" : undefined
+                      }
+                      className={`p-5 outline-none ${
+                        member.id === deepLinkMemberId
+                          ? "bg-blue-50 ring-2 ring-inset ring-blue-500"
+                          : ""
+                      }`}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-black text-slate-950">

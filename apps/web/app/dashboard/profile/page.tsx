@@ -108,7 +108,7 @@ export default function ProfilePage() {
       setNewPassword("");
       setConfirmation("");
       setMessage(
-        "Contraseña actualizada. Cerraremos esta sesión para que ingreses nuevamente.",
+        "Contraseña actualizada. Cerraremos tus sesiones en todos los dispositivos para que ingreses nuevamente.",
       );
       await new Promise((resolve) => window.setTimeout(resolve, 800));
       signOut("/iniciar-sesion?passwordChanged=1");

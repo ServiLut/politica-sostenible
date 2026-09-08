@@ -7,6 +7,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { MfaService } from './mfa.service';
+import {
+  loadMfaSecretCipherConfig,
+  MfaSecretCipher,
+} from './mfa-secret-cipher';
 
 @Module({
   imports: [
@@ -40,7 +44,15 @@ import { MfaService } from './mfa.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MfaService],
+  providers: [
+    AuthService,
+    {
+      provide: MfaSecretCipher,
+      useFactory: () =>
+        new MfaSecretCipher(loadMfaSecretCipherConfig(process.env)),
+    },
+    MfaService,
+  ],
   exports: [AuthService, MfaService, JwtModule],
 })
 export class AuthModule {}

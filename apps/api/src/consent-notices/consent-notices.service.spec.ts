@@ -79,7 +79,7 @@ function buildService(transaction = buildTransaction()) {
 }
 
 describe('ConsentNoticesService', () => {
-  it('activates a tenant-owned version, invalidates current voter flags and audits without notice content', async () => {
+  it('activates a tenant-owned version without rewriting consent history and audits without notice content', async () => {
     const { transaction, runTransaction, service } = buildService();
 
     const result = await service.activate(admin, dto);
@@ -119,10 +119,7 @@ describe('ConsentNoticesService', () => {
       },
       select: { id: true },
     });
-    expect(transaction.voter.updateMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-from-jwt', consentAccepted: true },
-      data: { consentAccepted: false },
-    });
+    expect(transaction.voter.updateMany).not.toHaveBeenCalled();
     expect(transaction.auditEvent.create).toHaveBeenCalledWith({
       data: {
         tenantId: 'tenant-from-jwt',
@@ -139,7 +136,8 @@ describe('ConsentNoticesService', () => {
           purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
         },
         metadata: {
-          invalidatedVoterCount: 17,
+          consentHistoryPreserved: true,
+          currentNoticeVersionRequired: dto.version,
           configuredFields: [
             'contactEmail',
             'content',
@@ -177,6 +175,43 @@ describe('ConsentNoticesService', () => {
     expect(transaction.consentNotice.findFirst).not.toHaveBeenCalled();
     expect(transaction.consentNotice.create).not.toHaveBeenCalled();
     expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('retires only the prior tenant notice while preserving every voter and consent record', async () => {
+    const transaction = buildTransaction();
+    transaction.consentNotice.findFirst.mockResolvedValue({
+      id: 'notice-prior',
+      mode: PoliticalOperationMode.CAMPAIGN,
+      purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+      version: 'campaign-2026-08-v1',
+      title: 'Aviso anterior',
+      content: 'Texto historico que debe conservarse.',
+      controllerName: 'Organizacion ciudadana responsable',
+      contactEmail: 'privacidad@example.test',
+      privacyPolicyUrl: null,
+      activatedAt: new Date('2026-08-01T12:00:00.000Z'),
+    });
+    const { service } = buildService(transaction);
+
+    await service.activate(admin, dto);
+
+    expect(transaction.consentNotice.update).toHaveBeenCalledWith({
+      where: { id: 'notice-prior', tenantId: 'tenant-from-jwt' },
+      data: { isActive: false, retiredAt: expect.any(Date) as Date },
+    });
+    expect(transaction.voter.updateMany).not.toHaveBeenCalled();
+    expect(transaction.consentRecord.findFirst).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          before: { version: 'campaign-2026-08-v1' },
+          metadata: expect.objectContaining({
+            consentHistoryPreserved: true,
+            currentNoticeVersionRequired: dto.version,
+          }),
+        }),
+      }),
+    );
   });
 
   it('does not overwrite or re-audit an exact retry of the active version', async () => {

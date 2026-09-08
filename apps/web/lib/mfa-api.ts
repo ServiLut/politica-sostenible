@@ -4,8 +4,14 @@ export async function getMfaStatus(): Promise<{ enabled: boolean }> {
   return apiRequest("/auth/mfa/status");
 }
 
-export async function setupMfa(): Promise<{ qrCodeDataUrl: string; secret: string }> {
-  return apiRequest("/auth/mfa/setup", { method: "POST" });
+export async function setupMfa(currentPassword: string): Promise<{
+  qrCodeDataUrl: string;
+  secret: string;
+}> {
+  return apiRequest("/auth/mfa/setup", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword }),
+  });
 }
 
 export async function verifyMfa(code: string): Promise<{ enabled: boolean }> {

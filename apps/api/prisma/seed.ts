@@ -1,90 +1,165 @@
-import { PrismaClient, Role, TenantType } from "./generated/prisma";
-import { PrismaPg } from "@prisma/adapter-pg";
-import bcrypt from "bcrypt";
-import pg from "pg";
-import "dotenv/config";
+import 'dotenv/config';
+import {
+  PoliticalOperationMode,
+  Prisma,
+  PrismaClient,
+  Role,
+  TenantType,
+} from './generated/prisma';
+import { PrismaPg } from '@prisma/adapter-pg';
+import bcrypt from 'bcrypt';
+import pg from 'pg';
+import {
+  resolveDemoSeedConfig,
+  type DemoSeedConfig,
+} from '../src/seed/demo-seed';
 
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} es obligatorio para el seed local`);
-  return value;
+const LOCAL_TENANT_SLUG = 'local-development';
+
+export interface LocalSeedIdentityOptions {
+  email: string;
+  documentId: string;
+  passwordHash: string;
 }
 
-async function main() {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("El seed de desarrollo está bloqueado en producción");
+interface PreparedLocalSeedIdentity {
+  email: string;
+  wasCreated: boolean;
+}
+
+export async function prepareLocalSeedIdentity(
+  prisma: Pick<Prisma.TransactionClient, 'tenant' | 'user'>,
+  options: LocalSeedIdentityOptions,
+): Promise<PreparedLocalSeedIdentity> {
+  const [existingTenant, existingUser] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { slug: LOCAL_TENANT_SLUG },
+      select: { id: true, type: true, defaultMode: true },
+    }),
+    prisma.user.findUnique({
+      where: { email: options.email },
+      select: {
+        id: true,
+        email: true,
+        tenantId: true,
+        role: true,
+        isActive: true,
+      },
+    }),
+  ]);
+
+  if (
+    existingTenant &&
+    (existingTenant.type !== TenantType.GSC ||
+      existingTenant.defaultMode !== PoliticalOperationMode.CAMPAIGN)
+  ) {
+    throw new Error(
+      'El tenant local reservado tiene un tipo o modo inesperado; el seed no lo modifica',
+    );
   }
 
-  if (process.env.ALLOW_DEMO_SEED !== "true") {
-    throw new Error("Define ALLOW_DEMO_SEED=true para autorizar este seed local");
+  if (
+    existingUser &&
+    (!existingTenant || existingUser.tenantId !== existingTenant.id)
+  ) {
+    throw new Error(
+      `El correo ${existingUser.email} ya pertenece a otro tenant; el seed no reasigna usuarios`,
+    );
   }
 
-  const connectionString =
-    process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
-  if (!connectionString) {
-    throw new Error("DIRECT_URL o DATABASE_URL es obligatorio");
+  if (
+    existingUser &&
+    (existingUser.role !== Role.ADMIN || !existingUser.isActive)
+  ) {
+    throw new Error(
+      `El usuario ${existingUser.email} no coincide con la identidad local esperada; el seed no sobrescribe rol ni estado`,
+    );
   }
 
-  const password = required("SEED_ADMIN_PASSWORD");
-  if (Buffer.byteLength(password, "utf8") < 12) {
-    throw new Error("SEED_ADMIN_PASSWORD debe tener al menos 12 bytes");
+  const tenant =
+    existingTenant ??
+    (await prisma.tenant.create({
+      data: {
+        slug: LOCAL_TENANT_SLUG,
+        name: 'Organización local de desarrollo',
+        type: TenantType.GSC,
+        defaultMode: PoliticalOperationMode.CAMPAIGN,
+      },
+      select: { id: true },
+    }));
+
+  if (existingUser) {
+    return { email: existingUser.email, wasCreated: false };
   }
 
-  const pool = new pg.Pool({
-    connectionString,
-    ssl:
-      process.env.DATABASE_SSL === "true"
-        ? {
-            rejectUnauthorized:
-              process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
-          }
-        : false,
+  const createdUser = await prisma.user.create({
+    data: {
+      email: options.email,
+      password: options.passwordHash,
+      name: 'Administración local',
+      role: Role.ADMIN,
+      documentId: options.documentId,
+      tenantId: tenant.id,
+    },
+    select: { email: true },
   });
-  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+
+  return { email: createdUser.email, wasCreated: true };
+}
+
+export async function seedLocalDevelopment(
+  prisma: PrismaClient,
+  config: DemoSeedConfig,
+  environment: NodeJS.ProcessEnv,
+): Promise<void> {
+  const email =
+    environment.SEED_ADMIN_EMAIL?.trim().toLowerCase() ||
+    'admin@politica-sostenible.test';
+  const documentId = environment.SEED_ADMIN_DOCUMENT?.trim() || 'DEV-ADMIN';
+  const passwordHash = await bcrypt.hash(config.userPassword, 12);
+
+  const identity = await prisma.$transaction(
+    (transaction) =>
+      prepareLocalSeedIdentity(transaction, {
+        email,
+        documentId,
+        passwordHash,
+      }),
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
+  );
+
+  const action = identity.wasCreated
+    ? 'creado con la credencial suministrada'
+    : 'preservado sin cambiar tenant, rol ni credencial';
+  console.log(`Seed local listo para ${identity.email}; usuario ${action}.`);
+}
+
+async function main(): Promise<void> {
+  const config = resolveDemoSeedConfig(process.env, 'SEED_ADMIN_PASSWORD');
+  const pool = new pg.Pool({ connectionString: config.connectionString });
+  const adapter = new PrismaPg(
+    pool,
+    config.databaseSchema ? { schema: config.databaseSchema } : undefined,
+  );
+  const prisma = new PrismaClient({ adapter });
 
   try {
-    const tenant = await prisma.tenant.upsert({
-      where: { slug: "local-development" },
-      update: {},
-      create: {
-        slug: "local-development",
-        name: "Organización local de desarrollo",
-        type: TenantType.GSC,
-      },
-    });
-
-    const email =
-      process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase() ||
-      "admin@politica-sostenible.test";
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    await prisma.user.upsert({
-      where: { email },
-      update: {
-        password: passwordHash,
-        tenantId: tenant.id,
-        role: Role.ADMIN,
-      },
-      create: {
-        email,
-        password: passwordHash,
-        name: "Administración local",
-        role: Role.ADMIN,
-        documentId: process.env.SEED_ADMIN_DOCUMENT?.trim() || "DEV-ADMIN",
-        tenantId: tenant.id,
-      },
-    });
-
-    console.log(
-      `Seed local listo para ${email}; no se crearon ciudadanos ficticios.`,
-    );
+    await seedLocalDevelopment(prisma, config, process.env);
   } finally {
     await prisma.$disconnect();
     await pool.end();
   }
 }
 
-void main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : "Falló el seed local");
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void main().catch((error: unknown) => {
+    console.error(
+      error instanceof Error ? error.message : 'Falló el seed local',
+    );
+    process.exitCode = 1;
+  });
+}

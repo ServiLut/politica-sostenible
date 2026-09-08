@@ -11,12 +11,30 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TenantType } from '../../../prisma/generated/prisma';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
+
+@ValidatorConstraint({ name: 'passwordsMatch', async: false })
+class PasswordsMatchConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown, args: ValidationArguments): boolean {
+    return (
+      typeof value === 'string' &&
+      value === (args.object as RegisterDto).password
+    );
+  }
+
+  defaultMessage(): string {
+    return 'La confirmacion de la contrasena no coincide';
+  }
+}
 
 export class RegisterDto {
   @ApiProperty({ example: 'juan.perez@ejemplo.com' })
@@ -36,6 +54,14 @@ export class RegisterDto {
   })
   @MaxLength(128)
   password: string;
+
+  @ApiProperty({ example: 'password123' })
+  @IsString()
+  @IsNotEmpty({ message: 'La confirmacion de la contrasena es requerida' })
+  @MinLength(12)
+  @MaxLength(128)
+  @Validate(PasswordsMatchConstraint)
+  passwordConfirmation: string;
 
   @ApiProperty({ example: 'Juan Pérez' })
   @Transform(trim)

@@ -1,44 +1,68 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DivisionType, WitnessReportStatus } from '../../prisma/generated/prisma';
+import {
+  DivisionType,
+  PoliticalOperationStage,
+  WitnessReportStatus,
+} from '../../prisma/generated/prisma';
+import {
+  assertCandidacyCampaignTenant,
+  CAMPAIGN_TENANT_SELECT,
+} from '../common/utils/campaign-mode.util';
+
+interface DivisionAncestor {
+  name: string;
+  parentId: string | null;
+  parent?: DivisionAncestor | null;
+}
+
+const ELECTION_DAY_STAGES: readonly PoliticalOperationStage[] = [
+  PoliticalOperationStage.ELECTION_PREPARATION,
+  PoliticalOperationStage.SIMULATION,
+  PoliticalOperationStage.ELECTION_DAY,
+  PoliticalOperationStage.POST_ELECTION,
+];
 
 @Injectable()
 export class ElectionDayService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getElectionDayDashboard(tenantId: string) {
+    await this.assertElectionDayDomain(tenantId);
+
     const [
       expectedTablesResult,
       statusGroups,
       puestos,
-      distinctPuestos,
-      totalSubmittedCount,
+      acceptedTables,
+      totalAcceptedCount,
       alertCount,
-      lastReports
+      lastReports,
+      tally,
     ] = await Promise.all([
       this.prisma.politicalDivision.aggregate({
         where: { tenantId, type: DivisionType.PUESTO },
-        _sum: { expectedTables: true }
+        _sum: { expectedTables: true },
       }),
       this.prisma.witnessReport.groupBy({
         by: ['status'],
         where: { tenantId },
-        _count: { _all: true }
+        _count: { _all: true },
       }),
       this.prisma.politicalDivision.findMany({
         where: { tenantId, type: DivisionType.PUESTO },
-        select: { id: true, name: true, expectedTables: true }
+        select: { id: true, name: true, expectedTables: true },
       }),
       this.prisma.witnessReport.findMany({
-        where: { tenantId },
-        select: { puestoId: true },
-        distinct: ['puestoId']
+        where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+        select: { puestoId: true, mesa: true },
+        distinct: ['puestoId', 'mesa'],
       }),
       this.prisma.witnessReport.count({
-        where: { tenantId }
+        where: { tenantId, status: WitnessReportStatus.ACCEPTED },
       }),
       this.prisma.witnessReport.count({
-        where: { tenantId, observations: { not: null } }
+        where: this.activeAlertWhere(tenantId),
       }),
       this.prisma.witnessReport.findMany({
         where: { tenantId },
@@ -46,40 +70,60 @@ export class ElectionDayService {
         take: 10,
         include: {
           puesto: { select: { name: true } },
-          witness: { select: { name: true } }
-        }
-      })
+          witness: { select: { name: true } },
+        },
+      }),
+      this.getVoteTallyForAuthorizedTenant(tenantId),
     ]);
 
     const expectedTables = expectedTablesResult._sum.expectedTables || 0;
-    const totalSubmitted = totalSubmittedCount;
-
     const reportsByStatus = {
       PENDING: 0,
-      VERIFIED: 0, // ACCEPTED
+      ACCEPTED: 0,
       REJECTED: 0,
+      SUPERSEDED: 0,
     };
 
     for (const group of statusGroups) {
-      if (group.status === WitnessReportStatus.PENDING) reportsByStatus.PENDING = group._count._all;
-      if (group.status === WitnessReportStatus.ACCEPTED) reportsByStatus.VERIFIED = group._count._all;
-      if (group.status === WitnessReportStatus.REJECTED) reportsByStatus.REJECTED = group._count._all;
+      if (group.status === WitnessReportStatus.PENDING)
+        reportsByStatus.PENDING = group._count._all;
+      if (group.status === WitnessReportStatus.ACCEPTED)
+        reportsByStatus.ACCEPTED = group._count._all;
+      if (group.status === WitnessReportStatus.REJECTED)
+        reportsByStatus.REJECTED = group._count._all;
+      if (group.status === WitnessReportStatus.SUPERSEDED)
+        reportsByStatus.SUPERSEDED = group._count._all;
     }
 
-    const puestosWithReports = new Set(distinctPuestos.map(r => r.puestoId));
+    const acceptedTablesByPlace = new Map<string, number>();
+    for (const table of acceptedTables) {
+      acceptedTablesByPlace.set(
+        table.puestoId,
+        (acceptedTablesByPlace.get(table.puestoId) ?? 0) + 1,
+      );
+    }
+    const placesWithCoverage = puestos.map((puesto) => ({
+      ...puesto,
+      acceptedTables: acceptedTablesByPlace.get(puesto.id) ?? 0,
+    }));
     const coverageMap = {
-      covered: puestos.filter(p => puestosWithReports.has(p.id)),
-      uncovered: puestos.filter(p => !puestosWithReports.has(p.id))
+      covered: placesWithCoverage.filter(
+        (place) =>
+          place.expectedTables !== null &&
+          place.expectedTables > 0 &&
+          place.acceptedTables >= place.expectedTables,
+      ),
+      uncovered: placesWithCoverage.filter(
+        (place) =>
+          place.expectedTables === null ||
+          place.expectedTables <= 0 ||
+          place.acceptedTables < place.expectedTables,
+      ),
     };
-
-    // Calculate vote tallies by division (Wait, dashboard requirement says: "Vote tallies by division (sum from verified witness reports)")
-    // Wait, the dashboard also needs vote tallies? "Vote tallies by division (sum from verified witness reports)".
-    // Maybe we just call getVoteTally here? Or inline it.
-    const tally = await this.getVoteTally(tenantId);
 
     return {
       totalExpected: expectedTables,
-      totalSubmitted,
+      totalAccepted: totalAcceptedCount,
       reportsByStatus,
       coverageMap,
       alertCount,
@@ -89,6 +133,23 @@ export class ElectionDayService {
   }
 
   async getVoteTally(tenantId: string) {
+    await this.assertElectionDayDomain(tenantId);
+    return this.getVoteTallyForAuthorizedTenant(tenantId);
+  }
+
+  async getAlerts(tenantId: string) {
+    await this.assertElectionDayDomain(tenantId);
+    return this.prisma.witnessReport.findMany({
+      where: this.activeAlertWhere(tenantId),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        puesto: { select: { name: true } },
+        witness: { select: { name: true } },
+      },
+    });
+  }
+
+  private async getVoteTallyForAuthorizedTenant(tenantId: string) {
     const reportAggregations = await this.prisma.witnessReport.groupBy({
       by: ['puestoId'],
       where: { tenantId, status: WitnessReportStatus.ACCEPTED },
@@ -97,45 +158,56 @@ export class ElectionDayService {
         totalTableVotes: true,
       },
       _count: {
-        _all: true
-      }
+        _all: true,
+      },
     });
 
     const puestos = await this.prisma.politicalDivision.findMany({
       where: {
         tenantId,
-        id: { in: reportAggregations.map(r => r.puestoId) }
+        id: { in: reportAggregations.map((r) => r.puestoId) },
       },
       include: {
         parent: {
           include: {
             parent: {
               include: {
-                parent: true
-              }
-            }
-          }
-        }
-      }
+                parent: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    const puestoMap = new Map(puestos.map(p => [p.id, p]));
-    const tallyByDivision = new Map<string, { division: string, totalVotes: number, ourVotes: number, reportCount: number }>();
+    const puestoMap = new Map(puestos.map((p) => [p.id, p]));
+    const tallyByDivision = new Map<
+      string,
+      {
+        division: string;
+        totalVotes: number;
+        ourVotes: number;
+        reportCount: number;
+      }
+    >();
 
     for (const agg of reportAggregations) {
       const puesto = puestoMap.get(agg.puestoId);
       if (!puesto) continue;
 
-      let topLevel = puesto;
-      let current: any = puesto;
+      let current: DivisionAncestor = puesto;
       while (current && current.parentId && current.parent) {
         current = current.parent;
       }
-      topLevel = current || puesto;
 
-      const divisionName = topLevel.name;
+      const divisionName = current.name;
       if (!tallyByDivision.has(divisionName)) {
-        tallyByDivision.set(divisionName, { division: divisionName, totalVotes: 0, ourVotes: 0, reportCount: 0 });
+        tallyByDivision.set(divisionName, {
+          division: divisionName,
+          totalVotes: 0,
+          ourVotes: 0,
+          reportCount: 0,
+        });
       }
 
       const tally = tallyByDivision.get(divisionName)!;
@@ -144,23 +216,39 @@ export class ElectionDayService {
       tally.reportCount += agg._count._all;
     }
 
-    return Array.from(tallyByDivision.values()).map(t => ({
+    return Array.from(tallyByDivision.values()).map((t) => ({
       ...t,
-      percentage: t.totalVotes > 0 ? (t.ourVotes / t.totalVotes) * 100 : 0
+      percentage: t.totalVotes > 0 ? (t.ourVotes / t.totalVotes) * 100 : 0,
     }));
   }
 
-  async getAlerts(tenantId: string) {
-    return this.prisma.witnessReport.findMany({
-      where: {
-        tenantId,
-        observations: { not: null }
+  private async assertElectionDayDomain(tenantId: string): Promise<void> {
+    const [tenant, profile] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: CAMPAIGN_TENANT_SELECT,
+      }),
+      this.prisma.operationProfile.findUnique({
+        where: { tenantId },
+        select: { stage: true },
+      }),
+    ]);
+
+    assertCandidacyCampaignTenant(tenant);
+    if (!profile || !ELECTION_DAY_STAGES.includes(profile.stage)) {
+      throw new ForbiddenException(
+        'La operación electoral no está habilitada en la etapa actual.',
+      );
+    }
+  }
+
+  private activeAlertWhere(tenantId: string) {
+    return {
+      tenantId,
+      status: {
+        in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
       },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        puesto: { select: { name: true } },
-        witness: { select: { name: true } }
-      }
-    });
+      OR: [{ observations: { not: null } }, { hasWrittenClaim: true }],
+    };
   }
 }

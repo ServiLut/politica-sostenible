@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsEnum, MaxLength } from 'class-validator';
+import { IsEmail, IsEnum, MaxLength, NotEquals } from 'class-validator';
 import { Role } from '../../../prisma/generated/prisma';
 
 export class CreateTeamInvitationDto {
@@ -11,5 +11,9 @@ export class CreateTeamInvitationDto {
   email: string;
 
   @IsEnum(Role, { message: 'El rol solicitado no es valido' })
+  @NotEquals(Role.ADMIN, {
+    message:
+      'El rol ADMIN no puede asignarse mediante una invitacion ordinaria',
+  })
   role: Role;
 }

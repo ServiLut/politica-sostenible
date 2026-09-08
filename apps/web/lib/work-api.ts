@@ -110,6 +110,7 @@ export interface CommitmentPage extends PaginatedResult<Commitment> {
 export interface ListTasksParams {
   page?: number;
   limit?: number;
+  entityId?: string;
   status?: TaskStatus;
   priority?: WorkPriority;
   assigneeId?: string;
@@ -145,6 +146,7 @@ export interface UpdateTaskInput {
 export interface ListCommitmentsParams {
   page?: number;
   limit?: number;
+  entityId?: string;
   status?: CommitmentStatus;
   ownerId?: string;
   issueCaseId?: string;

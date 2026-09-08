@@ -52,7 +52,9 @@ export class TransitionHandoverService {
 
     // 4. Aggregate Operations
     const votersCount = await this.prisma.voter.count({ where: { tenantId } });
-    const casesCount = await this.prisma.issueCase.count({ where: { tenantId } });
+    const casesCount = await this.prisma.issueCase.count({
+      where: { tenantId },
+    });
     const tasksByStatus = await this.prisma.task.groupBy({
       by: ['status'],
       where: { tenantId },

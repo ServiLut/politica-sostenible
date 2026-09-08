@@ -6,6 +6,9 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
       target: migrator
+      args:
+        APP_REVISION: ${APP_REVISION:-unknown}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
     environment:
       NODE_ENV: production
       DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
@@ -23,17 +26,30 @@ services:
       DATABASE_SCHEMA: ${DATABASE_SCHEMA:-}
       DATABASE_SSL: ${DATABASE_SSL:-true}
       DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
+      MIGRATION_LOCK_TIMEOUT_MS: ${MIGRATION_LOCK_TIMEOUT_MS:-10000}
+      MIGRATION_STATEMENT_TIMEOUT_MS: ${MIGRATION_STATEMENT_TIMEOUT_MS:-900000}
     restart: "no"
     read_only: true
     tmpfs:
       - /tmp
     security_opt:
       - no-new-privileges:true
+    cpus: ${MIGRATE_CPUS_LIMIT:-1.0}
+    mem_limit: ${MIGRATE_MEMORY_LIMIT:-768m}
+    pids_limit: ${MIGRATE_PIDS_LIMIT:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-3}
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:-unknown}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
     environment:
       NODE_ENV: production
       DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
@@ -45,6 +61,12 @@ services:
       DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CONSENT_IP_SALT: ${CONSENT_IP_SALT:?CONSENT_IP_SALT is required}
+      SAAS_ADMIN_USER_IDS: ${SAAS_ADMIN_USER_IDS:?SAAS_ADMIN_USER_IDS is required}
+      SAAS_ADMIN_EMAILS: ${SAAS_ADMIN_EMAILS:-}
+      MFA_TOTP_ACTIVE_KEY_ID: ${MFA_TOTP_ACTIVE_KEY_ID:?MFA_TOTP_ACTIVE_KEY_ID is required}
+      MFA_TOTP_ENCRYPTION_KEY: ${MFA_TOTP_ENCRYPTION_KEY:?MFA_TOTP_ENCRYPTION_KEY is required}
+      MFA_TOTP_LEGACY_PLAINTEXT_MODE: ${MFA_TOTP_LEGACY_PLAINTEXT_MODE:?MFA_TOTP_LEGACY_PLAINTEXT_MODE is required}
+      MFA_TOTP_PREVIOUS_KEYS: ${MFA_TOTP_PREVIOUS_KEYS:-}
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?NEXT_PUBLIC_APP_URL is required}
       SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
@@ -53,6 +75,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     restart: unless-stopped
+    stop_grace_period: 40s
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -79,12 +102,22 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cpus: ${API_CPUS_LIMIT:-1.0}
+    mem_limit: ${API_MEMORY_LIMIT:-768m}
+    pids_limit: ${API_PIDS_LIMIT:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-3}
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
+        APP_REVISION: ${APP_REVISION:-unknown}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?NEXT_PUBLIC_APP_URL is required}
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL is required}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY is required}
@@ -97,6 +130,7 @@ services:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL is required}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY is required}
     restart: unless-stopped
+    stop_grace_period: 40s
     depends_on:
       api:
         condition: service_healthy
@@ -110,3 +144,11 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cpus: ${WEB_CPUS_LIMIT:-0.75}
+    mem_limit: ${WEB_MEMORY_LIMIT:-512m}
+    pids_limit: ${WEB_PIDS_LIMIT:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-3}

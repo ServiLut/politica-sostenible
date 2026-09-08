@@ -3,7 +3,10 @@ import {
   PoliticalOperationMode,
   TenantType,
 } from '../../../prisma/generated/prisma';
-import { assertCampaignTenant } from './campaign-mode.util';
+import {
+  assertCampaignTenant,
+  assertCandidacyCampaignTenant,
+} from './campaign-mode.util';
 
 describe('assertCampaignTenant', () => {
   it('accepts only a campaign-mode non-public-office tenant', () => {
@@ -32,4 +35,27 @@ describe('assertCampaignTenant', () => {
   ])('returns 403 for non-campaign context %#', (tenant) => {
     expect(() => assertCampaignTenant(tenant)).toThrow(ForbiddenException);
   });
+});
+
+describe('assertCandidacyCampaignTenant', () => {
+  it('accepts a candidacy in campaign mode', () => {
+    expect(() =>
+      assertCandidacyCampaignTenant({
+        defaultMode: PoliticalOperationMode.CAMPAIGN,
+        type: TenantType.CANDIDACY,
+      }),
+    ).not.toThrow();
+  });
+
+  it.each([TenantType.PARTY, TenantType.GSC])(
+    'fails closed for campaign tenant type %s',
+    (type) => {
+      expect(() =>
+        assertCandidacyCampaignTenant({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type,
+        }),
+      ).toThrow(ForbiddenException);
+    },
+  );
 });

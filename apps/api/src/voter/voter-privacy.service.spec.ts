@@ -158,6 +158,11 @@ function buildConsentGrantTransaction() {
       findFirst: jest.fn().mockResolvedValue({
         id: 'revocation-a',
         status: ConsentStatus.REVOKED,
+        noticeVersion: activeConsentNotice.version,
+        grantedAt,
+        expiresAt: null,
+        revokedAt: new Date('2026-08-21T17:00:00.000Z'),
+        createdAt: new Date('2026-08-21T17:00:00.000Z'),
       }),
       create: jest.fn().mockResolvedValue({
         id: 'grant-b',
@@ -220,7 +225,7 @@ describe('VoterService privacy controls', () => {
       });
       expect(transaction.voter.findFirst).toHaveBeenCalledWith({
         where: { id: 'voter-a', tenantId: 'tenant-a' },
-        select: { id: true, consentAccepted: true },
+        select: { id: true },
       });
       expect(transaction.consentRecord.findFirst).toHaveBeenCalledWith({
         where: {
@@ -231,7 +236,15 @@ describe('VoterService privacy controls', () => {
           purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { id: true, status: true, noticeVersion: true },
+        select: {
+          id: true,
+          status: true,
+          noticeVersion: true,
+          grantedAt: true,
+          expiresAt: true,
+          revokedAt: true,
+          createdAt: true,
+        },
       });
       expect(hashIp).toHaveBeenCalledWith('203.0.113.42');
 
@@ -281,11 +294,12 @@ describe('VoterService privacy controls', () => {
         resourceId: 'grant-b',
         before: {
           status: ConsentStatus.REVOKED,
-          consentAccepted: false,
+          noticeVersion: activeConsentNotice.version,
+          activeForCurrentNotice: false,
         },
         after: {
           status: ConsentStatus.GRANTED,
-          consentAccepted: true,
+          activeForCurrentNotice: true,
         },
         metadata: {
           purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
@@ -330,7 +344,7 @@ describe('VoterService privacy controls', () => {
           tenantId: 'tenant-a',
           puestoId: { in: ['zone-a', 'puesto-a'] },
         },
-        select: { id: true, consentAccepted: true },
+        select: { id: true },
       });
       expect(
         JSON.stringify(transaction.voter.findFirst.mock.calls),
@@ -353,7 +367,7 @@ describe('VoterService privacy controls', () => {
 
       expect(transaction.voter.findFirst).toHaveBeenCalledWith({
         where: { id: 'voter-from-tenant-b', tenantId: 'tenant-a' },
-        select: { id: true, consentAccepted: true },
+        select: { id: true },
       });
       expect(hashIp).not.toHaveBeenCalled();
       expect(transaction.consentRecord.findFirst).not.toHaveBeenCalled();
@@ -398,34 +412,64 @@ describe('VoterService privacy controls', () => {
       expect(transaction.consentRecord.create).not.toHaveBeenCalled();
     });
 
-    it.each([
-      [ConsentStatus.GRANTED, false],
-      [ConsentStatus.REVOKED, true],
-    ])(
-      'fails closed for inconsistent or already-current state %s/%s',
-      async (status, consentAccepted) => {
-        const transaction = buildConsentGrantTransaction();
-        transaction.consentRecord.findFirst.mockResolvedValue({
-          id: 'latest-consent',
-          status,
-          noticeVersion: '2026.1',
-        });
-        transaction.voter.findFirst.mockResolvedValue({
-          id: 'voter-a',
-          consentAccepted,
-        });
-        const { hashIp, service } = buildConsentGrantService(transaction);
+    it('fails closed when the latest record is already current', async () => {
+      const transaction = buildConsentGrantTransaction();
+      transaction.consentRecord.findFirst.mockResolvedValue({
+        id: 'latest-consent',
+        status: ConsentStatus.GRANTED,
+        noticeVersion: activeConsentNotice.version,
+        grantedAt,
+        expiresAt: null,
+        revokedAt: null,
+        createdAt: grantedAt,
+      });
+      const { hashIp, service } = buildConsentGrantService(transaction);
 
-        await expect(
-          service.grantConsent(admin, 'voter-a', '203.0.113.42', consentDto),
-        ).rejects.toBeInstanceOf(ConflictException);
+      await expect(
+        service.grantConsent(admin, 'voter-a', '203.0.113.42', consentDto),
+      ).rejects.toBeInstanceOf(ConflictException);
 
-        expect(hashIp).not.toHaveBeenCalled();
-        expect(transaction.consentRecord.create).not.toHaveBeenCalled();
-        expect(transaction.voter.update).not.toHaveBeenCalled();
-        expect(transaction.auditEvent.create).not.toHaveBeenCalled();
-      },
-    );
+      expect(hashIp).not.toHaveBeenCalled();
+      expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+      expect(transaction.voter.update).not.toHaveBeenCalled();
+      expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('allows reconsent for an older grant without rewriting that historical record', async () => {
+      const transaction = buildConsentGrantTransaction();
+      transaction.voter.findFirst.mockResolvedValue({
+        id: 'voter-a',
+        consentAccepted: true,
+      });
+      transaction.consentRecord.findFirst.mockResolvedValue({
+        id: 'grant-old',
+        status: ConsentStatus.GRANTED,
+        noticeVersion: 'campaign-v0',
+        grantedAt,
+        expiresAt: null,
+        revokedAt: null,
+        createdAt: grantedAt,
+      });
+      const { service } = buildConsentGrantService(transaction);
+
+      await expect(
+        service.grantConsent(admin, 'voter-a', '203.0.113.42', consentDto),
+      ).resolves.toMatchObject({
+        voterId: 'voter-a',
+        consentAccepted: true,
+        noticeVersion: activeConsentNotice.version,
+      });
+
+      expect(transaction.consentRecord.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            noticeVersion: activeConsentNotice.version,
+            status: ConsentStatus.GRANTED,
+          }),
+        }),
+      );
+      expect(transaction.consentRecord).not.toHaveProperty('updateMany');
+    });
 
     it('does not reauthorize a legacy record without a revocation event', async () => {
       const transaction = buildConsentGrantTransaction();
@@ -690,9 +734,19 @@ describe('VoterService privacy controls', () => {
         phone: '3001234567',
         email: 'must-not-leak@example.test',
         mesa: 12,
-        isSignatureValid: true,
         consentAccepted: true,
         consentTimestamp: grantedAt,
+        consentRecords: [
+          {
+            id: 'grant-a',
+            status: ConsentStatus.GRANTED,
+            noticeVersion: activeConsentNotice.version,
+            grantedAt,
+            expiresAt: null,
+            revokedAt: null,
+            createdAt: grantedAt,
+          },
+        ],
         createdAt: grantedAt,
         puesto: { name: 'Puesto 1' },
         registrar: { name: 'Equipo A' },
@@ -709,6 +763,9 @@ describe('VoterService privacy controls', () => {
           }),
         },
         politicalDivision: { findMany: jest.fn() },
+        consentNotice: {
+          findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+        },
         voter: { findMany, count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
@@ -759,6 +816,7 @@ describe('VoterService privacy controls', () => {
     expect(result.items[0]).not.toHaveProperty('documentId');
     expect(result.items[0]).not.toHaveProperty('phone');
     expect(result.items[0]).not.toHaveProperty('email');
+    expect(result.items[0]).not.toHaveProperty('isSignatureValid');
     expect(JSON.stringify(result)).not.toContain('1012345678');
     expect(JSON.stringify(result)).not.toContain('3001234567');
     expect(JSON.stringify(result)).not.toContain('must-not-leak@example.test');
@@ -784,6 +842,9 @@ describe('VoterService privacy controls', () => {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
         user: { findFirst: userFindFirst },
         politicalDivision: { findMany: divisionFindMany },
+        consentNotice: {
+          findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+        },
         voter: { findMany, count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
@@ -830,11 +891,7 @@ describe('VoterService privacy controls', () => {
   });
 
   it('scopes every coordinator statistic to the same tenant divisions', async () => {
-    const count = jest
-      .fn()
-      .mockResolvedValueOnce(3)
-      .mockResolvedValueOnce(2)
-      .mockResolvedValueOnce(1);
+    const count = jest.fn().mockResolvedValueOnce(3).mockResolvedValueOnce(1);
     const service = new VoterService(
       {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
@@ -851,6 +908,9 @@ describe('VoterService privacy controls', () => {
             { id: 'zone-b', parentId: null },
           ]),
         },
+        consentNotice: {
+          findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+        },
         voter: { count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
@@ -862,7 +922,7 @@ describe('VoterService privacy controls', () => {
         userId: 'coordinator-a',
         role: Role.ADMIN,
       }),
-    ).resolves.toEqual({ total: 3, signatures: 2, consented: 1 });
+    ).resolves.toEqual({ total: 3, consented: 1 });
 
     const calls = count.mock.calls as unknown as Array<
       [{ where: Record<string, unknown> }]
@@ -873,8 +933,7 @@ describe('VoterService privacy controls', () => {
         puestoId: {
           in: expect.arrayContaining(['zone-a', 'puesto-a']) as string[],
         },
-        ...(index === 1 ? { isSignatureValid: true } : {}),
-        ...(index === 2 ? { consentAccepted: true } : {}),
+        ...(index === 1 ? { consentAccepted: true } : {}),
       });
       const puestoFilter = call[0].where.puestoId as { in: string[] };
       expect(puestoFilter.in).not.toContain('zone-b');
@@ -917,11 +976,7 @@ describe('VoterService privacy controls', () => {
   });
 
   it('counts current consents for executive metrics inside the JWT tenant', async () => {
-    const count = jest
-      .fn()
-      .mockResolvedValueOnce(12)
-      .mockResolvedValueOnce(4)
-      .mockResolvedValueOnce(9);
+    const count = jest.fn().mockResolvedValueOnce(12).mockResolvedValueOnce(9);
     const service = new VoterService(
       {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
@@ -932,6 +987,9 @@ describe('VoterService privacy controls', () => {
           }),
         },
         politicalDivision: { findMany: jest.fn() },
+        consentNotice: {
+          findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+        },
         voter: { count },
       } as unknown as PrismaService,
       {} as ConsentEvidenceService,
@@ -939,17 +997,58 @@ describe('VoterService privacy controls', () => {
 
     await expect(service.getStats(admin)).resolves.toEqual({
       total: 12,
-      signatures: 4,
       consented: 9,
     });
     expect(count).toHaveBeenNthCalledWith(1, {
       where: { tenantId: 'tenant-a' },
     });
     expect(count).toHaveBeenNthCalledWith(2, {
-      where: { tenantId: 'tenant-a', isSignatureValid: true },
+      where: {
+        tenantId: 'tenant-a',
+        consentAccepted: true,
+        termsVersion: activeConsentNotice.version,
+        consentRecords: {
+          some: {
+            tenantId: 'tenant-a',
+            mode: PoliticalOperationMode.CAMPAIGN,
+            subjectType: ConsentSubjectType.VOTER,
+            purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+            status: ConsentStatus.GRANTED,
+            noticeVersion: activeConsentNotice.version,
+            revokedAt: null,
+            grantedAt: { lte: expect.any(Date) as Date },
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: expect.any(Date) as Date } },
+            ],
+          },
+        },
+      },
     });
-    expect(count).toHaveBeenNthCalledWith(3, {
-      where: { tenantId: 'tenant-a', consentAccepted: true },
+  });
+
+  it('reports zero current consents when no notice is active', async () => {
+    const count = jest.fn().mockResolvedValueOnce(12);
+    const service = new VoterService(
+      {
+        tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.ADMIN,
+            divisionId: null,
+          }),
+        },
+        politicalDivision: { findMany: jest.fn() },
+        consentNotice: { findFirst: jest.fn().mockResolvedValue(null) },
+        voter: { count },
+      } as unknown as PrismaService,
+      {} as ConsentEvidenceService,
+    );
+
+    await expect(service.getStats(admin)).resolves.toEqual({
+      total: 12,
+      consented: 0,
     });
+    expect(count).toHaveBeenCalledTimes(1);
   });
 });

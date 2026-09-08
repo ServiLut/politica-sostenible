@@ -29,9 +29,9 @@ export class ListWitnessReportsQueryDto {
   @Transform(({ value }: { value: unknown }) =>
     value === '' || value === undefined ? undefined : Number(value),
   )
-  @IsInt()
-  @Min(1)
-  @Max(99_999)
+  @IsInt({ message: 'La mesa debe ser un número entero.' })
+  @Min(1, { message: 'La mesa debe ser mayor o igual a 1.' })
+  @Max(99_999, { message: 'La mesa debe ser menor o igual a 99.999.' })
   mesa?: number;
 
   @IsOptional()

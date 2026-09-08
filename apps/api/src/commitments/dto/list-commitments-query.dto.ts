@@ -44,6 +44,12 @@ export class ListCommitmentsQueryDto {
   issueCaseId?: string;
 
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  entityId?: string;
+
+  @IsOptional()
   @IsIn(['true', 'false'])
   isPublic?: 'true' | 'false';
 

@@ -3,7 +3,7 @@ name: Verificación
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, "release/**"]
 
 permissions:
   contents: read
@@ -46,9 +46,10 @@ jobs:
           pnpm list deepmerge-ts -r --depth 20 --json > "$RUNNER_TEMP/deepmerge-tree.json"
           node -e 'const fs = require("node:fs"); const tree = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const versions = []; const walk = (value) => { if (!value || typeof value !== "object") return; if (value.from === "deepmerge-ts" && typeof value.version === "string") versions.push(value.version); for (const child of Object.values(value)) walk(child); }; walk(tree); const unsafe = versions.some((version) => { const major = Number.parseInt(version, 10); return !Number.isInteger(major) || major < 8; }); if (versions.length === 0 || unsafe) { console.error(`Resolución insegura de deepmerge-ts: ${versions.join(", ") || "ausente"}`); process.exit(1); } console.log(`deepmerge-ts mitigado: ${[...new Set(versions)].join(", ")}`);' "$RUNNER_TEMP/deepmerge-tree.json"
       - run: pnpm --filter api generate
-      - name: Aplicar migraciones en PostgreSQL vacío
-        run: pnpm --filter api exec prisma migrate deploy
+      - name: Aplicar migraciones con el mismo guard de producción
+        run: node deploy/migrate-entrypoint.mjs
         env:
+          DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
           DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
       - name: Verificar historial y deriva del esquema
         run: |
@@ -156,10 +157,14 @@ jobs:
           PGPASSWORD: local_ci_only
         run: |
           docker build \
+            --build-arg APP_REVISION="$GITHUB_SHA" \
+            --build-arg DEPLOYMENT_PROFILE=evaluation \
             --build-arg NEXT_PUBLIC_APP_URL=https://politica-ci.invalid \
             --build-arg NEXT_PUBLIC_SUPABASE_URL=https://storage-ci.invalid \
-            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-public-anon-key-not-a-real-token \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ci_only_0123456789abcdef \
             --tag politica-sostenible-ci .
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' politica-sostenible-ci)" = "$GITHUB_SHA"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' politica-sostenible-ci)" = "https://github.com/ServiLut/politica-sostenible"
           docker run --rm --entrypoint node politica-sostenible-ci apps/api/node_modules/prisma/build/index.js --version
           docker run --rm --entrypoint node politica-sostenible-ci --check deploy/migrate.mjs
           psql -h localhost -U politica_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE politica_sostenible_dokploy'
@@ -176,6 +181,10 @@ jobs:
             -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'politica-sostenible'")"
           test "$table_count" -gt 0
           docker run --detach --name politica-sostenible-ci-runtime --network host \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev \
+            --tmpfs /app/apps/web/.next/cache:rw,noexec,nosuid,nodev \
+            --security-opt no-new-privileges:true \
             --env 'DIRECT_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
             --env 'DATABASE_URL=postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_dokploy?sslmode=disable&schema=politica-sostenible' \
             --env DEPLOYMENT_PROFILE=evaluation \
@@ -184,10 +193,14 @@ jobs:
             --env DATABASE_SSL_REJECT_UNAUTHORIZED=false \
             --env JWT_SECRET=ci-jwt-secret-with-more-than-thirty-two-bytes \
             --env CONSENT_IP_SALT=ci-consent-salt-with-more-than-thirty-two-bytes \
+            --env SAAS_ADMIN_USER_IDS=11111111-1111-4111-8111-111111111111 \
+            --env MFA_TOTP_ACTIVE_KEY_ID=ci-current \
+            --env MFA_TOTP_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc= \
+            --env MFA_TOTP_LEGACY_PLAINTEXT_MODE=reject \
             --env CORS_ORIGINS=https://politica-ci.invalid \
             --env NEXT_PUBLIC_APP_URL=https://politica-ci.invalid \
             --env SUPABASE_URL=https://storage-ci.invalid \
-            --env SUPABASE_SERVICE_ROLE_KEY=sb_secret_ci_only_not_a_real_key \
+            --env SUPABASE_SERVICE_ROLE_KEY=evaluation-only-storage-service-role-fixture \
             --env SUPABASE_STORAGE_BUCKET=politica-ci \
             politica-sostenible-ci
           ready=false
@@ -203,6 +216,107 @@ jobs:
             docker rm --force politica-sostenible-ci-runtime
             exit 1
           fi
-          docker rm --force politica-sostenible-ci-runtime
+          docker stop --time 40 politica-sostenible-ci-runtime
+          test "$(docker inspect --format '{{.State.ExitCode}}' politica-sostenible-ci-runtime)" = "0"
+          docker rm politica-sostenible-ci-runtime
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+
+  compose-runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: politica_sostenible_compose
+          POSTGRES_USER: politica_test
+          POSTGRES_PASSWORD: local_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U politica_test -d politica_sostenible_compose"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      COMPOSE_PROJECT_NAME: politica-primary-ci
+      APP_REVISION: ${{ github.sha }}
+      DEPLOYMENT_PROFILE: evaluation
+      ALLOW_INSECURE_DATABASE_CONNECTION: "true"
+      DATABASE_URL: postgresql://politica_test:local_ci_only@host.docker.internal:5432/politica_sostenible_compose?sslmode=disable&schema=politica-sostenible
+      DIRECT_URL: postgresql://politica_test:local_ci_only@host.docker.internal:5432/politica_sostenible_compose?sslmode=disable&schema=politica-sostenible
+      DATABASE_SCHEMA: politica-sostenible
+      DATABASE_SSL: "false"
+      DATABASE_SSL_REJECT_UNAUTHORIZED: "false"
+      JWT_SECRET: ci-jwt-secret-with-more-than-thirty-two-bytes
+      CONSENT_IP_SALT: ci-consent-salt-with-more-than-thirty-two-bytes
+      SAAS_ADMIN_USER_IDS: 11111111-1111-4111-8111-111111111111
+      MFA_TOTP_ACTIVE_KEY_ID: ci-current
+      MFA_TOTP_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+      MFA_TOTP_LEGACY_PLAINTEXT_MODE: reject
+      CORS_ORIGINS: https://politica-compose-ci.invalid
+      NEXT_PUBLIC_APP_URL: https://politica-compose-ci.invalid
+      SUPABASE_URL: https://storage-compose-ci.invalid
+      SUPABASE_SERVICE_ROLE_KEY: evaluation-only-storage-service-role-fixture
+      SUPABASE_STORAGE_BUCKET: politica-compose-ci
+      NEXT_PUBLIC_SUPABASE_URL: https://storage-compose-ci.invalid
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_only_0123456789abcdef
+      WEB_PORT: "3100"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir y arrancar la topología primaria separada
+        shell: bash
+        run: |
+          docker compose \
+            -f compose.production.yml \
+            -f deploy/compose.ci.yml \
+            build
+          docker compose \
+            -f compose.production.yml \
+            -f deploy/compose.ci.yml \
+            up -d
+
+          migrate_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps --all --quiet migrate)"
+          api_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps -q api)"
+          web_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps -q web)"
+          test -n "$migrate_id" && test -n "$api_id" && test -n "$web_id"
+          for container_id in "$migrate_id" "$api_id" "$web_id"; do
+            test "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$container_id")" = "$APP_REVISION"
+            test "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' "$container_id")" = "https://github.com/ServiLut/politica-sostenible"
+          done
+          test "$(docker inspect --format '{{.State.Status}}' "$migrate_id")" = "exited"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$migrate_id")" = "0"
+
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3100/api/health/ready >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != "true" ]; then
+            docker compose -f compose.production.yml -f deploy/compose.ci.yml ps
+            docker compose -f compose.production.yml -f deploy/compose.ci.yml logs
+            exit 1
+          fi
+
+          test "$(docker exec "$api_id" id -u)" = "1001"
+          test "$(docker exec "$web_id" id -u)" = "1001"
+          docker exec "$api_id" sh -c '! touch /app/api-write-probe 2>/dev/null'
+          docker exec "$web_id" sh -c '! touch /app/web-write-probe 2>/dev/null'
+          if docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$web_id" \
+            | grep -Eq '^(DATABASE_URL|DIRECT_URL|JWT_SECRET|SUPABASE_SERVICE_ROLE_KEY)='; then
+            echo "La web recibió un secreto reservado para la API" >&2
+            exit 1
+          fi
+          test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$api_id")" = "true"
+          test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$web_id")" = "true"
+
+          docker compose -f compose.production.yml -f deploy/compose.ci.yml stop --timeout 40 api web
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$api_id")" = "0"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$web_id")" = "143"
+      - name: Limpiar topología primaria
+        if: always()
+        run: docker compose -f compose.production.yml -f deploy/compose.ci.yml down --volumes --remove-orphans

@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { VoterDetailPanel } from "@/components/voters/VoterDetailPanel";
+import { VoterImportDialog } from "@/components/voters/VoterImportDialog";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -35,6 +36,9 @@ import {
   VoterListItem,
   VoterPage,
 } from "@/lib/voters-api";
+import { canExportData } from "@/lib/export-policy";
+import { readEntityDeepLink } from "@/lib/entity-deep-links";
+import { canAccessVoterImport } from "@/lib/voter-import";
 import { BackendUserRole } from "@/types/saas-schema";
 
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -89,7 +93,7 @@ function readableError(error: unknown, fallback: string) {
 }
 
 export default function VotantesPage() {
-  const { user } = useAuth();
+  const { tenant, user } = useAuth();
   const canCreate = user !== null && CREATE_ROLES.has(user.backendRole);
   const usesTerritorialCapture =
     user !== null && TERRITORIAL_CAPTURE_ROLES.has(user.backendRole);
@@ -98,6 +102,8 @@ export default function VotantesPage() {
     user !== null && REAUTHORIZE_ROLES.has(user.backendRole);
   const canManageSensitiveDetail =
     user !== null && SENSITIVE_DETAIL_ROLES.has(user.backendRole);
+  const canExport = canExportData(user?.backendRole);
+  const canImport = canAccessVoterImport(user?.backendRole, tenant?.type);
   const [result, setResult] = useState<VoterPage | null>(null);
   const [page, setPage] = useState(1);
   const [searchDraft, setSearchDraft] = useState("");
@@ -127,6 +133,7 @@ export default function VotantesPage() {
   >(null);
   const [granting, setGranting] = useState(false);
   const [detailVoterId, setDetailVoterId] = useState<string | null>(null);
+  const [deepLinkVoterId, setDeepLinkVoterId] = useState<string | null>(null);
   const [consentContext, setConsentContext] =
     useState<ConsentNoticeContext | null>(null);
   const [consentConfigError, setConsentConfigError] = useState<string | null>(
@@ -135,6 +142,8 @@ export default function VotantesPage() {
   const currentConsentNoticeKey = getConsentNoticePresentationKey(
     consentContext?.notice,
   );
+  const canImportInCurrentMode =
+    canImport && consentContext?.mode === "CAMPAIGN";
   const createConsentAcceptedForCurrentNotice =
     currentConsentNoticeKey !== null &&
     form.consentAccepted &&
@@ -146,9 +155,23 @@ export default function VotantesPage() {
 
   const loadVoters = useCallback(
     (signal: AbortSignal) =>
-      listVoters(page, PAGE_SIZE, search || undefined, signal),
-    [page, search],
+      listVoters(
+        page,
+        PAGE_SIZE,
+        deepLinkVoterId ? undefined : search || undefined,
+        signal,
+        deepLinkVoterId ?? undefined,
+      ),
+    [deepLinkVoterId, page, search],
   );
+
+  useEffect(() => {
+    const entityId = readEntityDeepLink(window.location.search);
+    setDeepLinkVoterId(entityId);
+    if (entityId && canManageSensitiveDetail) {
+      setDetailVoterId(entityId);
+    }
+  }, [canManageSensitiveDetail]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -175,6 +198,14 @@ export default function VotantesPage() {
 
     return () => controller.abort();
   }, [loadVoters, reload]);
+
+  useEffect(() => {
+    if (!deepLinkVoterId || loading || !result?.items.length) return;
+    const target = document.getElementById(`voter-result-${deepLinkVoterId}`);
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+    target.focus({ preventScroll: true });
+  }, [deepLinkVoterId, loading, result]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,6 +247,12 @@ export default function VotantesPage() {
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setDeepLinkVoterId(null);
+    setDetailVoterId(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("view");
+    url.searchParams.delete("entityId");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
     setPage(1);
     setSearch(searchDraft.trim());
   }
@@ -346,7 +383,14 @@ export default function VotantesPage() {
               ...current,
               items: current.items.map((voter) =>
                 voter.id === revoked.voterId
-                  ? { ...voter, consentAccepted: false }
+                  ? {
+                      ...voter,
+                      consentAccepted: false,
+                      consentCurrent: false,
+                      consentRequiresReconsent: false,
+                      consentState: "REVOKED",
+                      consentRecordStatus: "REVOKED",
+                    }
                   : voter,
               ),
             }
@@ -428,6 +472,12 @@ export default function VotantesPage() {
                   ? {
                       ...voter,
                       consentAccepted: true,
+                      consentCurrent: true,
+                      consentRequiresReconsent: false,
+                      consentState: "CURRENT",
+                      consentRecordStatus: "GRANTED",
+                      consentNoticeVersion: granted.noticeVersion,
+                      currentConsentNoticeVersion: granted.noticeVersion,
                       consentTimestamp: granted.grantedAt,
                     }
                   : voter,
@@ -477,19 +527,34 @@ export default function VotantesPage() {
       <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
-              <ShieldCheck size={13} /> Relacionamiento autorizado
+            <ShieldCheck size={13} /> Relacionamiento autorizado
           </div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
             Personas
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Gestiona únicamente datos entregados y autorizados por cada
-            persona. Este espacio no clasifica intención de voto, ideología ni
+            Gestiona únicamente datos entregados y autorizados por cada persona.
+            Este espacio no clasifica intención de voto, ideología ni
             características sensibles.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <ExportButton moduleName="personas" />
+          {canImportInCurrentMode && (
+            <VoterImportDialog
+              enabled={Boolean(consentContext?.notice)}
+              noticeActivatedAt={
+                consentContext?.notice?.activatedAt ?? null
+              }
+              noticeVersion={consentContext?.notice?.version ?? null}
+              onCompleted={(importResult) => {
+                setNotice(
+                  `${importResult.imported} persona(s) importada(s) correctamente.`,
+                );
+                setReload((value) => value + 1);
+              }}
+            />
+          )}
+          {canExport && <ExportButton moduleName="personas" />}
           <button
             type="button"
             onClick={() => setReload((value) => value + 1)}
@@ -543,6 +608,16 @@ export default function VotantesPage() {
             </Link>
           )}
         </div>
+      )}
+
+      {deepLinkVoterId && !loading && result?.items.length === 0 && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-900"
+        >
+          El resultado ya no está disponible o queda fuera de tu alcance
+          autorizado.
+        </p>
       )}
 
       <section
@@ -646,7 +721,19 @@ export default function VotantesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {result.items.map((voter) => (
-                  <tr key={voter.id} className="hover:bg-slate-50/70">
+                  <tr
+                    key={voter.id}
+                    id={`voter-result-${voter.id}`}
+                    tabIndex={-1}
+                    aria-current={
+                      voter.id === deepLinkVoterId ? "true" : undefined
+                    }
+                    className={`outline-none hover:bg-slate-50/70 ${
+                      voter.id === deepLinkVoterId
+                        ? "bg-blue-50 ring-2 ring-inset ring-blue-500"
+                        : ""
+                    }`}
+                  >
                     <td className="px-6 py-5">
                       <p className="text-sm font-black text-slate-900">
                         {voter.firstName} {voter.lastName}
@@ -667,9 +754,17 @@ export default function VotantesPage() {
                       {voter.mesa ?? "—"}
                     </td>
                     <td className="px-6 py-5">
-                      {voter.consentAccepted ? (
+                      {voter.consentCurrent ? (
                         <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
                           <CheckCircle2 size={13} /> Vigente
+                        </span>
+                      ) : voter.consentRequiresReconsent ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                          <UserCheck size={13} /> Requiere nueva autorización
+                        </span>
+                      ) : voter.consentState === "REVOKED" ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
+                          <UserMinus size={13} /> Revocado
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
@@ -692,25 +787,31 @@ export default function VotantesPage() {
                               <Eye aria-hidden="true" size={14} /> Ver datos
                             </button>
                           )}
-                          {canRevoke && voter.consentAccepted && (
-                            <button
-                              type="button"
-                              onClick={() => openRevocation(voter)}
-                              className="rounded-xl border border-red-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-red-700 hover:bg-red-50"
-                            >
-                              Revocar
-                            </button>
-                          )}
-                          {canReauthorize && !voter.consentAccepted && (
-                            <button
-                              type="button"
-                              onClick={() => openGrant(voter)}
-                              className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
-                            >
-                              <UserCheck aria-hidden="true" size={14} />
-                              Reautorizar
-                            </button>
-                          )}
+                          {canRevoke &&
+                            voter.consentRecordStatus === "GRANTED" && (
+                              <button
+                                type="button"
+                                onClick={() => openRevocation(voter)}
+                                className="rounded-xl border border-red-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-red-700 hover:bg-red-50"
+                              >
+                                Revocar
+                              </button>
+                            )}
+                          {canReauthorize &&
+                            (voter.consentRequiresReconsent ||
+                              voter.consentRecordStatus === "REVOKED" ||
+                              voter.consentRecordStatus === "EXPIRED") && (
+                              <button
+                                type="button"
+                                onClick={() => openGrant(voter)}
+                                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                              >
+                                <UserCheck aria-hidden="true" size={14} />
+                                {voter.consentRequiresReconsent
+                                  ? "Actualizar autorización"
+                                  : "Reautorizar"}
+                              </button>
+                            )}
                         </div>
                       </td>
                     )}
@@ -947,7 +1048,12 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-60"
                 >
                   {saving ? (
-                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
+                    <Loader2
+                      className="animate-spin"
+                      size={16}
+                      role="status"
+                      aria-label="Cargando"
+                    />
                   ) : (
                     <ShieldCheck size={16} />
                   )}
@@ -1084,7 +1190,12 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
                 >
                   {granting ? (
-                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
+                    <Loader2
+                      className="animate-spin"
+                      size={16}
+                      role="status"
+                      aria-label="Cargando"
+                    />
                   ) : (
                     <UserCheck aria-hidden="true" size={16} />
                   )}
@@ -1189,7 +1300,12 @@ export default function VotantesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
                 >
                   {revoking ? (
-                    <Loader2 className="animate-spin" size={16} role="status" aria-label="Cargando" />
+                    <Loader2
+                      className="animate-spin"
+                      size={16}
+                      role="status"
+                      aria-label="Cargando"
+                    />
                   ) : (
                     <UserMinus size={16} />
                   )}

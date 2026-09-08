@@ -111,7 +111,7 @@ export default function ConsentSettingsPage() {
       });
       setContext(response);
       setNotice(
-        `Aviso ${response.notice?.version ?? ""} activo. Las capturas usarán esta versión desde ahora.`,
+        `Aviso ${response.notice?.version ?? ""} activo. El historial anterior se conservó y las autorizaciones de otras versiones requerirán una nueva confirmación.`,
       );
     } catch (requestError: unknown) {
       setError(readableError(requestError));
@@ -133,9 +133,9 @@ export default function ConsentSettingsPage() {
             Aviso de privacidad de la organización
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            El equipo solo podrá registrar autorizaciones después de activar
-            un aviso propio. Cada nueva versión conserva la anterior y obliga
-            a confirmar nuevamente el consentimiento.
+            El equipo solo podrá registrar autorizaciones después de activar un
+            aviso propio. Cada nueva versión conserva la anterior y obliga a
+            confirmar nuevamente el consentimiento.
           </p>
         </div>
         <button

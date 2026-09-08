@@ -62,7 +62,7 @@ const assignees = [
 const initialIncident = {
   id: "incident-1",
   mode: "CAMPAIGN",
-  reference: "PQRS-CAM-2026-AAA111",
+  reference: "INC-CAM-2026-AAA111",
   title: "Daño en material de puesto",
   description: "El coordinador reportó material deteriorado antes del evento.",
   category: "Logística",
@@ -368,7 +368,7 @@ test("administra un incidente real con filtros, responsable y transición audita
         ...initialIncident,
         ...body,
         id: "incident-2",
-        reference: "PQRS-CAM-2026-BBB222",
+        reference: "INC-CAM-2026-BBB222",
         assigneeId: String(body.assigneeId),
         assignee: assignees[1],
         createdAt: "2026-08-21T15:00:00.000Z",
@@ -425,6 +425,9 @@ test("administra un incidente real con filtros, responsable y transición audita
   }
   await expect(
     page.getByRole("link", { name: "Incidentes y crisis" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Bandeja operativa", exact: true }),
   ).toBeVisible();
   if (await moreNavigation.isVisible()) {
     await page.getByRole("button", { name: /Cerrar men/i }).click();
@@ -533,7 +536,7 @@ test("administra un incidente real con filtros, responsable y transición audita
     .getByRole("combobox", { name: "Filtrar incidentes por estado" })
     .selectOption("");
   await page.getByPlaceholder(/Referencia, hecho/).fill("material");
-  await page.getByRole("button", { name: "Buscar" }).click();
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect
     .poll(() =>
       requestedCaseUrls.some(
@@ -582,7 +585,7 @@ test("administra un incidente real con filtros, responsable y transición audita
     .selectOption("IN_PROGRESS");
   await createdCard.getByRole("button", { name: "Guardar respuesta" }).click();
   await expect(
-    page.getByText("PQRS-CAM-2026-BBB222 actualizado y auditado."),
+    page.getByText("INC-CAM-2026-BBB222 actualizado y auditado."),
   ).toBeVisible();
   await expect(createdCard).toContainText("Respuesta en curso");
 
