@@ -1,46 +1,66 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldCheck, ShieldAlert, KeyRound, Loader2, Copy, Check } from "lucide-react";
-import { Button, Input, Label } from "@/components/ui";
+import { ShieldCheck, ShieldAlert, Loader2, Copy, Check } from "lucide-react";
+import { Button, Input } from "@/components/ui";
 import { getMfaStatus, setupMfa, verifyMfa, disableMfa } from "@/lib/mfa-api";
 import { ApiError } from "@/lib/api-client";
 import Image from "next/image";
+import { useAuth } from "@/context/auth";
 
-type MfaState = "loading" | "not_enabled" | "setup" | "enabled" | "disabling";
+type MfaState =
+  | "loading"
+  | "status_error"
+  | "not_enabled"
+  | "setup"
+  | "enabled"
+  | "disabling";
+type CopyState = "idle" | "copying" | "copied" | "failed";
 
 export function MfaSetup() {
+  const { signOut } = useAuth();
   const [state, setState] = useState<MfaState>("loading");
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
 
   useEffect(() => {
-    fetchStatus();
+    void fetchStatus();
   }, []);
 
   async function fetchStatus() {
+    setState("loading");
+    setStatusError(null);
     try {
       const { enabled } = await getMfaStatus();
       setState(enabled ? "enabled" : "not_enabled");
     } catch (err) {
-      // If fetching fails, we keep it as not enabled but log error
-      console.error(err);
-      setState("not_enabled");
+      setStatusError(
+        err instanceof ApiError
+          ? err.message
+          : "No fue posible consultar el estado de la autenticación de dos factores.",
+      );
+      setState("status_error");
     }
   }
 
-  async function handleEnable() {
+  async function handleEnable(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentPassword) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      const data = await setupMfa();
+      const data = await setupMfa(currentPassword);
+      setCurrentPassword("");
       setQrCodeUrl(data.qrCodeDataUrl);
       setSecret(data.secret);
       setCode("");
+      setCopyState("idle");
       setState("setup");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al configurar 2FA");
@@ -57,8 +77,7 @@ export function MfaSetup() {
     setError(null);
     try {
       await verifyMfa(code);
-      setState("enabled");
-      setCode("");
+      signOut("/iniciar-sesion?securityChanged=mfa-enabled");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Código inválido");
     } finally {
@@ -74,8 +93,7 @@ export function MfaSetup() {
     setError(null);
     try {
       await disableMfa(code);
-      setState("not_enabled");
-      setCode("");
+      signOut("/iniciar-sesion?securityChanged=mfa-disabled");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Código inválido");
     } finally {
@@ -83,18 +101,61 @@ export function MfaSetup() {
     }
   }
 
-  const copySecret = () => {
-    if (secret) {
-      navigator.clipboard.writeText(secret);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  async function copySecret() {
+    if (!secret) return;
+
+    setCopyState("copying");
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
     }
-  };
+  }
 
   if (state === "loading") {
     return (
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <section
+        role="status"
+        className="flex justify-center rounded-[2rem] border border-slate-200 bg-white p-6 py-12 shadow-sm sm:p-8"
+      >
+        <Loader2
+          aria-hidden="true"
+          className="h-8 w-8 animate-spin text-slate-400"
+        />
+        <span className="sr-only">Consultando el estado de 2FA</span>
+      </section>
+    );
+  }
+
+  if (state === "status_error") {
+    return (
+      <section
+        aria-labelledby="mfa-status-error-title"
+        className="rounded-[2rem] border border-red-200 bg-white p-6 shadow-sm sm:p-8"
+      >
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-700">
+            <ShieldAlert aria-hidden="true" size={23} />
+          </span>
+          <div>
+            <h2
+              id="mfa-status-error-title"
+              className="text-xl font-black text-slate-950"
+            >
+              No pudimos consultar tu protección 2FA
+            </h2>
+            <p
+              role="alert"
+              className="mt-2 text-sm font-medium leading-6 text-red-700"
+            >
+              {statusError}
+            </p>
+            <Button className="mt-5" onClick={() => void fetchStatus()}>
+              Reintentar
+            </Button>
+          </div>
+        </div>
       </section>
     );
   }
@@ -115,18 +176,37 @@ export function MfaSetup() {
 
           <div className="mt-7">
             {error && (
-              <p className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700">
+              <p
+                role="alert"
+                className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700"
+              >
                 {error}
               </p>
             )}
 
             {state === "not_enabled" && (
-              <Button
-                onClick={handleEnable}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Cargando..." : "Habilitar 2FA"}
-              </Button>
+              <form onSubmit={handleEnable} className="max-w-md space-y-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="mfa-current-password"
+                    className="text-sm font-bold text-slate-800"
+                  >
+                    Confirma tu contraseña actual
+                  </label>
+                  <Input
+                    id="mfa-current-password"
+                    type="password"
+                    autoComplete="current-password"
+                    maxLength={128}
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isSubmitting || !currentPassword}>
+                  {isSubmitting ? "Cargando..." : "Habilitar 2FA"}
+                </Button>
+              </form>
             )}
 
             {state === "setup" && (
@@ -151,10 +231,53 @@ export function MfaSetup() {
                         <code className="bg-slate-200 px-2 py-1 rounded text-sm font-mono tracking-widest text-slate-800 break-all">
                           {secret}
                         </code>
-                        <Button type="button" variant="ghost" size="sm" onClick={copySecret} className="shrink-0 h-8 px-2">
-                          {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void copySecret()}
+                          disabled={copyState === "copying"}
+                          aria-label={
+                            copyState === "copied"
+                              ? "Clave secreta copiada"
+                              : copyState === "failed"
+                                ? "Reintentar copia de la clave secreta"
+                                : "Copiar clave secreta"
+                          }
+                          className="h-8 shrink-0 px-2"
+                        >
+                          {copyState === "copying" ? (
+                            <Loader2
+                              aria-hidden="true"
+                              className="h-4 w-4 animate-spin"
+                            />
+                          ) : copyState === "copied" ? (
+                            <Check
+                              aria-hidden="true"
+                              className="h-4 w-4 text-emerald-600"
+                            />
+                          ) : (
+                            <Copy aria-hidden="true" className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
+                      {copyState === "copied" && (
+                        <p
+                          role="status"
+                          className="mt-2 text-xs font-bold text-emerald-700"
+                        >
+                          Clave copiada al portapapeles.
+                        </p>
+                      )}
+                      {copyState === "failed" && (
+                        <p
+                          role="alert"
+                          className="mt-2 text-xs font-bold text-red-700"
+                        >
+                          No fue posible copiar la clave. Revisa los permisos del
+                          navegador e intenta de nuevo.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -177,7 +300,7 @@ export function MfaSetup() {
                       <Button type="submit" disabled={isSubmitting || code.length !== 6}>
                         {isSubmitting ? "Verificando..." : "Verificar y activar"}
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => { setState("not_enabled"); setCode(""); setError(null); }} disabled={isSubmitting}>
+                      <Button type="button" variant="outline" onClick={() => { setState("not_enabled"); setCode(""); setError(null); setQrCodeUrl(null); setSecret(null); setCopyState("idle"); }} disabled={isSubmitting}>
                         Cancelar
                       </Button>
                     </div>

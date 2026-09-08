@@ -26,6 +26,11 @@ import {
   UpdateTeamMemberRoleDto,
   UpdateTeamMemberStatusDto,
 } from './dto/team-member-lifecycle.dto';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
+import { loadSaasAdminIdentityConfig } from '../auth/guards/saas-admin.guard';
 
 const INVITATION_LIFETIME_MS = 72 * 60 * 60 * 1_000;
 const TEMPORARY_PASSWORD_BYTES = 24;
@@ -63,10 +68,19 @@ const TERRITORIAL_ROLE_TYPES: Readonly<Partial<Record<Role, DivisionType[]>>> =
 
 @Injectable()
 export class TeamService {
+  private readonly protectedSaasAdminUserIds: ReadonlySet<string>;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.protectedSaasAdminUserIds = new Set(
+      loadSaasAdminIdentityConfig({
+        SAAS_ADMIN_USER_IDS: this.config.get<string>('SAAS_ADMIN_USER_IDS'),
+        SAAS_ADMIN_EMAILS: this.config.get<string>('SAAS_ADMIN_EMAILS'),
+      }).userIds,
+    );
+  }
 
   async listMembers(user: AuthenticatedUser, query: ListTeamQueryDto) {
     await this.assertCurrentAdmin(user);
@@ -120,6 +134,7 @@ export class TeamService {
           const mode = await this.assertCurrentAdmin(user, tx);
           this.assertAssignableRole(dto.role, mode);
           const target = await this.findMutableMember(user, memberId, tx);
+          this.assertNotProtectedSaasAdmin(target.id);
 
           if (target.role === dto.role) {
             return target;
@@ -181,6 +196,7 @@ export class TeamService {
         async (tx) => {
           const mode = await this.assertCurrentAdmin(user, tx);
           const target = await this.findMutableMember(user, memberId, tx);
+          this.assertNotProtectedSaasAdmin(target.id);
 
           if (target.isActive === dto.isActive) {
             return target;
@@ -344,6 +360,7 @@ export class TeamService {
           if (!target) {
             throw new NotFoundException('Miembro activo no encontrado');
           }
+          this.assertNotProtectedSaasAdmin(target.id);
           const updated = await tx.user.updateMany({
             where: {
               id: target.id,
@@ -438,6 +455,8 @@ export class TeamService {
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);
     const expiresAt = new Date(Date.now() + INVITATION_LIFETIME_MS);
+
+    await ensureTenantSubscription(this.prisma, user.tenantId);
 
     try {
       const invitation = await this.prisma.$transaction(
@@ -535,6 +554,15 @@ export class TeamService {
     const tokenHash = this.hashToken(dto.token);
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const now = new Date();
+    const invitationTenant = await this.prisma.teamInvitation.findUnique({
+      where: { tokenHash },
+      select: { tenantId: true },
+    });
+    if (invitationTenant) {
+      // Pending invitations created before billing existed also receive a plan.
+      // The transaction below revalidates the token before creating anything.
+      await ensureTenantSubscription(this.prisma, invitationTenant.tenantId);
+    }
 
     try {
       return await this.prisma.$transaction(
@@ -571,6 +599,8 @@ export class TeamService {
           if (existingUser) {
             throw this.invalidInvitation();
           }
+
+          await assertPlanQuotaInTransaction(tx, invitation.tenantId, 'users');
 
           const accepted = await tx.teamInvitation.updateMany({
             where: {
@@ -627,7 +657,7 @@ export class TeamService {
             message: 'Invitacion aceptada. Ya puedes iniciar sesion.',
           };
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
       );
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
@@ -750,9 +780,15 @@ export class TeamService {
   }
 
   private isInvitableRole(role: Role, mode: PoliticalOperationMode): boolean {
-    // ADMIN sólo nace mediante una invitación explícita de otro ADMIN. Nunca
-    // se incluye entre los roles mutables para impedir ascensos accidentales.
-    return role === Role.ADMIN || this.isAssignableRole(role, mode);
+    return this.isAssignableRole(role, mode);
+  }
+
+  private assertNotProtectedSaasAdmin(userId: string): void {
+    if (this.protectedSaasAdminUserIds.has(userId.toLowerCase())) {
+      throw new ForbiddenException(
+        'La cuenta de administracion SaaS no puede modificarse desde Equipo',
+      );
+    }
   }
 
   private resolveAppOrigin(): string {

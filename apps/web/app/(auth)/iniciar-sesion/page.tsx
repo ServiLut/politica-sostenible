@@ -4,39 +4,20 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Label } from "@/components/ui";
-import { LogIn, Mail, Lock, Sparkles, Loader2, ShieldCheck } from "lucide-react";
-import { useAuth } from "@/context/auth";
 import {
-  canAccessNavigationItem,
-  dashboardConfig,
-  getDefaultDashboardRoute,
-  matchesNavigationPath,
-} from "@/config/navigation";
-import { Tenant, User } from "@/types/saas-schema";
+  LogIn,
+  Mail,
+  Lock,
+  Sparkles,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
+import { useAuth } from "@/context/auth";
+import type { LoginDto } from "@/lib/auth-api";
+import { resolvePostLoginDestination } from "@/lib/post-login-navigation";
 
-function getPostLoginPath(user: User, tenant: Tenant) {
-  if (user.mustChangePassword === true) {
-    return "/dashboard/profile";
-  }
-
-  if (typeof window !== "undefined") {
-    const requestedPath = new URLSearchParams(window.location.search).get(
-      "next",
-    );
-    if (requestedPath?.startsWith("/dashboard/")) {
-      const requestedRoute = dashboardConfig.find((item) =>
-        matchesNavigationPath(requestedPath, item.href),
-      );
-      if (
-        requestedRoute &&
-        canAccessNavigationItem(requestedRoute, user, tenant)
-      ) {
-        return requestedPath;
-      }
-    }
-  }
-
-  return getDefaultDashboardRoute(user, tenant);
+function getRequestedPostLoginPath(): string | null {
+  return new URLSearchParams(window.location.search).get("next");
 }
 
 export default function LoginPage() {
@@ -51,17 +32,24 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordChanged, setPasswordChanged] = useState(false);
+  const [securityChanged, setSecurityChanged] = useState<
+    "mfa-enabled" | "mfa-disabled" | null
+  >(null);
 
   useEffect(() => {
-    setPasswordChanged(
-      new URLSearchParams(window.location.search).get("passwordChanged") ===
-        "1",
+    const params = new URLSearchParams(window.location.search);
+    setPasswordChanged(params.get("passwordChanged") === "1");
+    const change = params.get("securityChanged");
+    setSecurityChanged(
+      change === "mfa-enabled" || change === "mfa-disabled" ? change : null,
     );
   }, []);
 
   useEffect(() => {
     if (!sessionLoading && user && tenant) {
-      router.replace(getPostLoginPath(user, tenant));
+      router.replace(
+        resolvePostLoginDestination(getRequestedPostLoginPath(), user, tenant),
+      );
     }
   }, [router, sessionLoading, tenant, user]);
 
@@ -76,24 +64,30 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const payload: any = {
+      const payload: LoginDto = {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       };
-      
+
       if (requiresMfa) {
-        payload.code = mfaCode;
+        payload.totpCode = mfaCode;
       }
 
       const session = await login(payload);
-      
-      if ('requiresMfa' in session) {
+
+      if ("requiresMfa" in session) {
         setRequiresMfa(true);
         setMfaCode("");
         return;
       }
-      
-      router.replace(getPostLoginPath(session.user, session.tenant));
+
+      router.replace(
+        resolvePostLoginDestination(
+          getRequestedPostLoginPath(),
+          session.user,
+          session.tenant,
+        ),
+      );
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -106,7 +100,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-white dark:bg-slate-950">
+    <div
+      id="main-content"
+      tabIndex={-1}
+      className="flex min-h-screen overflow-hidden bg-white outline-none dark:bg-slate-950"
+    >
       {/* Left side: Brand/Marketing */}
       <div className="relative hidden w-1/2 flex-col justify-between bg-slate-900 p-16 text-white lg:flex dark:bg-slate-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(39,39,42,0.8)_0%,rgba(9,9,11,1)_100%)]" />
@@ -165,7 +163,11 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div id="login-error" role="alert" className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95">
+            <div
+              id="login-error"
+              role="alert"
+              className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95"
+            >
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="font-bold">{error}</span>
@@ -178,8 +180,19 @@ export default function LoginPage() {
               role="status"
               className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-6 text-sm font-bold text-emerald-800 shadow-sm"
             >
-              Contraseña actualizada. Inicia sesión nuevamente con tu nueva
-              contraseña.
+              Contraseña actualizada y sesiones anteriores cerradas. Inicia
+              sesión nuevamente con tu nueva contraseña.
+            </div>
+          )}
+
+          {securityChanged && !error && (
+            <div
+              role="status"
+              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-6 text-sm font-bold text-emerald-800 shadow-sm"
+            >
+              {securityChanged === "mfa-enabled"
+                ? "2FA quedó activado y las sesiones anteriores se cerraron. Espera el siguiente código de tu autenticador: el usado para activar 2FA ya fue consumido."
+                : "2FA quedó desactivado y las sesiones anteriores se cerraron. Inicia sesión nuevamente."}
             </div>
           )}
 
@@ -205,7 +218,9 @@ export default function LoginPage() {
                       placeholder="000000"
                       className="pl-14 h-15 rounded-[1.5rem] text-center tracking-widest font-mono text-lg"
                       value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) =>
+                        setMfaCode(e.target.value.replace(/\D/g, ""))
+                      }
                       required
                     />
                   </div>
@@ -213,7 +228,10 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => { setRequiresMfa(false); setMfaCode(""); }}
+                  onClick={() => {
+                    setRequiresMfa(false);
+                    setMfaCode("");
+                  }}
                   className="w-full text-sm font-medium"
                 >
                   Regresar
@@ -282,7 +300,11 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={isSubmitting || sessionLoading || (requiresMfa && mfaCode.length !== 6)}
+              disabled={
+                isSubmitting ||
+                sessionLoading ||
+                (requiresMfa && mfaCode.length !== 6)
+              }
               size="lg"
               className="w-full rounded-[1.5rem] bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-white shadow-2xl shadow-slate-300 dark:shadow-none"
             >
@@ -317,4 +339,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

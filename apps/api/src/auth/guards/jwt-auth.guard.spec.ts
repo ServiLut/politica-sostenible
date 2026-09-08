@@ -37,6 +37,8 @@ describe('JwtAuthGuard', () => {
       email: 'current@example.test',
       role: 'VOLUNTEER',
       password: STORED_PASSWORD_HASH,
+      totpEnabledAt: null,
+      authVersion: 0,
       mustChangePassword: false,
       temporaryPasswordExpiresAt: null,
     });
@@ -47,7 +49,7 @@ describe('JwtAuthGuard', () => {
     );
   });
 
-  it('derives identity from the token but uses the current database role', async () => {
+  it('accepts a pre-migration token at authVersion zero and uses the current database role', async () => {
     const request = {
       headers: {
         authorization: 'Bearer signed-token',
@@ -93,6 +95,8 @@ describe('JwtAuthGuard', () => {
         email: true,
         role: true,
         password: true,
+        totpEnabledAt: true,
+        authVersion: true,
         mustChangePassword: true,
         temporaryPasswordExpiresAt: true,
       },
@@ -148,6 +152,79 @@ describe('JwtAuthGuard', () => {
     expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects a token immediately after logout increments authVersion', async () => {
+    verifyAsync.mockResolvedValue({
+      sub: 'user-from-token',
+      tenantId: 'tenant-from-token',
+      authVersion: 1,
+      sessionVersion: createSessionVersion(
+        'user-from-token',
+        STORED_PASSWORD_HASH,
+        null,
+        1,
+      ),
+    });
+    findFirst.mockResolvedValue({
+      email: 'current@example.test',
+      role: 'VOLUNTEER',
+      password: STORED_PASSWORD_HASH,
+      totpEnabledAt: null,
+      authVersion: 2,
+      mustChangePassword: false,
+      temporaryPasswordExpiresAt: null,
+    });
+    const request = { headers: { authorization: 'Bearer signed-token' } };
+
+    await expect(
+      guard.canActivate(buildContext(request)),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a non-numeric authVersion claim instead of coercing it', async () => {
+    verifyAsync.mockResolvedValue({
+      sub: 'user-from-token',
+      tenantId: 'tenant-from-token',
+      authVersion: '0',
+      sessionVersion: createSessionVersion(
+        'user-from-token',
+        STORED_PASSWORD_HASH,
+      ),
+    });
+    const request = { headers: { authorization: 'Bearer signed-token' } };
+
+    await expect(
+      guard.canActivate(buildContext(request)),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rejects every bearer issued before MFA was enabled', async () => {
+    verifyAsync.mockResolvedValue({
+      sub: 'user-from-token',
+      tenantId: 'tenant-from-token',
+      authVersion: 0,
+      sessionVersion: createSessionVersion(
+        'user-from-token',
+        STORED_PASSWORD_HASH,
+        null,
+      ),
+    });
+    findFirst.mockResolvedValue({
+      email: 'current@example.test',
+      role: 'VOLUNTEER',
+      password: STORED_PASSWORD_HASH,
+      totpEnabledAt: new Date('2026-09-07T12:00:00.000Z'),
+      authVersion: 1,
+      mustChangePassword: false,
+      temporaryPasswordExpiresAt: null,
+    });
+    const request = { headers: { authorization: 'Bearer signed-token' } };
+
+    await expect(
+      guard.canActivate(buildContext(request)),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
   it('blocks ordinary endpoints until a valid temporary password is changed', async () => {
     verifyAsync.mockResolvedValue({
       sub: 'user-from-token',
@@ -161,6 +238,7 @@ describe('JwtAuthGuard', () => {
       email: 'current@example.test',
       role: 'VOLUNTEER',
       password: STORED_PASSWORD_HASH,
+      authVersion: 0,
       mustChangePassword: true,
       temporaryPasswordExpiresAt: new Date(Date.now() + 60_000),
     });
@@ -193,6 +271,7 @@ describe('JwtAuthGuard', () => {
       email: 'current@example.test',
       role: 'VOLUNTEER',
       password: STORED_PASSWORD_HASH,
+      authVersion: 0,
       mustChangePassword: true,
       temporaryPasswordExpiresAt: expiresAt,
     });
@@ -225,6 +304,7 @@ describe('JwtAuthGuard', () => {
       email: 'current@example.test',
       role: 'VOLUNTEER',
       password: STORED_PASSWORD_HASH,
+      authVersion: 0,
       mustChangePassword: true,
       temporaryPasswordExpiresAt: new Date(Date.now() - 1),
     });

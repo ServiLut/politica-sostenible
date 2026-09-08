@@ -32,6 +32,27 @@ import { MfaService } from './mfa.service';
 const DUMMY_PASSWORD_HASH =
   '$2b$12$wlL6bomTWf5lMYG4AC2UmezhPHN3i2fH5RFtgvsnHe2vG/wUoHAhq';
 
+const AUTH_TENANT_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  type: true,
+  defaultMode: true,
+  operationProfile: { select: { stage: true } },
+} satisfies Prisma.TenantSelect;
+
+type AuthTenantProjection = Prisma.TenantGetPayload<{
+  select: typeof AUTH_TENANT_SELECT;
+}>;
+
+function toAuthTenant(tenant: AuthTenantProjection) {
+  const { operationProfile, ...tenantFields } = tenant;
+  return {
+    ...tenantFields,
+    operationStage: operationProfile?.stage ?? null,
+  };
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -59,14 +80,9 @@ export class AuthService {
         temporaryPasswordExpiresAt: true,
         tenantId: true,
         totpEnabledAt: true,
+        authVersion: true,
         tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            type: true,
-            defaultMode: true,
-          },
+          select: AUTH_TENANT_SELECT,
         },
       },
     });
@@ -84,8 +100,12 @@ export class AuthService {
       if (!totpCode) {
         return { requiresMfa: true };
       }
-      
-      const isMfaValid = await this.mfaService.verifyCode(user.id, totpCode);
+
+      const isMfaValid = await this.mfaService.verifyCode(
+        user.id,
+        user.tenantId,
+        totpCode,
+      );
       if (!isMfaValid) {
         throw new UnauthorizedException('Código de verificación incorrecto');
       }
@@ -106,7 +126,13 @@ export class AuthService {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
-      sessionVersion: createSessionVersion(user.id, user.password),
+      authVersion: user.authVersion,
+      sessionVersion: createSessionVersion(
+        user.id,
+        user.password,
+        user.totpEnabledAt,
+        user.authVersion,
+      ),
     };
 
     return {
@@ -120,7 +146,7 @@ export class AuthService {
         temporaryPasswordExpiresAt: user.mustChangePassword
           ? user.temporaryPasswordExpiresAt
           : null,
-        tenant: user.tenant,
+        tenant: toAuthTenant(user.tenant),
       },
     };
   }
@@ -129,6 +155,7 @@ export class AuthService {
     const {
       email,
       password,
+      passwordConfirmation,
       name,
       documentId,
       phone,
@@ -137,6 +164,11 @@ export class AuthService {
       termsVersion,
     } = dto;
     this.assertBcryptPasswordSize(password);
+    if (password !== passwordConfirmation) {
+      throw new BadRequestException(
+        'La confirmacion de la contrasena no coincide',
+      );
+    }
 
     const [existingUser, hashedPassword] = await Promise.all([
       this.prisma.user.findUnique({
@@ -242,13 +274,7 @@ export class AuthService {
         mustChangePassword: true,
         temporaryPasswordExpiresAt: true,
         tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            type: true,
-            defaultMode: true,
-          },
+          select: AUTH_TENANT_SELECT,
         },
       },
     });
@@ -257,7 +283,12 @@ export class AuthService {
       throw new UnauthorizedException('Sesion invalida o desactivada');
     }
 
-    return { user: currentUser };
+    return {
+      user: {
+        ...currentUser,
+        tenant: toAuthTenant(currentUser.tenant),
+      },
+    };
   }
 
   async updateOrganization(
@@ -277,13 +308,7 @@ export class AuthService {
             select: {
               id: true,
               tenant: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  type: true,
-                  defaultMode: true,
-                },
+                select: AUTH_TENANT_SELECT,
               },
             },
           });
@@ -302,7 +327,10 @@ export class AuthService {
 
           const name = dto.name.trim();
           if (name === currentAdmin.tenant.name) {
-            return { tenant: currentAdmin.tenant, changed: false };
+            return {
+              tenant: toAuthTenant(currentAdmin.tenant),
+              changed: false,
+            };
           }
 
           const updated = await tx.tenant.updateMany({
@@ -335,7 +363,7 @@ export class AuthService {
           });
 
           return {
-            tenant: { ...currentAdmin.tenant, name },
+            tenant: { ...toAuthTenant(currentAdmin.tenant), name },
             changed: true,
           };
         },
@@ -385,8 +413,11 @@ export class AuthService {
       currentUser?.password ?? DUMMY_PASSWORD_HASH,
     );
 
-    if (!currentUser || !passwordMatches) {
-      throw new UnauthorizedException('La contraseña actual no es correcta');
+    if (!currentUser) {
+      throw new UnauthorizedException('Sesion invalida o desactivada');
+    }
+    if (!passwordMatches) {
+      throw new ForbiddenException('La contraseña actual no es correcta');
     }
 
     if (
@@ -449,6 +480,55 @@ export class AuthService {
     });
 
     return { message: 'Contraseña actualizada correctamente' };
+  }
+
+  async logout(user: AuthenticatedUser) {
+    await this.prisma.$transaction(async (tx) => {
+      const currentUser = await tx.user.findFirst({
+        where: {
+          id: user.userId,
+          tenantId: user.tenantId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          tenant: { select: { defaultMode: true } },
+        },
+      });
+      if (!currentUser) {
+        throw new UnauthorizedException('Sesion invalida o desactivada');
+      }
+
+      const revoked = await tx.user.updateMany({
+        where: {
+          id: user.userId,
+          tenantId: user.tenantId,
+          isActive: true,
+        },
+        data: { authVersion: { increment: 1 } },
+      });
+      if (revoked.count !== 1) {
+        throw new UnauthorizedException('Sesion invalida o desactivada');
+      }
+
+      await tx.auditEvent.create({
+        data: {
+          tenantId: user.tenantId,
+          mode: currentUser.tenant.defaultMode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
+          action: 'ACCOUNT_SESSIONS_REVOKED',
+          resourceType: 'User',
+          resourceId: user.userId,
+          metadata: {
+            initiatedBy: 'SELF_SERVICE_LOGOUT',
+            scope: 'ALL_DEVICES',
+          },
+        },
+      });
+    });
+
+    return { message: 'Sesiones cerradas en todos los dispositivos' };
   }
 
   private assertBcryptPasswordSize(password: string): void {

@@ -9,16 +9,38 @@ import {
   ConsentPurpose,
   ConsentStatus,
   DivisionType,
+  E14FormType,
   PoliticalOperationMode,
   Prisma,
   Role,
   TenantType,
+  WitnessCredentialType,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WitnessService } from '../witness/witness.service';
 import { LogisticsService } from './logistics.service';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
+
+jest.mock('../auth/guards/plan-limits.guard', () => ({
+  assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
+  ensureTenantSubscription: jest.fn().mockResolvedValue(undefined),
+}));
+
+const e14Traceability = {
+  credentialType: WitnessCredentialType.E15,
+  credentialReference: 'E15-BOG-001-0001',
+  checkedInAt: '2026-08-21T07:00:00.000-05:00',
+  e14FormType: E14FormType.DELEGADOS,
+  blankVotes: 3,
+  nullVotes: 2,
+  unmarkedVotes: 1,
+  hasWrittenClaim: false,
+} as const;
 
 function activeConsentNoticeDelegate() {
   return {
@@ -71,6 +93,7 @@ describe('LogisticsService tenant isolation', () => {
       service.syncE14('tenant-a', 'witness-a', {
         puestoId: 'puesto-from-tenant-b',
         mesa: 1,
+        ...e14Traceability,
         candidateVotes: 10,
         totalTableVotes: 100,
         e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
@@ -178,6 +201,7 @@ describe('LogisticsService tenant isolation', () => {
       service.syncE14('tenant-a', 'witness-a', {
         puestoId: 'puesto-a',
         mesa: 1,
+        ...e14Traceability,
         candidateVotes: 10,
         totalTableVotes: 100,
         e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
@@ -206,6 +230,7 @@ describe('LogisticsService tenant isolation', () => {
       service.syncE14('tenant-a', 'witness-a', {
         puestoId: 'puesto-a',
         mesa: 1,
+        ...e14Traceability,
         candidateVotes: 101,
         totalTableVotes: 100,
         e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
@@ -309,6 +334,7 @@ describe('LogisticsService tenant isolation', () => {
     const result = await service.syncE14('tenant-a', 'witness-a', {
       puestoId: 'puesto-a',
       mesa: 1,
+      ...e14Traceability,
       candidateVotes: 10,
       totalTableVotes: 100,
       e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
@@ -367,6 +393,7 @@ describe('LogisticsService tenant isolation', () => {
       service.syncE14('tenant-a', 'witness-a', {
         puestoId: 'puesto-b',
         mesa: 1,
+        ...e14Traceability,
         candidateVotes: 10,
         totalTableVotes: 100,
         e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
@@ -562,8 +589,17 @@ describe('LogisticsService tenant isolation', () => {
 
     expect(runTransaction).toHaveBeenCalledTimes(1);
     expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
+    expect(ensureTenantSubscription).toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant-a',
+    );
+    expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
+      transaction,
+      'tenant-a',
+      'voters',
+    );
     expect(transaction.voter.create).toHaveBeenCalledTimes(1);
     expect(transaction.consentRecord.create).toHaveBeenCalledTimes(1);
     expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
@@ -592,7 +628,7 @@ describe('LogisticsService tenant isolation', () => {
     ).rejects.toBeInstanceOf(ConflictException);
 
     expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
   });
 

@@ -381,11 +381,8 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
     expect(JSON.stringify(auditCall)).not.toContain(baseEvent.location);
   });
 
-  it('deletes only a scoped DRAFT without attendance and preserves audit evidence', async () => {
-    prisma.campaignEvent.findFirst.mockResolvedValue({
-      ...baseEvent,
-      _count: { attendees: 0 },
-    });
+  it('deletes only a scoped DRAFT and preserves audit evidence', async () => {
+    prisma.campaignEvent.findFirst.mockResolvedValue(baseEvent);
 
     await expect(service.remove(actor, 'event-a')).resolves.toEqual({
       id: 'event-a',
@@ -409,26 +406,17 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
     );
   });
 
-  it.each([
-    [
-      {
-        ...baseEvent,
-        status: CampaignEventStatus.SCHEDULED,
-        _count: { attendees: 0 },
-      },
-    ],
-    [{ ...baseEvent, _count: { attendees: 1 } }],
-  ])(
-    'refuses destructive deletion when lifecycle evidence must be retained',
-    async (event) => {
-      prisma.campaignEvent.findFirst.mockResolvedValue(event);
+  it('refuses destructive deletion when lifecycle evidence must be retained', async () => {
+    prisma.campaignEvent.findFirst.mockResolvedValue({
+      ...baseEvent,
+      status: CampaignEventStatus.SCHEDULED,
+    });
 
-      await expect(service.remove(actor, 'event-a')).rejects.toBeInstanceOf(
-        ConflictException,
-      );
-      expect(prisma.campaignEvent.deleteMany).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.remove(actor, 'event-a')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(prisma.campaignEvent.deleteMany).not.toHaveBeenCalled();
+  });
 
   it('lists only mode-eligible responsible users from the JWT tenant', async () => {
     await service.listResponsibles(actor);

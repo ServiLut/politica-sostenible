@@ -21,23 +21,20 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { PlanLimitsGuard } from './auth/guards/plan-limits.guard';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { ScheduleModule } from '@nestjs/schedule';
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
 import { CommandCenterModule } from './command-center/command-center.module';
 import { InteractionsModule } from './interactions/interactions.module';
 import { ConsentNoticesModule } from './consent-notices/consent-notices.module';
-import { RetentionModule } from './retention/retention.module';
 import { ExportModule } from './export/export.module';
 import { ImportModule } from './import/import.module';
 import { ElectionDayModule } from './election-day/election-day.module';
 import { SaasAdminModule } from './saas-admin/saas-admin.module';
 import { BillingModule } from './billing/billing.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { ElectronicSignatureModule } from './electronic-signature/electronic-signature.module';
-import { TransitionHandoverModule } from './transition-handover/transition-handover.module';
 import { SearchModule } from './search/search.module';
 import { OperationProfileModule } from './operation-profile/operation-profile.module';
 import { OperationalInboxModule } from './operational-inbox/operational-inbox.module';
@@ -73,16 +70,12 @@ import { OperationalInboxModule } from './operational-inbox/operational-inbox.mo
     CommandCenterModule,
     InteractionsModule,
     ConsentNoticesModule,
-    ScheduleModule.forRoot(),
-    RetentionModule,
     ExportModule,
     ImportModule,
     ElectionDayModule,
     SaasAdminModule,
     BillingModule,
-    NotificationsModule,
     ElectronicSignatureModule,
-    TransitionHandoverModule,
     SearchModule,
     OperationProfileModule,
     OperationalInboxModule,
@@ -101,6 +94,10 @@ import { OperationalInboxModule } from './operational-inbox/operational-inbox.mo
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PlanLimitsGuard,
     },
   ],
 })

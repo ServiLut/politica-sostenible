@@ -26,6 +26,7 @@ import {
   CaseUserSummary,
   CommunicationChannel,
   createIssueCase,
+  getIssueCase,
   IssueCase,
   IssueCasePage,
   IssueCaseStatus,
@@ -34,6 +35,7 @@ import {
   updateIssueCase,
   WorkPriority,
 } from "@/lib/cases-api";
+import { canExportData } from "@/lib/export-policy";
 import { BackendUserRole } from "@/types/saas-schema";
 import { ExportButton } from "@/components/ui/ExportButton";
 
@@ -406,6 +408,7 @@ export default function CasesPage() {
     user !== null && CASE_ASSIGNMENT_MANAGER_ROLES.has(user.backendRole);
   const canRegisterInteraction =
     user !== null && INTERACTION_WRITE_ROLES.has(user.backendRole);
+  const canExport = canExportData(user?.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
   const [result, setResult] = useState<IssueCasePage | null>(null);
@@ -429,6 +432,33 @@ export default function CasesPage() {
     dueDate: "",
     confidential: false,
   });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const entityId = searchParams.get("entityId")?.trim() ?? "";
+    if (searchParams.get("view") !== "detail" || !entityId) return;
+    if (entityId.length > 128) {
+      setMutationError(
+        "El vínculo recibido no tiene un identificador de caso válido.",
+      );
+      return;
+    }
+
+    const controller = new AbortController();
+    void getIssueCase(entityId, controller.signal)
+      .then((issueCase) => {
+        if (!controller.signal.aborted) setSelectedCase(issueCase);
+      })
+      .catch((requestError: unknown) => {
+        if (!controller.signal.aborted) {
+          setMutationError(
+            `No fue posible abrir el caso solicitado. ${readableError(requestError)}`,
+          );
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const loadCases = useCallback(
     (signal: AbortSignal) =>
@@ -521,7 +551,7 @@ export default function CasesPage() {
         confidential: false,
       });
       setIsCreateOpen(false);
-      setNotice("PQRS radicada y auditada correctamente.");
+      setNotice("Solicitud registrada como caso interno y auditado.");
       setFilters((current) => ({ ...current, page: 1 }));
       setReload((value) => value + 1);
     } catch (requestError: unknown) {
@@ -588,29 +618,31 @@ export default function CasesPage() {
             <ShieldCheck size={13} /> {modeLabel(result?.items[0]?.mode)}
           </div>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-            Atención ciudadana y PQRS
+            Atención ciudadana y registro interno
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Radicación, asignación y trazabilidad de solicitudes del modo
-            operativo activo. El modo y la organización se resuelven desde la
-            sesión validada por la API.
+            Registro, asignación y trazabilidad operativa de solicitudes. Este
+            módulo no calcula términos legales ni constituye por sí solo una
+            radicación, respuesta o notificación oficial.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <ExportButton moduleName="casos" />
-          {canMutate && (
-            <button
-              type="button"
-              onClick={() => {
-                setMutationError(null);
-                setIsCreateOpen(true);
-              }}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
-            >
-              <Plus size={17} /> Radicar PQRS
-            </button>
-          )}
-        </div>
+        {(canExport || canMutate) && (
+          <div className="flex items-center gap-3">
+            {canExport && <ExportButton moduleName="casos" />}
+            {canMutate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMutationError(null);
+                  setIsCreateOpen(true);
+                }}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
+              >
+                <Plus size={17} /> Registrar solicitud interna
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -798,10 +830,12 @@ export default function CasesPage() {
                   id="new-case-title"
                   className="text-2xl font-black text-slate-950"
                 >
-                  Radicar solicitud ciudadana
+                  Registrar solicitud ciudadana
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  La referencia y el modo los asigna la API de forma segura.
+                  La referencia y el modo los asigna la API de forma segura. El
+                  registro no reemplaza el canal oficial ni su constancia de
+                  radicación.
                 </p>
               </div>
               <button
@@ -993,7 +1027,7 @@ export default function CasesPage() {
                   ) : (
                     <Plus size={16} />
                   )}{" "}
-                  Radicar caso
+                  Registrar caso
                 </button>
               </div>
             </form>

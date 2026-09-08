@@ -4,11 +4,20 @@ import {
   StorageObjectModule,
   StoredObjectStatus,
 } from '../../../prisma/generated/prisma';
+import { assertPlanQuotaInTransaction } from '../../auth/guards/plan-limits.guard';
 
 export const STORAGE_UPLOAD_CONFIRMED_ACTION = 'STORAGE_UPLOAD_CONFIRMED';
 export const STORAGE_OBJECT_RESOURCE_TYPE = 'StorageObject';
 
-type StoredObjectClient = Pick<Prisma.TransactionClient, 'storedObject'>;
+type StoredObjectClient = Pick<
+  Prisma.TransactionClient,
+  | '$queryRaw'
+  | 'storedObject'
+  | 'subscriptionPlan'
+  | 'tenantSubscription'
+  | 'user'
+  | 'voter'
+>;
 
 /**
  * Consumes a confirmed upload exactly once and links it to the domain record
@@ -45,11 +54,21 @@ export async function consumeConfirmedStorageUpload(
       'El archivo debe estar confirmado, pertenecer al módulo y no haber sido asociado antes',
     );
   }
+
+  if (
+    module === StorageObjectModule.CONSENT &&
+    resourceType === 'VoterConsent'
+  ) {
+    // ImportService creates the voter immediately before consuming its proof.
+    // Validate current usage (increment 0) in that exact transaction so a
+    // batch or concurrent import rolls back instead of exceeding maxVoters.
+    await assertPlanQuotaInTransaction(client, tenantId, 'voters', 0);
+  }
 }
 
 /** Read-only check retained for callers that only need validation. */
 export async function assertConfirmedStorageUpload(
-  client: StoredObjectClient,
+  client: Pick<Prisma.TransactionClient, 'storedObject'>,
   tenantId: string,
   path: string,
   module?: StorageObjectModule,

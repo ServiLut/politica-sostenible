@@ -10,6 +10,7 @@ import {
   Max,
   MaxLength,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { CneCode, EntryType } from '../../../prisma/generated/prisma';
 
 const MAX_CAMPAIGN_AMOUNT = 9_999_999_999_999.99;
@@ -27,6 +28,11 @@ export class CreateFinancialEntryDto {
   @IsDateString()
   date: string;
 
+  @ApiProperty({
+    enum: CneCode,
+    description:
+      'Categoría operativa interna heredada; no representa un código oficial de Cuentas Claras',
+  })
   @IsEnum(CneCode)
   cneCode: CneCode;
 

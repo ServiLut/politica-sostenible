@@ -15,6 +15,8 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
+import { getVisibleNavigationItems } from "@/config/navigation";
+import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
   filterOperationalInboxItems,
@@ -35,6 +37,12 @@ const FILTERS: ReadonlyArray<{
   { value: "UNASSIGNED", label: "Sin responsable" },
   { value: "APPROVALS", label: "Por aprobar" },
 ];
+
+const EMPTY_INBOX_FLOW_HREFS = new Set([
+  "/dashboard/incidents",
+  "/dashboard/cases",
+  "/dashboard/tasks",
+]);
 
 const PRIORITY_LABELS: Readonly<Record<InboxPriority, string>> = {
   LOW: "Baja",
@@ -185,7 +193,11 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
               : "bg-amber-50 text-amber-900"
           }`}
         >
-          <AlertCircle aria-hidden="true" className="mt-0.5 shrink-0" size={15} />
+          <AlertCircle
+            aria-hidden="true"
+            className="mt-0.5 shrink-0"
+            size={15}
+          />
           <span>{item.blockReason}</span>
         </div>
       )}
@@ -201,6 +213,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
 }
 
 export default function OperationalInboxPage() {
+  const { tenant, user } = useAuth();
   const [result, setResult] = useState<OperationalInboxResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -208,10 +221,14 @@ export default function OperationalInboxPage() {
   const [filter, setFilter] = useState<OperationalInboxFilter>("ALL");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    const controller = new AbortController();
+  function requestReload() {
     setLoading(true);
     setError(null);
+    setReload((value) => value + 1);
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
 
     void listOperationalInbox(100, controller.signal)
       .then((response) => {
@@ -220,8 +237,10 @@ export default function OperationalInboxPage() {
       .catch((requestError: unknown) => {
         if (
           !controller.signal.aborted &&
-          !(requestError instanceof DOMException &&
-            requestError.name === "AbortError")
+          !(
+            requestError instanceof DOMException &&
+            requestError.name === "AbortError"
+          )
         ) {
           setError(readableError(requestError));
         }
@@ -237,9 +256,21 @@ export default function OperationalInboxPage() {
     () => filterOperationalInboxItems(result?.items ?? [], filter, search),
     [filter, result, search],
   );
+  const emptyStateFlows = useMemo(() => {
+    if (!tenant || !user) return [];
+
+    return getVisibleNavigationItems(
+      user,
+      tenant,
+      tenant.operationStage,
+    ).filter((item) => EMPTY_INBOX_FLOW_HREFS.has(item.href));
+  }, [tenant, user]);
 
   return (
-    <div data-testid="operational-inbox" className="mx-auto max-w-7xl space-y-6">
+    <div
+      data-testid="operational-inbox"
+      className="mx-auto max-w-7xl space-y-6"
+    >
       <header className="overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
@@ -259,7 +290,7 @@ export default function OperationalInboxPage() {
           </div>
           <button
             type="button"
-            onClick={() => setReload((value) => value + 1)}
+            onClick={requestReload}
             disabled={loading}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-black text-white transition hover:border-blue-400 disabled:opacity-60"
           >
@@ -294,10 +325,12 @@ export default function OperationalInboxPage() {
           <h2 className="mt-4 text-xl font-black text-slate-950">
             No fue posible consolidar la bandeja
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{error}</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            {error}
+          </p>
           <button
             type="button"
-            onClick={() => setReload((value) => value + 1)}
+            onClick={requestReload}
             className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-black text-white"
           >
             Reintentar
@@ -305,7 +338,10 @@ export default function OperationalInboxPage() {
         </div>
       ) : result ? (
         <>
-          <section aria-label="Resumen de trabajo" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <section
+            aria-label="Resumen de trabajo"
+            className="grid grid-cols-2 gap-3 lg:grid-cols-5"
+          >
             <SummaryButton
               label="Todo abierto"
               value={result.summary.total}
@@ -345,7 +381,10 @@ export default function OperationalInboxPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap gap-2" aria-label="Filtros de bandeja">
+              <div
+                className="flex flex-wrap gap-2"
+                aria-label="Filtros de bandeja"
+              >
                 {FILTERS.map((option) => (
                   <button
                     key={option.value}
@@ -380,26 +419,39 @@ export default function OperationalInboxPage() {
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
               <span aria-live="polite">
-                {visibleItems.length} {visibleItems.length === 1 ? "resultado" : "resultados"}
+                {visibleItems.length}{" "}
+                {visibleItems.length === 1 ? "resultado" : "resultados"}
               </span>
               <span>Corte: {formatDate(result.generatedAt)}</span>
             </div>
             {result.summary.truncated && (
-              <p role="status" className="mt-3 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900">
-                Se muestran las {result.summary.visible} acciones más críticas de {result.summary.total}. Resuelve o filtra el trabajo para reducir la cola.
+              <p
+                role="status"
+                className="mt-3 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900"
+              >
+                Se muestran las {result.summary.visible} acciones más críticas
+                de {result.summary.total}. Resuelve o filtra el trabajo para
+                reducir la cola.
               </p>
             )}
           </section>
 
           {visibleItems.length > 0 ? (
-            <section aria-label="Trabajo pendiente" className="grid gap-4 lg:grid-cols-2">
+            <section
+              aria-label="Trabajo pendiente"
+              className="grid gap-4 lg:grid-cols-2"
+            >
               {visibleItems.map((item) => (
                 <WorkItemCard key={item.id} item={item} />
               ))}
             </section>
           ) : (
             <section className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <CheckCircle2 aria-hidden="true" className="text-emerald-600" size={42} />
+              <CheckCircle2
+                aria-hidden="true"
+                className="text-emerald-600"
+                size={42}
+              />
               <h2 className="mt-4 text-xl font-black text-slate-950">
                 {result.summary.total === 0
                   ? "La operación está al día"
@@ -410,6 +462,24 @@ export default function OperationalInboxPage() {
                   ? "Cuando aparezca una tarea, compromiso, caso, incidente o aprobación pendiente, quedará priorizado aquí."
                   : "Cambia el filtro o la búsqueda para volver a ver el trabajo abierto."}
               </p>
+              {result.summary.total === 0 && emptyStateFlows.length > 0 && (
+                <nav
+                  aria-label="Flujos operativos disponibles"
+                  data-testid="inbox-empty-actions"
+                  className="mt-6 flex flex-wrap justify-center gap-3"
+                >
+                  {emptyStateFlows.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-800 transition hover:border-blue-400 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                    >
+                      Abrir {item.title}
+                      <ArrowRight aria-hidden="true" size={16} />
+                    </Link>
+                  ))}
+                </nav>
+              )}
               {result.summary.total > 0 && (
                 <button
                   type="button"
@@ -426,9 +496,14 @@ export default function OperationalInboxPage() {
           )}
 
           <aside className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-            <ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-emerald-700" size={19} />
+            <ShieldCheck
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-emerald-700"
+              size={19}
+            />
             <p>
-              La bandeja no duplica información: cada botón abre el registro original y respeta el alcance de tu organización, modo y rol.
+              La bandeja no duplica información: cada botón abre el registro
+              original y respeta el alcance de tu organización, modo y rol.
             </p>
           </aside>
         </>

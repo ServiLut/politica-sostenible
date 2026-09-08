@@ -2,6 +2,7 @@ import {
   createSessionVersion,
   isCurrentSessionVersion,
 } from './session-version';
+import { createHmac } from 'node:crypto';
 
 describe('password-bound session version', () => {
   beforeEach(() => {
@@ -16,6 +17,28 @@ describe('password-bound session version', () => {
     expect(version).not.toContain('bcrypt-password-hash');
     expect(
       isCurrentSessionVersion(version, 'user-a', 'bcrypt-password-hash'),
+    ).toBe(true);
+  });
+
+  it('preserves the exact pre-migration digest while authVersion is zero', () => {
+    const legacyDigest = createHmac('sha256', process.env.JWT_SECRET!)
+      .update('user-a', 'utf8')
+      .update('\0', 'utf8')
+      .update('bcrypt-password-hash', 'utf8')
+      .digest('base64url');
+    const enabledAt = new Date('2026-09-07T12:00:00.000Z');
+
+    expect(
+      createSessionVersion('user-a', 'bcrypt-password-hash', enabledAt, 0),
+    ).toBe(legacyDigest);
+    expect(
+      isCurrentSessionVersion(
+        legacyDigest,
+        'user-a',
+        'bcrypt-password-hash',
+        enabledAt,
+        0,
+      ),
     ).toBe(true);
   });
 
@@ -34,5 +57,68 @@ describe('password-bound session version', () => {
     expect(isCurrentSessionVersion(stale, 'user-a', 'new-password-hash')).toBe(
       false,
     );
+  });
+
+  it('rejects every prior token when MFA enable and disable increment authVersion', () => {
+    const enabledAt = new Date('2026-09-07T12:00:00.000Z');
+    const beforeEnrollment = createSessionVersion(
+      'user-a',
+      'bcrypt-password-hash',
+      null,
+      0,
+    );
+    const afterEnrollment = createSessionVersion(
+      'user-a',
+      'bcrypt-password-hash',
+      enabledAt,
+      1,
+    );
+
+    expect(
+      isCurrentSessionVersion(
+        beforeEnrollment,
+        'user-a',
+        'bcrypt-password-hash',
+        enabledAt,
+        1,
+      ),
+    ).toBe(false);
+    expect(
+      isCurrentSessionVersion(
+        afterEnrollment,
+        'user-a',
+        'bcrypt-password-hash',
+        null,
+        2,
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects malformed, negative and stale auth versions', () => {
+    const current = createSessionVersion(
+      'user-a',
+      'bcrypt-password-hash',
+      null,
+      3,
+    );
+
+    expect(
+      isCurrentSessionVersion(
+        current,
+        'user-a',
+        'bcrypt-password-hash',
+        null,
+        4,
+      ),
+    ).toBe(false);
+    expect(
+      isCurrentSessionVersion(
+        current,
+        'user-a',
+        'bcrypt-password-hash',
+        null,
+        -1,
+      ),
+    ).toBe(false);
   });
 });

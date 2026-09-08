@@ -377,6 +377,9 @@ test("muestra agenda pública vacía en modo de sólo lectura", async ({
   await expect(page.getByRole("button", { name: "Nuevo evento" })).toHaveCount(
     0,
   );
+  if ((page.viewportSize()?.width ?? 1280) < 1024) {
+    await page.getByRole("button", { name: "Abrir más opciones" }).click();
+  }
   await expect(
     page.getByRole("link", { name: "Agenda y eventos" }),
   ).toBeVisible();

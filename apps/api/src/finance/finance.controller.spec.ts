@@ -61,7 +61,11 @@ describe('FinanceController CNE review draft', () => {
     const controller = new FinanceController({
       markReportedToCne,
     } as unknown as FinanceService);
-    const dto = { externalReference: 'CC-2026/004219' };
+    const dto = {
+      externalReference: 'CC-2026/004219',
+      cneReportEvidenceUrl:
+        'tenant-from-jwt/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf',
+    };
     const reportingUser = {
       ...user,
       userId: 'compliance-from-jwt',
@@ -79,5 +83,26 @@ describe('FinanceController CNE review draft', () => {
     );
     expect(dto).not.toHaveProperty('tenantId');
     expect(dto).not.toHaveProperty('tenant_id');
+  });
+
+  it('uses only the authenticated identity to read the protected settings file', async () => {
+    const getSettings = jest.fn().mockResolvedValue({
+      configured: true,
+      readiness: { ready: true },
+    });
+    const controller = new FinanceController({
+      getSettings,
+    } as unknown as FinanceService);
+
+    await controller.getSettings({
+      ...user,
+      userId: 'finance-manager-from-jwt',
+      role: Role.FINANCE_MANAGER,
+    });
+
+    expect(getSettings).toHaveBeenCalledWith(
+      'tenant-from-jwt',
+      'finance-manager-from-jwt',
+    );
   });
 });

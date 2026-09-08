@@ -9,8 +9,23 @@ export interface VoterListItem {
   documentIdMasked: string;
   phoneMasked: string | null;
   mesa: number | null;
-  isSignatureValid: boolean;
+  /** Last materialized decision; retained for backwards-compatible exports. */
   consentAccepted: boolean;
+  /** Effective only when the latest immutable record matches the active notice. */
+  consentCurrent: boolean;
+  consentRequiresReconsent: boolean;
+  consentState:
+    | "CURRENT"
+    | "NO_RECORD"
+    | "NOTICE_UNAVAILABLE"
+    | "OUTDATED_NOTICE"
+    | "NOT_YET_EFFECTIVE"
+    | "EXPIRED"
+    | "REVOKED"
+    | "DENIED";
+  consentRecordStatus: "GRANTED" | "REVOKED" | "EXPIRED" | "DENIED" | null;
+  consentNoticeVersion: string | null;
+  currentConsentNoticeVersion: string | null;
   consentTimestamp: string | null;
   createdAt: string;
   puesto: { name: string } | null;
@@ -75,6 +90,12 @@ export interface VoterDetail {
   email: string | null;
   mesa: number | null;
   consentAccepted: boolean;
+  consentCurrent: boolean;
+  consentRequiresReconsent: boolean;
+  consentState: VoterListItem["consentState"];
+  consentRecordStatus: VoterListItem["consentRecordStatus"];
+  consentNoticeVersion: string | null;
+  currentConsentNoticeVersion: string | null;
   consentTimestamp: string | null;
   termsVersion: string | null;
   createdAt: string;
@@ -115,11 +136,12 @@ export interface VoterExport {
   voter: PortableVoter;
 }
 
-function voterListPath(page: number, limit: number) {
+function voterListPath(page: number, limit: number, entityId?: string) {
   const query = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
+  if (entityId) query.set("entityId", entityId);
   return `voters?${query.toString()}`;
 }
 
@@ -128,6 +150,7 @@ export function listVoters(
   limit: number,
   search?: string,
   signal?: AbortSignal,
+  entityId?: string,
 ): Promise<VoterPage> {
   const normalizedSearch = search?.trim();
   if (normalizedSearch) {
@@ -138,7 +161,7 @@ export function listVoters(
     });
   }
 
-  return apiRequest(voterListPath(page, limit), { signal });
+  return apiRequest(voterListPath(page, limit, entityId), { signal });
 }
 
 export function createVoter(

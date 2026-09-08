@@ -41,6 +41,7 @@ import {
   WorkPriority,
   WorkAssignee,
 } from "@/lib/work-api";
+import { canExportData } from "@/lib/export-policy";
 import type { BackendUserRole } from "@/types/saas-schema";
 import { getRoleLabel } from "@/config/navigation";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -48,6 +49,7 @@ import { ExportButton } from "@/components/ui/ExportButton";
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
 type LinkedCase = Pick<IssueCase, "id" | "reference" | "title" | "status">;
+type DeepLinkTarget = { view: View; entityId: string };
 
 interface TaskFilters {
   page: number;
@@ -277,6 +279,9 @@ export default function TasksPage() {
       : CAMPAIGN_TASK_CREATE_ROLES.has(user.backendRole)),
   );
   const [view, setView] = useState<View>("tasks");
+  const [deepLinkTarget, setDeepLinkTarget] = useState<DeepLinkTarget | null>(
+    null,
+  );
   const [dialog, setDialog] = useState<Dialog>(null);
   const [requestedDialog, setRequestedDialog] = useState<Dialog>(null);
   const [linkedCaseRequestId, setLinkedCaseRequestId] = useState<string | null>(
@@ -337,8 +342,24 @@ export default function TasksPage() {
     queryContextReadRef.current = true;
 
     const searchParams = new URLSearchParams(window.location.search);
+    const requestedView = searchParams.get("view");
+    const entityId = searchParams.get("entityId")?.trim() ?? "";
     const issueCaseId = searchParams.get("issueCaseId")?.trim() ?? "";
     const create = searchParams.get("create");
+
+    if (
+      entityId &&
+      (requestedView === "tasks" || requestedView === "commitments")
+    ) {
+      if (entityId.length <= 128) {
+        setView(requestedView);
+        setDeepLinkTarget({ view: requestedView, entityId });
+      } else {
+        setMutationError(
+          "El vínculo recibido no tiene un identificador de trabajo válido.",
+        );
+      }
+    }
 
     if (!issueCaseId) return;
     if (issueCaseId.length > 128) {
@@ -441,6 +462,10 @@ export default function TasksPage() {
       {
         page: taskFilters.page,
         limit: PAGE_SIZE,
+        entityId:
+          deepLinkTarget?.view === "tasks"
+            ? deepLinkTarget.entityId
+            : undefined,
         search: taskFilters.search || undefined,
         status: taskFilters.status || undefined,
         priority: taskFilters.priority || undefined,
@@ -459,7 +484,7 @@ export default function TasksPage() {
       });
 
     return () => controller.abort();
-  }, [linkedCase?.id, taskFilters, taskReload]);
+  }, [deepLinkTarget, linkedCase?.id, taskFilters, taskReload]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -470,6 +495,10 @@ export default function TasksPage() {
       {
         page: commitmentFilters.page,
         limit: PAGE_SIZE,
+        entityId:
+          deepLinkTarget?.view === "commitments"
+            ? deepLinkTarget.entityId
+            : undefined,
         search: commitmentFilters.search || undefined,
         status: commitmentFilters.status || undefined,
         isPublic: commitmentFilters.isPublic || undefined,
@@ -489,7 +518,39 @@ export default function TasksPage() {
       });
 
     return () => controller.abort();
-  }, [commitmentFilters, commitmentReload, linkedCase?.id]);
+  }, [commitmentFilters, commitmentReload, deepLinkTarget, linkedCase?.id]);
+
+  useEffect(() => {
+    if (!deepLinkTarget || view !== deepLinkTarget.view) return;
+
+    const items =
+      deepLinkTarget.view === "tasks"
+        ? taskResult?.items
+        : commitmentResult?.items;
+    const loading =
+      deepLinkTarget.view === "tasks" ? taskLoading : commitmentLoading;
+    if (loading || !items?.some((item) => item.id === deepLinkTarget.entityId))
+      return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const prefix =
+        deepLinkTarget.view === "tasks" ? "task-item" : "commitment-item";
+      const element = document.getElementById(
+        `${prefix}-${deepLinkTarget.entityId}`,
+      );
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      element?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    commitmentLoading,
+    commitmentResult,
+    deepLinkTarget,
+    taskLoading,
+    taskResult,
+    view,
+  ]);
 
   useEffect(() => {
     if (!dialog) return;
@@ -546,6 +607,12 @@ export default function TasksPage() {
     () => taskResult?.items[0]?.mode ?? commitmentResult?.items[0]?.mode,
     [taskResult, commitmentResult],
   );
+  const canExport = canExportData(user?.backendRole);
+  const canCreateCurrentView =
+    view === "tasks"
+      ? canCreateTask
+      : Boolean(commitmentResult?.permissions.canCreate);
+  const exportModuleName = view === "tasks" ? "tareas" : "compromisos";
 
   function showNotice(message: string) {
     setNotice(message);
@@ -809,22 +876,22 @@ export default function TasksPage() {
             compromisos de la organización.
           </p>
         </div>
-        {(view === "tasks"
-          ? canCreateTask
-          : commitmentResult?.permissions.canCreate) && (
+        {(canExport || canCreateCurrentView) && (
           <div className="flex items-center gap-3">
-            <ExportButton moduleName="tareas" />
-            <button
-              type="button"
-              onClick={() => {
-                setMutationError(null);
-                setDialog(view === "tasks" ? "task" : "commitment");
-              }}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
-            >
-              <Plus aria-hidden="true" size={19} />
-              {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
-            </button>
+            {canExport && <ExportButton moduleName={exportModuleName} />}
+            {canCreateCurrentView && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMutationError(null);
+                  setDialog(view === "tasks" ? "task" : "commitment");
+                }}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700"
+              >
+                <Plus aria-hidden="true" size={19} />
+                {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -1069,9 +1136,22 @@ export default function TasksPage() {
                   return (
                     <article
                       key={task.id}
+                      id={`task-item-${task.id}`}
+                      tabIndex={-1}
                       data-testid={`task-card-${task.id}`}
                       aria-labelledby={`task-title-${task.id}`}
-                      className="flex min-h-64 flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                      aria-current={
+                        deepLinkTarget?.view === "tasks" &&
+                        deepLinkTarget.entityId === task.id
+                          ? "true"
+                          : undefined
+                      }
+                      className={`flex min-h-64 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                        deepLinkTarget?.view === "tasks" &&
+                        deepLinkTarget.entityId === task.id
+                          ? "border-blue-500 ring-4 ring-blue-100"
+                          : "border-slate-200 hover:border-blue-200 hover:shadow-md"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800">
@@ -1263,9 +1343,22 @@ export default function TasksPage() {
                   return (
                     <article
                       key={commitment.id}
+                      id={`commitment-item-${commitment.id}`}
+                      tabIndex={-1}
                       data-testid={`commitment-card-${commitment.id}`}
                       aria-labelledby={`commitment-title-${commitment.id}`}
-                      className="flex min-h-80 flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                      aria-current={
+                        deepLinkTarget?.view === "commitments" &&
+                        deepLinkTarget.entityId === commitment.id
+                          ? "true"
+                          : undefined
+                      }
+                      className={`flex min-h-80 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                        deepLinkTarget?.view === "commitments" &&
+                        deepLinkTarget.entityId === commitment.id
+                          ? "border-blue-500 ring-4 ring-blue-100"
+                          : "border-slate-200 hover:border-blue-200 hover:shadow-md"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <span className="font-mono text-xs font-black text-blue-700">

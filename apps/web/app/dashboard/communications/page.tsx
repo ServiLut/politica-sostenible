@@ -24,6 +24,7 @@ import {
   CommunicationApprovalPage,
   CommunicationApprovalStatus,
   CommunicationChannel,
+  CommunicationRecipientBasis,
   createCommunicationApproval,
   decideCommunicationApproval,
   listCommunicationApprovals,
@@ -108,6 +109,13 @@ interface RequestFormState {
   message: string;
   channel: CommunicationChannel;
   purpose: string;
+  recipientBasis: CommunicationRecipientBasis;
+  audienceDescription: string;
+  dataSource: string;
+  segmentationCriteria: string;
+  usesArtificialIntelligence: boolean;
+  rightsMechanismUrl: string;
+  consentEvidenceReference: string;
   containsSensitiveData: boolean;
 }
 
@@ -124,8 +132,45 @@ const INITIAL_REQUEST: RequestFormState = {
   message: "",
   channel: "SOCIAL_MEDIA",
   purpose: "",
+  recipientBasis: "PUBLIC_AUDIENCE",
+  audienceDescription: "",
+  dataSource: "",
+  segmentationCriteria: "",
+  usesArtificialIntelligence: false,
+  rightsMechanismUrl: "",
+  consentEvidenceReference: "",
   containsSensitiveData: false,
 };
+
+const RECIPIENT_BASES: ReadonlyArray<{
+  value: CommunicationRecipientBasis;
+  label: string;
+}> = [
+  { value: "DIRECT_OPT_IN", label: "Autorización directa verificable" },
+  { value: "PARTY_MEMBERSHIP", label: "Afiliación al partido" },
+  { value: "CASE_RESPONSE", label: "Respuesta a un caso autorizado" },
+  { value: "PUBLIC_AUDIENCE", label: "Audiencia pública no individualizada" },
+  { value: "INTERNAL", label: "Equipo interno" },
+];
+
+const DIRECT_CHANNELS = new Set<CommunicationChannel>([
+  "PHONE",
+  "SMS",
+  "WHATSAPP",
+  "EMAIL",
+  "LETTER",
+]);
+
+const PUBLIC_CHANNELS = new Set<CommunicationChannel>([
+  "SOCIAL_MEDIA",
+  "WEB",
+  "IN_PERSON",
+]);
+
+const CASE_RESPONSE_CHANNELS = new Set<CommunicationChannel>([
+  ...DIRECT_CHANNELS,
+  "IN_PERSON",
+]);
 
 function readableError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -147,6 +192,94 @@ function messageFromContent(content: CommunicationApproval["content"]): string {
     : "Contenido no disponible";
 }
 
+function contentText(
+  content: CommunicationApproval["content"],
+  key: keyof CommunicationApproval["content"],
+): string {
+  const value = content?.[key];
+  return typeof value === "string" && value.trim() ? value : "No informado";
+}
+
+function recipientBasisLabel(value: unknown): string {
+  return (
+    RECIPIENT_BASES.find((item) => item.value === value)?.label ??
+    "Base no informada"
+  );
+}
+
+function hasVerifiableEvidenceReference(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length >= 5;
+}
+
+function isHttpsUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function hasCompleteComplianceFile(approval: CommunicationApproval): boolean {
+  const content = approval.content;
+  const requiredText = [
+    content?.message,
+    content?.audienceDescription,
+    content?.dataSource,
+    content?.segmentationCriteria,
+  ];
+  if (
+    !requiredText.every(
+      (value) => typeof value === "string" && value.trim().length >= 3,
+    ) ||
+    !RECIPIENT_BASES.some((item) => item.value === content?.recipientBasis) ||
+    typeof content?.usesArtificialIntelligence !== "boolean"
+  ) {
+    return false;
+  }
+
+  const recipientBasis = content.recipientBasis;
+  const hasEvidence = hasVerifiableEvidenceReference(
+    content.consentEvidenceReference,
+  );
+  if (
+    DIRECT_CHANNELS.has(approval.channel) &&
+    !isHttpsUrl(content.rightsMechanismUrl)
+  ) {
+    return false;
+  }
+  if (
+    approval.containsSensitiveData &&
+    (!hasEvidence ||
+      (recipientBasis !== "DIRECT_OPT_IN" &&
+        recipientBasis !== "CASE_RESPONSE"))
+  ) {
+    return false;
+  }
+
+  if (recipientBasis === "DIRECT_OPT_IN") {
+    return DIRECT_CHANNELS.has(approval.channel) && hasEvidence;
+  }
+  if (recipientBasis === "CASE_RESPONSE") {
+    return (
+      approval.mode === "PUBLIC_OFFICE" &&
+      Boolean(approval.issueCaseId) &&
+      CASE_RESPONSE_CHANNELS.has(approval.channel)
+    );
+  }
+  if (recipientBasis === "PUBLIC_AUDIENCE") {
+    return (
+      PUBLIC_CHANNELS.has(approval.channel) && !approval.containsSensitiveData
+    );
+  }
+  if (recipientBasis === "INTERNAL") {
+    return approval.channel === "INTERNAL" && !approval.containsSensitiveData;
+  }
+
+  return !approval.containsSensitiveData;
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "Sin fecha";
   const date = new Date(value);
@@ -164,6 +297,7 @@ function isCampaignTenant(type: Tenant["type"] | undefined): boolean {
 export default function CommunicationsPage() {
   const { user, tenant } = useAuth();
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const [deepLinkEntityId, setDeepLinkEntityId] = useState<string | null>(null);
   const [result, setResult] = useState<CommunicationApprovalPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -212,6 +346,22 @@ export default function CommunicationsPage() {
     return roles.includes(user.backendRole);
   }, [tenant, user]);
   const caseLinkRequired = user?.backendRole === "CASE_WORKER";
+  const consentEvidenceRequired =
+    requestForm.recipientBasis === "DIRECT_OPT_IN" ||
+    requestForm.containsSensitiveData;
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const entityId = searchParams.get("entityId")?.trim() ?? "";
+    if (searchParams.get("view") !== "review" || !entityId) return;
+    if (entityId.length > 128) {
+      setMutationError(
+        "El vínculo recibido no tiene un identificador de solicitud válido.",
+      );
+      return;
+    }
+    setDeepLinkEntityId(entityId);
+  }, []);
 
   useEffect(() => {
     if (!requestOpen || !canLinkCase) {
@@ -254,6 +404,7 @@ export default function CommunicationsPage() {
       {
         page: filters.page,
         limit: PAGE_SIZE,
+        entityId: deepLinkEntityId ?? undefined,
         search: filters.search.trim() || undefined,
         status: filters.status || undefined,
         channel: filters.channel || undefined,
@@ -272,7 +423,26 @@ export default function CommunicationsPage() {
       });
 
     return () => controller.abort();
-  }, [filters, reloadVersion]);
+  }, [deepLinkEntityId, filters, reloadVersion]);
+
+  useEffect(() => {
+    if (
+      !deepLinkEntityId ||
+      loading ||
+      !result?.items.some((item) => item.id === deepLinkEntityId)
+    ) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(
+        `communication-item-${deepLinkEntityId}`,
+      );
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      element?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [deepLinkEntityId, loading, result]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -286,6 +456,75 @@ export default function CommunicationsPage() {
       return;
     }
 
+    if (requestForm.recipientBasis === "CASE_RESPONSE" && !selectedCase) {
+      setMutationError(
+        "Una respuesta institucional debe quedar vinculada al caso autorizado.",
+      );
+      return;
+    }
+
+    if (
+      requestForm.recipientBasis === "PUBLIC_AUDIENCE" &&
+      !PUBLIC_CHANNELS.has(requestForm.channel)
+    ) {
+      setMutationError(
+        "Una audiencia pública no puede usarse para enviar mensajes directos a contactos.",
+      );
+      return;
+    }
+
+    if (
+      requestForm.recipientBasis === "DIRECT_OPT_IN" &&
+      !DIRECT_CHANNELS.has(requestForm.channel)
+    ) {
+      setMutationError(
+        "La autorización directa sólo puede usarse con un canal de contacto directo.",
+      );
+      return;
+    }
+
+    if (
+      requestForm.recipientBasis === "CASE_RESPONSE" &&
+      !CASE_RESPONSE_CHANNELS.has(requestForm.channel)
+    ) {
+      setMutationError(
+        "Una respuesta de caso debe ser directa o presencial; no puede publicarse como audiencia abierta.",
+      );
+      return;
+    }
+
+    if (
+      DIRECT_CHANNELS.has(requestForm.channel) &&
+      !requestForm.rightsMechanismUrl.trim()
+    ) {
+      setMutationError(
+        "Los canales directos deben informar un enlace HTTPS para ejercer derechos o retirarse.",
+      );
+      return;
+    }
+
+    if (
+      requestForm.containsSensitiveData &&
+      requestForm.recipientBasis === "PUBLIC_AUDIENCE"
+    ) {
+      setMutationError(
+        "Los datos personales sensibles no pueden someterse a publicación abierta.",
+      );
+      return;
+    }
+
+    if (
+      consentEvidenceRequired &&
+      !requestForm.consentEvidenceReference.trim()
+    ) {
+      setMutationError(
+        requestForm.recipientBasis === "DIRECT_OPT_IN"
+          ? "La autorización directa requiere una referencia verificable de consentimiento, aunque no se declaren datos sensibles."
+          : "Los datos sensibles requieren una referencia verificable de autorización o soporte jurídico.",
+      );
+      return;
+    }
+
     setSaving("request");
     try {
       await createCommunicationApproval({
@@ -293,6 +532,20 @@ export default function CommunicationsPage() {
         message: requestForm.message.trim(),
         channel: requestForm.channel,
         purpose: requestForm.purpose.trim(),
+        recipientBasis: requestForm.recipientBasis,
+        audienceDescription: requestForm.audienceDescription.trim(),
+        dataSource: requestForm.dataSource.trim(),
+        segmentationCriteria: requestForm.segmentationCriteria.trim(),
+        usesArtificialIntelligence: requestForm.usesArtificialIntelligence,
+        ...(requestForm.rightsMechanismUrl.trim()
+          ? { rightsMechanismUrl: requestForm.rightsMechanismUrl.trim() }
+          : {}),
+        ...(requestForm.consentEvidenceReference.trim()
+          ? {
+              consentEvidenceReference:
+                requestForm.consentEvidenceReference.trim(),
+            }
+          : {}),
         containsSensitiveData: requestForm.containsSensitiveData,
         issueCaseId: selectedCase?.id,
       });
@@ -540,6 +793,7 @@ export default function CommunicationsPage() {
         <div className="space-y-4">
           {items.map((approval) => {
             const ownRequest = approval.requestedById === user?.id;
+            const hasCompleteCompliance = hasCompleteComplianceFile(approval);
             const needsSensitiveReviewer =
               approval.containsSensitiveData &&
               user?.backendRole !== "ADMIN" &&
@@ -547,8 +801,17 @@ export default function CommunicationsPage() {
             return (
               <article
                 key={approval.id}
+                id={`communication-item-${approval.id}`}
+                tabIndex={-1}
                 data-testid={`communication-card-${approval.id}`}
-                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                aria-current={
+                  deepLinkEntityId === approval.id ? "true" : undefined
+                }
+                className={`rounded-3xl border bg-white p-5 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                  deepLinkEntityId === approval.id
+                    ? "border-blue-500 ring-4 ring-blue-100"
+                    : "border-slate-200"
+                }`}
               >
                 <div className="flex flex-col gap-5 lg:flex-row lg:justify-between">
                   <div className="min-w-0 flex-1 space-y-4">
@@ -572,6 +835,12 @@ export default function CommunicationsPage() {
                           Datos sensibles declarados
                         </span>
                       )}
+                      {approval.status === "PENDING" &&
+                        !hasCompleteCompliance && (
+                          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">
+                            Expediente SIC incompleto
+                          </span>
+                        )}
                     </div>
                     <div>
                       <h2 className="text-xl font-black text-slate-950">
@@ -584,6 +853,63 @@ export default function CommunicationsPage() {
                     <blockquote className="whitespace-pre-wrap rounded-2xl border-l-4 border-blue-500 bg-slate-50 p-4 text-sm leading-6 text-slate-800">
                       {messageFromContent(approval.content)}
                     </blockquote>
+                    <dl className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs text-slate-700 sm:grid-cols-2">
+                      <div>
+                        <dt className="font-black uppercase tracking-wider text-blue-800">
+                          Audiencia y base
+                        </dt>
+                        <dd className="mt-1 font-semibold">
+                          {recipientBasisLabel(approval.content.recipientBasis)}
+                          {" · "}
+                          {contentText(approval.content, "audienceDescription")}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-black uppercase tracking-wider text-blue-800">
+                          Fuente y segmentación
+                        </dt>
+                        <dd className="mt-1 font-semibold">
+                          {contentText(approval.content, "dataSource")}
+                          {" · "}
+                          {contentText(
+                            approval.content,
+                            "segmentationCriteria",
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-black uppercase tracking-wider text-blue-800">
+                          Inteligencia artificial
+                        </dt>
+                        <dd className="mt-1 font-semibold">
+                          {approval.content.usesArtificialIntelligence === true
+                            ? "Uso declarado"
+                            : approval.content.usesArtificialIntelligence ===
+                                false
+                              ? "No utilizada"
+                              : "No informado"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-black uppercase tracking-wider text-blue-800">
+                          Mecanismo de derechos
+                        </dt>
+                        <dd className="mt-1 break-all font-semibold">
+                          {contentText(approval.content, "rightsMechanismUrl")}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-black uppercase tracking-wider text-blue-800">
+                          Referencia de autorización o soporte
+                        </dt>
+                        <dd className="mt-1 break-all font-semibold">
+                          {contentText(
+                            approval.content,
+                            "consentEvidenceReference",
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
                     <dl className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <div>
                         <dt className="font-black uppercase tracking-wider">
@@ -636,6 +962,25 @@ export default function CommunicationsPage() {
                           Los datos sensibles requieren revisión de
                           administración o cumplimiento.
                         </p>
+                      ) : !hasCompleteCompliance ? (
+                        <>
+                          <p className="rounded-2xl bg-red-50 p-3 text-xs font-bold leading-5 text-red-900">
+                            Este registro heredado no contiene el expediente de
+                            cumplimiento exigido. No puede aprobarse: recházalo
+                            y crea una nueva solicitud completa.
+                          </p>
+                          <button
+                            type="button"
+                            aria-label={`Rechazar ${approval.title}`}
+                            onClick={() => {
+                              setMutationError(null);
+                              setDecision({ approval, status: "REJECTED" });
+                            }}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-800"
+                          >
+                            <ShieldX size={17} aria-hidden="true" /> Rechazar
+                          </button>
+                        </>
                       ) : (
                         <>
                           <button
@@ -785,6 +1130,11 @@ export default function CommunicationsPage() {
                       setRequestForm((current) => ({
                         ...current,
                         channel: event.target.value as CommunicationChannel,
+                        ...(event.target.value === "INTERNAL"
+                          ? { recipientBasis: "INTERNAL" }
+                          : current.channel === "INTERNAL"
+                            ? { recipientBasis: "PUBLIC_AUDIENCE" }
+                            : {}),
                       }))
                     }
                     className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold"
@@ -796,11 +1146,97 @@ export default function CommunicationsPage() {
                     ))}
                   </select>
                 </label>
+                <label className="block space-y-2 text-sm font-black text-slate-700">
+                  Base de destinatarios
+                  <select
+                    required
+                    value={requestForm.recipientBasis}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        recipientBasis: event.target
+                          .value as CommunicationRecipientBasis,
+                      }))
+                    }
+                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold"
+                  >
+                    {RECIPIENT_BASES.filter((basis) => {
+                      if (basis.value === "PARTY_MEMBERSHIP") {
+                        return tenant?.type === "PARTY";
+                      }
+                      if (basis.value === "CASE_RESPONSE") {
+                        return tenant?.type === "PUBLIC_OFFICE";
+                      }
+                      return true;
+                    }).map((basis) => (
+                      <option key={basis.value} value={basis.value}>
+                        {basis.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block space-y-2 text-sm font-black text-slate-700">
+                  Audiencia prevista
+                  <textarea
+                    required
+                    minLength={3}
+                    maxLength={500}
+                    rows={3}
+                    value={requestForm.audienceDescription}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        audienceDescription: event.target.value,
+                      }))
+                    }
+                    placeholder="A quiénes se dirige, sin cargar una lista de personas"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium"
+                  />
+                </label>
+                <label className="block space-y-2 text-sm font-black text-slate-700">
+                  Fuente de los datos o audiencia
+                  <textarea
+                    required
+                    minLength={3}
+                    maxLength={500}
+                    rows={3}
+                    value={requestForm.dataSource}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        dataSource: event.target.value,
+                      }))
+                    }
+                    placeholder="Ej. inscripción voluntaria con aviso vigente"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium"
+                  />
+                </label>
+              </div>
+              <label className="block space-y-2 text-sm font-black text-slate-700">
+                Criterios de segmentación
+                <textarea
+                  required
+                  minLength={3}
+                  maxLength={1000}
+                  rows={3}
+                  value={requestForm.segmentationCriteria}
+                  onChange={(event) =>
+                    setRequestForm((current) => ({
+                      ...current,
+                      segmentationCriteria: event.target.value,
+                    }))
+                  }
+                  placeholder="Describe los criterios o indica por qué no aplica"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium"
+                />
+              </label>
               {canLinkCase && (
                 <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
                   <legend className="px-1 text-sm font-black text-slate-800">
-                    Caso relacionado {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
+                    Caso relacionado{" "}
+                    {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
                   </legend>
                   <p className="text-xs leading-5 text-slate-500">
                     Busca por referencia o asunto. La API solo devuelve casos
@@ -836,7 +1272,9 @@ export default function CommunicationsPage() {
                       <input
                         type="search"
                         value={caseSearchDraft}
-                        onChange={(event) => setCaseSearchDraft(event.target.value)}
+                        onChange={(event) =>
+                          setCaseSearchDraft(event.target.value)
+                        }
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
                             event.preventDefault();
@@ -861,7 +1299,11 @@ export default function CommunicationsPage() {
                       role="status"
                       className="flex min-h-20 items-center justify-center gap-2 text-sm font-semibold text-slate-500"
                     >
-                      <Loader2 className="animate-spin" size={17} aria-hidden="true" />
+                      <Loader2
+                        className="animate-spin"
+                        size={17}
+                        aria-hidden="true"
+                      />
                       Consultando casos autorizados…
                     </div>
                   ) : casesError ? (
@@ -869,7 +1311,9 @@ export default function CommunicationsPage() {
                       role="alert"
                       className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <span>No fue posible consultar los casos: {casesError}</span>
+                      <span>
+                        No fue posible consultar los casos: {casesError}
+                      </span>
                       <button
                         type="button"
                         onClick={() => setCasesReload((value) => value + 1)}
@@ -879,7 +1323,11 @@ export default function CommunicationsPage() {
                       </button>
                     </div>
                   ) : caseResult?.items.length ? (
-                    <div className="space-y-2" role="radiogroup" aria-label="Casos autorizados">
+                    <div
+                      className="space-y-2"
+                      role="radiogroup"
+                      aria-label="Casos autorizados"
+                    >
                       {caseResult.items.map((issueCase) => (
                         <label
                           key={issueCase.id}
@@ -913,29 +1361,35 @@ export default function CommunicationsPage() {
                     </p>
                   )}
 
-                  {!casesLoading && !casesError && caseResult && caseResult.pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
-                      <button
-                        type="button"
-                        disabled={casePage <= 1}
-                        onClick={() => setCasePage((value) => value - 1)}
-                        className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
-                      >
-                        Casos anteriores
-                      </button>
-                      <span>
-                        Página {casePage} de {caseResult.pagination.totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={casePage >= caseResult.pagination.totalPages}
-                        onClick={() => setCasePage((value) => value + 1)}
-                        className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
-                      >
-                        Más casos
-                      </button>
-                    </div>
-                  )}
+                  {!casesLoading &&
+                    !casesError &&
+                    caseResult &&
+                    caseResult.pagination.totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+                        <button
+                          type="button"
+                          disabled={casePage <= 1}
+                          onClick={() => setCasePage((value) => value - 1)}
+                          className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
+                        >
+                          Casos anteriores
+                        </button>
+                        <span>
+                          Página {casePage} de{" "}
+                          {caseResult.pagination.totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={
+                            casePage >= caseResult.pagination.totalPages
+                          }
+                          onClick={() => setCasePage((value) => value + 1)}
+                          className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40"
+                        >
+                          Más casos
+                        </button>
+                      </div>
+                    )}
                 </fieldset>
               )}
               <label className="block space-y-2 text-sm font-black text-slate-700">
@@ -955,6 +1409,47 @@ export default function CommunicationsPage() {
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium"
                 />
               </label>
+              <label className="block space-y-2 text-sm font-black text-slate-700">
+                Mecanismo HTTPS para ejercer derechos o retirarse
+                <input
+                  required={DIRECT_CHANNELS.has(requestForm.channel)}
+                  type="url"
+                  inputMode="url"
+                  maxLength={2048}
+                  pattern="https://.*"
+                  value={requestForm.rightsMechanismUrl}
+                  onChange={(event) =>
+                    setRequestForm((current) => ({
+                      ...current,
+                      rightsMechanismUrl: event.target.value,
+                    }))
+                  }
+                  placeholder="https://ejemplo.co/privacidad-o-retiro"
+                  className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold"
+                />
+                <span className="block text-xs font-medium leading-5 text-slate-500">
+                  Obligatorio para llamadas, SMS, WhatsApp, correo y cartas.
+                  Este módulo no gestiona el retiro por sí mismo.
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-950">
+                <input
+                  type="checkbox"
+                  checked={requestForm.usesArtificialIntelligence}
+                  onChange={(event) =>
+                    setRequestForm((current) => ({
+                      ...current,
+                      usesArtificialIntelligence: event.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  Se utilizó inteligencia artificial para crear, seleccionar o
+                  segmentar este mensaje. Esta declaración quedará unida a la
+                  versión revisada.
+                </span>
+              </label>
               <label className="flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-bold text-violet-950">
                 <input
                   type="checkbox"
@@ -972,6 +1467,38 @@ export default function CommunicationsPage() {
                   revisión reforzada.
                 </span>
               </label>
+              {consentEvidenceRequired && (
+                <label className="block space-y-2 text-sm font-black text-violet-950">
+                  {requestForm.recipientBasis === "DIRECT_OPT_IN"
+                    ? "Referencia verificable de la autorización directa"
+                    : "Referencia de autorización expresa o soporte jurídico"}
+                  <input
+                    required
+                    minLength={5}
+                    maxLength={180}
+                    value={requestForm.consentEvidenceReference}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        consentEvidenceReference: event.target.value,
+                      }))
+                    }
+                    placeholder="Ej. CONS-2026-00142"
+                    className="min-h-11 w-full rounded-xl border border-violet-200 px-4 font-semibold text-slate-900"
+                  />
+                  <span className="block text-xs font-medium leading-5 text-violet-800">
+                    No escribas aquí datos personales ni adjuntes la prueba;
+                    registra solamente su referencia verificable. La persona
+                    revisora debe comprobarla antes de aprobar.
+                  </span>
+                </label>
+              )}
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-950">
+                La clasificación de datos sensibles es una declaración del
+                solicitante, no una detección automática. La revisión humana
+                debe comprobar contenido, audiencia, base y evidencia antes de
+                aprobar.
+              </p>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
@@ -1041,6 +1568,24 @@ export default function CommunicationsPage() {
                   {mutationError}
                 </p>
               )}
+              {decision.status === "APPROVED" &&
+                (decision.approval.content.recipientBasis === "DIRECT_OPT_IN" ||
+                  decision.approval.containsSensitiveData) && (
+                  <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950">
+                    <p className="font-black">Evidencia que debes comprobar</p>
+                    <p className="mt-1 break-all font-semibold">
+                      {contentText(
+                        decision.approval.content,
+                        "consentEvidenceReference",
+                      )}
+                    </p>
+                    <p className="mt-2 text-xs font-medium leading-5">
+                      Confirma en el expediente fuente que la autorización cubre
+                      esta audiencia, finalidad y canal. La declaración del
+                      solicitante no reemplaza esta revisión humana.
+                    </p>
+                  </div>
+                )}
               <label className="block space-y-2 text-sm font-black text-slate-700">
                 Motivo de la decisión
                 <textarea

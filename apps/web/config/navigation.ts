@@ -1,4 +1,10 @@
-import { BackendUserRole, Tenant, User, UserRole } from "../types/saas-schema";
+import {
+  BackendUserRole,
+  PoliticalOperationStage,
+  Tenant,
+  User,
+  UserRole,
+} from "../types/saas-schema";
 
 export type NavigationGroupId =
   | "DIRECTION"
@@ -42,13 +48,8 @@ export interface NavItem {
    * los guards de la API.
    */
   navigationBackendRoles?: BackendUserRole[];
-  /**
-   * Conserva una ruta especializada como respaldo para roles que no tienen
-   * bandeja, sin duplicarla en el menu de quienes ya trabajan desde ella.
-   */
-  collapsedIntoInbox?: boolean;
   /** Stages during which this item should be visible in navigation. If omitted, the item is always visible. */
-  allowedStages?: string[];
+  allowedStages?: PoliticalOperationStage[];
 }
 
 export const navigationGroups: ReadonlyArray<{
@@ -79,23 +80,14 @@ const DEFAULT_ROUTE_PREFERENCES: Partial<
   Record<BackendUserRole, readonly string[]>
 > = {
   FINANCE_MANAGER: ["/dashboard/finance"],
-  COMMUNICATIONS_MANAGER: [
-    "/dashboard/inbox",
-    "/dashboard/communications",
-  ],
+  COMMUNICATIONS_MANAGER: ["/dashboard/inbox", "/dashboard/communications"],
   CONSTITUENT_SERVICES_MANAGER: ["/dashboard/inbox"],
-  CASE_WORKER: ["/dashboard/inbox"],
+  CASE_WORKER: ["/dashboard/public-office", "/dashboard/inbox"],
   COMPLIANCE_OFFICER: ["/dashboard/inbox", "/dashboard/audit"],
   AUDITOR: ["/dashboard/audit", "/dashboard/inbox"],
-  ZONE_COORDINATOR: [
-    "/dashboard/inbox",
-    "/dashboard/captura-territorial",
-  ],
+  ZONE_COORDINATOR: ["/dashboard/inbox", "/dashboard/captura-territorial"],
   WITNESS: ["/dashboard/war-room"],
-  VOLUNTEER: [
-    "/dashboard/captura-territorial",
-    "/dashboard/tasks",
-  ],
+  VOLUNTEER: ["/dashboard/captura-territorial", "/dashboard/tasks"],
 };
 
 export function getNavigationGroupsForRole(role: BackendUserRole) {
@@ -173,9 +165,13 @@ export const dashboardConfig: NavItem[] = [
       UserRole.GerenteOps,
       UserRole.Auditor,
     ],
-    allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_OFFICER"],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
     allowedTenantTypes: CAMPAIGN_TENANTS,
-    collapsedIntoInbox: true,
   },
   {
     title: "Centro de gestión",
@@ -326,7 +322,6 @@ export const dashboardConfig: NavItem[] = [
       "AUDITOR",
     ],
     allowedTenantTypes: ["PUBLIC_OFFICE"],
-    collapsedIntoInbox: true,
   },
   {
     title: "Tareas y compromisos",
@@ -337,7 +332,6 @@ export const dashboardConfig: NavItem[] = [
     allowedRoles: Object.values(UserRole),
     allowedBackendRoles: ALL_BACKEND_ROLES,
     allowedTenantTypes: ALL_TENANTS,
-    collapsedIntoInbox: true,
   },
   {
     title: "Agenda y eventos",
@@ -401,6 +395,16 @@ export const dashboardConfig: NavItem[] = [
     allowedRoles: [UserRole.AdminCampana],
     allowedBackendRoles: ["ADMIN"],
     allowedTenantTypes: ALL_TENANTS,
+  },
+  {
+    title: "Perfil de operación",
+    mobileTitle: "Operación",
+    href: "/dashboard/operation-profile",
+    icon: "settings",
+    group: "DIRECTION",
+    allowedRoles: Object.values(UserRole),
+    allowedBackendRoles: ALL_BACKEND_ROLES,
+    allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
     title: "Aviso de privacidad",
@@ -518,9 +522,14 @@ export const dashboardConfig: NavItem[] = [
       "WITNESS",
       "AUDITOR",
     ],
-    allowedTenantTypes: CAMPAIGN_TENANTS,
+    allowedTenantTypes: ["CANDIDACY"],
     navigationBackendRoles: ["WITNESS", "COMPLIANCE_OFFICER", "AUDITOR"],
-    allowedStages: ['ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
+    allowedStages: [
+      "ELECTION_PREPARATION",
+      "SIMULATION",
+      "ELECTION_DAY",
+      "POST_ELECTION",
+    ],
   },
   {
     title: "Programa político",
@@ -529,12 +538,17 @@ export const dashboardConfig: NavItem[] = [
     icon: "commitments",
     group: "DIRECTION",
     allowedRoles: Object.values(UserRole),
-    allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
     allowedTenantTypes: ["CANDIDACY", "PARTY"],
   },
   {
-    title: "Plan y facturación",
-    mobileTitle: "Facturación",
+    title: "Plan y uso",
+    mobileTitle: "Plan",
     href: "/dashboard/billing",
     icon: "billing",
     group: "REVIEW",
@@ -548,17 +562,14 @@ export function canAccessNavigationItem(
   item: NavItem,
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,
-  stage?: string
 ) {
   const tenantSpecificRoles =
     item.allowedBackendRolesByTenantType?.[tenant.type];
-  const hasStageAccess = !item.allowedStages || (stage && item.allowedStages.includes(stage));
   return (
     item.allowedRoles.includes(user.role) &&
     item.allowedBackendRoles.includes(user.backendRole) &&
     (!tenantSpecificRoles || tenantSpecificRoles.includes(user.backendRole)) &&
-    item.allowedTenantTypes.includes(tenant.type) &&
-    Boolean(hasStageAccess)
+    item.allowedTenantTypes.includes(tenant.type)
   );
 }
 
@@ -569,27 +580,25 @@ export function matchesNavigationPath(pathname: string, href: string) {
 export function getVisibleNavigationItems(
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,
-  stage?: string
+  stage?: PoliticalOperationStage | null,
 ) {
-  const accessibleItems = dashboardConfig.filter((item) =>
-    canAccessNavigationItem(item, user, tenant, stage),
+  const accessibleItems = dashboardConfig.filter(
+    (item) =>
+      canAccessNavigationItem(item, user, tenant) &&
+      (!item.allowedStages ||
+        Boolean(stage && item.allowedStages.includes(stage))),
   );
-  const hasOperationalInbox = accessibleItems.some(
-    (item) => item.href === "/dashboard/inbox",
-  );
-
   return accessibleItems.filter(
     (item) =>
-      (!item.navigationBackendRoles ||
-        item.navigationBackendRoles.includes(user.backendRole)) &&
-      !(item.collapsedIntoInbox && hasOperationalInbox),
+      !item.navigationBackendRoles ||
+      item.navigationBackendRoles.includes(user.backendRole),
   );
 }
 
 export function getDefaultDashboardRoute(
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,
-  stage?: string
+  stage?: PoliticalOperationStage | null,
 ) {
   const visibleItems = getVisibleNavigationItems(user, tenant, stage);
   const preferredRoutes = DEFAULT_ROUTE_PREFERENCES[user.backendRole] ?? [];

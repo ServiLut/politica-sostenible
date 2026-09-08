@@ -1,49 +1,76 @@
-const CACHE_NAME = 'polsost-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/manifest.json',
-  '/offline.html',
-];
+const CACHE_PREFIX = "polsost-";
+const CACHE_VERSION = "v2";
+const STATIC_CACHE_NAME = `${CACHE_PREFIX}static-${CACHE_VERSION}`;
+const OFFLINE_CACHE_NAME = `${CACHE_PREFIX}offline-${CACHE_VERSION}`;
+const OFFLINE_URL = "/offline.html";
+const CURRENT_CACHE_NAMES = new Set([
+  STATIC_CACHE_NAME,
+  OFFLINE_CACHE_NAME,
+]);
 
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    (async () => {
+      const cache = await caches.open(OFFLINE_CACHE_NAME);
+      await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
+      await self.skipWaiting();
+    })(),
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter(
+            (key) =>
+              key.startsWith(CACHE_PREFIX) && !CURRENT_CACHE_NAMES.has(key),
+          )
+          .map((key) => caches.delete(key)),
+      );
+      await self.clients.claim();
+    })(),
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+async function networkFirstNavigation(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    const offlineCache = await caches.open(OFFLINE_CACHE_NAME);
+    return (await offlineCache.match(OFFLINE_URL)) ?? Response.error();
+  }
+}
+
+async function cacheFirstStaticAsset(request) {
+  const cache = await caches.open(STATIC_CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response.ok && !response.redirected && response.type !== "opaque") {
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
+self.addEventListener("fetch", (event) => {
   const { request } = event;
-  // Only cache GET requests
-  if (request.method !== 'GET') return;
-  // Skip API requests
-  if (request.url.includes('/api/')) return;
-  
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetched = fetch(request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      }).catch(() => {
-        // If offline and not in cache, show offline page
-        if (request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-      });
-      return cached || fetched;
-    })
-  );
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstNavigation(request));
+    return;
+  }
+
+  // Next.js uses content-hashed URLs under this prefix. HTML, RSC payloads,
+  // API responses and authenticated dashboard data intentionally bypass Cache Storage.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(cacheFirstStaticAsset(request));
+  }
 });

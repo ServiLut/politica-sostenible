@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "Sistema operativo multitenant para campañas responsables y atención ciudadana en Colombia.",
   manifest: "/manifest.json",
   icons: {
-    apple: "/icons/icon-192.png",
+    icon: "/icons/icon.svg",
   },
   appleWebApp: {
     capable: true,

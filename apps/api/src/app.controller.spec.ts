@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('identifies the API without exposing a scaffold response', () => {
+      expect(appController.getHello()).toBe('Política Sostenible API');
     });
   });
 });

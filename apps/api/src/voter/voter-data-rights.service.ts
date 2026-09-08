@@ -6,12 +6,19 @@ import {
 } from '@nestjs/common';
 import {
   AuditActorType,
+  ConsentPurpose,
+  ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
   Prisma,
   Role,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import {
+  CONSENT_EFFECTIVENESS_RECORD_SELECT,
+  evaluateConsentEffectiveness,
+} from '../common/utils/consent-effectiveness.util';
+import { findActiveConsentNotice } from '../common/utils/consent-notice.util';
 import {
   assertCampaignTenant,
   CAMPAIGN_TENANT_SELECT,
@@ -89,7 +96,7 @@ export class VoterDataRightsService {
         },
       );
 
-      return voter;
+      return this.withConsentEffectiveness(transaction, user.tenantId, voter);
     });
   }
 
@@ -182,7 +189,11 @@ export class VoterDataRightsService {
             { changedFields },
           );
 
-          return voter;
+          return this.withConsentEffectiveness(
+            transaction,
+            user.tenantId,
+            voter,
+          );
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
@@ -255,6 +266,47 @@ export class VoterDataRightsService {
     }
 
     return voter;
+  }
+
+  private async withConsentEffectiveness(
+    transaction: DataRightsTransaction,
+    tenantId: string,
+    voter: VoterDataRightsView,
+  ) {
+    const [latestConsent, currentNotice] = await Promise.all([
+      transaction.consentRecord.findFirst({
+        where: {
+          tenantId,
+          mode: PoliticalOperationMode.CAMPAIGN,
+          voterId: voter.id,
+          subjectType: ConsentSubjectType.VOTER,
+          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: CONSENT_EFFECTIVENESS_RECORD_SELECT,
+      }),
+      findActiveConsentNotice(
+        transaction,
+        tenantId,
+        PoliticalOperationMode.CAMPAIGN,
+        ConsentPurpose.POLITICAL_COMMUNICATION,
+      ),
+    ]);
+    const effectiveness = evaluateConsentEffectiveness(
+      latestConsent,
+      currentNotice?.version,
+      new Date(),
+    );
+
+    return {
+      ...voter,
+      consentCurrent: effectiveness.active,
+      consentRequiresReconsent: effectiveness.requiresReconsent,
+      consentState: effectiveness.reason,
+      consentRecordStatus: latestConsent?.status ?? null,
+      consentNoticeVersion: latestConsent?.noticeVersion ?? null,
+      currentConsentNoticeVersion: currentNotice?.version ?? null,
+    };
   }
 
   private toPortableVoter(voter: VoterExportSource) {

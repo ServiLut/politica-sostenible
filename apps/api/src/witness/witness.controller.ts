@@ -50,7 +50,9 @@ export class WitnessController {
 
   @Post()
   @Roles(...WITNESS_WRITE_ROLES)
-  @ApiOperation({ summary: 'Radicar un reporte E-14 para conciliacion' })
+  @ApiOperation({
+    summary: 'Registrar internamente un reporte E-14 para conciliacion',
+  })
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateWitnessReportDto,
@@ -60,7 +62,7 @@ export class WitnessController {
 
   @Get()
   @Roles(...WITNESS_READ_ROLES)
-  @ApiOperation({ summary: 'Listar y resumir la conciliacion E-14' })
+  @ApiOperation({ summary: 'Listar y resumir la conciliacion interna E-14' })
   async findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListWitnessReportsQueryDto,

@@ -105,7 +105,7 @@ export class EventsController {
 
   @Delete(':id')
   @Roles(...EVENT_WRITE_ROLES)
-  @ApiOperation({ summary: 'Elimina únicamente un borrador sin asistencias' })
+  @ApiOperation({ summary: 'Elimina únicamente un evento en borrador' })
   remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.eventsService.remove(user, id);
   }

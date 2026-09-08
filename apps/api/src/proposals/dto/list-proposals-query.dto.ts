@@ -1,13 +1,9 @@
 import { Type } from 'class-transformer';
+import { IsEnum, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import {
-  IsEnum,
-  IsIn,
-  IsInt,
-  IsOptional,
-  Max,
-  Min,
-} from 'class-validator';
-import { ProposalCategory, ProposalStatus } from '../../../prisma/generated/prisma';
+  ProposalCategory,
+  ProposalStatus,
+} from '../../../prisma/generated/prisma';
 
 export class ListProposalsQueryDto {
   @IsOptional()

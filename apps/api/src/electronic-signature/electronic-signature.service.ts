@@ -1,106 +1,584 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import {
+  AuditActorType,
+  Role,
+  StoredObjectStatus,
+  StorageObjectModule,
+} from '../../prisma/generated/prisma';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { MfaService } from '../auth/mfa.service';
+import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
+import {
+  assertCampaignTenant,
+  assertCandidacyCampaignTenant,
+  CAMPAIGN_TENANT_SELECT,
+  type CampaignTenantState,
+} from '../common/utils/campaign-mode.util';
+import {
+  resolveTerritorialAccess,
+  type TerritorialAccess,
+} from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { verifySync } from 'otplib';
-import * as crypto from 'crypto';
+import { StorageModuleName } from '../storage/storage.constants';
+import {
+  type StoredObjectInfo,
+  SupabaseStorageGateway,
+} from '../storage/supabase-storage.gateway';
+import {
+  SignDocumentDto,
+  VerifySignatureQueryDto,
+} from './dto/electronic-signature.dto';
+
+type SignatureOperation = 'sign' | 'verify';
+
+interface SignatureResourcePolicy {
+  readonly storedModule: StorageObjectModule;
+  readonly resourceType: 'FinancialEntry' | 'WitnessReport';
+  readonly signRoles: readonly Role[];
+  readonly verifyRoles: readonly Role[];
+  readonly territoriallyScopedRoles: readonly Role[];
+}
+
+interface IntegrityDocument {
+  readonly id: string;
+  readonly path: string;
+  readonly module: StorageObjectModule;
+  readonly uploaderId: string;
+  readonly contentType: string;
+  readonly actualSize: number;
+  readonly etag: string;
+  readonly confirmedAt: Date;
+  readonly consumedAt: Date;
+  readonly consumedByType: string;
+  readonly consumedById: string;
+}
+
+const FINANCE_SIGN_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+] as const;
+
+const E14_SIGN_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.ZONE_COORDINATOR,
+  Role.WITNESS,
+] as const;
+
+const REVIEW_ROLES = [Role.COMPLIANCE_OFFICER, Role.AUDITOR] as const;
+
+const SIGNATURE_RESOURCE_POLICIES: Readonly<
+  Partial<Record<StorageModuleName, SignatureResourcePolicy>>
+> = {
+  [StorageModuleName.FINANCE]: {
+    storedModule: StorageObjectModule.FINANCE,
+    resourceType: 'FinancialEntry',
+    signRoles: FINANCE_SIGN_ROLES,
+    verifyRoles: [...FINANCE_SIGN_ROLES, ...REVIEW_ROLES],
+    territoriallyScopedRoles: [],
+  },
+  [StorageModuleName.E14]: {
+    storedModule: StorageObjectModule.E14,
+    resourceType: 'WitnessReport',
+    signRoles: E14_SIGN_ROLES,
+    verifyRoles: [...E14_SIGN_ROLES, ...REVIEW_ROLES],
+    territoriallyScopedRoles: [Role.ZONE_COORDINATOR, Role.WITNESS],
+  },
+};
+
+const SIGNATURE_HASH_PREFIX = 'v2:';
 
 @Injectable()
 export class ElectronicSignatureService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly consentEvidence: ConsentEvidenceService,
+    private readonly storage: SupabaseStorageGateway,
+    private readonly mfa: MfaService,
+  ) {}
 
   async signDocument(
-    tenantId: string,
-    documentId: string,
-    userId: string,
-    otpCode: string,
+    user: AuthenticatedUser,
+    dto: SignDocumentDto,
     ipAddress?: string,
   ) {
-    const document = await this.prisma.storedObject.findUnique({
-      where: { id_tenantId: { id: documentId, tenantId } },
+    const policy = this.getPolicy(dto.module);
+    const access = await this.resolveAccess(user, policy, 'sign');
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: CAMPAIGN_TENANT_SELECT,
     });
+    this.assertTenantModuleAccess(tenant, dto.module);
 
+    await this.assertValidOtp(user, dto.otpCode);
+
+    const rawDocument = await this.prisma.storedObject.findFirst({
+      where: {
+        id: dto.documentId,
+        tenantId: user.tenantId,
+        uploaderId: user.userId,
+        module: policy.storedModule,
+        status: StoredObjectStatus.CONSUMED,
+        consumedAt: { not: null },
+        consumedByType: policy.resourceType,
+        consumedById: dto.resourceId,
+      },
+      select: {
+        id: true,
+        path: true,
+        module: true,
+        uploaderId: true,
+        contentType: true,
+        etag: true,
+        actualSize: true,
+        confirmedAt: true,
+        consumedAt: true,
+        consumedByType: true,
+        consumedById: true,
+        status: true,
+      },
+    });
+    const document = this.asIntegrityDocument(
+      rawDocument,
+      policy,
+      dto.resourceId,
+      user.userId,
+    );
     if (!document) {
       throw new NotFoundException('Documento no encontrado');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id_tenantId: { id: userId, tenantId } },
-    });
-
-    if (!user || !user.totpEnabledAt || !user.totpSecret) {
-      throw new ForbiddenException('Usuario no tiene habilitado el segundo factor de autenticación');
+    const resourceOwnerId = await this.findLinkedResourceOwner(
+      user.tenantId,
+      dto.module,
+      dto.resourceId,
+      document.path,
+      access,
+    );
+    if (resourceOwnerId !== user.userId) {
+      throw new NotFoundException('Documento no encontrado');
     }
 
-    const isValidOtp = verifySync({ token: otpCode, secret: user.totpSecret });
-    if (!isValidOtp) {
-      throw new ForbiddenException('Código OTP inválido');
+    const currentObject = await this.storage.getObjectInfo(document.path);
+    if (!currentObject) {
+      throw new NotFoundException('El archivo del documento no existe');
+    }
+    if (!this.storageMetadataMatches(document, currentObject)) {
+      throw new ConflictException(
+        'El archivo cambió después de su confirmación y no puede firmarse',
+      );
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || '';
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || '';
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const documentHash = this.createBoundHash(
+      user.tenantId,
+      user.userId,
+      dto.module,
+      policy.resourceType,
+      dto.resourceId,
+      document,
+    );
 
-    const { data: fileData, error } = await supabase.storage.from(bucket).download(document.path);
-
-    if (error || !fileData) {
-      throw new NotFoundException('El archivo del documento no pudo ser verificado');
-    }
-
-    const buffer = Buffer.from(await fileData.arrayBuffer());
-    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-    });
-    const mode = tenant?.defaultMode || 'CAMPAIGN';
-
-    return this.prisma.$transaction(async (tx) => {
-      const signature = await tx.electronicSignature.create({
+    return this.prisma.$transaction(async (transaction) => {
+      const signature = await transaction.electronicSignature.create({
         data: {
-          tenantId,
-          documentId,
-          signerId: userId,
-          documentHash: hash,
-          ipAddress,
+          tenantId: user.tenantId,
+          documentId: document.id,
+          signerId: user.userId,
+          documentHash,
+        },
+        select: {
+          id: true,
+          signedAt: true,
         },
       });
 
-      await tx.auditEvent.create({
+      await transaction.auditEvent.create({
         data: {
-          tenantId,
-          mode: mode,
-          actorType: 'USER',
-          actorUserId: userId,
+          tenantId: user.tenantId,
+          mode: tenant.defaultMode,
+          actorType: AuditActorType.USER,
+          actorUserId: user.userId,
           action: 'DOCUMENT_SIGNED',
           resourceType: 'ElectronicSignature',
           resourceId: signature.id,
-          sourceIpHash: ipAddress ? crypto.createHash('sha256').update(ipAddress).digest('hex') : null,
-          metadata: { documentId },
+          sourceIpHash: ipAddress
+            ? this.consentEvidence.hashIp(ipAddress)
+            : null,
+          metadata: {
+            module: dto.module,
+            linkedResourceType: policy.resourceType,
+            linkedResourceId: dto.resourceId,
+          },
         },
       });
 
-      return signature;
+      return {
+        id: signature.id,
+        signedAt: signature.signedAt,
+        module: dto.module,
+        resourceType: policy.resourceType,
+      };
     });
   }
 
-  async verifySignature(tenantId: string, signatureId: string) {
-    const signature = await this.prisma.electronicSignature.findUnique({
-      where: { id: signatureId },
-      include: {
-        signer: {
-          select: { id: true, name: true, email: true },
-        },
+  async verifySignature(
+    user: AuthenticatedUser,
+    signatureId: string,
+    query: VerifySignatureQueryDto,
+  ) {
+    const policy = this.getPolicy(query.module);
+    const access = await this.resolveAccess(user, policy, 'verify');
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: CAMPAIGN_TENANT_SELECT,
+    });
+    this.assertTenantModuleAccess(tenant, query.module);
+
+    const signature = await this.prisma.electronicSignature.findFirst({
+      where: { id: signatureId, tenantId: user.tenantId },
+      select: {
+        id: true,
+        signerId: true,
+        documentHash: true,
+        signedAt: true,
         document: {
-          select: { id: true, path: true, expectedSize: true },
+          select: {
+            id: true,
+            path: true,
+            module: true,
+            uploaderId: true,
+            contentType: true,
+            etag: true,
+            actualSize: true,
+            confirmedAt: true,
+            consumedAt: true,
+            consumedByType: true,
+            consumedById: true,
+            status: true,
+          },
         },
       },
     });
 
-    if (!signature || signature.tenantId !== tenantId) {
+    const document = this.asIntegrityDocument(
+      signature?.document,
+      policy,
+      query.resourceId,
+    );
+    if (!signature || !document) {
       throw new NotFoundException('Firma no encontrada');
     }
 
-    return signature;
+    const resourceOwnerId = await this.findLinkedResourceOwner(
+      user.tenantId,
+      query.module,
+      query.resourceId,
+      document.path,
+      access,
+    );
+    if (!resourceOwnerId) {
+      throw new NotFoundException('Firma no encontrada');
+    }
+
+    const currentObject = await this.storage.getObjectInfo(document.path);
+    const ownershipMatches =
+      resourceOwnerId === document.uploaderId &&
+      signature.signerId === document.uploaderId;
+    const metadataMatches = Boolean(
+      currentObject && this.storageMetadataMatches(document, currentObject),
+    );
+    const hashMatches = this.signatureHashMatches(
+      signature.documentHash,
+      user.tenantId,
+      signature.signerId,
+      query.module,
+      policy.resourceType,
+      query.resourceId,
+      document,
+    );
+
+    return {
+      id: signature.id,
+      valid: ownershipMatches && metadataMatches && hashMatches,
+      signedAt: signature.signedAt,
+      module: query.module,
+      resourceType: policy.resourceType,
+    };
+  }
+
+  private getPolicy(module: StorageModuleName): SignatureResourcePolicy {
+    const policy = SIGNATURE_RESOURCE_POLICIES[module];
+    if (!policy) {
+      throw new BadRequestException('Módulo de firma no válido');
+    }
+    return policy;
+  }
+
+  private resolveAccess(
+    user: AuthenticatedUser,
+    policy: SignatureResourcePolicy,
+    operation: SignatureOperation,
+  ): Promise<TerritorialAccess> {
+    return resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles:
+        operation === 'sign' ? policy.signRoles : policy.verifyRoles,
+      territoriallyScopedRoles: policy.territoriallyScopedRoles,
+    });
+  }
+
+  private async assertValidOtp(
+    user: AuthenticatedUser,
+    otpCode: string,
+  ): Promise<void> {
+    const valid = await this.mfa.verifyEnabledCode(
+      user.userId,
+      user.tenantId,
+      otpCode,
+    );
+    if (!valid) {
+      throw new ForbiddenException('Código OTP inválido');
+    }
+  }
+
+  private asIntegrityDocument(
+    document:
+      | {
+          id: string;
+          path: string;
+          module: StorageObjectModule;
+          uploaderId: string;
+          contentType: string;
+          etag: string | null;
+          actualSize: number | null;
+          confirmedAt: Date | null;
+          consumedAt: Date | null;
+          consumedByType: string | null;
+          consumedById: string | null;
+          status: StoredObjectStatus;
+        }
+      | null
+      | undefined,
+    policy: SignatureResourcePolicy,
+    resourceId: string,
+    requiredUploaderId?: string,
+  ): IntegrityDocument | null {
+    if (
+      !document ||
+      document.module !== policy.storedModule ||
+      document.status !== StoredObjectStatus.CONSUMED ||
+      !document.etag ||
+      document.actualSize === null ||
+      !Number.isSafeInteger(document.actualSize) ||
+      document.actualSize <= 0 ||
+      !document.confirmedAt ||
+      !document.consumedAt ||
+      document.consumedByType !== policy.resourceType ||
+      document.consumedById !== resourceId ||
+      (requiredUploaderId !== undefined &&
+        document.uploaderId !== requiredUploaderId)
+    ) {
+      return null;
+    }
+
+    return {
+      ...document,
+      actualSize: document.actualSize,
+      etag: document.etag,
+      confirmedAt: document.confirmedAt,
+      consumedAt: document.consumedAt,
+      consumedByType: document.consumedByType,
+      consumedById: document.consumedById,
+    };
+  }
+
+  private async findLinkedResourceOwner(
+    tenantId: string,
+    module: StorageModuleName,
+    resourceId: string,
+    path: string,
+    access: TerritorialAccess,
+  ): Promise<string | null> {
+    if (module === StorageModuleName.FINANCE) {
+      const entry = await this.prisma.financialEntry.findFirst({
+        where: {
+          id: resourceId,
+          tenantId,
+          evidenceUrl: path,
+        },
+        select: { reporterId: true },
+      });
+      return entry?.reporterId ?? null;
+    }
+
+    const report = await this.prisma.witnessReport.findFirst({
+      where: {
+        id: resourceId,
+        tenantId,
+        e14ImageUrl: path,
+        ...(access.divisionIds === null
+          ? {}
+          : { puestoId: { in: access.divisionIds } }),
+      },
+      select: { witnessId: true },
+    });
+    return report?.witnessId ?? null;
+  }
+
+  private storageMetadataMatches(
+    document: IntegrityDocument,
+    currentObject: StoredObjectInfo,
+  ): boolean {
+    const size = this.currentObjectSize(currentObject);
+    const contentType = this.currentObjectContentType(currentObject);
+    return (
+      currentObject.etag === document.etag &&
+      size === document.actualSize &&
+      contentType === document.contentType.toLowerCase()
+    );
+  }
+
+  private assertTenantModuleAccess(
+    tenant: CampaignTenantState | null | undefined,
+    module: StorageModuleName,
+  ): asserts tenant is CampaignTenantState {
+    if (module === StorageModuleName.E14) {
+      assertCandidacyCampaignTenant(tenant);
+      return;
+    }
+    assertCampaignTenant(tenant);
+  }
+
+  private currentObjectSize(currentObject: StoredObjectInfo): number | null {
+    const candidate =
+      currentObject.size ??
+      this.metadataValue(currentObject.metadata, [
+        'size',
+        'contentLength',
+        'content-length',
+      ]);
+    const size = typeof candidate === 'string' ? Number(candidate) : candidate;
+    return typeof size === 'number' && Number.isSafeInteger(size) && size > 0
+      ? size
+      : null;
+  }
+
+  private currentObjectContentType(
+    currentObject: StoredObjectInfo,
+  ): string | null {
+    const candidate =
+      currentObject.contentType ??
+      this.metadataValue(currentObject.metadata, [
+        'mimetype',
+        'contentType',
+        'content-type',
+      ]);
+    return typeof candidate === 'string' && candidate.trim()
+      ? candidate.trim().toLowerCase()
+      : null;
+  }
+
+  private metadataValue(
+    metadata: Record<string, unknown> | undefined,
+    keys: readonly string[],
+  ): unknown {
+    if (!metadata) return undefined;
+    for (const key of keys) {
+      if (metadata[key] !== undefined) return metadata[key];
+    }
+    return undefined;
+  }
+
+  private createBoundHash(
+    tenantId: string,
+    signerId: string,
+    module: StorageModuleName,
+    resourceType: string,
+    resourceId: string,
+    document: IntegrityDocument,
+  ): string {
+    const digest = createHash('sha256')
+      .update('politica-sostenible:electronic-signature:v2')
+      .update('\0')
+      .update(tenantId)
+      .update('\0')
+      .update(signerId)
+      .update('\0')
+      .update(module)
+      .update('\0')
+      .update(resourceType)
+      .update('\0')
+      .update(resourceId)
+      .update('\0')
+      .update(document.id)
+      .update('\0')
+      .update(document.uploaderId)
+      .update('\0')
+      .update(document.contentType)
+      .update('\0')
+      .update(document.etag)
+      .update('\0')
+      .update(String(document.actualSize))
+      .update('\0')
+      .update(document.confirmedAt.toISOString())
+      .update('\0')
+      .update(document.consumedAt.toISOString())
+      .digest('hex');
+
+    return `${SIGNATURE_HASH_PREFIX}${digest}`;
+  }
+
+  private createLegacyHash(
+    tenantId: string,
+    document: IntegrityDocument,
+  ): string {
+    return createHash('sha256')
+      .update(tenantId)
+      .update('\0')
+      .update(document.id)
+      .update('\0')
+      .update(document.etag)
+      .update('\0')
+      .update(String(document.actualSize))
+      .update('\0')
+      .update(document.confirmedAt.toISOString())
+      .digest('hex');
+  }
+
+  private signatureHashMatches(
+    storedHash: string,
+    tenantId: string,
+    signerId: string,
+    module: StorageModuleName,
+    resourceType: string,
+    resourceId: string,
+    document: IntegrityDocument,
+  ): boolean {
+    const expectedHash = storedHash.startsWith(SIGNATURE_HASH_PREFIX)
+      ? this.createBoundHash(
+          tenantId,
+          signerId,
+          module,
+          resourceType,
+          resourceId,
+          document,
+        )
+      : this.createLegacyHash(tenantId, document);
+
+    const stored = Buffer.from(storedHash, 'utf8');
+    const expected = Buffer.from(expectedHash, 'utf8');
+    return (
+      stored.length === expected.length && timingSafeEqual(stored, expected)
+    );
   }
 }

@@ -6,15 +6,25 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../../prisma/generated/prisma';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  PlanFeature,
+  RequiresPlanFeature,
+} from '../auth/decorators/requires-plan-feature.decorator';
 
 @ApiTags('Export')
 @ApiBearerAuth()
 @Controller('export')
+@RequiresPlanFeature(PlanFeature.EXPORT)
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   @Get(':module')
-  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.COMPLIANCE_OFFICER, Role.AUDITOR)
+  @Roles(
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.COMPLIANCE_OFFICER,
+    Role.AUDITOR,
+  )
   async exportModule(
     @Param('module') moduleName: string,
     @CurrentUser() user: AuthenticatedUser,

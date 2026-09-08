@@ -6,6 +6,7 @@ import { RegisterDto } from './register.dto';
 const validRegistration = {
   email: 'ADMIN@EXAMPLE.TEST',
   password: 'clave-segura-2026',
+  passwordConfirmation: 'clave-segura-2026',
   name: ' Ana Pérez ',
   organizationName: ' Concejo abierto ',
   organizationType: TenantType.PUBLIC_OFFICE,
@@ -46,7 +47,22 @@ describe('RegisterDto', () => {
     [{ ...validRegistration, termsVersion: '2026.2' }, 'termsVersion'],
     [{ ...validRegistration, termsAccepted: false }, 'termsAccepted'],
     [{ ...validRegistration, documentId: '../otro-tenant' }, 'documentId'],
-    [{ ...validRegistration, password: 'muy-corta' }, 'password'],
+    [
+      {
+        ...validRegistration,
+        password: 'muy-corta',
+        passwordConfirmation: 'muy-corta',
+      },
+      'password',
+    ],
+    [
+      { ...validRegistration, passwordConfirmation: 'otra-clave-segura' },
+      'passwordConfirmation',
+    ],
+    [
+      { ...validRegistration, passwordConfirmation: undefined },
+      'passwordConfirmation',
+    ],
   ])('rechaza contratos de alta inválidos: %s', async (input, property) => {
     const errors = await validate(plainToInstance(RegisterDto, input));
     expect(errors.map((error) => error.property)).toContain(property);

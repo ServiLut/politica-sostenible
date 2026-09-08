@@ -157,11 +157,16 @@ describe('CommitmentsService tenant and mode isolation', () => {
   });
 
   it('always scopes paginated reads to JWT tenant and server-side mode', async () => {
-    await service.findAll(currentUser, { page: 3, limit: 5 });
+    await service.findAll(currentUser, {
+      page: 3,
+      limit: 5,
+      entityId: 'commitment-deep-link',
+    });
 
     expect(prisma.commitment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          id: 'commitment-deep-link',
           tenantId: 'tenant-a',
           mode: PoliticalOperationMode.CAMPAIGN,
         },
@@ -171,6 +176,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
     );
     expect(prisma.commitment.count).toHaveBeenCalledWith({
       where: {
+        id: 'commitment-deep-link',
         tenantId: 'tenant-a',
         mode: PoliticalOperationMode.CAMPAIGN,
       },

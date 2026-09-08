@@ -26,6 +26,9 @@ model Tenant {
   finances               FinancialEntry[]
   witnesses              WitnessReport[]
   events                 CampaignEvent[]
+  pointLogs              PointLog[]
+  inventory              InventoryItem[]
+  inventoryMovements     InventoryMovement[]
   consentRecords         ConsentRecord[]
   consentNotices         ConsentNotice[]
   issueCases             IssueCase[]
@@ -43,13 +46,26 @@ model Tenant {
 }
 
 model CampaignSettings {
-  id                String   @id @default(cuid())
-  tenantId          String   @unique
-  maxTotalBudget    Decimal  @db.Decimal(15, 2)
-  maxPublicityLimit Decimal  @db.Decimal(15, 2)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  id                       String              @id @default(cuid())
+  tenantId                 String              @unique
+  maxTotalBudget           Decimal             @db.Decimal(15, 2)
+  maxPublicityLimit        Decimal             @db.Decimal(15, 2)
+  electionName             String?             @db.VarChar(200)
+  electionDate             DateTime?
+  reportScope              FinanceReportScope?
+  officialLimitsReference  String?             @db.VarChar(250)
+  officialLimitsUrl        String?             @db.VarChar(2048)
+  reportDeadline           DateTime?
+  financialManagerName     String?             @db.VarChar(200)
+  financialManagerDocument String?             @db.VarChar(32)
+  accountantName           String?             @db.VarChar(200)
+  accountantDocument       String?             @db.VarChar(32)
+  uniqueAccountBank        String?             @db.VarChar(160)
+  uniqueAccountLastFour    String?             @db.Char(4)
+  cuentasClarasCode        String?             @db.VarChar(120)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  tenant                   Tenant              @relation(fields: [tenantId], references: [id])
 }
 
 model StoredObject {
@@ -86,6 +102,7 @@ model User {
   id                           String                  @id @default(cuid())
   email                        String                  @unique
   password                     String
+  authVersion                  Int                     @default(0)
   mustChangePassword           Boolean                 @default(false)
   temporaryPasswordExpiresAt   DateTime?
   name                         String
@@ -95,6 +112,7 @@ model User {
   phone                        String?
   totpSecret                   String? /// Encrypted TOTP secret (null = MFA not enabled)
   totpEnabledAt                DateTime? /// When MFA was enabled
+  lastTotpTimeStep             Int? /// Last atomically consumed RFC 6238 time step
   points                       Int                     @default(0)
   tenantId                     String
   divisionId                   String?
@@ -120,6 +138,8 @@ model User {
   communicationsDecided        CommunicationApproval[] @relation("CommunicationDecidedBy")
   invitationsSent              TeamInvitation[]        @relation("InvitationInviter")
   eventsResponsible            CampaignEvent[]         @relation("EventResponsible")
+  pointLogs                    PointLog[]
+  inventoryMoves               InventoryMovement[]
   auditEvents                  AuditEvent[]            @relation("AuditActor")
   storedObjects                StoredObject[]          @relation("StoredObjectUploader")
   operationProfilesResponsible OperationProfile[]      @relation("OperationProfileResponsible")
@@ -214,30 +234,31 @@ model Voter {
 }
 
 model FinancialEntry {
-  id                 String        @id @default(cuid())
-  type               EntryType
-  amount             Decimal       @db.Decimal(15, 2)
-  date               DateTime
-  cneCode            CneCode
-  description        String
-  tenantId           String
-  vendorName         String
-  vendorTaxId        String
-  evidenceUrl        String?       @unique
-  reporterId         String
-  reviewedById       String?
-  reviewedAt         DateTime?
-  reviewReason       String?       @db.VarChar(500)
-  cneReportedById    String?
-  cneReportedAt      DateTime?
-  cneReportReference String?       @db.VarChar(120)
-  status             FinanceStatus @default(PENDING)
-  auditLog           Json?
-  createdAt          DateTime      @default(now())
-  tenant             Tenant        @relation(fields: [tenantId], references: [id])
-  reporter           User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
-  reviewedBy         User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
-  cneReportedBy      User?         @relation("FinancialEntryCneMarker", fields: [cneReportedById, tenantId], references: [id, tenantId])
+  id                   String        @id @default(cuid())
+  type                 EntryType
+  amount               Decimal       @db.Decimal(15, 2)
+  date                 DateTime
+  cneCode              CneCode
+  description          String
+  tenantId             String
+  vendorName           String
+  vendorTaxId          String
+  evidenceUrl          String?       @unique
+  reporterId           String
+  reviewedById         String?
+  reviewedAt           DateTime?
+  reviewReason         String?       @db.VarChar(500)
+  cneReportedById      String?
+  cneReportedAt        DateTime?
+  cneReportReference   String?       @db.VarChar(120)
+  cneReportEvidenceUrl String?       @unique
+  status               FinanceStatus @default(PENDING)
+  auditLog             Json?
+  createdAt            DateTime      @default(now())
+  tenant               Tenant        @relation(fields: [tenantId], references: [id])
+  reporter             User          @relation("FinancialEntryReporter", fields: [reporterId, tenantId], references: [id, tenantId])
+  reviewedBy           User?         @relation("FinancialEntryReviewer", fields: [reviewedById, tenantId], references: [id, tenantId])
+  cneReportedBy        User?         @relation("FinancialEntryCneMarker", fields: [cneReportedById, tenantId], references: [id, tenantId])
 
   @@unique([id, tenantId])
   @@index([tenantId, type, date])
@@ -248,35 +269,47 @@ model FinancialEntry {
 }
 
 model WitnessReport {
-  id                String              @id @default(cuid())
-  tenantId          String
-  witnessId         String
-  puestoId          String
-  mesa              Int
-  e14ImageUrl       String              @unique
-  candidateVotes    Int
-  totalTableVotes   Int
-  observations      String?
-  isSynced          Boolean             @default(false)
-  status            WitnessReportStatus @default(PENDING)
-  reviewerId        String?
-  reviewReason      String?             @db.VarChar(1000)
-  reviewedAt        DateTime?
-  supersededById    String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  tenant            Tenant              @relation(fields: [tenantId], references: [id])
-  puesto            PoliticalDivision   @relation(fields: [puestoId, tenantId], references: [id, tenantId])
-  witness           User                @relation("WitnessReportReporter", fields: [witnessId, tenantId], references: [id, tenantId])
-  reviewer          User?               @relation("WitnessReportReviewer", fields: [reviewerId, tenantId], references: [id, tenantId])
-  supersededBy      WitnessReport?      @relation("WitnessReportSupersession", fields: [supersededById, tenantId], references: [id, tenantId])
-  supersededReports WitnessReport[]     @relation("WitnessReportSupersession")
+  id                     String                    @id @default(cuid())
+  tenantId               String
+  witnessId              String
+  puestoId               String
+  mesa                   Int
+  e14ImageUrl            String                    @unique
+  credentialType         WitnessCredentialType?
+  credentialReference    String?                   @db.VarChar(120)
+  checkedInAt            DateTime?
+  e14FormType            E14FormType?
+  candidateVotes         Int
+  blankVotes             Int?
+  nullVotes              Int?
+  unmarkedVotes          Int?
+  totalTableVotes        Int
+  hasWrittenClaim        Boolean?
+  reclamationGround      WitnessReclamationGround?
+  reclamationDescription String?                   @db.VarChar(2000)
+  observations           String?
+  isSynced               Boolean                   @default(false)
+  status                 WitnessReportStatus       @default(PENDING)
+  reviewerId             String?
+  reviewReason           String?                   @db.VarChar(1000)
+  reviewedAt             DateTime?
+  supersededById         String?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  tenant                 Tenant                    @relation(fields: [tenantId], references: [id])
+  puesto                 PoliticalDivision         @relation(fields: [puestoId, tenantId], references: [id, tenantId])
+  witness                User                      @relation("WitnessReportReporter", fields: [witnessId, tenantId], references: [id, tenantId])
+  reviewer               User?                     @relation("WitnessReportReviewer", fields: [reviewerId, tenantId], references: [id, tenantId])
+  supersededBy           WitnessReport?            @relation("WitnessReportSupersession", fields: [supersededById, tenantId], references: [id, tenantId])
+  supersededReports      WitnessReport[]           @relation("WitnessReportSupersession")
 
   @@unique([id, tenantId])
   @@index([tenantId, witnessId, createdAt])
   @@index([tenantId, isSynced])
   @@index([tenantId, status, createdAt])
   @@index([tenantId, puestoId, mesa, status, createdAt])
+  @@index([tenantId, credentialType, credentialReference])
+  @@index([tenantId, hasWrittenClaim, createdAt])
   @@index([tenantId, reviewerId, reviewedAt])
   @@index([tenantId, supersededById])
 }
@@ -298,11 +331,64 @@ model CampaignEvent {
   updatedAt     DateTime               @updatedAt
   tenant        Tenant                 @relation(fields: [tenantId], references: [id])
   responsible   User?                  @relation("EventResponsible", fields: [responsibleId, tenantId], references: [id, tenantId])
+  attendees     PointLog[]
 
   @@unique([id, tenantId])
   @@index([tenantId, mode, startsAt])
   @@index([tenantId, mode, status, startsAt])
   @@index([tenantId, responsibleId, startsAt])
+}
+
+/// Legacy operational tables retained in the schema so Prisma never proposes
+/// a destructive drop. No current UI advertises these flows.
+model PointLog {
+  id        String         @id @default(cuid())
+  tenantId  String
+  userId    String
+  amount    Int
+  reason    String
+  eventId   String?
+  createdAt DateTime       @default(now())
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  user      User           @relation(fields: [userId, tenantId], references: [id, tenantId])
+  event     CampaignEvent? @relation(fields: [eventId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, eventId])
+}
+
+model InventoryItem {
+  id        String              @id @default(cuid())
+  name      String
+  sku       String?
+  quantity  Int                 @default(0)
+  warehouse String?
+  tenantId  String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tenant    Tenant              @relation(fields: [tenantId], references: [id])
+  movements InventoryMovement[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, sku])
+  @@index([tenantId, name])
+}
+
+model InventoryMovement {
+  id        String        @id @default(cuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  quantity  Int
+  type      MovementType
+  reason    String?
+  createdAt DateTime      @default(now())
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  item      InventoryItem @relation(fields: [itemId, tenantId], references: [id, tenantId])
+  user      User          @relation(fields: [userId, tenantId], references: [id, tenantId])
+
+  @@index([tenantId, itemId, createdAt])
+  @@index([tenantId, userId, createdAt])
 }
 
 /// Historial versionado de autorizaciones de tratamiento de datos. No debe
@@ -597,11 +683,39 @@ enum FinanceStatus {
   REPORTED_CNE
 }
 
+enum FinanceReportScope {
+  CANDIDATE
+  POLITICAL_ORGANIZATION
+}
+
 enum WitnessReportStatus {
   PENDING
   ACCEPTED
   REJECTED
   SUPERSEDED
+}
+
+enum WitnessCredentialType {
+  E15
+  E16
+}
+
+enum E14FormType {
+  DELEGADOS
+  CLAVEROS
+  TRANSMISION
+}
+
+enum WitnessReclamationGround {
+  VOTERS_EXCEED_AUTHORIZED
+  ARITHMETIC_ERROR
+  CANDIDATE_IDENTIFICATION_ERROR
+  INSUFFICIENT_JUROR_SIGNATURES
+  RECOUNT_REQUEST
+  UNAUTHORIZED_POLLING_PLACE
+  ELECTION_ON_UNAUTHORIZED_DATE
+  BALLOTS_DESTROYED_OR_LOST
+  OTHER_STATUTORY_GROUND
 }
 
 enum MovementType {
@@ -613,6 +727,7 @@ enum MovementType {
 enum StorageObjectModule {
   FINANCE
   E14
+  CONSENT
 }
 
 enum StoredObjectStatus {
@@ -934,6 +1049,14 @@ model TenantSubscription {
   @@index([tenantId, status])
   @@index([planId])
   @@index([currentPeriodEnd, status])
+}
+
+/// System metadata used to prove that the runtime and migration connections
+/// reach the same physical application database. This is not tenant data.
+model SystemDatabaseIdentity {
+  id          String   @id @db.VarChar(32)
+  fingerprint String   @unique @db.VarChar(64)
+  createdAt   DateTime @default(now())
 }
 
 enum PlanCode {

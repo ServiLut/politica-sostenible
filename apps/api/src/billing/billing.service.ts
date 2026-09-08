@@ -1,5 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StoredObjectStatus } from '../../prisma/generated/prisma';
+import { getTenantEntitledSubscription } from '../auth/guards/plan-limits.guard';
 
 @Injectable()
 export class BillingService {
@@ -24,6 +30,7 @@ export class BillingService {
         includesApi: false,
         monthlyPriceCop: 0,
         yearlyPriceCop: 0,
+        isActive: true,
         sortOrder: 1,
       },
       {
@@ -39,6 +46,7 @@ export class BillingService {
         includesApi: false,
         monthlyPriceCop: 99000,
         yearlyPriceCop: 99000 * 12,
+        isActive: true,
         sortOrder: 2,
       },
       {
@@ -51,34 +59,46 @@ export class BillingService {
         includesExport: true,
         includesImport: true,
         includesMfa: true,
-        includesApi: true,
+        // API keys for third-party clients are not implemented yet. Do not
+        // advertise or entitle an external API until that lifecycle exists.
+        includesApi: false,
         monthlyPriceCop: 299000,
         yearlyPriceCop: 299000 * 12,
+        isActive: true,
         sortOrder: 3,
       },
       {
         code: 'ENTERPRISE' as const,
         name: 'Empresarial',
-        description: 'Sin límites',
+        description: 'Para operaciones de gran escala',
         maxUsers: 999999,
         maxVoters: 999999,
         maxStorageMb: 999999,
         includesExport: true,
         includesImport: true,
         includesMfa: true,
-        includesApi: true,
+        includesApi: false,
         monthlyPriceCop: 799000,
         yearlyPriceCop: 799000 * 12,
+        isActive: true,
         sortOrder: 4,
       },
     ];
 
-    for (const plan of plans) {
-      await this.prisma.subscriptionPlan.upsert({
-        where: { code: plan.code },
-        update: plan,
-        create: plan,
-      });
+    await this.prisma.subscriptionPlan.createMany({
+      data: plans,
+      skipDuplicates: true,
+    });
+    const configuredCodes = await this.prisma.subscriptionPlan.findMany({
+      where: { code: { in: plans.map(({ code }) => code) } },
+      select: { code: true },
+    });
+    if (
+      new Set(configuredCodes.map(({ code }) => code)).size !== plans.length
+    ) {
+      throw new ServiceUnavailableException(
+        'El catálogo de planes entra en conflicto con datos existentes; requiere revisión manual',
+      );
     }
 
     this.logger.log('Default subscription plans seeded.');
@@ -92,47 +112,32 @@ export class BillingService {
   }
 
   async getCurrentSubscription(tenantId: string) {
-    let sub = await this.prisma.tenantSubscription.findUnique({
-      where: { tenantId },
-      include: { plan: true },
-    });
-
-    if (!sub) {
-      const freePlan = await this.prisma.subscriptionPlan.findUnique({ where: { code: 'FREE' } });
-      if (!freePlan) throw new Error('Free plan not found');
-      
-      const now = new Date();
-      const nextMonth = new Date();
-      nextMonth.setMonth(now.getMonth() + 1);
-
-      sub = await this.prisma.tenantSubscription.create({
-        data: {
-          tenantId,
-          planId: freePlan.id,
-          status: 'ACTIVE',
-          currentPeriodStart: now,
-          currentPeriodEnd: nextMonth,
-        },
-        include: { plan: true },
-      });
-    }
-
-    return sub;
+    return getTenantEntitledSubscription(this.prisma, tenantId);
   }
 
   async getUsage(tenantId: string) {
+    // Never publish usable-looking limits for an ineligible subscription.
+    const sub = await this.getCurrentSubscription(tenantId);
     const [usersCount, votersCount, storageBytes] = await Promise.all([
       this.prisma.user.count({ where: { tenantId } }),
       this.prisma.voter.count({ where: { tenantId } }),
       this.prisma.storedObject.aggregate({
-        where: { tenantId },
-        _sum: { actualSize: true },
+        where: {
+          tenantId,
+          status: {
+            in: [
+              StoredObjectStatus.ISSUED,
+              StoredObjectStatus.CONFIRMED,
+              StoredObjectStatus.CONSUMED,
+            ],
+          },
+        },
+        _sum: { expectedSize: true },
       }),
     ]);
 
-    const storageMb = (storageBytes._sum.actualSize || 0) / (1024 * 1024);
-    const sub = await this.getCurrentSubscription(tenantId);
-    
+    const storageMb = (storageBytes._sum.expectedSize || 0) / (1024 * 1024);
+
     return {
       limits: {
         users: sub.plan.maxUsers,
@@ -145,19 +150,5 @@ export class BillingService {
         storageMb: storageMb,
       },
     };
-  }
-
-  async checkQuota(tenantId: string, resource: 'users' | 'voters' | 'storage', increment = 1): Promise<boolean> {
-    const usage = await this.getUsage(tenantId);
-    
-    if (resource === 'users') {
-      return (usage.current.users + increment) <= usage.limits.users;
-    } else if (resource === 'voters') {
-      return (usage.current.voters + increment) <= usage.limits.voters;
-    } else if (resource === 'storage') {
-      return (usage.current.storageMb + increment) <= usage.limits.storageMb;
-    }
-    
-    return false;
   }
 }

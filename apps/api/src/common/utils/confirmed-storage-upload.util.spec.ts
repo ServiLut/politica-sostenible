@@ -7,6 +7,11 @@ import {
   assertConfirmedStorageUpload,
   consumeConfirmedStorageUpload,
 } from './confirmed-storage-upload.util';
+import { assertPlanQuotaInTransaction } from '../../auth/guards/plan-limits.guard';
+
+jest.mock('../../auth/guards/plan-limits.guard', () => ({
+  assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('confirmed storage upload authorization', () => {
   const path = 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf';
@@ -80,5 +85,31 @@ describe('confirmed storage upload authorization', () => {
         'report-a',
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('enforces maxVoters after an imported voter is inserted', async () => {
+    const consentPath =
+      'tenant-a/consent/123e4567-e89b-42d3-a456-426614174000.pdf';
+    const client = {
+      storedObject: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    } as never;
+
+    await consumeConfirmedStorageUpload(
+      client,
+      'tenant-a',
+      consentPath,
+      StorageObjectModule.CONSENT,
+      'VoterConsent',
+      'voter-a',
+    );
+
+    expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
+      client,
+      'tenant-a',
+      'voters',
+      0,
+    );
   });
 });

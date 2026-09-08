@@ -10,13 +10,17 @@ import {
   PoliticalOperationMode,
   Prisma,
   PrismaClient,
+  ProposalCategory,
+  ProposalStatus,
   Role,
   StoredObjectStatus,
   StorageObjectModule,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
+import { resolveDatabaseSchema } from './prisma.service';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim();
+const testDatabaseSchema = resolveDatabaseSchema(testDatabaseUrl) ?? 'public';
 const describeWithPostgres = testDatabaseUrl ? describe : describe.skip;
 
 describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
@@ -57,7 +61,10 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     });
 
   beforeAll(async () => {
-    const adapter = new PrismaPg({ connectionString: testDatabaseUrl });
+    const adapter = new PrismaPg(
+      { connectionString: testDatabaseUrl },
+      { schema: testDatabaseSchema },
+    );
     prisma = new PrismaClient({ adapter });
     await prisma.$connect();
   });
@@ -84,6 +91,9 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
           where: { tenantId: { in: tenantIds } },
         }),
         prisma.teamInvitation.deleteMany({
+          where: { tenantId: { in: tenantIds } },
+        }),
+        prisma.politicalProposal.deleteMany({
           where: { tenantId: { in: tenantIds } },
         }),
         prisma.user.deleteMany({ where: { tenantId: { in: tenantIds } } }),
@@ -206,13 +216,124 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
             resourceType: 'IntegrationTest',
           },
         });
-        await transaction.$executeRawUnsafe('TRUNCATE TABLE "AuditEvent"');
+        await transaction.$executeRawUnsafe(
+          `TRUNCATE TABLE "${testDatabaseSchema}"."AuditEvent"`,
+        );
       }),
     ).rejects.toThrow(/AuditEvent es append-only.*TRUNCATE.*prohibida/i);
 
     await expect(
       prisma.auditEvent.count({ where: { id: auditId } }),
     ).resolves.toBe(0);
+  });
+
+  it('prevents proposal lifecycle rollback at the PostgreSQL boundary', async () => {
+    const tenant = await createTenant();
+    const owner = await createUser(tenant.id);
+    sequence += 1;
+    await expect(
+      prisma.politicalProposal.create({
+        data: {
+          tenantId: tenant.id,
+          referenceCode: `BAD-${runId.slice(0, 8)}`,
+          title: 'Resultado sin trayectoria',
+          description: 'No puede nacer como completado.',
+          category: ProposalCategory.GOVERNANCE,
+          status: ProposalStatus.COMPLETED,
+          progressPercent: 0,
+          ownerId: owner.id,
+          createdById: owner.id,
+          updatedById: owner.id,
+        },
+      }),
+    ).rejects.toThrow(/debe iniciar como borrador con progreso 0/i);
+
+    const proposal = await prisma.politicalProposal.create({
+      data: {
+        tenantId: tenant.id,
+        referenceCode: `IT-${runId.slice(0, 8)}-${sequence}`,
+        title: 'Compromiso verificable',
+        description: 'No debe regresar a borrador después de ser propuesto.',
+        category: ProposalCategory.GOVERNANCE,
+        ownerId: owner.id,
+        createdById: owner.id,
+        updatedById: owner.id,
+      },
+    });
+
+    await prisma.politicalProposal.update({
+      where: {
+        id_tenantId: { id: proposal.id, tenantId: tenant.id },
+      },
+      data: { status: ProposalStatus.PROPOSED },
+    });
+
+    await expect(
+      prisma.politicalProposal.update({
+        where: {
+          id_tenantId: { id: proposal.id, tenantId: tenant.id },
+        },
+        data: { status: ProposalStatus.DRAFT },
+      }),
+    ).rejects.toThrow(/Transicion de estado de propuesta no permitida/i);
+
+    await expect(
+      prisma.politicalProposal.update({
+        where: {
+          id_tenantId: { id: proposal.id, tenantId: tenant.id },
+        },
+        data: { title: 'Compromiso reescrito' },
+      }),
+    ).rejects.toThrow(/contenido comprometido.*inmutable/i);
+
+    await prisma.politicalProposal.update({
+      where: {
+        id_tenantId: { id: proposal.id, tenantId: tenant.id },
+      },
+      data: {
+        status: ProposalStatus.IN_PROGRESS,
+        progressPercent: 90,
+      },
+    });
+    await expect(
+      prisma.politicalProposal.update({
+        where: {
+          id_tenantId: { id: proposal.id, tenantId: tenant.id },
+        },
+        data: { status: ProposalStatus.COMPLETED },
+      }),
+    ).rejects.toThrow(/completada requiere progreso 100/i);
+
+    await prisma.politicalProposal.update({
+      where: {
+        id_tenantId: { id: proposal.id, tenantId: tenant.id },
+      },
+      data: {
+        status: ProposalStatus.COMPLETED,
+        progressPercent: 100,
+      },
+    });
+    await expect(
+      prisma.politicalProposal.update({
+        where: {
+          id_tenantId: { id: proposal.id, tenantId: tenant.id },
+        },
+        data: { progressPercent: 99 },
+      }),
+    ).rejects.toThrow(/conserva responsable y progreso finales/i);
+
+    await expect(
+      prisma.politicalProposal.findUnique({
+        where: {
+          id_tenantId: { id: proposal.id, tenantId: tenant.id },
+        },
+        select: { status: true, progressPercent: true, title: true },
+      }),
+    ).resolves.toEqual({
+      status: ProposalStatus.COMPLETED,
+      progressPercent: 100,
+      title: 'Compromiso verificable',
+    });
   });
 
   it('keeps consent notice versions tenant-scoped with exactly one active notice per purpose', async () => {

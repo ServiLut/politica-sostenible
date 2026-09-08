@@ -17,6 +17,15 @@ import { CreateVoterDto } from './dto/create-voter.dto';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
 import { VoterService } from './voter.service';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
+
+jest.mock('../auth/guards/plan-limits.guard', () => ({
+  assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
+  ensureTenantSubscription: jest.fn().mockResolvedValue(undefined),
+}));
 
 const activeConsentNotice = {
   id: 'notice-a',
@@ -30,6 +39,18 @@ const activeConsentNotice = {
   privacyPolicyUrl: null,
   activatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
+
+function withCapturePrerequisites<T extends object>(prisma: T) {
+  return {
+    consentNotice: {
+      findFirst: jest.fn().mockResolvedValue({ id: activeConsentNotice.id }),
+    },
+    operationProfile: {
+      findUnique: jest.fn().mockResolvedValue({ id: 'profile-a' }),
+    },
+    ...prisma,
+  };
+}
 
 describe('VoterService consent transaction', () => {
   const dto: CreateVoterDto = {
@@ -107,7 +128,9 @@ describe('VoterService consent transaction', () => {
     );
     const hashIp = jest.fn().mockReturnValue('hashed-ip-evidence');
     const service = new VoterService(
-      { $transaction: runTransaction } as unknown as PrismaService,
+      withCapturePrerequisites({
+        $transaction: runTransaction,
+      }) as unknown as PrismaService,
       { hashIp } as unknown as ConsentEvidenceService,
     );
 
@@ -122,8 +145,17 @@ describe('VoterService consent transaction', () => {
     );
 
     expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: 'Serializable',
+      isolationLevel: 'ReadCommitted',
     });
+    expect(ensureTenantSubscription).toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant-from-token',
+    );
+    expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
+      transaction,
+      'tenant-from-token',
+      'voters',
+    );
     expect(hashIp).toHaveBeenCalledWith('203.0.113.42');
     const voterCreateData = transaction.captured.voterData;
     expect(voterCreateData).toMatchObject({
@@ -186,12 +218,12 @@ describe('VoterService consent transaction', () => {
   it('rejects political collection for a public-office tenant', async () => {
     const transaction = buildTransaction(PoliticalOperationMode.PUBLIC_OFFICE);
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {
         hashIp: jest.fn().mockReturnValue('hashed-ip'),
       } as unknown as ConsentEvidenceService,
@@ -223,7 +255,9 @@ describe('VoterService consent transaction', () => {
         callback(transaction),
     );
     const service = new VoterService(
-      { $transaction: runTransaction } as unknown as PrismaService,
+      withCapturePrerequisites({
+        $transaction: runTransaction,
+      }) as unknown as PrismaService,
       {
         hashIp: jest.fn().mockReturnValue('hashed-ip'),
       } as unknown as ConsentEvidenceService,
@@ -251,12 +285,12 @@ describe('VoterService consent transaction', () => {
     const transaction = buildTransaction();
     transaction.politicalDivision.findFirst.mockResolvedValue(null);
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {
         hashIp: jest.fn().mockReturnValue('hashed-ip'),
       } as unknown as ConsentEvidenceService,
@@ -327,12 +361,12 @@ describe('VoterService consent transaction', () => {
     ]);
     const hashIp = jest.fn();
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       { hashIp } as unknown as ConsentEvidenceService,
     );
 
@@ -366,12 +400,12 @@ describe('VoterService consent transaction', () => {
       { id: 'puesto-outside', parentId: null },
     ]);
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {
         hashIp: jest.fn().mockReturnValue('hashed-ip'),
       } as unknown as ConsentEvidenceService,
@@ -494,12 +528,12 @@ describe('VoterService consent transaction', () => {
       { id: 'puesto-a', parentId: 'zone-a' },
     ]);
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {} as ConsentEvidenceService,
     );
 
@@ -524,12 +558,12 @@ describe('VoterService consent transaction', () => {
     transaction.voter.findUnique.mockResolvedValue({ id: 'existing-voter' });
     const hashIp = jest.fn();
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn(
           async (callback: (client: typeof transaction) => Promise<unknown>) =>
             callback(transaction),
         ),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       { hashIp } as unknown as ConsentEvidenceService,
     );
 
@@ -553,9 +587,9 @@ describe('VoterService consent transaction', () => {
 
   it('maps a concurrent duplicate to the same indistinguishable receipt', async () => {
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn().mockRejectedValue({ code: 'P2002' }),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {} as ConsentEvidenceService,
     );
 
@@ -574,9 +608,9 @@ describe('VoterService consent transaction', () => {
 
   it('rejects a capture serialized against a concurrent notice activation', async () => {
     const service = new VoterService(
-      {
+      withCapturePrerequisites({
         $transaction: jest.fn().mockRejectedValue({ code: 'P2034' }),
-      } as unknown as PrismaService,
+      }) as unknown as PrismaService,
       {} as ConsentEvidenceService,
     );
 
@@ -619,6 +653,9 @@ describe('VoterService consent transaction', () => {
       const count = jest.fn().mockResolvedValue(voters.length);
       const prisma = {
         tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant) },
+        consentNotice: {
+          findFirst: jest.fn().mockResolvedValue(activeConsentNotice),
+        },
         user: { findFirst: jest.fn().mockResolvedValue(actor) },
         politicalDivision: {
           findMany: jest.fn().mockResolvedValue(divisions),
@@ -647,7 +684,6 @@ describe('VoterService consent transaction', () => {
             lastName: 'Pérez',
             phone: '300 123 4567',
             mesa: 12,
-            isSignatureValid: false,
             consentAccepted: true,
             consentTimestamp: new Date('2026-08-01T12:00:00.000Z'),
             createdAt: new Date('2026-08-01T12:00:00.000Z'),
@@ -697,6 +733,60 @@ describe('VoterService consent transaction', () => {
       });
       expect(result.items[0]).not.toHaveProperty('documentId');
       expect(result.items[0]).not.toHaveProperty('phone');
+      expect(result.items[0]).not.toHaveProperty('isSignatureValid');
+    });
+
+    it('derives reconsent from the latest tenant-scoped record instead of rewriting the voter flag', async () => {
+      const grantedAt = new Date('2026-08-01T12:00:00.000Z');
+      const { service, findMany } = buildReadService({
+        voters: [
+          {
+            id: 'voter-a',
+            documentId: '1012345678',
+            firstName: 'María',
+            lastName: 'Pérez',
+            phone: null,
+            mesa: null,
+            consentAccepted: true,
+            consentTimestamp: grantedAt,
+            createdAt: grantedAt,
+            puesto: null,
+            registrar: null,
+            consentRecords: [
+              {
+                id: 'grant-old',
+                status: ConsentStatus.GRANTED,
+                noticeVersion: 'campaign-previous',
+                grantedAt,
+                expiresAt: null,
+                revokedAt: null,
+                createdAt: grantedAt,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await service.findAll(user, { page: 1, limit: 25 });
+
+      expect(result.items[0]).toMatchObject({
+        consentAccepted: true,
+        consentCurrent: false,
+        consentRequiresReconsent: true,
+        consentState: 'OUTDATED_NOTICE',
+        consentRecordStatus: ConsentStatus.GRANTED,
+        consentNoticeVersion: 'campaign-previous',
+        currentConsentNoticeVersion: activeConsentNotice.version,
+      });
+      expect(findMany.mock.calls[0][0].select.consentRecords).toMatchObject({
+        where: {
+          tenantId: 'tenant-a',
+          mode: PoliticalOperationMode.CAMPAIGN,
+          subjectType: ConsentSubjectType.VOTER,
+          purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+        },
+        take: 1,
+      });
     });
 
     it('always scopes exact PII searches to the JWT tenant and ignores injected tenant input', async () => {
@@ -727,6 +817,32 @@ describe('VoterService consent transaction', () => {
       const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
       expect(where).toEqual({ tenantId: 'tenant-a' });
       expect(where).not.toHaveProperty('OR');
+      expect(count).toHaveBeenCalledWith({ where });
+    });
+
+    it('resolves a deep-linked voter by id inside the persisted tenant and territorial scope', async () => {
+      const { service, findMany, count } = buildReadService({
+        actor: { role: Role.ZONE_COORDINATOR, divisionId: 'zone-a' },
+        divisions: [
+          { id: 'zone-a', parentId: null },
+          { id: 'puesto-a', parentId: 'zone-a' },
+          { id: 'puesto-outside', parentId: null },
+        ],
+      });
+
+      await service.findAll(
+        { ...user, role: Role.ADMIN },
+        { page: 1, limit: 25, entityId: 'voter-a' },
+      );
+
+      const where = findMany.mock.calls[0][0].where as Record<string, unknown>;
+      expect(where).toEqual({
+        tenantId: 'tenant-a',
+        puestoId: { in: ['zone-a', 'puesto-a'] },
+        id: 'voter-a',
+      });
+      expect(where).not.toHaveProperty('tenantId', 'tenant-b');
+      expect(JSON.stringify(where)).not.toContain('puesto-outside');
       expect(count).toHaveBeenCalledWith({ where });
     });
 

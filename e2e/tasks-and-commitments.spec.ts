@@ -62,6 +62,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
 }) => {
   const mutationBodies: Array<Record<string, unknown>> = [];
   const authorizationHeaders: string[] = [];
+  const exportPaths: string[] = [];
   const assignees = [
     {
       id: "user-e2e",
@@ -268,6 +269,20 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
       return;
     }
 
+    if (
+      method === "GET" &&
+      (pathname === "/api/export/tareas" ||
+        pathname === "/api/export/compromisos")
+    ) {
+      exportPaths.push(pathname);
+      await route.fulfill({
+        status: 200,
+        contentType: "text/csv; charset=utf-8",
+        body: "encabezado\nvalor",
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -288,6 +303,9 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await expect(page.getByTestId("task-card-task-1")).toContainText(
     "Verificar luminarias del barrio",
   );
+
+  await page.getByRole("button", { name: "Exportar CSV" }).click();
+  await expect.poll(() => exportPaths).toEqual(["/api/export/tareas"]);
 
   await page
     .getByRole("combobox", {
@@ -318,6 +336,11 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   );
 
   await page.getByRole("tab", { name: /Compromisos/ }).click();
+  await page.getByRole("button", { name: "Exportar CSV" }).click();
+  await expect.poll(() => exportPaths).toEqual([
+    "/api/export/tareas",
+    "/api/export/compromisos",
+  ]);
   const commitmentCard = page.getByTestId("commitment-card-commitment-1");
   await expect(commitmentCard).toContainText("Iluminación segura");
 
@@ -612,19 +635,19 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
       "Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del caso",
     ),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Radicar PQRS" }).click();
+  await page
+    .getByRole("button", { name: "Registrar solicitud interna" })
+    .click();
   const caseDialog = page.getByRole("dialog", {
-    name: "Radicar solicitud ciudadana",
+    name: "Registrar solicitud ciudadana",
   });
-  await expect(
-    caseDialog.getByText(
-      /Es una clasificación operativa\. No restringe el acceso: la visibilidad sigue los permisos generales del rol y la asignación del caso\./,
-    ),
-  ).toBeVisible();
+  await expect(caseDialog).toContainText(
+    "Es una clasificación operativa. No restringe el acceso:",
+  );
   await expect(
     caseDialog.getByLabel(/Aplicar etiqueta de manejo especial/),
   ).not.toBeChecked();
-  await caseDialog.getByRole("button", { name: "Cerrar" }).click();
+  await caseDialog.getByRole("button", { name: "Cancelar" }).click();
   await expect(
     caseCard.getByRole("link", {
       name: "Registrar compromiso vinculado a PQRS-2026-041",
@@ -806,6 +829,9 @@ test("presenta un compromiso compartido con el equipo como solo lectura", async 
   await expect(
     page.getByRole("button", { name: "Nuevo compromiso" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Exportar CSV" }),
+  ).toHaveCount(0);
   expect(patchRequests).toBe(0);
 });
 
@@ -872,6 +898,9 @@ test("oculta la creación de tareas a un rol de solo lectura", async ({
   await expect(page.getByRole("button", { name: "Nueva tarea" })).toHaveCount(
     0,
   );
+  await expect(
+    page.getByRole("button", { name: "Exportar CSV" }),
+  ).toBeVisible();
 });
 
 test("gestión pública no ofrece tareas ni carga asignables al responsable de comunicaciones", async ({
@@ -971,6 +1000,9 @@ test("gestión pública no ofrece tareas ni carga asignables al responsable de c
   await expect(page.getByRole("button", { name: "Nueva tarea" })).toHaveCount(
     0,
   );
+  await expect(
+    page.getByRole("button", { name: "Exportar CSV" }),
+  ).toHaveCount(0);
   expect(assigneeRequests).toBe(0);
 });
 
@@ -1078,6 +1110,9 @@ test("campaña ofrece tareas y carga asignables al responsable de comunicaciones
 
   const createButton = page.getByRole("button", { name: "Nueva tarea" });
   await expect(createButton).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Exportar CSV" }),
+  ).toHaveCount(0);
   await createButton.click();
 
   const dialog = page.getByRole("dialog", { name: "Crear tarea" });

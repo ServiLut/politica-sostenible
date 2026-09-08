@@ -3,6 +3,12 @@
 import React, { useEffect } from "react";
 import { AlertTriangle, RefreshCcw, Home, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  DASHBOARD_CONTENT_ID,
+  isDashboardPath,
+  MAIN_CONTENT_ID,
+} from "@/lib/skip-navigation";
 
 export default function Error({
   error,
@@ -11,13 +17,19 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error);
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
+    <div
+      id={isDashboardPath(pathname) ? DASHBOARD_CONTENT_ID : MAIN_CONTENT_ID}
+      tabIndex={-1}
+      className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 outline-none"
+    >
       <div className="max-w-md w-full bg-white rounded-[2.5rem] border border-zinc-100 shadow-2xl p-10 text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex justify-center">
           <div className="h-20 w-20 rounded-3xl bg-red-50 text-accent flex items-center justify-center shadow-lg shadow-red-100">
@@ -43,6 +55,7 @@ export default function Error({
 
         <div className="flex flex-col gap-3">
           <button
+            type="button"
             onClick={() => reset()}
             className="h-14 w-full bg-primary text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
           >

@@ -1,59 +1,34 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { apiRequest } from '@/lib/api-client';
-import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth";
+import { getDefaultDashboardRoute } from "@/config/navigation";
 
+/**
+ * /dashboard is only an entry point. The target is always determined by the
+ * authenticated tenant and role; it must not fall back to a campaign screen.
+ */
 export default function DashboardPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { tenant, user, loading } = useAuth();
+  const stage = tenant?.operationStage;
 
   useEffect(() => {
-    const checkBriefing = async () => {
-      try {
-        const data: any = await apiRequest('/command-center/briefing');
-        if (data?.activation?.completedSteps === 0) {
-          setShowOnboarding(true);
-        } else {
-          router.push('/dashboard/executive');
-        }
-      } catch (error) {
-        // Safe fallback
-        router.push('/dashboard/executive');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (loading || !user || !tenant) return;
+    router.replace(getDefaultDashboardRoute(user, tenant, stage));
+  }, [loading, router, stage, tenant, user]);
 
-    checkBriefing();
-  }, [router]);
-
-  if (loading) {
-    return (
+  return (
+    <div
+      role="status"
+      aria-label="Abriendo el panel disponible"
+      className="flex h-full min-h-64 items-center justify-center"
+    >
       <div
-        role="status"
-        aria-live="polite"
-        aria-label="Abriendo el panel disponible"
-        className="flex h-full min-h-64 items-center justify-center"
-      >
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div
-            aria-hidden="true"
-            className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 motion-reduce:animate-none"
-          />
-          <p className="text-sm font-semibold text-slate-500">
-            Abriendo tu espacio de trabajo…
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showOnboarding) {
-    return <OnboardingWizard onComplete={() => router.push('/dashboard/executive')} />;
-  }
-
-  return null;
+        aria-hidden="true"
+        className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 motion-reduce:animate-none"
+      />
+    </div>
+  );
 }

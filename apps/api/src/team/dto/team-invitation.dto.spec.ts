@@ -20,6 +20,17 @@ describe('Team invitation DTO validation', () => {
     expect(dto.email).toBe('persona@example.test');
   });
 
+  it('rejects ADMIN at the ordinary invitation contract boundary', async () => {
+    const dto = plainToInstance(CreateTeamInvitationDto, {
+      email: 'respaldo@example.test',
+      role: Role.ADMIN,
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.map((error) => error.property)).toContain('role');
+  });
+
   it('rejects malformed acceptance data and stale terms', async () => {
     const dto = plainToInstance(AcceptTeamInvitationDto, {
       token: 'short',

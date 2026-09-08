@@ -4,10 +4,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import {
+  E14FormType,
   PoliticalOperationMode,
   Prisma,
   Role,
   TenantType,
+  WitnessCredentialType,
+  WitnessReclamationGround,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,6 +21,17 @@ const tenant = {
   type: TenantType.CANDIDACY,
 };
 
+const traceabilityInput = {
+  credentialType: WitnessCredentialType.E15,
+  credentialReference: 'E15-BOG-001-0007',
+  checkedInAt: '2026-08-30T07:00:00.000-05:00',
+  e14FormType: E14FormType.DELEGADOS,
+  blankVotes: 5,
+  nullVotes: 3,
+  unmarkedVotes: 2,
+  hasWrittenClaim: false,
+} as const;
+
 const report = (
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -25,8 +39,18 @@ const report = (
   witnessId: 'witness-a',
   puestoId: 'puesto-a',
   mesa: 7,
+  credentialType: WitnessCredentialType.E15,
+  credentialReference: 'E15-BOG-001-0007',
+  checkedInAt: new Date('2026-08-30T12:00:00.000Z'),
+  e14FormType: E14FormType.DELEGADOS,
   candidateVotes: 80,
+  blankVotes: 5,
+  nullVotes: 3,
+  unmarkedVotes: 2,
   totalTableVotes: 200,
+  hasWrittenClaim: false,
+  reclamationGround: null,
+  reclamationDescription: null,
   observations: null,
   isSynced: false,
   status: WitnessReportStatus.PENDING,
@@ -101,6 +125,7 @@ describe('WitnessService E-14 reconciliation', () => {
     const result = await service.create('tenant-a', 'witness-a', {
       puestoId: 'puesto-a',
       mesa: 7,
+      ...traceabilityInput,
       e14ImageUrl: evidence,
       candidateVotes: 80,
       totalTableVotes: 200,
@@ -124,6 +149,14 @@ describe('WitnessService E-14 reconciliation', () => {
           witnessId: 'witness-a',
           puestoId: 'puesto-a',
           mesa: 7,
+          credentialType: WitnessCredentialType.E15,
+          credentialReference: 'E15-BOG-001-0007',
+          checkedInAt: new Date('2026-08-30T12:00:00.000Z'),
+          e14FormType: E14FormType.DELEGADOS,
+          blankVotes: 5,
+          nullVotes: 3,
+          unmarkedVotes: 2,
+          hasWrittenClaim: false,
           status: WitnessReportStatus.PENDING,
         }) as object,
         select: expect.not.objectContaining({ e14ImageUrl: true }) as object,
@@ -141,6 +174,142 @@ describe('WitnessService E-14 reconciliation', () => {
     const serializedAudit = JSON.stringify(tx.auditEvent.create.mock.calls);
     expect(serializedAudit).not.toContain(evidence);
     expect(serializedAudit).toContain('hasPrivateEvidence');
+  });
+
+  it('rejects a vote breakdown that exceeds the table total before persistence', async () => {
+    const transaction = jest.fn();
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transaction,
+    } as unknown as PrismaService);
+
+    await expect(
+      service.create('tenant-a', 'witness-a', {
+        puestoId: 'puesto-a',
+        mesa: 7,
+        ...traceabilityInput,
+        blankVotes: 15,
+        nullVotes: 4,
+        unmarkedVotes: 2,
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
+        candidateVotes: 80,
+        totalTableVotes: 100,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a check-in more than five minutes in the future', async () => {
+    const transaction = jest.fn();
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transaction,
+    } as unknown as PrismaService);
+
+    await expect(
+      service.create('tenant-a', 'witness-a', {
+        puestoId: 'puesto-a',
+        mesa: 7,
+        ...traceabilityInput,
+        checkedInAt: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
+        candidateVotes: 80,
+        totalTableVotes: 200,
+      }),
+    ).rejects.toThrow('La hora de presencia no puede estar en el futuro');
+
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('requires a legal ground and a reasoned description for a written claim', async () => {
+    const transaction = jest.fn();
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transaction,
+    } as unknown as PrismaService);
+
+    await expect(
+      service.create('tenant-a', 'witness-a', {
+        puestoId: 'puesto-a',
+        mesa: 7,
+        ...traceabilityInput,
+        hasWrittenClaim: true,
+        e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf',
+        candidateVotes: 80,
+        totalTableVotes: 200,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('persists the written claim without treating it as an official filing', async () => {
+    const created = report({
+      hasWrittenClaim: true,
+      reclamationGround: WitnessReclamationGround.ARITHMETIC_ERROR,
+      reclamationDescription:
+        'La suma escrita en el acta no coincide con los renglones verificados.',
+    });
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.WITNESS,
+          divisionId: 'puesto-a',
+        }),
+      },
+      politicalDivision: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 'puesto-a', parentId: null }]),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'puesto-a', expectedTables: 10 }),
+      },
+      witnessReport: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(created),
+        findMany: jest.fn().mockResolvedValue([created]),
+      },
+      storedObject: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transactionRunner(tx),
+    } as unknown as PrismaService);
+
+    await service.create('tenant-a', 'witness-a', {
+      puestoId: 'puesto-a',
+      mesa: 7,
+      ...traceabilityInput,
+      hasWrittenClaim: true,
+      reclamationGround: WitnessReclamationGround.ARITHMETIC_ERROR,
+      reclamationDescription:
+        '  La suma escrita en el acta no coincide con los renglones verificados.  ',
+      e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174001.pdf',
+      candidateVotes: 80,
+      totalTableVotes: 200,
+    });
+
+    expect(tx.witnessReport.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          hasWrittenClaim: true,
+          reclamationGround: WitnessReclamationGround.ARITHMETIC_ERROR,
+          reclamationDescription:
+            'La suma escrita en el acta no coincide con los renglones verificados.',
+        }) as object,
+      }),
+    );
+    expect(JSON.stringify(tx.auditEvent.create.mock.calls)).not.toContain(
+      'La suma escrita en el acta',
+    );
+    expect(JSON.stringify(tx.auditEvent.create.mock.calls)).not.toContain(
+      'official',
+    );
   });
 
   it('blocks a reporter from reviewing their own pending report', async () => {
@@ -171,6 +340,120 @@ describe('WitnessService E-14 reconciliation', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(tx.witnessReport.updateMany).not.toHaveBeenCalled();
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('blocks acceptance of a legacy report without complete traceability', async () => {
+    const legacy = report({
+      witnessId: 'witness-legacy',
+      credentialType: null,
+      credentialReference: null,
+      checkedInAt: null,
+      e14FormType: null,
+      blankVotes: null,
+      nullVotes: null,
+      unmarkedVotes: null,
+      hasWrittenClaim: null,
+      reclamationGround: null,
+      reclamationDescription: null,
+    });
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.COMPLIANCE_OFFICER,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany: jest.fn() },
+      witnessReport: {
+        findFirst: jest.fn().mockResolvedValue(legacy),
+        updateMany: jest.fn(),
+      },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transactionRunner(tx),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.review('tenant-a', 'reviewer-a', 'report-pending', {
+        status: WitnessReportStatus.ACCEPTED,
+        reviewReason: 'No existe trazabilidad suficiente para conciliar.',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(tx.witnessReport.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('allows a motivated rejection of a legacy report', async () => {
+    const legacy = report({
+      witnessId: 'witness-legacy',
+      credentialType: null,
+      credentialReference: null,
+      checkedInAt: null,
+      e14FormType: null,
+      blankVotes: null,
+      nullVotes: null,
+      unmarkedVotes: null,
+      hasWrittenClaim: null,
+      reclamationGround: null,
+      reclamationDescription: null,
+    });
+    const rejected = report({
+      ...legacy,
+      status: WitnessReportStatus.REJECTED,
+      reviewerId: 'reviewer-a',
+      reviewReason:
+        'Reporte historico rechazado por falta de trazabilidad verificable.',
+      reviewedAt: new Date('2026-09-07T12:00:00.000Z'),
+      reviewer: { id: 'reviewer-a', name: 'Revisor A' },
+    });
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.COMPLIANCE_OFFICER,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: { findMany: jest.fn() },
+      witnessReport: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(legacy)
+          .mockResolvedValueOnce(rejected),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
+    };
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transactionRunner(tx),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.review('tenant-a', 'reviewer-a', 'report-pending', {
+        status: WitnessReportStatus.REJECTED,
+        reviewReason:
+          'Reporte historico rechazado por falta de trazabilidad verificable.',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({ status: WitnessReportStatus.REJECTED }),
+    );
+    expect(tx.witnessReport.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'report-pending',
+          tenantId: 'tenant-a',
+          status: WitnessReportStatus.PENDING,
+        },
+        data: expect.objectContaining({
+          status: WitnessReportStatus.REJECTED,
+          reviewerId: 'reviewer-a',
+        }) as object,
+      }),
+    );
   });
 
   it('atomically supersedes the prior accepted act and accepts the reviewed act', async () => {
@@ -547,4 +830,25 @@ describe('WitnessService E-14 reconciliation', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(transaction).not.toHaveBeenCalled();
   });
+
+  it.each([TenantType.PARTY, TenantType.GSC])(
+    'blocks candidate-vote E-14 access for tenant type %s before data access',
+    async (type) => {
+      const transaction = jest.fn();
+      const service = new WitnessService({
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type,
+          }),
+        },
+        $transaction: transaction,
+      } as unknown as PrismaService);
+
+      await expect(
+        service.findAll('tenant-from-token', 'admin-a'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(transaction).not.toHaveBeenCalled();
+    },
+  );
 });

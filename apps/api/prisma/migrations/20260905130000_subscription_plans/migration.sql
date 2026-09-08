@@ -1,4 +1,5 @@
-﻿-- CreateEnum
+-- Subscription plans and entitlements.
+-- CreateEnum
 CREATE TYPE "PlanCode" AS ENUM ('FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE');
 
 -- CreateEnum

@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { ApiError, apiRequest, type ApiRequestOptions } from "./api-client";
 
-export type StorageModule = "finance" | "e14";
+export type StorageModule = "finance" | "e14" | "consent";
 
 export interface UploadAuthorization {
   bucket: string;
@@ -20,6 +20,7 @@ export interface UploadAuthorization {
 export interface UploadConfirmation {
   confirmed: true;
   path: string;
+  module?: StorageModule;
 }
 
 type StorageClient = Pick<SupabaseClient, "storage">;
@@ -156,7 +157,7 @@ export function createDirectStorageUploader({
     validateAuthorization(authorization, metadata);
     await upload(file, authorization);
 
-    return request<UploadConfirmation>("storage/complete", {
+    const confirmation = await request<UploadConfirmation>("storage/complete", {
       method: "POST",
       body: JSON.stringify({
         module,
@@ -164,6 +165,18 @@ export function createDirectStorageUploader({
         metadata: authorization.metadata,
       }),
     });
+    if (
+      confirmation.confirmed !== true ||
+      confirmation.path !== authorization.path ||
+      (confirmation.module !== undefined && confirmation.module !== module)
+    ) {
+      throw new ApiError(
+        "La API devolvió una confirmación de almacenamiento inválida.",
+        502,
+        confirmation,
+      );
+    }
+    return confirmation;
   };
 }
 

@@ -68,6 +68,29 @@ test("usa GET exclusivamente para paginacion cuando no hay termino", async () =>
   }
 });
 
+test("filtra un deep-link por id sin enviar tenant, mode ni datos personales", async () => {
+  const requests: Array<{ url: URL; init?: RequestInit }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    requests.push({ url: new URL(String(input), "http://localhost"), init });
+    return successfulPage();
+  };
+
+  try {
+    await listVoters(1, 25, undefined, undefined, "voter-a");
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url.pathname).toBe("/api/voters");
+    expect(requests[0].url.searchParams.get("entityId")).toBe("voter-a");
+    expect(requests[0].url.searchParams.has("tenantId")).toBe(false);
+    expect(requests[0].url.searchParams.has("mode")).toBe(false);
+    expect(requests[0].init?.method).toBeUndefined();
+    expect(requests[0].init?.body).toBeUndefined();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("consulta el alcance de captura sin aceptar territorio del cliente", async () => {
   const requests: Array<{ url: URL; init?: RequestInit }> = [];
   const originalFetch = globalThis.fetch;

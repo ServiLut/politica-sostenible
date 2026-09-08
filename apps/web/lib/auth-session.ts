@@ -1,4 +1,10 @@
-import { BackendUserRole, Tenant, User, UserRole } from "@/types/saas-schema";
+import {
+  BackendUserRole,
+  PoliticalOperationStage,
+  Tenant,
+  User,
+  UserRole,
+} from "@/types/saas-schema";
 
 export const AUTH_SESSION_STORAGE_KEY = "politica-sostenible.auth-session";
 export const AUTH_SESSION_CHANGED_EVENT =
@@ -9,6 +15,7 @@ export interface BackendTenant {
   name: string;
   slug: string;
   type: Tenant["type"];
+  operationStage?: PoliticalOperationStage | null;
   config?: unknown;
 }
 
@@ -50,6 +57,18 @@ const TENANT_TYPES = new Set<Tenant["type"]>([
   "PUBLIC_OFFICE",
 ]);
 
+const POLITICAL_OPERATION_STAGES = new Set<PoliticalOperationStage>([
+  "EXPLORATION",
+  "PRE_CAMPAIGN",
+  "SIGNATURE_COLLECTION",
+  "CAMPAIGN",
+  "ELECTION_PREPARATION",
+  "SIMULATION",
+  "ELECTION_DAY",
+  "POST_ELECTION",
+  "CLOSED",
+]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -60,6 +79,15 @@ function isBackendRole(value: unknown): value is BackendUserRole {
 
 function isTenantType(value: unknown): value is Tenant["type"] {
   return typeof value === "string" && TENANT_TYPES.has(value as Tenant["type"]);
+}
+
+function isPoliticalOperationStage(
+  value: unknown,
+): value is PoliticalOperationStage {
+  return (
+    typeof value === "string" &&
+    POLITICAL_OPERATION_STAGES.has(value as PoliticalOperationStage)
+  );
 }
 
 function isFrontendRole(value: unknown): value is UserRole {
@@ -125,11 +153,20 @@ export function createAuthSession(
     throw new Error("La API devolvió una campaña inválida para esta sesión.");
   }
 
+  if (
+    backendUser.tenant.operationStage !== undefined &&
+    backendUser.tenant.operationStage !== null &&
+    !isPoliticalOperationStage(backendUser.tenant.operationStage)
+  ) {
+    throw new Error("La API devolvió una etapa operativa inválida.");
+  }
+
   const tenant: Tenant = {
     id: backendUser.tenant.id,
     name: backendUser.tenant.name,
     slug: backendUser.tenant.slug,
     type: backendUser.tenant.type,
+    operationStage: backendUser.tenant.operationStage ?? null,
     config: backendUser.tenant.config,
   };
   const mustChangePassword = backendUser.mustChangePassword === true;
@@ -186,7 +223,10 @@ function isStoredSession(value: unknown): value is AuthSession {
     typeof value.tenant.id === "string" &&
     typeof value.tenant.name === "string" &&
     typeof value.tenant.slug === "string" &&
-    isTenantType(value.tenant.type)
+    isTenantType(value.tenant.type) &&
+    (value.tenant.operationStage === undefined ||
+      value.tenant.operationStage === null ||
+      isPoliticalOperationStage(value.tenant.operationStage))
   );
 }
 

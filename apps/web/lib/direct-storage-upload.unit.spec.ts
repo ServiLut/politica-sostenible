@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ApiError } from "./api-client";
 import type { ApiRequestOptions } from "./api-client";
 import { createDirectStorageUploader, uploadAuthorizedFile, type DirectStorageUploadDependencies, type UploadAuthorization, type UploadConfirmation } from "./direct-storage-upload";
 
@@ -43,4 +44,60 @@ test("usa bucket, path y token firmados mediante uploadToSignedUrl", async () =>
 
   expect(buckets).toEqual(["private-campaign-files"]);
   expect(calls).toEqual([[PATH, "test-only-signed-token", file, { contentType: "application/pdf" }]]);
+});
+
+test("extiende la subida directa a CONSENT sin enviar tenant ni binarios a NestJS", async () => {
+  const file = new File([new Uint8Array([5, 6, 7])], "consentimiento.pdf", {
+    type: "application/pdf",
+  });
+  const consentPath =
+    "tenant-server/consent/123e4567-e89b-42d3-a456-426614174000.pdf";
+  const authorization = { ...authorizationFor(file), path: consentPath };
+  const bodies: Record<string, unknown>[] = [];
+  const uploader = createDirectStorageUploader({
+    request: async <T>(_path: string, options: ApiRequestOptions = {}) => {
+      bodies.push(JSON.parse(String(options.body)) as Record<string, unknown>);
+      return (bodies.length === 1
+        ? authorization
+        : { confirmed: true, path: consentPath, module: "consent" }) as T;
+    },
+    upload: async () => undefined,
+  });
+
+  await expect(uploader(file, "consent")).resolves.toEqual({
+    confirmed: true,
+    path: consentPath,
+    module: "consent",
+  });
+  expect(bodies).toEqual([
+    {
+      module: "consent",
+      fileName: "consentimiento.pdf",
+      contentType: "application/pdf",
+      size: 3,
+    },
+    {
+      module: "consent",
+      path: consentPath,
+      metadata: authorization.metadata,
+    },
+  ]);
+  expect(JSON.stringify(bodies)).not.toContain("tenantId");
+  expect(JSON.stringify(bodies)).not.toContain("5,6,7");
+});
+
+test("falla cerrado si la confirmación no corresponde a la ruta autorizada", async () => {
+  const file = new File([new Uint8Array([1])], "factura.pdf", {
+    type: "application/pdf",
+  });
+  const authorization = authorizationFor(file);
+  const uploader = createDirectStorageUploader({
+    request: async <T>(path: string) =>
+      (path === "storage/upload-url"
+        ? authorization
+        : { confirmed: true, path: "tenant-ajeno/finance/otro.pdf" }) as T,
+    upload: async () => undefined,
+  });
+
+  await expect(uploader(file, "finance")).rejects.toBeInstanceOf(ApiError);
 });

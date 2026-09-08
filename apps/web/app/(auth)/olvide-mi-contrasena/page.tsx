@@ -4,7 +4,11 @@ import { Button } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none"
+    >
       <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5 sm:p-12">
         <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
           <ShieldAlert className="h-8 w-8" aria-hidden="true" />

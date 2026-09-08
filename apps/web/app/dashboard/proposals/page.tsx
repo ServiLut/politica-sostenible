@@ -1,172 +1,308 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
+  type FormEvent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  AlertCircle,
   FileText,
-  Search,
+  Loader2,
+  Megaphone,
+  Pencil,
   Plus,
   RefreshCw,
-  Lock,
-  Globe,
-  Loader2,
   Trash2,
-  Pencil,
   X,
-  AlertCircle
 } from "lucide-react";
-import { apiRequest } from "@/lib/api-client";
+import { useAuth } from "@/context/auth";
+import { readEntityDeepLink } from "@/lib/entity-deep-links";
+import {
+  allowedProposalStatuses,
+  createProposal,
+  deleteProposal,
+  listProposals,
+  PoliticalProposal,
+  PROPOSAL_CATEGORIES,
+  ProposalCategory,
+  PROPOSAL_STATUSES,
+  ProposalStatus,
+  SaveProposalInput,
+  updateProposal,
+} from "@/lib/proposals-api";
+import type { BackendUserRole } from "@/types/saas-schema";
 
-type ProposalStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+const PROPOSAL_MANAGER_ROLES = new Set<BackendUserRole>([
+  "ADMIN",
+  "CAMPAIGN_MANAGER",
+]);
 
-type Proposal = {
-  id: string;
-  referenceCode: string;
-  title: string;
-  description?: string;
-  category: string;
-  estimatedCost?: number;
-  status: ProposalStatus;
-  progressPercent: number;
-  isPublic: boolean;
-  ownerName: string;
-};
-
-const CATEGORIES = [
-  "INFRASTRUCTURE",
-  "EDUCATION",
-  "HEALTH",
-  "SECURITY",
-  "ENVIRONMENT",
-  "ECONOMY",
-  "SOCIAL",
-  "CULTURE",
-  "GOVERNANCE",
-  "OTHER"
-];
-
-const CATEGORY_LABELS: Record<string, string> = {
-  INFRASTRUCTURE: "Infraestructura",
+const CATEGORY_LABELS: Record<ProposalCategory, string> = {
   EDUCATION: "Educación",
   HEALTH: "Salud",
+  INFRASTRUCTURE: "Infraestructura",
   SECURITY: "Seguridad",
-  ENVIRONMENT: "Medio Ambiente",
   ECONOMY: "Economía",
-  SOCIAL: "Social",
+  ENVIRONMENT: "Medio ambiente",
   CULTURE: "Cultura",
+  SOCIAL: "Social",
   GOVERNANCE: "Gobernanza",
-  OTHER: "Otro"
+  OTHER: "Otra",
 };
 
-const EMPTY_FORM = {
+const STATUS_LABELS: Record<ProposalStatus, string> = {
+  DRAFT: "Borrador",
+  PROPOSED: "Propuesta",
+  IN_PROGRESS: "En ejecución",
+  COMPLETED: "Completada",
+  WITHDRAWN: "Retirada",
+};
+
+const COST_FORMATTER = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+interface ProposalForm {
+  title: string;
+  description: string;
+  category: ProposalCategory;
+  status: ProposalStatus;
+  progressPercent: string;
+  estimatedCost: string;
+  internalDistributionFlag: boolean;
+}
+
+const EMPTY_FORM: ProposalForm = {
   title: "",
   description: "",
   category: "OTHER",
+  status: "DRAFT",
+  progressPercent: "0",
   estimatedCost: "",
-  isPublic: false
+  internalDistributionFlag: false,
 };
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function statusTone(status: ProposalStatus): string {
+  switch (status) {
+    case "DRAFT":
+      return "bg-amber-50 text-amber-800";
+    case "PROPOSED":
+      return "bg-blue-50 text-blue-800";
+    case "IN_PROGRESS":
+      return "bg-indigo-50 text-indigo-800";
+    case "COMPLETED":
+      return "bg-emerald-50 text-emerald-800";
+    case "WITHDRAWN":
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
 export default function ProposalsPage() {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const { user } = useAuth();
+  const canMutate =
+    user !== null && PROPOSAL_MANAGER_ROLES.has(user.backendRole);
+  const [proposals, setProposals] = useState<PoliticalProposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">("ALL");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [dialogProposal, setDialogProposal] = useState<Proposal | "new" | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">(
+    "ALL",
+  );
+  const [categoryFilter, setCategoryFilter] = useState<
+    ProposalCategory | "ALL"
+  >("ALL");
+  const [dialogProposal, setDialogProposal] = useState<
+    PoliticalProposal | "new" | null
+  >(null);
+  const [form, setForm] = useState<ProposalForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deepLinkProposalId, setDeepLinkProposalId] = useState<string | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = useState<PoliticalProposal | null>(
+    null,
+  );
 
-  const loadProposals = async () => {
+  const loadProposals = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await apiRequest<{ items: Proposal[] }>("/proposals");
-      setProposals(res.items || []);
-    } catch {
-      setFetchError("No se pudieron cargar las propuestas. Intente de nuevo.");
+      const response = await listProposals(signal);
+      setProposals(response.items);
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setFetchError(
+        errorMessage(
+          error,
+          "No se pudieron cargar las propuestas. Intente de nuevo.",
+        ),
+      );
       setProposals([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadProposals();
   }, []);
 
+  useEffect(() => {
+    setDeepLinkProposalId(readEntityDeepLink(window.location.search));
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadProposals(controller.signal);
+    return () => controller.abort();
+  }, [loadProposals]);
+
+  useEffect(() => {
+    if (!deepLinkProposalId || loading || fetchError) return;
+    const target = document.getElementById(
+      `proposal-result-${deepLinkProposalId}`,
+    );
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+    target.focus({ preventScroll: true });
+  }, [deepLinkProposalId, fetchError, loading, proposals]);
+
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    if (!canMutate) return;
+    setForm({ ...EMPTY_FORM });
     setMutationError(null);
     setDialogProposal("new");
   };
 
-  const openEdit = (p: Proposal) => {
+  const openEdit = (proposal: PoliticalProposal) => {
+    if (!canMutate) return;
     setForm({
-      title: p.title,
-      description: p.description || "",
-      category: p.category || "OTHER",
-      estimatedCost: p.estimatedCost ? String(p.estimatedCost) : "",
-      isPublic: p.isPublic
+      title: proposal.title,
+      description: proposal.description,
+      category: proposal.category,
+      status: proposal.status,
+      progressPercent: String(proposal.progressPercent),
+      estimatedCost:
+        proposal.estimatedCost === null ? "" : String(proposal.estimatedCost),
+      internalDistributionFlag: proposal.isPublic,
     });
     setMutationError(null);
-    setDialogProposal(p);
+    setDialogProposal(proposal);
+  };
+
+  const handleCardKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+    proposal: PoliticalProposal,
+  ) => {
+    if (!canMutate || event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openEdit(proposal);
+    }
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canMutate) return;
     try {
-      await apiRequest(`/proposals/${deleteTarget}`, { method: "DELETE" });
-      loadProposals();
-    } catch (error: any) {
-      setFetchError(error.message || "Error al eliminar");
-    } finally {
+      await deleteProposal(deleteTarget.id);
+      setDeleteTarget(null);
+      await loadProposals();
+    } catch (error: unknown) {
+      setFetchError(errorMessage(error, "No se pudo eliminar la propuesta."));
       setDeleteTarget(null);
     }
   };
 
-  const submitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!dialogProposal) return;
+  const submitForm = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!dialogProposal || !canMutate) return;
+
+    const title = form.title.trim();
+    if (!title) {
+      setMutationError("El título es obligatorio.");
+      return;
+    }
+
+    const progressPercent = Number(form.progressPercent);
+    const estimatedCost = form.estimatedCost.trim()
+      ? Number(form.estimatedCost)
+      : null;
+    const payload: SaveProposalInput = {
+      title,
+      description: form.description.trim(),
+      category: form.category,
+      status: form.status,
+      progressPercent,
+      estimatedCost,
+      isPublic: form.internalDistributionFlag,
+    };
+
     setSubmitting(true);
     setMutationError(null);
     try {
-      const payload = {
-        title: form.title,
-        description: form.description || undefined,
-        category: form.category,
-        estimatedCost: form.estimatedCost ? Number(form.estimatedCost) : undefined,
-        isPublic: form.isPublic
-      };
-
       if (dialogProposal === "new") {
-        await apiRequest("/proposals", { method: "POST", body: JSON.stringify(payload) });
+        await createProposal(payload);
       } else {
-        await apiRequest(`/proposals/${dialogProposal.id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        await updateProposal(dialogProposal.id, payload);
       }
       setDialogProposal(null);
-      loadProposals();
-    } catch (error: any) {
-      setMutationError(error.message || "Error al guardar la propuesta");
+      await loadProposals();
+    } catch (error: unknown) {
+      setMutationError(errorMessage(error, "No se pudo guardar la propuesta."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredProposals = proposals.filter((p) => {
-    if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
-    if (categoryFilter !== "ALL" && p.category !== categoryFilter) return false;
-    return true;
-  });
+  const filteredProposals = useMemo(
+    () =>
+      proposals.filter((proposal) => {
+        if (statusFilter !== "ALL" && proposal.status !== statusFilter) {
+          return false;
+        }
+        return categoryFilter === "ALL" || proposal.category === categoryFilter;
+      }),
+    [categoryFilter, proposals, statusFilter],
+  );
 
-  const categories = Array.from(new Set(proposals.map(p => p.category)));
+  const statusCounts = useMemo(() => {
+    const counts: Record<ProposalStatus | "ALL", number> = {
+      ALL: proposals.length,
+      DRAFT: 0,
+      PROPOSED: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      WITHDRAWN: 0,
+    };
+    proposals.forEach((proposal) => {
+      counts[proposal.status] += 1;
+    });
+    return counts;
+  }, [proposals]);
 
-  const statusCounts = {
-    ALL: proposals.length,
-    DRAFT: proposals.filter(p => p.status === "DRAFT").length,
-    PUBLISHED: proposals.filter(p => p.status === "PUBLISHED").length,
-    ARCHIVED: proposals.filter(p => p.status === "ARCHIVED").length,
-  };
+  const deepLinkedProposalIsMissing = Boolean(
+    deepLinkProposalId &&
+    !loading &&
+    !fetchError &&
+    !proposals.some((proposal) => proposal.id === deepLinkProposalId),
+  );
+  const editedProposal =
+    dialogProposal !== null && dialogProposal !== "new" ? dialogProposal : null;
+  const committedContentLocked =
+    editedProposal !== null && editedProposal.status !== "DRAFT";
+  const progressInputLocked =
+    dialogProposal === "new" ||
+    form.status === "DRAFT" ||
+    form.status === "PROPOSED" ||
+    editedProposal?.status === "COMPLETED" ||
+    editedProposal?.status === "WITHDRAWN";
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 p-6">
@@ -178,6 +314,11 @@ export default function ProposalsPage() {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Gestión y seguimiento de propuestas y compromisos.
           </p>
+          {!canMutate && user && (
+            <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+              Acceso de consulta
+            </p>
+          )}
           {fetchError && (
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900">
               <AlertCircle size={20} />
@@ -187,51 +328,71 @@ export default function ProposalsPage() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
-            onClick={loadProposals}
+            type="button"
+            onClick={() => void loadProposals()}
             disabled={loading}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
             Actualizar
           </button>
-          <button onClick={openCreate} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800">
-            <Plus size={16} /> Nueva Propuesta
-          </button>
+          {canMutate && (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
+            >
+              <Plus size={16} /> Nueva propuesta
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-4">
-          {(["ALL", "DRAFT", "PUBLISHED", "ARCHIVED"] as const).map((status) => (
+      {deepLinkedProposalIsMissing && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-900"
+        >
+          La propuesta buscada ya no está disponible o queda fuera de tu alcance
+          autorizado.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          {(["ALL", ...PROPOSAL_STATUSES] as const).map((status) => (
             <button
+              type="button"
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`pb-4 -mb-[17px] text-sm font-semibold transition-colors ${
+              className={`-mb-[17px] whitespace-nowrap pb-4 text-sm font-semibold transition-colors ${
                 statusFilter === status
                   ? "border-b-2 border-blue-700 text-blue-700"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              {status === "ALL" ? "Todas" : status === "DRAFT" ? "Borradores" : status === "PUBLISHED" ? "Publicadas" : "Archivadas"}
+              {status === "ALL" ? "Todas" : STATUS_LABELS[status]}
               <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                 {statusCounts[status]}
               </span>
             </button>
           ))}
         </div>
-        <div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="ALL">Todas las categorías</option>
-            {categories.map(c => (
-              <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          aria-label="Filtrar por categoría"
+          value={categoryFilter}
+          onChange={(event) =>
+            setCategoryFilter(event.target.value as ProposalCategory | "ALL")
+          }
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="ALL">Todas las categorías</option>
+          {PROPOSAL_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {CATEGORY_LABELS[category]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
@@ -240,52 +401,127 @@ export default function ProposalsPage() {
           Cargando propuestas...
         </div>
       ) : filteredProposals.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 border-dashed bg-slate-50">
+        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
           <FileText className="text-slate-400" size={48} />
           <p className="text-sm font-medium text-slate-500">
-            No hay propuestas registradas. Comience definiendo su programa político.
+            {proposals.length === 0
+              ? canMutate
+                ? "No hay propuestas registradas. Comience definiendo su programa político."
+                : "No hay propuestas registradas."
+              : "No hay propuestas que coincidan con los filtros."}
           </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProposals.map((proposal) => (
-            <div key={proposal.id} onClick={() => openEdit(proposal)} className="cursor-pointer flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-start justify-between">
+            <article
+              key={proposal.id}
+              id={`proposal-result-${proposal.id}`}
+              onClick={canMutate ? () => openEdit(proposal) : undefined}
+              onKeyDown={(event) => handleCardKeyDown(event, proposal)}
+              role={canMutate ? "button" : undefined}
+              tabIndex={
+                canMutate
+                  ? 0
+                  : proposal.id === deepLinkProposalId
+                    ? -1
+                    : undefined
+              }
+              aria-current={
+                proposal.id === deepLinkProposalId ? "true" : undefined
+              }
+              aria-label={
+                canMutate ? `Editar propuesta ${proposal.title}` : undefined
+              }
+              className={`flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm outline-none transition-shadow ${
+                canMutate
+                  ? "cursor-pointer hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  : ""
+              } ${
+                proposal.id === deepLinkProposalId
+                  ? "ring-2 ring-blue-500 ring-offset-2"
+                  : ""
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                   {proposal.referenceCode}
                 </span>
-                <div className="flex items-center gap-3">
-                  {proposal.isPublic ? (
-                    <Globe size={16} className="text-emerald-600" />
-                  ) : (
-                    <Lock size={16} className="text-slate-400" />
-                  )}
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(proposal.id); }} 
-                    className="p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                <div className="flex items-center gap-2">
+                  <span
+                    title={
+                      proposal.isPublic
+                        ? "Marcada internamente para evaluar su difusión"
+                        : "Sin marca interna de difusión"
+                    }
+                    aria-label={
+                      proposal.isPublic
+                        ? "Marcada internamente para evaluar su difusión"
+                        : "Sin marca interna de difusión"
+                    }
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    {proposal.isPublic ? (
+                      <Megaphone size={16} className="text-emerald-600" />
+                    ) : (
+                      <FileText size={16} className="text-slate-400" />
+                    )}
+                  </span>
+                  {canMutate && (
+                    <>
+                      <Pencil size={15} className="text-slate-400" />
+                      {proposal.status === "DRAFT" && (
+                        <button
+                          type="button"
+                          aria-label={`Eliminar borrador ${proposal.title}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDeleteTarget(proposal);
+                          }}
+                          className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
-              
+
               <div>
-                <h3 className="font-bold text-slate-900 line-clamp-2">{proposal.title}</h3>
-                <p className="mt-1 text-xs font-medium text-slate-500">{CATEGORY_LABELS[proposal.category] || proposal.category}</p>
+                <h2 className="line-clamp-2 font-bold text-slate-900">
+                  {proposal.title}
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  {CATEGORY_LABELS[proposal.category]}
+                </p>
+                {proposal.description && (
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
+                    {proposal.description}
+                  </p>
+                )}
               </div>
 
               <div className="mt-auto space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className={`font-semibold ${
-                    proposal.status === "PUBLISHED" ? "text-emerald-700" :
-                    proposal.status === "DRAFT" ? "text-amber-700" : "text-slate-500"
-                  }`}>
-                    {proposal.status === "PUBLISHED" ? "Publicada" :
-                     proposal.status === "DRAFT" ? "Borrador" : "Archivada"}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span
+                    className={`rounded-full px-2.5 py-1 font-bold ${statusTone(proposal.status)}`}
+                  >
+                    {STATUS_LABELS[proposal.status]}
                   </span>
-                  <span className="font-medium text-slate-500">{proposal.ownerName}</span>
+                  <span className="font-medium text-slate-500">
+                    {proposal.owner.name}
+                  </span>
                 </div>
-                
+
+                {proposal.estimatedCost !== null && (
+                  <p className="text-xs text-slate-500">
+                    Costo estimado:{" "}
+                    <span className="font-bold text-slate-700">
+                      {COST_FORMATTER.format(proposal.estimatedCost)}
+                    </span>
+                  </p>
+                )}
+
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-medium text-slate-600">
                     <span>Progreso</span>
@@ -294,25 +530,49 @@ export default function ProposalsPage() {
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full bg-blue-600"
-                      style={{ width: `${proposal.progressPercent}%` }}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(0, proposal.progressPercent),
+                        )}%`,
+                      }}
                     />
                   </div>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
 
-      {dialogProposal && (
+      {dialogProposal && canMutate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="proposal-dialog-title"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+          >
             <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
-              <h2 className="text-xl font-black text-slate-950">
-                {dialogProposal === "new" ? "Nueva Propuesta" : "Editar Propuesta"}
-              </h2>
+              <div>
+                <h2
+                  id="proposal-dialog-title"
+                  className="text-xl font-black text-slate-950"
+                >
+                  {dialogProposal === "new"
+                    ? "Nueva propuesta"
+                    : "Editar propuesta"}
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Responsable:{" "}
+                  {dialogProposal === "new"
+                    ? user.name
+                    : dialogProposal.owner.name}
+                </p>
+              </div>
               <button
                 type="button"
+                aria-label="Cerrar"
                 onClick={() => setDialogProposal(null)}
                 className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
               >
@@ -325,22 +585,37 @@ export default function ProposalsPage() {
                   {mutationError}
                 </div>
               )}
+              {committedContentLocked && (
+                <p className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-blue-950">
+                  El texto, categoría, fuente y costo comprometidos quedan
+                  bloqueados al salir de borrador. Para corregirlos, retire esta
+                  propuesta y registre una nueva versión trazable.
+                </p>
+              )}
               <label className="block text-sm font-black text-slate-800">
                 Título
                 <input
                   required
+                  maxLength={200}
+                  disabled={committedContentLocked}
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  onChange={(event) =>
+                    setForm({ ...form, title: event.target.value })
+                  }
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </label>
               <label className="block text-sm font-black text-slate-800">
                 Descripción (opcional)
                 <textarea
                   rows={3}
+                  maxLength={2000}
+                  disabled={committedContentLocked}
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  onChange={(event) =>
+                    setForm({ ...form, description: event.target.value })
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -348,34 +623,107 @@ export default function ProposalsPage() {
                   Categoría
                   <select
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    disabled={committedContentLocked}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        category: event.target.value as ProposalCategory,
+                      })
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
+                    {PROPOSAL_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {CATEGORY_LABELS[category]}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="block text-sm font-black text-slate-800">
-                  Costo Estimado (opcional)
+                  Estado
+                  <select
+                    value={form.status}
+                    onChange={(event) => {
+                      const status = event.target.value as ProposalStatus;
+                      setForm({
+                        ...form,
+                        status,
+                        progressPercent:
+                          status === "DRAFT" || status === "PROPOSED"
+                            ? "0"
+                            : status === "COMPLETED"
+                              ? "100"
+                              : form.progressPercent,
+                      });
+                    }}
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
+                    {(dialogProposal === "new"
+                      ? (["DRAFT"] as const)
+                      : allowedProposalStatuses(dialogProposal.status)
+                    ).map((status) => (
+                      <option key={status} value={status}>
+                        {STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-black text-slate-800">
+                  Progreso (%)
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    disabled={progressInputLocked}
+                    value={form.progressPercent}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        progressPercent: event.target.value,
+                      })
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </label>
+                <label className="block text-sm font-black text-slate-800">
+                  Costo estimado (opcional)
                   <input
                     type="number"
                     min="0"
+                    step="0.01"
+                    disabled={committedContentLocked}
                     value={form.estimatedCost}
-                    onChange={(e) => setForm({ ...form, estimatedCost: e.target.value })}
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    onChange={(event) =>
+                      setForm({ ...form, estimatedCost: event.target.value })
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </label>
               </div>
-              <label className="flex items-center gap-3 text-sm font-black text-slate-800 cursor-pointer">
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-black text-slate-800">
                 <input
                   type="checkbox"
-                  checked={form.isPublic}
-                  onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
-                  className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                  checked={form.internalDistributionFlag}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      internalDistributionFlag: event.target.checked,
+                    })
+                  }
+                  className="mt-0.5 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
                 />
-                Es Pública
+                <span>
+                  Marcar para evaluación interna de difusión
+                  <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                    Es una clasificación interna. No publica la propuesta en
+                    internet ni cambia sus permisos de acceso.
+                  </span>
+                </span>
               </label>
 
-              <footer className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <footer className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4">
                 <button
                   type="button"
                   onClick={() => setDialogProposal(null)}
@@ -396,14 +744,40 @@ export default function ProposalsPage() {
           </section>
         </div>
       )}
-      {deleteTarget && (
+
+      {deleteTarget && canMutate && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-black text-slate-900">¿Eliminar propuesta?</h3>
-            <p className="mt-2 text-sm text-slate-500">Esta acción no se puede deshacer.</p>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-proposal-title"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <h2
+              id="delete-proposal-title"
+              className="text-lg font-black text-slate-900"
+            >
+              ¿Eliminar propuesta?
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Se eliminará “{deleteTarget.title}”. Esta acción no se puede
+              deshacer.
+            </p>
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
-              <button onClick={confirmDelete} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">Eliminar</button>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>

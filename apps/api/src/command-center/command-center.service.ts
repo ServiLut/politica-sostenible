@@ -9,6 +9,7 @@ import {
   CommunicationApprovalStatus,
   ConsentPurpose,
   ConsentStatus,
+  ConsentSubjectType,
   DivisionType,
   EntryType,
   FinanceStatus,
@@ -21,6 +22,10 @@ import {
   WorkPriority,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import {
+  FINANCE_COMPLIANCE_SELECT,
+  getFinanceComplianceReadiness,
+} from '../finance/finance-compliance';
 import { PrismaService } from '../prisma/prisma.service';
 
 const CAMPAIGN_LEADERS: readonly Role[] = [Role.ADMIN, Role.CAMPAIGN_MANAGER];
@@ -134,13 +139,11 @@ export class CommandCenterService {
     const commonMetrics = await this.prisma.$transaction(async (tx) => {
       const [
         topLevelDivisions,
-        overdueTasksCount,
-        overdueCommitmentsCount,
         activeTeamCount,
         totalTeamCount,
         activeConsentNoticeCount,
         operationProfileCount,
-        campaignSettingsCount,
+        campaignSettings,
         nonAdminTeamMemberCount,
       ] = await Promise.all([
         tx.politicalDivision.findMany({
@@ -152,26 +155,19 @@ export class CommandCenterService {
             _count: { select: { voters: true } },
           },
         }),
-        tx.task.count({
-          where: {
-            tenantId: user.tenantId,
-            status: { in: [...OPEN_TASK_STATUSES] },
-            dueAt: { lt: now },
-          },
-        }),
-        tx.commitment.count({
-          where: {
-            tenantId: user.tenantId,
-            status: { in: [...OPEN_COMMITMENT_STATUSES] },
-            targetDate: { lt: now },
-          },
-        }),
         tx.user.count({ where: { tenantId: user.tenantId, isActive: true } }),
         tx.user.count({ where: { tenantId: user.tenantId } }),
-        tx.consentNotice.count({ where: { tenantId: user.tenantId, isActive: true } }),
+        tx.consentNotice.count({
+          where: { tenantId: user.tenantId, isActive: true },
+        }),
         tx.operationProfile.count({ where: { tenantId: user.tenantId } }),
-        tx.campaignSettings.count({ where: { tenantId: user.tenantId } }),
-        tx.user.count({ where: { tenantId: user.tenantId, role: { not: Role.ADMIN } } }),
+        tx.campaignSettings.findUnique({
+          where: { tenantId: user.tenantId },
+          select: FINANCE_COMPLIANCE_SELECT,
+        }),
+        tx.user.count({
+          where: { tenantId: user.tenantId, role: { not: Role.ADMIN } },
+        }),
       ]);
 
       return {
@@ -180,18 +176,27 @@ export class CommandCenterService {
           code: div.code,
           voterCount: div._count.voters,
           goal: div.goal,
-          coveragePercent: div.goal ? (div._count.voters / div.goal) * 100 : null,
+          coveragePercent: div.goal
+            ? (div._count.voters / div.goal) * 100
+            : null,
         })),
-        overdueItemsCount: overdueTasksCount + overdueCommitmentsCount,
-        teamActivationRate: totalTeamCount ? (activeTeamCount / totalTeamCount) * 100 : 0,
+        teamActivationRate: totalTeamCount
+          ? (activeTeamCount / totalTeamCount) * 100
+          : 0,
         complianceStatus: {
           hasActiveConsentNotice: activeConsentNoticeCount > 0,
           hasConfiguredOperationProfile: operationProfileCount > 0,
-          hasConfiguredCampaignSettings: campaignSettingsCount > 0,
+          hasConfiguredCampaignSettings:
+            getFinanceComplianceReadiness(campaignSettings).ready,
           hasNonAdminTeamMember: nonAdminTeamMemberCount > 0,
         },
       };
     });
+    const overdueItemsCount =
+      briefing.metrics.tasks.overdue +
+      ('commitments' in briefing.metrics
+        ? briefing.metrics.commitments.overdue
+        : 0);
 
     return {
       generatedAt: now.toISOString(),
@@ -203,6 +208,7 @@ export class CommandCenterService {
       },
       ...briefing,
       ...commonMetrics,
+      overdueItemsCount,
     };
   }
 
@@ -216,6 +222,15 @@ export class CommandCenterService {
 
     return this.prisma.$transaction(
       async (tx) => {
+        const currentConsentNotice = await tx.consentNotice.findFirst({
+          where: {
+            tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+            isActive: true,
+          },
+          select: { version: true },
+        });
         const [
           activeTeam,
           pendingInvitations,
@@ -245,26 +260,31 @@ export class CommandCenterService {
             _count: { _all: true },
           }),
           tx.voter.count({ where: { tenantId } }),
-          tx.voter.count({
-            where: {
-              tenantId,
-              consentAccepted: true,
-              consentRecords: {
-                some: {
+          currentConsentNotice
+            ? tx.voter.count({
+                where: {
                   tenantId,
-                  mode: PoliticalOperationMode.CAMPAIGN,
-                  purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
-                  status: ConsentStatus.GRANTED,
-                  revokedAt: null,
-                  grantedAt: { lte: now },
-                  OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+                  consentAccepted: true,
+                  termsVersion: currentConsentNotice.version,
+                  consentRecords: {
+                    some: {
+                      tenantId,
+                      mode: PoliticalOperationMode.CAMPAIGN,
+                      subjectType: ConsentSubjectType.VOTER,
+                      purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+                      status: ConsentStatus.GRANTED,
+                      noticeVersion: currentConsentNotice.version,
+                      revokedAt: null,
+                      grantedAt: { lte: now },
+                      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+                    },
+                  },
                 },
-              },
-            },
-          }),
+              })
+            : Promise.resolve(0),
           tx.campaignSettings.findUnique({
             where: { tenantId },
-            select: { id: true },
+            select: FINANCE_COMPLIANCE_SELECT,
           }),
           tx.financialEntry.groupBy({
             by: ['type'],
@@ -363,6 +383,8 @@ export class CommandCenterService {
           financePending,
           financeOverdue,
         );
+        const financeComplianceReady =
+          getFinanceComplianceReadiness(financeSettings).ready;
         const consentCoverage = peopleTotal
           ? Math.round((peopleConsented / peopleTotal) * 100)
           : 0;
@@ -390,10 +412,11 @@ export class CommandCenterService {
           },
           {
             code: 'FINANCE_LIMITS',
-            title: 'Configurar topes financieros',
-            detail: 'Define los límites antes de registrar movimientos.',
+            title: 'Completar expediente financiero electoral',
+            detail:
+              'Registra elección, fuente de topes, responsables, cuenta única y fecha límite.',
             href: '/dashboard/finance',
-            complete: Boolean(financeSettings),
+            complete: financeComplianceReady,
           },
           {
             code: 'FIRST_SCHEDULED_EVENT',
@@ -505,7 +528,7 @@ export class CommandCenterService {
           openCommitments,
           atRiskCommitments,
           overdueCommitments,
-          publicCommitments,
+          teamVisibleCommitments,
           upcomingEventsCount,
           upcomingEvents,
           priorityTasks,
@@ -662,11 +685,12 @@ export class CommandCenterService {
             complete: openCases > 0,
           },
           {
-            code: 'FIRST_PUBLIC_COMMITMENT',
-            title: 'Publicar el primer compromiso',
-            detail: 'Define responsable, fecha y avance verificable.',
+            code: 'FIRST_TEAM_VISIBLE_COMMITMENT',
+            title: 'Compartir el primer compromiso con el equipo',
+            detail:
+              'Habilita su consulta interna con responsable, fecha y avance verificable.',
             href: '/dashboard/tasks',
-            complete: publicCommitments > 0,
+            complete: teamVisibleCommitments > 0,
           },
           {
             code: 'FIRST_SCHEDULED_EVENT',
@@ -701,7 +725,7 @@ export class CommandCenterService {
               open: openCommitments,
               atRisk: atRiskCommitments,
               overdue: overdueCommitments,
-              public: publicCommitments,
+              teamVisible: teamVisibleCommitments,
             },
             events: { upcoming: upcomingEventsCount },
             communications: { pendingApproval: pendingCommunications },

@@ -16,7 +16,7 @@ async function migrate() {
 
 migrate().catch((error) => {
   console.error(
-    `Las migraciones se detuvieron antes de modificar la base de datos: ${error instanceof Error ? error.message : "error desconocido"}`,
+    `La migracion o su verificacion fallo; la base de datos puede haber cambiado. No inicie la API: revise migrate status, el historial y el respaldo. Detalle: ${error instanceof Error ? error.message : "error desconocido"}`,
   );
   process.exitCode = 1;
 });

@@ -23,6 +23,17 @@ export type BackendUserRole =
   | "WITNESS"
   | "VOLUNTEER";
 
+export type PoliticalOperationStage =
+  | "EXPLORATION"
+  | "PRE_CAMPAIGN"
+  | "SIGNATURE_COLLECTION"
+  | "CAMPAIGN"
+  | "ELECTION_PREPARATION"
+  | "SIMULATION"
+  | "ELECTION_DAY"
+  | "POST_ELECTION"
+  | "CLOSED";
+
 export interface User {
   id: string;
   email: string;
@@ -39,6 +50,7 @@ export interface Tenant {
   name: string; // Nombre de la campaña o partido
   slug: string;
   type: "CANDIDACY" | "PARTY" | "GSC" | "PUBLIC_OFFICE";
+  operationStage?: PoliticalOperationStage | null;
   config?: unknown;
 }
 

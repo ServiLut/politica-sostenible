@@ -26,6 +26,7 @@ import {
   CaseUserSummary,
   CommunicationChannel,
   createIssueCase,
+  getIssueCase,
   IssueCase,
   IssueCasePage,
   IssueCaseStatus,
@@ -445,6 +446,33 @@ export default function IncidentsPage() {
     dueDate: "",
     confidential: false,
   });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const entityId = searchParams.get("entityId")?.trim() ?? "";
+    if (searchParams.get("view") !== "detail" || !entityId) return;
+    if (entityId.length > 128) {
+      setMutationError(
+        "El vínculo recibido no tiene un identificador de incidente válido.",
+      );
+      return;
+    }
+
+    const controller = new AbortController();
+    void getIssueCase(entityId, controller.signal)
+      .then((issueCase) => {
+        if (!controller.signal.aborted) setSelectedIncident(issueCase);
+      })
+      .catch((requestError: unknown) => {
+        if (!controller.signal.aborted) {
+          setMutationError(
+            `No fue posible abrir el incidente solicitado. ${readableError(requestError)}`,
+          );
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const loadIncidents = useCallback(
     (signal: AbortSignal) =>

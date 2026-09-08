@@ -35,7 +35,7 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
-test("administración invita un respaldo con privilegios explícitos sin enviar tenant", async ({
+test("administración invita un rol operativo sin poder delegar ADMIN ni enviar tenant", async ({
   context,
   page,
 }) => {
@@ -195,28 +195,17 @@ test("administración invita un respaldo con privilegios explícitos sin enviar 
     page.locator("main").getByText("Dirección de equipo").first(),
   ).toBeVisible();
 
-  await page
-    .getByLabel("Correo electrónico")
-    .fill("respaldo-admin@example.test");
+  await page.getByLabel("Correo electrónico").fill("voluntaria@example.test");
   const invitationRole = page.getByLabel("Rol para la invitación");
-  await expect(invitationRole.locator('option[value="ADMIN"]')).toHaveText(
-    "Administración de respaldo",
-  );
-  await invitationRole.selectOption("ADMIN");
-  const privilegeWarning = page
-    .getByText("Privilegios administrativos totales", { exact: true })
-    .locator("..");
-  await expect(privilegeWarning).toBeVisible();
-  await expect(privilegeWarning).toContainText(
-    "no podrás degradar ni desactivar esta cuenta",
-  );
+  await expect(invitationRole.locator('option[value="ADMIN"]')).toHaveCount(0);
+  await invitationRole.selectOption("VOLUNTEER");
   await page.getByRole("button", { name: "Crear invitación" }).click();
 
   await expect(page.getByLabel("Enlace secreto de invitación")).toHaveValue(
     `https://politica.example.test/aceptar-invitacion#token=${token}`,
   );
   expect(invitationBodies).toEqual([
-    { email: "respaldo-admin@example.test", role: "ADMIN" },
+    { email: "voluntaria@example.test", role: "VOLUNTEER" },
   ]);
   expect(invitationBodies[0]).not.toHaveProperty("tenantId");
   expect(invitationBodies[0]).not.toHaveProperty("tenant_id");
@@ -225,11 +214,9 @@ test("administración invita un respaldo con privilegios explícitos sin enviar 
   await expect(
     page.getByRole("button", { name: "Enlace copiado" }),
   ).toBeVisible();
+  await expect(page.getByText("voluntaria@example.test").last()).toBeVisible();
   await expect(
-    page.getByText("respaldo-admin@example.test").last(),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Administración de respaldo", { exact: true }).last(),
+    page.getByText("Voluntariado", { exact: true }).last(),
   ).toBeVisible();
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(5);
   expect(

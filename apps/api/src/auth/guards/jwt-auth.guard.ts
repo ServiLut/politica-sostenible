@@ -64,6 +64,8 @@ export class JwtAuthGuard implements CanActivate {
           email: true,
           role: true,
           password: true,
+          totpEnabledAt: true,
+          authVersion: true,
           mustChangePassword: true,
           temporaryPasswordExpiresAt: true,
         },
@@ -72,11 +74,17 @@ export class JwtAuthGuard implements CanActivate {
       if (!currentUser) {
         throw new UnauthorizedException('Token invalido o expirado');
       }
+      const tokenAuthVersion = payload.authVersion ?? 0;
       if (
+        !Number.isSafeInteger(tokenAuthVersion) ||
+        tokenAuthVersion < 0 ||
+        tokenAuthVersion !== currentUser.authVersion ||
         !isCurrentSessionVersion(
           payload.sessionVersion,
           identity.userId,
           currentUser.password,
+          currentUser.totpEnabledAt,
+          currentUser.authVersion,
         )
       ) {
         throw new UnauthorizedException('Token invalido o expirado');

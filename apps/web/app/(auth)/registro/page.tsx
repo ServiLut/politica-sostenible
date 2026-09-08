@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    passwordConfirmation: "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -63,6 +64,7 @@ export default function RegisterPage() {
     return Boolean(
       formData.email.trim() &&
       formData.password.length >= 12 &&
+      formData.password === formData.passwordConfirmation &&
       formData.termsAccepted,
     );
   };
@@ -82,9 +84,13 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.passwordConfirmation) {
+      setStepError("Las contraseñas no coinciden.");
+      return;
+    }
     if (!isStepValid(2)) {
       setStepError(
-        "Ingresa un email, una contraseña de al menos 12 caracteres y acepta los términos.",
+        "Ingresa un email, confirma una contraseña de al menos 12 caracteres y acepta los términos.",
       );
       return;
     }
@@ -98,6 +104,7 @@ export default function RegisterPage() {
         organizationName: formData.organizationName.trim(),
         organizationType: formData.organizationType,
         password: formData.password,
+        passwordConfirmation: formData.passwordConfirmation,
         termsAccepted: true,
         termsVersion: "2026.1",
         ...(formData.documentId.trim()
@@ -120,7 +127,11 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-slate-950">
+      <div
+        id="main-content"
+        tabIndex={-1}
+        className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none dark:bg-slate-950"
+      >
         <div className="w-full max-w-lg space-y-10 rounded-[3rem] border-4 border-white bg-white p-12 text-center shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)] dark:border-slate-800 dark:bg-slate-900/50">
           <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] bg-slate-900 text-white dark:bg-white dark:text-black shadow-2xl">
             <CheckCircle2 className="h-16 w-16" />
@@ -149,7 +160,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-950">
+    <div
+      id="main-content"
+      tabIndex={-1}
+      className="flex h-screen overflow-hidden bg-white outline-none dark:bg-slate-950"
+    >
       {/* Left side: Content/Marketing (Scrollable) */}
       <div className="relative hidden h-full w-1/2 flex-col bg-slate-900 p-12 text-white lg:flex dark:bg-slate-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(39,39,42,1)_0%,rgba(9,9,11,1)_100%)]" />
@@ -430,7 +445,7 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <Label
                         htmlFor="phone"
                         className="ml-3 text-[9px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
@@ -469,6 +484,31 @@ export default function RegisterPage() {
                           onChange={handleChange}
                           required
                           minLength={12}
+                          maxLength={128}
+                          autoComplete="new-password"
+                          className="pl-14 rounded-2xl"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="passwordConfirmation"
+                        className="ml-3 text-[9px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
+                      >
+                        Confirmar contraseña
+                      </Label>
+                      <div className="relative group">
+                        <Lock className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <Input
+                          id="passwordConfirmation"
+                          name="passwordConfirmation"
+                          type="password"
+                          placeholder="••••••••"
+                          value={formData.passwordConfirmation}
+                          onChange={handleChange}
+                          required
+                          minLength={12}
+                          maxLength={128}
                           autoComplete="new-password"
                           className="pl-14 rounded-2xl"
                         />
@@ -583,4 +623,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

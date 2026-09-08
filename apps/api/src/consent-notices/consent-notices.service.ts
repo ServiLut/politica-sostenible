@@ -146,15 +146,6 @@ export class ConsentNoticesService {
           select: CONSENT_NOTICE_VIEW_SELECT,
         });
 
-        const invalidatedVoters =
-          mode === PoliticalOperationMode.CAMPAIGN &&
-          purpose === ConsentPurpose.POLITICAL_COMMUNICATION
-            ? await transaction.voter.updateMany({
-                where: { tenantId: user.tenantId, consentAccepted: true },
-                data: { consentAccepted: false },
-              })
-            : { count: 0 };
-
         await transaction.auditEvent.create({
           data: {
             tenantId: user.tenantId,
@@ -167,7 +158,8 @@ export class ConsentNoticesService {
             before: current ? { version: current.version } : undefined,
             after: { version: notice.version, mode, purpose },
             metadata: {
-              invalidatedVoterCount: invalidatedVoters.count,
+              consentHistoryPreserved: true,
+              currentNoticeVersionRequired: notice.version,
               configuredFields: [
                 'contactEmail',
                 'content',

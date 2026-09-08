@@ -738,7 +738,13 @@ export function VoterDetailPanel({
                       ["Mesa", voter.mesa?.toString() ?? "No asignada"],
                       [
                         "Consentimiento",
-                        voter.consentAccepted ? "Vigente" : "No vigente",
+                        voter.consentCurrent
+                          ? "Vigente para el aviso actual"
+                          : voter.consentRequiresReconsent
+                            ? "Requiere nueva autorización"
+                            : voter.consentState === "REVOKED"
+                              ? "Revocado"
+                              : "No vigente",
                       ],
                       ["Autorizado", formatDate(voter.consentTimestamp)],
                       ["Aviso", voter.termsVersion ?? "No disponible"],

@@ -1,4 +1,20 @@
-import { resolveDatabaseSchema, resolveDatabaseSsl } from './prisma.service';
+import {
+  PrismaService,
+  resolveDatabaseSchema,
+  resolveDatabaseSsl,
+} from './prisma.service';
+
+describe('PrismaService lifecycle', () => {
+  it('disconnects the pool when Nest receives a shutdown signal', async () => {
+    const service = Object.create(PrismaService.prototype) as PrismaService;
+    const disconnect = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(service, '$disconnect', { value: disconnect });
+
+    await service.onModuleDestroy();
+
+    expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('resolveDatabaseSchema', () => {
   it('reads the schema used by Prisma from DATABASE_URL', () => {

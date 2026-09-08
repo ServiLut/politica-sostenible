@@ -41,8 +41,10 @@ export const Toast = ({ id, message, type, onClose }: ToastProps) => {
       <div className="flex-1">
         <p className="text-sm font-bold text-slate-800">{message}</p>
       </div>
-      <button 
+      <button
+        type="button"
         onClick={() => onClose(id)}
+        aria-label="Cerrar notificación"
         className="text-slate-400 hover:text-slate-600 transition-colors"
       >
         <X size={16} />

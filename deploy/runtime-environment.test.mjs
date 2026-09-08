@@ -15,6 +15,10 @@ function validEnvironment() {
       "postgresql://user:password@database.internal:5432/politica?schema=politica-sostenible",
     JWT_SECRET: "jwt-secret-with-more-than-thirty-two-random-bytes-2026",
     CONSENT_IP_SALT: "consent-salt-with-more-than-thirty-two-random-bytes",
+    SAAS_ADMIN_USER_IDS: "c111111111111111111111111",
+    MFA_TOTP_ACTIVE_KEY_ID: "key-current",
+    MFA_TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+    MFA_TOTP_LEGACY_PLAINTEXT_MODE: "reject",
     CORS_ORIGINS: "https://politica.example.com",
     NEXT_PUBLIC_APP_URL: "https://politica.example.com",
     SUPABASE_URL: "https://storage.internal",
@@ -187,12 +191,35 @@ test("el migrador bloquea conexiones sin TLS estricto", () => {
   );
 });
 
+test("produccion rechaza TLS cifrado sin verificacion de hostname", () => {
+  for (const sslMode of ["require", "verify-ca"]) {
+    const environment = {
+      ...validEnvironment(),
+      NODE_ENV: "production",
+      DATABASE_URL:
+        `postgresql://application:strong-password@database.internal:5432/politica?sslmode=${sslMode}&schema=politica-sostenible`,
+      DIRECT_URL:
+        `postgresql://application:strong-password@database.internal:5432/politica?sslmode=${sslMode}&schema=politica-sostenible`,
+      DATABASE_SSL: "true",
+      DATABASE_SSL_REJECT_UNAUTHORIZED: "true",
+    };
+
+    assert.ok(
+      runtimeEnvironmentIssues(environment).some((issue) =>
+        issue.includes("sslmode=verify-full"),
+      ),
+    );
+  }
+});
+
 test("rechaza los secretos publicos del archivo de ejemplo", () => {
   const environment = {
     ...validEnvironment(),
     JWT_SECRET:
       "generate-a-different-unique-secret-with-openssl-rand-base64-32",
     CONSENT_IP_SALT: "generate-an-independent-random-secret",
+    SAAS_ADMIN_USER_IDS: "replace-with-existing-user-uuid",
+    MFA_TOTP_ENCRYPTION_KEY: "replace-with-a-32-byte-base64-key",
     SUPABASE_SERVICE_ROLE_KEY: "replace-me",
   };
   const issues = runtimeEnvironmentIssues(environment);
@@ -200,6 +227,14 @@ test("rechaza los secretos publicos del archivo de ejemplo", () => {
   assert.ok(issues.some((issue) => issue.startsWith("JWT_SECRET contiene")));
   assert.ok(
     issues.some((issue) => issue.startsWith("CONSENT_IP_SALT contiene")),
+  );
+  assert.ok(
+    issues.some((issue) => issue.startsWith("SAAS_ADMIN_USER_IDS contiene")),
+  );
+  assert.ok(
+    issues.some((issue) =>
+      issue.startsWith("MFA_TOTP_ENCRYPTION_KEY contiene"),
+    ),
   );
   assert.ok(
     issues.some((issue) =>
@@ -259,6 +294,10 @@ test("rechaza secretos cortos, variables faltantes y URLs inseguras", () => {
     ...validEnvironment(),
     JWT_SECRET: "short",
     CONSENT_IP_SALT: "also-short",
+    SAAS_ADMIN_USER_IDS: "not-a-uuid",
+    MFA_TOTP_ACTIVE_KEY_ID: "invalid key id",
+    MFA_TOTP_ENCRYPTION_KEY: Buffer.alloc(16, 7).toString("base64"),
+    MFA_TOTP_LEGACY_PLAINTEXT_MODE: "automatic",
     SUPABASE_STORAGE_BUCKET: "",
     SUPABASE_URL: "http://storage.example.com",
     NEXT_PUBLIC_APP_URL: "http://politica.example.com",
@@ -269,11 +308,84 @@ test("rechaza secretos cortos, variables faltantes y URLs inseguras", () => {
   assert.ok(issues.some((issue) => issue.includes("SUPABASE_STORAGE_BUCKET")));
   assert.ok(issues.some((issue) => issue.startsWith("JWT_SECRET debe")));
   assert.ok(issues.some((issue) => issue.startsWith("CONSENT_IP_SALT debe")));
+  assert.ok(
+    issues.some((issue) => issue.startsWith("SAAS_ADMIN_USER_IDS debe")),
+  );
+  assert.ok(
+    issues.some((issue) => issue.startsWith("MFA_TOTP_ACTIVE_KEY_ID debe")),
+  );
+  assert.ok(
+    issues.some((issue) => issue.startsWith("MFA_TOTP_ENCRYPTION_KEY debe")),
+  );
+  assert.ok(
+    issues.some((issue) =>
+      issue.startsWith("MFA_TOTP_LEGACY_PLAINTEXT_MODE debe"),
+    ),
+  );
   assert.ok(issues.some((issue) => issue.startsWith("SUPABASE_URL debe")));
   assert.ok(
     issues.some((issue) => issue.startsWith("NEXT_PUBLIC_APP_URL debe")),
   );
   assert.ok(issues.some((issue) => issue.startsWith("CORS_ORIGINS debe")));
+});
+
+test("valida el llavero de rotacion MFA sin aceptar la clave activa", () => {
+  const validPreviousKey = Buffer.alloc(32, 8).toString("base64");
+  const valid = {
+    ...validEnvironment(),
+    MFA_TOTP_PREVIOUS_KEYS: JSON.stringify({
+      "key-previous": validPreviousKey,
+    }),
+  };
+
+  assert.deepEqual(runtimeEnvironmentIssues(valid), []);
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      MFA_TOTP_PREVIOUS_KEYS: "{not-json}",
+    }).some((issue) => issue.startsWith("MFA_TOTP_PREVIOUS_KEYS debe")),
+  );
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      MFA_TOTP_PREVIOUS_KEYS: JSON.stringify({
+        "key-current": validPreviousKey,
+      }),
+    }).some((issue) => issue.includes("no debe repetir la clave activa")),
+  );
+});
+
+test("rechaza identidades SaaS admin ambiguas, duplicadas o heredadas por correo", () => {
+  const valid = validEnvironment();
+
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      SAAS_ADMIN_EMAILS: "owner@example.test",
+    }).some((issue) => issue.startsWith("SAAS_ADMIN_EMAILS ya no")),
+  );
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      SAAS_ADMIN_USER_IDS: `${valid.SAAS_ADMIN_USER_IDS},${valid.SAAS_ADMIN_USER_IDS.toUpperCase()}`,
+    }).some((issue) => issue.includes("identificadores duplicados")),
+  );
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      SAAS_ADMIN_USER_IDS: `${valid.SAAS_ADMIN_USER_IDS},`,
+    }).some((issue) => issue.includes("CUIDs o UUIDs canonicos")),
+  );
+  const excessiveIds = Array.from(
+    { length: 33 },
+    (_, index) => `c${index.toString(36).padStart(24, "0")}`,
+  ).join(",");
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...valid,
+      SAAS_ADMIN_USER_IDS: excessiveIds,
+    }).some((issue) => issue.includes("mas de 32 usuarios")),
+  );
 });
 
 test("recupera URLs placeholder usando componentes PostgreSQL completos", () => {

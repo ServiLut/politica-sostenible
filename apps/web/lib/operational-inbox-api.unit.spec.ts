@@ -20,7 +20,10 @@ const baseItem: OperationalInboxItem = {
   overdue: false,
   blocked: true,
   blockReason: "Sin responsable asignado",
-  cta: { label: "Abrir tarea", href: "/dashboard/tasks" },
+  cta: {
+    label: "Gestionar tarea",
+    href: "/dashboard/tasks?view=tasks&entityId=task-a",
+  },
   createdAt: "2026-09-05T12:00:00.000Z",
 };
 
@@ -85,7 +88,10 @@ test("filters the inbox by action state and human search terms", () => {
       overdue: true,
       blocked: false,
       blockReason: null,
-      cta: { label: "Gestionar caso", href: "/dashboard/cases" },
+      cta: {
+        label: "Gestionar caso",
+        href: "/dashboard/cases?view=detail&entityId=case-a",
+      },
     },
     {
       ...baseItem,
@@ -98,8 +104,8 @@ test("filters the inbox by action state and human search terms", () => {
       blocked: true,
       blockReason: "Espera revisión independiente",
       cta: {
-        label: "Tomar decisión",
-        href: "/dashboard/communications",
+        label: "Revisar solicitud",
+        href: "/dashboard/communications?view=review&entityId=approval-a",
       },
     },
   ];

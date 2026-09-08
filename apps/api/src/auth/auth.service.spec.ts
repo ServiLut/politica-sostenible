@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import {
   AuditActorType,
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Role,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -21,6 +22,16 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn(),
   hash: jest.fn(),
 }));
+
+jest.mock('./mfa.service', () => ({
+  MfaService: class MfaService {},
+}));
+
+function createAuthService(prisma: PrismaService, jwt: JwtService) {
+  return new AuthService(prisma, jwt, {
+    verifyCode: jest.fn(),
+  } as never);
+}
 
 describe('AuthService organization onboarding', () => {
   it('creates a public-office tenant and versioned terms audit atomically', async () => {
@@ -41,12 +52,13 @@ describe('AuthService organization onboarding', () => {
       ),
     } as unknown as PrismaService;
     const jwt = { signAsync: jest.fn() } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.hash).mockResolvedValue('hashed-password' as never);
 
     await service.register({
       email: 'admin@example.test',
       password: 'clave-segura-2026',
+      passwordConfirmation: 'clave-segura-2026',
       name: 'Ana Pérez',
       organizationName: 'Concejo abierto',
       organizationType: TenantType.PUBLIC_OFFICE,
@@ -92,7 +104,7 @@ describe('AuthService organization onboarding', () => {
       $transaction: jest.fn(),
     } as unknown as PrismaService;
     jest.mocked(bcrypt.hash).mockResolvedValue('unused-hash' as never);
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -100,6 +112,7 @@ describe('AuthService organization onboarding', () => {
       service.register({
         email: 'existing@example.test',
         password: 'clave-segura-2026',
+        passwordConfirmation: 'clave-segura-2026',
         name: 'Persona',
         documentId: '1012345678',
         organizationName: 'Organización',
@@ -112,6 +125,34 @@ describe('AuthService organization onboarding', () => {
       message: 'No fue posible crear la cuenta con esos identificadores',
     });
     expect(bcrypt.hash).toHaveBeenCalledWith('clave-segura-2026', 12);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a mismatched password confirmation before database access or hashing', async () => {
+    jest.mocked(bcrypt.hash).mockClear();
+    const prisma = {
+      user: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.register({
+        email: 'admin@example.test',
+        password: 'clave-segura-2026',
+        passwordConfirmation: 'otra-clave-segura-2026',
+        name: 'Ana Perez',
+        organizationName: 'Concejo abierto',
+        organizationType: TenantType.CANDIDACY,
+        termsAccepted: true,
+        termsVersion: '2026.1',
+      }),
+    ).rejects.toThrow('La confirmacion de la contrasena no coincide');
+
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(bcrypt.hash).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
@@ -127,7 +168,7 @@ describe('AuthService login', () => {
       user: { findUnique: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
     const jwt = { signAsync: jest.fn() } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
     await expect(
@@ -155,12 +196,15 @@ describe('AuthService login', () => {
       mustChangePassword: false,
       temporaryPasswordExpiresAt: null,
       tenantId: 'tenant-a',
+      totpEnabledAt: null,
+      authVersion: 0,
       tenant: {
         id: 'tenant-a',
         name: 'Campaña A',
         slug: 'campana-a',
         type: TenantType.CANDIDACY,
         defaultMode: PoliticalOperationMode.CAMPAIGN,
+        operationProfile: { stage: PoliticalOperationStage.ELECTION_DAY },
       },
     };
     const prisma = {
@@ -169,7 +213,7 @@ describe('AuthService login', () => {
     const jwt = {
       signAsync: jest.fn().mockResolvedValue('signed-jwt'),
     } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
 
     const result = await service.login({
@@ -182,13 +226,15 @@ describe('AuthService login', () => {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
-      sessionVersion: createSessionVersion(user.id, user.password),
+      authVersion: 0,
+      sessionVersion: createSessionVersion(user.id, user.password, null, 0),
     });
     expect(result).not.toHaveProperty('password');
     expect(result.user).not.toHaveProperty('password');
     expect(result.user).toMatchObject({
       mustChangePassword: false,
       temporaryPasswordExpiresAt: null,
+      tenant: { operationStage: PoliticalOperationStage.ELECTION_DAY },
     });
   });
 
@@ -204,12 +250,15 @@ describe('AuthService login', () => {
       mustChangePassword: true,
       temporaryPasswordExpiresAt: expiresAt,
       tenantId: 'tenant-a',
+      totpEnabledAt: null,
+      authVersion: 0,
       tenant: {
         id: 'tenant-a',
         name: 'Campaña A',
         slug: 'campana-a',
         type: TenantType.CANDIDACY,
         defaultMode: PoliticalOperationMode.CAMPAIGN,
+        operationProfile: { stage: PoliticalOperationStage.ELECTION_DAY },
       },
     };
     const prisma = {
@@ -218,7 +267,7 @@ describe('AuthService login', () => {
     const jwt = {
       signAsync: jest.fn().mockResolvedValue('signed-jwt'),
     } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
 
     await expect(
@@ -245,6 +294,8 @@ describe('AuthService login', () => {
           mustChangePassword: true,
           temporaryPasswordExpiresAt: new Date(Date.now() - 1),
           tenantId: 'tenant-a',
+          totpEnabledAt: null,
+          authVersion: 0,
           tenant: {
             id: 'tenant-a',
             name: 'Campaña A',
@@ -256,7 +307,7 @@ describe('AuthService login', () => {
       },
     } as unknown as PrismaService;
     const jwt = { signAsync: jest.fn() } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
 
     await expect(
@@ -281,6 +332,8 @@ describe('AuthService login', () => {
           mustChangePassword: false,
           temporaryPasswordExpiresAt: null,
           tenantId: 'tenant-a',
+          totpEnabledAt: null,
+          authVersion: 0,
           tenant: {
             id: 'tenant-a',
             name: 'Tenant A',
@@ -292,7 +345,7 @@ describe('AuthService login', () => {
       },
     } as unknown as PrismaService;
     const jwt = { signAsync: jest.fn() } as unknown as JwtService;
-    const service = new AuthService(prisma, jwt);
+    const service = createAuthService(prisma, jwt);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
 
     await expect(
@@ -325,11 +378,12 @@ describe('AuthService current session', () => {
         slug: 'tenant-a',
         type: TenantType.CANDIDACY,
         defaultMode: PoliticalOperationMode.CAMPAIGN,
+        operationProfile: { stage: PoliticalOperationStage.ELECTION_DAY },
       },
     };
     const findFirst = jest.fn().mockResolvedValue(current);
     const prisma = { user: { findFirst } } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -339,7 +393,19 @@ describe('AuthService current session', () => {
         tenantId: 'tenant-a',
         role: Role.ADMIN,
       }),
-    ).resolves.toEqual({ user: current });
+    ).resolves.toEqual({
+      user: {
+        ...current,
+        tenant: {
+          id: current.tenant.id,
+          name: current.tenant.name,
+          slug: current.tenant.slug,
+          type: current.tenant.type,
+          defaultMode: current.tenant.defaultMode,
+          operationStage: PoliticalOperationStage.ELECTION_DAY,
+        },
+      },
+    });
 
     expect(findFirst).toHaveBeenCalledWith({
       where: {
@@ -361,6 +427,7 @@ describe('AuthService current session', () => {
             slug: true,
             type: true,
             defaultMode: true,
+            operationProfile: { select: { stage: true } },
           },
         },
       },
@@ -375,7 +442,7 @@ describe('AuthService current session', () => {
     const prisma = {
       user: { findFirst: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -415,7 +482,7 @@ describe('AuthService password change', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
@@ -479,7 +546,7 @@ describe('AuthService password change', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
@@ -536,7 +603,7 @@ describe('AuthService password change', () => {
       },
       $transaction: jest.fn(),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
@@ -566,7 +633,7 @@ describe('AuthService password change', () => {
       },
       $transaction: jest.fn(),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(false as never);
@@ -580,8 +647,33 @@ describe('AuthService password change', () => {
         },
       ),
     ).rejects.toEqual(
-      new UnauthorizedException('La contraseña actual no es correcta'),
+      new ForbiddenException('La contraseña actual no es correcta'),
     );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('keeps a missing or deactivated tenant account as an authentication failure', async () => {
+    const prisma = {
+      user: { findFirst: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+    jest.mocked(bcrypt.compare).mockResolvedValue(false as never);
+
+    await expect(
+      service.changePassword(
+        { userId: 'user-a', tenantId: 'tenant-a', role: Role.VOLUNTEER },
+        {
+          currentPassword: 'clave-equivocada',
+          newPassword: 'otra-clave-segura-2026',
+        },
+      ),
+    ).rejects.toEqual(
+      new UnauthorizedException('Sesion invalida o desactivada'),
+    );
+    expect(bcrypt.compare).toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -608,7 +700,7 @@ describe('AuthService password change', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
@@ -654,6 +746,15 @@ describe('AuthService organization profile', () => {
     slug: 'organizacion-estable',
     type: TenantType.CANDIDACY,
     defaultMode: PoliticalOperationMode.CAMPAIGN,
+    operationProfile: { stage: PoliticalOperationStage.CAMPAIGN },
+  };
+  const currentTenantProjection = {
+    id: currentTenant.id,
+    name: currentTenant.name,
+    slug: currentTenant.slug,
+    type: currentTenant.type,
+    defaultMode: currentTenant.defaultMode,
+    operationStage: PoliticalOperationStage.CAMPAIGN,
   };
 
   it('actualiza únicamente el tenant autenticado y audita el nombre anterior y nuevo', async () => {
@@ -675,7 +776,7 @@ describe('AuthService organization profile', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -685,7 +786,7 @@ describe('AuthService organization profile', () => {
         expectedName: currentTenant.name,
       }),
     ).resolves.toEqual({
-      tenant: { ...currentTenant, name: 'Movimiento Región Viva' },
+      tenant: { ...currentTenantProjection, name: 'Movimiento Región Viva' },
       changed: true,
     });
 
@@ -705,6 +806,7 @@ describe('AuthService organization profile', () => {
             slug: true,
             type: true,
             defaultMode: true,
+            operationProfile: { select: { stage: true } },
           },
         },
       },
@@ -747,7 +849,7 @@ describe('AuthService organization profile', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -784,7 +886,7 @@ describe('AuthService organization profile', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -793,7 +895,7 @@ describe('AuthService organization profile', () => {
         name: currentTenant.name,
         expectedName: currentTenant.name,
       }),
-    ).resolves.toEqual({ tenant: currentTenant, changed: false });
+    ).resolves.toEqual({ tenant: currentTenantProjection, changed: false });
     expect(updateMany).not.toHaveBeenCalled();
     expect(auditCreate).not.toHaveBeenCalled();
   });
@@ -818,7 +920,7 @@ describe('AuthService organization profile', () => {
         ) => callback(transactionClient),
       ),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -836,7 +938,7 @@ describe('AuthService organization profile', () => {
     const prisma = {
       $transaction: jest.fn().mockRejectedValue({ code: 'P2034' }),
     } as unknown as PrismaService;
-    const service = new AuthService(prisma, {
+    const service = createAuthService(prisma, {
       signAsync: jest.fn(),
     } as unknown as JwtService);
 
@@ -846,5 +948,108 @@ describe('AuthService organization profile', () => {
         expectedName: currentTenant.name,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('AuthService logout', () => {
+  const actor = {
+    userId: 'user-a',
+    tenantId: 'tenant-a',
+    role: Role.VOLUNTEER,
+  };
+
+  it('increments authVersion tenant-scoped and audits revocation of every device atomically', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
+    const transactionClient = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: actor.userId,
+          tenant: { defaultMode: PoliticalOperationMode.CAMPAIGN },
+        }),
+        updateMany,
+      },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(service.logout(actor)).resolves.toEqual({
+      message: 'Sesiones cerradas en todos los dispositivos',
+    });
+
+    expect(transactionClient.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: actor.userId,
+        tenantId: actor.tenantId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        tenant: { select: { defaultMode: true } },
+      },
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: actor.userId,
+        tenantId: actor.tenantId,
+        isActive: true,
+      },
+      data: { authVersion: { increment: 1 } },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: {
+        tenantId: actor.tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: actor.userId,
+        action: 'ACCOUNT_SESSIONS_REVOKED',
+        resourceType: 'User',
+        resourceId: actor.userId,
+        metadata: {
+          initiatedBy: 'SELF_SERVICE_LOGOUT',
+          scope: 'ALL_DEVICES',
+        },
+      },
+    });
+    expect(JSON.stringify(auditCreate.mock.calls)).not.toContain('token');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed without an audit if the account changes during revocation', async () => {
+    const auditCreate = jest.fn();
+    const transactionClient = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: actor.userId,
+          tenant: { defaultMode: PoliticalOperationMode.CAMPAIGN },
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      auditEvent: { create: auditCreate },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof transactionClient) => Promise<unknown>,
+        ) => callback(transactionClient),
+      ),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(service.logout(actor)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(auditCreate).not.toHaveBeenCalled();
   });
 });

@@ -79,7 +79,11 @@ export default function AcceptInvitationPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-10 sm:py-16">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen bg-slate-950 px-4 py-10 outline-none sm:py-16"
+    >
       <div className="mx-auto max-w-xl">
         <Link
           href="/"

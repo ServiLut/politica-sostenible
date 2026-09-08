@@ -27,10 +27,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WitnessService } from '../witness/witness.service';
 import { SyncE14Dto } from './dto/sync-e14.dto';
 import { SyncVoterDto } from './dto/sync-voter.dto';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
 
 const VOTER_SYNC_RECEIPT = { received: true } as const;
-const SERIALIZABLE_OPTIONS = {
-  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+const VOTER_SYNC_TRANSACTION_OPTIONS = {
+  // The advisory quota lock is acquired in one statement; READ COMMITTED makes
+  // the following count observe the transaction that released that lock.
+  isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
 } as const;
 
 const VOTER_SYNC_ROLES = [
@@ -92,6 +98,8 @@ export class LogisticsService {
       collectionChannel,
     } = data;
 
+    await ensureTenantSubscription(this.prisma, user.tenantId);
+
     try {
       return await this.prisma.$transaction(async (transaction) => {
         const tenant = await transaction.tenant.findUnique({
@@ -144,6 +152,12 @@ export class LogisticsService {
             );
           }
         }
+
+        await assertPlanQuotaInTransaction(
+          transaction,
+          user.tenantId,
+          'voters',
+        );
 
         const existing = await transaction.voter.findUnique({
           where: {
@@ -218,7 +232,7 @@ export class LogisticsService {
         });
 
         return VOTER_SYNC_RECEIPT;
-      }, SERIALIZABLE_OPTIONS);
+      }, VOTER_SYNC_TRANSACTION_OPTIONS);
     } catch (error: unknown) {
       if (this.isPrismaUniqueViolation(error)) {
         return VOTER_SYNC_RECEIPT;

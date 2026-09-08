@@ -11,8 +11,28 @@ const backendUser = {
     name: "Campaña A",
     slug: "campana-a",
     type: "CANDIDACY" as const,
+    operationStage: "ELECTION_DAY" as const,
   },
 };
+
+test("preserva la etapa operativa entregada por la API", () => {
+  expect(
+    createAuthSession("header.payload.signature", backendUser).tenant
+      .operationStage,
+  ).toBe("ELECTION_DAY");
+});
+
+test("rechaza una etapa operativa desconocida", () => {
+  expect(() =>
+    createAuthSession("header.payload.signature", {
+      ...backendUser,
+      tenant: {
+        ...backendUser.tenant,
+        operationStage: "UNKNOWN_STAGE" as never,
+      },
+    }),
+  ).toThrow("etapa operativa inválida");
+});
 
 test("preserva el cambio obligatorio y su vencimiento en la sesión", () => {
   const expiresAt = "2026-09-03T18:30:00.000Z";
@@ -40,10 +60,10 @@ test("rechaza una sesión temporal sin un vencimiento verificable", () => {
 });
 
 test("normaliza cuentas ordinarias sin estado temporal", () => {
-  expect(createAuthSession("header.payload.signature", backendUser).user).toMatchObject(
-    {
-      mustChangePassword: false,
-      temporaryPasswordExpiresAt: null,
-    },
-  );
+  expect(
+    createAuthSession("header.payload.signature", backendUser).user,
+  ).toMatchObject({
+    mustChangePassword: false,
+    temporaryPasswordExpiresAt: null,
+  });
 });

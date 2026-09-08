@@ -18,14 +18,23 @@ import {
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { TeamService } from './team.service';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
 
 jest.mock('bcrypt', () => ({ hash: jest.fn() }));
+jest.mock('../auth/guards/plan-limits.guard', () => ({
+  assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
+  ensureTenantSubscription: jest.fn().mockResolvedValue(undefined),
+}));
 
 const admin: AuthenticatedUser = {
   userId: 'admin-a',
   tenantId: 'tenant-a',
   role: Role.ADMIN,
 };
+const SAAS_ADMIN_USER_ID = `c${'4'.repeat(24)}`;
 
 function createHarness(
   mode: PoliticalOperationMode = PoliticalOperationMode.CAMPAIGN,
@@ -99,13 +108,13 @@ function createHarness(
     ),
   };
   const config = {
-    get: jest
-      .fn()
-      .mockImplementation((key: string) =>
-        key === 'NEXT_PUBLIC_APP_URL'
-          ? 'https://politica.example.test'
-          : undefined,
-      ),
+    get: jest.fn().mockImplementation((key: string) => {
+      if (key === 'NEXT_PUBLIC_APP_URL') {
+        return 'https://politica.example.test';
+      }
+      if (key === 'SAAS_ADMIN_USER_IDS') return SAAS_ADMIN_USER_ID;
+      return undefined;
+    }),
   };
   const service = new TeamService(
     prisma as unknown as PrismaService,
@@ -268,6 +277,46 @@ describe('TeamService administration and tenant isolation', () => {
       },
       select: { id: true, role: true },
     });
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('does not reveal a protected SaaS identity that is outside the JWT tenant', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce(null);
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, SAAS_ADMIN_USER_ID),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(tx.user.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: SAAS_ADMIN_USER_ID,
+        tenantId: 'tenant-a',
+        isActive: true,
+      },
+      select: { id: true, role: true },
+    });
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('prohibits resetting a configured SaaS administrator through a tenant endpoint', async () => {
+    const { service, tx } = createHarness();
+    tx.user.findFirst
+      .mockResolvedValueOnce({ id: admin.userId })
+      .mockResolvedValueOnce({
+        id: SAAS_ADMIN_USER_ID,
+        role: Role.VOLUNTEER,
+      });
+    jest.mocked(bcrypt.hash).mockResolvedValue('unused-reset-hash' as never);
+
+    await expect(
+      service.resetMemberAccess(admin, SAAS_ADMIN_USER_ID),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
     expect(tx.user.updateMany).not.toHaveBeenCalled();
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
@@ -446,7 +495,7 @@ describe('TeamService administration and tenant isolation', () => {
   it.each([
     PoliticalOperationMode.CAMPAIGN,
     PoliticalOperationMode.PUBLIC_OFFICE,
-  ])('invites an explicit backup administrator in %s mode', async (mode) => {
+  ])('rejects an administrator invitation in %s mode', async (mode) => {
     const { service, tx } = createHarness(mode);
 
     await expect(
@@ -454,31 +503,10 @@ describe('TeamService administration and tenant isolation', () => {
         email: 'respaldo@example.test',
         role: Role.ADMIN,
       }),
-    ).resolves.toMatchObject({
-      invitation: {
-        email: 'respaldo@example.test',
-        role: Role.ADMIN,
-      },
-      delivery: 'MANUAL',
-    });
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(tx.teamInvitation.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        tenantId: 'tenant-a',
-        role: Role.ADMIN,
-        invitedById: 'admin-a',
-      }),
-      select: expect.any(Object),
-    });
-    expect(tx.auditEvent.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        tenantId: 'tenant-a',
-        mode,
-        actorUserId: 'admin-a',
-        action: 'TEAM_INVITATION_CREATED',
-        metadata: { role: Role.ADMIN, delivery: 'MANUAL' },
-      }),
-    });
+    expect(tx.teamInvitation.create).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('allows a constituent case worker only in public-office mode', async () => {
@@ -633,6 +661,32 @@ describe('TeamService member lifecycle', () => {
     expect(reactivation.tx.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: 'TEAM_MEMBER_ACTIVATED' }),
     });
+  });
+
+  it('never changes the role of a configured SaaS administrator, even if its tenant role is non-admin', async () => {
+    const { service, tx } = withTarget({ id: SAAS_ADMIN_USER_ID });
+
+    await expect(
+      service.updateMemberRole(admin, SAAS_ADMIN_USER_ID, {
+        role: Role.CAMPAIGN_MANAGER,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('never deactivates a configured SaaS administrator, even if its tenant role is non-admin', async () => {
+    const { service, tx } = withTarget({ id: SAAS_ADMIN_USER_ID });
+
+    await expect(
+      service.updateMemberStatus(admin, SAAS_ADMIN_USER_ID, {
+        isActive: false,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(tx.user.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('assigns a compatible tenant division with optimistic scope and audit', async () => {
@@ -880,8 +934,14 @@ describe('TeamService invitation acceptance', () => {
       select: { id: true },
     });
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
+    expect(ensureTenantSubscription).toHaveBeenCalledWith(prisma, 'tenant-a');
+    expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
+      tx,
+      'tenant-a',
+      'users',
+    );
 
     const auditData = tx.auditEvent.createMany.mock.calls[0][0].data;
     const auditPayload = Array.isArray(auditData) ? auditData : [auditData];
@@ -909,32 +969,16 @@ describe('TeamService invitation acceptance', () => {
   it.each([
     PoliticalOperationMode.CAMPAIGN,
     PoliticalOperationMode.PUBLIC_OFFICE,
-  ])(
-    'accepts a valid backup-administrator invitation in %s mode',
-    async (mode) => {
-      const { service, tx } = withValidInvitation(Role.ADMIN, mode);
+  ])('rejects a legacy administrator invitation in %s mode', async (mode) => {
+    const { service, tx } = withValidInvitation(Role.ADMIN, mode);
 
-      await expect(service.acceptInvitation(acceptance)).resolves.toEqual({
-        message: 'Invitacion aceptada. Ya puedes iniciar sesion.',
-      });
-      expect(tx.user.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          tenantId: 'tenant-a',
-          email: 'invited@example.test',
-          role: Role.ADMIN,
-        }),
-        select: { id: true },
-      });
-      expect(tx.auditEvent.createMany).toHaveBeenCalledWith({
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            action: 'TEAM_INVITATION_ACCEPTED',
-            metadata: { role: Role.ADMIN },
-          }),
-        ]),
-      });
-    },
-  );
+    await expect(service.acceptInvitation(acceptance)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(tx.teamInvitation.updateMany).not.toHaveBeenCalled();
+    expect(tx.user.create).not.toHaveBeenCalled();
+    expect(tx.auditEvent.createMany).not.toHaveBeenCalled();
+  });
 
   it.each([
     ['missing', null],

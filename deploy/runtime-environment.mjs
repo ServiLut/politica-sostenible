@@ -2,6 +2,10 @@ const REQUIRED_VARIABLES = Object.freeze([
   "DATABASE_URL",
   "JWT_SECRET",
   "CONSENT_IP_SALT",
+  "SAAS_ADMIN_USER_IDS",
+  "MFA_TOTP_ACTIVE_KEY_ID",
+  "MFA_TOTP_ENCRYPTION_KEY",
+  "MFA_TOTP_LEGACY_PLAINTEXT_MODE",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_STORAGE_BUCKET",
@@ -18,6 +22,9 @@ const PLACEHOLDER_FRAGMENTS = Object.freeze([
 ]);
 
 const INSECURE_EVALUATION_PROFILE = "evaluation";
+const IMMUTABLE_USER_ID_PATTERN =
+  /^(?:c[a-z0-9]{24}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
+const MAX_SAAS_ADMINS = 32;
 
 export function allowsInsecureEvaluationDatabase(environment = process.env) {
   return (
@@ -49,6 +56,109 @@ function isPlaceholder(value) {
     return usesReservedExampleHost || usesTemplateDatabaseAuthority;
   } catch {
     return false;
+  }
+}
+
+function isCanonical32ByteBase64(value) {
+  try {
+    const decoded = Buffer.from(value, "base64");
+    return decoded.length === 32 && decoded.toString("base64") === value;
+  } catch {
+    return false;
+  }
+}
+
+function validateSaasAdminIdentities(issues, environment, values) {
+  if (environment.SAAS_ADMIN_EMAILS?.trim()) {
+    issues.push(
+      "SAAS_ADMIN_EMAILS ya no es compatible; usa exclusivamente SAAS_ADMIN_USER_IDS",
+    );
+  }
+
+  const serializedUserIds = values.SAAS_ADMIN_USER_IDS;
+  if (!serializedUserIds) return;
+
+  const candidates = serializedUserIds.split(",");
+  if (candidates.length > MAX_SAAS_ADMINS) {
+    issues.push(
+      `SAAS_ADMIN_USER_IDS no puede contener mas de ${MAX_SAAS_ADMINS} usuarios`,
+    );
+  }
+
+  const normalizedUserIds = candidates.map((candidate) =>
+    candidate.trim().toLowerCase(),
+  );
+  if (
+    normalizedUserIds.some(
+      (userId) => !IMMUTABLE_USER_ID_PATTERN.test(userId),
+    )
+  ) {
+    issues.push(
+      "SAAS_ADMIN_USER_IDS debe contener unicamente CUIDs o UUIDs canonicos separados por coma",
+    );
+  }
+  if (new Set(normalizedUserIds).size !== normalizedUserIds.length) {
+    issues.push(
+      "SAAS_ADMIN_USER_IDS no puede contener identificadores duplicados",
+    );
+  }
+}
+
+function validateMfaEncryption(issues, environment, values) {
+  const activeKeyId = values.MFA_TOTP_ACTIVE_KEY_ID;
+  if (activeKeyId && !/^[A-Za-z0-9._-]{1,32}$/.test(activeKeyId)) {
+    issues.push(
+      "MFA_TOTP_ACTIVE_KEY_ID debe tener entre 1 y 32 caracteres alfanumericos, punto, guion o guion bajo",
+    );
+  }
+
+  const activeKey = values.MFA_TOTP_ENCRYPTION_KEY;
+  if (activeKey && !isCanonical32ByteBase64(activeKey)) {
+    issues.push(
+      "MFA_TOTP_ENCRYPTION_KEY debe ser una clave de 32 bytes en base64 canonico",
+    );
+  }
+
+  const legacyMode = values.MFA_TOTP_LEGACY_PLAINTEXT_MODE;
+  if (legacyMode && !["migrate", "reject"].includes(legacyMode)) {
+    issues.push("MFA_TOTP_LEGACY_PLAINTEXT_MODE debe ser migrate o reject");
+  }
+
+  const serializedPreviousKeys = environment.MFA_TOTP_PREVIOUS_KEYS?.trim();
+  if (!serializedPreviousKeys) return;
+
+  let previousKeys;
+  try {
+    previousKeys = JSON.parse(serializedPreviousKeys);
+  } catch {
+    issues.push("MFA_TOTP_PREVIOUS_KEYS debe ser un objeto JSON valido");
+    return;
+  }
+  if (
+    typeof previousKeys !== "object" ||
+    previousKeys === null ||
+    Array.isArray(previousKeys)
+  ) {
+    issues.push("MFA_TOTP_PREVIOUS_KEYS debe ser un objeto JSON");
+    return;
+  }
+
+  const entries = Object.entries(previousKeys);
+  if (entries.length > 8) {
+    issues.push("MFA_TOTP_PREVIOUS_KEYS no puede contener mas de 8 claves");
+  }
+  for (const [keyId, key] of entries) {
+    if (!/^[A-Za-z0-9._-]{1,32}$/.test(keyId)) {
+      issues.push(`MFA_TOTP_PREVIOUS_KEYS contiene un identificador invalido`);
+    }
+    if (keyId === activeKeyId) {
+      issues.push("MFA_TOTP_PREVIOUS_KEYS no debe repetir la clave activa");
+    }
+    if (typeof key !== "string" || !isCanonical32ByteBase64(key)) {
+      issues.push(
+        `MFA_TOTP_PREVIOUS_KEYS.${keyId} debe ser una clave de 32 bytes en base64 canonico`,
+      );
+    }
   }
 }
 
@@ -194,9 +304,9 @@ function validateProductionDatabaseTls(issues, environment, name, value) {
   try {
     const parsed = new URL(value);
     const sslMode = parsed.searchParams.get("sslmode")?.toLowerCase();
-    if (!sslMode || !["require", "verify-ca", "verify-full"].includes(sslMode)) {
+    if (sslMode !== "verify-full") {
       issues.push(
-        `${name} debe declarar sslmode=require, verify-ca o verify-full en produccion`,
+        `${name} debe declarar sslmode=verify-full en produccion`,
       );
     }
   } catch {
@@ -276,6 +386,9 @@ export function runtimeEnvironmentIssues(environment = process.env) {
       issues.push(`${name} debe contener al menos 32 bytes aleatorios`);
     }
   }
+
+  validateSaasAdminIdentities(issues, environment, values);
+  validateMfaEncryption(issues, environment, values);
 
   validateUrl(issues, "DATABASE_URL", values.DATABASE_URL, [
     "postgres:",

@@ -65,7 +65,10 @@ export class CasesController {
     Role.CONSTITUENT_SERVICES_MANAGER,
     Role.CASE_WORKER,
   )
-  @ApiOperation({ summary: 'Radica una PQRS en el tenant y modo activos' })
+  @ApiOperation({
+    summary:
+      'Registra un caso interno de atención o un incidente de campaña según el modo activo',
+  })
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateIssueCaseDto,

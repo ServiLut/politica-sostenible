@@ -17,6 +17,28 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageModuleName } from './storage.constants';
 import { StorageService } from './storage.service';
 import type { SupabaseStorageGateway } from './supabase-storage.gateway';
+import {
+  assertPlanQuotaInTransaction,
+  ensureTenantSubscription,
+} from '../auth/guards/plan-limits.guard';
+
+jest.mock('../auth/guards/plan-limits.guard', () => ({
+  assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
+  ensureTenantSubscription: jest.fn().mockResolvedValue(undefined),
+}));
+
+const CONSENT_UPLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+] as const;
+
+const CONSENT_DENIED_ROLES = Object.values(Role).filter(
+  (role) =>
+    !CONSENT_UPLOAD_ROLES.includes(
+      role as (typeof CONSENT_UPLOAD_ROLES)[number],
+    ),
+);
 
 describe('StorageService durable private-file authorization', () => {
   const user: AuthenticatedUser = {
@@ -26,6 +48,8 @@ describe('StorageService durable private-file authorization', () => {
   };
   const financePath =
     'tenant-a/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
+  const consentPath =
+    'tenant-a/consent/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
 
   let currentRole: Role;
   let tenantMode: PoliticalOperationMode;
@@ -179,6 +203,173 @@ describe('StorageService durable private-file authorization', () => {
     expect(gateway.createSignedUploadUrl).toHaveBeenCalledWith(result.path);
   });
 
+  it.each([TenantType.PARTY, TenantType.GSC])(
+    'does not issue E-14 upload authorization to tenant type %s',
+    async (type) => {
+      tenantType = type;
+
+      await expect(
+        service.createUploadUrl(user, {
+          module: StorageModuleName.E14,
+          fileName: 'Acta Mesa 42.JPG',
+          contentType: 'image/jpeg',
+          size: 2_048,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(transaction.storedObject.create).not.toHaveBeenCalled();
+      expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
+    },
+  );
+
+  it('issues a tenant-scoped signed consent upload and maps it to Prisma CONSENT', async () => {
+    const result = await service.createUploadUrl(user, {
+      module: StorageModuleName.CONSENT,
+      fileName: 'Evidencia consentimiento.pdf',
+      contentType: 'application/pdf',
+      size: 2_048,
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        bucket: 'private-campaign-files',
+        path: expect.stringMatching(
+          /^tenant-a\/consent\/[0-9a-f-]{36}\.pdf$/,
+        ) as string,
+        uploadUrl: 'https://storage.example/upload?token=signed',
+        uploadToken: 'signed',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/pdf' },
+      }),
+    );
+    expect(result.path).not.toContain('Evidencia');
+    expect(transaction.storedObject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        uploaderId: 'user-a',
+        path: result.path,
+        module: StorageObjectModule.CONSENT,
+        contentType: 'application/pdf',
+        expectedSize: 2_048,
+      }),
+      select: { id: true },
+    });
+    expect(gateway.createSignedUploadUrl).toHaveBeenCalledWith(result.path);
+  });
+
+  it.each(CONSENT_UPLOAD_ROLES)(
+    'allows the current database role %s to upload consent evidence',
+    async (role) => {
+      currentRole = role;
+
+      await expect(
+        service.createUploadUrl(user, {
+          module: StorageModuleName.CONSENT,
+          fileName: 'evidencia.pdf',
+          contentType: 'application/pdf',
+          size: 100,
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          path: expect.stringContaining('tenant-a/consent/') as string,
+        }),
+      );
+      expect(gateway.createSignedUploadUrl).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(CONSENT_DENIED_ROLES)(
+    'denies the current database role %s for consent evidence',
+    async (role) => {
+      currentRole = role;
+
+      await expect(
+        service.createUploadUrl(user, {
+          module: StorageModuleName.CONSENT,
+          fileName: 'evidencia.pdf',
+          contentType: 'application/pdf',
+          size: 100,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(transaction.storedObject.create).not.toHaveBeenCalled();
+      expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      fileName: 'evidencia.jpg',
+      contentType: 'image/jpeg',
+      size: 100,
+    },
+    {
+      fileName: 'evidencia.png',
+      contentType: 'image/png',
+      size: 100,
+    },
+    {
+      fileName: 'evidencia.webp',
+      contentType: 'image/webp',
+      size: 100,
+    },
+    {
+      fileName: 'evidencia.pdf',
+      contentType: 'application/pdf',
+      size: 15 * 1024 * 1024,
+    },
+  ])(
+    'accepts consent MIME $contentType with its matching extension',
+    async ({ fileName, contentType, size }) => {
+      const result = await service.createUploadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        fileName,
+        contentType,
+        size,
+      });
+
+      expect(result.headers).toEqual({ 'Content-Type': contentType });
+      expect(transaction.storedObject.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          module: StorageObjectModule.CONSENT,
+          contentType,
+          expectedSize: size,
+        }),
+        select: { id: true },
+      });
+    },
+  );
+
+  it.each([
+    {
+      label: 'a finance-only CSV MIME',
+      fileName: 'evidencia.csv',
+      contentType: 'text/csv',
+      size: 100,
+    },
+    {
+      label: 'an extension that does not match its MIME',
+      fileName: 'evidencia.pdf',
+      contentType: 'image/jpeg',
+      size: 100,
+    },
+    {
+      label: 'a file over the 15 MiB consent limit',
+      fileName: 'evidencia.pdf',
+      contentType: 'application/pdf',
+      size: 15 * 1024 * 1024 + 1,
+    },
+  ])('rejects $label', async ({ fileName, contentType, size }) => {
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        fileName,
+        contentType,
+        size,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(transaction.storedObject.create).not.toHaveBeenCalled();
+    expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
   it('claims and removes an old confirmed orphan before issuing more storage', async () => {
     const orphanPath = 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174000.pdf';
     prisma.storedObject.findMany.mockResolvedValue([
@@ -196,6 +387,14 @@ describe('StorageService durable private-file authorization', () => {
       contentType: 'application/pdf',
       size: 100,
     });
+
+    expect(ensureTenantSubscription).toHaveBeenCalledWith(prisma, 'tenant-a');
+    expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
+      transaction,
+      'tenant-a',
+      'storage',
+      100,
+    );
 
     expect(prisma.storedObject.updateMany).toHaveBeenNthCalledWith(
       1,
@@ -338,6 +537,34 @@ describe('StorageService durable private-file authorization', () => {
     });
   });
 
+  it('completes only a tenant-owned consent path using the CONSENT mapping', async () => {
+    const result = await service.completeUpload(user, {
+      module: StorageModuleName.CONSENT,
+      path: consentPath,
+      metadata: {
+        fileName: 'evidencia.pdf',
+        contentType: 'application/pdf',
+        size: 100,
+      },
+    });
+
+    expect(result).toEqual({
+      confirmed: true,
+      path: consentPath,
+      module: StorageModuleName.CONSENT,
+    });
+    expect(prisma.storedObject.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          uploaderId: 'user-a',
+          path: consentPath,
+          module: StorageObjectModule.CONSENT,
+        }) as object,
+      }),
+    );
+  });
+
   it('expires a stale authorization without contacting Storage', async () => {
     prisma.storedObject.findFirst.mockResolvedValue({
       id: 'stored-a',
@@ -393,6 +620,20 @@ describe('StorageService durable private-file authorization', () => {
       },
       select: { id: true },
     });
+  });
+
+  it('fails closed before resource lookup when CONSENT is requested for download', async () => {
+    await expect(
+      service.createDownloadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        resourceId: 'consent-a',
+      } as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.financialEntry.findFirst).not.toHaveBeenCalled();
+    expect(prisma.witnessReport.findFirst).not.toHaveBeenCalled();
+    expect(prisma.storedObject.findFirst).not.toHaveBeenCalled();
+    expect(gateway.createSignedDownloadUrl).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('blocks campaign-only modules in public-office mode', async () => {

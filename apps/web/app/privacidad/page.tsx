@@ -30,7 +30,11 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 md:py-16">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 outline-none md:py-16"
+    >
       <div className="mx-auto max-w-4xl">
         <Link
           href="/"

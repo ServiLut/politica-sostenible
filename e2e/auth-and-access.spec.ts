@@ -56,6 +56,114 @@ test("el panel redirige a una persona no autenticada", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("el login devuelve a la persona al deep-link completo solicitado", async ({
+  page,
+}) => {
+  const entityId = "task-login-return";
+  const requestedPath = `/dashboard/tasks?view=tasks&entityId=${entityId}`;
+  const currentUser = {
+    id: "admin-deep-link",
+    email: "deep-link@example.test",
+    name: "Dirección operativa",
+    role: "ADMIN",
+    tenant: {
+      id: "tenant-deep-link",
+      name: "Campaña conectada",
+      slug: "campana-conectada",
+      type: "CANDIDACY",
+      operationStage: "CAMPAIGN",
+    },
+  };
+  const task = {
+    id: entityId,
+    mode: "CAMPAIGN",
+    title: "Tarea recuperada después del login",
+    description: "El destino conserva su contexto completo.",
+    status: "TODO",
+    priority: "HIGH",
+    assigneeId: currentUser.id,
+    issueCaseId: null,
+    commitmentId: null,
+    createdById: currentUser.id,
+    dueAt: "2026-09-10T13:00:00.000Z",
+    completedAt: null,
+    createdAt: "2026-09-07T13:00:00.000Z",
+    updatedAt: "2026-09-07T13:00:00.000Z",
+    assignee: {
+      id: currentUser.id,
+      name: currentUser.name,
+      role: currentUser.role,
+    },
+    createdBy: {
+      id: currentUser.id,
+      name: currentUser.name,
+      role: currentUser.role,
+    },
+    issueCase: null,
+    commitment: null,
+  };
+  let requestedEntityId: string | null = null;
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    let data: unknown;
+
+    if (url.pathname === "/api/auth/login") {
+      data = { access_token: jwt, user: currentUser };
+    } else if (url.pathname === "/api/auth/me") {
+      data = { user: currentUser };
+    } else if (url.pathname === "/api/tasks/assignees") {
+      data = [
+        {
+          id: currentUser.id,
+          name: currentUser.name,
+          role: currentUser.role,
+          division: null,
+        },
+      ];
+    } else if (url.pathname === "/api/tasks") {
+      requestedEntityId = url.searchParams.get("entityId");
+      data = {
+        items: [task],
+        pagination: { page: 1, limit: 6, total: 1, totalPages: 1 },
+      };
+    } else if (url.pathname === "/api/commitments") {
+      data = {
+        items: [],
+        pagination: { page: 1, limit: 6, total: 0, totalPages: 1 },
+        permissions: { canCreate: true, canReadInternal: true },
+      };
+    } else {
+      await route.fulfill({ status: 404, body: "Ruta no simulada" });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ statusCode: 200, message: "Success", data }),
+    });
+  });
+
+  await page.goto(requestedPath);
+  await expect(page).toHaveURL(/\/iniciar-sesion\?/);
+  expect(new URL(page.url()).searchParams.get("next")).toBe(requestedPath);
+
+  await page.getByLabel("Correo electrónico").fill(currentUser.email);
+  await page.getByLabel("Contraseña").fill("una-clave-de-prueba");
+  await page.getByRole("button", { name: "Entrar ahora" }).click();
+
+  await expect(page).toHaveURL(
+    /\/dashboard\/tasks\?view=tasks&entityId=task-login-return$/,
+  );
+  await expect(page.getByTestId(`task-card-${entityId}`)).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  expect(requestedEntityId).toBe(entityId);
+});
+
 test("la recuperación pública explica el restablecimiento administrado real", async ({
   page,
 }) => {
@@ -172,7 +280,7 @@ test("cambiar la contraseña propia cierra los JWT y pide iniciar sesión nuevam
     .fill("Nueva-frase-segura-2026!");
   await page.getByRole("button", { name: "Actualizar contraseña" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "Cerraremos esta sesión",
+    "Cerraremos tus sesiones en todos los dispositivos",
   );
   await expect(page).toHaveURL(/\/iniciar-sesion\?passwordChanged=1$/);
   await expect(page.getByRole("status")).toContainText(
@@ -189,6 +297,146 @@ test("cambiar la contraseña propia cierra los JWT y pide iniciar sesión nuevam
       ),
     )
     .toBeNull();
+});
+
+test("el logout usa el JWT y nunca bloquea la salida local", async ({
+  page,
+}) => {
+  const currentUser = {
+    id: "user-logout",
+    email: "logout@example.test",
+    name: "Cuenta protegida",
+    role: "ADMIN",
+    tenant: {
+      id: "tenant-logout",
+      name: "Campaña segura",
+      slug: "campana-segura",
+      type: "CANDIDACY",
+    },
+  };
+  let releaseLogout!: () => void;
+  let observeLogout!: () => void;
+  const logoutGate = new Promise<void>((resolve) => {
+    releaseLogout = resolve;
+  });
+  const logoutObserved = new Promise<void>((resolve) => {
+    observeLogout = resolve;
+  });
+  let logoutRequest:
+    | { authorization: string | undefined; method: string }
+    | undefined;
+
+  await page.addInitScript(
+    ({ storageKey, token, user }) => {
+      const seedMarker = `${storageKey}.logout-seeded`;
+      if (window.sessionStorage.getItem(seedMarker)) return;
+      window.sessionStorage.setItem(seedMarker, "1");
+      window.sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          accessToken: token,
+          expiresAt: null,
+          tenant: user.tenant,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: "AdminCampana",
+            backendRole: user.role,
+          },
+        }),
+      );
+    },
+    {
+      storageKey: "politica-sostenible.auth-session",
+      token: jwt,
+      user: currentUser,
+    },
+  );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: { user: currentUser },
+        }),
+      });
+      return;
+    }
+
+    if (pathname === "/api/auth/mfa/status") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: { enabled: false },
+        }),
+      });
+      return;
+    }
+
+    if (pathname === "/api/auth/logout") {
+      logoutRequest = {
+        authorization: request.headers().authorization,
+        method: request.method(),
+      };
+      observeLogout();
+      await logoutGate;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 503,
+          message: "Servicio temporalmente no disponible",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, body: "Ruta no simulada" });
+  });
+
+  await page.goto("/dashboard/profile");
+  await expect(
+    page.getByRole("heading", { name: currentUser.name }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Abrir opciones de usuario" }).click();
+  const logoutButton = page.getByRole("button", {
+    name: "Cerrar sesión",
+  });
+  await expect(logoutButton).toBeVisible();
+
+  const clickPromise = logoutButton.click();
+  await logoutObserved;
+
+  try {
+    expect(logoutRequest).toEqual({
+      authorization: `Bearer ${jwt}`,
+      method: "POST",
+    });
+    await expect(page).toHaveURL(/\/iniciar-sesion(?:\?|$)/);
+    expect(new URL(page.url()).pathname).toBe("/iniciar-sesion");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.sessionStorage.getItem("politica-sostenible.auth-session"),
+        ),
+      )
+      .toBeNull();
+  } finally {
+    releaseLogout();
+  }
+
+  await clickPromise;
 });
 
 test("administracion corrige el nombre de su organizacion sin enviar tenant", async ({
@@ -371,7 +619,12 @@ test("la entrada del panel respeta la ruta disponible para el rol", async ({
               team: { active: 1, pendingInvitations: 0 },
               cases: { open: 0, overdue: 0, urgent: 0 },
               tasks: { open: 0, overdue: 0 },
-              commitments: { open: 0, atRisk: 0, overdue: 0, public: 0 },
+              commitments: {
+                open: 0,
+                atRisk: 0,
+                overdue: 0,
+                teamVisible: 0,
+              },
               events: { upcoming: 0 },
               communications: { pendingApproval: 0 },
             },
@@ -437,9 +690,19 @@ test("el registro permite omitir el documento y evidencia términos versionados"
   ).not.toHaveAttribute("required", "");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await page.getByLabel("Email Corporativo").fill("ana@example.test");
-  await page.getByLabel("Password").fill("clave-segura-2026");
+  await page.getByLabel("Correo corporativo").fill("ana@example.test");
+  await page
+    .getByLabel("Contraseña", { exact: true })
+    .fill("clave-segura-2026");
+  await page
+    .getByLabel("Confirmar contraseña")
+    .fill("clave-segura-distinta-2026");
   await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Empezar ahora" }).click();
+  await expect(page.getByText("Las contraseñas no coinciden.")).toBeVisible();
+  expect(registrationPayload).toBeNull();
+
+  await page.getByLabel("Confirmar contraseña").fill("clave-segura-2026");
   await page.getByRole("button", { name: "Empezar ahora" }).click();
 
   await expect(
@@ -450,6 +713,8 @@ test("el registro permite omitir el documento y evidencia términos versionados"
     name: "Ana Pérez",
     organizationName: "Concejo abierto",
     organizationType: "PUBLIC_OFFICE",
+    password: "clave-segura-2026",
+    passwordConfirmation: "clave-segura-2026",
     termsAccepted: true,
     termsVersion: "2026.1",
   });
@@ -538,6 +803,23 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
           electionDay: { reports: 0, syncedReports: 0 },
           communications: { pendingApproval: 0 },
         },
+        territorialCoverage: [
+          {
+            name: "Zona Centro",
+            code: "Z-01",
+            voterCount: 3,
+            goal: 5,
+            coveragePercent: 60,
+          },
+        ],
+        overdueItemsCount: 0,
+        teamActivationRate: 100,
+        complianceStatus: {
+          hasActiveConsentNotice: true,
+          hasConfiguredOperationProfile: true,
+          hasConfiguredCampaignSettings: true,
+          hasNonAdminTeamMember: true,
+        },
         alerts: [
           {
             code: "NO_CRITICAL_ALERTS",
@@ -563,15 +845,20 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
   });
 
   await page.goto("/iniciar-sesion");
-  await page.getByLabel("Email").fill("direccion@example.test");
-  await page.getByLabel("Password").fill("una-clave-de-prueba");
+  await page.getByLabel("Correo electrónico").fill("direccion@example.test");
+  await page.getByLabel("Contraseña").fill("una-clave-de-prueba");
   await page.getByRole("button", { name: "Entrar ahora" }).click();
 
   await expect(page).toHaveURL(/\/dashboard\/executive$/);
   await expect(
-    page.getByRole("heading", { name: "Campaña verificable" }),
+    page.getByRole("heading", { name: "Cuadro de Mando" }),
   ).toBeVisible();
-  await expect(page.getByText("3 relaciones totales")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Cumplimiento de Metas" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Abrir Cumplimiento de Metas" }),
+  ).toHaveCount(0);
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(1);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
@@ -624,6 +911,18 @@ test("una contraseña temporal obliga a cambiarla y bloquea la navegación", asy
       });
       return;
     }
+    if (pathname.startsWith("/api/auth/mfa/")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: { enabled: false },
+        }),
+      });
+      return;
+    }
 
     protectedModuleRequests += 1;
     await route.fulfill({
@@ -638,8 +937,8 @@ test("una contraseña temporal obliga a cambiarla y bloquea la navegación", asy
   });
 
   await page.goto("/iniciar-sesion?next=/dashboard/team");
-  await page.getByLabel("Email").fill(temporaryUser.email);
-  await page.getByLabel("Password").fill("Temporal-Acceso-2026!");
+  await page.getByLabel("Correo electrónico").fill(temporaryUser.email);
+  await page.getByLabel("Contraseña").fill("Temporal-Acceso-2026!");
   await page.getByRole("button", { name: "Entrar ahora" }).click();
 
   await expect(page).toHaveURL(/\/dashboard\/profile$/);

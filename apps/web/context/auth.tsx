@@ -12,6 +12,7 @@ import {
   getCurrentAuthUser,
   loginWithCredentials,
   LoginDto,
+  logoutAllSessions,
 } from "@/lib/auth-api";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -29,7 +30,9 @@ interface AuthContextType {
   tenant: Tenant | null;
   role: UserRole | null;
   loading: boolean;
-  login: (credentials: LoginDto) => Promise<AuthSession | { requiresMfa: true }>;
+  login: (
+    credentials: LoginDto,
+  ) => Promise<AuthSession | { requiresMfa: true }>;
   signOut: (redirectTo?: string) => void;
   synchronizeTenant: (tenant: Tenant) => boolean;
 }
@@ -115,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await loginWithCredentials(credentials);
-      if ('requiresMfa' in response) {
+      if ("requiresMfa" in response) {
         return response;
       }
       saveAuthSession(response);
@@ -128,6 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(
     (redirectTo?: string) => {
+      void logoutAllSessions().catch(() => {
+        // La salida local no depende de la red. El token remoto conserva su
+        // expiración y cualquier revocación de seguridad ya aplicada.
+      });
       clearAuthSession();
       setSession(null);
       if (redirectTo) {

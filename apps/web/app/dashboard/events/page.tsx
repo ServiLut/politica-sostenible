@@ -38,6 +38,7 @@ import {
   transitionEvent,
   updateEvent,
 } from "@/lib/events-api";
+import { canExportData } from "@/lib/export-policy";
 import { ExportButton } from "@/components/ui/ExportButton";
 
 const PAGE_SIZE = 9;
@@ -196,6 +197,7 @@ export default function EventsPage() {
     user &&
     (isPublicOffice || CAMPAIGN_INTERNAL_READ_ROLES.has(user.backendRole)),
   );
+  const canExport = canExportData(user?.backendRole);
 
   const loadEvents = useCallback(
     async (signal?: AbortSignal) => {
@@ -387,18 +389,20 @@ export default function EventsPage() {
             verificables. La organización y el modo provienen de tu sesión.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <ExportButton moduleName="eventos" />
-          {canManage && (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-500"
-            >
-              <Plus aria-hidden="true" size={18} /> Nuevo evento
-            </button>
-          )}
-        </div>
+        {(canExport || canManage) && (
+          <div className="flex items-center gap-3">
+            {canExport && <ExportButton moduleName="eventos" />}
+            {canManage && (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-500"
+              >
+                <Plus aria-hidden="true" size={18} /> Nuevo evento
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <section

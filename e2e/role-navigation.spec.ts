@@ -12,6 +12,7 @@ type TestIdentity = {
   backendRole: string;
   frontendRole: string;
   name: string;
+  operationStage?: string;
 };
 
 async function prepareSession(page: Page, identity: TestIdentity) {
@@ -25,6 +26,7 @@ async function prepareSession(page: Page, identity: TestIdentity) {
       name: "Campaña navegación clara",
       slug: "campana-navegacion-clara",
       type: "CANDIDACY",
+      operationStage: identity.operationStage ?? null,
     },
   };
 
@@ -147,6 +149,7 @@ test("el rol de testigo conserva acceso explícito a la operación electoral", a
     backendRole: "WITNESS",
     frontendRole: "Testigo",
     name: "Testigo electoral",
+    operationStage: "ELECTION_DAY",
   });
 
   await page.goto("/dashboard/profile");

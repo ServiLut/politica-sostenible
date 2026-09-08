@@ -12,6 +12,23 @@ export type CommunicationChannel =
   | "WEB"
   | "LETTER"
   | "INTERNAL";
+export type CommunicationRecipientBasis =
+  | "DIRECT_OPT_IN"
+  | "PARTY_MEMBERSHIP"
+  | "CASE_RESPONSE"
+  | "PUBLIC_AUDIENCE"
+  | "INTERNAL";
+
+export interface CommunicationComplianceContent {
+  message?: unknown;
+  audienceDescription?: unknown;
+  dataSource?: unknown;
+  segmentationCriteria?: unknown;
+  recipientBasis?: unknown;
+  usesArtificialIntelligence?: unknown;
+  rightsMechanismUrl?: unknown;
+  consentEvidenceReference?: unknown;
+}
 
 export interface CommunicationActor {
   id: string;
@@ -25,7 +42,7 @@ export interface CommunicationApproval {
   issueCaseId: string | null;
   channel: CommunicationChannel;
   title: string;
-  content: { message?: unknown };
+  content: CommunicationComplianceContent;
   contentHash: string;
   purpose: string;
   containsSensitiveData: boolean;
@@ -58,6 +75,7 @@ export interface CommunicationApprovalPage {
 export interface ListCommunicationApprovalsParams {
   page?: number;
   limit?: number;
+  entityId?: string;
   status?: CommunicationApprovalStatus;
   channel?: CommunicationChannel;
   containsSensitiveData?: "true" | "false";
@@ -73,6 +91,13 @@ export interface CreateCommunicationApprovalInput {
   message: string;
   channel: CommunicationChannel;
   purpose: string;
+  recipientBasis: CommunicationRecipientBasis;
+  audienceDescription: string;
+  dataSource: string;
+  segmentationCriteria: string;
+  usesArtificialIntelligence: boolean;
+  rightsMechanismUrl?: string;
+  consentEvidenceReference?: string;
   containsSensitiveData?: boolean;
   issueCaseId?: string;
 }

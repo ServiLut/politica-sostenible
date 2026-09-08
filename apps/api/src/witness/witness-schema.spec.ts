@@ -12,8 +12,8 @@ describe('E-14 database invariants', () => {
 
   it('models multiple reports per table and the complete review lifecycle', () => {
     expect(schema).toContain('enum WitnessReportStatus');
-    expect(schema).toContain(
-      'status            WitnessReportStatus @default(PENDING)',
+    expect(schema).toMatch(
+      /status\s+WitnessReportStatus\s+@default\(PENDING\)/,
     );
     expect(schema).not.toContain('@@unique([tenantId, puestoId, mesa])');
     expect(schema).toContain('expectedTables Int?');

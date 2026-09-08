@@ -54,9 +54,10 @@ const briefing = {
         complete: true,
       },
       {
-        code: "FIRST_PUBLIC_COMMITMENT",
-        title: "Publicar el primer compromiso",
-        detail: "Define responsable, fecha y avance.",
+        code: "FIRST_TEAM_VISIBLE_COMMITMENT",
+        title: "Compartir el primer compromiso con el equipo",
+        detail:
+          "Habilita su consulta interna con responsable, fecha y avance verificable.",
         href: "/dashboard/tasks",
         complete: true,
       },
@@ -73,7 +74,7 @@ const briefing = {
     team: { active: 5, pendingInvitations: 1 },
     cases: { open: 12, overdue: 2, urgent: 1 },
     tasks: { open: 11, overdue: 4 },
-    commitments: { open: 6, atRisk: 1, overdue: 1, public: 3 },
+    commitments: { open: 6, atRisk: 1, overdue: 1, teamVisible: 3 },
     events: { upcoming: 0 },
     communications: { pendingApproval: 2 },
   },
@@ -176,7 +177,15 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
   await expect(page.getByTestId("open-cases-metric")).toHaveText("12");
   await expect(page.getByTestId("overdue-cases-metric")).toHaveText("2");
   await expect(page.getByTestId("overdue-tasks-metric")).toHaveText("4");
-  await expect(page.getByTestId("public-commitments-metric")).toHaveText("3");
+  await expect(page.getByTestId("team-visible-commitments-metric")).toHaveText(
+    "3",
+  );
+  await expect(
+    page.getByText("Compromisos visibles para el equipo"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Compartir el primer compromiso con el equipo"),
+  ).toBeVisible();
   await expect(page.getByText("Visitar punto reportado")).toBeVisible();
   await expect(
     page.getByText("Casos ciudadanos requieren decisión"),
@@ -280,7 +289,9 @@ test("un rol operativo no recibe atajos hacia la administración de equipo", asy
   await expect(
     page.getByRole("heading", { name: "Centro de gestión pública" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Equipo" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Equipo", exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Gestionar casos" }),
   ).toBeVisible();

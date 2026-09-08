@@ -55,6 +55,12 @@ export class ListTasksQueryDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(128)
+  entityId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   search?: string;
 

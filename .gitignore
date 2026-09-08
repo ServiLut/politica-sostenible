@@ -35,6 +35,11 @@ node_modules/
 
 .next/
 out/
+dist/
+**/dist/
+coverage/
+**/coverage/
+*.old.prisma
 
 .turbo/
 
@@ -44,7 +49,20 @@ yarn-error.log*
 pnpm-debug.log*
 
 .DS_Store
-.pem
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pgpass
+.pgpass
+.netrc
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.ovpn
 .env
 .idea/
 .vscode/

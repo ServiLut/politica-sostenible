@@ -8,6 +8,7 @@ import { winstonConfig } from './common/logger/winston.config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { enableApplicationShutdownHooks } from './common/lifecycle/graceful-shutdown';
 
 export function resolveCorsOrigins(
   environment: NodeJS.ProcessEnv = process.env,
@@ -68,6 +69,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: winstonConfig,
   });
+  enableApplicationShutdownHooks(app);
+  app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
   app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -125,7 +128,9 @@ async function bootstrap() {
   });
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
-  new Logger('Bootstrap').log(`Aplicación escuchando en http://localhost:${port}`);
+  new Logger('Bootstrap').log(
+    `Aplicación escuchando en http://localhost:${port}`,
+  );
 }
 bootstrap().catch((err) => {
   console.error(err);

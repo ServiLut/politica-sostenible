@@ -40,9 +40,7 @@ const OPEN_CASE_STATUSES = [
   IssueCaseStatus.WAITING_ON_EXTERNAL_ENTITY,
 ] as const;
 
-const MODE_ROLES: Readonly<
-  Record<PoliticalOperationMode, readonly Role[]>
-> = {
+const MODE_ROLES: Readonly<Record<PoliticalOperationMode, readonly Role[]>> = {
   [PoliticalOperationMode.CAMPAIGN]: [
     Role.ADMIN,
     Role.CAMPAIGN_MANAGER,
@@ -71,6 +69,37 @@ const GLOBAL_OPERATION_ROLES: Readonly<
   ],
 };
 
+const TASK_MANAGEMENT_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMMUNICATIONS_MANAGER,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.CASE_WORKER,
+  Role.ZONE_COORDINATOR,
+];
+
+const COMMITMENT_MANAGEMENT_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.CASE_WORKER,
+];
+
+const CASE_MANAGEMENT_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.CASE_WORKER,
+];
+
+const COMMUNICATION_DECISION_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMMUNICATIONS_MANAGER,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+];
+
 const PRIORITY_SCORE: Readonly<Record<WorkPriority, number>> = {
   [WorkPriority.LOW]: 1,
   [WorkPriority.MEDIUM]: 2,
@@ -89,6 +118,36 @@ interface InboxResponsible {
   id: string;
   name: string;
   role: Role;
+}
+
+interface InboxCommitmentRecord {
+  id: string;
+  reference: string;
+  title: string;
+  status: CommitmentStatus;
+  targetDate: Date | null;
+  createdAt: Date;
+  owner: InboxResponsible | null;
+}
+
+interface InboxIssueCaseRecord {
+  id: string;
+  reference: string;
+  title: string;
+  status: IssueCaseStatus;
+  priority: WorkPriority;
+  dueAt: Date | null;
+  createdAt: Date;
+  assignee: InboxResponsible | null;
+}
+
+interface InboxApprovalRecord {
+  id: string;
+  title: string;
+  status: CommunicationApprovalStatus;
+  scheduledAt: Date | null;
+  createdAt: Date;
+  requestedBy: InboxResponsible;
 }
 
 export interface OperationalInboxItem {
@@ -121,10 +180,7 @@ interface InboxScopes {
 export class OperationalInboxService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(
-    user: AuthenticatedUser,
-    query: ListOperationalInboxQueryDto,
-  ) {
+  async findAll(user: AuthenticatedUser, query: ListOperationalInboxQueryDto) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: user.tenantId },
       select: { id: true, defaultMode: true },
@@ -225,7 +281,7 @@ export class OperationalInboxService {
                 ],
                 take: limit,
               })
-            : Promise.resolve([]),
+            : Promise.resolve<InboxCommitmentRecord[]>([]),
           commitmentWhere
             ? tx.commitment.count({ where: commitmentWhere })
             : Promise.resolve(0),
@@ -249,7 +305,7 @@ export class OperationalInboxService {
                 ],
                 take: limit,
               })
-            : Promise.resolve([]),
+            : Promise.resolve<InboxIssueCaseRecord[]>([]),
           issueCaseWhere
             ? tx.issueCase.count({ where: issueCaseWhere })
             : Promise.resolve(0),
@@ -269,34 +325,45 @@ export class OperationalInboxService {
                 orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
                 take: limit,
               })
-            : Promise.resolve([]),
+            : Promise.resolve<InboxApprovalRecord[]>([]),
           approvalWhere
             ? tx.communicationApproval.count({ where: approvalWhere })
             : Promise.resolve(0),
         ]);
 
         const items: OperationalInboxItem[] = [
-          ...tasks.map((task) => this.toTaskItem(task, now)),
+          ...tasks.map((task) => this.toTaskItem(task, access.role, now)),
           ...commitments.map((commitment) =>
-            this.toCommitmentItem(commitment, now),
+            this.toCommitmentItem(commitment, access.role, now),
           ),
           ...issueCases.map((issueCase) =>
-            this.toIssueCaseItem(issueCase, tenant.defaultMode, now),
+            this.toIssueCaseItem(
+              issueCase,
+              tenant.defaultMode,
+              access.role,
+              now,
+            ),
           ),
-          ...approvals.map((approval) => this.toApprovalItem(approval, now)),
+          ...approvals.map((approval) =>
+            this.toApprovalItem(approval, access.role, now),
+          ),
         ];
 
         return {
-          items: items.sort(this.compareItems).slice(0, limit),
+          items: items
+            .sort((left, right) => this.compareItems(left, right))
+            .slice(0, limit),
           totals: {
             tasks: taskTotal,
             commitments: commitmentTotal,
-            cases: tenant.defaultMode === PoliticalOperationMode.PUBLIC_OFFICE
-              ? issueCaseTotal
-              : 0,
-            incidents: tenant.defaultMode === PoliticalOperationMode.CAMPAIGN
-              ? issueCaseTotal
-              : 0,
+            cases:
+              tenant.defaultMode === PoliticalOperationMode.PUBLIC_OFFICE
+                ? issueCaseTotal
+                : 0,
+            incidents:
+              tenant.defaultMode === PoliticalOperationMode.CAMPAIGN
+                ? issueCaseTotal
+                : 0,
             approvals: approvalTotal,
           },
         };
@@ -317,8 +384,7 @@ export class OperationalInboxService {
         overdue: result.items.filter((item) => item.overdue).length,
         blocked: result.items.filter((item) => item.blocked).length,
         unassigned: result.items.filter(
-          (item) =>
-            item.kind !== 'COMMUNICATION_APPROVAL' && !item.responsible,
+          (item) => item.kind !== 'COMMUNICATION_APPROVAL' && !item.responsible,
         ).length,
         pendingApprovals: result.totals.approvals,
         truncated: total > result.items.length,
@@ -375,7 +441,10 @@ export class OperationalInboxService {
           ],
         },
         commitment: commitmentScope,
-        issueCase: caseScope,
+        // Coordinación territorial no está autorizada por CasesController.
+        // El scope de caso sólo acota tareas/compromisos relacionados; no debe
+        // convertirse en una lectura directa de incidentes inaccesibles.
+        issueCase: null,
         approval: null,
       };
     }
@@ -394,10 +463,7 @@ export class OperationalInboxService {
         task: {
           AND: [
             {
-              OR: [
-                { assigneeId: user.userId },
-                { createdById: user.userId },
-              ],
+              OR: [{ assigneeId: user.userId }, { createdById: user.userId }],
             },
             {
               OR: [{ issueCaseId: null }, { issueCase: { is: caseScope } }],
@@ -470,6 +536,7 @@ export class OperationalInboxService {
       issueCase: { reference: string } | null;
       commitment: { reference: string } | null;
     },
+    role: Role,
     now: Date,
   ): OperationalInboxItem {
     const blockReason = this.joinReasons([
@@ -492,21 +559,19 @@ export class OperationalInboxService {
       overdue: this.isOverdue(task.dueAt, now),
       blocked: blockReason !== null,
       blockReason,
-      cta: { label: 'Abrir tarea', href: '/dashboard/tasks' },
+      cta: {
+        label: TASK_MANAGEMENT_ROLES.includes(role)
+          ? 'Gestionar tarea'
+          : 'Revisar tarea',
+        href: this.deepLink('/dashboard/tasks', task.id, 'tasks'),
+      },
       createdAt: task.createdAt.toISOString(),
     };
   }
 
   private toCommitmentItem(
-    commitment: {
-      id: string;
-      reference: string;
-      title: string;
-      status: CommitmentStatus;
-      targetDate: Date | null;
-      createdAt: Date;
-      owner: InboxResponsible | null;
-    },
+    commitment: InboxCommitmentRecord,
+    role: Role,
     now: Date,
   ): OperationalInboxItem {
     const blockReason = this.joinReasons([
@@ -533,23 +598,20 @@ export class OperationalInboxService {
       overdue: this.isOverdue(commitment.targetDate, now),
       blocked: blockReason !== null,
       blockReason,
-      cta: { label: 'Revisar compromiso', href: '/dashboard/tasks' },
+      cta: {
+        label: COMMITMENT_MANAGEMENT_ROLES.includes(role)
+          ? 'Gestionar compromiso'
+          : 'Revisar compromiso',
+        href: this.deepLink('/dashboard/tasks', commitment.id, 'commitments'),
+      },
       createdAt: commitment.createdAt.toISOString(),
     };
   }
 
   private toIssueCaseItem(
-    issueCase: {
-      id: string;
-      reference: string;
-      title: string;
-      status: IssueCaseStatus;
-      priority: WorkPriority;
-      dueAt: Date | null;
-      createdAt: Date;
-      assignee: InboxResponsible | null;
-    },
+    issueCase: InboxIssueCaseRecord,
     mode: PoliticalOperationMode,
+    role: Role,
     now: Date,
   ): OperationalInboxItem {
     const waitingReason =
@@ -579,22 +641,26 @@ export class OperationalInboxService {
       blocked: blockReason !== null,
       blockReason,
       cta: {
-        label: isIncident ? 'Gestionar incidente' : 'Gestionar caso',
-        href: isIncident ? '/dashboard/incidents' : '/dashboard/cases',
+        label: CASE_MANAGEMENT_ROLES.includes(role)
+          ? isIncident
+            ? 'Gestionar incidente'
+            : 'Gestionar caso'
+          : isIncident
+            ? 'Revisar incidente'
+            : 'Revisar caso',
+        href: this.deepLink(
+          isIncident ? '/dashboard/incidents' : '/dashboard/cases',
+          issueCase.id,
+          'detail',
+        ),
       },
       createdAt: issueCase.createdAt.toISOString(),
     };
   }
 
   private toApprovalItem(
-    approval: {
-      id: string;
-      title: string;
-      status: CommunicationApprovalStatus;
-      scheduledAt: Date | null;
-      createdAt: Date;
-      requestedBy: InboxResponsible;
-    },
+    approval: InboxApprovalRecord,
+    role: Role,
     now: Date,
   ): OperationalInboxItem {
     return {
@@ -606,20 +672,24 @@ export class OperationalInboxService {
       title: approval.title,
       status: approval.status,
       statusLabel: 'Pendiente de revisión',
-      priority: approval.scheduledAt
-        ? WorkPriority.HIGH
-        : WorkPriority.MEDIUM,
+      priority: approval.scheduledAt ? WorkPriority.HIGH : WorkPriority.MEDIUM,
       responsible: null,
       dueAt: approval.scheduledAt?.toISOString() ?? null,
       overdue: this.isOverdue(approval.scheduledAt, now),
       blocked: true,
       blockReason: `Espera revisión independiente; solicitada por ${approval.requestedBy.name}`,
       cta: {
-        label: 'Tomar decisión',
-        href: '/dashboard/communications',
+        label: COMMUNICATION_DECISION_ROLES.includes(role)
+          ? 'Revisar y decidir'
+          : 'Revisar solicitud',
+        href: this.deepLink('/dashboard/communications', approval.id, 'review'),
       },
       createdAt: approval.createdAt.toISOString(),
     };
+  }
+
+  private deepLink(path: string, entityId: string, view: string): string {
+    return `${path}?view=${encodeURIComponent(view)}&entityId=${encodeURIComponent(entityId)}`;
   }
 
   private compareItems(
@@ -632,7 +702,9 @@ export class OperationalInboxService {
     if (priorityDifference !== 0) return priorityDifference;
     if (left.blocked !== right.blocked) return left.blocked ? -1 : 1;
 
-    const leftDue = left.dueAt ? Date.parse(left.dueAt) : Number.MAX_SAFE_INTEGER;
+    const leftDue = left.dueAt
+      ? Date.parse(left.dueAt)
+      : Number.MAX_SAFE_INTEGER;
     const rightDue = right.dueAt
       ? Date.parse(right.dueAt)
       : Number.MAX_SAFE_INTEGER;
@@ -648,7 +720,9 @@ export class OperationalInboxService {
   }
 
   private joinReasons(reasons: Array<string | null>): string | null {
-    const present = reasons.filter((reason): reason is string => Boolean(reason));
+    const present = reasons.filter((reason): reason is string =>
+      Boolean(reason),
+    );
     return present.length > 0 ? present.join(' · ') : null;
   }
 

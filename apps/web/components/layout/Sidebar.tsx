@@ -144,12 +144,12 @@ export function Sidebar() {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
 
-  const stage = (tenant?.config as any)?.operationProfile?.stage;
+  const stage = tenant?.operationStage;
   const navigation: ActiveNavItem[] = (
     user && tenant ? getVisibleNavigationItems(user, tenant, stage) : []
   ).map((item) => ({
-      ...item,
-      isActive: matchesNavigationPath(pathname, item.href),
+    ...item,
+    isActive: matchesNavigationPath(pathname, item.href),
   }));
 
   const roleNavigationGroups = user
@@ -165,9 +165,7 @@ export function Sidebar() {
     navigation,
     roleNavigationGroups[0]?.id ?? "COORDINATION",
   );
-  const mobilePrimaryHrefs = new Set(
-    mobilePrimary.map((item) => item.href),
-  );
+  const mobilePrimaryHrefs = new Set(mobilePrimary.map((item) => item.href));
   const mobileSecondary = navigation.filter(
     (item) => !mobilePrimaryHrefs.has(item.href),
   );
@@ -177,9 +175,7 @@ export function Sidebar() {
       items: mobileSecondary.filter((item) => item.group === group.id),
     }))
     .filter((group) => group.items.length > 0);
-  const secondaryRouteIsActive = mobileSecondary.some(
-    (item) => item.isActive,
-  );
+  const secondaryRouteIsActive = mobileSecondary.some((item) => item.isActive);
   const userInitial = user?.name?.[0]?.toUpperCase() ?? "U";
 
   function closeMobileMenu(restoreFocus = true) {
@@ -284,12 +280,19 @@ export function Sidebar() {
           className="flex-1 space-y-6 overflow-y-auto px-4 py-5"
         >
           <button
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+              )
+            }
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 bg-slate-900 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <Search size={18} />
             <span className="flex-1 text-left">Buscar...</span>
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">Cmd+K</span>
+            <span className="text-[10px] uppercase tracking-widest font-black opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">
+              Cmd+K
+            </span>
           </button>
 
           {groupedNavigation.map((group) => {

@@ -28,6 +28,7 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   allowedDevOrigins: ["127.0.0.1"],
   async rewrites() {
     const apiUrl = process.env.NESTJS_API_URL || "http://localhost:4000";

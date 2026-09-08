@@ -1,5 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class ListVotersQueryDto {
   @IsOptional()
@@ -14,4 +23,13 @@ export class ListVotersQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 25;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  @Matches(/^[A-Za-z0-9_-]+$/, {
+    message: 'El identificador del ciudadano no es valido',
+  })
+  entityId?: string;
 }
