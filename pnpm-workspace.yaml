@@ -9,3 +9,13 @@ packages:
   - "!packages/ai-agent"
 
 autoInstallPeers: false
+
+# Prisma se genera de forma explícita después de instalar; su postinstall no
+# obtiene permiso implícito para ejecutar código de la cadena de suministro.
+allowBuilds:
+  "@prisma/engines@7.9.1": true
+  "@scarf/scarf@1.4.0": false
+  "bcrypt@6.0.0": true
+  "prisma@7.9.1": false
+  "unrs-resolver@1.11.1": true
+strictDepBuilds: true

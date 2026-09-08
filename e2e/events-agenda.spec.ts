@@ -399,8 +399,49 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
 }) => {
   let attempts = 0;
   let backendAvailable = false;
-  await installSession(page, session("PUBLIC_OFFICE", "AUDITOR"));
-  await page.route("**/api/events*", async (route) => {
+  const authSession = session("PUBLIC_OFFICE", "AUDITOR");
+  const authRequests: string[] = [];
+  const unexpectedApiRequests: string[] = [];
+  await installSession(page, authSession);
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const method = request.method();
+    expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+
+    if (method === "GET" && pathname === "/api/auth/me") {
+      authRequests.push(`${method} ${pathname}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            user: {
+              id: authSession.user.id,
+              email: authSession.user.email,
+              name: authSession.user.name,
+              role: authSession.user.backendRole,
+              tenant: authSession.tenant,
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (method !== "GET" || pathname !== "/api/events") {
+      const requestLabel = `${method} ${pathname}`;
+      unexpectedApiRequests.push(requestLabel);
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          message: `Solicitud API inesperada: ${requestLabel}`,
+        }),
+      });
+      return;
+    }
+
     attempts += 1;
     // Todas las lecturas iniciales fallan; la prueba habilita el backend justo
     // antes del clic para no depender de cuántas veces monte React.
@@ -436,4 +477,6 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
     page.getByRole("heading", { name: "No hay eventos para estos filtros" }),
   ).toBeVisible();
   expect(attempts).toBeGreaterThan(1);
+  expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(unexpectedApiRequests).toEqual([]);
 });
