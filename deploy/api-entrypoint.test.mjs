@@ -5,7 +5,7 @@ import { startApi } from "./api-entrypoint.mjs";
 
 const validEnvironment = {
   NODE_ENV: "production",
-  DEPLOYMENT_PROFILE: "production",
+  DEPLOYMENT_PROFILE: "evaluation",
   ALLOW_INSECURE_DATABASE_CONNECTION: "false",
   DATABASE_URL:
     "postgresql://runtime:secret@pool.invalid.co:5432/politica?sslmode=verify-full&schema=politica",
@@ -20,7 +20,7 @@ const validEnvironment = {
   MFA_TOTP_ENCRYPTION_KEY:
     "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
   MFA_TOTP_LEGACY_PLAINTEXT_MODE: "reject",
-  SUPABASE_URL: "https://storage.invalid.co",
+  SUPABASE_URL: "https://storage.invalid",
   SUPABASE_SERVICE_ROLE_KEY: "evaluation-only-storage-service-role-fixture",
   SUPABASE_STORAGE_BUCKET: "politica-private",
   CORS_ORIGINS: "https://politica.invalid.co",
@@ -44,3 +44,4 @@ test("el entrypoint separado valida antes de cargar NestJS", async () => {
   );
   assert.equal(loads, 1);
 });
+

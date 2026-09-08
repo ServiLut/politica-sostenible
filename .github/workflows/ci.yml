@@ -200,7 +200,7 @@ jobs:
             --env CORS_ORIGINS=https://politica-ci.invalid \
             --env NEXT_PUBLIC_APP_URL=https://politica-ci.invalid \
             --env SUPABASE_URL=https://storage-ci.invalid \
-            --env SUPABASE_SERVICE_ROLE_KEY=sb_secret_ci_only_not_a_real_key \
+            --env SUPABASE_SERVICE_ROLE_KEY=evaluation-only-storage-service-role-fixture \
             --env SUPABASE_STORAGE_BUCKET=politica-ci \
             politica-sostenible-ci
           ready=false
@@ -258,7 +258,7 @@ jobs:
       CORS_ORIGINS: https://politica-compose-ci.invalid
       NEXT_PUBLIC_APP_URL: https://politica-compose-ci.invalid
       SUPABASE_URL: https://storage-compose-ci.invalid
-      SUPABASE_SERVICE_ROLE_KEY: sb_secret_ci_only_not_a_real_key
+      SUPABASE_SERVICE_ROLE_KEY: evaluation-only-storage-service-role-fixture
       SUPABASE_STORAGE_BUCKET: politica-compose-ci
       NEXT_PUBLIC_SUPABASE_URL: https://storage-compose-ci.invalid
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_only_0123456789abcdef
