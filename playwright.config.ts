@@ -34,6 +34,7 @@ export default defineConfig({
     env: {
       HOSTNAME: "127.0.0.1",
       PORT: "3000",
+      NEXT_TELEMETRY_DISABLED: "1",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:3000/mock-supabase",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "e2e-anon-key",
     },

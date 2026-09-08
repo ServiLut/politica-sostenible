@@ -10,11 +10,14 @@ permissions:
 
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
           POSTGRES_DB: politica_sostenible_test
           POSTGRES_USER: politica_test
@@ -223,11 +226,11 @@ jobs:
       - run: pnpm test:e2e
 
   compose-runtime-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
           POSTGRES_DB: politica_sostenible_compose
           POSTGRES_USER: politica_test
@@ -240,6 +243,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
       COMPOSE_PROJECT_NAME: politica-primary-ci
       APP_REVISION: ${{ github.sha }}
       DEPLOYMENT_PROFILE: evaluation
