@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const jwt = [
   Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
@@ -28,6 +28,50 @@ const session = {
 
 function envelope<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
+}
+
+async function installStrictAuthContract(page: Page) {
+  const authRequests: string[] = [];
+  const unexpectedApiRequests: string[] = [];
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const requestLabel = `${request.method()} ${new URL(request.url()).pathname}`;
+    unexpectedApiRequests.push(requestLabel);
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: `Solicitud API inesperada: ${requestLabel}`,
+      }),
+    });
+  });
+
+  await page.route("**/api/auth/me", async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe("GET");
+    expect(request.headers().authorization).toBe(
+      `Bearer ${session.accessToken}`,
+    );
+    authRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        envelope({
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.name,
+            role: session.user.backendRole,
+            tenant: session.tenant,
+          },
+        }),
+      ),
+    });
+  });
+
+  return { authRequests, unexpectedApiRequests };
 }
 
 test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
@@ -135,9 +179,25 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
     },
   );
 
+  const { authRequests, unexpectedApiRequests } =
+    await installStrictAuthContract(page);
+
   await page.route("**/api/cases**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const requestLabel = `${request.method()} ${url.pathname}`;
+    if (request.method() !== "GET" || url.pathname !== "/api/cases") {
+      unexpectedApiRequests.push(requestLabel);
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          message: `Solicitud API inesperada: ${requestLabel}`,
+        }),
+      });
+      return;
+    }
+    expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
     caseSearchUrls.push(url);
 
     await route.fulfill({
@@ -272,11 +332,13 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
       return;
     }
 
+    const requestLabel = `${method} ${url.pathname}`;
+    unexpectedApiRequests.push(requestLabel);
     await route.fulfill({
-      status: 404,
+      status: 500,
       contentType: "application/json",
       body: JSON.stringify({
-        message: `Ruta inesperada: ${method} ${url.pathname}`,
+        message: `Solicitud API inesperada: ${requestLabel}`,
       }),
     });
   });
@@ -442,4 +504,6 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
   expect(
     authorizationHeaders.every((header) => header === `Bearer ${jwt}`),
   ).toBe(true);
+  expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(unexpectedApiRequests).toEqual([]);
 });

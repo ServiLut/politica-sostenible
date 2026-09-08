@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const jwt = [
   Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
@@ -28,10 +28,60 @@ function sessionFor(backendRole: "ADMIN" | "CAMPAIGN_MANAGER") {
   };
 }
 
+async function installStrictAuthContract(
+  page: Page,
+  authSession: ReturnType<typeof sessionFor>,
+) {
+  const authRequests: string[] = [];
+  const unexpectedApiRequests: string[] = [];
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const requestLabel = `${request.method()} ${new URL(request.url()).pathname}`;
+    unexpectedApiRequests.push(requestLabel);
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: `Solicitud API inesperada: ${requestLabel}`,
+      }),
+    });
+  });
+
+  await page.route("**/api/auth/me", async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe("GET");
+    expect(request.headers().authorization).toBe(
+      `Bearer ${authSession.accessToken}`,
+    );
+    authRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        statusCode: 200,
+        message: "Success",
+        data: {
+          user: {
+            id: authSession.user.id,
+            email: authSession.user.email,
+            name: authSession.user.name,
+            role: authSession.user.backendRole,
+            tenant: authSession.tenant,
+          },
+        },
+      }),
+    });
+  });
+
+  return { authRequests, unexpectedApiRequests };
+}
+
 test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   page,
 }) => {
   const requests: URL[] = [];
+  const authSession = sessionFor("ADMIN");
 
   await page.addInitScript(
     ({ storageKey, authSession }) => {
@@ -39,13 +89,28 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
     },
     {
       storageKey: "politica-sostenible.auth-session",
-      authSession: sessionFor("ADMIN"),
+      authSession,
     },
   );
+
+  const { authRequests, unexpectedApiRequests } =
+    await installStrictAuthContract(page, authSession);
 
   await page.route("**/api/audit-events**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const requestLabel = `${request.method()} ${url.pathname}`;
+    if (request.method() !== "GET" || url.pathname !== "/api/audit-events") {
+      unexpectedApiRequests.push(requestLabel);
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          message: `Solicitud API inesperada: ${requestLabel}`,
+        }),
+      });
+      return;
+    }
     requests.push(url);
     expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
 
@@ -115,7 +180,9 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   await expect(
     auditRow.getByText("Control interno", { exact: true }),
   ).toBeVisible();
-  await expect(auditRow.getByText("Cumplimiento", { exact: true })).toBeVisible();
+  await expect(
+    auditRow.getByText("Cumplimiento", { exact: true }),
+  ).toBeVisible();
   await expect(auditRow.getByText("Exitosa", { exact: true })).toBeVisible();
   const resetAudit = page.getByTestId(
     `${isMobile ? "audit-card" : "audit-row"}-access-reset-1`,
@@ -148,21 +215,26 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   await page.getByRole("button", { name: "Siguiente" }).click();
   await expect(page.getByText("Página 2 de 2")).toBeVisible();
   expect(requests.at(-1)?.searchParams.get("page")).toBe("2");
+  expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(unexpectedApiRequests).toEqual([]);
 });
 
 test("un rol operativo no ve la ruta ni genera consultas de auditoría", async ({
   page,
 }) => {
   let auditRequests = 0;
+  const authSession = sessionFor("CAMPAIGN_MANAGER");
   await page.addInitScript(
     ({ storageKey, authSession }) => {
       window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
     },
     {
       storageKey: "politica-sostenible.auth-session",
-      authSession: sessionFor("CAMPAIGN_MANAGER"),
+      authSession,
     },
   );
+  const { authRequests, unexpectedApiRequests } =
+    await installStrictAuthContract(page, authSession);
   await page.route("**/api/audit-events**", async (route) => {
     auditRequests += 1;
     await route.fulfill({ status: 403, body: "Forbidden" });
@@ -174,4 +246,6 @@ test("un rol operativo no ve la ruta ni genera consultas de auditoría", async (
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Auditoría" })).toHaveCount(0);
   expect(auditRequests).toBe(0);
+  expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(unexpectedApiRequests).toEqual([]);
 });

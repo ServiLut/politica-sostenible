@@ -53,31 +53,76 @@ test("la IA simulada y sus subrutas no pueden utilizarse", async ({
 test("un alias heredado no permite saltarse el RBAC del módulo real", async ({
   page,
 }) => {
+  const authSession = {
+    accessToken: jwt,
+    expiresAt: null,
+    tenant: {
+      id: "tenant-e2e",
+      name: "Campaña verificable",
+      slug: "campana-verificable",
+      type: "CANDIDACY",
+    },
+    user: {
+      id: "witness-e2e",
+      email: "testigo@example.test",
+      name: "Testigo de mesa",
+      role: "Testigo",
+      backendRole: "WITNESS",
+    },
+  };
+  const authRequests: string[] = [];
+  const unexpectedApiRequests: string[] = [];
+
   await page.addInitScript(
     ({ storageKey, session }) => {
       window.sessionStorage.setItem(storageKey, JSON.stringify(session));
     },
     {
       storageKey: "politica-sostenible.auth-session",
-      session: {
-        accessToken: jwt,
-        expiresAt: null,
-        tenant: {
-          id: "tenant-e2e",
-          name: "Campaña verificable",
-          slug: "campana-verificable",
-          type: "CANDIDACY",
-        },
-        user: {
-          id: "witness-e2e",
-          email: "testigo@example.test",
-          name: "Testigo de mesa",
-          role: "Testigo",
-          backendRole: "WITNESS",
-        },
-      },
+      session: authSession,
     },
   );
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const method = request.method();
+    expect(request.headers().authorization).toBe(
+      `Bearer ${authSession.accessToken}`,
+    );
+
+    if (method === "GET" && pathname === "/api/auth/me") {
+      authRequests.push(`${method} ${pathname}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: {
+            user: {
+              id: authSession.user.id,
+              email: authSession.user.email,
+              name: authSession.user.name,
+              role: authSession.user.backendRole,
+              tenant: authSession.tenant,
+            },
+          },
+        }),
+      });
+      return;
+    }
+
+    const requestLabel = `${method} ${pathname}`;
+    unexpectedApiRequests.push(requestLabel);
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: `Solicitud API inesperada: ${requestLabel}`,
+      }),
+    });
+  });
 
   await page.goto("/dashboard/org");
 
@@ -88,6 +133,8 @@ test("un alias heredado no permite saltarse el RBAC del módulo real", async ({
   await expect(
     page.getByText(/Invitaci[oó]n enviada correctamente/i),
   ).toHaveCount(0);
+  expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(unexpectedApiRequests).toEqual([]);
 });
 
 test("los prototipos públicos sólo regresan a la portada real", async ({

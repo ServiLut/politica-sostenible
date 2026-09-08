@@ -312,7 +312,19 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
 
   await channel.selectOption("PHONE");
   await confirmation.check();
+
+  const postResponsePromise = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/voters" && response.request().method() === "POST"
+    );
+  });
   await submit.click();
+  const postResponse = await postResponsePromise;
+  expect(postResponse.status()).toBe(201);
+  await expect(page.getByRole("status")).toContainText(
+    "Solicitud recibida y procesada con trazabilidad",
+  );
 
   expect(posts).toHaveLength(1);
   expect(posts[0]).toMatchObject({
