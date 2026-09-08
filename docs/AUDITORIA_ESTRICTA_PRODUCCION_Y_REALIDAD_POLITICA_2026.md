@@ -109,7 +109,7 @@ Estas correcciones están en el repositorio local y superaron la validación té
 
 ### Evidencia técnica del candidato local
 
-- API: 105 suites y 1.091 pruebas aprobadas; 1 suite y 10 pruebas PostgreSQL omitidas deliberadamente en esa corrida. La suite PostgreSQL se ejecutó aparte contra PostgreSQL 16 desechable y aprobó 10 de 10, para impedir que una prueba mal clasificada toque una base real.
+- API: 105 suites y 1.094 pruebas aprobadas; 1 suite y 10 pruebas PostgreSQL omitidas deliberadamente en esa corrida. La suite PostgreSQL se ejecutó aparte contra PostgreSQL 16 desechable y aprobó 10 de 10, para impedir que una prueba mal clasificada toque una base real.
 - Web: 89 de 89 pruebas unitarias y 172 de 172 recorridos Playwright aprobados sobre el árbol final en escritorio y móvil.
 - HTTP: 3 de 3 pruebas e2e de API aprobadas.
 - Despliegue: 79 de 79 pruebas del contrato de migración, entorno, imágenes, procedencia del artefacto, seguridad del repositorio y supervisor; TypeScript, lint y builds de API/web aprobados; auditoría de dependencias de producción sin vulnerabilidades conocidas de severidad alta.
