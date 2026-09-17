@@ -344,7 +344,12 @@ export const recordScrutinySessionEvent = (
   commissionId: string,
   input: CommandInput,
 ) =>
-  mutate(
+  mutate<{
+    id: string;
+    type: string;
+    occurredAt: string;
+    notes: string;
+  }>(
     `scrutiny/commissions/${encodeURIComponent(commissionId)}/events`,
     "SESSION_EVENT_RECORD",
     input,
@@ -472,14 +477,19 @@ export const reviewScrutinyDeclaration = (
     { declarationId },
   );
 
+export interface ScrutinyParticipantsPage {
+  items: Array<{ id: string; name: string; role: string }>;
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 export async function listScrutinyParticipants(
   query: { search?: string; page?: number; limit?: number },
   signal?: AbortSignal,
-) {
+): Promise<ScrutinyParticipantsPage> {
   const params = new URLSearchParams();
   if (query.search) params.set("search", query.search);
   if (query.page) params.set("page", query.page.toString());
   if (query.limit) params.set("limit", query.limit.toString());
   const queryString = params.toString();
-  return client.get(`/scrutiny/participants${queryString ? "?" + queryString : ""}`, { signal });
+  return apiRequest<ScrutinyParticipantsPage>(`/scrutiny/participants${queryString ? "?" + queryString : ""}`, { signal });
 }

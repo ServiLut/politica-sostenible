@@ -39,8 +39,6 @@ import {
 import type { BackendUserRole } from "@/types/saas-schema";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 import { UserCombobox } from "@/components/ui/UserCombobox";
-import { listProposalResponsibles } from "@/lib/proposals-api";
-import { UserCombobox } from "@/components/ui/UserCombobox";
 
 const PROPOSAL_MANAGER_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -136,13 +134,6 @@ export default function ProposalsPage() {
   const [categoryFilter, setCategoryFilter] = useState<
     ProposalCategory | "ALL"
   >("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   const [dialogProposal, setDialogProposal] = useState<
     PoliticalProposal | "new" | null

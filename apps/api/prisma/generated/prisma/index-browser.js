@@ -166,6 +166,16 @@ exports.Prisma.StoredObjectScalarFieldEnum = {
   etag: 'etag',
   expectedSha256: 'expectedSha256',
   reportedSha256: 'reportedSha256',
+  integrityStatus: 'integrityStatus',
+  calculatedSha256: 'calculatedSha256',
+  observedSize: 'observedSize',
+  observedContentType: 'observedContentType',
+  integrityCheckedAt: 'integrityCheckedAt',
+  integrityVerifiedAt: 'integrityVerifiedAt',
+  integrityFailureCode: 'integrityFailureCode',
+  integrityVerificationAttempts: 'integrityVerificationAttempts',
+  integrityVerificationStartedAt: 'integrityVerificationStartedAt',
+  integrityVerificationLeaseId: 'integrityVerificationLeaseId',
   status: 'status',
   expiresAt: 'expiresAt',
   confirmedAt: 'confirmedAt',
@@ -233,6 +243,21 @@ exports.Prisma.PoliticalDivisionScalarFieldEnum = {
   longitude: 'longitude',
   isActive: 'isActive',
   retiredAt: 'retiredAt'
+};
+
+exports.Prisma.TerritoryLeaderScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  divisionId: 'divisionId',
+  name: 'name',
+  roleDescription: 'roleDescription',
+  phone: 'phone',
+  email: 'email',
+  socialNetworkUrl: 'socialNetworkUrl',
+  politicalAffinity: 'politicalAffinity',
+  observations: 'observations',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ElectoralCatalogReleaseScalarFieldEnum = {
@@ -2331,6 +2356,13 @@ exports.StorageObjectModule = exports.$Enums.StorageObjectModule = {
   SIGNATURE_COLLECTION: 'SIGNATURE_COLLECTION'
 };
 
+exports.StorageIntegrityStatus = exports.$Enums.StorageIntegrityStatus = {
+  NOT_PROVIDED: 'NOT_PROVIDED',
+  PENDING: 'PENDING',
+  VERIFIED: 'VERIFIED',
+  FAILED: 'FAILED'
+};
+
 exports.StoredObjectStatus = exports.$Enums.StoredObjectStatus = {
   ISSUED: 'ISSUED',
   CONFIRMED: 'CONFIRMED',
@@ -3296,6 +3328,7 @@ exports.Prisma.ModelName = {
   User: 'User',
   TeamInvitation: 'TeamInvitation',
   PoliticalDivision: 'PoliticalDivision',
+  TerritoryLeader: 'TerritoryLeader',
   ElectoralCatalogRelease: 'ElectoralCatalogRelease',
   ElectoralCatalogEntry: 'ElectoralCatalogEntry',
   ElectoralCatalogImportJob: 'ElectoralCatalogImportJob',

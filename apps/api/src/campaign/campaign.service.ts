@@ -37,10 +37,8 @@ import {
   type DaneMunicipality,
 } from './dane-divipola.client';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
-import {
-  CreatePoliticalDivisionDto,
-  CreatableDivisionType,
-} from './dto/create-political-division.dto';
+import { CreatePoliticalDivisionDto, CreatableDivisionType } from './dto/create-political-division.dto';
+import { CreateTerritoryLeaderDto, UpdateTerritoryLeaderDto } from './dto/territory-leader.dto';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { findActiveConsentNotice } from '../common/utils/consent-notice.util';
 import { pollingPlaceOperationalStatus } from '../common/utils/polling-place-operating-time';
@@ -1385,5 +1383,64 @@ export class CampaignService {
     return [...departments.values()].sort((left, right) =>
       left.code.localeCompare(right.code),
     );
+  }
+
+  async listTerritoryLeaders(user: AuthenticatedUser, divisionId: string) {
+    return this.prisma.territoryLeader.findMany({
+      where: { tenantId: user.tenantId, divisionId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createTerritoryLeader(
+    user: AuthenticatedUser,
+    divisionId: string,
+    dto: CreateTerritoryLeaderDto,
+  ) {
+    // Verify division belongs to tenant
+    const division = await this.prisma.politicalDivision.findFirst({
+      where: { id: divisionId, tenantId: user.tenantId },
+    });
+    if (!division) {
+      throw new NotFoundException('División territorial no encontrada');
+    }
+
+    return this.prisma.territoryLeader.create({
+      data: {
+        tenantId: user.tenantId,
+        divisionId,
+        ...dto,
+      },
+    });
+  }
+
+  async updateTerritoryLeader(
+    user: AuthenticatedUser,
+    leaderId: string,
+    dto: UpdateTerritoryLeaderDto,
+  ) {
+    const leader = await this.prisma.territoryLeader.findFirst({
+      where: { id: leaderId, tenantId: user.tenantId },
+    });
+    if (!leader) {
+      throw new NotFoundException('Líder territorial no encontrado');
+    }
+
+    return this.prisma.territoryLeader.update({
+      where: { id: leaderId },
+      data: dto,
+    });
+  }
+
+  async deleteTerritoryLeader(user: AuthenticatedUser, leaderId: string) {
+    const leader = await this.prisma.territoryLeader.findFirst({
+      where: { id: leaderId, tenantId: user.tenantId },
+    });
+    if (!leader) {
+      throw new NotFoundException('Líder territorial no encontrado');
+    }
+
+    await this.prisma.territoryLeader.delete({ where: { id: leaderId } });
+    return { deleted: true };
   }
 }

@@ -83,6 +83,7 @@ export interface SaveProposalInput {
   progressPercent?: number;
   isPublic?: boolean;
   estimatedCost?: number | null;
+  ownerId?: string;
 }
 
 const PROPOSALS_PAGE_SIZE = 100;
@@ -206,7 +207,7 @@ export function createProposal(
 
 export function updateProposal(
   id: string,
-  input: SaveProposalInput,
+  input: Partial<SaveProposalInput>,
 ): Promise<PoliticalProposal> {
   return apiRequest(`proposals/${encodeURIComponent(id)}`, {
     method: "PATCH",

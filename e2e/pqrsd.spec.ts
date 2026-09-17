@@ -123,7 +123,7 @@ function overview(mode: "configuration" | "dossier") {
     privacy: {
       listDataMasked: true,
       detailAccessAudited: true,
-      campaignCrmReuse: false,
+      campaignDataReuse: false,
       exportEnabled: false,
     },
   };

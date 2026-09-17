@@ -152,7 +152,7 @@ export interface PqrsdOverview {
   privacy: {
     listDataMasked: true;
     detailAccessAudited: true;
-    campaignCrmReuse: false;
+    campaignDataReuse: false;
     exportEnabled: false;
   };
 }

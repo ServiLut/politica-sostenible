@@ -33,6 +33,7 @@ import {
   deleteEvent,
   EventPage,
   listEvents,
+  listEventResponsibles,
   transitionEvent,
   updateEvent,
 } from "@/lib/events-api";

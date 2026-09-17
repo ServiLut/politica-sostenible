@@ -644,7 +644,7 @@ export default function CommunicationsPage() {
                   ...item,
                   status: decision.status,
                   decisionReason: decisionReason.trim(),
-                  decidedBy: user ? { id: user.id, name: user.name, role: user.backendRole } : undefined,
+                  decidedBy: user ? { id: user.id, name: user.name, role: user.backendRole } : null,
                   decidedAt: new Date().toISOString(),
                 }
               : item

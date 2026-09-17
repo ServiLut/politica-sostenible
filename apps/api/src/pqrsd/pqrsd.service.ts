@@ -298,7 +298,7 @@ export class PqrsdService {
         privacy: {
           listDataMasked: true,
           detailAccessAudited: true,
-          campaignCrmReuse: false,
+          campaignDataReuse: false,
           exportEnabled: false,
         },
       };
@@ -388,14 +388,14 @@ export class PqrsdService {
           metadata: {
             purpose,
             containsSensitiveData: true,
-            campaignCrmReuse: false,
+            campaignDataReuse: false,
           },
         },
       });
       return {
         ...dossier,
         privacyNotice:
-          'Detalle sensible. Este acceso quedo auditado y no autoriza reutilizacion en CRM de campana.',
+          'Detalle sensible. Este acceso quedó auditado y no autoriza reutilización en la base de datos de campaña.',
       };
     }, SERIALIZABLE_OPTIONS);
   }

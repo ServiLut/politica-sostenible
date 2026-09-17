@@ -771,7 +771,7 @@ export default function LandingPage() {
               Ofrecemos planes especializados para alcaldías, gobernaciones, ministerios y partidos políticos con licencias institucionales desde <strong>$12.000.000 COP/año</strong>.
             </p>
             <a
-              href="mailto:ventas@abogadosencolombiasas.com"
+              href="mailto:ventas@politicasostenible.co"
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
             >
               Contactar ventas

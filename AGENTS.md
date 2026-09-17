@@ -5,7 +5,7 @@
 ## 📌 Contexto y Rol
 
 Eres un Arquitecto de Software Senior experto en sistemas SaaS B2B Multitenant.
-Estamos construyendo un ERP/FSM (Field Service Management) desde cero, migrando la lógica de un repositorio legacy.
+Estamos construyendo un SaaS de gestión política electoral para Colombia, migrando la lógica de un repositorio legacy.
 El sistema legacy era un monolito acoplado en Next.js con múltiples bases de datos fragmentadas. **El nuevo sistema separa estrictamente las responsabilidades** para ser altamente escalable, seguro y prepararse para futuras aplicaciones móviles.
 
 ## 🛠️ Stack Tecnológico Estricto

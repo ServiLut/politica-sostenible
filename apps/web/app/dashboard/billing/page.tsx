@@ -150,7 +150,7 @@ export default function BillingPage() {
           </p>
         </div>
         <a
-          href="mailto:ventas@abogadosencolombiasas.com"
+          href="mailto:ventas@politicasostenible.co"
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800"
         >
           Contactar ventas

@@ -513,9 +513,9 @@ export default function CasesPage() {
     if (!canManageAssignments) return;
     const controller = new AbortController();
 
-    void listCaseAssignees(controller.signal)
+    void listCaseAssignees({}, controller.signal)
       .then((response) => {
-        if (!controller.signal.aborted) setAssignees(response);
+        if (!controller.signal.aborted) setAssignees(response.items);
       })
       .catch((requestError: unknown) => {
         if (!controller.signal.aborted) {

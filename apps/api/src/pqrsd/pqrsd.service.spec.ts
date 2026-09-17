@@ -90,7 +90,7 @@ describe('PqrsdService security and privacy boundaries', () => {
       privacy: {
         listDataMasked: true,
         detailAccessAudited: true,
-        campaignCrmReuse: false,
+        campaignDataReuse: false,
         exportEnabled: false,
       },
     });

@@ -528,7 +528,7 @@ export default function RegisterPage() {
                       htmlFor="email"
                       className="ml-3 text-[9px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
                     >
-                      Correo corporativo
+                      Correo electrónico
                     </Label>
                     <div className="relative group">
                       <Mail className="absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
@@ -536,7 +536,7 @@ export default function RegisterPage() {
                         id="email"
                         name="email"
                         type="email"
-                        placeholder="hola@empresa.com"
+                        placeholder="contacto@micampaña.co"
                         value={formData.email}
                         onChange={handleChange}
                         required
