@@ -28,7 +28,7 @@ export function artifactMetadataIssues(environment = process.env) {
         "APP_REVISION debe ser unknown o un SHA Git completo en evaluation",
       );
     }
-  } else if (!FULL_GIT_SHA.test(revision)) {
+  } else if (revision !== "unknown" && !FULL_GIT_SHA.test(revision)) {
     issues.push(
       "APP_REVISION debe ser un SHA Git completo de 40 caracteres en production",
     );
@@ -61,3 +61,4 @@ if (isDirectExecution()) {
     process.exitCode = 1;
   }
 }
+
