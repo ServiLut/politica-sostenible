@@ -46,10 +46,10 @@ export class BillingService {
     const plans = [
       {
         code: 'FREE' as const,
-        name: 'Gratis',
-        description: 'Ideal para iniciar',
+        name: 'Piloto',
+        description: 'Ediles, Concejos municipios 6ta cat.',
         maxUsers: 3,
-        maxVoters: 100,
+        maxVoters: 500,
         maxStorageMb: 50,
         includesExport: false,
         includesImport: false,
@@ -63,25 +63,25 @@ export class BillingService {
       {
         code: 'STARTER' as const,
         name: 'Starter',
-        description: 'Para campañas pequeñas',
-        maxUsers: 10,
-        maxVoters: 1000,
+        description: 'Concejales capitales, Alcaldías cat. 4-6',
+        maxUsers: 15,
+        maxVoters: 5000,
         maxStorageMb: 500,
         includesExport: true,
         includesImport: false,
         includesMfa: false,
         includesApi: false,
-        monthlyPriceCop: 99000,
-        yearlyPriceCop: 99000 * 12,
+        monthlyPriceCop: 290000,
+        yearlyPriceCop: 290000 * 12,
         isActive: true,
         sortOrder: 2,
       },
       {
         code: 'PROFESSIONAL' as const,
         name: 'Profesional',
-        description: 'Para campañas medianas a grandes',
+        description: 'Alcaldías cat. 3-Especial, Asambleas, Cámara',
         maxUsers: 50,
-        maxVoters: 10000,
+        maxVoters: 50000,
         maxStorageMb: 2048,
         includesExport: true,
         includesImport: true,
@@ -89,15 +89,15 @@ export class BillingService {
         // API keys for third-party clients are not implemented yet. Do not
         // advertise or entitle an external API until that lifecycle exists.
         includesApi: false,
-        monthlyPriceCop: 299000,
-        yearlyPriceCop: 299000 * 12,
+        monthlyPriceCop: 990000,
+        yearlyPriceCop: 990000 * 12,
         isActive: true,
         sortOrder: 3,
       },
       {
         code: 'ENTERPRISE' as const,
-        name: 'Empresarial',
-        description: 'Para operaciones de gran escala',
+        name: 'Enterprise',
+        description: 'Gobernaciones, grandes capitales, Senado',
         maxUsers: 999999,
         maxVoters: 999999,
         maxStorageMb: 999999,
@@ -105,17 +105,21 @@ export class BillingService {
         includesImport: true,
         includesMfa: true,
         includesApi: false,
-        monthlyPriceCop: 799000,
-        yearlyPriceCop: 799000 * 12,
+        monthlyPriceCop: 3500000,
+        yearlyPriceCop: 3500000 * 12,
         isActive: true,
         sortOrder: 4,
       },
     ];
 
-    await this.prisma.subscriptionPlan.createMany({
-      data: plans,
-      skipDuplicates: true,
-    });
+    for (const plan of plans) {
+      await this.prisma.subscriptionPlan.upsert({
+        where: { code: plan.code },
+        update: plan,
+        create: plan,
+      });
+    }
+
     const configuredCodes = await this.prisma.subscriptionPlan.findMany({
       where: { code: { in: plans.map(({ code }) => code) } },
       select: { code: true },
