@@ -21,6 +21,7 @@ export class BillingController {
   }
 
   @Get('plans')
+  @Roles(...Object.values(Role))
   async getPlans() {
     return this.billingService.listPlans();
   }

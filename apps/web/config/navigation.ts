@@ -596,7 +596,7 @@ export const dashboardConfig: NavItem[] = [
     icon: "settings",
     group: "REVIEW",
     allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
-    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER"],
+    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedTenantTypes: ALL_TENANTS,
   },
   {

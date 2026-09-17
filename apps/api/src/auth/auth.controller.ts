@@ -20,6 +20,7 @@ import {
   RequiresPlanFeature,
 } from './decorators/requires-plan-feature.decorator';
 import { AllowSaasAdminMfaEnrollment } from './decorators/allow-saas-admin-mfa-enrollment.decorator';
+import { AllowAnyAuthenticatedRole } from './decorators/allow-any-authenticated.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -50,6 +51,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowAnyAuthenticatedRole()
   @AllowRequiredPasswordChange()
   currentSession(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.currentSession(user);
@@ -65,6 +67,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @AllowAnyAuthenticatedRole()
   @AllowRequiredPasswordChange()
   @Throttle({
     default: { limit: 5, ttl: 15 * 60_000, blockDuration: 15 * 60_000 },
@@ -77,6 +80,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @AllowAnyAuthenticatedRole()
   @AllowRequiredPasswordChange()
   @Throttle({ default: { limit: 10, ttl: 60_000, blockDuration: 60_000 } })
   logout(@CurrentUser() user: AuthenticatedUser) {
@@ -84,6 +88,7 @@ export class AuthController {
   }
 
   @Post('mfa/setup')
+  @AllowAnyAuthenticatedRole()
   @RequiresPlanFeature(PlanFeature.MFA)
   @AllowSaasAdminMfaEnrollment()
   @Throttle({
@@ -101,6 +106,7 @@ export class AuthController {
   }
 
   @Post('mfa/verify')
+  @AllowAnyAuthenticatedRole()
   @RequiresPlanFeature(PlanFeature.MFA)
   @AllowSaasAdminMfaEnrollment()
   @Throttle({
@@ -118,6 +124,7 @@ export class AuthController {
   }
 
   @Post('mfa/disable')
+  @AllowAnyAuthenticatedRole()
   @Throttle({
     default: { limit: 5, ttl: 5 * 60_000, blockDuration: 15 * 60_000 },
   })
@@ -129,6 +136,7 @@ export class AuthController {
   }
 
   @Get('mfa/status')
+  @AllowAnyAuthenticatedRole()
   async mfaStatus(@CurrentUser() user: AuthenticatedUser) {
     const enabled = await this.mfaService.hasMfaEnabled(
       user.userId,

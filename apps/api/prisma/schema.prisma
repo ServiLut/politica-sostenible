@@ -135,6 +135,8 @@ model Tenant {
   pqrsdStatusEvents                 PqrsdStatusEvent[]
   pqrsdCommands                     PqrsdCommand[]
   transitionHandoverReports         TransitionHandoverReport[]
+
+  @@index([parentTenantId])
 }
 
 model CampaignSettings {
@@ -161,50 +163,50 @@ model CampaignSettings {
 }
 
 model StoredObject {
-  id                            String                            @id @default(cuid())
-  tenantId                      String
-  uploaderId                    String
-  path                          String                            @unique @db.VarChar(512)
-  module                        StorageObjectModule
-  contentType                   String                            @db.VarChar(150)
-  expectedSize                  Int
-  actualSize                    Int?
-  etag                          String?                           @db.VarChar(255)
-  expectedSha256                String?                           @db.Char(64)
-  reportedSha256                String?                           @db.Char(64)
-  integrityStatus               StorageIntegrityStatus            @default(NOT_PROVIDED)
-  calculatedSha256              String?                           @db.Char(64)
-  observedSize                  Int?
-  observedContentType           String?                           @db.VarChar(150)
-  integrityCheckedAt            DateTime?
-  integrityVerifiedAt           DateTime?
-  integrityFailureCode          String?                           @db.VarChar(64)
-  integrityVerificationAttempts Int                               @default(0)
+  id                             String                            @id @default(cuid())
+  tenantId                       String
+  uploaderId                     String
+  path                           String                            @unique @db.VarChar(512)
+  module                         StorageObjectModule
+  contentType                    String                            @db.VarChar(150)
+  expectedSize                   Int
+  actualSize                     Int?
+  etag                           String?                           @db.VarChar(255)
+  expectedSha256                 String?                           @db.Char(64)
+  reportedSha256                 String?                           @db.Char(64)
+  integrityStatus                StorageIntegrityStatus            @default(NOT_PROVIDED)
+  calculatedSha256               String?                           @db.Char(64)
+  observedSize                   Int?
+  observedContentType            String?                           @db.VarChar(150)
+  integrityCheckedAt             DateTime?
+  integrityVerifiedAt            DateTime?
+  integrityFailureCode           String?                           @db.VarChar(64)
+  integrityVerificationAttempts  Int                               @default(0)
   integrityVerificationStartedAt DateTime?
-  integrityVerificationLeaseId  String?                           @db.Uuid
-  status                        StoredObjectStatus                @default(ISSUED)
-  expiresAt                     DateTime
-  confirmedAt                   DateTime?
-  consumedAt                    DateTime?
-  consumedByType                String?                           @db.VarChar(64)
-  consumedById                  String?                           @db.VarChar(128)
-  documentCategory              DocumentCategory?
-  retentionPhase                RetentionPhase                    @default(MANAGEMENT)
-  createdAt                     DateTime                          @default(now())
-  updatedAt                     DateTime                          @updatedAt
-  tenant                        Tenant                            @relation(fields: [tenantId], references: [id])
-  uploader                      User                              @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
-  signatures                    ElectronicSignature[]
-  catalogImportJob              ElectoralCatalogImportJob?        @relation("ElectoralCatalogImportArtifact")
-  scrutinyDocument              ScrutinyDocument?
-  financeBankStatement          FinanceBankStatement?
-  financeInKindContribution     FinanceInKindContribution?
-  financePayable                FinancePayable?
-  financePayableSettlement      FinancePayableSettlement?
-  pqrsdDocument                 PqrsdDocument?
-  financeExternalFilingEvidence FinanceExternalFilingEvidence?
-  electoralCalendarResult       ElectoralCalendarMilestoneResult?
-  signatureCountCorrection      SignatureCountCorrectionProposal?
+  integrityVerificationLeaseId   String?                           @db.Uuid
+  status                         StoredObjectStatus                @default(ISSUED)
+  expiresAt                      DateTime
+  confirmedAt                    DateTime?
+  consumedAt                     DateTime?
+  consumedByType                 String?                           @db.VarChar(64)
+  consumedById                   String?                           @db.VarChar(128)
+  documentCategory               DocumentCategory?
+  retentionPhase                 RetentionPhase                    @default(MANAGEMENT)
+  createdAt                      DateTime                          @default(now())
+  updatedAt                      DateTime                          @updatedAt
+  tenant                         Tenant                            @relation(fields: [tenantId], references: [id])
+  uploader                       User                              @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+  signatures                     ElectronicSignature[]
+  catalogImportJob               ElectoralCatalogImportJob?        @relation("ElectoralCatalogImportArtifact")
+  scrutinyDocument               ScrutinyDocument?
+  financeBankStatement           FinanceBankStatement?
+  financeInKindContribution      FinanceInKindContribution?
+  financePayable                 FinancePayable?
+  financePayableSettlement       FinancePayableSettlement?
+  pqrsdDocument                  PqrsdDocument?
+  financeExternalFilingEvidence  FinanceExternalFilingEvidence?
+  electoralCalendarResult        ElectoralCalendarMilestoneResult?
+  signatureCountCorrection       SignatureCountCorrectionProposal?
 
   @@unique([id, tenantId])
   @@unique([tenantId, path])
@@ -464,26 +466,26 @@ model PoliticalDivision {
 }
 
 model TerritoryLeader {
-  id               String            @id @default(cuid())
-  tenantId         String
-  divisionId       String
-  name             String            @db.VarChar(150)
-  roleDescription  String            @db.VarChar(150)
-  phone            String?           @db.VarChar(20)
-  email            String?           @db.VarChar(150)
-  socialNetworkUrl String?           @db.VarChar(500)
-  politicalAffinity String?          @db.VarChar(100)
-  observations     String?           @db.VarChar(1000)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  
-  tenant           Tenant            @relation(fields: [tenantId], references: [id])
-  division         PoliticalDivision @relation("DivisionTerritoryLeaders", fields: [divisionId, tenantId], references: [id, tenantId])
+  id                String   @id @default(cuid())
+  tenantId          String
+  divisionId        String
+  name              String   @db.VarChar(150)
+  roleDescription   String   @db.VarChar(150)
+  phone             String?  @db.VarChar(20)
+  email             String?  @db.VarChar(150)
+  socialNetworkUrl  String?  @db.VarChar(500)
+  politicalAffinity String?  @db.VarChar(100)
+  observations      String?  @db.VarChar(1000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  division PoliticalDivision @relation("DivisionTerritoryLeaders", fields: [divisionId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
   @@index([tenantId, divisionId])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
-
 
 /// Snapshot tenant-scoped, versionado e inmutable de una fuente territorial.
 /// El contenido nunca incluye votantes, testigos ni otra informacion personal.
@@ -694,6 +696,7 @@ model FinancialEntry {
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([vendorName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([vendorTaxId(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([reporterId])
 }
 
 /// Expediente interno para preparar un informe electoral. No representa una
@@ -716,6 +719,7 @@ model FinanceReportDossier {
   @@unique([id, tenantId])
   @@unique([tenantId, operationProfileId, kind, subjectCode], map: "FinanceReportDossier_scope_key")
   @@index([tenantId, operationProfileId, kind], map: "FinanceReportDossier_tenant_profile_kind_idx")
+  @@index([createdById])
 }
 
 /// Corte append-only del libro. Sus lineas copian los importes y metadatos
@@ -1121,6 +1125,7 @@ model WitnessAssignment {
   @@index([tenantId, puestoId, tableStart, tableEnd], map: "WitnessAssignment_tenant_place_tables_idx")
   @@index([tenantId, witnessId, shiftStartsAt, shiftEndsAt], map: "WitnessAssignment_tenant_witness_shift_idx")
   @@index([tenantId, status, shiftStartsAt, shiftEndsAt], map: "WitnessAssignment_tenant_status_shift_idx")
+  @@index([createdById])
 }
 
 /// Ventana de cobertura declarada por puesto y jornada local. No presume un
@@ -1220,6 +1225,7 @@ model PointLog {
   user      User           @relation(fields: [userId, tenantId], references: [id, tenantId])
   event     CampaignEvent? @relation(fields: [eventId, tenantId], references: [id, tenantId])
 
+  @@unique([id, tenantId])
   @@index([tenantId, userId, createdAt])
   @@index([tenantId, eventId])
 }
@@ -1536,6 +1542,7 @@ model ConsentRecord {
   @@index([tenantId, mode, subjectRef, purpose, status])
   @@index([tenantId, voterId])
   @@index([tenantId, expiresAt])
+  @@index([capturedById])
 }
 
 /// Versiones del aviso de privacidad configuradas por cada organización.
@@ -1615,6 +1622,7 @@ model IssueCase {
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([category(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([externalContactRef(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([createdById])
 }
 
 model Interaction {
@@ -1639,9 +1647,11 @@ model Interaction {
   actor              User?                  @relation("InteractionActor", fields: [actorId, tenantId], references: [id, tenantId])
   consentRecord      ConsentRecord?         @relation(fields: [consentRecordId, tenantId], references: [id, tenantId])
 
+  @@unique([id, tenantId])
   @@index([tenantId, mode, occurredAt])
   @@index([tenantId, issueCaseId, occurredAt])
   @@index([tenantId, voterId, occurredAt])
+  @@index([actorId])
 }
 
 model Task {
@@ -1672,6 +1682,7 @@ model Task {
   @@index([tenantId, assigneeId, status])
   @@index([tenantId, issueCaseId])
   @@index([tenantId, commitmentId])
+  @@index([createdById])
 }
 
 /// Promesa de campaña o compromiso de gobierno con seguimiento verificable.
@@ -1701,6 +1712,7 @@ model Commitment {
   @@unique([tenantId, reference])
   @@index([tenantId, mode, status, targetDate])
   @@index([tenantId, ownerId])
+  @@index([issueCaseId])
 }
 
 /// Flujo de cuatro ojos para mensajes públicos: el hash identifica exactamente
@@ -1729,11 +1741,14 @@ model CommunicationApproval {
   requestedBy           User                        @relation("CommunicationRequestedBy", fields: [requestedById, tenantId], references: [id, tenantId])
   decidedBy             User?                       @relation("CommunicationDecidedBy", fields: [decidedById, tenantId], references: [id, tenantId])
 
+  @@unique([id, tenantId])
   @@index([tenantId, mode, status, createdAt])
   @@index([tenantId, scheduledAt])
   @@index([tenantId, issueCaseId])
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([purpose(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([requestedById])
+  @@index([decidedById])
 }
 
 /// Registro append-only de operaciones sensibles. PostgreSQL rechaza UPDATE,
@@ -1758,6 +1773,7 @@ model AuditEvent {
   tenant       Tenant                 @relation(fields: [tenantId], references: [id])
   actorUser    User?                  @relation("AuditActor", fields: [actorUserId, tenantId], references: [id, tenantId])
 
+  @@unique([id, tenantId])
   @@index([tenantId, occurredAt])
   @@index([tenantId, resourceType, resourceId, occurredAt])
   @@index([tenantId, actorUserId, occurredAt])
@@ -1784,6 +1800,7 @@ model OfflineSyncReceipt {
   actorUser         User                     @relation("OfflineSyncActor", fields: [actorUserId, tenantId], references: [id, tenantId])
 
   @@unique([tenantId, clientOperationId])
+  @@unique([id, tenantId])
   @@index([tenantId, actorUserId, receivedAt])
   @@index([tenantId, operationType, receivedAt])
 }
@@ -1838,6 +1855,7 @@ model OfflineE14CaptureGrantPlace {
   puesto                    PoliticalDivision      @relation(fields: [puestoId, tenantId], references: [id, tenantId])
 
   @@unique([tenantId, grantId, puestoId], map: "OfflineE14GrantPlace_tenant_grant_place_key")
+  @@unique([id, tenantId])
   @@index([tenantId, puestoId, grantId], map: "OfflineE14GrantPlace_tenant_place_grant_idx")
 }
 
@@ -2336,12 +2354,13 @@ model OperationProfile {
   @@index([tenantId, electionDate])
   @@index([tenantId, votingStartDate, votingEndDate], map: "OperationProfile_tenant_voting_window_idx")
   @@index([tenantId, responsibleDataUserId])
+  @@index([createdById])
 }
 
 /// Snapshot interno, durable e inmutable del expediente de cierre. Su
 /// existencia y huella no acreditan cumplimiento ni radicacion ante autoridad.
 model TransitionHandoverReport {
-  id                 String                        @id @db.Uuid
+  id                 String                         @id @db.Uuid
   tenantId           String
   operationProfileId String
   generatedById      String
@@ -2349,11 +2368,11 @@ model TransitionHandoverReport {
   status             TransitionHandoverReportStatus
   packageKind        TransitionHandoverPackageKind
   payload            Json
-  sha256             String                        @db.Char(64)
-  createdAt          DateTime                      @default(now())
-  tenant             Tenant                        @relation(fields: [tenantId], references: [id], map: "TransitionHandoverReport_tenant_fkey")
-  operationProfile   OperationProfile              @relation(fields: [operationProfileId, tenantId], references: [id, tenantId], map: "TransitionHandoverReport_profile_fkey")
-  generatedBy        User                          @relation("TransitionHandoverReportGenerator", fields: [generatedById, tenantId], references: [id, tenantId], map: "TransitionHandoverReport_generator_fkey")
+  sha256             String                         @db.Char(64)
+  createdAt          DateTime                       @default(now())
+  tenant             Tenant                         @relation(fields: [tenantId], references: [id], map: "TransitionHandoverReport_tenant_fkey")
+  operationProfile   OperationProfile               @relation(fields: [operationProfileId, tenantId], references: [id, tenantId], map: "TransitionHandoverReport_profile_fkey")
+  generatedBy        User                           @relation("TransitionHandoverReportGenerator", fields: [generatedById, tenantId], references: [id, tenantId], map: "TransitionHandoverReport_generator_fkey")
 
   @@unique([id, tenantId], map: "TransitionHandoverReport_id_tenant_key")
   @@index([tenantId, generatedAt], map: "TransitionHandoverReport_tenant_generated_idx")
@@ -3073,6 +3092,8 @@ model ScrutinyCommission {
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([code(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([scopeName(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([createdById])
+  @@index([scopeDivisionId])
 }
 
 model ScrutinyDocumentRequirement {
@@ -3960,6 +3981,8 @@ model PoliticalProposal {
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([targetGroup(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([territory(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([ownerId])
+  @@index([createdById])
 }
 
 enum ProposalCategory {
@@ -4067,6 +4090,7 @@ model ElectronicSignature {
   signer   User         @relation(fields: [signerId, tenantId], references: [id, tenantId])
 
   @@unique([tenantId, documentId, signerId], map: "ElectronicSignature_tenant_document_signer_key")
+  @@unique([id, tenantId])
   @@index([tenantId, documentId])
   @@index([tenantId, signerId])
 }
@@ -4227,6 +4251,7 @@ model PqrsdDossier {
   @@index([tenantId, currentPrimaryAssigneeId, status])
   @@index([tenantId, currentBackupAssigneeId, status])
   @@index([tenantId, rulePackageId])
+  @@index([createdById])
 }
 
 /// Full petitioner identity is only returned by an audited detail endpoint.
@@ -4287,6 +4312,7 @@ model PqrsdDocument {
   @@unique([id, tenantId])
   @@unique([storedObjectId, tenantId])
   @@index([tenantId, dossierId, type, createdAt])
+  @@index([createdById])
 }
 
 model PqrsdDocumentReview {

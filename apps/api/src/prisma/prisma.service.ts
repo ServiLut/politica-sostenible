@@ -102,7 +102,7 @@ export class PrismaService
     const pool = new pg.Pool({
       connectionString,
       ssl: resolveDatabaseSsl(),
-      max: 10,
+      max: parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10),
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 30_000,
       options: resolveDatabaseSearchPathOptions(schema),
