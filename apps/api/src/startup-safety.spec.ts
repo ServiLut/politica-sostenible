@@ -16,7 +16,18 @@ describe('application startup safety', () => {
     expect(appModule).not.toMatch(/\bScheduleModule\b/u);
     expect(appModule).not.toMatch(/\bRetentionModule\b/u);
     expect(appModule).not.toMatch(/\bNotificationsModule\b/u);
-    expect(appModule).not.toMatch(/\bTransitionHandoverModule\b/u);
+    expect(appModule).toMatch(/\bTransitionHandoverModule\b/u);
+    expect(appModule).toMatch(/\bOperationProfileModule\b/u);
+  });
+
+  it('wires the reviewed adoption flow only through OperationProfileModule', () => {
+    const operationProfileModule = source(
+      'operation-profile/operation-profile.module.ts',
+    );
+
+    expect(operationProfileModule).toMatch(/OperationStageAdoptionService/u);
+    expect(operationProfileModule).toMatch(/OperationProfileController/u);
+    expect(operationProfileModule).not.toMatch(/Emergency|Bypass/u);
   });
 
   it('does not expose cron metadata on retained manual operations', () => {
@@ -29,14 +40,22 @@ describe('application startup safety', () => {
     expect(
       Reflect.getMetadata(
         'SCHEDULER_TYPE',
-        NotificationsService.prototype.sendTaskReminders,
+        NotificationsService.prototype.findTaskReminderCandidates,
       ),
     ).toBeUndefined();
     expect(RetentionService.prototype.handleDataRetention).toEqual(
       expect.any(Function),
     );
-    expect(NotificationsService.prototype.sendTaskReminders).toEqual(
+    expect(NotificationsService.prototype.findTaskReminderCandidates).toEqual(
       expect.any(Function),
+    );
+  });
+
+  it('fails closed if an old caller invokes the retired destructive retention entrypoint', () => {
+    const retention = new RetentionService();
+
+    expect(() => retention.handleDataRetention('tenant-any')).toThrow(
+      'La purga automatica esta deshabilitada',
     );
   });
 

@@ -16,6 +16,11 @@ import {
 } from "@/lib/auth-api";
 import { ApiError } from "@/lib/api-client";
 import {
+  getBillingCapabilities,
+  type BillingCapabilities,
+  type BillingFeature,
+} from "@/lib/billing-api";
+import {
   AUTH_SESSION_CHANGED_EVENT,
   AuthSession,
   clearAuthSession,
@@ -23,6 +28,10 @@ import {
   readAuthSession,
   saveAuthSession,
 } from "@/lib/auth-session";
+import {
+  resolvePlanCapability,
+  type PlanCapabilityView,
+} from "@/lib/plan-capabilities";
 import { Tenant, User, UserRole } from "@/types/saas-schema";
 
 interface AuthContextType {
@@ -35,6 +44,10 @@ interface AuthContextType {
   ) => Promise<AuthSession | { requiresMfa: true }>;
   signOut: (redirectTo?: string) => void;
   synchronizeTenant: (tenant: Tenant) => boolean;
+  planCapabilities: BillingCapabilities | null;
+  planCapabilitiesLoading: boolean;
+  planCapabilitiesError: string | null;
+  refreshPlanCapabilities: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +55,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [planCapabilities, setPlanCapabilities] =
+    useState<BillingCapabilities | null>(null);
+  const [planCapabilitiesLoading, setPlanCapabilitiesLoading] = useState(false);
+  const [planCapabilitiesError, setPlanCapabilitiesError] = useState<
+    string | null
+  >(null);
+  const [planCapabilitiesRevision, setPlanCapabilitiesRevision] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -98,6 +118,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!session?.accessToken || session.user.mustChangePassword === true) {
+      setPlanCapabilities(null);
+      setPlanCapabilitiesError(null);
+      setPlanCapabilitiesLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setPlanCapabilities(null);
+    setPlanCapabilitiesError(null);
+    setPlanCapabilitiesLoading(true);
+
+    void getBillingCapabilities(controller.signal)
+      .then((capabilities) => {
+        if (!controller.signal.aborted) {
+          setPlanCapabilities(capabilities);
+        }
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        if (error instanceof ApiError && error.status === 401) {
+          return;
+        }
+        if (!controller.signal.aborted) {
+          setPlanCapabilitiesError(
+            error instanceof ApiError
+              ? error.message
+              : "No fue posible validar las funciones incluidas en tu plan.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setPlanCapabilitiesLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    session?.accessToken,
+    session?.user.mustChangePassword,
+    planCapabilitiesRevision,
+  ]);
+
+  useEffect(() => {
     if (!session?.expiresAt) return;
 
     const remainingTime = session.expiresAt - Date.now();
@@ -137,6 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       clearAuthSession();
       setSession(null);
+      setPlanCapabilities(null);
+      setPlanCapabilitiesError(null);
+      setPlanCapabilitiesLoading(false);
       if (redirectTo) {
         window.location.replace(redirectTo);
         return;
@@ -161,6 +231,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const refreshPlanCapabilities = useCallback(() => {
+    setPlanCapabilitiesRevision((revision) => revision + 1);
+  }, []);
+
   const value: AuthContextType = {
     user: session?.user ?? null,
     tenant: session?.tenant ?? null,
@@ -169,6 +243,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signOut,
     synchronizeTenant,
+    planCapabilities,
+    planCapabilitiesLoading,
+    planCapabilitiesError,
+    refreshPlanCapabilities,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -180,4 +258,25 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+export function usePlanCapability(
+  feature: BillingFeature,
+): PlanCapabilityView & { refresh: () => void } {
+  const {
+    planCapabilities,
+    planCapabilitiesError,
+    planCapabilitiesLoading,
+    refreshPlanCapabilities,
+  } = useAuth();
+
+  return {
+    ...resolvePlanCapability(
+      feature,
+      planCapabilities,
+      planCapabilitiesLoading,
+      planCapabilitiesError,
+    ),
+    refresh: refreshPlanCapabilities,
+  };
 }

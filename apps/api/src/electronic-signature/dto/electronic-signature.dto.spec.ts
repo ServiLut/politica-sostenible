@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import {
   SignatureParamsDto,
+  SignatureModuleQueryDto,
   SignDocumentDto,
   VerifySignatureQueryDto,
 } from './electronic-signature.dto';
@@ -22,10 +23,14 @@ describe('Electronic signature DTO validation', () => {
       module: StorageModuleName.E14,
       resourceId: 'report_safe-123',
     });
+    const moduleQuery = plainToInstance(SignatureModuleQueryDto, {
+      module: StorageModuleName.FINANCE,
+    });
 
     await expect(validate(body)).resolves.toHaveLength(0);
     await expect(validate(params)).resolves.toHaveLength(0);
     await expect(validate(query)).resolves.toHaveLength(0);
+    await expect(validate(moduleQuery)).resolves.toHaveLength(0);
   });
 
   it('rejects path-like ids and malformed OTP values', async () => {
@@ -44,10 +49,14 @@ describe('Electronic signature DTO validation', () => {
       module: StorageModuleName.CONSENT,
       resourceId: 'consent-safe-123',
     });
+    const unsupportedModuleQuery = plainToInstance(SignatureModuleQueryDto, {
+      module: StorageModuleName.CONSENT,
+    });
 
     await expect(validate(body)).resolves.not.toHaveLength(0);
     await expect(validate(params)).resolves.not.toHaveLength(0);
     await expect(validate(query)).resolves.not.toHaveLength(0);
     await expect(validate(unsupportedModule)).resolves.not.toHaveLength(0);
+    await expect(validate(unsupportedModuleQuery)).resolves.not.toHaveLength(0);
   });
 });

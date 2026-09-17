@@ -5,11 +5,14 @@ import {
 } from '@nestjs/common';
 import {
   E14FormType,
+  ElectoralCodeNamespace,
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Prisma,
   Role,
   TenantType,
   WitnessCredentialType,
+  WitnessCaptureContext,
   WitnessReclamationGround,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
@@ -36,6 +39,7 @@ const report = (
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
   id: 'report-pending',
+  captureContext: WitnessCaptureContext.REAL,
   witnessId: 'witness-a',
   puestoId: 'puesto-a',
   mesa: 7,
@@ -70,15 +74,21 @@ const report = (
   ...overrides,
 });
 
-function transactionRunner(transaction: object) {
+function transactionRunner(
+  transaction: object & { $queryRaw?: jest.Mock },
+  stage: PoliticalOperationStage = PoliticalOperationStage.ELECTION_DAY,
+) {
+  transaction.$queryRaw ??= jest.fn().mockResolvedValue([{ stage }]);
   return jest.fn(async (callback: (client: object) => Promise<unknown>) =>
     callback(transaction),
   );
 }
 
 describe('WitnessService E-14 reconciliation', () => {
-  it('accepts another evidence for the same table as a new pending report', async () => {
-    const created = report();
+  it('persists a simulated report with server-derived provenance', async () => {
+    const created = report({
+      captureContext: WitnessCaptureContext.SIMULATION,
+    });
     const tx = {
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -115,7 +125,10 @@ describe('WitnessService E-14 reconciliation', () => {
       },
       auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
     };
-    const runTransaction = transactionRunner(tx);
+    const runTransaction = transactionRunner(
+      tx,
+      PoliticalOperationStage.SIMULATION,
+    );
     const service = new WitnessService({
       tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
       $transaction: runTransaction,
@@ -139,13 +152,18 @@ describe('WitnessService E-14 reconciliation', () => {
       }),
     );
     expect(tx.witnessReport.findFirst).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a', e14ImageUrl: evidence },
+      where: {
+        tenantId: 'tenant-a',
+        captureContext: WitnessCaptureContext.SIMULATION,
+        e14ImageUrl: evidence,
+      },
       select: expect.any(Object),
     });
     expect(tx.witnessReport.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.SIMULATION,
           witnessId: 'witness-a',
           puestoId: 'puesto-a',
           mesa: 7,
@@ -167,6 +185,16 @@ describe('WitnessService E-14 reconciliation', () => {
         where: expect.objectContaining({ uploaderId: 'witness-a' }) as object,
       }),
     );
+    expect(tx.witnessReport.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.SIMULATION,
+          puestoId: 'puesto-a',
+          mesa: 7,
+        }) as object,
+      }),
+    );
     expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
@@ -174,6 +202,69 @@ describe('WitnessService E-14 reconciliation', () => {
     const serializedAudit = JSON.stringify(tx.auditEvent.create.mock.calls);
     expect(serializedAudit).not.toContain(evidence);
     expect(serializedAudit).toContain('hasPrivateEvidence');
+  });
+
+  it.each([
+    {
+      name: 'its documented local voting day is not active',
+      votingDate: new Date('2026-05-31T00:00:00.000Z'),
+      timeZone: 'America/Bogota',
+      code: 'E14_POLLING_PLACE_OUTSIDE_LOGICAL_VOTING_DATE',
+    },
+    {
+      name: 'its exterior IANA time zone is not verified',
+      votingDate: new Date('2026-05-30T00:00:00.000Z'),
+      timeZone: null,
+      code: 'E14_POLLING_PLACE_TIME_ZONE_NOT_VERIFIED',
+    },
+  ])('blocks direct REAL capture when $name', async (scenario) => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-30T12:00:00.000Z'));
+    try {
+      const tx = {
+        user: {
+          findFirst: jest.fn().mockResolvedValue({
+            role: Role.WITNESS,
+            divisionId: 'puesto-a',
+          }),
+        },
+        politicalDivision: {
+          findMany: jest
+            .fn()
+            .mockResolvedValue([{ id: 'puesto-a', parentId: null }]),
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'puesto-a',
+            expectedTables: 10,
+            sourceNamespace: ElectoralCodeNamespace.RNEC_DIVIPOLE,
+            sourceLocationCode: '1001',
+            votingDate: scenario.votingDate,
+            timeZone: scenario.timeZone,
+          }),
+        },
+        witnessReport: { findFirst: jest.fn() },
+      };
+      const service = new WitnessService({
+        tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+        $transaction: transactionRunner(
+          tx,
+          PoliticalOperationStage.ELECTION_DAY,
+        ),
+      } as unknown as PrismaService);
+
+      await expect(
+        service.create('tenant-a', 'witness-a', {
+          puestoId: 'puesto-a',
+          mesa: 7,
+          ...traceabilityInput,
+          checkedInAt: '2026-05-30T11:55:00.000Z',
+          e14ImageUrl: 'tenant-a/e14/123e4567-e89b-42d3-a456-426614174009.pdf',
+          candidateVotes: 80,
+          totalTableVotes: 200,
+        }),
+      ).rejects.toMatchObject({ response: { code: scenario.code } });
+      expect(tx.witnessReport.findFirst).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('rejects a vote breakdown that exceeds the table total before persistence', async () => {
@@ -446,6 +537,7 @@ describe('WitnessService E-14 reconciliation', () => {
         where: {
           id: 'report-pending',
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.REAL,
           status: WitnessReportStatus.PENDING,
         },
         data: expect.objectContaining({
@@ -457,9 +549,12 @@ describe('WitnessService E-14 reconciliation', () => {
   });
 
   it('atomically supersedes the prior accepted act and accepts the reviewed act', async () => {
-    const pending = report();
+    const pending = report({
+      captureContext: WitnessCaptureContext.SIMULATION,
+    });
     const accepted = report({
       id: 'report-old',
+      captureContext: WitnessCaptureContext.SIMULATION,
       witnessId: 'witness-b',
       candidateVotes: 79,
       status: WitnessReportStatus.ACCEPTED,
@@ -473,6 +568,7 @@ describe('WitnessService E-14 reconciliation', () => {
       reviewerId: 'reviewer-a',
       reviewReason: 'Coincide con la lectura visual y el total de sufragantes.',
       reviewedAt: new Date('2026-08-30T11:00:00.000Z'),
+      captureContext: WitnessCaptureContext.SIMULATION,
       reviewer: { id: 'reviewer-a', name: 'Revisor A' },
     });
     const findFirst = jest
@@ -505,7 +601,10 @@ describe('WitnessService E-14 reconciliation', () => {
       },
       auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
     };
-    const runTransaction = transactionRunner(tx);
+    const runTransaction = transactionRunner(
+      tx,
+      PoliticalOperationStage.SIMULATION,
+    );
     const service = new WitnessService({
       tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
       $transaction: runTransaction,
@@ -523,6 +622,7 @@ describe('WitnessService E-14 reconciliation', () => {
       where: {
         id: 'report-old',
         tenantId: 'tenant-a',
+        captureContext: WitnessCaptureContext.SIMULATION,
         status: WitnessReportStatus.ACCEPTED,
       },
       data: {
@@ -536,6 +636,7 @@ describe('WitnessService E-14 reconciliation', () => {
         where: {
           id: 'report-pending',
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.SIMULATION,
           status: WitnessReportStatus.PENDING,
         },
         data: expect.objectContaining({
@@ -575,9 +676,12 @@ describe('WitnessService E-14 reconciliation', () => {
   });
 
   it('paginates reports, flags divergences and computes metrics only from accepted acts', async () => {
-    const pending = report();
+    const pending = report({
+      captureContext: WitnessCaptureContext.SIMULATION,
+    });
     const accepted = report({
       id: 'report-accepted',
+      captureContext: WitnessCaptureContext.SIMULATION,
       witnessId: 'witness-b',
       candidateVotes: 90,
       status: WitnessReportStatus.ACCEPTED,
@@ -634,7 +738,10 @@ describe('WitnessService E-14 reconciliation', () => {
         }),
       },
     };
-    const runTransaction = transactionRunner(tx);
+    const runTransaction = transactionRunner(
+      tx,
+      PoliticalOperationStage.SIMULATION,
+    );
     const service = new WitnessService({
       tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
       $transaction: runTransaction,
@@ -654,6 +761,10 @@ describe('WitnessService E-14 reconciliation', () => {
       total: 2,
       totalPages: 1,
     });
+    expect(result.captureContext).toBe(WitnessCaptureContext.SIMULATION);
+    for (const [call] of tx.witnessReport.groupBy.mock.calls) {
+      expect(call.where.captureContext).toBe(WitnessCaptureContext.SIMULATION);
+    }
     expect(result.items[0]).toEqual(
       expect.objectContaining({ divergent: true, hasEvidence: true }),
     );
@@ -679,7 +790,7 @@ describe('WitnessService E-14 reconciliation', () => {
     });
   });
 
-  it('does not publish a misleading coverage percentage while a place is unconfigured', async () => {
+  it('reads only the REAL context in CLOSED without publishing misleading coverage', async () => {
     const tx = {
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -705,7 +816,7 @@ describe('WitnessService E-14 reconciliation', () => {
     };
     const service = new WitnessService({
       tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
-      $transaction: transactionRunner(tx),
+      $transaction: transactionRunner(tx, PoliticalOperationStage.CLOSED),
     } as unknown as PrismaService);
 
     const result = await service.findAll('tenant-a', 'admin-a', {
@@ -713,6 +824,20 @@ describe('WitnessService E-14 reconciliation', () => {
       limit: 25,
     });
 
+    expect(result.captureContext).toBe(WitnessCaptureContext.REAL);
+    expect(tx.witnessReport.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            expect.objectContaining({
+              tenantId: 'tenant-a',
+              captureContext: WitnessCaptureContext.REAL,
+            }),
+            expect.any(Object),
+          ],
+        },
+      }),
+    );
     expect(result.summary.coverage).toEqual({
       configuredPlaces: 1,
       totalPlaces: 2,
@@ -768,6 +893,7 @@ describe('WitnessService E-14 reconciliation', () => {
           AND: [
             {
               tenantId: 'tenant-a',
+              captureContext: WitnessCaptureContext.REAL,
               puestoId: { in: ['zone-a', 'puesto-a'] },
             },
             { puestoId: 'puesto-b' },
@@ -779,6 +905,10 @@ describe('WitnessService E-14 reconciliation', () => {
 
   it('refuses a polling-place profile below an already reported table number', async () => {
     const tx = {
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValueOnce([{ stage: PoliticalOperationStage.SIMULATION }])
+        .mockResolvedValue([{ locked: true }]),
       user: {
         findFirst: jest.fn().mockResolvedValue({
           role: Role.ADMIN,
@@ -791,6 +921,7 @@ describe('WitnessService E-14 reconciliation', () => {
           code: 'P-001',
           name: 'Colegio Central',
           expectedTables: null,
+          sourceNamespace: null,
         }),
         update: jest.fn(),
       },
@@ -809,6 +940,56 @@ describe('WitnessService E-14 reconciliation', () => {
         expectedTables: 7,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.witnessReport.aggregate).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        captureContext: WitnessCaptureContext.SIMULATION,
+        puestoId: 'puesto-a',
+      },
+      _max: { mesa: true },
+    });
+    expect(tx.politicalDivision.update).not.toHaveBeenCalled();
+    expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps expected tables immutable for an active official RNEC polling place', async () => {
+    const tx = {
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValueOnce([{ stage: PoliticalOperationStage.SIMULATION }])
+        .mockResolvedValue([{ locked: true }]),
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ADMIN,
+          divisionId: null,
+        }),
+      },
+      politicalDivision: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'puesto-a',
+          code: 'RNEC_DIVIPOLE:01/001/01/01',
+          name: 'Colegio Central',
+          expectedTables: 8,
+          sourceNamespace: ElectoralCodeNamespace.RNEC_DIVIPOLE,
+        }),
+        update: jest.fn(),
+      },
+      witnessReport: { aggregate: jest.fn() },
+      auditEvent: { create: jest.fn() },
+    };
+    const service = new WitnessService({
+      tenant: { findUnique: jest.fn().mockResolvedValue(tenant) },
+      $transaction: transactionRunner(tx),
+    } as unknown as PrismaService);
+
+    await expect(
+      service.updatePollingPlaceProfile('tenant-a', 'admin-a', 'puesto-a', {
+        expectedTables: 9,
+      }),
+    ).rejects.toThrow(
+      'Las mesas de un puesto oficial RNEC solo pueden cambiar mediante un nuevo release electoral autorizado',
+    );
+    expect(tx.witnessReport.aggregate).not.toHaveBeenCalled();
     expect(tx.politicalDivision.update).not.toHaveBeenCalled();
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
   });

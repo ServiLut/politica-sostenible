@@ -88,17 +88,27 @@ export function listEvents(
   return apiRequest(withQuery("events", { ...params }), { signal });
 }
 
-export function listEventResponsibles(
-  signal?: AbortSignal,
-): Promise<EventResponsible[]> {
-  return apiRequest("events/responsibles", { signal });
+export interface ListResponsiblesParams {
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
-export function getEvent(
-  id: string,
+export interface ResponsiblesPage {
+  items: EventResponsible[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export function listEventResponsibles(
+  params: ListResponsiblesParams = {},
   signal?: AbortSignal,
-): Promise<CampaignEvent> {
-  return apiRequest(`events/${encodeURIComponent(id)}`, { signal });
+): Promise<ResponsiblesPage> {
+  return apiRequest(withQuery("events/responsibles", { ...params }), { signal });
 }
 
 export function createEvent(input: CreateEventInput): Promise<CampaignEvent> {

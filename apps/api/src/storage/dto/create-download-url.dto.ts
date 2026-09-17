@@ -4,6 +4,10 @@ import { StorageModuleName } from '../storage.constants';
 const REVIEWABLE_MODULES = [
   StorageModuleName.FINANCE,
   StorageModuleName.E14,
+  StorageModuleName.SCRUTINY,
+  StorageModuleName.ELECTORAL_CALENDAR,
+  StorageModuleName.SIGNATURE_COLLECTION,
+  StorageModuleName.PQRSD,
 ] as const;
 
 export class CreateDownloadUrlDto {

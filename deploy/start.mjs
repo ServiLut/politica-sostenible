@@ -3,6 +3,7 @@ import { closeSync, openSync, readFileSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { runSafeMigrations } from "./migrate.mjs";
+import { catalogWorkerHealthIssues } from "./catalog-worker-healthcheck.mjs";
 import {
   allowsInsecureEvaluationDatabase,
   requireRuntimeEnvironment,
@@ -10,11 +11,13 @@ import {
 
 export const API_READY_URL = "http://127.0.0.1:4000/health/ready";
 export const API_READY_TIMEOUT_MS = 60_000;
+export const CATALOG_WORKER_READY_TIMEOUT_MS = 60_000;
 export const SUPERVISOR_SHUTDOWN_GRACE_MS = 30_000;
 const MINIMUM_SUPERVISOR_SHUTDOWN_GRACE_MS = 10_000;
 const MAXIMUM_SUPERVISOR_SHUTDOWN_GRACE_MS = 120_000;
 const API_READY_RETRY_MS = 250;
 const API_READY_REQUEST_TIMEOUT_MS = 2_000;
+const CATALOG_WORKER_READY_RETRY_MS = 250;
 
 const SYSTEM_ENVIRONMENT_KEYS = Object.freeze([
   "PATH",
@@ -35,10 +38,13 @@ const API_ENVIRONMENT_KEYS = Object.freeze([
   "DATABASE_SCHEMA",
   "DATABASE_SSL",
   "DATABASE_SSL_REJECT_UNAUTHORIZED",
+  "REDIS_URL",
+  "REDIS_ALLOW_PLAINTEXT_INTERNAL",
   "DEPLOYMENT_PROFILE",
   "ALLOW_INSECURE_DATABASE_CONNECTION",
   "JWT_SECRET",
   "CONSENT_IP_SALT",
+  "OFFLINE_SYNC_HMAC_SECRET",
   "SAAS_ADMIN_USER_IDS",
   "MFA_TOTP_ACTIVE_KEY_ID",
   "MFA_TOTP_ENCRYPTION_KEY",
@@ -46,6 +52,22 @@ const API_ENVIRONMENT_KEYS = Object.freeze([
   "MFA_TOTP_PREVIOUS_KEYS",
   "CORS_ORIGINS",
   "NEXT_PUBLIC_APP_URL",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_STORAGE_BUCKET",
+  "SENTRY_DSN",
+  "SENTRY_TRACES_SAMPLE_RATE",
+]);
+const CATALOG_WORKER_ENVIRONMENT_KEYS = Object.freeze([
+  "NODE_ENV",
+  "DATABASE_URL",
+  "DATABASE_SCHEMA",
+  "DATABASE_SSL",
+  "DATABASE_SSL_REJECT_UNAUTHORIZED",
+  "DEPLOYMENT_PROFILE",
+  "ALLOW_INSECURE_DATABASE_CONNECTION",
+  "REDIS_URL",
+  "REDIS_ALLOW_PLAINTEXT_INTERNAL",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_STORAGE_BUCKET",
@@ -70,14 +92,17 @@ const SUPERVISOR_SECRET_KEYS = Object.freeze([
   "POSTGRES_PASSWORD",
   "JWT_SECRET",
   "CONSENT_IP_SALT",
+  "OFFLINE_SYNC_HMAC_SECRET",
   "SAAS_ADMIN_USER_IDS",
   "MFA_TOTP_ENCRYPTION_KEY",
   "MFA_TOTP_PREVIOUS_KEYS",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "REDIS_URL",
   "SENTRY_DSN",
 ]);
 const SERVICE_IDENTITY_KEYS = Object.freeze({
   api: ["API_PROCESS_UID", "API_PROCESS_GID"],
+  catalogWorker: ["CATALOG_WORKER_PROCESS_UID", "CATALOG_WORKER_PROCESS_GID"],
   web: ["WEB_PROCESS_UID", "WEB_PROCESS_GID"],
 });
 
@@ -176,9 +201,11 @@ export function buildChildEnvironment(
   const targetKeys =
     target === "api"
       ? API_ENVIRONMENT_KEYS
-      : target === "web"
-        ? WEB_ENVIRONMENT_KEYS
-        : [];
+      : target === "catalog-worker"
+        ? CATALOG_WORKER_ENVIRONMENT_KEYS
+        : target === "web"
+          ? WEB_ENVIRONMENT_KEYS
+          : [];
   const allowed = new Set([...SYSTEM_ENVIRONMENT_KEYS, ...targetKeys]);
   const selected = {};
   for (const key of allowed) {
@@ -214,13 +241,15 @@ export function resolveCombinedRuntimeIdentities(
   if (configuredValues.length === 0) {
     if (environment.NODE_ENV === "production") {
       throw new Error(
-        "El contenedor combinado de produccion exige UID y GID separados para API y web",
+        "El contenedor combinado de produccion exige UID y GID separados para API, worker y web",
       );
     }
     return { api: undefined, web: undefined };
   }
-  if (configuredValues.length !== 4) {
-    throw new Error("La separacion de procesos exige UID y GID para API y web");
+  if (configuredValues.length !== 6) {
+    throw new Error(
+      "La separacion de procesos exige UID y GID para API, worker y web",
+    );
   }
   if (platform === "win32" || supervisorUid !== 0) {
     throw new Error(
@@ -229,20 +258,28 @@ export function resolveCombinedRuntimeIdentities(
   }
 
   const [apiUidKey, apiGidKey] = SERVICE_IDENTITY_KEYS.api;
+  const [workerUidKey, workerGidKey] = SERVICE_IDENTITY_KEYS.catalogWorker;
   const [webUidKey, webGidKey] = SERVICE_IDENTITY_KEYS.web;
   const api = {
     uid: parseServiceId(environment[apiUidKey]?.trim(), apiUidKey),
     gid: parseServiceId(environment[apiGidKey]?.trim(), apiGidKey),
+  };
+  const catalogWorker = {
+    uid: parseServiceId(environment[workerUidKey]?.trim(), workerUidKey),
+    gid: parseServiceId(environment[workerGidKey]?.trim(), workerGidKey),
   };
   const web = {
     uid: parseServiceId(environment[webUidKey]?.trim(), webUidKey),
     gid: parseServiceId(environment[webGidKey]?.trim(), webGidKey),
   };
 
-  if (api.uid === web.uid || api.gid === web.gid) {
-    throw new Error("API y web deben usar UID y GID distintos");
+  if (
+    new Set([api.uid, catalogWorker.uid, web.uid]).size !== 3 ||
+    new Set([api.gid, catalogWorker.gid, web.gid]).size !== 3
+  ) {
+    throw new Error("API, worker y web deben usar UID y GID distintos");
   }
-  return { api, web };
+  return { api, catalogWorker, web };
 }
 
 export function assertCombinedRuntimeBoundary(
@@ -259,7 +296,7 @@ export function assertCombinedRuntimeBoundary(
 
   if (!/^NoNewPrivs:\s+1$/mu.test(readStatus())) {
     throw new Error(
-      "El contenedor combinado exige no-new-privileges para aislar API y web",
+      "El contenedor combinado exige no-new-privileges para aislar API, worker y web",
     );
   }
 
@@ -408,30 +445,78 @@ export async function waitForApiReady({
   );
 }
 
-function apiExitedBeforeReadiness(exited) {
+export async function waitForCatalogWorkerReady({
+  timeoutMs = CATALOG_WORKER_READY_TIMEOUT_MS,
+  retryMs = CATALOG_WORKER_READY_RETRY_MS,
+  healthIssues = () => catalogWorkerHealthIssues(),
+  now = Date.now,
+  sleep = delay,
+} = {}) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error("El tiempo maximo de espera del worker debe ser positivo");
+  }
+
+  const startedAt = now();
+  let lastIssues = ["heartbeat aun no disponible"];
+  while (now() - startedAt < timeoutMs) {
+    try {
+      lastIssues = healthIssues();
+      if (Array.isArray(lastIssues) && lastIssues.length === 0) return;
+    } catch {
+      lastIssues = ["heartbeat ausente o ilegible"];
+    }
+
+    const elapsed = now() - startedAt;
+    if (elapsed >= timeoutMs) break;
+    await sleep(Math.min(retryMs, timeoutMs - elapsed));
+  }
+
+  throw new Error(
+    `El worker no estuvo listo en ${timeoutMs} ms (${lastIssues.join(", ")})`,
+  );
+}
+
+function serviceExitedBeforeReadiness(name, exited) {
   return exited.then(({ error, code, signal }) => {
     const detail = error
       ? (error.code ?? error.message ?? "error desconocido")
       : signal
         ? `senal ${signal}`
         : `codigo ${code ?? "desconocido"}`;
-    throw new Error(`La API termino antes de estar lista (${detail})`);
+    throw new Error(`${name} termino antes de estar disponible (${detail})`);
   });
 }
 
 export async function launchServicesInOrder({
   runMigrations,
+  startCatalogWorker,
+  awaitCatalogWorkerReady,
   startApi,
   awaitApiReady,
   startWeb,
 }) {
   await runMigrations();
+  const catalogWorker = startCatalogWorker();
+  if (
+    !catalogWorker?.exited ||
+    typeof catalogWorker.exited.then !== "function"
+  ) {
+    throw new Error("El supervisor del worker no expuso su estado de salida");
+  }
+  await Promise.race([
+    awaitCatalogWorkerReady(),
+    serviceExitedBeforeReadiness("El worker", catalogWorker.exited),
+  ]);
+
   const api = startApi();
   if (!api?.exited || typeof api.exited.then !== "function") {
     throw new Error("El supervisor de la API no expuso su estado de salida");
   }
 
-  await Promise.race([awaitApiReady(), apiExitedBeforeReadiness(api.exited)]);
+  await Promise.race([
+    awaitApiReady(),
+    serviceExitedBeforeReadiness("La API", api.exited),
+  ]);
   return startWeb();
 }
 
@@ -450,6 +535,17 @@ async function boot() {
       await runSafeMigrations();
       clearSupervisorSupplementaryGroups(identities);
     },
+    startCatalogWorker: () =>
+      start(
+        "catalog-worker",
+        ["deploy/catalog-worker-entrypoint.mjs"],
+        buildChildEnvironment("catalog-worker", process.env, {
+          HOME: "/home/politica-worker",
+          TMPDIR: "/tmp",
+        }),
+        identities.catalogWorker,
+      ),
+    awaitCatalogWorkerReady: () => waitForCatalogWorkerReady(),
     startApi: () => {
       const api = start(
         "api",

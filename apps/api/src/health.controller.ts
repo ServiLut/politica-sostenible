@@ -1,7 +1,21 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from './auth/decorators/public.decorator';
+import { RedisThrottlerStorage } from './common/throttling/redis-throttler-storage';
 import { Prisma } from '../prisma/generated/prisma';
 import { PrismaService, resolveDatabaseSchema } from './prisma/prisma.service';
+import { SupabaseStorageGateway } from './storage/supabase-storage.gateway';
+import {
+  STORAGE_INTEGRITY_QUEUE_PORT,
+  type StorageIntegrityQueuePort,
+} from './storage/storage-integrity-queue.constants';
+
+export const EXPECTED_SCHEMA_VERSION = '20260909340000_schema_contract_marker';
 
 const REQUIRED_PLAN_CATALOG = new Map([
   [
@@ -74,14 +88,24 @@ const REQUIRED_SCHEMA_COLUMNS = new Set([
   'WitnessReport.credentialType',
   'WitnessReport.e14FormType',
   'WitnessReport.hasWrittenClaim',
+  'StoredObject.integrityStatus',
+  'StoredObject.calculatedSha256',
+  'StoredObject.integrityVerificationLeaseId',
 ]);
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly throttling: RedisThrottlerStorage,
+    private readonly storage: SupabaseStorageGateway,
+    @Inject(STORAGE_INTEGRITY_QUEUE_PORT)
+    private readonly integrityQueue: StorageIntegrityQueuePort,
+  ) {}
 
   @Get('live')
   @Public()
+  @SkipThrottle()
   live() {
     return { status: 'ok' as const };
   }
@@ -95,7 +119,7 @@ export class HealthController {
       const [identity, plans, columns] = await Promise.all([
         this.prisma.systemDatabaseIdentity.findUnique({
           where: { id: 'primary' },
-          select: { fingerprint: true },
+          select: { fingerprint: true, schemaVersion: true },
         }),
         this.prisma.subscriptionPlan.findMany({
           where: {
@@ -120,12 +144,17 @@ export class HealthController {
         }),
         // The catalog query proves the critical columns exist without reading
         // a single operational row or bypassing tenant isolation. The schema
-        // is passed as a SQL value, never interpolated as an identifier.
+        // is passed as a SQL value, never interpolated as an identifier. The
+        // same query also proves that raw SQL is resolving in that schema.
         this.prisma.$queryRaw<
-          Array<{ table_name: string; column_name: string }>
+          Array<{
+            table_name: string;
+            column_name: string;
+            active_schema: string | null;
+          }>
         >(
           Prisma.sql`
-            SELECT table_name, column_name
+            SELECT table_name, column_name, current_schema() AS active_schema
             FROM information_schema.columns
             WHERE table_schema = ${schema}
               AND (table_name, column_name) IN (
@@ -136,15 +165,20 @@ export class HealthController {
                 ('FinancialEntry', 'cneReportEvidenceUrl'),
                 ('WitnessReport', 'credentialType'),
                 ('WitnessReport', 'e14FormType'),
-                ('WitnessReport', 'hasWrittenClaim')
+                ('WitnessReport', 'hasWrittenClaim'),
+                ('StoredObject', 'integrityStatus'),
+                ('StoredObject', 'calculatedSha256'),
+                ('StoredObject', 'integrityVerificationLeaseId')
               )
           `,
         ),
+        this.throttling.assertAvailable(),
       ]);
 
       const validIdentity =
         typeof identity?.fingerprint === 'string' &&
-        /^[a-f0-9]{32}$/.test(identity.fingerprint);
+        /^[a-f0-9]{64}$/.test(identity.fingerprint) &&
+        identity.schemaVersion === EXPECTED_SCHEMA_VERSION;
       const observedColumns = new Set(
         columns.map(
           ({ table_name: tableName, column_name: columnName }) =>
@@ -156,6 +190,11 @@ export class HealthController {
         [...REQUIRED_SCHEMA_COLUMNS].every((column) =>
           observedColumns.has(column),
         );
+      const observedActiveSchemas = new Set(
+        columns.map(({ active_schema: activeSchema }) => activeSchema),
+      );
+      const validRawSqlSchema =
+        observedActiveSchemas.size === 1 && observedActiveSchemas.has(schema);
       const observedCodes = new Set<string>();
       const validPlans =
         plans.length === REQUIRED_PLAN_CATALOG.size &&
@@ -179,9 +218,34 @@ export class HealthController {
           );
         });
 
-      if (!validIdentity || !validPlans || !validColumns) {
+      if (
+        !validIdentity ||
+        !validPlans ||
+        !validColumns ||
+        !validRawSqlSchema
+      ) {
         throw new Error('invalid application schema contract');
       }
+      return { status: 'ok' as const };
+    } catch {
+      throw new ServiceUnavailableException('Servicio no disponible');
+    }
+  }
+
+  /**
+   * Deep operational probe for external monitoring. Storage is deliberately
+   * not a hard dependency of /ready: a Storage outage must disable evidence
+   * workflows without taking unrelated API traffic out of service.
+   */
+  @Get('dependencies')
+  @Public()
+  async dependencies() {
+    try {
+      await Promise.all([
+        this.ready(),
+        this.storage.assertAvailable(),
+        this.integrityQueue.checkReady(),
+      ]);
       return { status: 'ok' as const };
     } catch {
       throw new ServiceUnavailableException('Servicio no disponible');

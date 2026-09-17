@@ -55,6 +55,21 @@ export interface CreateVoterInput {
   collectionChannel: CapturableConsentCollectionChannel;
 }
 
+export interface SyncVoterInput extends CreateVoterInput {
+  clientOperationId: string;
+  capturedAt: string;
+}
+
+export interface SyncVoterReceipt {
+  received: true;
+  receiptId: string;
+  clientOperationId: string;
+  operationType: "VOTER_CAPTURE";
+  status: "APPLIED" | "DUPLICATE";
+  capturedAt: string;
+  receivedAt: string;
+}
+
 export interface VoterCapturePuesto {
   id: string;
   code: string;
@@ -170,6 +185,17 @@ export function createVoter(
   return apiRequest("voters", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function syncOfflineVoter(
+  input: SyncVoterInput,
+  signal?: AbortSignal,
+): Promise<SyncVoterReceipt> {
+  return apiRequest("logistics/sync/voter", {
+    method: "POST",
+    body: JSON.stringify(input),
+    signal,
   });
 }
 

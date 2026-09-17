@@ -37,6 +37,7 @@ export class SupabaseStorageGateway {
   private readonly logger = new Logger(SupabaseStorageGateway.name);
   private readonly client: SupabaseStorageClient;
   private readonly bucketClient: SupabaseBucketClient;
+  private readonly storageOrigin: string;
   readonly bucketName: string;
 
   constructor(configService: ConfigService) {
@@ -53,6 +54,7 @@ export class SupabaseStorageGateway {
     this.validateSupabaseUrl(supabaseUrl);
     this.validateServiceRoleKey(serviceRoleKey, supabaseUrl);
     this.validateBucketName(this.bucketName);
+    this.storageOrigin = new URL(supabaseUrl).origin;
 
     this.client = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
@@ -137,6 +139,7 @@ export class SupabaseStorageGateway {
       );
     }
 
+    this.assertTrustedSignedDownloadUrl(data.signedUrl);
     return { signedUrl: data.signedUrl };
   }
 
@@ -152,6 +155,11 @@ export class SupabaseStorageGateway {
         'No fue posible completar la limpieza del almacenamiento privado',
       );
     }
+  }
+
+  /** Verifies connectivity and that the configured bucket remains private. */
+  async assertAvailable(): Promise<void> {
+    await this.assertPrivateBucket();
   }
 
   private async assertPrivateBucket(): Promise<void> {
@@ -251,6 +259,30 @@ export class SupabaseStorageGateway {
   private validateBucketName(value: string): void {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(value)) {
       throw new Error('SUPABASE_STORAGE_BUCKET contiene un nombre inválido');
+    }
+  }
+
+  private assertTrustedSignedDownloadUrl(value: string): void {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new ServiceUnavailableException(
+        'Storage devolvio una autorizacion de lectura invalida',
+      );
+    }
+    if (
+      url.origin !== this.storageOrigin ||
+      url.username ||
+      url.password ||
+      !['http:', 'https:'].includes(url.protocol)
+    ) {
+      this.logger.error(
+        'Storage devolvio una URL firmada fuera del origen configurado',
+      );
+      throw new ServiceUnavailableException(
+        'Storage devolvio una autorizacion de lectura invalida',
+      );
     }
   }
 

@@ -7,6 +7,8 @@ process.env.MFA_TOTP_PREVIOUS_KEYS = '';
 process.env.SAAS_ADMIN_USER_IDS = '00000000-0000-4000-8000-000000000001';
 delete process.env.SAAS_ADMIN_EMAILS;
 process.env.CONSENT_IP_SALT = 'test-only-consent-ip-salt';
+process.env.OFFLINE_SYNC_HMAC_SECRET =
+  'test-only-offline-sync-hmac-secret-at-least-32-bytes';
 process.env.SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.SUPABASE_SERVICE_ROLE_KEY =
   'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.test-only';

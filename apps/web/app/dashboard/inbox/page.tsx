@@ -42,6 +42,7 @@ const EMPTY_INBOX_FLOW_HREFS = new Set([
   "/dashboard/incidents",
   "/dashboard/cases",
   "/dashboard/tasks",
+  "/dashboard/pqrsd",
 ]);
 
 const PRIORITY_LABELS: Readonly<Record<InboxPriority, string>> = {
@@ -459,7 +460,7 @@ export default function OperationalInboxPage() {
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
                 {result.summary.total === 0
-                  ? "Cuando aparezca una tarea, compromiso, caso, incidente o aprobación pendiente, quedará priorizado aquí."
+                  ? "Cuando aparezca una tarea, compromiso, caso, expediente PQRSD, incidente o aprobación pendiente, quedará priorizado aquí."
                   : "Cambia el filtro o la búsqueda para volver a ver el trabajo abierto."}
               </p>
               {result.summary.total === 0 && emptyStateFlows.length > 0 && (

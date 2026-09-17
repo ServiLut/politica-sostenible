@@ -45,3 +45,15 @@ test("exige contraseña actual y cierra toda sesión después de cambiar MFA", (
     'signOut("/iniciar-sesion?securityChanged=mfa-disabled")',
   );
 });
+
+test("solo permite iniciar MFA cuando el snapshot del plan lo confirma", () => {
+  expect(source).toContain('usePlanCapability("mfa")');
+  expect(source).toContain("!mfaCapability.enabled");
+  expect(source).toContain(
+    'state === "not_enabled" && mfaCapability.enabled',
+  );
+  expect(source).toContain("2FA no está incluido en tu plan");
+  expect(source).toContain("No pudimos validar tu plan");
+  expect(source).toContain("onClick={mfaCapability.refresh}");
+  expect(source).toContain("err.status === 403");
+});

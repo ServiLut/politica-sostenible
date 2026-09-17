@@ -8,9 +8,13 @@ import {
   CommunicationApprovalStatus,
   IssueCaseStatus,
   PoliticalOperationMode,
+  PqrsdDeadlineCalculationStatus,
+  PqrsdDossierStatus,
+  PqrsdRiskLevel,
   Prisma,
   Role,
   TaskStatus,
+  TenantType,
   WorkPriority,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -19,6 +23,7 @@ import {
   type TerritorialAccess,
 } from '../common/utils/territorial-access.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { PQRSD_READ_ROLES } from '../pqrsd/pqrsd-access.constants';
 import { ListOperationalInboxQueryDto } from './dto/list-operational-inbox-query.dto';
 
 const OPEN_TASK_STATUSES = [
@@ -38,6 +43,23 @@ const OPEN_CASE_STATUSES = [
   IssueCaseStatus.IN_PROGRESS,
   IssueCaseStatus.WAITING_ON_CITIZEN,
   IssueCaseStatus.WAITING_ON_EXTERNAL_ENTITY,
+] as const;
+const OPEN_PQRSD_STATUSES = [
+  PqrsdDossierStatus.RECEIVED,
+  PqrsdDossierStatus.CLASSIFICATION_PENDING,
+  PqrsdDossierStatus.CLASSIFIED,
+  PqrsdDossierStatus.ASSIGNED,
+  PqrsdDossierStatus.IN_PROGRESS,
+  PqrsdDossierStatus.TRANSFER_PENDING,
+  PqrsdDossierStatus.WAITING_ON_PETITIONER,
+  PqrsdDossierStatus.EXTENSION_PROPOSED,
+  PqrsdDossierStatus.DRAFT_RESPONSE,
+  PqrsdDossierStatus.RETURNED_FOR_CHANGES,
+  PqrsdDossierStatus.REVIEWED,
+  PqrsdDossierStatus.AUTHORIZED,
+  PqrsdDossierStatus.DELIVERY_PENDING,
+  PqrsdDossierStatus.DELIVERED,
+  PqrsdDossierStatus.REOPENED,
 ] as const;
 
 const MODE_ROLES: Readonly<Record<PoliticalOperationMode, readonly Role[]>> = {
@@ -92,6 +114,13 @@ const CASE_MANAGEMENT_ROLES: readonly Role[] = [
   Role.CASE_WORKER,
 ];
 
+const PQRSD_MANAGEMENT_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.CASE_WORKER,
+  Role.COMPLIANCE_OFFICER,
+];
+
 const COMMUNICATION_DECISION_ROLES: readonly Role[] = [
   Role.ADMIN,
   Role.CAMPAIGN_MANAGER,
@@ -112,6 +141,7 @@ type InboxItemKind =
   | 'COMMITMENT'
   | 'CASE'
   | 'INCIDENT'
+  | 'PQRSD'
   | 'COMMUNICATION_APPROVAL';
 
 interface InboxResponsible {
@@ -150,6 +180,21 @@ interface InboxApprovalRecord {
   requestedBy: InboxResponsible;
 }
 
+interface InboxPqrsdRecord {
+  id: string;
+  reference: string;
+  subject: string;
+  status: PqrsdDossierStatus;
+  riskLevel: PqrsdRiskLevel;
+  createdAt: Date;
+  currentPrimaryAssignee: (InboxResponsible & { isActive: boolean }) | null;
+  currentBackupAssignee: (InboxResponsible & { isActive: boolean }) | null;
+  deadlines: Array<{
+    calculationStatus: PqrsdDeadlineCalculationStatus;
+    dueAt: Date | null;
+  }>;
+}
+
 export interface OperationalInboxItem {
   id: string;
   entityId: string;
@@ -174,6 +219,7 @@ interface InboxScopes {
   commitment: Prisma.CommitmentWhereInput | null;
   issueCase: Prisma.IssueCaseWhereInput | null;
   approval: Prisma.CommunicationApprovalWhereInput | null;
+  pqrsd: Prisma.PqrsdDossierWhereInput | null;
 }
 
 @Injectable()
@@ -183,7 +229,7 @@ export class OperationalInboxService {
   async findAll(user: AuthenticatedUser, query: ListOperationalInboxQueryDto) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: user.tenantId },
-      select: { id: true, defaultMode: true },
+      select: { id: true, defaultMode: true, type: true },
     });
     if (!tenant) {
       throw new NotFoundException('Organización no encontrada');
@@ -201,7 +247,12 @@ export class OperationalInboxService {
     const now = new Date();
     const limit = query.limit ?? 60;
     const base = { tenantId: user.tenantId, mode: tenant.defaultMode };
-    const scopes = this.buildScopes(user, tenant.defaultMode, access);
+    const scopes = this.buildScopes(
+      user,
+      tenant.defaultMode,
+      tenant.type,
+      access,
+    );
 
     const result = await this.prisma.$transaction(
       async (tx) => {
@@ -234,6 +285,13 @@ export class OperationalInboxService {
                 AND: [scopes.approval],
               }
             : null;
+        const pqrsdWhere: Prisma.PqrsdDossierWhereInput | null = scopes.pqrsd
+          ? {
+              tenantId: user.tenantId,
+              status: { in: [...OPEN_PQRSD_STATUSES] },
+              AND: [scopes.pqrsd],
+            }
+          : null;
 
         const [
           tasks,
@@ -244,6 +302,8 @@ export class OperationalInboxService {
           issueCaseTotal,
           approvals,
           approvalTotal,
+          pqrsdDossiers,
+          pqrsdTotal,
         ] = await Promise.all([
           tx.task.findMany({
             where: taskWhere,
@@ -329,6 +389,48 @@ export class OperationalInboxService {
           approvalWhere
             ? tx.communicationApproval.count({ where: approvalWhere })
             : Promise.resolve(0),
+          pqrsdWhere
+            ? tx.pqrsdDossier.findMany({
+                where: pqrsdWhere,
+                select: {
+                  id: true,
+                  reference: true,
+                  subject: true,
+                  status: true,
+                  riskLevel: true,
+                  createdAt: true,
+                  currentPrimaryAssignee: {
+                    select: {
+                      id: true,
+                      name: true,
+                      role: true,
+                      isActive: true,
+                    },
+                  },
+                  currentBackupAssignee: {
+                    select: {
+                      id: true,
+                      name: true,
+                      role: true,
+                      isActive: true,
+                    },
+                  },
+                  deadlines: {
+                    orderBy: { versionNumber: 'desc' },
+                    take: 1,
+                    select: {
+                      calculationStatus: true,
+                      dueAt: true,
+                    },
+                  },
+                },
+                orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+                take: limit,
+              })
+            : Promise.resolve<InboxPqrsdRecord[]>([]),
+          pqrsdWhere
+            ? tx.pqrsdDossier.count({ where: pqrsdWhere })
+            : Promise.resolve(0),
         ]);
 
         const items: OperationalInboxItem[] = [
@@ -346,6 +448,9 @@ export class OperationalInboxService {
           ),
           ...approvals.map((approval) =>
             this.toApprovalItem(approval, access.role, now),
+          ),
+          ...pqrsdDossiers.map((dossier) =>
+            this.toPqrsdItem(dossier, access.role, now),
           ),
         ];
 
@@ -365,6 +470,7 @@ export class OperationalInboxService {
                 ? issueCaseTotal
                 : 0,
             approvals: approvalTotal,
+            pqrsd: pqrsdTotal,
           },
         };
       },
@@ -397,10 +503,22 @@ export class OperationalInboxService {
   private buildScopes(
     user: AuthenticatedUser,
     mode: PoliticalOperationMode,
+    tenantType: TenantType,
     access: TerritorialAccess,
   ): InboxScopes {
+    const pqrsd =
+      tenantType === TenantType.PUBLIC_OFFICE &&
+      PQRSD_READ_ROLES.includes(access.role)
+        ? {}
+        : null;
     if (GLOBAL_OPERATION_ROLES[mode].includes(access.role)) {
-      return { task: {}, commitment: {}, issueCase: {}, approval: {} };
+      return {
+        task: {},
+        commitment: {},
+        issueCase: {},
+        approval: {},
+        pqrsd,
+      };
     }
 
     if (access.role === Role.ZONE_COORDINATOR) {
@@ -446,6 +564,7 @@ export class OperationalInboxService {
         // convertirse en una lectura directa de incidentes inaccesibles.
         issueCase: null,
         approval: null,
+        pqrsd,
       };
     }
 
@@ -479,6 +598,7 @@ export class OperationalInboxService {
         commitment: commitmentScope,
         issueCase: caseScope,
         approval: { requestedById: user.userId },
+        pqrsd,
       };
     }
 
@@ -494,6 +614,7 @@ export class OperationalInboxService {
         commitment: null,
         issueCase: null,
         approval: {},
+        pqrsd,
       };
     }
 
@@ -503,6 +624,7 @@ export class OperationalInboxService {
         commitment: null,
         issueCase: null,
         approval: {},
+        pqrsd,
       };
     }
 
@@ -513,6 +635,7 @@ export class OperationalInboxService {
       commitment: {},
       issueCase: {},
       approval: {},
+      pqrsd,
     };
   }
 
@@ -688,6 +811,70 @@ export class OperationalInboxService {
     };
   }
 
+  private toPqrsdItem(
+    dossier: InboxPqrsdRecord,
+    role: Role,
+    now: Date,
+  ): OperationalInboxItem {
+    const latestDeadline = dossier.deadlines[0];
+    const deadlineResolved =
+      latestDeadline?.calculationStatus ===
+        PqrsdDeadlineCalculationStatus.CALCULATED ||
+      latestDeadline?.calculationStatus ===
+        PqrsdDeadlineCalculationStatus.MANUAL_REVIEWED;
+    const dueAt = deadlineResolved ? (latestDeadline?.dueAt ?? null) : null;
+    const overdue = this.isOverdue(dueAt, now);
+    const responsible = dossier.currentPrimaryAssignee?.isActive
+      ? dossier.currentPrimaryAssignee
+      : dossier.currentBackupAssignee?.isActive
+        ? dossier.currentBackupAssignee
+        : null;
+    const primaryUnavailable = !dossier.currentPrimaryAssignee?.isActive;
+    const backupUnavailable = !dossier.currentBackupAssignee?.isActive;
+    const blockReason = this.joinReasons([
+      !deadlineResolved
+        ? 'Plazo ausente o pendiente de cálculo aprobado'
+        : null,
+      primaryUnavailable
+        ? responsible
+          ? 'Responsable principal no disponible; expediente en suplencia'
+          : 'Sin responsable principal activo'
+        : null,
+      backupUnavailable ? 'Sin suplente activo' : null,
+      this.pqrsdWorkflowBlockReason(dossier.status),
+    ]);
+
+    return {
+      id: `PQRSD:${dossier.id}`,
+      entityId: dossier.id,
+      kind: 'PQRSD',
+      kindLabel: 'PQRSD formal',
+      reference: dossier.reference,
+      title: dossier.subject,
+      status: dossier.status,
+      statusLabel: this.pqrsdStatusLabel(dossier.status),
+      priority: this.pqrsdPriority(dossier.riskLevel, dueAt, now),
+      responsible: responsible
+        ? {
+            id: responsible.id,
+            name: responsible.name,
+            role: responsible.role,
+          }
+        : null,
+      dueAt: dueAt?.toISOString() ?? null,
+      overdue,
+      blocked: blockReason !== null,
+      blockReason,
+      cta: {
+        label: PQRSD_MANAGEMENT_ROLES.includes(role)
+          ? 'Gestionar expediente'
+          : 'Revisar expediente',
+        href: this.deepLink('/dashboard/pqrsd', dossier.id, 'detail'),
+      },
+      createdAt: dossier.createdAt.toISOString(),
+    };
+  }
+
   private deepLink(path: string, entityId: string, view: string): string {
     return `${path}?view=${encodeURIComponent(view)}&entityId=${encodeURIComponent(entityId)}`;
   }
@@ -717,6 +904,52 @@ export class OperationalInboxService {
 
   private isOverdue(value: Date | null, now: Date): boolean {
     return value !== null && value.getTime() < now.getTime();
+  }
+
+  private pqrsdPriority(
+    riskLevel: PqrsdRiskLevel,
+    dueAt: Date | null,
+    now: Date,
+  ): WorkPriority {
+    if (
+      riskLevel === PqrsdRiskLevel.HIGH ||
+      (dueAt !== null && dueAt.getTime() < now.getTime())
+    ) {
+      return WorkPriority.URGENT;
+    }
+    if (
+      dueAt !== null &&
+      dueAt.getTime() - now.getTime() <= 3 * 24 * 60 * 60 * 1_000
+    ) {
+      return WorkPriority.HIGH;
+    }
+    return WorkPriority.MEDIUM;
+  }
+
+  private pqrsdWorkflowBlockReason(status: PqrsdDossierStatus): string | null {
+    return {
+      [PqrsdDossierStatus.RECEIVED]: 'Pendiente de clasificación formal',
+      [PqrsdDossierStatus.CLASSIFICATION_PENDING]:
+        'Clasificación pendiente de revisión',
+      [PqrsdDossierStatus.CLASSIFIED]: null,
+      [PqrsdDossierStatus.ASSIGNED]: null,
+      [PqrsdDossierStatus.IN_PROGRESS]: null,
+      [PqrsdDossierStatus.TRANSFER_PENDING]: 'Traslado pendiente de constancia',
+      [PqrsdDossierStatus.WAITING_ON_PETITIONER]:
+        'Esperando información de la persona peticionaria',
+      [PqrsdDossierStatus.EXTENSION_PROPOSED]: 'Prórroga pendiente de decisión',
+      [PqrsdDossierStatus.DRAFT_RESPONSE]: null,
+      [PqrsdDossierStatus.RETURNED_FOR_CHANGES]:
+        'Respuesta devuelta para correcciones',
+      [PqrsdDossierStatus.REVIEWED]: null,
+      [PqrsdDossierStatus.AUTHORIZED]:
+        'Respuesta autorizada pendiente de entrega',
+      [PqrsdDossierStatus.DELIVERY_PENDING]: 'Entrega pendiente de constancia',
+      [PqrsdDossierStatus.DELIVERED]: null,
+      [PqrsdDossierStatus.CLOSED]: null,
+      [PqrsdDossierStatus.REOPENED]: 'Expediente reabierto',
+      [PqrsdDossierStatus.CANCELLED]: null,
+    }[status];
   }
 
   private joinReasons(reasons: Array<string | null>): string | null {
@@ -758,6 +991,29 @@ export class OperationalInboxService {
       [IssueCaseStatus.RESOLVED]: 'Resuelto',
       [IssueCaseStatus.CLOSED]: 'Cerrado',
       [IssueCaseStatus.CANCELLED]: 'Cancelado',
+    }[status];
+  }
+
+  private pqrsdStatusLabel(status: PqrsdDossierStatus): string {
+    return {
+      [PqrsdDossierStatus.RECEIVED]: 'Recibido',
+      [PqrsdDossierStatus.CLASSIFICATION_PENDING]: 'Clasificación pendiente',
+      [PqrsdDossierStatus.CLASSIFIED]: 'Clasificado',
+      [PqrsdDossierStatus.ASSIGNED]: 'Asignado',
+      [PqrsdDossierStatus.IN_PROGRESS]: 'En gestión',
+      [PqrsdDossierStatus.TRANSFER_PENDING]: 'Traslado pendiente',
+      [PqrsdDossierStatus.WAITING_ON_PETITIONER]:
+        'Espera a la persona peticionaria',
+      [PqrsdDossierStatus.EXTENSION_PROPOSED]: 'Prórroga propuesta',
+      [PqrsdDossierStatus.DRAFT_RESPONSE]: 'Respuesta en borrador',
+      [PqrsdDossierStatus.RETURNED_FOR_CHANGES]: 'Devuelto para correcciones',
+      [PqrsdDossierStatus.REVIEWED]: 'Respuesta revisada',
+      [PqrsdDossierStatus.AUTHORIZED]: 'Respuesta autorizada',
+      [PqrsdDossierStatus.DELIVERY_PENDING]: 'Entrega pendiente',
+      [PqrsdDossierStatus.DELIVERED]: 'Entregado',
+      [PqrsdDossierStatus.CLOSED]: 'Cerrado',
+      [PqrsdDossierStatus.REOPENED]: 'Reabierto',
+      [PqrsdDossierStatus.CANCELLED]: 'Cancelado',
     }[status];
   }
 }

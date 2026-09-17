@@ -28,6 +28,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
 
   let prisma: {
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     issueCase: { findFirst: jest.Mock };
@@ -44,6 +45,7 @@ describe('CommitmentsService tenant and mode isolation', () => {
 
   beforeEach(() => {
     const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest
           .fn()

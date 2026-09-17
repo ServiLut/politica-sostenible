@@ -330,7 +330,7 @@ export default function LoginPage() {
                 variant="link"
                 className="p-0 h-auto font-black text-slate-900 dark:text-slate-50 hover:no-underline underline underline-offset-8 decoration-2"
               >
-                <Link href="/registro">Regístrate aquí</Link>
+                <Link href="/registro">Ver opciones de acceso</Link>
               </Button>
             </p>
           </div>

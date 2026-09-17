@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/context/auth";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { UserRole } from "@/types/saas-schema";
+import { TerritoryHeatmap } from "@/components/territory/TerritoryHeatmap";
 
 type DivisionType = "MUNICIPIO" | "ZONA" | "PUESTO";
 
@@ -25,6 +26,27 @@ interface Division {
   name: string;
   type: DivisionType;
   parentId: string | null;
+  expectedTables: number | null;
+  sourceNamespace: "RNEC_DIVIPOLE" | "DANE_DIVIPOLA" | null;
+  sourceReleaseId: string | null;
+  sourceLocationCode: string | null;
+  votingDate: string | null;
+  address: string | null;
+  commune: string | null;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  timeZone: string | null;
+  operationalStatus: {
+    code:
+      | "OPEN_FOR_LOGICAL_VOTING_DATE"
+      | "VOTING_DATE_NOT_DOCUMENTED"
+      | "TIME_ZONE_NOT_VERIFIED"
+      | "OUTSIDE_LOGICAL_VOTING_DATE";
+    operationalNow: boolean;
+    votingDate: string | null;
+    evaluatedLocalDate: string | null;
+    timeZone: string | null;
+  } | null;
   parent: {
     id: string;
     code: string;
@@ -35,6 +57,7 @@ interface Division {
 
 interface DivisionResult {
   items: Division[];
+  evaluatedAt: string;
   pagination: {
     page: number;
     limit: number;
@@ -71,6 +94,10 @@ function messageFrom(error: unknown) {
     : "No fue posible consultar la organización territorial.";
 }
 
+function civilDate(value: string | null) {
+  return value?.slice(0, 10) ?? null;
+}
+
 export default function TerritoryPage() {
   const { user } = useAuth();
   const [type, setType] = useState<DivisionType>("MUNICIPIO");
@@ -95,32 +122,35 @@ export default function TerritoryPage() {
   const canSynchronize =
     user?.role === UserRole.AdminCampana || user?.role === UserRole.SuperAdmin;
 
-  const loadDivisions = useCallback(async (overrides?: {
-    type?: DivisionType;
-    page?: number;
-    search?: string;
-  }) => {
-    setLoading(true);
-    setLoadError(null);
+  const loadDivisions = useCallback(
+    async (overrides?: {
+      type?: DivisionType;
+      page?: number;
+      search?: string;
+    }) => {
+      setLoading(true);
+      setLoadError(null);
 
-    const params = new URLSearchParams({
-      type: overrides?.type ?? type,
-      page: String(overrides?.page ?? page),
-      limit: "24",
-    });
-    const requestedSearch = overrides?.search ?? search;
-    if (requestedSearch) params.set("search", requestedSearch);
+      const params = new URLSearchParams({
+        type: overrides?.type ?? type,
+        page: String(overrides?.page ?? page),
+        limit: "24",
+      });
+      const requestedSearch = overrides?.search ?? search;
+      if (requestedSearch) params.set("search", requestedSearch);
 
-    try {
-      setResult(
-        await apiRequest<DivisionResult>(`campaigns/divisions?${params}`),
-      );
-    } catch (requestError) {
-      setLoadError(messageFrom(requestError));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, type]);
+      try {
+        setResult(
+          await apiRequest<DivisionResult>(`campaigns/divisions?${params}`),
+        );
+      } catch (requestError) {
+        setLoadError(messageFrom(requestError));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, search, type],
+  );
 
   useEffect(() => {
     void loadDivisions();
@@ -260,9 +290,10 @@ export default function TerritoryPage() {
             Organización territorial
           </h1>
           <p className="max-w-3xl text-sm leading-6 text-slate-500">
-            Consulta la estructura operativa del tenant. Los municipios se
-            sincronizan desde DIVIPOLA MGN 2025 de DANE; zonas y puestos sólo se
-            muestran cuando existen registros reales.
+            Consulta la estructura operativa del tenant. DANE aporta DIVIPOLA
+            administrativa para departamentos y municipios; las zonas y puestos
+            electorales pertenecen a DIVIPOLE de Registraduría y sólo aparecen
+            desde un catálogo electoral autorizado y verificable.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -285,7 +316,7 @@ export default function TerritoryPage() {
               ) : (
                 <DatabaseZap size={16} />
               )}
-              Sincronizar DANE
+              Sincronizar geografía DANE
             </button>
           )}
         </div>
@@ -435,6 +466,8 @@ export default function TerritoryPage() {
         </section>
       )}
 
+      <TerritoryHeatmap />
+
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div
@@ -520,8 +553,8 @@ export default function TerritoryPage() {
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
             No se generan cifras ni ubicaciones de ejemplo. Un administrador
-            puede sincronizar municipios oficiales; zonas y puestos requieren
-            una fuente electoral autorizada.
+            puede sincronizar la geografía administrativa oficial; zonas y
+            puestos requieren una versión electoral autorizada de Registraduría.
           </p>
         </div>
       ) : (
@@ -554,6 +587,61 @@ export default function TerritoryPage() {
                 <p className="mt-1 text-xs font-bold text-slate-400">
                   Código {division.code}
                 </p>
+                {division.type === "PUESTO" && (
+                  <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                    <p>
+                      <strong className="text-slate-900">Código fuente:</strong>{" "}
+                      {division.sourceLocationCode ?? "No trazable"}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900">Jornada:</strong>{" "}
+                      {civilDate(division.votingDate) ?? "No documentada"}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900">Zona horaria:</strong>{" "}
+                      {division.timeZone ?? "Exterior no verificada"}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900">Dirección:</strong>{" "}
+                      {division.address ?? "Sin dirección publicada"}
+                    </p>
+                    {division.commune && (
+                      <p>
+                        <strong className="text-slate-900">Comuna:</strong>{" "}
+                        {division.commune}
+                      </p>
+                    )}
+                    <p
+                      className={
+                        division.latitude === null ||
+                        division.longitude === null
+                          ? "font-black text-amber-700"
+                          : "font-black text-emerald-700"
+                      }
+                    >
+                      {division.latitude === null || division.longitude === null
+                        ? "Sin coordenadas publicadas utilizables"
+                        : "Georreferenciado por la fuente"}
+                    </p>
+                    <p
+                      className={
+                        division.operationalStatus?.operationalNow
+                          ? "font-black text-emerald-700"
+                          : "font-black text-amber-700"
+                      }
+                    >
+                      {division.operationalStatus?.operationalNow
+                        ? "Jornada lógica habilitada ahora"
+                        : division.operationalStatus?.code ===
+                            "TIME_ZONE_NOT_VERIFIED"
+                          ? "Bloqueado para operación REAL: falta zona horaria verificable"
+                          : division.operationalStatus?.code ===
+                              "OUTSIDE_LOGICAL_VOTING_DATE"
+                            ? `No corresponde al día local ${division.operationalStatus.evaluatedLocalDate}`
+                            : "Jornada lógica no documentada"}
+                    </p>
+                  </div>
+                )}
                 {division.parent && (
                   <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
                     Pertenece a <strong>{division.parent.name}</strong>
@@ -587,8 +675,10 @@ export default function TerritoryPage() {
       )}
 
       <p className="text-xs leading-5 text-slate-400">
-        Fuente municipal: DANE, servicio DIVIPOLA MGN 2025. La sincronización
-        conserva los registros existentes y nunca elimina divisiones.
+        Fuente administrativa municipal: DANE, servicio DIVIPOLA MGN 2025. No
+        equivale a DIVIPOLE ni certifica zonas, puestos o mesas electorales. La
+        sincronización conserva los registros existentes y nunca elimina
+        divisiones.
       </p>
     </div>
   );

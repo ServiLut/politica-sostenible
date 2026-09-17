@@ -1,6 +1,7 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { SaasAdminService } from './saas-admin.service';
 import { SaasAdminGuard } from '../auth/guards/saas-admin.guard';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 
 @Controller('saas-admin')
 @UseGuards(SaasAdminGuard)
@@ -18,7 +19,7 @@ export class SaasAdminController {
   }
 
   @Get('tenants/:id')
-  async getTenantDetail(@Param('id') id: string) {
-    return this.saasAdminService.getTenantDetail(id);
+  async getTenantDetail(@Param() params: CuidIdParamsDto) {
+    return this.saasAdminService.getTenantDetail(params.id);
   }
 }

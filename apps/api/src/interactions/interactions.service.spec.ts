@@ -44,6 +44,7 @@ describe('InteractionsService', () => {
   let storedRole: Role;
   let storedDivisionId: string | null;
   let prisma: {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
@@ -66,6 +67,7 @@ describe('InteractionsService', () => {
     storedRole = Role.ADMIN;
     storedDivisionId = null;
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -877,7 +879,7 @@ describe('InteractionsService', () => {
     expect(auditPayload).not.toContain('hashed-ip');
   });
 
-  it('rejects imported consent without a verified proof path', async () => {
+  it('rejects imported consent outside the dedicated evidence flow', async () => {
     await expect(
       service.grantCaseConsent(currentUser, '203.0.113.42', {
         issueCaseId: 'case-a',

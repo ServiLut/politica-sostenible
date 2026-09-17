@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -30,6 +30,7 @@ import {
   listCommunicationApprovals,
 } from "@/lib/communications-api";
 import { BackendUserRole, Tenant } from "@/types/saas-schema";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 const PAGE_SIZE = 10;
 const CASE_PAGE_SIZE = 6;
@@ -322,6 +323,33 @@ export default function CommunicationsPage() {
   const [saving, setSaving] = useState<"request" | "decision" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const requestDialogRef = useRef<HTMLDivElement>(null);
+  const requestTitleRef = useRef<HTMLHeadingElement>(null);
+  const decisionDialogRef = useRef<HTMLDivElement>(null);
+  const decisionTitleRef = useRef<HTMLHeadingElement>(null);
+  const [searchInput, setSearchInput] = useState("");
+
+  useAccessibleDialog({
+    open: requestOpen,
+    containerRef: requestDialogRef,
+    initialFocusRef: requestTitleRef,
+    onClose: () => {
+      if (saving !== "request") setRequestOpen(false);
+    },
+    closeOnEscape: saving !== "request",
+  });
+  useAccessibleDialog({
+    open: decision !== null,
+    containerRef: decisionDialogRef,
+    initialFocusRef: decisionTitleRef,
+    onClose: () => {
+      if (saving !== "decision") {
+        setDecision(null);
+        setDecisionReason("");
+      }
+    },
+    closeOnEscape: saving !== "decision",
+  });
 
   const canRequest = useMemo(() => {
     if (!user || !tenant) return false;
@@ -349,6 +377,16 @@ export default function CommunicationsPage() {
   const consentEvidenceRequired =
     requestForm.recipientBasis === "DIRECT_OPT_IN" ||
     requestForm.containsSensitiveData;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilters((current) => {
+        if (current.search === searchInput) return current;
+        return { ...current, page: 1, search: searchInput };
+      });
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -596,7 +634,23 @@ export default function CommunicationsPage() {
       );
       setDecision(null);
       setDecisionReason("");
-      setReloadVersion((value) => value + 1);
+      setResult((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === decision.approval.id
+              ? {
+                  ...item,
+                  status: decision.status,
+                  decisionReason: decisionReason.trim(),
+                  decidedBy: user ? { id: user.id, name: user.name, role: user.backendRole } : undefined,
+                  decidedAt: new Date().toISOString(),
+                }
+              : item
+          ),
+        };
+      });
     } catch (error: unknown) {
       setMutationError(readableError(error));
     } finally {
@@ -671,15 +725,9 @@ export default function CommunicationsPage() {
               aria-hidden="true"
             />
             <input
-              value={filters.search}
+              value={searchInput}
               maxLength={100}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  page: 1,
-                  search: event.target.value,
-                }))
-              }
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Buscar título o finalidad"
               className="min-h-11 w-full rounded-xl border border-slate-200 pl-10 pr-4 text-sm font-semibold text-slate-900"
             />
@@ -1050,6 +1098,7 @@ export default function CommunicationsPage() {
       {requestOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4">
           <div
+            ref={requestDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="request-title"
@@ -1058,6 +1107,8 @@ export default function CommunicationsPage() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2
+                  ref={requestTitleRef}
+                  tabIndex={-1}
                   id="request-title"
                   className="text-2xl font-black text-slate-950"
                 >
@@ -1528,6 +1579,7 @@ export default function CommunicationsPage() {
       {decision && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 p-4">
           <div
+            ref={decisionDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-title"
@@ -1536,6 +1588,8 @@ export default function CommunicationsPage() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2
+                  ref={decisionTitleRef}
+                  tabIndex={-1}
                   id="decision-title"
                   className="text-2xl font-black text-slate-950"
                 >

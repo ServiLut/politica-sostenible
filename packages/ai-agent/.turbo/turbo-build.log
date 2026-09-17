@@ -1,0 +1,8 @@
+
+> @repo/ai-agent@1.0.0 build C:\Users\user\Desktop\politica-sostenible\packages\ai-agent
+> tsc
+
+../../node_modules/.pnpm/@prisma+client@7.3.0_prisma_e0afbdab6f544ca7a8c759a63bc48423/node_modules/@prisma/client/default.d.ts(1,15): error TS2307: Cannot find module '.prisma/client/default' or its corresponding type declarations.
+src/index.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+tsconfig.json(2,14): error TS6053: File '@repo/typescript-config/base.json' not found.
+ ELIFECYCLE  Command failed with exit code 2.

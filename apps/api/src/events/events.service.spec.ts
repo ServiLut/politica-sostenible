@@ -40,6 +40,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
   };
 
   let prisma: {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock; findMany: jest.Mock };
     campaignEvent: {
@@ -57,6 +58,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,

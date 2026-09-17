@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { listAssignableTeamDivisions } from "./team-api";
+import { acceptTeamInvitation, listAssignableTeamDivisions } from "./team-api";
 
 function successful(data: unknown) {
   return new Response(
@@ -7,6 +7,38 @@ function successful(data: unknown) {
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
 }
+
+test("envía la versión autoritativa recibida por el flujo de invitación", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  let requestInit: RequestInit | undefined;
+  globalThis.fetch = async (input, init) => {
+    requestedUrl = String(input);
+    requestInit = init;
+    return successful({ message: "Invitación aceptada" });
+  };
+
+  try {
+    await acceptTeamInvitation({
+      token: "a".repeat(43),
+      password: "clave-segura-2026",
+      name: "Ana Pérez",
+      documentId: "1012345678",
+      termsAccepted: true,
+      termsVersion: "registro-2026.9",
+    });
+
+    expect(requestedUrl).toBe("/api/auth/invitations/accept");
+    expect(requestInit?.method).toBe("POST");
+    expect(JSON.parse(String(requestInit?.body))).toMatchObject({
+      termsAccepted: true,
+      termsVersion: "registro-2026.9",
+    });
+    expect(new Headers(requestInit?.headers).has("Authorization")).toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("recorre todas las paginas de divisiones asignables", async () => {
   const requests: URL[] = [];

@@ -149,6 +149,13 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
+function planCapabilities() {
+  return successful({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 function pageOf(items: (typeof initialIncident)[]) {
   return {
     items,
@@ -246,6 +253,15 @@ test("administra un incidente real con filtros, responsable y transición audita
     const url = new URL(request.url());
     const method = request.method();
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (url.pathname === "/api/billing/capabilities" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (url.pathname === "/api/cases/assignees" && method === "GET") {
       await route.fulfill({
@@ -686,6 +702,7 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
 }) => {
   const requestedPaths: string[] = [];
   let authSessionRequests = 0;
+  let capabilityRequests = 0;
 
   await installSession(page, complianceSession);
   await page.route("**/api/**", async (route) => {
@@ -698,6 +715,20 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(currentSessionResponse(complianceSession)),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/api/billing/capabilities"
+    ) {
+      capabilityRequests += 1;
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
       });
       return;
     }
@@ -792,6 +823,7 @@ test("cumplimiento revisa incidentes sin permisos de mutación", async ({
   expect(requestedPaths).toContain("GET /api/interactions/consents/status");
   expect(requestedPaths.some((path) => path.startsWith("POST "))).toBe(false);
   expect(authSessionRequests).toBeGreaterThanOrEqual(1);
+  expect(capabilityRequests).toBeGreaterThanOrEqual(1);
 });
 
 test("no expone incidentes al coordinador zonal sin permiso en la API", async ({
@@ -799,6 +831,7 @@ test("no expone incidentes al coordinador zonal sin permiso en la API", async ({
 }) => {
   const requestedPaths: string[] = [];
   let authSessionRequests = 0;
+  let capabilityRequests = 0;
 
   await installSession(page, zoneCoordinatorSession);
   await page.route("**/api/**", async (route) => {
@@ -810,6 +843,20 @@ test("no expone incidentes al coordinador zonal sin permiso en la API", async ({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(currentSessionResponse(zoneCoordinatorSession)),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      capabilityRequests += 1;
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
       });
       return;
     }
@@ -832,4 +879,5 @@ test("no expone incidentes al coordinador zonal sin permiso en la API", async ({
   ).toHaveCount(0);
   expect(requestedPaths).toEqual([]);
   expect(authSessionRequests).toBeGreaterThanOrEqual(1);
+  expect(capabilityRequests).toBeGreaterThanOrEqual(1);
 });

@@ -22,6 +22,7 @@ describe('TasksService tenant and mode isolation', () => {
 
   let prisma: {
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock; findMany: jest.Mock };
     issueCase: { findFirst: jest.Mock };
@@ -40,6 +41,7 @@ describe('TasksService tenant and mode isolation', () => {
 
   beforeEach(() => {
     const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest
           .fn()
@@ -666,7 +668,7 @@ describe('TasksService tenant and mode isolation', () => {
     );
 
     expect(prisma.politicalDivision.findMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a' },
+      where: { tenantId: 'tenant-a', isActive: true },
       select: { id: true, parentId: true },
     });
     const where = prisma.task.findMany.mock.calls[0]?.[0].where as Record<

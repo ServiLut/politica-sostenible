@@ -57,6 +57,13 @@ function successful<T>(data: T) {
   return { statusCode: 200, message: "Success", data };
 }
 
+function planCapabilities() {
+  return successful({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   page,
 }) => {
@@ -151,6 +158,15 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (pathname === "/api/billing/capabilities" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (pathname === "/api/tasks/assignees" && method === "GET") {
       await route.fulfill({
@@ -488,6 +504,19 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
     const url = new URL(request.url());
     const method = request.method();
 
+    if (
+      url.pathname === "/api/billing/capabilities" &&
+      method === "GET"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
+
     if (url.pathname === "/api/cases/assignees" && method === "GET") {
       await route.fulfill({
         status: 200,
@@ -784,6 +813,19 @@ test("presenta un compromiso compartido con el equipo como solo lectura", async 
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
+
     if (request.method() === "GET" && pathname === "/api/tasks") {
       await route.fulfill({
         status: 200,
@@ -861,6 +903,19 @@ test("oculta la creación de tareas a un rol de solo lectura", async ({
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
 
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
+
     if (request.method() === "GET" && pathname === "/api/tasks") {
       await route.fulfill({
         status: 200,
@@ -931,6 +986,19 @@ test("gestión pública no ofrece tareas ni carga asignables al responsable de c
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (request.method() === "GET" && pathname === "/api/auth/me") {
       await route.fulfill({
@@ -1046,6 +1114,19 @@ test("campaña ofrece tareas y carga asignables al responsable de comunicaciones
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (request.method() === "GET" && pathname === "/api/auth/me") {
       await route.fulfill({

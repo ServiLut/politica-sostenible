@@ -1,4 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  FRONTEND_ROLE_BY_BACKEND_ROLE,
+  ROLE_LABEL_BY_BACKEND_ROLE,
+  ROLE_MATRIX_SCENARIOS,
+  assertRoleMatrixFixtureIsComplete,
+  type BackendRole,
+  type FrontendRole,
+  type OperationStage,
+  type TenantType,
+} from "./role-matrix.fixture";
 
 const jwt = [
   Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
@@ -9,10 +19,11 @@ const jwt = [
 ].join(".");
 
 type TestIdentity = {
-  backendRole: string;
-  frontendRole: string;
+  backendRole: BackendRole;
+  frontendRole: FrontendRole;
   name: string;
-  operationStage?: string;
+  tenantType: TenantType;
+  operationStage: OperationStage | null;
 };
 
 async function prepareSession(page: Page, identity: TestIdentity) {
@@ -22,11 +33,11 @@ async function prepareSession(page: Page, identity: TestIdentity) {
     name: identity.name,
     role: identity.backendRole,
     tenant: {
-      id: "tenant-navigation",
-      name: "Campaña navegación clara",
-      slug: "campana-navegacion-clara",
-      type: "CANDIDACY",
-      operationStage: identity.operationStage ?? null,
+      id: `tenant-${identity.tenantType.toLowerCase()}`,
+      name: `Organización ${identity.tenantType.toLowerCase()}`,
+      slug: `organizacion-${identity.tenantType.toLowerCase()}`,
+      type: identity.tenantType,
+      operationStage: identity.operationStage,
     },
   };
 
@@ -75,91 +86,131 @@ async function prepareSession(page: Page, identity: TestIdentity) {
   });
 }
 
-async function openSecondaryNavigationOnMobile(page: Page) {
-  if ((page.viewportSize()?.width ?? 1280) < 1024) {
-    await page.getByRole("button", { name: "Abrir más opciones" }).click();
+function desktopNavigation(page: Page) {
+  return page.getByRole("navigation", {
+    name: "Navegación principal",
+    exact: true,
+  });
+}
+
+function mobileNavigation(page: Page) {
+  return page.getByRole("navigation", {
+    name: "Navegación principal móvil",
+    exact: true,
+  });
+}
+
+async function visibleNavigationPaths(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) >= 1024) {
+    return desktopNavigation(page)
+      .getByRole("link")
+      .evaluateAll((links) =>
+        links
+          .map((link) => link.getAttribute("href"))
+          .filter((href): href is string => Boolean(href)),
+      );
   }
+
+  const primaryPaths = await mobileNavigation(page)
+    .getByRole("link")
+    .evaluateAll((links) =>
+      links
+        .map((link) => link.getAttribute("href"))
+        .filter((href): href is string => Boolean(href)),
+    );
+  await page.getByRole("button", { name: "Abrir más opciones" }).click();
+  const secondaryPaths = await page
+    .getByRole("dialog", { name: "Más opciones" })
+    .getByRole("link")
+    .evaluateAll((links) =>
+      links
+        .map((link) => link.getAttribute("href"))
+        .filter((href): href is string => Boolean(href)),
+    );
+
+  return [...primaryPaths, ...secondaryPaths];
 }
 
 function workspaceLabel(page: Page, label: string) {
-  const labels = page.getByText(`Tu espacio · ${label}`);
+  const labels = page.getByText(`Tu espacio · ${label}`, { exact: true });
   return (page.viewportSize()?.width ?? 1280) < 1024
     ? labels.last()
     : labels.first();
 }
 
-test("dirección ve una navegación neutral y centrada en la bandeja", async ({
+function roleLabel(page: Page, label: string) {
+  const labels = page.getByText(label, { exact: true });
+  return (page.viewportSize()?.width ?? 1280) < 1024
+    ? labels.last()
+    : labels.first();
+}
+
+assertRoleMatrixFixtureIsComplete();
+
+for (const scenario of ROLE_MATRIX_SCENARIOS) {
+  test(`${scenario.id}: muestra exactamente sus módulos y bloquea acceso directo`, async ({
+    page,
+  }) => {
+    const roleLabelText = ROLE_LABEL_BY_BACKEND_ROLE[scenario.backendRole];
+    await prepareSession(page, {
+      backendRole: scenario.backendRole,
+      frontendRole: FRONTEND_ROLE_BY_BACKEND_ROLE[scenario.backendRole],
+      name: roleLabelText,
+      tenantType: scenario.tenantType,
+      operationStage: scenario.operationStage,
+    });
+
+    await page.goto("/dashboard/profile");
+    const actualPaths = await visibleNavigationPaths(page);
+
+    expect([...new Set(actualPaths)].sort()).toEqual(
+      [...scenario.visiblePaths].sort(),
+    );
+    await expect(workspaceLabel(page, scenario.workspace)).toBeVisible();
+    await expect(roleLabel(page, roleLabelText)).toBeVisible();
+
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(new RegExp(`${scenario.defaultPath}$`));
+    await expect(page.locator("header")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Acceso restringido" }),
+    ).toHaveCount(0);
+
+    await page.goto(scenario.allowedProbe);
+    await expect(page).toHaveURL(new RegExp(`${scenario.allowedProbe}$`));
+    await expect(page.locator("header")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Acceso restringido" }),
+    ).toHaveCount(0);
+
+    await page.goto(scenario.forbiddenProbe);
+    await expect(page).toHaveURL(new RegExp(`${scenario.forbiddenProbe}$`));
+    await expect(
+      page.getByRole("heading", { name: "Acceso restringido" }),
+    ).toBeVisible();
+    await expect(page.locator("main")).toContainText(roleLabelText);
+  });
+}
+
+test("una etapa no habilitada niega el acceso aunque el rol sí esté autorizado", async ({
   page,
 }) => {
   await prepareSession(page, {
     backendRole: "ADMIN",
     frontendRole: "AdminCampana",
-    name: "Dirección",
+    name: "Administración",
+    tenantType: "CANDIDACY",
+    operationStage: "CAMPAIGN",
   });
 
-  await page.goto("/dashboard/profile");
-  await openSecondaryNavigationOnMobile(page);
-
-  await expect(workspaceLabel(page, "Dirección")).toBeVisible();
+  await page.goto("/dashboard/war-room");
   await expect(
-    page.getByRole("link", { name: "Bandeja operativa", exact: true }),
+    page.getByRole("heading", { name: "Acceso restringido" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Personas", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Operación electoral", exact: true }),
-  ).toHaveCount(0);
-  await expect(page.locator("body")).not.toContainText(
-    /Votantes|Captura territorial|Día D \/ E-14/,
+  await expect(page.locator("main")).toContainText(
+    "no está habilitada durante la etapa operativa actual",
   );
-});
-
-test("campo prioriza la jornada, las tareas y la agenda con lenguaje claro", async ({
-  page,
-}) => {
-  await prepareSession(page, {
-    backendRole: "VOLUNTEER",
-    frontendRole: "Voluntario",
-    name: "Equipo de campo",
-  });
-
-  await page.goto("/dashboard/profile");
-  await openSecondaryNavigationOnMobile(page);
-
-  await expect(workspaceLabel(page, "Campo")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Jornada territorial", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Tareas y compromisos", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Agenda y eventos", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Operación electoral", exact: true }),
-  ).toHaveCount(0);
-});
-
-test("el rol de testigo conserva acceso explícito a la operación electoral", async ({
-  page,
-}) => {
-  await prepareSession(page, {
-    backendRole: "WITNESS",
-    frontendRole: "Testigo",
-    name: "Testigo electoral",
-    operationStage: "ELECTION_DAY",
-  });
-
-  await page.goto("/dashboard/profile");
-  await openSecondaryNavigationOnMobile(page);
-
-  await expect(workspaceLabel(page, "Campo")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Operación electoral", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Bandeja operativa", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText(
+    "no tiene permiso para consultar esta sección",
+  );
 });

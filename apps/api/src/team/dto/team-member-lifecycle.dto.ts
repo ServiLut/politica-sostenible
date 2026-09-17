@@ -3,17 +3,15 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  Length,
   Matches,
-  MaxLength,
 } from 'class-validator';
 import { Role } from '../../../prisma/generated/prisma';
+import { PRISMA_CUID_PATTERN } from '../../common/dto/cuid-id-params.dto';
 
 export class TeamMemberParamsDto {
   @IsString()
-  @Length(1, 128)
-  @Matches(/^[A-Za-z0-9_-]+$/, {
-    message: 'El identificador del miembro no es valido',
+  @Matches(PRISMA_CUID_PATTERN, {
+    message: 'El identificador del miembro no es un CUID valido',
   })
   memberId: string;
 }
@@ -31,9 +29,8 @@ export class UpdateTeamMemberStatusDto {
 export class UpdateTeamMemberDivisionDto {
   @IsOptional()
   @IsString()
-  @MaxLength(128)
-  @Matches(/^[A-Za-z0-9_-]+$/, {
-    message: 'El identificador territorial no es valido',
+  @Matches(PRISMA_CUID_PATTERN, {
+    message: 'El identificador territorial no es un CUID valido',
   })
   divisionId?: string | null;
 }

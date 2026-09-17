@@ -176,7 +176,10 @@ export default function LandingPage() {
             aria-label="Política Sostenible, inicio"
           >
             <span className="grid h-10 w-10 place-items-center rounded-2xl border border-white/15 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-colors group-hover:bg-white/15">
-              <ShieldCheck className="h-5 w-5 text-emerald-300" aria-hidden="true" />
+              <ShieldCheck
+                className="h-5 w-5 text-emerald-300"
+                aria-hidden="true"
+              />
             </span>
             <span>
               <span className="block text-sm font-bold tracking-[-0.01em]">
@@ -195,7 +198,10 @@ export default function LandingPage() {
             <a className="transition-colors hover:text-white" href="#recorrido">
               Cómo funciona
             </a>
-            <a className="transition-colors hover:text-white" href="#capacidades">
+            <a
+              className="transition-colors hover:text-white"
+              href="#capacidades"
+            >
               Capacidades
             </a>
             <a className="transition-colors hover:text-white" href="#confianza">
@@ -204,14 +210,17 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/iniciar-sesion" className="hidden text-sm font-bold text-white/80 transition hover:text-white sm:block">
+            <Link
+              href="/iniciar-sesion"
+              className="hidden text-sm font-bold text-white/80 transition hover:text-white sm:block"
+            >
               Acceder
             </Link>
             <Link
               href="/registro"
               className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
             >
-              Registrarse
+              Acceso de organización
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
@@ -242,11 +251,17 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-white/60">
               <span className="inline-flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                <Check
+                  className="h-4 w-4 text-emerald-300"
+                  aria-hidden="true"
+                />
                 Sin perfiles políticos inferidos
               </span>
               <span className="inline-flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                <Check
+                  className="h-4 w-4 text-emerald-300"
+                  aria-hidden="true"
+                />
                 Sin promesas de resultado electoral
               </span>
             </div>
@@ -307,7 +322,9 @@ export default function LandingPage() {
                           <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-bold">{item.label}</span>
+                          <span className="block text-sm font-bold">
+                            {item.label}
+                          </span>
                           <span className="mt-0.5 block truncate text-xs text-slate-500">
                             {item.detail}
                           </span>
@@ -343,26 +360,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section aria-label="Principios esenciales" className="border-b border-slate-900/10 bg-white">
+      <section
+        aria-label="Principios esenciales"
+        className="border-b border-slate-900/10 bg-white"
+      >
         <div className="mx-auto grid max-w-7xl divide-y divide-slate-200 px-5 sm:px-8 md:grid-cols-3 md:divide-x md:divide-y-0 lg:px-10">
           <div className="flex items-center gap-3 py-5 md:pr-8">
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
+            <CheckCircle2
+              className="h-5 w-5 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
             <p className="text-sm font-bold text-slate-800">
               Campaña y ejercicio del cargo separados
             </p>
           </div>
           <div className="flex items-center gap-3 py-5 md:px-8">
-            <Layers3 className="h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
-            <p className="text-sm font-bold text-slate-800">Datos aislados por organización</p>
+            <Layers3
+              className="h-5 w-5 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-bold text-slate-800">
+              Datos aislados por organización
+            </p>
           </div>
           <div className="flex items-center gap-3 py-5 md:pl-8">
-            <FileCheck2 className="h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
-            <p className="text-sm font-bold text-slate-800">Decisiones respaldadas por registros</p>
+            <FileCheck2
+              className="h-5 w-5 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-bold text-slate-800">
+              Decisiones respaldadas por registros
+            </p>
           </div>
         </div>
       </section>
 
-      <section id="recorrido" className="scroll-mt-8 px-5 py-24 sm:px-8 sm:py-32 lg:px-10">
+      <section
+        id="recorrido"
+        className="scroll-mt-8 px-5 py-24 sm:px-8 sm:py-32 lg:px-10"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
             <div>
@@ -396,8 +432,12 @@ export default function LandingPage() {
                       <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                     </span>
                   </div>
-                  <h3 className="mt-8 text-xl font-black tracking-[-0.03em]">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{step.description}</p>
+                  <h3 className="mt-8 text-xl font-black tracking-[-0.03em]">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {step.description}
+                  </p>
                   {index < journey.length - 1 ? (
                     <ChevronRight
                       className="absolute -right-3 top-9 z-10 hidden h-6 w-6 rounded-full border border-slate-200 bg-white p-1 text-slate-400 md:block"
@@ -429,7 +469,10 @@ export default function LandingPage() {
 
           <div className="mt-12 grid gap-6 lg:grid-cols-2">
             <article className="relative overflow-hidden rounded-[2rem] bg-[#102b27] p-7 text-white shadow-[0_20px_60px_rgba(11,31,28,0.16)] sm:p-9">
-              <div className="absolute -right-14 -top-14 h-52 w-52 rounded-full border-[32px] border-emerald-300/10" aria-hidden="true" />
+              <div
+                className="absolute -right-14 -top-14 h-52 w-52 rounded-full border-[32px] border-emerald-300/10"
+                aria-hidden="true"
+              />
               <div className="relative">
                 <div className="flex items-center justify-between gap-4">
                   <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/10 text-emerald-200">
@@ -439,15 +482,23 @@ export default function LandingPage() {
                     Campaña
                   </span>
                 </div>
-                <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">Campaña responsable</h3>
+                <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">
+                  Campaña responsable
+                </h3>
                 <p className="mt-3 max-w-md leading-7 text-slate-300">
                   Coordina la operación electoral sin convertir los datos
                   sensibles en un activo sin control.
                 </p>
                 <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                   {campaignFeatures.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2.5 text-sm font-semibold text-white/90">
-                      <Check className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                    <li
+                      key={feature}
+                      className="flex items-center gap-2.5 text-sm font-semibold text-white/90"
+                    >
+                      <Check
+                        className="h-4 w-4 text-emerald-300"
+                        aria-hidden="true"
+                      />
                       {feature}
                     </li>
                   ))}
@@ -456,7 +507,10 @@ export default function LandingPage() {
             </article>
 
             <article className="relative overflow-hidden rounded-[2rem] border border-slate-900/10 bg-[#fbfaf5] p-7 shadow-[0_20px_60px_rgba(15,23,42,0.07)] sm:p-9">
-              <div className="absolute -right-14 -top-14 h-52 w-52 rounded-full border-[32px] border-amber-300/20" aria-hidden="true" />
+              <div
+                className="absolute -right-14 -top-14 h-52 w-52 rounded-full border-[32px] border-amber-300/20"
+                aria-hidden="true"
+              />
               <div className="relative">
                 <div className="flex items-center justify-between gap-4">
                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-100 text-amber-900">
@@ -466,15 +520,23 @@ export default function LandingPage() {
                     Ejercicio del cargo
                   </span>
                 </div>
-                <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">Ejercicio del cargo</h3>
+                <h3 className="mt-8 text-3xl font-black tracking-[-0.04em]">
+                  Ejercicio del cargo
+                </h3>
                 <p className="mt-3 max-w-md leading-7 text-slate-600">
                   Responde a la ciudadanía y demuestra avances en un contexto
                   separado de la campaña.
                 </p>
                 <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                   {publicOfficeFeatures.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2.5 text-sm font-semibold text-slate-800">
-                      <Check className="h-4 w-4 text-amber-700" aria-hidden="true" />
+                    <li
+                      key={feature}
+                      className="flex items-center gap-2.5 text-sm font-semibold text-slate-800"
+                    >
+                      <Check
+                        className="h-4 w-4 text-amber-700"
+                        aria-hidden="true"
+                      />
                       {feature}
                     </li>
                   ))}
@@ -485,17 +547,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="capacidades" className="scroll-mt-8 bg-white px-5 py-24 sm:px-8 sm:py-32 lg:px-10">
+      <section
+        id="capacidades"
+        className="scroll-mt-8 bg-white px-5 py-24 sm:px-8 sm:py-32 lg:px-10"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Una operación conectada</p>
-              <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl">Menos islas. Más trazabilidad.</h2>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
+                Una operación conectada
+              </p>
+              <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl">
+                Menos islas. Más trazabilidad.
+              </h2>
             </div>
             <p className="max-w-xl text-base leading-7 text-slate-600">
-              La plataforma une el trabajo que suele quedar disperso entre
-              hojas de cálculo, chats, archivos y personas que no comparten la
-              misma versión de los hechos.
+              La plataforma une el trabajo que suele quedar disperso entre hojas
+              de cálculo, chats, archivos y personas que no comparten la misma
+              versión de los hechos.
             </p>
           </div>
 
@@ -504,11 +573,17 @@ export default function LandingPage() {
               const Icon = capability.icon;
               return (
                 <article key={capability.title} className="bg-white p-7 sm:p-8">
-                  <span className={`grid h-11 w-11 place-items-center rounded-2xl ring-1 ${capability.accent}`}>
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-2xl ring-1 ${capability.accent}`}
+                  >
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
-                  <h3 className="mt-8 text-xl font-black tracking-[-0.025em]">{capability.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{capability.description}</p>
+                  <h3 className="mt-8 text-xl font-black tracking-[-0.025em]">
+                    {capability.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {capability.description}
+                  </p>
                 </article>
               );
             })}
@@ -516,11 +591,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="confianza" className="scroll-mt-8 bg-[#f1efe7] px-5 py-24 sm:px-8 sm:py-32 lg:px-10">
+      <section
+        id="confianza"
+        className="scroll-mt-8 bg-[#f1efe7] px-5 py-24 sm:px-8 sm:py-32 lg:px-10"
+      >
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-800">Confianza por diseño</p>
-            <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl">El control también es una función.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-800">
+              Confianza por diseño
+            </p>
+            <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl">
+              El control también es una función.
+            </h2>
             <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
               En política, un dato fuera de contexto o una promesa sin evidencia
               no son detalles técnicos. Son riesgos para las personas y para la
@@ -533,7 +615,9 @@ export default function LandingPage() {
                   <Scale className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="font-black">Contexto colombiano, sin atajos</h3>
+                  <h3 className="font-black">
+                    Contexto colombiano, sin atajos
+                  </h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     Los flujos toman como referencia reglas y fuentes oficiales,
                     pero la plataforma no reemplaza la responsabilidad jurídica,
@@ -582,10 +666,16 @@ export default function LandingPage() {
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <h3 className="text-lg font-black tracking-[-0.025em]">{principle.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{principle.description}</p>
+                    <h3 className="text-lg font-black tracking-[-0.025em]">
+                      {principle.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {principle.description}
+                    </p>
                   </div>
-                  <span className="hidden text-xs font-black tracking-[0.16em] text-slate-300 sm:block">0{index + 1}</span>
+                  <span className="hidden text-xs font-black tracking-[0.16em] text-slate-300 sm:block">
+                    0{index + 1}
+                  </span>
                 </article>
               );
             })}
@@ -597,8 +687,12 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl overflow-hidden rounded-[2.25rem] bg-[#0b1f1c] px-6 py-12 text-white shadow-[0_28px_80px_rgba(11,31,28,0.2)] sm:px-10 sm:py-16 lg:px-16">
           <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-3xl">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">Una plataforma para hacer el trabajo visible</p>
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] sm:text-5xl">Organice con criterio. Cumpla con evidencia.</h2>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+                Una plataforma para hacer el trabajo visible
+              </p>
+              <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
+                Organice con criterio. Cumpla con evidencia.
+              </h2>
               <p className="mt-5 max-w-2xl leading-7 text-slate-300">
                 Empiece creando una organización o ingrese a una operación que
                 ya tiene responsables, finalidades y controles definidos.
@@ -623,13 +717,28 @@ export default function LandingPage() {
             </span>
             <div>
               <p className="text-sm font-black">Política Sostenible</p>
-              <p className="mt-0.5 text-xs text-slate-500">Operación política responsable en Colombia</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Operación política responsable en Colombia
+              </p>
             </div>
           </div>
 
-          <nav aria-label="Información legal" className="flex items-center gap-6 text-sm font-bold text-slate-600">
-            <Link className="transition hover:text-emerald-800" href="/privacidad">Privacidad</Link>
-            <Link className="transition hover:text-emerald-800" href="/terminos">Términos</Link>
+          <nav
+            aria-label="Información legal"
+            className="flex items-center gap-6 text-sm font-bold text-slate-600"
+          >
+            <Link
+              className="transition hover:text-emerald-800"
+              href="/privacidad"
+            >
+              Privacidad
+            </Link>
+            <Link
+              className="transition hover:text-emerald-800"
+              href="/terminos"
+            >
+              Términos
+            </Link>
           </nav>
         </div>
       </footer>

@@ -22,7 +22,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { PlanLimitsGuard } from './auth/guards/plan-limits.guard';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { OperationStageGuard } from './auth/guards/operation-stage.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { HealthController } from './health.controller';
 import { CommonModule } from './common/common.module';
@@ -38,18 +39,20 @@ import { ElectronicSignatureModule } from './electronic-signature/electronic-sig
 import { SearchModule } from './search/search.module';
 import { OperationProfileModule } from './operation-profile/operation-profile.module';
 import { OperationalInboxModule } from './operational-inbox/operational-inbox.module';
+import { ElectoralCatalogModule } from './electoral-catalog/electoral-catalog.module';
+import { TransitionHandoverModule } from './transition-handover/transition-handover.module';
+import { DistributedThrottlingModule } from './common/throttling/distributed-throttling.module';
+import { AuthenticatedScopeRateLimitGuard } from './common/throttling/authenticated-scope-rate-limit.guard';
+import { RetentionGovernanceModule } from './retention-governance/retention-governance.module';
+import { ScrutinyModule } from './scrutiny/scrutiny.module';
+import { SignatureCollectionModule } from './signature-collection/signature-collection.module';
+import { ElectoralCalendarModule } from './electoral-calendar/electoral-calendar.module';
+import { PqrsdModule } from './pqrsd/pqrsd.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: 60_000,
-        limit: 120,
-        blockDuration: 60_000,
-      },
-    ]),
+    DistributedThrottlingModule,
     CommonModule,
     PrismaModule,
     AuthModule,
@@ -79,6 +82,13 @@ import { OperationalInboxModule } from './operational-inbox/operational-inbox.mo
     SearchModule,
     OperationProfileModule,
     OperationalInboxModule,
+    ElectoralCatalogModule,
+    TransitionHandoverModule,
+    RetentionGovernanceModule,
+    ScrutinyModule,
+    SignatureCollectionModule,
+    ElectoralCalendarModule,
+    PqrsdModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
@@ -93,7 +103,15 @@ import { OperationalInboxModule } from './operational-inbox/operational-inbox.mo
     },
     {
       provide: APP_GUARD,
+      useClass: AuthenticatedScopeRateLimitGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: OperationStageGuard,
     },
     {
       provide: APP_GUARD,

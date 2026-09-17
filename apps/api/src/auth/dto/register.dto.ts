@@ -4,7 +4,6 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
-  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -18,6 +17,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TenantType } from '../../../prisma/generated/prisma';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from '../public-registration.policy';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -109,8 +109,13 @@ export class RegisterDto {
   @Equals(true, { message: 'Debes aceptar los términos para crear la cuenta' })
   termsAccepted: boolean;
 
-  @ApiProperty({ example: '2026.1' })
+  @ApiProperty({ example: PUBLIC_REGISTRATION_TERMS_VERSION })
   @IsString()
-  @IsIn(['2026.1'], { message: 'La versión de términos no es válida' })
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/, {
+    message: 'La versión de términos no tiene un formato válido',
+  })
+  @Equals(PUBLIC_REGISTRATION_TERMS_VERSION, {
+    message: 'La versión de términos no es la vigente',
+  })
   termsVersion: string;
 }

@@ -14,6 +14,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { CreateCampaignEventDto } from './dto/create-campaign-event.dto';
 import { ListCampaignEventsQueryDto } from './dto/list-campaign-events-query.dto';
 import { TransitionCampaignEventDto } from './dto/transition-campaign-event.dto';
@@ -247,22 +248,44 @@ export class EventsService {
     return event;
   }
 
-  async listResponsibles(user: AuthenticatedUser) {
+  async listResponsibles(user: AuthenticatedUser, query: { search?: string; page?: number; limit?: number } = {}) {
     const [mode, currentRole] = await Promise.all([
       this.getActiveMode(user.tenantId),
       this.getCurrentRole(user.tenantId, user.userId),
     ]);
     this.assertModeRole(currentRole, mode, MODE_WRITE_ROLES, 'gestionar');
 
-    return this.prisma.user.findMany({
-      where: {
-        tenantId: user.tenantId,
-        isActive: true,
-        role: { in: [...MODE_RESPONSIBLE_ROLES[mode]] },
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const search = query.search?.trim();
+
+    const where: Prisma.UserWhereInput = {
+      tenantId: user.tenantId,
+      isActive: true,
+      role: { in: [...MODE_RESPONSIBLE_ROLES[mode]] },
+      ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: { id: true, name: true, role: true },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      select: { id: true, name: true, role: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-    });
+    };
   }
 
   async create(user: AuthenticatedUser, dto: CreateCampaignEventDto) {
@@ -281,6 +304,7 @@ export class EventsService {
       : Promise.resolve());
 
     return this.prisma.$transaction(async (tx) => {
+      await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
       const event = await tx.campaignEvent.create({
         data: {
           tenantId: user.tenantId,
@@ -380,6 +404,7 @@ export class EventsService {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
           const result = await tx.campaignEvent.updateMany({
             where: {
               id,
@@ -446,6 +471,7 @@ export class EventsService {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
           const existing = await tx.campaignEvent.findFirst({
             where: { id, tenantId: user.tenantId, mode },
             select: EVENT_SELECT,
@@ -515,6 +541,7 @@ export class EventsService {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
           const existing = await tx.campaignEvent.findFirst({
             where: { id, tenantId: user.tenantId, mode },
             select: {
@@ -665,12 +692,20 @@ export class EventsService {
   }
 
   private auditSnapshot(value: {
+    name: string;
+    description: string | null;
+    location: string | null;
+    responsibleId: string | null;
     status: CampaignEventStatus;
     startsAt: Date;
     endsAt: Date;
     capacity: number | null;
   }): Prisma.InputJsonObject {
     return {
+      name: value.name,
+      description: value.description,
+      location: value.location,
+      responsibleId: value.responsibleId,
       status: value.status,
       startsAt: value.startsAt.toISOString(),
       endsAt: value.endsAt.toISOString(),

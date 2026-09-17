@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -26,6 +27,7 @@ import {
   createProposal,
   deleteProposal,
   listProposals,
+  listProposalResponsibles,
   PoliticalProposal,
   PROPOSAL_CATEGORIES,
   ProposalCategory,
@@ -35,6 +37,10 @@ import {
   updateProposal,
 } from "@/lib/proposals-api";
 import type { BackendUserRole } from "@/types/saas-schema";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { UserCombobox } from "@/components/ui/UserCombobox";
+import { listProposalResponsibles } from "@/lib/proposals-api";
+import { UserCombobox } from "@/components/ui/UserCombobox";
 
 const PROPOSAL_MANAGER_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -77,6 +83,7 @@ interface ProposalForm {
   progressPercent: string;
   estimatedCost: string;
   internalDistributionFlag: boolean;
+  ownerId: string;
 }
 
 const EMPTY_FORM: ProposalForm = {
@@ -87,6 +94,7 @@ const EMPTY_FORM: ProposalForm = {
   progressPercent: "0",
   estimatedCost: "",
   internalDistributionFlag: false,
+  ownerId: "",
 };
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -117,9 +125,25 @@ export default function ProposalsPage() {
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">(
     "ALL",
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const [categoryFilter, setCategoryFilter] = useState<
     ProposalCategory | "ALL"
   >("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const [dialogProposal, setDialogProposal] = useState<
     PoliticalProposal | "new" | null
   >(null);
@@ -133,6 +157,27 @@ export default function ProposalsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PoliticalProposal | null>(
     null,
   );
+  const proposalDialogRef = useRef<HTMLElement>(null);
+  const proposalDialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const deleteDialogRef = useRef<HTMLDivElement>(null);
+  const deleteDialogTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useAccessibleDialog({
+    open: dialogProposal !== null,
+    containerRef: proposalDialogRef,
+    initialFocusRef: proposalDialogTitleRef,
+    onClose: () => {
+      if (!submitting) setDialogProposal(null);
+    },
+    closeOnEscape: !submitting,
+  });
+  useAccessibleDialog({
+    open: deleteTarget !== null,
+    containerRef: deleteDialogRef,
+    initialFocusRef: deleteDialogTitleRef,
+    onClose: () => setDeleteTarget(null),
+    closeOnEscape: false,
+  });
 
   const loadProposals = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -192,6 +237,7 @@ export default function ProposalsPage() {
       estimatedCost:
         proposal.estimatedCost === null ? "" : String(proposal.estimatedCost),
       internalDistributionFlag: proposal.isPublic,
+      ownerId: proposal.ownerId,
     });
     setMutationError(null);
     setDialogProposal(proposal);
@@ -242,6 +288,7 @@ export default function ProposalsPage() {
       progressPercent,
       estimatedCost,
       isPublic: form.internalDistributionFlag,
+      ownerId: form.ownerId || undefined,
     };
 
     setSubmitting(true);
@@ -264,12 +311,13 @@ export default function ProposalsPage() {
   const filteredProposals = useMemo(
     () =>
       proposals.filter((proposal) => {
+        if (debouncedSearch && !proposal.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
         if (statusFilter !== "ALL" && proposal.status !== statusFilter) {
           return false;
         }
         return categoryFilter === "ALL" || proposal.category === categoryFilter;
       }),
-    [categoryFilter, proposals, statusFilter],
+    [categoryFilter, proposals, statusFilter, debouncedSearch],
   );
 
   const statusCounts = useMemo(() => {
@@ -359,6 +407,17 @@ export default function ProposalsPage() {
       )}
 
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+
+        <div className="flex-1 max-w-sm">
+          <input
+            type="search"
+            placeholder="Buscar propuestas..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="flex gap-4 overflow-x-auto pb-1">
           {(["ALL", ...PROPOSAL_STATUSES] as const).map((status) => (
             <button
@@ -539,6 +598,33 @@ export default function ProposalsPage() {
                     />
                   </div>
                 </div>
+
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <label className="block text-xs font-black text-slate-700 mb-1">
+                    Cambiar estado rápido
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const newStatus = e.target.value as ProposalStatus;
+                      if (!newStatus) return;
+                      // Optimistic update
+                      setProposals(prev => prev.map(p => p.id === proposal.id ? { ...p, status: newStatus } : p));
+                      updateProposal(proposal.id, { status: newStatus }).catch(() => {
+                         // Revert
+                         void loadProposals();
+                      });
+                    }}
+                    disabled={!canMutate}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold outline-none focus:border-blue-500 disabled:opacity-50"
+                  >
+                    <option value="">Seleccionar transición...</option>
+                    {allowedProposalStatuses(proposal.status).map((st) => (
+                      <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+                    ))}
+                  </select>
+                </div>
+
               </div>
             </article>
           ))}
@@ -548,6 +634,7 @@ export default function ProposalsPage() {
       {dialogProposal && canMutate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <section
+            ref={proposalDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="proposal-dialog-title"
@@ -556,6 +643,8 @@ export default function ProposalsPage() {
             <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
               <div>
                 <h2
+                  ref={proposalDialogTitleRef}
+                  tabIndex={-1}
                   id="proposal-dialog-title"
                   className="text-xl font-black text-slate-950"
                 >
@@ -564,10 +653,7 @@ export default function ProposalsPage() {
                     : "Editar propuesta"}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Responsable:{" "}
-                  {dialogProposal === "new"
-                    ? user.name
-                    : dialogProposal.owner.name}
+                  Creador: {dialogProposal === "new" ? user.name : dialogProposal.owner.name}
                 </p>
               </div>
               <button
@@ -619,6 +705,18 @@ export default function ProposalsPage() {
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
+
+                <label className="block text-sm font-black text-slate-800">
+                  Responsable
+                  <div className="mt-2">
+                    <UserCombobox
+                      value={form.ownerId}
+                      onChange={(val) => setForm({ ...form, ownerId: val })}
+                      fetchItems={(search, signal) => listProposalResponsibles({ search, limit: 10 }, signal)}
+                    />
+                  </div>
+                </label>
+
                 <label className="block text-sm font-black text-slate-800">
                   Categoría
                   <select
@@ -748,12 +846,16 @@ export default function ProposalsPage() {
       {deleteTarget && canMutate && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <div
+            ref={deleteDialogRef}
+            tabIndex={-1}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="delete-proposal-title"
             className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
           >
             <h2
+              ref={deleteDialogTitleRef}
+              tabIndex={-1}
               id="delete-proposal-title"
               className="text-lg font-black text-slate-900"
             >

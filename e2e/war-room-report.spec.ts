@@ -9,8 +9,12 @@ const jwt = [
 ].join(".");
 
 type BackendRole = "ADMIN" | "WITNESS";
+type CaptureContext = "SIMULATION" | "REAL" | "LEGACY_UNCLASSIFIED";
 
-function sessionFor(role: BackendRole) {
+function sessionFor(
+  role: BackendRole,
+  operationStage: "SIMULATION" | "ELECTION_DAY" = "ELECTION_DAY",
+) {
   return {
     accessToken: jwt,
     expiresAt: null,
@@ -19,6 +23,7 @@ function sessionFor(role: BackendRole) {
       name: "Campaña verificable",
       slug: "campana-verificable",
       type: "CANDIDACY",
+      operationStage,
     },
     user: {
       id: role === "ADMIN" ? "admin-e2e" : "witness-e2e",
@@ -43,6 +48,22 @@ const votingPlace = {
     type: "ZONA",
   },
   expectedTables: 20 as number | null,
+  sourceNamespace: "RNEC_DIVIPOLE" as const,
+  sourceReleaseId: "release-rnec-e2e",
+  sourceLocationCode: "1001",
+  votingDate: "2026-09-09",
+  address: "Calle 1 # 2-3",
+  commune: "Centro",
+  latitude: 4.61,
+  longitude: -74.08,
+  timeZone: "America/Bogota",
+  operationalStatus: {
+    code: "OPEN_FOR_LOGICAL_VOTING_DATE" as const,
+    operationalNow: true,
+    votingDate: "2026-09-09",
+    evaluatedLocalDate: "2026-09-09",
+    timeZone: "America/Bogota",
+  },
 };
 
 const secondPageVotingPlace = {
@@ -58,6 +79,22 @@ const secondPageVotingPlace = {
     type: "ZONA",
   },
   expectedTables: 30 as number | null,
+  sourceNamespace: "RNEC_DIVIPOLE" as const,
+  sourceReleaseId: "release-rnec-e2e",
+  sourceLocationCode: "1051",
+  votingDate: "2026-09-09",
+  address: null,
+  commune: "Norte",
+  latitude: null,
+  longitude: null,
+  timeZone: "America/Bogota",
+  operationalStatus: {
+    code: "OPEN_FOR_LOGICAL_VOTING_DATE" as const,
+    operationalNow: true,
+    votingDate: "2026-09-09",
+    evaluatedLocalDate: "2026-09-09",
+    timeZone: "America/Bogota",
+  },
 };
 
 type ReportStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "SUPERSEDED";
@@ -76,6 +113,7 @@ type ReclamationGround =
 
 interface MockReport {
   id: string;
+  captureContext: CaptureContext;
   witnessId: string;
   puestoId: string;
   mesa: number;
@@ -110,6 +148,7 @@ interface MockReport {
 function report(overrides: Partial<MockReport> = {}): MockReport {
   return {
     id: "report-1",
+    captureContext: "REAL",
     witnessId: "other-witness",
     puestoId: votingPlace.id,
     mesa: 4,
@@ -149,7 +188,10 @@ function report(overrides: Partial<MockReport> = {}): MockReport {
 
 function reportPage(items: MockReport[], page = 1, totalPages = 1) {
   const accepted = items.filter((item) => item.status === "ACCEPTED");
+  const captureContext =
+    items[0]?.captureContext === "SIMULATION" ? "SIMULATION" : "REAL";
   return {
+    captureContext,
     items,
     pagination: {
       page,
@@ -191,19 +233,23 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
-async function storeSession(page: Page, role: BackendRole) {
+async function storeSession(
+  page: Page,
+  role: BackendRole,
+  operationStage: "SIMULATION" | "ELECTION_DAY" = "ELECTION_DAY",
+) {
   await page.addInitScript(
     ({ storageKey, authSession }) => {
       window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
     },
     {
       storageKey: "politica-sostenible.auth-session",
-      authSession: sessionFor(role),
+      authSession: sessionFor(role, operationStage),
     },
   );
 }
 
-test("un testigo pagina puestos, radica un E-14 privado y no altera métricas aceptadas", async ({
+test("un testigo ejecuta el flujo E-14 de simulacro sin enviar contexto al backend", async ({
   page,
 }) => {
   const apiBodies: Record<string, unknown>[] = [];
@@ -212,9 +258,9 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   const fileBuffer = Buffer.from("%PDF-1.4 acta e2e verificable");
   const confirmedPath =
     "tenant-e2e/e14/123e4567-e89b-42d3-a456-426614174000.pdf";
-  let reports = [report()];
+  let reports = [report({ captureContext: "SIMULATION" })];
 
-  await storeSession(page, "WITNESS");
+  await storeSession(page, "WITNESS", "SIMULATION");
 
   await page.route("**/storage/v1/object/upload/sign/**", async (route) => {
     storageMethods.push(route.request().method());
@@ -243,6 +289,7 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
           successful({
             items:
               requestedPage === "1" ? [votingPlace] : [secondPageVotingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
             pagination: {
               page: Number(requestedPage),
               limit: 50,
@@ -309,6 +356,7 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
       apiBodies.push(body);
       const created = report({
         id: "report-2",
+        captureContext: "SIMULATION",
         witnessId: "witness-e2e",
         puestoId: String(body.puestoId),
         mesa: Number(body.mesa),
@@ -363,6 +411,9 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   await expect(
     page.getByRole("heading", { name: "Control de reportes E-14" }),
   ).toBeVisible();
+  await expect(page.getByTestId("e14-context-banner")).toContainText(
+    "SIMULACRO E-14",
+  );
   await expect(page.getByTestId("reports-metric")).toHaveText("1");
   await expect(page.getByTestId("candidate-votes-metric")).toHaveText("120");
 
@@ -375,9 +426,11 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   ).toContainText(secondPageVotingPlace.name);
   expect(requestedPlacePages).toContain("2");
 
-  await page.getByRole("button", { name: "Registrar E-14" }).click();
+  await page
+    .getByRole("button", { name: "Registrar E-14 de simulacro" })
+    .click();
   const dialog = page.getByRole("dialog", {
-    name: "Registrar reporte de mesa",
+    name: "Registrar reporte de simulacro",
   });
   await dialog
     .getByLabel("Puesto de votación")
@@ -416,14 +469,15 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   await dialog.getByLabel("Votos totales de la mesa").fill("180");
   await dialog.getByRole("button", { name: "Enviar reporte" }).click();
 
-  await expect(
-    page.getByText(/guardado como lectura interna pendiente/i),
-  ).toBeVisible();
+  await expect(page.getByText(/Reporte de simulacro guardado/i)).toBeVisible();
   await expect(page.getByTestId("report-row-report-2")).toContainText(
     "Mesa 12",
   );
   await expect(page.getByTestId("report-status-report-2")).toHaveText(
     "Pendiente",
+  );
+  await expect(page.getByTestId("report-context-report-2")).toHaveText(
+    "SIMULACRO",
   );
   await expect(page.getByTestId("reports-metric")).toHaveText("1");
   await expect(page.getByTestId("candidate-votes-metric")).toHaveText("120");
@@ -458,11 +512,114 @@ test("un testigo pagina puestos, radica un E-14 privado y no altera métricas ac
   ).toBe(true);
 });
 
-test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes", async ({
+test("un refresco fallido de simulacro no muestra contexto real ni conserva reportes anteriores", async ({
+  page,
+}) => {
+  const simulated = report({
+    id: "simulation-report-before-refresh",
+    captureContext: "SIMULATION",
+  });
+  let witnessReads = 0;
+  let releaseInitialLoad!: () => void;
+  const initialLoadGate = new Promise<void>((resolve) => {
+    releaseInitialLoad = resolve;
+  });
+  let releaseFailedRefresh!: () => void;
+  const failedRefreshGate = new Promise<void>((resolve) => {
+    releaseFailedRefresh = resolve;
+  });
+
+  await storeSession(page, "WITNESS", "SIMULATION");
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (pathname === "/api/campaigns/divisions" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            items: [votingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
+            pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (pathname === "/api/witnesses" && request.method() === "GET") {
+      witnessReads += 1;
+      if (witnessReads === 1) {
+        await initialLoadGate;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(successful(reportPage([simulated]))),
+        });
+        return;
+      }
+
+      await failedRefreshGate;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 503,
+          error: "Service Unavailable",
+          message: "Fallo controlado del segundo lote E-14",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 503, body: "Unavailable" });
+  });
+
+  await page.goto("/dashboard/war-room");
+  await expect(
+    page.getByText(/Consultando puestos y reportes de simulacro/),
+  ).toBeVisible();
+  await expect(page.getByText(/OPERACIÓN ELECTORAL REAL/)).toHaveCount(0);
+  await expect(page.getByTestId("e14-context-banner")).toContainText(
+    "SIMULACRO E-14",
+  );
+
+  releaseInitialLoad();
+  await expect(
+    page.getByTestId("report-row-simulation-report-before-refresh"),
+  ).toBeVisible();
+  await expect(page.getByText(/OPERACIÓN ELECTORAL REAL/)).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Actualizar" }).click();
+  await expect(
+    page.getByText(/Consultando puestos y reportes de simulacro/),
+  ).toBeVisible();
+  await expect(
+    page.getByTestId("report-row-simulation-report-before-refresh"),
+  ).toHaveCount(0);
+  await expect(page.getByText(/OPERACIÓN ELECTORAL REAL/)).toHaveCount(0);
+
+  releaseFailedRefresh();
+  await expect(
+    page.getByText("No pudimos cargar el control electoral"),
+  ).toBeVisible();
+  await expect(
+    page.getByTestId("report-row-simulation-report-before-refresh"),
+  ).toHaveCount(0);
+  await expect(page.getByText(/OPERACIÓN ELECTORAL REAL/)).toHaveCount(0);
+  await expect(page.getByTestId("e14-context-banner")).toContainText(
+    "SIMULACRO E-14",
+  );
+});
+
+test("dirección configura y concilia el simulacro con cuatro ojos", async ({
   page,
 }) => {
   const pending = report({
     id: "pending-report",
+    captureContext: "SIMULATION",
     status: "PENDING",
     reviewerId: null,
     reviewReason: null,
@@ -472,6 +629,7 @@ test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes
   });
   const secondPageReport = report({
     id: "second-page-report",
+    captureContext: "SIMULATION",
     mesa: 9,
     status: "REJECTED",
     candidateVotes: 70,
@@ -486,7 +644,7 @@ test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes
   const reviewBodies: Record<string, unknown>[] = [];
   const requestedReportPages: string[] = [];
 
-  await storeSession(page, "ADMIN");
+  await storeSession(page, "ADMIN", "SIMULATION");
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -501,6 +659,7 @@ test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes
         body: JSON.stringify(
           successful({
             items: [votingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
             pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
           }),
         ),
@@ -550,6 +709,7 @@ test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes
       reviewBodies.push(body);
       const accepted = report({
         ...pending,
+        captureContext: "SIMULATION",
         status: "ACCEPTED",
         reviewerId: "admin-e2e",
         reviewReason: String(body.reviewReason),
@@ -598,7 +758,7 @@ test("dirección configura cobertura, concilia con cuatro ojos y pagina reportes
 
   await page.getByRole("button", { name: "Revisar" }).click();
   const reviewDialog = page.getByRole("dialog", {
-    name: "Revisar reporte E-14",
+    name: "Revisar E-14 de simulacro",
   });
   await expect(reviewDialog).toContainText(/lectura/i);
   await reviewDialog
@@ -649,6 +809,7 @@ test("un revisor no recibe acción para su propio reporte pendiente", async ({
         body: JSON.stringify(
           successful({
             items: [votingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
             pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
           }),
         ),
@@ -682,13 +843,13 @@ test("un revisor no recibe acción para su propio reporte pendiente", async ({
   await expect(row.getByRole("button", { name: "Revisar" })).toHaveCount(0);
 });
 
-test("un reporte legado solo puede salir de la cola mediante rechazo motivado", async ({
+test("la interfaz falla cerrada si el backend mezcla un legado con la vista real", async ({
   page,
 }) => {
   await storeSession(page, "ADMIN");
-  const reviewBodies: Record<string, unknown>[] = [];
-  let legacy = report({
+  const legacy = report({
     id: "legacy-report",
+    captureContext: "LEGACY_UNCLASSIFIED",
     witnessId: "legacy-witness",
     witness: { id: "legacy-witness", name: "Testigo histórico" },
     credentialType: null,
@@ -718,6 +879,7 @@ test("un reporte legado solo puede salir de la cola mediante rechazo motivado", 
         body: JSON.stringify(
           successful({
             items: [votingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
             pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
           }),
         ),
@@ -732,56 +894,17 @@ test("un reporte legado solo puede salir de la cola mediante rechazo motivado", 
       });
       return;
     }
-    if (
-      url.pathname === "/api/witnesses/legacy-report/review" &&
-      request.method() === "PATCH"
-    ) {
-      const body = request.postDataJSON() as Record<string, unknown>;
-      reviewBodies.push(body);
-      legacy = report({
-        ...legacy,
-        status: "REJECTED",
-        reviewerId: "admin-e2e",
-        reviewReason: String(body.reviewReason),
-        reviewedAt: "2026-08-21T17:00:00.000Z",
-        reviewer: { id: "admin-e2e", name: "Dirección electoral" },
-      });
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(successful(legacy)),
-      });
-      return;
-    }
     await route.fulfill({ status: 503, body: "Unavailable" });
   });
 
   await page.goto("/dashboard/war-room");
-  await page.getByRole("button", { name: "Revisar" }).click();
-  const dialog = page.getByRole("dialog", {
-    name: "Revisar reporte E-14",
-  });
-  await expect(dialog).toContainText("el backend no permite aceptarlo");
-  const decision = dialog.getByLabel("Decisión de conciliación");
-  await expect(decision).toHaveValue("REJECTED");
   await expect(
-    decision.locator('option[value="ACCEPTED"]'),
-  ).toHaveAttribute("disabled", "");
-  await dialog
-    .getByLabel("Motivo de la decisión")
-    .fill("Rechazado porque el reporte histórico no tiene trazabilidad.");
-  await dialog.getByRole("button", { name: "Guardar decisión" }).click();
-
-  await expect(page.getByTestId("report-status-legacy-report")).toHaveText(
-    "Rechazado",
+    page.getByText("No pudimos cargar el control electoral"),
+  ).toBeVisible();
+  await expect(page.getByTestId("report-row-legacy-report")).toHaveCount(0);
+  await expect(page.getByTestId("e14-context-banner")).toContainText(
+    "OPERACIÓN ELECTORAL REAL",
   );
-  expect(reviewBodies).toEqual([
-    {
-      status: "REJECTED",
-      reviewReason:
-        "Rechazado porque el reporte histórico no tiene trazabilidad.",
-    },
-  ]);
 });
 
 test("valida el filtro de mesa antes de la red y permite recuperarse de un rechazo del servidor", async ({
@@ -800,6 +923,7 @@ test("valida el filtro de mesa antes de la red y permite recuperarse de un recha
         body: JSON.stringify(
           successful({
             items: [votingPlace],
+            evaluatedAt: "2026-09-09T15:00:00.000Z",
             pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
           }),
         ),

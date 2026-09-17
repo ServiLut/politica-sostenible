@@ -8,6 +8,15 @@ const jwt = [
   "test-signature",
 ].join(".");
 
+const planCapabilitiesResponse = {
+  statusCode: 200,
+  message: "Success",
+  data: {
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  },
+};
+
 function sessionFor(backendRole: "ADMIN" | "CAMPAIGN_MANAGER") {
   return {
     accessToken: jwt,
@@ -33,6 +42,7 @@ async function installStrictAuthContract(
   authSession: ReturnType<typeof sessionFor>,
 ) {
   const authRequests: string[] = [];
+  const capabilityRequests: string[] = [];
   const unexpectedApiRequests: string[] = [];
 
   await page.route("**/api/**", async (route) => {
@@ -74,7 +84,23 @@ async function installStrictAuthContract(
     });
   });
 
-  return { authRequests, unexpectedApiRequests };
+  await page.route("**/api/billing/capabilities", async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe("GET");
+    expect(request.headers().authorization).toBe(
+      `Bearer ${authSession.accessToken}`,
+    );
+    capabilityRequests.push(
+      `${request.method()} ${new URL(request.url()).pathname}`,
+    );
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(planCapabilitiesResponse),
+    });
+  });
+
+  return { authRequests, capabilityRequests, unexpectedApiRequests };
 }
 
 test("auditoría consulta, filtra y pagina una vista minimizada", async ({
@@ -93,7 +119,7 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
     },
   );
 
-  const { authRequests, unexpectedApiRequests } =
+  const { authRequests, capabilityRequests, unexpectedApiRequests } =
     await installStrictAuthContract(page, authSession);
 
   await page.route("**/api/audit-events**", async (route) => {
@@ -216,6 +242,7 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   await expect(page.getByText("Página 2 de 2")).toBeVisible();
   expect(requests.at(-1)?.searchParams.get("page")).toBe("2");
   expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(capabilityRequests).toContain("GET /api/billing/capabilities");
   expect(unexpectedApiRequests).toEqual([]);
 });
 
@@ -233,7 +260,7 @@ test("un rol operativo no ve la ruta ni genera consultas de auditoría", async (
       authSession,
     },
   );
-  const { authRequests, unexpectedApiRequests } =
+  const { authRequests, capabilityRequests, unexpectedApiRequests } =
     await installStrictAuthContract(page, authSession);
   await page.route("**/api/audit-events**", async (route) => {
     auditRequests += 1;
@@ -247,5 +274,6 @@ test("un rol operativo no ve la ruta ni genera consultas de auditoría", async (
   await expect(page.getByRole("link", { name: "Auditoría" })).toHaveCount(0);
   expect(auditRequests).toBe(0);
   expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(capabilityRequests).toContain("GET /api/billing/capabilities");
   expect(unexpectedApiRequests).toEqual([]);
 });

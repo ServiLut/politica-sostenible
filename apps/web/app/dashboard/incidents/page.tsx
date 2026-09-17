@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -37,6 +44,7 @@ import {
   WorkPriority,
 } from "@/lib/cases-api";
 import { BackendUserRole } from "@/types/saas-schema";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 const PAGE_SIZE = 12;
 
@@ -446,6 +454,18 @@ export default function IncidentsPage() {
     dueDate: "",
     confidential: false,
   });
+  const createDialogRef = useRef<HTMLDivElement>(null);
+  const createDialogTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useAccessibleDialog({
+    open: isCreateOpen,
+    containerRef: createDialogRef,
+    initialFocusRef: createDialogTitleRef,
+    onClose: () => {
+      if (saving !== "create") setIsCreateOpen(false);
+    },
+    closeOnEscape: saving !== "create",
+  });
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -841,6 +861,7 @@ export default function IncidentsPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
+            ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-incident-title"
@@ -849,6 +870,8 @@ export default function IncidentsPage() {
             <div className="flex items-start justify-between border-b border-slate-100 p-5 sm:p-7">
               <div>
                 <h2
+                  ref={createDialogTitleRef}
+                  tabIndex={-1}
                   id="new-incident-title"
                   className="text-2xl font-black text-slate-950"
                 >

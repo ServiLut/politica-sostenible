@@ -106,6 +106,7 @@ describe('ImportService privacy and tenant isolation', () => {
     const existingDocuments = options?.existingDocuments ?? [];
     const availableEvidence = options?.availableEvidence ?? [EVIDENCE_PATH];
     const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -389,9 +390,53 @@ describe('ImportService privacy and tenant isolation', () => {
       ),
     ).resolves.toMatchObject({ validRows: 1, errorRows: [] });
     expect(prisma.politicalDivision.findMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a', type: DivisionType.PUESTO },
+      where: {
+        tenantId: 'tenant-a',
+        type: DivisionType.PUESTO,
+        isActive: true,
+      },
       select: { name: true, code: true },
     });
+  });
+
+  it('rejects a duplicated polling-place name instead of selecting the first match', async () => {
+    const { prisma, service } = createHarness();
+    prisma.politicalDivision.findMany.mockResolvedValue([
+      { name: 'Institución Educativa Central', code: '05-001-01-01' },
+      { name: 'Institución Educativa Central', code: '76-001-02-03' },
+    ]);
+
+    await expect(
+      service.preview(
+        'personas',
+        csv(csvRow({ puesto: 'Institución Educativa Central' })),
+        user,
+      ),
+    ).resolves.toMatchObject({
+      validRows: 0,
+      errorRows: [
+        expect.objectContaining({
+          field: 'Puesto',
+          message: expect.stringContaining('varios puestos'),
+        }),
+      ],
+    });
+  });
+
+  it('treats an exact electoral place code as authoritative even when names repeat', async () => {
+    const { prisma, service } = createHarness();
+    prisma.politicalDivision.findMany.mockResolvedValue([
+      { name: 'Institución Educativa Central', code: '05-001-01-01' },
+      { name: 'Institución Educativa Central', code: '76-001-02-03' },
+    ]);
+
+    await expect(
+      service.preview(
+        'personas',
+        csv(csvRow({ puesto: '76-001-02-03' })),
+        user,
+      ),
+    ).resolves.toMatchObject({ validRows: 1, errorRows: [] });
   });
 
   it('consumes one confirmed proof and never fabricates an IP when executing', async () => {

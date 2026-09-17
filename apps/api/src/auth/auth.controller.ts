@@ -35,6 +35,13 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Get('registration-policy')
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000, blockDuration: 60_000 } })
+  registrationPolicy() {
+    return this.authService.registrationPolicy();
+  }
+
   @Post('register')
   @Public()
   @Throttle({ default: { limit: 4, ttl: 3_600_000, blockDuration: 3_600_000 } })

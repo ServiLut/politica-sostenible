@@ -15,6 +15,7 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { PrismaService } from '../prisma/prisma.service';
 import { ProposalsService } from './proposals.service';
 import { ProposalsController } from './proposals.controller';
+import { ListProposalsQueryDto } from './dto/list-proposals-query.dto';
 
 describe('ProposalsService contract and tenant isolation', () => {
   const actor: AuthenticatedUser = {
@@ -42,6 +43,7 @@ describe('ProposalsService contract and tenant isolation', () => {
   };
 
   let prisma: {
+    $queryRaw: jest.Mock;
     politicalProposal: {
       findMany: jest.Mock;
       count: jest.Mock;
@@ -60,6 +62,7 @@ describe('ProposalsService contract and tenant isolation', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       politicalProposal: {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
@@ -131,7 +134,9 @@ describe('ProposalsService contract and tenant isolation', () => {
       type: TenantType.PARTY,
     });
 
-    await expect(service.findAll(actor, {})).resolves.toMatchObject({
+    await expect(
+      service.findAll(actor, new ListProposalsQueryDto()),
+    ).resolves.toMatchObject({
       items: [],
     });
     expect(prisma.tenant.findUnique).toHaveBeenCalledWith({
@@ -158,7 +163,7 @@ describe('ProposalsService contract and tenant isolation', () => {
       prisma.tenant.findUnique.mockResolvedValue({ type, defaultMode });
 
       const attempts = [
-        () => service.findAll(actor, {}),
+        () => service.findAll(actor, new ListProposalsQueryDto()),
         () => service.findOne(actor, 'proposal-a'),
         () =>
           service.create(actor, {
@@ -191,9 +196,9 @@ describe('ProposalsService contract and tenant isolation', () => {
       });
       const controller = new ProposalsController(service);
 
-      await expect(controller.findAll(actor, {})).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        controller.findAll(actor, new ListProposalsQueryDto()),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.politicalProposal.findMany).not.toHaveBeenCalled();
     },
   );

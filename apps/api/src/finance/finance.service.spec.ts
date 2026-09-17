@@ -53,6 +53,9 @@ const completeSettingsDto = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const openLifecycleQuery = () =>
+  jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]);
+
 describe('FinanceService tenant-safe exports', () => {
   it('queries only the JWT tenant and neutralizes malicious CSV cells', async () => {
     const findMany = jest.fn().mockResolvedValue([
@@ -69,6 +72,7 @@ describe('FinanceService tenant-safe exports', () => {
     ]);
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -156,6 +160,7 @@ describe('FinanceService tenant-safe exports', () => {
 
   it('does not return a CNE draft when its audit record fails', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -192,6 +197,7 @@ describe('FinanceService tenant-safe exports', () => {
 
   it('revalidates the persisted export role and fails before reading finance data', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -276,6 +282,7 @@ describe('FinanceService tenant-safe exports', () => {
     });
     const consume = jest.fn().mockResolvedValue({ count: 0 });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -340,6 +347,7 @@ describe('FinanceService tenant-safe exports', () => {
       type: TenantType.PUBLIC_OFFICE,
     });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: tenantFindUnique },
       user: { findFirst: jest.fn() },
       campaignSettings: {
@@ -437,6 +445,7 @@ describe('FinanceService tenant-safe exports', () => {
       type: TenantType.CANDIDACY,
     });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: tenantFindUnique },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'user-a' }) },
       campaignSettings: {
@@ -499,6 +508,7 @@ describe('FinanceService tenant-safe exports', () => {
       updatedAt: new Date('2026-08-21T00:00:00.000Z'),
     });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -599,6 +609,7 @@ describe('FinanceService tenant-safe exports', () => {
     const upsert = jest.fn();
     const auditCreate = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -638,6 +649,7 @@ describe('FinanceService tenant-safe exports', () => {
   it('blocks settings changes outside campaign mode', async () => {
     const upsert = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
@@ -669,6 +681,7 @@ describe('FinanceService tenant-safe exports', () => {
   it('blocks movement creation when a legacy tenant has only budget limits', async () => {
     const financialCreate = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -713,6 +726,7 @@ describe('FinanceService tenant-safe exports', () => {
     const findMany = jest.fn();
     const auditCreate = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,
@@ -749,6 +763,7 @@ describe('FinanceService tenant-safe exports', () => {
   it('returns an authorized, tenant-scoped settings view with documents masked', async () => {
     const settings = completeSettings();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,

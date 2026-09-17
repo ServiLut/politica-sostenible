@@ -30,8 +30,16 @@ function envelope<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
+function planCapabilities() {
+  return envelope({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 async function installStrictAuthContract(page: Page) {
   const authRequests: string[] = [];
+  const capabilityRequests: string[] = [];
   const unexpectedApiRequests: string[] = [];
 
   await page.route("**/api/**", async (route) => {
@@ -71,7 +79,23 @@ async function installStrictAuthContract(page: Page) {
     });
   });
 
-  return { authRequests, unexpectedApiRequests };
+  await page.route("**/api/billing/capabilities", async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe("GET");
+    expect(request.headers().authorization).toBe(
+      `Bearer ${session.accessToken}`,
+    );
+    capabilityRequests.push(
+      `${request.method()} ${new URL(request.url()).pathname}`,
+    );
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(planCapabilities()),
+    });
+  });
+
+  return { authRequests, capabilityRequests, unexpectedApiRequests };
 }
 
 test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
@@ -179,7 +203,7 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
     },
   );
 
-  const { authRequests, unexpectedApiRequests } =
+  const { authRequests, capabilityRequests, unexpectedApiRequests } =
     await installStrictAuthContract(page);
 
   await page.route("**/api/cases**", async (route) => {
@@ -505,5 +529,6 @@ test("solicita y decide comunicaciones con cuatro ojos sin publicar", async ({
     authorizationHeaders.every((header) => header === `Bearer ${jwt}`),
   ).toBe(true);
   expect(authRequests.length).toBeGreaterThanOrEqual(1);
+  expect(capabilityRequests).toContain("GET /api/billing/capabilities");
   expect(unexpectedApiRequests).toEqual([]);
 });

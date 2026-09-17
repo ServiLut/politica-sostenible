@@ -11,12 +11,18 @@ jest.mock('./mfa.service', () => ({
 }));
 
 describe('AuthController route exposure', () => {
-  it('keeps login and registration public but protects the live session', () => {
+  it('keeps login and the registration policy public but protects the live session', () => {
     expect(
       Reflect.getMetadata(IS_PUBLIC_KEY, AuthController.prototype.login),
     ).toBe(true);
     expect(
       Reflect.getMetadata(IS_PUBLIC_KEY, AuthController.prototype.register),
+    ).toBe(true);
+    expect(
+      Reflect.getMetadata(
+        IS_PUBLIC_KEY,
+        AuthController.prototype.registrationPolicy,
+      ),
     ).toBe(true);
     expect(
       Reflect.getMetadata(
@@ -28,6 +34,29 @@ describe('AuthController route exposure', () => {
       Reflect.getMetadata(IS_PUBLIC_KEY, AuthController.prototype.logout),
     ).toBeUndefined();
     expect(Reflect.getMetadata(IS_PUBLIC_KEY, AuthController)).toBeUndefined();
+  });
+
+  it('publishes the effective registration policy without duplicating it', () => {
+    const registrationPolicy = jest.fn().mockReturnValue({
+      enabled: false,
+      invitationAcceptanceEnabled: true,
+      mode: 'CONTROLLED_ACCESS',
+      message: 'Registro controlado',
+      termsVersion: 'registro-vigente',
+    });
+    const controller = new AuthController(
+      { registrationPolicy } as unknown as AuthService,
+      {} as MfaService,
+    );
+
+    expect(controller.registrationPolicy()).toEqual({
+      enabled: false,
+      invitationAcceptanceEnabled: true,
+      mode: 'CONTROLLED_ACCESS',
+      message: 'Registro controlado',
+      termsVersion: 'registro-vigente',
+    });
+    expect(registrationPolicy).toHaveBeenCalledTimes(1);
   });
 
   it('allows session inspection, password change and logout during mandatory change', () => {

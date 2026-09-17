@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -20,8 +21,24 @@ import {
   PollingPlaceParamsDto,
   WitnessReportParamsDto,
 } from './dto/witness-params.dto';
-import { Role } from '../../prisma/generated/prisma';
+import { PoliticalOperationStage, Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  BlockWhenOperationClosed,
+  RequireOperationStages,
+} from '../auth/decorators/operation-stage-policy.decorator';
+import { OfflineE14CaptureGrantService } from './offline-e14-capture-grant.service';
+
+const E14_PERSISTENCE_STAGES = [
+  PoliticalOperationStage.SIMULATION,
+  PoliticalOperationStage.ELECTION_DAY,
+  PoliticalOperationStage.POST_ELECTION,
+];
+
+const POLLING_PLACE_CONFIGURATION_STAGES = [
+  PoliticalOperationStage.ELECTION_PREPARATION,
+  PoliticalOperationStage.SIMULATION,
+];
 
 const WITNESS_WRITE_ROLES = [
   Role.ADMIN,
@@ -44,11 +61,37 @@ const WITNESS_PROFILE_ROLES = [Role.ADMIN, Role.CAMPAIGN_MANAGER];
 
 @ApiTags('Witnesses')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('witnesses')
 export class WitnessController {
-  constructor(private readonly witnessService: WitnessService) {}
+  constructor(
+    private readonly witnessService: WitnessService,
+    private readonly offlineE14Grants?: OfflineE14CaptureGrantService,
+  ) {}
+
+  @Post('offline-capture-grants')
+  @RequireOperationStages(
+    PoliticalOperationStage.SIMULATION,
+    PoliticalOperationStage.ELECTION_DAY,
+  )
+  @Roles(...WITNESS_WRITE_ROLES)
+  @ApiOperation({
+    summary:
+      'Provisionar una capacidad E-14 offline opaca, acotada y registrada',
+  })
+  provisionOfflineCaptureGrant(@CurrentUser() user: AuthenticatedUser) {
+    return this.requireOfflineE14Grants().provision(user);
+  }
+
+  @Delete('offline-capture-grants')
+  @Roles(...WITNESS_WRITE_ROLES)
+  @ApiOperation({ summary: 'Revocar capacidades E-14 offline vigentes' })
+  revokeOfflineCaptureGrants(@CurrentUser() user: AuthenticatedUser) {
+    return this.requireOfflineE14Grants().revoke(user);
+  }
 
   @Post()
+  @RequireOperationStages(...E14_PERSISTENCE_STAGES)
   @Roles(...WITNESS_WRITE_ROLES)
   @ApiOperation({
     summary: 'Registrar internamente un reporte E-14 para conciliacion',
@@ -71,6 +114,7 @@ export class WitnessController {
   }
 
   @Patch(':id/review')
+  @RequireOperationStages(...E14_PERSISTENCE_STAGES)
   @Roles(...WITNESS_REVIEW_ROLES)
   @ApiOperation({ summary: 'Aceptar o rechazar un reporte E-14 pendiente' })
   async review(
@@ -87,6 +131,7 @@ export class WitnessController {
   }
 
   @Put('places/:puestoId/profile')
+  @RequireOperationStages(...POLLING_PLACE_CONFIGURATION_STAGES)
   @Roles(...WITNESS_PROFILE_ROLES)
   @ApiOperation({ summary: 'Configurar las mesas esperadas de un puesto' })
   async updatePollingPlaceProfile(
@@ -100,5 +145,12 @@ export class WitnessController {
       params.puestoId,
       dto,
     );
+  }
+
+  private requireOfflineE14Grants(): OfflineE14CaptureGrantService {
+    if (!this.offlineE14Grants) {
+      throw new Error('OfflineE14CaptureGrantService no fue configurado');
+    }
+    return this.offlineE14Grants;
   }
 }

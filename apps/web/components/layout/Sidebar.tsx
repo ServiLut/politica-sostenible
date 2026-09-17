@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArchiveRestore,
   CalendarDays,
   ClipboardList,
   CreditCard,
   FileCheck2,
+  FileSignature,
   Inbox,
   Landmark,
   LayoutDashboard,
@@ -16,6 +18,7 @@ import {
   MapPinned,
   MessageSquareText,
   MoreHorizontal,
+  PackageCheck,
   ShieldCheck,
   Scroll,
   Search,
@@ -51,7 +54,10 @@ const NAV_ICONS: Record<NavigationIcon, LucideIcon> = {
   communications: MessageSquareText,
   audit: ClipboardList,
   finance: WalletCards,
+  signature: FileSignature,
   election: FileCheck2,
+  logistics: PackageCheck,
+  handover: ArchiveRestore,
   commitments: Scroll,
   settings: SlidersHorizontal,
   billing: CreditCard,
@@ -74,13 +80,18 @@ const MOBILE_ROUTES_BY_WORKSPACE = {
   FIELD: [
     "/dashboard/captura-territorial",
     "/dashboard/war-room",
+    "/dashboard/witness-planning",
+    "/dashboard/signatures",
+    "/dashboard/logistics",
     "/dashboard/tasks",
     "/dashboard/events",
   ],
   REVIEW: [
+    "/dashboard/transition",
     "/dashboard/inbox",
     "/dashboard/communications",
     "/dashboard/finance",
+    "/dashboard/integrity-signatures",
     "/dashboard/audit",
   ],
 } as const;

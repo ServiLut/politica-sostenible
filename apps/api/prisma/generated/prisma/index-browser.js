@@ -164,6 +164,8 @@ exports.Prisma.StoredObjectScalarFieldEnum = {
   expectedSize: 'expectedSize',
   actualSize: 'actualSize',
   etag: 'etag',
+  expectedSha256: 'expectedSha256',
+  reportedSha256: 'reportedSha256',
   status: 'status',
   expiresAt: 'expiresAt',
   confirmedAt: 'confirmedAt',
@@ -219,7 +221,104 @@ exports.Prisma.PoliticalDivisionScalarFieldEnum = {
   parentId: 'parentId',
   tenantId: 'tenantId',
   expectedTables: 'expectedTables',
-  goal: 'goal'
+  goal: 'goal',
+  sourceNamespace: 'sourceNamespace',
+  sourceReleaseId: 'sourceReleaseId',
+  sourceLocationCode: 'sourceLocationCode',
+  votingDate: 'votingDate',
+  timeZone: 'timeZone',
+  address: 'address',
+  commune: 'commune',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  isActive: 'isActive',
+  retiredAt: 'retiredAt'
+};
+
+exports.Prisma.ElectoralCatalogReleaseScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  catalogKey: 'catalogKey',
+  type: 'type',
+  status: 'status',
+  sourceUrl: 'sourceUrl',
+  sourceOrganization: 'sourceOrganization',
+  sourceDataset: 'sourceDataset',
+  sourceCutoffAt: 'sourceCutoffAt',
+  electionDate: 'electionDate',
+  contentSha256: 'contentSha256',
+  parserVersion: 'parserVersion',
+  authorizationReference: 'authorizationReference',
+  licenseDeclaration: 'licenseDeclaration',
+  sourceArtifactPath: 'sourceArtifactPath',
+  recordCount: 'recordCount',
+  departmentCount: 'departmentCount',
+  municipalityCount: 'municipalityCount',
+  zoneCount: 'zoneCount',
+  pollingPlaceCount: 'pollingPlaceCount',
+  physicalPollingPlaceCount: 'physicalPollingPlaceCount',
+  expectedTableCount: 'expectedTableCount',
+  validationSummary: 'validationSummary',
+  rejectionReason: 'rejectionReason',
+  createdById: 'createdById',
+  validatedById: 'validatedById',
+  activatedById: 'activatedById',
+  approvedById: 'approvedById',
+  supersededByReleaseId: 'supersededByReleaseId',
+  createdAt: 'createdAt',
+  validatedAt: 'validatedAt',
+  activatedAt: 'activatedAt',
+  supersededAt: 'supersededAt'
+};
+
+exports.Prisma.ElectoralCatalogEntryScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  releaseId: 'releaseId',
+  namespace: 'namespace',
+  type: 'type',
+  canonicalCode: 'canonicalCode',
+  departmentCode: 'departmentCode',
+  municipalityCode: 'municipalityCode',
+  zoneCode: 'zoneCode',
+  pollingPlaceCode: 'pollingPlaceCode',
+  sourceLocationCode: 'sourceLocationCode',
+  votingDate: 'votingDate',
+  timeZone: 'timeZone',
+  parentId: 'parentId',
+  name: 'name',
+  nameIsDerived: 'nameIsDerived',
+  address: 'address',
+  commune: 'commune',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  expectedTables: 'expectedTables'
+};
+
+exports.Prisma.ElectoralCatalogImportJobScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  status: 'status',
+  catalogKey: 'catalogKey',
+  sourceUrl: 'sourceUrl',
+  sourceDataset: 'sourceDataset',
+  sourceCutoffAt: 'sourceCutoffAt',
+  electionDate: 'electionDate',
+  authorizationReference: 'authorizationReference',
+  licenseDeclaration: 'licenseDeclaration',
+  sourceArtifactPath: 'sourceArtifactPath',
+  expectedContentSha256: 'expectedContentSha256',
+  requestedById: 'requestedById',
+  releaseId: 'releaseId',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  lastErrorCode: 'lastErrorCode',
+  lastErrorMessage: 'lastErrorMessage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.VoterScalarFieldEnum = {
@@ -267,6 +366,196 @@ exports.Prisma.FinancialEntryScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.FinanceReportDossierScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  kind: 'kind',
+  subjectCode: 'subjectCode',
+  subjectName: 'subjectName',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceLedgerCutScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  dossierId: 'dossierId',
+  periodStartsAt: 'periodStartsAt',
+  periodEndsAt: 'periodEndsAt',
+  cutoffAt: 'cutoffAt',
+  entryCount: 'entryCount',
+  totalIncome: 'totalIncome',
+  totalExpense: 'totalExpense',
+  balance: 'balance',
+  ledgerSha256: 'ledgerSha256',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceLedgerCutLineScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  ledgerCutId: 'ledgerCutId',
+  financialEntryId: 'financialEntryId',
+  entryType: 'entryType',
+  entryStatus: 'entryStatus',
+  amount: 'amount',
+  entryDate: 'entryDate',
+  cneCode: 'cneCode',
+  descriptionSha256: 'descriptionSha256',
+  counterpartySha256: 'counterpartySha256',
+  evidencePresent: 'evidencePresent',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceReportVersionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  dossierId: 'dossierId',
+  ledgerCutId: 'ledgerCutId',
+  basedOnVersionId: 'basedOnVersionId',
+  versionNumber: 'versionNumber',
+  correctionReason: 'correctionReason',
+  preparationNote: 'preparationNote',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceReportApprovalScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  reportVersionId: 'reportVersionId',
+  control: 'control',
+  decision: 'decision',
+  rationale: 'rationale',
+  actorUserId: 'actorUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceBankStatementScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  storageObjectId: 'storageObjectId',
+  bankName: 'bankName',
+  accountLastFour: 'accountLastFour',
+  periodStartsAt: 'periodStartsAt',
+  periodEndsAt: 'periodEndsAt',
+  openingBalance: 'openingBalance',
+  closingBalance: 'closingBalance',
+  totalDebit: 'totalDebit',
+  totalCredit: 'totalCredit',
+  lineCount: 'lineCount',
+  statementSha256: 'statementSha256',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceBankStatementLineScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  bankStatementId: 'bankStatementId',
+  lineNumber: 'lineNumber',
+  occurredAt: 'occurredAt',
+  bankReference: 'bankReference',
+  description: 'description',
+  debit: 'debit',
+  credit: 'credit',
+  matchStatus: 'matchStatus',
+  matchedEntryId: 'matchedEntryId',
+  exclusionReason: 'exclusionReason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceInKindContributionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  incomeEntryId: 'incomeEntryId',
+  expenseEntryId: 'expenseEntryId',
+  storageObjectId: 'storageObjectId',
+  contributorName: 'contributorName',
+  contributorDocument: 'contributorDocument',
+  contributionDate: 'contributionDate',
+  description: 'description',
+  value: 'value',
+  valuationMethod: 'valuationMethod',
+  valuationSourceReference: 'valuationSourceReference',
+  valuationSha256: 'valuationSha256',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinancePayableScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  expenseEntryId: 'expenseEntryId',
+  storageObjectId: 'storageObjectId',
+  creditorName: 'creditorName',
+  creditorTaxId: 'creditorTaxId',
+  description: 'description',
+  incurredAt: 'incurredAt',
+  dueAt: 'dueAt',
+  originalAmount: 'originalAmount',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinancePayableSettlementScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  payableId: 'payableId',
+  bankStatementLineId: 'bankStatementLineId',
+  storageObjectId: 'storageObjectId',
+  amount: 'amount',
+  paidAt: 'paidAt',
+  paymentReference: 'paymentReference',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceExternalFilingEvidenceScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  reportVersionId: 'reportVersionId',
+  storageObjectId: 'storageObjectId',
+  authorityName: 'authorityName',
+  channel: 'channel',
+  externalReference: 'externalReference',
+  submittedAt: 'submittedAt',
+  evidenceSha256: 'evidenceSha256',
+  recordedById: 'recordedById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceExternalFilingEvidenceReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  evidenceId: 'evidenceId',
+  decision: 'decision',
+  reviewNote: 'reviewNote',
+  reviewedById: 'reviewedById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FinanceCloseoutCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSnapshot: 'resultSnapshot',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.WitnessReportScalarFieldEnum = {
   id: 'id',
   tenantId: 'tenantId',
@@ -274,6 +563,7 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   puestoId: 'puestoId',
   mesa: 'mesa',
   e14ImageUrl: 'e14ImageUrl',
+  captureContext: 'captureContext',
   credentialType: 'credentialType',
   credentialReference: 'credentialReference',
   checkedInAt: 'checkedInAt',
@@ -295,6 +585,69 @@ exports.Prisma.WitnessReportScalarFieldEnum = {
   supersededById: 'supersededById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WitnessAssignmentScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  coverageWindowId: 'coverageWindowId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  captureContext: 'captureContext',
+  puestoId: 'puestoId',
+  tableStart: 'tableStart',
+  tableEnd: 'tableEnd',
+  shiftStartsAt: 'shiftStartsAt',
+  shiftEndsAt: 'shiftEndsAt',
+  assignmentType: 'assignmentType',
+  status: 'status',
+  witnessId: 'witnessId',
+  createdById: 'createdById',
+  confirmedById: 'confirmedById',
+  confirmedAt: 'confirmedAt',
+  confirmationClientRequestId: 'confirmationClientRequestId',
+  confirmationPayloadSha256: 'confirmationPayloadSha256',
+  cancelledById: 'cancelledById',
+  cancelledAt: 'cancelledAt',
+  cancellationClientRequestId: 'cancellationClientRequestId',
+  cancellationPayloadSha256: 'cancellationPayloadSha256',
+  cancellationReason: 'cancellationReason',
+  supersedesAssignmentId: 'supersedesAssignmentId',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WitnessCoverageWindowScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  captureContext: 'captureContext',
+  puestoId: 'puestoId',
+  localDate: 'localDate',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  timeZone: 'timeZone',
+  utcOffsetMinutes: 'utcOffsetMinutes',
+  version: 'version',
+  createdById: 'createdById',
+  updatedById: 'updatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WitnessCoverageWindowCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  coverageWindowId: 'coverageWindowId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.CampaignEventScalarFieldEnum = {
@@ -331,6 +684,13 @@ exports.Prisma.InventoryItemScalarFieldEnum = {
   quantity: 'quantity',
   warehouse: 'warehouse',
   tenantId: 'tenantId',
+  description: 'description',
+  unit: 'unit',
+  trackingMode: 'trackingMode',
+  minimumStock: 'minimumStock',
+  recordOrigin: 'recordOrigin',
+  isActive: 'isActive',
+  createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -343,6 +703,137 @@ exports.Prisma.InventoryMovementScalarFieldEnum = {
   quantity: 'quantity',
   type: 'type',
   reason: 'reason',
+  recordOrigin: 'recordOrigin',
+  commandId: 'commandId',
+  warehouseId: 'warehouseId',
+  stockBalanceId: 'stockBalanceId',
+  transferId: 'transferId',
+  transferLineId: 'transferLineId',
+  delta: 'delta',
+  balanceBefore: 'balanceBefore',
+  balanceAfter: 'balanceAfter',
+  occurredAt: 'occurredAt',
+  custodyFromUserId: 'custodyFromUserId',
+  custodyToUserId: 'custodyToUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InventoryWarehouseScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  code: 'code',
+  name: 'name',
+  address: 'address',
+  responsibleUserId: 'responsibleUserId',
+  isActive: 'isActive',
+  recordOrigin: 'recordOrigin',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventoryStockBalanceScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  itemId: 'itemId',
+  warehouseId: 'warehouseId',
+  trackingKey: 'trackingKey',
+  lotNumber: 'lotNumber',
+  serialNumber: 'serialNumber',
+  expiresAt: 'expiresAt',
+  condition: 'condition',
+  quantity: 'quantity',
+  responsibleUserId: 'responsibleUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventoryCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSummary: 'resultSummary',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InventoryTransferScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  commandId: 'commandId',
+  code: 'code',
+  sourceWarehouseId: 'sourceWarehouseId',
+  destinationWarehouseId: 'destinationWarehouseId',
+  destinationDivisionId: 'destinationDivisionId',
+  destinationLabel: 'destinationLabel',
+  destinationTableNumber: 'destinationTableNumber',
+  custodianUserId: 'custodianUserId',
+  status: 'status',
+  purpose: 'purpose',
+  dispatchDeclaration: 'dispatchDeclaration',
+  dispatchedById: 'dispatchedById',
+  dispatchedAt: 'dispatchedAt',
+  expectedReturnAt: 'expectedReturnAt',
+  reconciledById: 'reconciledById',
+  reconciledAt: 'reconciledAt',
+  reconciliationNote: 'reconciliationNote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventoryTransferLineScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  transferId: 'transferId',
+  itemId: 'itemId',
+  sourceStockBalanceId: 'sourceStockBalanceId',
+  trackingKey: 'trackingKey',
+  lotNumber: 'lotNumber',
+  serialNumber: 'serialNumber',
+  expiresAt: 'expiresAt',
+  dispatchedQuantity: 'dispatchedQuantity',
+  receivedUsableQuantity: 'receivedUsableQuantity',
+  receivedDamagedQuantity: 'receivedDamagedQuantity',
+  transitMissingQuantity: 'transitMissingQuantity',
+  returnedQuantity: 'returnedQuantity',
+  consumedQuantity: 'consumedQuantity',
+  custodyMissingQuantity: 'custodyMissingQuantity',
+  custodyDamagedQuantity: 'custodyDamagedQuantity',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventoryCustodyEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  transferId: 'transferId',
+  commandId: 'commandId',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  fromUserId: 'fromUserId',
+  toUserId: 'toUserId',
+  declaration: 'declaration',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InventoryIncidentScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  transferId: 'transferId',
+  transferLineId: 'transferLineId',
+  commandId: 'commandId',
+  type: 'type',
+  quantity: 'quantity',
+  description: 'description',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  reportedById: 'reportedById',
+  occurredAt: 'occurredAt',
   createdAt: 'createdAt'
 };
 
@@ -360,6 +851,9 @@ exports.Prisma.ConsentRecordScalarFieldEnum = {
   noticeVersion: 'noticeVersion',
   proofPath: 'proofPath',
   sourceIpHash: 'sourceIpHash',
+  capturedAt: 'capturedAt',
+  receivedAt: 'receivedAt',
+  syncSourceIpHash: 'syncSourceIpHash',
   capturedById: 'capturedById',
   grantedAt: 'grantedAt',
   expiresAt: 'expiresAt',
@@ -403,6 +897,7 @@ exports.Prisma.IssueCaseScalarFieldEnum = {
   assigneeId: 'assigneeId',
   createdById: 'createdById',
   confidential: 'confidential',
+  occurredOn: 'occurredOn',
   dueAt: 'dueAt',
   firstResponseAt: 'firstResponseAt',
   resolvedAt: 'resolvedAt',
@@ -505,6 +1000,55 @@ exports.Prisma.AuditEventScalarFieldEnum = {
   occurredAt: 'occurredAt'
 };
 
+exports.Prisma.OfflineSyncReceiptScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  actorUserId: 'actorUserId',
+  clientOperationId: 'clientOperationId',
+  operationType: 'operationType',
+  payloadHmac: 'payloadHmac',
+  payloadSha256: 'payloadSha256',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  capturedAt: 'capturedAt',
+  receivedAt: 'receivedAt'
+};
+
+exports.Prisma.OfflineE14CaptureGrantScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  actorUserId: 'actorUserId',
+  operationProfileId: 'operationProfileId',
+  tokenHmac: 'tokenHmac',
+  userAuthVersion: 'userAuthVersion',
+  roleAtIssue: 'roleAtIssue',
+  captureContext: 'captureContext',
+  issuedStage: 'issuedStage',
+  electionDate: 'electionDate',
+  votingStartDate: 'votingStartDate',
+  votingEndDate: 'votingEndDate',
+  electionWindowSha256: 'electionWindowSha256',
+  issuedAt: 'issuedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OfflineE14CaptureGrantPlaceScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  grantId: 'grantId',
+  puestoId: 'puestoId',
+  expectedTables: 'expectedTables',
+  sourceReleaseIdAtIssue: 'sourceReleaseIdAtIssue',
+  sourceLocationCodeAtIssue: 'sourceLocationCodeAtIssue',
+  votingDateAtIssue: 'votingDateAtIssue',
+  timeZoneAtIssue: 'timeZoneAtIssue',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.OperationProfileScalarFieldEnum = {
   id: 'id',
   tenantId: 'tenantId',
@@ -516,16 +1060,779 @@ exports.Prisma.OperationProfileScalarFieldEnum = {
   circumscriptionCode: 'circumscriptionCode',
   listType: 'listType',
   electionDate: 'electionDate',
+  votingStartDate: 'votingStartDate',
+  votingEndDate: 'votingEndDate',
+  votingWindowSourceUrl: 'votingWindowSourceUrl',
+  votingWindowReference: 'votingWindowReference',
   expectedTeamSize: 'expectedTeamSize',
   candidateCount: 'candidateCount',
   dataControllerName: 'dataControllerName',
   responsibleDataUserId: 'responsibleDataUserId',
   retentionPeriodDays: 'retentionPeriodDays',
   revocationProcedure: 'revocationProcedure',
+  closureType: 'closureType',
+  terminatedAt: 'terminatedAt',
+  terminationCause: 'terminationCause',
+  terminationRequestId: 'terminationRequestId',
   createdById: 'createdById',
   updatedById: 'updatedById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TransitionHandoverReportScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  generatedById: 'generatedById',
+  generatedAt: 'generatedAt',
+  status: 'status',
+  packageKind: 'packageKind',
+  payload: 'payload',
+  sha256: 'sha256',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ElectoralCalendarReleaseScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  initialCommandId: 'initialCommandId',
+  basedOnReleaseId: 'basedOnReleaseId',
+  electionType: 'electionType',
+  electionDate: 'electionDate',
+  circumscriptionType: 'circumscriptionType',
+  circumscriptionName: 'circumscriptionName',
+  circumscriptionCode: 'circumscriptionCode',
+  roundCode: 'roundCode',
+  versionLabel: 'versionLabel',
+  status: 'status',
+  sourceAuthority: 'sourceAuthority',
+  sourceUrl: 'sourceUrl',
+  sourceReference: 'sourceReference',
+  sourcePublishedAt: 'sourcePublishedAt',
+  sourceCutoffAt: 'sourceCutoffAt',
+  sourceSha256: 'sourceSha256',
+  createdById: 'createdById',
+  validatedById: 'validatedById',
+  validatedAt: 'validatedAt',
+  activatedById: 'activatedById',
+  activatedAt: 'activatedAt',
+  supersededAt: 'supersededAt',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ElectoralCalendarMilestoneScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  releaseId: 'releaseId',
+  stableKey: 'stableKey',
+  category: 'category',
+  semantics: 'semantics',
+  title: 'title',
+  applicabilityRule: 'applicabilityRule',
+  originalTextSummary: 'originalTextSummary',
+  localDate: 'localDate',
+  localTime: 'localTime',
+  timeZone: 'timeZone',
+  occursAtUtc: 'occursAtUtc',
+  responsibleUserId: 'responsibleUserId',
+  backupUserId: 'backupUserId',
+  alertOffsetsDays: 'alertOffsetsDays',
+  stageGateRequired: 'stageGateRequired',
+  resultEvidenceRequired: 'resultEvidenceRequired',
+  linkedTaskId: 'linkedTaskId',
+  linkedEventId: 'linkedEventId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ElectoralCalendarReleaseDecisionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  releaseId: 'releaseId',
+  commandId: 'commandId',
+  action: 'action',
+  sourceReviewedAcknowledged: 'sourceReviewedAcknowledged',
+  diffReviewedAcknowledged: 'diffReviewedAcknowledged',
+  affectedTasksResolvedAcknowledged: 'affectedTasksResolvedAcknowledged',
+  rationale: 'rationale',
+  actorUserId: 'actorUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ElectoralCalendarMilestoneResultScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  releaseId: 'releaseId',
+  milestoneId: 'milestoneId',
+  commandId: 'commandId',
+  outcome: 'outcome',
+  explanation: 'explanation',
+  evidenceStoredObjectId: 'evidenceStoredObjectId',
+  evidencePath: 'evidencePath',
+  evidenceSha256: 'evidenceSha256',
+  recordedById: 'recordedById',
+  recordedAt: 'recordedAt'
+};
+
+exports.Prisma.ElectoralCalendarResultReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  resultId: 'resultId',
+  commandId: 'commandId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.ElectoralCalendarCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSnapshot: 'resultSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureCollectionPlanScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  initialCommandId: 'initialCommandId',
+  status: 'status',
+  committeeMemberCount: 'committeeMemberCount',
+  committeeEvidenceReference: 'committeeEvidenceReference',
+  committeeEvidenceSha256: 'committeeEvidenceSha256',
+  committeeRegisteredAt: 'committeeRegisteredAt',
+  collectionStartsAt: 'collectionStartsAt',
+  collectionClosesAt: 'collectionClosesAt',
+  candidateRegistrationClosesAt: 'candidateRegistrationClosesAt',
+  requiredThreshold: 'requiredThreshold',
+  internalTarget: 'internalTarget',
+  thresholdSourceUrl: 'thresholdSourceUrl',
+  thresholdSourceReference: 'thresholdSourceReference',
+  thresholdSourceSha256: 'thresholdSourceSha256',
+  fileOwnerUserId: 'fileOwnerUserId',
+  custodyOwnerUserId: 'custodyOwnerUserId',
+  formHandlingRules: 'formHandlingRules',
+  deliveryPlan: 'deliveryPlan',
+  contingencyPlan: 'contingencyPlan',
+  submissionDueAt: 'submissionDueAt',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SignatureCollectionBatchScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  planId: 'planId',
+  initialCommandId: 'initialCommandId',
+  code: 'code',
+  physicalSealReference: 'physicalSealReference',
+  territoryReference: 'territoryReference',
+  expectedReturnAt: 'expectedReturnAt',
+  status: 'status',
+  statusBeforeQuarantine: 'statusBeforeQuarantine',
+  plannedForms: 'plannedForms',
+  issuedForms: 'issuedForms',
+  returnedForms: 'returnedForms',
+  annulledForms: 'annulledForms',
+  missingForms: 'missingForms',
+  inCustodyForms: 'inCustodyForms',
+  reportedSupports: 'reportedSupports',
+  internalAcceptedSupports: 'internalAcceptedSupports',
+  internalRejectedSupports: 'internalRejectedSupports',
+  possibleDuplicateSupports: 'possibleDuplicateSupports',
+  currentCustodianUserId: 'currentCustodianUserId',
+  issuedAt: 'issuedAt',
+  returnedAt: 'returnedAt',
+  internallyReviewedAt: 'internallyReviewedAt',
+  deliveredToCommitteeAt: 'deliveredToCommitteeAt',
+  submittedToAuthorityAt: 'submittedToAuthorityAt',
+  authorityResultRecordedAt: 'authorityResultRecordedAt',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SignatureCollectionCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSnapshot: 'resultSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureCountCorrectionCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSnapshot: 'resultSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureCountCorrectionProposalScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  batchId: 'batchId',
+  commandId: 'commandId',
+  snapshotBatchVersion: 'snapshotBatchVersion',
+  snapshotStatus: 'snapshotStatus',
+  snapshotStatusBeforeQuarantine: 'snapshotStatusBeforeQuarantine',
+  snapshotPlannedForms: 'snapshotPlannedForms',
+  snapshotIssuedForms: 'snapshotIssuedForms',
+  snapshotReturnedForms: 'snapshotReturnedForms',
+  snapshotAnnulledForms: 'snapshotAnnulledForms',
+  snapshotMissingForms: 'snapshotMissingForms',
+  snapshotInCustodyForms: 'snapshotInCustodyForms',
+  snapshotReportedSupports: 'snapshotReportedSupports',
+  snapshotInternalAcceptedSupports: 'snapshotInternalAcceptedSupports',
+  snapshotInternalRejectedSupports: 'snapshotInternalRejectedSupports',
+  snapshotPossibleDuplicateSupports: 'snapshotPossibleDuplicateSupports',
+  proposedPlannedForms: 'proposedPlannedForms',
+  proposedIssuedForms: 'proposedIssuedForms',
+  proposedReturnedForms: 'proposedReturnedForms',
+  proposedAnnulledForms: 'proposedAnnulledForms',
+  proposedMissingForms: 'proposedMissingForms',
+  proposedInCustodyForms: 'proposedInCustodyForms',
+  proposedReportedSupports: 'proposedReportedSupports',
+  proposedInternalAcceptedSupports: 'proposedInternalAcceptedSupports',
+  proposedInternalRejectedSupports: 'proposedInternalRejectedSupports',
+  proposedPossibleDuplicateSupports: 'proposedPossibleDuplicateSupports',
+  requiredReviewControl: 'requiredReviewControl',
+  reason: 'reason',
+  evidenceStorageObjectId: 'evidenceStorageObjectId',
+  evidenceSha256: 'evidenceSha256',
+  requestedById: 'requestedById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureCountCorrectionDecisionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  proposalId: 'proposalId',
+  commandId: 'commandId',
+  decision: 'decision',
+  reviewReason: 'reviewReason',
+  reviewedById: 'reviewedById',
+  reviewerRole: 'reviewerRole',
+  expectedBatchVersion: 'expectedBatchVersion',
+  batchVersionBefore: 'batchVersionBefore',
+  batchVersionAfter: 'batchVersionAfter',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureCustodyEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  batchId: 'batchId',
+  commandId: 'commandId',
+  type: 'type',
+  previousStatus: 'previousStatus',
+  nextStatus: 'nextStatus',
+  actorUserId: 'actorUserId',
+  receiverUserId: 'receiverUserId',
+  territoryReference: 'territoryReference',
+  physicalSealReference: 'physicalSealReference',
+  observation: 'observation',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  plannedForms: 'plannedForms',
+  issuedForms: 'issuedForms',
+  returnedForms: 'returnedForms',
+  annulledForms: 'annulledForms',
+  missingForms: 'missingForms',
+  inCustodyForms: 'inCustodyForms',
+  reportedSupports: 'reportedSupports',
+  internalAcceptedSupports: 'internalAcceptedSupports',
+  internalRejectedSupports: 'internalRejectedSupports',
+  possibleDuplicateSupports: 'possibleDuplicateSupports',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureAuthorityResultScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  planId: 'planId',
+  commandId: 'commandId',
+  authorityName: 'authorityName',
+  authorityActReference: 'authorityActReference',
+  authorityActIssuedAt: 'authorityActIssuedAt',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  submittedSupports: 'submittedSupports',
+  validSupports: 'validSupports',
+  invalidSupports: 'invalidSupports',
+  outcome: 'outcome',
+  recordedById: 'recordedById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SignatureAuthorityResultReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  resultId: 'resultId',
+  commandId: 'commandId',
+  decision: 'decision',
+  reason: 'reason',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.OperationStageAdoptionRequestScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  status: 'status',
+  operationType: 'operationType',
+  targetStage: 'targetStage',
+  electionType: 'electionType',
+  circumscriptionType: 'circumscriptionType',
+  circumscriptionName: 'circumscriptionName',
+  circumscriptionCode: 'circumscriptionCode',
+  listType: 'listType',
+  electionDate: 'electionDate',
+  votingStartDate: 'votingStartDate',
+  votingEndDate: 'votingEndDate',
+  votingWindowSourceUrl: 'votingWindowSourceUrl',
+  votingWindowReference: 'votingWindowReference',
+  expectedTeamSize: 'expectedTeamSize',
+  candidateCount: 'candidateCount',
+  maxTotalBudget: 'maxTotalBudget',
+  maxPublicityLimit: 'maxPublicityLimit',
+  dataControllerName: 'dataControllerName',
+  responsibleDataUserId: 'responsibleDataUserId',
+  retentionPeriodDays: 'retentionPeriodDays',
+  revocationProcedure: 'revocationProcedure',
+  effectiveAt: 'effectiveAt',
+  justification: 'justification',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  incompleteHistoryAcknowledged: 'incompleteHistoryAcknowledged',
+  expiresAt: 'expiresAt',
+  expiredAt: 'expiredAt',
+  requestedById: 'requestedById',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewClientRequestId: 'reviewClientRequestId',
+  reviewPayloadSha256: 'reviewPayloadSha256',
+  rejectionReason: 'rejectionReason',
+  operationProfileId: 'operationProfileId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OperationTerminationRequestScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  profileSnapshotSha256: 'profileSnapshotSha256',
+  operationCycleSha256: 'operationCycleSha256',
+  expectedProfileUpdatedAt: 'expectedProfileUpdatedAt',
+  status: 'status',
+  cause: 'cause',
+  otherCause: 'otherCause',
+  effectiveAt: 'effectiveAt',
+  explanation: 'explanation',
+  authorityName: 'authorityName',
+  officialActType: 'officialActType',
+  officialActReference: 'officialActReference',
+  officialActIssuedAt: 'officialActIssuedAt',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  consequencesAcknowledged: 'consequencesAcknowledged',
+  expiresAt: 'expiresAt',
+  expiredAt: 'expiredAt',
+  requestedById: 'requestedById',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewClientRequestId: 'reviewClientRequestId',
+  reviewPayloadSha256: 'reviewPayloadSha256',
+  rejectionReason: 'rejectionReason',
+  communicationsCancelledCount: 'communicationsCancelledCount',
+  cancelledById: 'cancelledById',
+  cancelledAt: 'cancelledAt',
+  cancellationClientRequestId: 'cancellationClientRequestId',
+  cancellationPayloadSha256: 'cancellationPayloadSha256',
+  cancellationReason: 'cancellationReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  resultSnapshot: 'resultSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ScrutinyCommissionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  sourceReleaseId: 'sourceReleaseId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  code: 'code',
+  level: 'level',
+  name: 'name',
+  scopeDivisionId: 'scopeDivisionId',
+  scopeCode: 'scopeCode',
+  scopeName: 'scopeName',
+  venue: 'venue',
+  timeZone: 'timeZone',
+  scheduledStartsAt: 'scheduledStartsAt',
+  scheduledEndsAt: 'scheduledEndsAt',
+  calendarSourceUrl: 'calendarSourceUrl',
+  calendarSourceReference: 'calendarSourceReference',
+  legalLeadUserId: 'legalLeadUserId',
+  escalationRoute: 'escalationRoute',
+  contingencyPlan: 'contingencyPlan',
+  offlineDrillAt: 'offlineDrillAt',
+  status: 'status',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyDocumentRequirementScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  documentType: 'documentType',
+  applicability: 'applicability',
+  rationale: 'rationale',
+  declaredById: 'declaredById',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyCommissionEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  occurredAt: 'occurredAt',
+  receivedAt: 'receivedAt',
+  notes: 'notes',
+  actorUserId: 'actorUserId'
+};
+
+exports.Prisma.ScrutinyDocumentScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  storedObjectId: 'storedObjectId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  evidenceState: 'evidenceState',
+  storagePath: 'storagePath',
+  sha256: 'sha256',
+  size: 'size',
+  contentType: 'contentType',
+  declaredIssuer: 'declaredIssuer',
+  authorityInstance: 'authorityInstance',
+  versionLabel: 'versionLabel',
+  cutoffAt: 'cutoffAt',
+  externalAt: 'externalAt',
+  externalChannel: 'externalChannel',
+  externalReference: 'externalReference',
+  supersedesDocumentId: 'supersedesDocumentId',
+  reviewStatus: 'reviewStatus',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewReason: 'reviewReason',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyCommissionCoverageScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  witnessId: 'witnessId',
+  credentialDocumentId: 'credentialDocumentId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  credentialReference: 'credentialReference',
+  validFrom: 'validFrom',
+  validUntil: 'validUntil',
+  shiftStartsAt: 'shiftStartsAt',
+  shiftEndsAt: 'shiftEndsAt',
+  status: 'status',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyCustodyEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  documentId: 'documentId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  occurredAt: 'occurredAt',
+  receivedAt: 'receivedAt',
+  fromCustodian: 'fromCustodian',
+  toCustodian: 'toCustodian',
+  notes: 'notes',
+  actorUserId: 'actorUserId'
+};
+
+exports.Prisma.ScrutinyDiscrepancyScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  sourceDocumentId: 'sourceDocumentId',
+  comparisonDocumentId: 'comparisonDocumentId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  scopeReference: 'scopeReference',
+  candidacyReference: 'candidacyReference',
+  sourceValue: 'sourceValue',
+  comparisonValue: 'comparisonValue',
+  classification: 'classification',
+  severity: 'severity',
+  status: 'status',
+  responsibleUserId: 'responsibleUserId',
+  dueAt: 'dueAt',
+  resolution: 'resolution',
+  resolutionDocumentId: 'resolutionDocumentId',
+  resolvedById: 'resolvedById',
+  resolvedAt: 'resolvedAt',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyActionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  parentActionId: 'parentActionId',
+  accreditedCoverageId: 'accreditedCoverageId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  type: 'type',
+  standingType: 'standingType',
+  standingBasis: 'standingBasis',
+  legalGroundCode: 'legalGroundCode',
+  legalGroundVersion: 'legalGroundVersion',
+  legalGroundSourceUrl: 'legalGroundSourceUrl',
+  facts: 'facts',
+  legalBasis: 'legalBasis',
+  affectedReferences: 'affectedReferences',
+  authority: 'authority',
+  deadlineAt: 'deadlineAt',
+  deadlineRule: 'deadlineRule',
+  timeZone: 'timeZone',
+  status: 'status',
+  currentVersion: 'currentVersion',
+  draftedById: 'draftedById',
+  approvedById: 'approvedById',
+  approvedAt: 'approvedAt',
+  approvalNote: 'approvalNote',
+  filedById: 'filedById',
+  filedAt: 'filedAt',
+  filingChannel: 'filingChannel',
+  filingReference: 'filingReference',
+  filingDocumentId: 'filingDocumentId',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyActionVersionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  actionId: 'actionId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  number: 'number',
+  text: 'text',
+  textSha256: 'textSha256',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ScrutinyActionDecisionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  actionId: 'actionId',
+  decisionDocumentId: 'decisionDocumentId',
+  notificationDocumentId: 'notificationDocumentId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  outcome: 'outcome',
+  authority: 'authority',
+  decidedAt: 'decidedAt',
+  notifiedAt: 'notifiedAt',
+  reasoning: 'reasoning',
+  reviewStatus: 'reviewStatus',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote',
+  version: 'version',
+  recordedById: 'recordedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyDeclarationScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  commissionId: 'commissionId',
+  officialDocumentId: 'officialDocumentId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  scopeReference: 'scopeReference',
+  authority: 'authority',
+  authorityReference: 'authorityReference',
+  declaredAt: 'declaredAt',
+  status: 'status',
+  recordedById: 'recordedById',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScrutinyDeclaredResultLineScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  declarationId: 'declarationId',
+  optionCode: 'optionCode',
+  optionLabel: 'optionLabel',
+  votes: 'votes',
+  seats: 'seats',
+  declaredStatus: 'declaredStatus',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RetentionDispositionRequestScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  previewSha256: 'previewSha256',
+  profileSnapshotSha256: 'profileSnapshotSha256',
+  expectedProfileUpdatedAt: 'expectedProfileUpdatedAt',
+  status: 'status',
+  scope: 'scope',
+  cutoffAt: 'cutoffAt',
+  retentionDueAt: 'retentionDueAt',
+  previewSnapshot: 'previewSnapshot',
+  justification: 'justification',
+  legalReference: 'legalReference',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  legalPolicyRequiredAcknowledged: 'legalPolicyRequiredAcknowledged',
+  backupRestoreRequiredAcknowledged: 'backupRestoreRequiredAcknowledged',
+  executorUnavailableAcknowledged: 'executorUnavailableAcknowledged',
+  requestedById: 'requestedById',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  reviewClientRequestId: 'reviewClientRequestId',
+  reviewPayloadSha256: 'reviewPayloadSha256',
+  rejectionReason: 'rejectionReason',
+  cancelledById: 'cancelledById',
+  cancelledAt: 'cancelledAt',
+  cancellationClientRequestId: 'cancellationClientRequestId',
+  cancellationPayloadSha256: 'cancellationPayloadSha256',
+  cancellationReason: 'cancellationReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RetentionLegalHoldScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  operationProfileId: 'operationProfileId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  scope: 'scope',
+  reason: 'reason',
+  legalAuthority: 'legalAuthority',
+  legalReference: 'legalReference',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  effectiveAt: 'effectiveAt',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RetentionLegalHoldRevocationScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  legalHoldId: 'legalHoldId',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  reason: 'reason',
+  legalAuthority: 'legalAuthority',
+  legalReference: 'legalReference',
+  evidenceReference: 'evidenceReference',
+  evidenceSha256: 'evidenceSha256',
+  revokedById: 'revokedById',
+  revokedAt: 'revokedAt'
 };
 
 exports.Prisma.PoliticalProposalScalarFieldEnum = {
@@ -586,6 +1893,7 @@ exports.Prisma.TenantSubscriptionScalarFieldEnum = {
 exports.Prisma.SystemDatabaseIdentityScalarFieldEnum = {
   id: 'id',
   fingerprint: 'fingerprint',
+  schemaVersion: 'schemaVersion',
   createdAt: 'createdAt'
 };
 
@@ -597,6 +1905,373 @@ exports.Prisma.ElectronicSignatureScalarFieldEnum = {
   documentHash: 'documentHash',
   ipAddress: 'ipAddress',
   signedAt: 'signedAt'
+};
+
+exports.Prisma.PqrsdRulePackageScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  scopeKey: 'scopeKey',
+  versionLabel: 'versionLabel',
+  sourceUrl: 'sourceUrl',
+  sourceReference: 'sourceReference',
+  sourceSha256: 'sourceSha256',
+  timeZone: 'timeZone',
+  effectiveFrom: 'effectiveFrom',
+  effectiveTo: 'effectiveTo',
+  nonWorkingWeekdays: 'nonWorkingWeekdays',
+  computationMethodNote: 'computationMethodNote',
+  status: 'status',
+  revision: 'revision',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  activatedAt: 'activatedAt'
+};
+
+exports.Prisma.PqrsdRuleDefinitionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  packageId: 'packageId',
+  classificationKey: 'classificationKey',
+  label: 'label',
+  durationDays: 'durationDays',
+  dayMethod: 'dayMethod',
+  startRule: 'startRule',
+  legalBasis: 'legalBasis',
+  highRisk: 'highRisk',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdCalendarExceptionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  packageId: 'packageId',
+  localDate: 'localDate',
+  type: 'type',
+  label: 'label',
+  sourceReference: 'sourceReference',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdRulePackageDecisionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  packageId: 'packageId',
+  decision: 'decision',
+  rationale: 'rationale',
+  actorId: 'actorId',
+  decidedAt: 'decidedAt'
+};
+
+exports.Prisma.PqrsdDossierScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  reference: 'reference',
+  rulePackageId: 'rulePackageId',
+  receivedAt: 'receivedAt',
+  receivedTimeZone: 'receivedTimeZone',
+  receivedChannel: 'receivedChannel',
+  externalReceiptNumber: 'externalReceiptNumber',
+  subject: 'subject',
+  description: 'description',
+  acknowledgementRequired: 'acknowledgementRequired',
+  status: 'status',
+  riskLevel: 'riskLevel',
+  currentPrimaryAssigneeId: 'currentPrimaryAssigneeId',
+  currentBackupAssigneeId: 'currentBackupAssigneeId',
+  version: 'version',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PqrsdPetitionerSnapshotScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  fullName: 'fullName',
+  documentType: 'documentType',
+  documentNumber: 'documentNumber',
+  email: 'email',
+  phone: 'phone',
+  postalAddress: 'postalAddress',
+  preferredChannel: 'preferredChannel',
+  maskedFullName: 'maskedFullName',
+  maskedDocumentNumber: 'maskedDocumentNumber',
+  maskedEmail: 'maskedEmail',
+  maskedPhone: 'maskedPhone',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdDocumentScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  storedObjectId: 'storedObjectId',
+  type: 'type',
+  fileName: 'fileName',
+  storagePath: 'storagePath',
+  contentType: 'contentType',
+  sizeBytes: 'sizeBytes',
+  sha256: 'sha256',
+  sourceReference: 'sourceReference',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdDocumentReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  documentId: 'documentId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.PqrsdReceiptAcknowledgementScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  documentId: 'documentId',
+  acknowledgementNumber: 'acknowledgementNumber',
+  channel: 'channel',
+  issuedAt: 'issuedAt',
+  actorId: 'actorId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdDetailAccessScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  purpose: 'purpose',
+  actorId: 'actorId',
+  accessedAt: 'accessedAt'
+};
+
+exports.Prisma.PqrsdClassificationVersionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  ruleDefinitionId: 'ruleDefinitionId',
+  versionNumber: 'versionNumber',
+  categoryKey: 'categoryKey',
+  categoryLabel: 'categoryLabel',
+  competence: 'competence',
+  department: 'department',
+  competentAuthority: 'competentAuthority',
+  rationale: 'rationale',
+  proposedById: 'proposedById',
+  proposedAt: 'proposedAt'
+};
+
+exports.Prisma.PqrsdClassificationReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  classificationId: 'classificationId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.PqrsdDeadlineVersionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  classificationId: 'classificationId',
+  packageId: 'packageId',
+  ruleDefinitionId: 'ruleDefinitionId',
+  extensionProposalId: 'extensionProposalId',
+  versionNumber: 'versionNumber',
+  calculationStatus: 'calculationStatus',
+  startLocalDate: 'startLocalDate',
+  startExplanation: 'startExplanation',
+  originalDueLocalDate: 'originalDueLocalDate',
+  currentDueLocalDate: 'currentDueLocalDate',
+  dueAt: 'dueAt',
+  includedDays: 'includedDays',
+  excludedDays: 'excludedDays',
+  calculationTrace: 'calculationTrace',
+  changeReason: 'changeReason',
+  changeAuthority: 'changeAuthority',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdAssignmentEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  primaryAssigneeId: 'primaryAssigneeId',
+  backupAssigneeId: 'backupAssigneeId',
+  reason: 'reason',
+  effectiveAt: 'effectiveAt',
+  actorId: 'actorId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdTransferScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  destination: 'destination',
+  destinationReference: 'destinationReference',
+  reason: 'reason',
+  legalAuthority: 'legalAuthority',
+  dueLocalDate: 'dueLocalDate',
+  dueAt: 'dueAt',
+  timeZone: 'timeZone',
+  supportDocumentId: 'supportDocumentId',
+  proposedById: 'proposedById',
+  proposedAt: 'proposedAt'
+};
+
+exports.Prisma.PqrsdTransferReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  transferId: 'transferId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.PqrsdTransferAttemptScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  transferId: 'transferId',
+  attemptedAt: 'attemptedAt',
+  outcome: 'outcome',
+  externalReference: 'externalReference',
+  evidenceDocumentId: 'evidenceDocumentId',
+  failureReason: 'failureReason',
+  actorId: 'actorId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdExtensionProposalScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  requestedDueLocalDate: 'requestedDueLocalDate',
+  reason: 'reason',
+  legalAuthority: 'legalAuthority',
+  supportDocumentId: 'supportDocumentId',
+  proposedById: 'proposedById',
+  proposedAt: 'proposedAt'
+};
+
+exports.Prisma.PqrsdExtensionReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  extensionId: 'extensionId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.PqrsdResponseVersionScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  versionNumber: 'versionNumber',
+  body: 'body',
+  contentSha256: 'contentSha256',
+  attachmentDocumentId: 'attachmentDocumentId',
+  draftedById: 'draftedById',
+  draftedAt: 'draftedAt'
+};
+
+exports.Prisma.PqrsdResponseReviewScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  responseId: 'responseId',
+  decision: 'decision',
+  rationale: 'rationale',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt'
+};
+
+exports.Prisma.PqrsdResponseAuthorizationScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  responseId: 'responseId',
+  decision: 'decision',
+  rationale: 'rationale',
+  authorizationReference: 'authorizationReference',
+  authorizationDocumentId: 'authorizationDocumentId',
+  authorizerId: 'authorizerId',
+  authorizedAt: 'authorizedAt'
+};
+
+exports.Prisma.PqrsdDeliveryAttemptScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  responseId: 'responseId',
+  channel: 'channel',
+  attemptedAt: 'attemptedAt',
+  outcome: 'outcome',
+  externalReference: 'externalReference',
+  evidenceDocumentId: 'evidenceDocumentId',
+  failureReason: 'failureReason',
+  actorId: 'actorId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdClosureScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  sequence: 'sequence',
+  cause: 'cause',
+  rationale: 'rationale',
+  legalAuthority: 'legalAuthority',
+  supportDocumentId: 'supportDocumentId',
+  actorId: 'actorId',
+  closedAt: 'closedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdReopeningScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  closureId: 'closureId',
+  reason: 'reason',
+  legalAuthority: 'legalAuthority',
+  supportDocumentId: 'supportDocumentId',
+  actorId: 'actorId',
+  reopenedAt: 'reopenedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PqrsdStatusEventScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  dossierId: 'dossierId',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  reason: 'reason',
+  authority: 'authority',
+  actorId: 'actorId',
+  occurredAt: 'occurredAt'
+};
+
+exports.Prisma.PqrsdCommandScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  commandId: 'commandId',
+  commandType: 'commandType',
+  payloadSha256: 'payloadSha256',
+  resultSnapshot: 'resultSnapshot',
+  actorId: 'actorId',
+  versionBefore: 'versionBefore',
+  versionAfter: 'versionAfter',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -648,7 +2323,12 @@ exports.FinanceReportScope = exports.$Enums.FinanceReportScope = {
 exports.StorageObjectModule = exports.$Enums.StorageObjectModule = {
   FINANCE: 'FINANCE',
   E14: 'E14',
-  CONSENT: 'CONSENT'
+  CONSENT: 'CONSENT',
+  ELECTORAL_CATALOG: 'ELECTORAL_CATALOG',
+  SCRUTINY: 'SCRUTINY',
+  ELECTORAL_CALENDAR: 'ELECTORAL_CALENDAR',
+  PQRSD: 'PQRSD',
+  SIGNATURE_COLLECTION: 'SIGNATURE_COLLECTION'
 };
 
 exports.StoredObjectStatus = exports.$Enums.StoredObjectStatus = {
@@ -696,6 +2376,40 @@ exports.DivisionType = exports.$Enums.DivisionType = {
   PUESTO: 'PUESTO'
 };
 
+exports.ElectoralCodeNamespace = exports.$Enums.ElectoralCodeNamespace = {
+  DANE_DIVIPOLA: 'DANE_DIVIPOLA',
+  RNEC_DIVIPOLE: 'RNEC_DIVIPOLE'
+};
+
+exports.ElectoralCatalogType = exports.$Enums.ElectoralCatalogType = {
+  ADMINISTRATIVE_DANE: 'ADMINISTRATIVE_DANE',
+  ELECTORAL_RNEC: 'ELECTORAL_RNEC'
+};
+
+exports.ElectoralCatalogStatus = exports.$Enums.ElectoralCatalogStatus = {
+  STAGED: 'STAGED',
+  VALIDATED: 'VALIDATED',
+  ACTIVE: 'ACTIVE',
+  REJECTED: 'REJECTED',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+exports.ElectoralCatalogEntryType = exports.$Enums.ElectoralCatalogEntryType = {
+  DEPARTMENT: 'DEPARTMENT',
+  MUNICIPALITY: 'MUNICIPALITY',
+  NON_MUNICIPALIZED_AREA: 'NON_MUNICIPALIZED_AREA',
+  ISLAND: 'ISLAND',
+  ZONE: 'ZONE',
+  POLLING_PLACE: 'POLLING_PLACE'
+};
+
+exports.ElectoralCatalogImportStatus = exports.$Enums.ElectoralCatalogImportStatus = {
+  QUEUED: 'QUEUED',
+  PROCESSING: 'PROCESSING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED'
+};
+
 exports.EntryType = exports.$Enums.EntryType = {
   INCOME: 'INCOME',
   EXPENSE: 'EXPENSE'
@@ -714,6 +2428,51 @@ exports.FinanceStatus = exports.$Enums.FinanceStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   REPORTED_CNE: 'REPORTED_CNE'
+};
+
+exports.FinanceReportKind = exports.$Enums.FinanceReportKind = {
+  CANDIDATE: 'CANDIDATE',
+  CONSOLIDATED: 'CONSOLIDATED'
+};
+
+exports.FinanceApprovalControl = exports.$Enums.FinanceApprovalControl = {
+  CAMPAIGN_MANAGER: 'CAMPAIGN_MANAGER',
+  ACCOUNTANT: 'ACCOUNTANT',
+  COMPLIANCE: 'COMPLIANCE'
+};
+
+exports.FinanceApprovalDecision = exports.$Enums.FinanceApprovalDecision = {
+  APPROVE: 'APPROVE',
+  RETURN_FOR_CORRECTION: 'RETURN_FOR_CORRECTION'
+};
+
+exports.FinanceBankMatchStatus = exports.$Enums.FinanceBankMatchStatus = {
+  MATCHED: 'MATCHED',
+  UNMATCHED: 'UNMATCHED',
+  EXCLUDED: 'EXCLUDED'
+};
+
+exports.FinanceExternalReviewDecision = exports.$Enums.FinanceExternalReviewDecision = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT'
+};
+
+exports.FinanceCloseoutCommandType = exports.$Enums.FinanceCloseoutCommandType = {
+  DOSSIER_CREATE: 'DOSSIER_CREATE',
+  BANK_STATEMENT_CREATE: 'BANK_STATEMENT_CREATE',
+  IN_KIND_CREATE: 'IN_KIND_CREATE',
+  PAYABLE_CREATE: 'PAYABLE_CREATE',
+  PAYABLE_SETTLE: 'PAYABLE_SETTLE',
+  REPORT_VERSION_CREATE: 'REPORT_VERSION_CREATE',
+  REPORT_APPROVAL_RECORD: 'REPORT_APPROVAL_RECORD',
+  EXTERNAL_EVIDENCE_RECORD: 'EXTERNAL_EVIDENCE_RECORD',
+  EXTERNAL_EVIDENCE_REVIEW: 'EXTERNAL_EVIDENCE_REVIEW'
+};
+
+exports.WitnessCaptureContext = exports.$Enums.WitnessCaptureContext = {
+  SIMULATION: 'SIMULATION',
+  REAL: 'REAL',
+  LEGACY_UNCLASSIFIED: 'LEGACY_UNCLASSIFIED'
 };
 
 exports.WitnessCredentialType = exports.$Enums.WitnessCredentialType = {
@@ -746,6 +2505,22 @@ exports.WitnessReportStatus = exports.$Enums.WitnessReportStatus = {
   SUPERSEDED: 'SUPERSEDED'
 };
 
+exports.WitnessAssignmentType = exports.$Enums.WitnessAssignmentType = {
+  PRIMARY: 'PRIMARY',
+  BACKUP: 'BACKUP'
+};
+
+exports.WitnessAssignmentStatus = exports.$Enums.WitnessAssignmentStatus = {
+  PLANNED: 'PLANNED',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.WitnessCoverageWindowCommandType = exports.$Enums.WitnessCoverageWindowCommandType = {
+  CREATE: 'CREATE',
+  UPDATE: 'UPDATE'
+};
+
 exports.CampaignEventStatus = exports.$Enums.CampaignEventStatus = {
   DRAFT: 'DRAFT',
   SCHEDULED: 'SCHEDULED',
@@ -754,10 +2529,72 @@ exports.CampaignEventStatus = exports.$Enums.CampaignEventStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.InventoryTrackingMode = exports.$Enums.InventoryTrackingMode = {
+  NONE: 'NONE',
+  LOT: 'LOT',
+  SERIAL: 'SERIAL'
+};
+
+exports.InventoryRecordOrigin = exports.$Enums.InventoryRecordOrigin = {
+  LEGACY_UNCLASSIFIED: 'LEGACY_UNCLASSIFIED',
+  API: 'API'
+};
+
 exports.MovementType = exports.$Enums.MovementType = {
   IN: 'IN',
   OUT: 'OUT',
-  ADJUSTMENT: 'ADJUSTMENT'
+  ADJUSTMENT: 'ADJUSTMENT',
+  RECEIPT: 'RECEIPT',
+  DISPATCH: 'DISPATCH',
+  TRANSFER_RECEIPT: 'TRANSFER_RECEIPT',
+  RETURN_OUT: 'RETURN_OUT',
+  RETURN_IN: 'RETURN_IN',
+  RECONCILIATION_OUT: 'RECONCILIATION_OUT'
+};
+
+exports.InventoryStockCondition = exports.$Enums.InventoryStockCondition = {
+  AVAILABLE: 'AVAILABLE',
+  QUARANTINED: 'QUARANTINED',
+  DAMAGED: 'DAMAGED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.InventoryCommandType = exports.$Enums.InventoryCommandType = {
+  WAREHOUSE_CREATE: 'WAREHOUSE_CREATE',
+  ITEM_IMPORT: 'ITEM_IMPORT',
+  STOCK_RECEIVE: 'STOCK_RECEIVE',
+  DISPATCH: 'DISPATCH',
+  RECEIVE: 'RECEIVE',
+  RETURN: 'RETURN',
+  RECONCILE: 'RECONCILE',
+  INCIDENT_REPORT: 'INCIDENT_REPORT'
+};
+
+exports.InventoryTransferStatus = exports.$Enums.InventoryTransferStatus = {
+  DISPATCHED: 'DISPATCHED',
+  PARTIALLY_RECEIVED: 'PARTIALLY_RECEIVED',
+  RECEIVED: 'RECEIVED',
+  RECEIVED_WITH_INCIDENT: 'RECEIVED_WITH_INCIDENT',
+  PARTIALLY_RETURNED: 'PARTIALLY_RETURNED',
+  RETURNED: 'RETURNED',
+  RECONCILED: 'RECONCILED'
+};
+
+exports.InventoryCustodyEventType = exports.$Enums.InventoryCustodyEventType = {
+  STOCK_RECEIVED: 'STOCK_RECEIVED',
+  DISPATCHED: 'DISPATCHED',
+  RECEIVED: 'RECEIVED',
+  RETURNED: 'RETURNED',
+  RECONCILED: 'RECONCILED',
+  INCIDENT_REPORTED: 'INCIDENT_REPORTED'
+};
+
+exports.InventoryIncidentType = exports.$Enums.InventoryIncidentType = {
+  MISSING: 'MISSING',
+  DAMAGED: 'DAMAGED',
+  EXPIRED: 'EXPIRED',
+  CUSTODY_BREACH: 'CUSTODY_BREACH',
+  OTHER: 'OTHER'
 };
 
 exports.ConsentSubjectType = exports.$Enums.ConsentSubjectType = {
@@ -884,13 +2721,10 @@ exports.AuditOutcome = exports.$Enums.AuditOutcome = {
   FAILURE: 'FAILURE'
 };
 
-exports.PoliticalOperationType = exports.$Enums.PoliticalOperationType = {
-  PRE_CANDIDACY: 'PRE_CANDIDACY',
-  SINGLE_CANDIDACY: 'SINGLE_CANDIDACY',
-  CORPORATION_CANDIDACY: 'CORPORATION_CANDIDACY',
-  PARTY_MOVEMENT: 'PARTY_MOVEMENT',
-  SIGNATURE_COMMITTEE: 'SIGNATURE_COMMITTEE',
-  TERRITORIAL_TEAM: 'TERRITORIAL_TEAM'
+exports.OfflineSyncOperationType = exports.$Enums.OfflineSyncOperationType = {
+  VOTER_CAPTURE: 'VOTER_CAPTURE',
+  E14_REPORT: 'E14_REPORT',
+  INCIDENT_REPORT: 'INCIDENT_REPORT'
 };
 
 exports.PoliticalOperationStage = exports.$Enums.PoliticalOperationStage = {
@@ -903,6 +2737,15 @@ exports.PoliticalOperationStage = exports.$Enums.PoliticalOperationStage = {
   ELECTION_DAY: 'ELECTION_DAY',
   POST_ELECTION: 'POST_ELECTION',
   CLOSED: 'CLOSED'
+};
+
+exports.PoliticalOperationType = exports.$Enums.PoliticalOperationType = {
+  PRE_CANDIDACY: 'PRE_CANDIDACY',
+  SINGLE_CANDIDACY: 'SINGLE_CANDIDACY',
+  CORPORATION_CANDIDACY: 'CORPORATION_CANDIDACY',
+  PARTY_MOVEMENT: 'PARTY_MOVEMENT',
+  SIGNATURE_COMMITTEE: 'SIGNATURE_COMMITTEE',
+  TERRITORIAL_TEAM: 'TERRITORIAL_TEAM'
 };
 
 exports.ElectoralContestType = exports.$Enums.ElectoralContestType = {
@@ -930,6 +2773,344 @@ exports.ElectoralCircumscriptionType = exports.$Enums.ElectoralCircumscriptionTy
 exports.CandidateListType = exports.$Enums.CandidateListType = {
   CLOSED: 'CLOSED',
   OPEN_PREFERENTIAL: 'OPEN_PREFERENTIAL'
+};
+
+exports.OperationClosureType = exports.$Enums.OperationClosureType = {
+  CLOSED_NORMAL: 'CLOSED_NORMAL',
+  CLOSED_EXCEPTIONAL: 'CLOSED_EXCEPTIONAL'
+};
+
+exports.OperationTerminationCause = exports.$Enums.OperationTerminationCause = {
+  CANDIDACY_WITHDRAWAL: 'CANDIDACY_WITHDRAWAL',
+  REGISTRATION_DENIED: 'REGISTRATION_DENIED',
+  REGISTRATION_REVOKED: 'REGISTRATION_REVOKED',
+  DISQUALIFICATION: 'DISQUALIFICATION',
+  SIGNATURE_THRESHOLD_NOT_MET: 'SIGNATURE_THRESHOLD_NOT_MET',
+  ENDORSEMENT_WITHDRAWN: 'ENDORSEMENT_WITHDRAWN',
+  ELECTION_CANCELLED: 'ELECTION_CANCELLED',
+  OTHER: 'OTHER'
+};
+
+exports.TransitionHandoverReportStatus = exports.$Enums.TransitionHandoverReportStatus = {
+  READY: 'READY',
+  ATTENTION: 'ATTENTION',
+  BLOCKED: 'BLOCKED'
+};
+
+exports.TransitionHandoverPackageKind = exports.$Enums.TransitionHandoverPackageKind = {
+  INTERNAL_CAMPAIGN_CLOSEOUT_DRAFT: 'INTERNAL_CAMPAIGN_CLOSEOUT_DRAFT',
+  EXCEPTIONAL_TERMINATION_DUTIES_DOSSIER: 'EXCEPTIONAL_TERMINATION_DUTIES_DOSSIER'
+};
+
+exports.ElectoralCalendarReleaseStatus = exports.$Enums.ElectoralCalendarReleaseStatus = {
+  STAGED: 'STAGED',
+  VALIDATED: 'VALIDATED',
+  ACTIVE: 'ACTIVE',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+exports.ElectoralCalendarMilestoneCategory = exports.$Enums.ElectoralCalendarMilestoneCategory = {
+  REGISTRATION: 'REGISTRATION',
+  SIGNATURES: 'SIGNATURES',
+  CAMPAIGN: 'CAMPAIGN',
+  ELECTION_PREPARATION: 'ELECTION_PREPARATION',
+  ELECTION_DAY: 'ELECTION_DAY',
+  SCRUTINY: 'SCRUTINY',
+  FINANCE: 'FINANCE',
+  DATA_GOVERNANCE: 'DATA_GOVERNANCE',
+  INTERNAL: 'INTERNAL'
+};
+
+exports.ElectoralCalendarMilestoneSemantics = exports.$Enums.ElectoralCalendarMilestoneSemantics = {
+  INFORMATIONAL: 'INFORMATIONAL',
+  INTERNAL_TARGET: 'INTERNAL_TARGET',
+  EXTERNAL_DEADLINE: 'EXTERNAL_DEADLINE'
+};
+
+exports.ElectoralCalendarDecisionAction = exports.$Enums.ElectoralCalendarDecisionAction = {
+  VALIDATE: 'VALIDATE',
+  ACTIVATE: 'ACTIVATE',
+  SUPERSEDE: 'SUPERSEDE'
+};
+
+exports.ElectoralCalendarResultOutcome = exports.$Enums.ElectoralCalendarResultOutcome = {
+  COMPLETED: 'COMPLETED',
+  NOT_APPLICABLE: 'NOT_APPLICABLE',
+  MISSED: 'MISSED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.ElectoralCalendarResultReviewDecision = exports.$Enums.ElectoralCalendarResultReviewDecision = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT'
+};
+
+exports.ElectoralCalendarCommandType = exports.$Enums.ElectoralCalendarCommandType = {
+  RELEASE_STAGE: 'RELEASE_STAGE',
+  RELEASE_VALIDATE: 'RELEASE_VALIDATE',
+  RELEASE_ACTIVATE: 'RELEASE_ACTIVATE',
+  MILESTONE_RESULT_RECORD: 'MILESTONE_RESULT_RECORD',
+  MILESTONE_RESULT_REVIEW: 'MILESTONE_RESULT_REVIEW'
+};
+
+exports.SignatureCollectionPlanStatus = exports.$Enums.SignatureCollectionPlanStatus = {
+  READY: 'READY',
+  COLLECTING: 'COLLECTING',
+  SUBMITTED: 'SUBMITTED',
+  AUTHORITY_RESULT_RECORDED: 'AUTHORITY_RESULT_RECORDED'
+};
+
+exports.SignatureCollectionBatchStatus = exports.$Enums.SignatureCollectionBatchStatus = {
+  PLANNED: 'PLANNED',
+  ISSUED: 'ISSUED',
+  PARTIALLY_RETURNED: 'PARTIALLY_RETURNED',
+  RETURNED: 'RETURNED',
+  INTERNAL_REVIEWED: 'INTERNAL_REVIEWED',
+  DELIVERED_TO_COMMITTEE: 'DELIVERED_TO_COMMITTEE',
+  SUBMITTED_TO_AUTHORITY: 'SUBMITTED_TO_AUTHORITY',
+  AUTHORITY_RESULT_RECORDED: 'AUTHORITY_RESULT_RECORDED',
+  QUARANTINED: 'QUARANTINED'
+};
+
+exports.SignatureCollectionCommandType = exports.$Enums.SignatureCollectionCommandType = {
+  PLAN_CREATE: 'PLAN_CREATE',
+  BATCH_CREATE: 'BATCH_CREATE',
+  BATCH_ISSUE: 'BATCH_ISSUE',
+  BATCH_RETURN: 'BATCH_RETURN',
+  BATCH_INTERNAL_REVIEW: 'BATCH_INTERNAL_REVIEW',
+  BATCH_DELIVER_TO_COMMITTEE: 'BATCH_DELIVER_TO_COMMITTEE',
+  BATCH_SUBMIT_TO_AUTHORITY: 'BATCH_SUBMIT_TO_AUTHORITY',
+  BATCH_QUARANTINE: 'BATCH_QUARANTINE',
+  BATCH_RELEASE_QUARANTINE: 'BATCH_RELEASE_QUARANTINE',
+  AUTHORITY_RESULT_RECORD: 'AUTHORITY_RESULT_RECORD',
+  AUTHORITY_RESULT_REVIEW: 'AUTHORITY_RESULT_REVIEW',
+  AUTHORITY_RESULT_LINK: 'AUTHORITY_RESULT_LINK'
+};
+
+exports.SignatureCountCorrectionCommandType = exports.$Enums.SignatureCountCorrectionCommandType = {
+  PROPOSE: 'PROPOSE',
+  DECIDE: 'DECIDE'
+};
+
+exports.SignatureCountCorrectionReviewControl = exports.$Enums.SignatureCountCorrectionReviewControl = {
+  CUSTODY_COUNTS: 'CUSTODY_COUNTS',
+  SUPPORT_CLASSIFICATION: 'SUPPORT_CLASSIFICATION'
+};
+
+exports.SignatureCountCorrectionDecisionType = exports.$Enums.SignatureCountCorrectionDecisionType = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT'
+};
+
+exports.SignatureCustodyEventType = exports.$Enums.SignatureCustodyEventType = {
+  PLANNED: 'PLANNED',
+  ISSUED: 'ISSUED',
+  PARTIAL_RETURN: 'PARTIAL_RETURN',
+  FINAL_RETURN: 'FINAL_RETURN',
+  INTERNAL_REVIEW: 'INTERNAL_REVIEW',
+  DELIVERED_TO_COMMITTEE: 'DELIVERED_TO_COMMITTEE',
+  SUBMITTED_TO_AUTHORITY: 'SUBMITTED_TO_AUTHORITY',
+  QUARANTINED: 'QUARANTINED',
+  QUARANTINE_RELEASED: 'QUARANTINE_RELEASED',
+  AUTHORITY_RESULT_LINKED: 'AUTHORITY_RESULT_LINKED'
+};
+
+exports.SignatureAuthorityOutcome = exports.$Enums.SignatureAuthorityOutcome = {
+  THRESHOLD_MET: 'THRESHOLD_MET',
+  THRESHOLD_NOT_MET: 'THRESHOLD_NOT_MET',
+  REGISTRATION_DENIED: 'REGISTRATION_DENIED',
+  WITHDRAWN: 'WITHDRAWN'
+};
+
+exports.SignatureAuthorityReviewDecision = exports.$Enums.SignatureAuthorityReviewDecision = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT'
+};
+
+exports.OperationStageAdoptionStatus = exports.$Enums.OperationStageAdoptionStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.OperationTerminationStatus = exports.$Enums.OperationTerminationStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.ScrutinyCommandType = exports.$Enums.ScrutinyCommandType = {
+  COMMISSION_CREATE: 'COMMISSION_CREATE',
+  REQUIREMENT_CONFIGURE: 'REQUIREMENT_CONFIGURE',
+  SESSION_EVENT_RECORD: 'SESSION_EVENT_RECORD',
+  COVERAGE_CREATE: 'COVERAGE_CREATE',
+  DOCUMENT_CREATE: 'DOCUMENT_CREATE',
+  DOCUMENT_REVIEW: 'DOCUMENT_REVIEW',
+  CUSTODY_EVENT_RECORD: 'CUSTODY_EVENT_RECORD',
+  DISCREPANCY_CREATE: 'DISCREPANCY_CREATE',
+  DISCREPANCY_RESOLVE: 'DISCREPANCY_RESOLVE',
+  ACTION_CREATE: 'ACTION_CREATE',
+  ACTION_VERSION_ADD: 'ACTION_VERSION_ADD',
+  ACTION_APPROVE: 'ACTION_APPROVE',
+  ACTION_FILE: 'ACTION_FILE',
+  DECISION_RECORD: 'DECISION_RECORD',
+  DECISION_REVIEW: 'DECISION_REVIEW',
+  DECLARATION_CREATE: 'DECLARATION_CREATE',
+  DECLARATION_REVIEW: 'DECLARATION_REVIEW'
+};
+
+exports.ScrutinyCommissionLevel = exports.$Enums.ScrutinyCommissionLevel = {
+  AUXILIARY: 'AUXILIARY',
+  MUNICIPAL: 'MUNICIPAL',
+  DISTRICT: 'DISTRICT',
+  DEPARTMENTAL: 'DEPARTMENTAL',
+  GENERAL_NATIONAL: 'GENERAL_NATIONAL'
+};
+
+exports.ScrutinyCommissionStatus = exports.$Enums.ScrutinyCommissionStatus = {
+  PLANNED: 'PLANNED',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  CLOSED: 'CLOSED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.ScrutinyDocumentType = exports.$Enums.ScrutinyDocumentType = {
+  E14_CLAVEROS: 'E14_CLAVEROS',
+  E16_CREDENTIAL: 'E16_CREDENTIAL',
+  E23: 'E23',
+  E24: 'E24',
+  E25: 'E25',
+  E26: 'E26',
+  GENERAL_ACT: 'GENERAL_ACT',
+  RESOLUTION: 'RESOLUTION',
+  APPEAL: 'APPEAL',
+  NOTICE: 'NOTICE',
+  DECLARATION_CREDENTIAL: 'DECLARATION_CREDENTIAL',
+  OTHER: 'OTHER'
+};
+
+exports.ScrutinyRequirementApplicability = exports.$Enums.ScrutinyRequirementApplicability = {
+  PENDING: 'PENDING',
+  REQUIRED: 'REQUIRED',
+  NOT_APPLICABLE: 'NOT_APPLICABLE'
+};
+
+exports.ScrutinySessionEventType = exports.$Enums.ScrutinySessionEventType = {
+  OPENED: 'OPENED',
+  SUSPENDED: 'SUSPENDED',
+  RESUMED: 'RESUMED',
+  CLOSED: 'CLOSED'
+};
+
+exports.ScrutinyEvidenceState = exports.$Enums.ScrutinyEvidenceState = {
+  INTERNAL: 'INTERNAL',
+  FILED: 'FILED',
+  DECIDED: 'DECIDED',
+  OFFICIAL: 'OFFICIAL'
+};
+
+exports.ScrutinyDocumentReviewStatus = exports.$Enums.ScrutinyDocumentReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.ScrutinyCoverageStatus = exports.$Enums.ScrutinyCoverageStatus = {
+  PLANNED: 'PLANNED',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.ScrutinyCustodyEventType = exports.$Enums.ScrutinyCustodyEventType = {
+  RECEIVED: 'RECEIVED',
+  VERIFIED: 'VERIFIED',
+  TRANSFERRED: 'TRANSFERRED',
+  SEALED: 'SEALED',
+  UNSEALED: 'UNSEALED',
+  DIGITIZED: 'DIGITIZED',
+  SUBMITTED: 'SUBMITTED',
+  RETURNED: 'RETURNED'
+};
+
+exports.ScrutinyDiscrepancySeverity = exports.$Enums.ScrutinyDiscrepancySeverity = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+};
+
+exports.ScrutinyDiscrepancyStatus = exports.$Enums.ScrutinyDiscrepancyStatus = {
+  OPEN: 'OPEN',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  EXPLAINED: 'EXPLAINED',
+  DISMISSED: 'DISMISSED'
+};
+
+exports.ScrutinyActionType = exports.$Enums.ScrutinyActionType = {
+  REQUEST: 'REQUEST',
+  CLAIM: 'CLAIM',
+  APPEAL: 'APPEAL',
+  NULLITY_REQUEST: 'NULLITY_REQUEST'
+};
+
+exports.ScrutinyStandingType = exports.$Enums.ScrutinyStandingType = {
+  CANDIDATE: 'CANDIDATE',
+  ATTORNEY: 'ATTORNEY',
+  ACCREDITED_WITNESS: 'ACCREDITED_WITNESS',
+  PARTY_MOVEMENT: 'PARTY_MOVEMENT',
+  OTHER: 'OTHER'
+};
+
+exports.ScrutinyActionStatus = exports.$Enums.ScrutinyActionStatus = {
+  DRAFT: 'DRAFT',
+  APPROVED_INTERNAL: 'APPROVED_INTERNAL',
+  FILED_EXTERNAL: 'FILED_EXTERNAL',
+  DECIDED_EXTERNAL: 'DECIDED_EXTERNAL',
+  APPEALED_EXTERNAL: 'APPEALED_EXTERNAL',
+  CLOSED: 'CLOSED',
+  WITHDRAWN: 'WITHDRAWN'
+};
+
+exports.ScrutinyDecisionOutcome = exports.$Enums.ScrutinyDecisionOutcome = {
+  GRANTED: 'GRANTED',
+  PARTIALLY_GRANTED: 'PARTIALLY_GRANTED',
+  DENIED: 'DENIED',
+  REJECTED_INADMISSIBLE: 'REJECTED_INADMISSIBLE',
+  DISMISSED: 'DISMISSED',
+  OTHER: 'OTHER'
+};
+
+exports.ScrutinyDecisionReviewStatus = exports.$Enums.ScrutinyDecisionReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.ScrutinyDeclarationStatus = exports.$Enums.ScrutinyDeclarationStatus = {
+  DRAFT_INTERNAL: 'DRAFT_INTERNAL',
+  OFFICIAL: 'OFFICIAL',
+  REJECTED_INTERNAL: 'REJECTED_INTERNAL'
+};
+
+exports.RetentionDispositionStatus = exports.$Enums.RetentionDispositionStatus = {
+  PENDING: 'PENDING',
+  APPROVED_NOT_EXECUTED: 'APPROVED_NOT_EXECUTED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.RetentionDataScope = exports.$Enums.RetentionDataScope = {
+  DATA_SUBJECT_RECORDS: 'DATA_SUBJECT_RECORDS',
+  COMMUNICATION_INTERACTIONS: 'COMMUNICATION_INTERACTIONS',
+  STORED_OBJECTS: 'STORED_OBJECTS',
+  FINANCIAL_RECORDS: 'FINANCIAL_RECORDS',
+  ELECTORAL_EVIDENCE: 'ELECTORAL_EVIDENCE',
+  AUDIT_TRAIL: 'AUDIT_TRAIL',
+  ALL_TENANT_RECORDS: 'ALL_TENANT_RECORDS'
 };
 
 exports.ProposalCategory = exports.$Enums.ProposalCategory = {
@@ -973,6 +3154,141 @@ exports.BillingCycle = exports.$Enums.BillingCycle = {
   YEARLY: 'YEARLY'
 };
 
+exports.PqrsdRulePackageStatus = exports.$Enums.PqrsdRulePackageStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  REJECTED: 'REJECTED',
+  SUPERSEDED: 'SUPERSEDED'
+};
+
+exports.PqrsdDayComputationMethod = exports.$Enums.PqrsdDayComputationMethod = {
+  CALENDAR_DAYS: 'CALENDAR_DAYS',
+  WORKING_DAYS: 'WORKING_DAYS'
+};
+
+exports.PqrsdTermStartRule = exports.$Enums.PqrsdTermStartRule = {
+  RECEIPT_DATE: 'RECEIPT_DATE',
+  NEXT_CALENDAR_DATE: 'NEXT_CALENDAR_DATE',
+  NEXT_WORKING_DATE: 'NEXT_WORKING_DATE',
+  MANUAL_REVIEW: 'MANUAL_REVIEW'
+};
+
+exports.PqrsdCalendarExceptionType = exports.$Enums.PqrsdCalendarExceptionType = {
+  NON_WORKING: 'NON_WORKING',
+  WORKING_OVERRIDE: 'WORKING_OVERRIDE'
+};
+
+exports.PqrsdRuleReviewDecision = exports.$Enums.PqrsdRuleReviewDecision = {
+  APPROVE_ACTIVATE: 'APPROVE_ACTIVATE',
+  REJECT: 'REJECT'
+};
+
+exports.PqrsdDossierStatus = exports.$Enums.PqrsdDossierStatus = {
+  RECEIVED: 'RECEIVED',
+  CLASSIFICATION_PENDING: 'CLASSIFICATION_PENDING',
+  CLASSIFIED: 'CLASSIFIED',
+  ASSIGNED: 'ASSIGNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  TRANSFER_PENDING: 'TRANSFER_PENDING',
+  WAITING_ON_PETITIONER: 'WAITING_ON_PETITIONER',
+  EXTENSION_PROPOSED: 'EXTENSION_PROPOSED',
+  DRAFT_RESPONSE: 'DRAFT_RESPONSE',
+  RETURNED_FOR_CHANGES: 'RETURNED_FOR_CHANGES',
+  REVIEWED: 'REVIEWED',
+  AUTHORIZED: 'AUTHORIZED',
+  DELIVERY_PENDING: 'DELIVERY_PENDING',
+  DELIVERED: 'DELIVERED',
+  CLOSED: 'CLOSED',
+  REOPENED: 'REOPENED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.PqrsdRiskLevel = exports.$Enums.PqrsdRiskLevel = {
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH'
+};
+
+exports.PqrsdDocumentType = exports.$Enums.PqrsdDocumentType = {
+  INTAKE_ATTACHMENT: 'INTAKE_ATTACHMENT',
+  RECEIPT_ACKNOWLEDGEMENT: 'RECEIPT_ACKNOWLEDGEMENT',
+  CLASSIFICATION_SUPPORT: 'CLASSIFICATION_SUPPORT',
+  TRANSFER_SUPPORT: 'TRANSFER_SUPPORT',
+  TRANSFER_PROOF: 'TRANSFER_PROOF',
+  EXTENSION_SUPPORT: 'EXTENSION_SUPPORT',
+  RESPONSE_ATTACHMENT: 'RESPONSE_ATTACHMENT',
+  AUTHORIZATION_ARTIFACT: 'AUTHORIZATION_ARTIFACT',
+  DELIVERY_PROOF: 'DELIVERY_PROOF',
+  CLOSURE_SUPPORT: 'CLOSURE_SUPPORT',
+  REOPENING_SUPPORT: 'REOPENING_SUPPORT',
+  OTHER: 'OTHER'
+};
+
+exports.PqrsdReviewDecision = exports.$Enums.PqrsdReviewDecision = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT'
+};
+
+exports.PqrsdCompetence = exports.$Enums.PqrsdCompetence = {
+  COMPETENT: 'COMPETENT',
+  TRANSFER_REQUIRED: 'TRANSFER_REQUIRED',
+  REQUIRES_REVIEW: 'REQUIRES_REVIEW'
+};
+
+exports.PqrsdDeadlineCalculationStatus = exports.$Enums.PqrsdDeadlineCalculationStatus = {
+  CALCULATED: 'CALCULATED',
+  MANUAL_REVIEWED: 'MANUAL_REVIEWED',
+  CALCULATION_REQUIRES_REVIEW: 'CALCULATION_REQUIRES_REVIEW'
+};
+
+exports.PqrsdDeliveryOutcome = exports.$Enums.PqrsdDeliveryOutcome = {
+  PENDING_CONFIRMATION: 'PENDING_CONFIRMATION',
+  DELIVERED: 'DELIVERED',
+  BOUNCED: 'BOUNCED',
+  FAILED: 'FAILED'
+};
+
+exports.PqrsdResponseReviewDecision = exports.$Enums.PqrsdResponseReviewDecision = {
+  APPROVE: 'APPROVE',
+  RETURN_FOR_CHANGES: 'RETURN_FOR_CHANGES'
+};
+
+exports.PqrsdAuthorizationDecision = exports.$Enums.PqrsdAuthorizationDecision = {
+  AUTHORIZE: 'AUTHORIZE',
+  RETURN_FOR_CHANGES: 'RETURN_FOR_CHANGES'
+};
+
+exports.PqrsdClosureCause = exports.$Enums.PqrsdClosureCause = {
+  RESPONSE_DELIVERED: 'RESPONSE_DELIVERED',
+  TRANSFER_COMPLETED: 'TRANSFER_COMPLETED',
+  WITHDRAWN: 'WITHDRAWN',
+  DUPLICATE: 'DUPLICATE',
+  NO_ACTION_LEGAL_BASIS: 'NO_ACTION_LEGAL_BASIS',
+  OTHER: 'OTHER'
+};
+
+exports.PqrsdCommandType = exports.$Enums.PqrsdCommandType = {
+  RULE_PACKAGE_CREATE: 'RULE_PACKAGE_CREATE',
+  RULE_PACKAGE_REVIEW: 'RULE_PACKAGE_REVIEW',
+  DOSSIER_CREATE: 'DOSSIER_CREATE',
+  DOCUMENT_ATTACH: 'DOCUMENT_ATTACH',
+  DOCUMENT_REVIEW: 'DOCUMENT_REVIEW',
+  ACKNOWLEDGEMENT_RECORD: 'ACKNOWLEDGEMENT_RECORD',
+  CLASSIFICATION_PROPOSE: 'CLASSIFICATION_PROPOSE',
+  CLASSIFICATION_REVIEW: 'CLASSIFICATION_REVIEW',
+  ASSIGNMENT_RECORD: 'ASSIGNMENT_RECORD',
+  TRANSFER_PROPOSE: 'TRANSFER_PROPOSE',
+  TRANSFER_REVIEW: 'TRANSFER_REVIEW',
+  TRANSFER_ATTEMPT_RECORD: 'TRANSFER_ATTEMPT_RECORD',
+  EXTENSION_PROPOSE: 'EXTENSION_PROPOSE',
+  EXTENSION_REVIEW: 'EXTENSION_REVIEW',
+  RESPONSE_VERSION_CREATE: 'RESPONSE_VERSION_CREATE',
+  RESPONSE_REVIEW: 'RESPONSE_REVIEW',
+  RESPONSE_AUTHORIZE: 'RESPONSE_AUTHORIZE',
+  DELIVERY_ATTEMPT_RECORD: 'DELIVERY_ATTEMPT_RECORD',
+  DOSSIER_CLOSE: 'DOSSIER_CLOSE',
+  DOSSIER_REOPEN: 'DOSSIER_REOPEN'
+};
+
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
@@ -980,13 +3296,39 @@ exports.Prisma.ModelName = {
   User: 'User',
   TeamInvitation: 'TeamInvitation',
   PoliticalDivision: 'PoliticalDivision',
+  ElectoralCatalogRelease: 'ElectoralCatalogRelease',
+  ElectoralCatalogEntry: 'ElectoralCatalogEntry',
+  ElectoralCatalogImportJob: 'ElectoralCatalogImportJob',
   Voter: 'Voter',
   FinancialEntry: 'FinancialEntry',
+  FinanceReportDossier: 'FinanceReportDossier',
+  FinanceLedgerCut: 'FinanceLedgerCut',
+  FinanceLedgerCutLine: 'FinanceLedgerCutLine',
+  FinanceReportVersion: 'FinanceReportVersion',
+  FinanceReportApproval: 'FinanceReportApproval',
+  FinanceBankStatement: 'FinanceBankStatement',
+  FinanceBankStatementLine: 'FinanceBankStatementLine',
+  FinanceInKindContribution: 'FinanceInKindContribution',
+  FinancePayable: 'FinancePayable',
+  FinancePayableSettlement: 'FinancePayableSettlement',
+  FinanceExternalFilingEvidence: 'FinanceExternalFilingEvidence',
+  FinanceExternalFilingEvidenceReview: 'FinanceExternalFilingEvidenceReview',
+  FinanceCloseoutCommand: 'FinanceCloseoutCommand',
   WitnessReport: 'WitnessReport',
+  WitnessAssignment: 'WitnessAssignment',
+  WitnessCoverageWindow: 'WitnessCoverageWindow',
+  WitnessCoverageWindowCommand: 'WitnessCoverageWindowCommand',
   CampaignEvent: 'CampaignEvent',
   PointLog: 'PointLog',
   InventoryItem: 'InventoryItem',
   InventoryMovement: 'InventoryMovement',
+  InventoryWarehouse: 'InventoryWarehouse',
+  InventoryStockBalance: 'InventoryStockBalance',
+  InventoryCommand: 'InventoryCommand',
+  InventoryTransfer: 'InventoryTransfer',
+  InventoryTransferLine: 'InventoryTransferLine',
+  InventoryCustodyEvent: 'InventoryCustodyEvent',
+  InventoryIncident: 'InventoryIncident',
   ConsentRecord: 'ConsentRecord',
   ConsentNotice: 'ConsentNotice',
   IssueCase: 'IssueCase',
@@ -995,12 +3337,76 @@ exports.Prisma.ModelName = {
   Commitment: 'Commitment',
   CommunicationApproval: 'CommunicationApproval',
   AuditEvent: 'AuditEvent',
+  OfflineSyncReceipt: 'OfflineSyncReceipt',
+  OfflineE14CaptureGrant: 'OfflineE14CaptureGrant',
+  OfflineE14CaptureGrantPlace: 'OfflineE14CaptureGrantPlace',
   OperationProfile: 'OperationProfile',
+  TransitionHandoverReport: 'TransitionHandoverReport',
+  ElectoralCalendarRelease: 'ElectoralCalendarRelease',
+  ElectoralCalendarMilestone: 'ElectoralCalendarMilestone',
+  ElectoralCalendarReleaseDecision: 'ElectoralCalendarReleaseDecision',
+  ElectoralCalendarMilestoneResult: 'ElectoralCalendarMilestoneResult',
+  ElectoralCalendarResultReview: 'ElectoralCalendarResultReview',
+  ElectoralCalendarCommand: 'ElectoralCalendarCommand',
+  SignatureCollectionPlan: 'SignatureCollectionPlan',
+  SignatureCollectionBatch: 'SignatureCollectionBatch',
+  SignatureCollectionCommand: 'SignatureCollectionCommand',
+  SignatureCountCorrectionCommand: 'SignatureCountCorrectionCommand',
+  SignatureCountCorrectionProposal: 'SignatureCountCorrectionProposal',
+  SignatureCountCorrectionDecision: 'SignatureCountCorrectionDecision',
+  SignatureCustodyEvent: 'SignatureCustodyEvent',
+  SignatureAuthorityResult: 'SignatureAuthorityResult',
+  SignatureAuthorityResultReview: 'SignatureAuthorityResultReview',
+  OperationStageAdoptionRequest: 'OperationStageAdoptionRequest',
+  OperationTerminationRequest: 'OperationTerminationRequest',
+  ScrutinyCommand: 'ScrutinyCommand',
+  ScrutinyCommission: 'ScrutinyCommission',
+  ScrutinyDocumentRequirement: 'ScrutinyDocumentRequirement',
+  ScrutinyCommissionEvent: 'ScrutinyCommissionEvent',
+  ScrutinyDocument: 'ScrutinyDocument',
+  ScrutinyCommissionCoverage: 'ScrutinyCommissionCoverage',
+  ScrutinyCustodyEvent: 'ScrutinyCustodyEvent',
+  ScrutinyDiscrepancy: 'ScrutinyDiscrepancy',
+  ScrutinyAction: 'ScrutinyAction',
+  ScrutinyActionVersion: 'ScrutinyActionVersion',
+  ScrutinyActionDecision: 'ScrutinyActionDecision',
+  ScrutinyDeclaration: 'ScrutinyDeclaration',
+  ScrutinyDeclaredResultLine: 'ScrutinyDeclaredResultLine',
+  RetentionDispositionRequest: 'RetentionDispositionRequest',
+  RetentionLegalHold: 'RetentionLegalHold',
+  RetentionLegalHoldRevocation: 'RetentionLegalHoldRevocation',
   PoliticalProposal: 'PoliticalProposal',
   SubscriptionPlan: 'SubscriptionPlan',
   TenantSubscription: 'TenantSubscription',
   SystemDatabaseIdentity: 'SystemDatabaseIdentity',
-  ElectronicSignature: 'ElectronicSignature'
+  ElectronicSignature: 'ElectronicSignature',
+  PqrsdRulePackage: 'PqrsdRulePackage',
+  PqrsdRuleDefinition: 'PqrsdRuleDefinition',
+  PqrsdCalendarException: 'PqrsdCalendarException',
+  PqrsdRulePackageDecision: 'PqrsdRulePackageDecision',
+  PqrsdDossier: 'PqrsdDossier',
+  PqrsdPetitionerSnapshot: 'PqrsdPetitionerSnapshot',
+  PqrsdDocument: 'PqrsdDocument',
+  PqrsdDocumentReview: 'PqrsdDocumentReview',
+  PqrsdReceiptAcknowledgement: 'PqrsdReceiptAcknowledgement',
+  PqrsdDetailAccess: 'PqrsdDetailAccess',
+  PqrsdClassificationVersion: 'PqrsdClassificationVersion',
+  PqrsdClassificationReview: 'PqrsdClassificationReview',
+  PqrsdDeadlineVersion: 'PqrsdDeadlineVersion',
+  PqrsdAssignmentEvent: 'PqrsdAssignmentEvent',
+  PqrsdTransfer: 'PqrsdTransfer',
+  PqrsdTransferReview: 'PqrsdTransferReview',
+  PqrsdTransferAttempt: 'PqrsdTransferAttempt',
+  PqrsdExtensionProposal: 'PqrsdExtensionProposal',
+  PqrsdExtensionReview: 'PqrsdExtensionReview',
+  PqrsdResponseVersion: 'PqrsdResponseVersion',
+  PqrsdResponseReview: 'PqrsdResponseReview',
+  PqrsdResponseAuthorization: 'PqrsdResponseAuthorization',
+  PqrsdDeliveryAttempt: 'PqrsdDeliveryAttempt',
+  PqrsdClosure: 'PqrsdClosure',
+  PqrsdReopening: 'PqrsdReopening',
+  PqrsdStatusEvent: 'PqrsdStatusEvent',
+  PqrsdCommand: 'PqrsdCommand'
 };
 
 /**

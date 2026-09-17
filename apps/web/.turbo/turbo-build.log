@@ -1,0 +1,57 @@
+
+> web@0.1.0 build C:\Users\user\Desktop\politica-sostenible\apps\web
+> next build
+
+▲ Next.js 16.3.2 (Turbopack)
+✓ Running next.config.ts took 62ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.6s
+  Running TypeScript ...
+  Finished TypeScript in 5.3s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/33) ...
+  Generating static pages using 7 workers (8/33) 
+  Generating static pages using 7 workers (16/33) 
+  Generating static pages using 7 workers (24/33) 
+✓ Generating static pages using 7 workers (33/33) in 1055ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /aceptar-invitacion
+├ ○ /dashboard
+├ ○ /dashboard/audit
+├ ○ /dashboard/billing
+├ ○ /dashboard/captura-territorial
+├ ○ /dashboard/cases
+├ ○ /dashboard/communications
+├ ○ /dashboard/events
+├ ○ /dashboard/executive
+├ ○ /dashboard/finance
+├ ○ /dashboard/inbox
+├ ○ /dashboard/incidents
+├ ○ /dashboard/operation-profile
+├ ○ /dashboard/profile
+├ ○ /dashboard/proposals
+├ ○ /dashboard/public-office
+├ ○ /dashboard/settings
+├ ○ /dashboard/tasks
+├ ○ /dashboard/team
+├ ○ /dashboard/territory
+├ ○ /dashboard/votantes
+├ ○ /dashboard/votantes/new
+├ ○ /dashboard/war-room
+├ ○ /iniciar-sesion
+├ ○ /olvide-mi-contrasena
+├ ○ /privacidad
+├ ○ /registro
+├ ○ /reiniciar-contrasena
+└ ○ /terminos
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)  prerendered as static content
+

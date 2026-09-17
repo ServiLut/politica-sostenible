@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Role,
   StoredObjectStatus,
   StorageObjectModule,
@@ -63,7 +64,14 @@ function createHarness() {
     status: StoredObjectStatus.CONSUMED,
   };
   const transaction = {
+    $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+    operationProfile: {
+      findUnique: jest.fn().mockResolvedValue({
+        stage: PoliticalOperationStage.CAMPAIGN,
+      }),
+    },
     electronicSignature: {
+      findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({
         id: 'signature-a',
         signedAt,
@@ -74,6 +82,7 @@ function createHarness() {
   const prisma = {
     storedObject: {
       findFirst: jest.fn().mockResolvedValue(document),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     user: {
       findFirst: jest.fn().mockResolvedValue({
@@ -90,9 +99,11 @@ function createHarness() {
     },
     financialEntry: {
       findFirst: jest.fn().mockResolvedValue({ reporterId: 'user-a' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     witnessReport: {
       findFirst: jest.fn().mockResolvedValue({ witnessId: 'user-a' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     electronicSignature: { findFirst: jest.fn() },
     $transaction: jest.fn(
@@ -137,6 +148,147 @@ function createdHash(harness: ReturnType<typeof createHarness>): string {
 }
 
 describe('ElectronicSignatureService', () => {
+  it('lists only owned finance evidence candidates without exposing storage paths', async () => {
+    const harness = createHarness();
+    harness.prisma.storedObject.findMany.mockResolvedValue([
+      {
+        id: 'document-a',
+        path: harness.document.path,
+        contentType: 'application/pdf',
+        actualSize: 4_096,
+        confirmedAt: harness.document.confirmedAt,
+        consumedAt: harness.document.consumedAt,
+        consumedById: 'finance-a',
+        signatures: [{ id: 'signature-a', signedAt }],
+      },
+      {
+        id: 'document-mismatch',
+        path: 'tenant-a/finance/not-linked.pdf',
+        contentType: 'application/pdf',
+        actualSize: 1_024,
+        confirmedAt: harness.document.confirmedAt,
+        consumedAt: harness.document.consumedAt,
+        consumedById: 'finance-b',
+        signatures: [],
+      },
+    ]);
+    harness.prisma.financialEntry.findMany.mockResolvedValue([
+      {
+        id: 'finance-a',
+        evidenceUrl: harness.document.path,
+        type: 'EXPENSE',
+        date: new Date('2026-09-05T00:00:00.000Z'),
+        description: 'Transporte territorial',
+      },
+      {
+        id: 'finance-b',
+        evidenceUrl: 'tenant-a/finance/another-document.pdf',
+        type: 'INCOME',
+        date: new Date('2026-09-04T00:00:00.000Z'),
+        description: 'Aporte',
+      },
+    ]);
+
+    const result = await harness.service.listSigningCandidates(financeUser, {
+      module: StorageModuleName.FINANCE,
+    });
+
+    expect(result).toMatchObject({
+      limit: 100,
+      truncated: false,
+      items: [
+        {
+          documentId: 'document-a',
+          resourceId: 'finance-a',
+          signature: { id: 'signature-a', signedAt },
+          resource: {
+            kind: 'FinancialEntry',
+            type: 'EXPENSE',
+            label: 'Transporte territorial',
+          },
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain(harness.document.path);
+    expect(harness.prisma.storedObject.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          uploaderId: 'user-a',
+          consumedByType: 'FinancialEntry',
+        }),
+        take: 101,
+      }),
+    );
+    expect(harness.prisma.financialEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          reporterId: 'user-a',
+        }),
+      }),
+    );
+  });
+
+  it('limits E-14 signing candidates to the current witness territory', async () => {
+    const harness = createHarness();
+    harness.prisma.user.findFirst.mockResolvedValue({
+      role: Role.WITNESS,
+      divisionId: 'zone-a',
+    });
+    harness.prisma.politicalDivision.findMany.mockResolvedValue([
+      { id: 'zone-a', parentId: null },
+      { id: 'puesto-a', parentId: 'zone-a' },
+    ]);
+    harness.prisma.storedObject.findMany.mockResolvedValue([
+      {
+        id: 'document-a',
+        path: 'tenant-a/e14/report-a.pdf',
+        contentType: 'application/pdf',
+        actualSize: 4_096,
+        confirmedAt: harness.document.confirmedAt,
+        consumedAt: harness.document.consumedAt,
+        consumedById: 'report-a',
+        signatures: [],
+      },
+    ]);
+    harness.prisma.witnessReport.findMany.mockResolvedValue([
+      {
+        id: 'report-a',
+        e14ImageUrl: 'tenant-a/e14/report-a.pdf',
+        mesa: 12,
+        captureContext: 'REAL',
+        puesto: { code: '001', name: 'Colegio Central' },
+      },
+    ]);
+
+    await expect(
+      harness.service.listSigningCandidates(
+        { ...financeUser, role: Role.WITNESS },
+        { module: StorageModuleName.E14 },
+      ),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          resource: {
+            kind: 'WitnessReport',
+            mesa: 12,
+            captureContext: 'REAL',
+          },
+        },
+      ],
+    });
+    expect(harness.prisma.witnessReport.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          witnessId: 'user-a',
+          puestoId: { in: ['zone-a', 'puesto-a'] },
+        }),
+      }),
+    );
+  });
+
   it('signs only a consumed finance object linked to its uploader resource', async () => {
     const harness = createHarness();
 
@@ -147,6 +299,8 @@ describe('ElectronicSignatureService', () => {
       signedAt,
       module: StorageModuleName.FINANCE,
       resourceType: 'FinancialEntry',
+      integrityScope: 'LINK_AND_STORAGE_METADATA',
+      contentIntegrity: 'UNVERIFIED',
     });
 
     expect(harness.prisma.storedObject.findFirst).toHaveBeenCalledWith({
@@ -176,6 +330,13 @@ describe('ElectronicSignatureService', () => {
       '123456',
     );
     expect(createdHash(harness)).toMatch(/^v2:[a-f0-9]{64}$/);
+    expect(harness.transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(
+      harness.transaction.operationProfile.findUnique,
+    ).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-a' },
+      select: { stage: true },
+    });
     expect(harness.consentEvidence.hashIp).toHaveBeenCalledWith('203.0.113.42');
     expect(harness.transaction.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -189,6 +350,57 @@ describe('ElectronicSignatureService', () => {
         },
       }),
     });
+  });
+
+  it('serializes with closure and refuses a new signature after CLOSED', async () => {
+    const harness = createHarness();
+    harness.transaction.operationProfile.findUnique.mockResolvedValue({
+      stage: PoliticalOperationStage.CLOSED,
+    });
+
+    await expect(
+      harness.service.signDocument(financeUser, financeDto),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'OPERATION_CLOSED' }),
+    });
+
+    expect(harness.transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(
+      harness.transaction.electronicSignature.create,
+    ).not.toHaveBeenCalled();
+    expect(harness.transaction.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('makes one signer and consumed document idempotent under the lifecycle lock', async () => {
+    const harness = createHarness();
+    harness.transaction.electronicSignature.findFirst.mockResolvedValue({
+      id: 'signature-existing',
+    });
+
+    await expect(
+      harness.service.signDocument(financeUser, financeDto),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'SIGNATURE_ALREADY_EXISTS',
+        signatureId: 'signature-existing',
+      }),
+    });
+
+    expect(harness.transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(
+      harness.transaction.electronicSignature.findFirst,
+    ).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        documentId: 'document-a',
+        signerId: 'user-a',
+      },
+      select: { id: true },
+    });
+    expect(
+      harness.transaction.electronicSignature.create,
+    ).not.toHaveBeenCalled();
+    expect(harness.transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('signs an E-14 only when the uploader owns a report in the current territory', async () => {
@@ -429,6 +641,8 @@ describe('ElectronicSignatureService', () => {
       signedAt,
       module: StorageModuleName.FINANCE,
       resourceType: 'FinancialEntry',
+      integrityScope: 'LINK_AND_STORAGE_METADATA',
+      contentIntegrity: 'UNVERIFIED',
     });
     expect(result).not.toHaveProperty('documentHash');
     expect(result).not.toHaveProperty('documentId');

@@ -1,10 +1,3 @@
-import { IsString, Length, Matches } from 'class-validator';
+import { CuidIdParamsDto } from '../../common/dto/cuid-id-params.dto';
 
-export class VoterDataRightsParamsDto {
-  @IsString()
-  @Length(1, 128)
-  @Matches(/^[A-Za-z0-9_-]+$/, {
-    message: 'El identificador del ciudadano no es valido',
-  })
-  id: string;
-}
+export class VoterDataRightsParamsDto extends CuidIdParamsDto {}

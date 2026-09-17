@@ -12,9 +12,12 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CreateCampaignEventDto } from './dto/create-campaign-event.dto';
 import { ListCampaignEventsQueryDto } from './dto/list-campaign-events-query.dto';
+import { ListResponsiblesQueryDto } from './dto/list-responsibles-query.dto';
 import { TransitionCampaignEventDto } from './dto/transition-campaign-event.dto';
 import { UpdateCampaignEventDto } from './dto/update-campaign-event.dto';
 import { EventsService } from './events.service';
@@ -42,6 +45,7 @@ const EVENT_WRITE_ROLES = [
 
 @ApiTags('Operational events')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Roles(...EVENT_READ_ROLES)
 @Controller('events')
 export class EventsController {
@@ -50,8 +54,11 @@ export class EventsController {
   @Get('responsibles')
   @Roles(...EVENT_WRITE_ROLES)
   @ApiOperation({ summary: 'Lista responsables elegibles del tenant activo' })
-  listResponsibles(@CurrentUser() user: AuthenticatedUser) {
-    return this.eventsService.listResponsibles(user);
+  listResponsibles(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListResponsiblesQueryDto,
+  ) {
+    return this.eventsService.listResponsibles(user, query);
   }
 
   @Get()
@@ -65,8 +72,11 @@ export class EventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Consulta un evento del tenant y modo activos' })
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.eventsService.findOne(user, id);
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: CuidIdParamsDto,
+  ) {
+    return this.eventsService.findOne(user, params.id);
   }
 
   @Post()
@@ -86,10 +96,10 @@ export class EventsController {
   })
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: UpdateCampaignEventDto,
   ) {
-    return this.eventsService.update(user, id, dto);
+    return this.eventsService.update(user, params.id, dto);
   }
 
   @Patch(':id/status')
@@ -97,16 +107,19 @@ export class EventsController {
   @ApiOperation({ summary: 'Ejecuta una transición válida del evento' })
   transition(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: TransitionCampaignEventDto,
   ) {
-    return this.eventsService.transition(user, id, dto);
+    return this.eventsService.transition(user, params.id, dto);
   }
 
   @Delete(':id')
   @Roles(...EVENT_WRITE_ROLES)
   @ApiOperation({ summary: 'Elimina únicamente un evento en borrador' })
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.eventsService.remove(user, id);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: CuidIdParamsDto,
+  ) {
+    return this.eventsService.remove(user, params.id);
   }
 }

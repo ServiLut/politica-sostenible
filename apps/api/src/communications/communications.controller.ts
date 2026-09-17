@@ -11,7 +11,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CommunicationsService } from './communications.service';
 import { CreateCommunicationApprovalDto } from './dto/create-communication-approval.dto';
 import { DecideCommunicationApprovalDto } from './dto/decide-communication-approval.dto';
@@ -45,6 +47,7 @@ const COMMUNICATION_DECISION_ROLES = [
 
 @ApiTags('Communication approvals')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('communications/approvals')
 export class CommunicationsController {
   constructor(private readonly communicationsService: CommunicationsService) {}
@@ -80,9 +83,9 @@ export class CommunicationsController {
   })
   decide(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: DecideCommunicationApprovalDto,
   ) {
-    return this.communicationsService.decide(user, id, dto);
+    return this.communicationsService.decide(user, params.id, dto);
   }
 }

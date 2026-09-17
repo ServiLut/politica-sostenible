@@ -4,8 +4,8 @@ import { TaskStatus } from '../../prisma/generated/prisma';
 
 export const TASK_REMINDER_BATCH_SIZE = 100;
 
-export interface TaskReminderBatchResult {
-  pendingRecipients: number;
+export interface TaskReminderCandidateBatchResult {
+  candidateRecipients: number;
   nextCursor: string | null;
 }
 
@@ -15,11 +15,13 @@ export class NotificationsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async sendTaskReminders(
+  async findTaskReminderCandidates(
     tenantId: string,
     cursor?: string,
-  ): Promise<TaskReminderBatchResult> {
-    this.logger.log('Iniciando envío de recordatorios de tareas (WhatsApp)...');
+  ): Promise<TaskReminderCandidateBatchResult> {
+    this.logger.log(
+      'Consultando candidatos a recordatorio; no existe un canal de envío configurado',
+    );
 
     const now = new Date();
     const in3Days = new Date(now);
@@ -54,11 +56,11 @@ export class NotificationsService {
     }
 
     this.logger.log(
-      `Recordatorios de tareas: ${count} pendientes de canal de envío.`,
+      `Candidatos a recordatorio con teléfono: ${count}; no se envió ningún mensaje.`,
     );
 
     return {
-      pendingRecipients: count,
+      candidateRecipients: count,
       nextCursor:
         tasks.length === TASK_REMINDER_BATCH_SIZE
           ? (tasks.at(-1)?.id ?? null)

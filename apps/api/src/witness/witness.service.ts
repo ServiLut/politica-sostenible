@@ -9,10 +9,13 @@ import {
   AuditActorType,
   DivisionType,
   E14FormType,
+  ElectoralCodeNamespace,
+  OfflineSyncOperationType,
   PoliticalOperationMode,
   Prisma,
   Role,
   StorageObjectModule,
+  WitnessCaptureContext,
   WitnessCredentialType,
   WitnessReclamationGround,
   WitnessReportStatus,
@@ -29,6 +32,13 @@ import {
 } from '../common/utils/campaign-mode.util';
 import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+import { OfflineSyncService } from '../common/services/offline-sync.service';
+import { resolveWitnessCaptureContext } from './witness-capture-context';
+import { pollingPlaceOperationalStatus } from '../common/utils/polling-place-operating-time';
+import {
+  OfflineE14CaptureGrantService,
+  type ResolvedOfflineE14Grant,
+} from './offline-e14-capture-grant.service';
 
 const WITNESS_OPERATION_ROLES = [
   Role.ADMIN,
@@ -63,6 +73,7 @@ const CHECK_IN_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 const WITNESS_REPORT_VIEW_SELECT = {
   id: true,
+  captureContext: true,
   witnessId: true,
   puestoId: true,
   mesa: true,
@@ -87,7 +98,18 @@ const WITNESS_REPORT_VIEW_SELECT = {
   supersededById: true,
   createdAt: true,
   updatedAt: true,
-  puesto: { select: { code: true, name: true, expectedTables: true } },
+  puesto: {
+    select: {
+      code: true,
+      name: true,
+      expectedTables: true,
+      sourceLocationCode: true,
+      votingDate: true,
+      timeZone: true,
+      address: true,
+      commune: true,
+    },
+  },
   witness: { select: { id: true, name: true } },
   reviewer: { select: { id: true, name: true } },
 } satisfies Prisma.WitnessReportSelect;
@@ -101,6 +123,12 @@ type WitnessTransaction = Prisma.TransactionClient;
 export interface CreateWitnessReportOptions {
   isSynced?: boolean;
   source?: 'WEB' | 'OFFLINE_SYNC';
+  offlineSync?: {
+    clientOperationId: string;
+    capturedAt: string;
+    captureGrant: string;
+    evidenceSha256: string;
+  };
 }
 
 interface TableFingerprint {
@@ -129,7 +157,11 @@ interface NormalizedWitnessTraceability {
 
 @Injectable()
 export class WitnessService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly offlineSync?: OfflineSyncService,
+    private readonly offlineE14Grants?: OfflineE14CaptureGrantService,
+  ) {}
 
   async create(
     tenantId: string,
@@ -141,10 +173,68 @@ export class WitnessService {
     const traceability = this.normalizeTraceability(data);
     this.assertVoteTotals(data);
     this.assertPrivateEvidencePath(tenantId, data.e14ImageUrl);
-
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          const offlineReceivedAt = options.offlineSync ? new Date() : null;
+          const offlineGrant = options.offlineSync
+            ? await this.requireOfflineE14Grants().resolveForSync(transaction, {
+                tenantId,
+                actorUserId: witnessId,
+                captureGrant: options.offlineSync.captureGrant,
+              })
+            : null;
+          const captureContext = offlineGrant
+            ? offlineGrant.captureContext
+            : await resolveWitnessCaptureContext(
+                transaction,
+                tenantId,
+                'WRITE',
+              );
+          const offlineDescriptor = options.offlineSync
+            ? this.requireOfflineSync().prepare(
+                OfflineSyncOperationType.E14_REPORT,
+                options.offlineSync.clientOperationId,
+                options.offlineSync.capturedAt,
+                {
+                  ...(data as unknown as Record<string, unknown>),
+                  captureContext,
+                  evidenceSha256: options.offlineSync.evidenceSha256,
+                  captureGrantFingerprint: offlineGrant?.tokenHmac,
+                },
+              )
+            : null;
+
+          if (offlineDescriptor) {
+            const duplicate =
+              await this.requireOfflineSync().lockAndFindDuplicate(
+                transaction,
+                tenantId,
+                witnessId,
+                offlineDescriptor,
+              );
+            if (duplicate) {
+              return {
+                ...this.requireOfflineSync().present(duplicate, 'DUPLICATE'),
+                captureContext,
+              };
+            }
+          }
+
+          if (offlineGrant && options.offlineSync && offlineReceivedAt) {
+            await this.requireOfflineE14Grants().assertUsableForMutation(
+              transaction,
+              offlineGrant,
+              {
+                tenantId,
+                actorUserId: witnessId,
+                capturedAt: offlineDescriptor!.capturedAt,
+                receivedAt: offlineReceivedAt,
+                puestoId: data.puestoId,
+                mesa: data.mesa,
+              },
+            );
+          }
           const access = await resolveTerritorialAccess({
             client: transaction,
             tenantId,
@@ -160,14 +250,44 @@ export class WitnessService {
               id: data.puestoId,
               tenantId,
               type: DivisionType.PUESTO,
+              isActive: true,
             },
-            select: { id: true, expectedTables: true },
+            select: {
+              id: true,
+              expectedTables: true,
+              sourceNamespace: true,
+              sourceLocationCode: true,
+              votingDate: true,
+              timeZone: true,
+            },
           });
 
           if (!puesto) {
             throw new BadRequestException(
               'Puesto invalido para la campana autenticada',
             );
+          }
+
+          if (
+            captureContext === WitnessCaptureContext.REAL &&
+            puesto.sourceNamespace === ElectoralCodeNamespace.RNEC_DIVIPOLE
+          ) {
+            const operational = pollingPlaceOperationalStatus(
+              puesto,
+              offlineDescriptor?.capturedAt ?? new Date(),
+            );
+            if (!operational.operationalNow) {
+              throw new ConflictException({
+                code:
+                  operational.code === 'TIME_ZONE_NOT_VERIFIED'
+                    ? 'E14_POLLING_PLACE_TIME_ZONE_NOT_VERIFIED'
+                    : operational.code === 'VOTING_DATE_NOT_DOCUMENTED'
+                      ? 'E14_POLLING_PLACE_VOTING_DATE_NOT_DOCUMENTED'
+                      : 'E14_POLLING_PLACE_OUTSIDE_LOGICAL_VOTING_DATE',
+                message:
+                  'El puesto no admite una captura REAL fuera de su jornada civil local documentada',
+              });
+            }
           }
 
           if (puesto.expectedTables && data.mesa > puesto.expectedTables) {
@@ -177,7 +297,7 @@ export class WitnessService {
           }
 
           const existingByEvidence = await transaction.witnessReport.findFirst({
-            where: { tenantId, e14ImageUrl: data.e14ImageUrl },
+            where: { tenantId, captureContext, e14ImageUrl: data.e14ImageUrl },
             select: {
               id: true,
               witnessId: true,
@@ -227,8 +347,52 @@ export class WitnessService {
                 data.observations &&
               existingByEvidence.isSynced === (options.isSynced ?? false)
             ) {
+              if (offlineDescriptor && offlineReceivedAt) {
+                await transaction.auditEvent.create({
+                  data: {
+                    tenantId,
+                    mode: PoliticalOperationMode.CAMPAIGN,
+                    actorType: AuditActorType.USER,
+                    actorUserId: witnessId,
+                    action: 'E14_OFFLINE_SYNC_ACKNOWLEDGED',
+                    resourceType: 'WitnessReport',
+                    resourceId: existingByEvidence.id,
+                    metadata: {
+                      captureContext,
+                      clientOperationId: offlineDescriptor.clientOperationId,
+                      capturedAt: offlineDescriptor.capturedAt.toISOString(),
+                      receivedAt: offlineReceivedAt.toISOString(),
+                      changed: false,
+                    },
+                  },
+                });
+                const receipt = await this.requireOfflineSync().createReceipt(
+                  transaction,
+                  tenantId,
+                  witnessId,
+                  offlineDescriptor,
+                  'WitnessReport',
+                  existingByEvidence.id,
+                  offlineReceivedAt,
+                );
+                await this.markOfflineGrantUsed(
+                  transaction,
+                  tenantId,
+                  offlineGrant,
+                  offlineReceivedAt,
+                );
+                return {
+                  ...this.requireOfflineSync().present(receipt, 'APPLIED'),
+                  captureContext,
+                };
+              }
+
               const idempotent = await transaction.witnessReport.findFirst({
-                where: { id: existingByEvidence.id, tenantId },
+                where: {
+                  id: existingByEvidence.id,
+                  tenantId,
+                  captureContext,
+                },
                 select: WITNESS_REPORT_VIEW_SELECT,
               });
               if (!idempotent) {
@@ -241,6 +405,7 @@ export class WitnessService {
                 await this.isTableDivergent(
                   transaction,
                   tenantId,
+                  captureContext,
                   idempotent.puestoId,
                   idempotent.mesa,
                 ),
@@ -255,6 +420,7 @@ export class WitnessService {
           const report = await transaction.witnessReport.create({
             data: {
               tenantId,
+              captureContext,
               witnessId,
               puestoId: data.puestoId,
               mesa: data.mesa,
@@ -277,6 +443,9 @@ export class WitnessService {
             'WitnessReport',
             report.id,
             witnessId,
+            options.offlineSync
+              ? { expectedSha256: options.offlineSync.evidenceSha256 }
+              : undefined,
           );
 
           await transaction.auditEvent.create({
@@ -291,14 +460,46 @@ export class WitnessService {
               after: this.auditSnapshot(report),
               metadata: {
                 source: options.source ?? 'WEB',
+                captureContext,
                 hasPrivateEvidence: true,
+                ...(offlineDescriptor && offlineReceivedAt
+                  ? {
+                      clientOperationId: offlineDescriptor.clientOperationId,
+                      capturedAt: offlineDescriptor.capturedAt.toISOString(),
+                      receivedAt: offlineReceivedAt.toISOString(),
+                      timestampSource: 'CLIENT_CAPTURED_AT',
+                    }
+                  : {}),
               },
             },
           });
 
+          if (offlineDescriptor && offlineReceivedAt) {
+            const receipt = await this.requireOfflineSync().createReceipt(
+              transaction,
+              tenantId,
+              witnessId,
+              offlineDescriptor,
+              'WitnessReport',
+              report.id,
+              offlineReceivedAt,
+            );
+            await this.markOfflineGrantUsed(
+              transaction,
+              tenantId,
+              offlineGrant,
+              offlineReceivedAt,
+            );
+            return {
+              ...this.requireOfflineSync().present(receipt, 'APPLIED'),
+              captureContext,
+            };
+          }
+
           const divergent = await this.isTableDivergent(
             transaction,
             tenantId,
+            captureContext,
             report.puestoId,
             report.mesa,
           );
@@ -323,6 +524,11 @@ export class WitnessService {
 
     return this.prisma.$transaction(
       async (transaction) => {
+        const captureContext = await resolveWitnessCaptureContext(
+          transaction,
+          tenantId,
+          'READ',
+        );
         const access = await resolveTerritorialAccess({
           client: transaction,
           tenantId,
@@ -331,7 +537,11 @@ export class WitnessService {
           territoriallyScopedRoles: TERRITORIALLY_SCOPED_WITNESS_ROLES,
         });
 
-        const scope = this.reportScope(tenantId, access.divisionIds);
+        const scope = this.reportScope(
+          tenantId,
+          captureContext,
+          access.divisionIds,
+        );
         const filteredWhere: Prisma.WitnessReportWhereInput = {
           AND: [
             scope,
@@ -345,6 +555,7 @@ export class WitnessService {
         const placeScope: Prisma.PoliticalDivisionWhereInput = {
           tenantId,
           type: DivisionType.PUESTO,
+          isActive: true,
           ...(access.divisionIds === null
             ? {}
             : { id: { in: access.divisionIds } }),
@@ -428,6 +639,7 @@ export class WitnessService {
             : null;
 
         return {
+          captureContext,
           items: reports.map((report) =>
             this.presentReport(
               report,
@@ -482,6 +694,11 @@ export class WitnessService {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          const captureContext = await resolveWitnessCaptureContext(
+            transaction,
+            tenantId,
+            'WRITE',
+          );
           const access = await resolveTerritorialAccess({
             client: transaction,
             tenantId,
@@ -489,7 +706,11 @@ export class WitnessService {
             allowedRoles: WITNESS_REVIEW_ROLES,
             territoriallyScopedRoles: TERRITORIALLY_SCOPED_REVIEW_ROLES,
           });
-          const scope = this.reportScope(tenantId, access.divisionIds);
+          const scope = this.reportScope(
+            tenantId,
+            captureContext,
+            access.divisionIds,
+          );
           const current = await transaction.witnessReport.findFirst({
             where: { id: reportId, ...scope },
             select: WITNESS_REPORT_VIEW_SELECT,
@@ -523,6 +744,7 @@ export class WitnessService {
               await transaction.witnessReport.findFirst({
                 where: {
                   tenantId,
+                  captureContext,
                   puestoId: current.puestoId,
                   mesa: current.mesa,
                   status: WitnessReportStatus.ACCEPTED,
@@ -536,6 +758,7 @@ export class WitnessService {
                 where: {
                   id: previouslyAccepted.id,
                   tenantId,
+                  captureContext,
                   status: WitnessReportStatus.ACCEPTED,
                 },
                 data: {
@@ -574,6 +797,7 @@ export class WitnessService {
             where: {
               id: current.id,
               tenantId,
+              captureContext,
               status: WitnessReportStatus.PENDING,
             },
             data: {
@@ -591,7 +815,7 @@ export class WitnessService {
           }
 
           const reviewed = await transaction.witnessReport.findFirst({
-            where: { id: current.id, tenantId },
+            where: { id: current.id, tenantId, captureContext },
             select: WITNESS_REPORT_VIEW_SELECT,
           });
           if (!reviewed) {
@@ -623,6 +847,7 @@ export class WitnessService {
             await this.isTableDivergent(
               transaction,
               tenantId,
+              captureContext,
               reviewed.puestoId,
               reviewed.mesa,
             ),
@@ -646,6 +871,19 @@ export class WitnessService {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          const captureContext = await resolveWitnessCaptureContext(
+            transaction,
+            tenantId,
+            'CONFIGURE',
+          );
+          await transaction.$queryRaw<Array<{ locked: boolean }>>(Prisma.sql`
+            WITH electoral_catalog_projection_lock AS MATERIALIZED (
+              SELECT pg_advisory_xact_lock(
+                hashtextextended(${`electoral-catalog:${tenantId}:RNEC_PROJECTION`}, 0)
+              )
+            )
+            SELECT TRUE AS "locked" FROM electoral_catalog_projection_lock
+          `);
           await resolveTerritorialAccess({
             client: transaction,
             tenantId,
@@ -655,16 +893,34 @@ export class WitnessService {
           });
 
           const current = await transaction.politicalDivision.findFirst({
-            where: { id: puestoId, tenantId, type: DivisionType.PUESTO },
-            select: { id: true, code: true, name: true, expectedTables: true },
+            where: {
+              id: puestoId,
+              tenantId,
+              type: DivisionType.PUESTO,
+              isActive: true,
+            },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              expectedTables: true,
+              sourceNamespace: true,
+            },
           });
           if (!current) {
             throw new NotFoundException('Puesto de votacion no encontrado');
           }
+          if (
+            current.sourceNamespace === ElectoralCodeNamespace.RNEC_DIVIPOLE
+          ) {
+            throw new ConflictException(
+              'Las mesas de un puesto oficial RNEC solo pueden cambiar mediante un nuevo release electoral autorizado',
+            );
+          }
 
           const highestReportedTable =
             await transaction.witnessReport.aggregate({
-              where: { tenantId, puestoId },
+              where: { tenantId, captureContext, puestoId },
               _max: { mesa: true },
             });
           const highestMesa = highestReportedTable._max.mesa ?? 0;
@@ -691,7 +947,10 @@ export class WitnessService {
               resourceId: puestoId,
               before: current,
               after: updated,
-              metadata: { changedFields: ['expectedTables'] },
+              metadata: {
+                changedFields: ['expectedTables'],
+                captureContext,
+              },
             },
           });
 
@@ -849,12 +1108,47 @@ export class WitnessService {
 
   private reportScope(
     tenantId: string,
+    captureContext: WitnessCaptureContext,
     divisionIds: string[] | null,
   ): Prisma.WitnessReportWhereInput {
     return {
       tenantId,
+      captureContext,
       ...(divisionIds === null ? {} : { puestoId: { in: divisionIds } }),
     };
+  }
+
+  private requireOfflineSync(): OfflineSyncService {
+    if (!this.offlineSync) {
+      throw new Error(
+        'OfflineSyncService es obligatorio para procesar sincronizaciones offline',
+      );
+    }
+    return this.offlineSync;
+  }
+
+  private requireOfflineE14Grants(): OfflineE14CaptureGrantService {
+    if (!this.offlineE14Grants) {
+      throw new Error(
+        'OfflineE14CaptureGrantService es obligatorio para sincronizar E-14 offline',
+      );
+    }
+    return this.offlineE14Grants;
+  }
+
+  private async markOfflineGrantUsed(
+    transaction: WitnessTransaction,
+    tenantId: string,
+    grant: ResolvedOfflineE14Grant | null,
+    usedAt: Date,
+  ): Promise<void> {
+    if (!grant) return;
+    await this.requireOfflineE14Grants().markUsed(
+      transaction,
+      tenantId,
+      grant.grantId,
+      usedAt,
+    );
   }
 
   private presentReport(report: WitnessReportView, divergent: boolean) {
@@ -864,6 +1158,7 @@ export class WitnessService {
   private auditSnapshot(report: WitnessReportView): Prisma.InputJsonObject {
     return {
       id: report.id,
+      captureContext: report.captureContext,
       witnessId: report.witnessId,
       puestoId: report.puestoId,
       mesa: report.mesa,
@@ -894,12 +1189,14 @@ export class WitnessService {
   private async isTableDivergent(
     transaction: WitnessTransaction,
     tenantId: string,
+    captureContext: WitnessCaptureContext,
     puestoId: string,
     mesa: number,
   ): Promise<boolean> {
     const reports = await transaction.witnessReport.findMany({
       where: {
         tenantId,
+        captureContext,
         puestoId,
         mesa,
         status: {

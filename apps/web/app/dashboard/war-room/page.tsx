@@ -19,6 +19,7 @@ import {
   FileCheck2,
   FileText,
   Loader2,
+  LockKeyhole,
   MapPin,
   Plus,
   RefreshCw,
@@ -31,11 +32,20 @@ import {
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/context/auth";
-import { uploadFileDirectly } from "@/lib/direct-storage-upload";
+import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
+import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
 import { openPrivateResource } from "@/lib/private-storage";
-import type { BackendUserRole } from "@/types/saas-schema";
+import type {
+  BackendUserRole,
+  PoliticalOperationStage,
+} from "@/types/saas-schema";
+import {
+  canConfigurePollingPlaces,
+  canPersistE14,
+} from "@/lib/e14-stage-policy";
 import {
   createWitnessReport,
+  type ActiveWitnessCaptureContext,
   E14_FORM_LABELS,
   hasCompleteWitnessTraceability,
   listVotingPlaces,
@@ -53,6 +63,7 @@ import {
   WITNESS_RECLAMATION_GROUND_LABELS,
   E14FormType,
   WitnessCredentialType,
+  WitnessCaptureContext,
   WitnessReclamationGround,
   WitnessReport,
   WitnessReportPage,
@@ -126,27 +137,46 @@ const E14_PROFILE_ROLES = new Set<BackendUserRole>([
 
 const PAGE_SIZE = 25;
 
-const EMPTY_REPORT_PAGE: WitnessReportPage = {
-  items: [],
-  pagination: { page: 1, limit: PAGE_SIZE, total: 0, totalPages: 0 },
-  summary: {
-    totalReports: 0,
-    pendingReports: 0,
-    acceptedReports: 0,
-    rejectedReports: 0,
-    supersededReports: 0,
-    pendingDivergences: 0,
-    acceptedCandidateVotes: 0,
-    acceptedTotalVotes: 0,
-    coverage: {
-      configuredPlaces: 0,
-      totalPlaces: 0,
-      acceptedTables: 0,
-      expectedTables: null,
-      percentage: null,
+function emptyReportPage(
+  captureContext: ActiveWitnessCaptureContext,
+): WitnessReportPage {
+  return {
+    captureContext,
+    items: [],
+    pagination: { page: 1, limit: PAGE_SIZE, total: 0, totalPages: 0 },
+    summary: {
+      totalReports: 0,
+      pendingReports: 0,
+      acceptedReports: 0,
+      rejectedReports: 0,
+      supersededReports: 0,
+      pendingDivergences: 0,
+      acceptedCandidateVotes: 0,
+      acceptedTotalVotes: 0,
+      coverage: {
+        configuredPlaces: 0,
+        totalPlaces: 0,
+        acceptedTables: 0,
+        expectedTables: null,
+        percentage: null,
+      },
     },
-  },
-};
+  };
+}
+
+function expectedCaptureContextForStage(
+  stage: PoliticalOperationStage | null | undefined,
+): ActiveWitnessCaptureContext | null {
+  if (stage === "SIMULATION") return "SIMULATION";
+  if (
+    stage === "ELECTION_DAY" ||
+    stage === "POST_ELECTION" ||
+    stage === "CLOSED"
+  ) {
+    return "REAL";
+  }
+  return null;
+}
 
 const STATUS_LABELS: Record<
   WitnessReportStatus,
@@ -167,6 +197,27 @@ const STATUS_LABELS: Record<
   SUPERSEDED: {
     label: "Reemplazado",
     className: "border-slate-200 bg-slate-100 text-slate-700",
+  },
+};
+
+const CAPTURE_CONTEXT_LABELS: Record<
+  WitnessCaptureContext,
+  { short: string; detail: string; className: string }
+> = {
+  SIMULATION: {
+    short: "SIMULACRO",
+    detail: "Datos de ensayo aislados; nunca alimentan el resultado real.",
+    className: "border-amber-300 bg-amber-100 text-amber-950",
+  },
+  REAL: {
+    short: "OPERACIÓN REAL",
+    detail: "Datos electorales reales; no incluyen capturas de simulacro.",
+    className: "border-emerald-300 bg-emerald-100 text-emerald-950",
+  },
+  LEGACY_UNCLASSIFIED: {
+    short: "LEGADO SIN CLASIFICAR",
+    detail: "Registro histórico en cuarentena; no cuenta como resultado real.",
+    className: "border-slate-300 bg-slate-100 text-slate-800",
   },
 };
 
@@ -235,27 +286,48 @@ function placeName(
 }
 
 export default function WarRoomPage() {
-  const { user } = useAuth();
+  const { tenant, user } = useAuth();
+  const operationStage = tenant?.operationStage;
+  const isE14PersistenceAllowed = canPersistE14(operationStage);
+  const isPollingPlaceConfigurationAllowed =
+    canConfigurePollingPlaces(operationStage);
   const canReadE14 = user !== null && E14_READ_ROLES.has(user.backendRole);
-  const canReportE14 = user !== null && E14_REPORT_ROLES.has(user.backendRole);
-  const canReviewE14 = user !== null && E14_REVIEW_ROLES.has(user.backendRole);
+  const canReportE14 =
+    isE14PersistenceAllowed &&
+    user !== null &&
+    E14_REPORT_ROLES.has(user.backendRole);
+  const canReviewE14 =
+    isE14PersistenceAllowed &&
+    user !== null &&
+    E14_REVIEW_ROLES.has(user.backendRole);
   const canConfigurePlaces =
-    user !== null && E14_PROFILE_ROLES.has(user.backendRole);
+    isPollingPlaceConfigurationAllowed &&
+    user !== null &&
+    E14_PROFILE_ROLES.has(user.backendRole);
   const [placesPage, setPlacesPage] = useState<VotingPlacePage>({
     items: [],
+    evaluatedAt: new Date(0).toISOString(),
     pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
   });
   const [placePage, setPlacePage] = useState(1);
   const [placeSearchDraft, setPlaceSearchDraft] = useState("");
   const [placeSearch, setPlaceSearch] = useState("");
-  const [reportPage, setReportPage] =
-    useState<WitnessReportPage>(EMPTY_REPORT_PAGE);
+  const initialCaptureContext =
+    expectedCaptureContextForStage(operationStage) ?? "REAL";
+  const [reportPage, setReportPage] = useState<WitnessReportPage>(() =>
+    emptyReportPage(initialCaptureContext),
+  );
+  const [reportSnapshotStage, setReportSnapshotStage] =
+    useState<PoliticalOperationStage | null>(null);
   const [page, setPage] = useState(1);
   const [filterDraft, setFilterDraft] = useState<ReportFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<ReportFilters>(EMPTY_FILTERS);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadErrorStatus, setLoadErrorStatus] = useState<number | null>(null);
+  const [loadFailure, setLoadFailure] = useState<{
+    stage: PoliticalOperationStage | null;
+    message: string;
+    status: number | null;
+  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -279,6 +351,7 @@ export default function WarRoomPage() {
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const reviewTitleRef = useRef<HTMLHeadingElement>(null);
   const profileTitleRef = useRef<HTMLHeadingElement>(null);
+  const loadRequestIdRef = useRef(0);
 
   async function handleOpenReport(reportId: string) {
     setOpeningReportId(reportId);
@@ -296,34 +369,61 @@ export default function WarRoomPage() {
 
   const loadData = useCallback(
     async (signal?: AbortSignal) => {
+      const requestId = ++loadRequestIdRef.current;
+      const requestedStage = operationStage ?? null;
+      const requestedContext = expectedCaptureContextForStage(requestedStage);
+
+      // Never retain a report snapshot while its context is being refreshed.
+      // This also hides SIMULATION data synchronously when the stage changes.
+      setReportSnapshotStage(null);
+      setReportPage(emptyReportPage(requestedContext ?? "REAL"));
+      setLoadFailure(null);
+
       if (!canReadE14) {
         setLoading(false);
         return;
       }
       setLoading(true);
-      setLoadError(null);
-      setLoadErrorStatus(null);
 
       try {
+        const reportRequest =
+          operationStage === "ELECTION_PREPARATION"
+            ? Promise.resolve(emptyReportPage("REAL"))
+            : listWitnessReports(
+                {
+                  page,
+                  limit: PAGE_SIZE,
+                  ...(filters.status ? { status: filters.status } : {}),
+                  ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
+                  ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
+                },
+                signal,
+              );
         const [loadedPlaces, loadedReports] = await Promise.all([
           listVotingPlaces(
             { page: placePage, limit: 50, search: placeSearch || undefined },
             signal,
           ),
-          listWitnessReports(
-            {
-              page,
-              limit: PAGE_SIZE,
-              ...(filters.status ? { status: filters.status } : {}),
-              ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
-              ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
-            },
-            signal,
-          ),
+          reportRequest,
         ]);
+
+        if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
+
+        if (
+          (requestedContext !== null &&
+            loadedReports.captureContext !== requestedContext) ||
+          loadedReports.items.some(
+            (report) => report.captureContext !== loadedReports.captureContext,
+          )
+        ) {
+          throw new Error(
+            "La respuesta E-14 mezcló contextos electorales incompatibles.",
+          );
+        }
 
         setPlacesPage(loadedPlaces);
         setReportPage(loadedReports);
+        setReportSnapshotStage(requestedStage);
         setForm((current) => {
           const selectedPlaceStillExists = loadedPlaces.items.some(
             (place) => place.id === current.puestoId,
@@ -337,15 +437,27 @@ export default function WarRoomPage() {
           };
         });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
+        if (
+          signal?.aborted ||
+          requestId !== loadRequestIdRef.current ||
+          (error instanceof DOMException && error.name === "AbortError")
+        ) {
           return;
-        setLoadError(readableLoadError(error));
-        setLoadErrorStatus(error instanceof ApiError ? error.status : null);
+        }
+        setReportSnapshotStage(null);
+        setReportPage(emptyReportPage(requestedContext ?? "REAL"));
+        setLoadFailure({
+          stage: requestedStage,
+          message: readableLoadError(error),
+          status: error instanceof ApiError ? error.status : null,
+        });
       } finally {
-        if (!signal?.aborted) setLoading(false);
+        if (!signal?.aborted && requestId === loadRequestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [canReadE14, filters, page, placePage, placeSearch],
+    [canReadE14, filters, operationStage, page, placePage, placeSearch],
   );
 
   useEffect(() => {
@@ -389,8 +501,33 @@ export default function WarRoomPage() {
   ]);
 
   const places = placesPage.items;
-  const reports = reportPage.items;
-  const summary = reportPage.summary;
+  const currentStage = operationStage ?? null;
+  const expectedCaptureContext = expectedCaptureContextForStage(currentStage);
+  const hasCurrentReportSnapshot =
+    reportSnapshotStage === currentStage &&
+    (expectedCaptureContext === null ||
+      reportPage.captureContext === expectedCaptureContext);
+  const visibleReportPage = hasCurrentReportSnapshot
+    ? reportPage
+    : emptyReportPage(expectedCaptureContext ?? "REAL");
+  const reports = visibleReportPage.items;
+  const summary = visibleReportPage.summary;
+  const captureContextPresentation = expectedCaptureContext
+    ? CAPTURE_CONTEXT_LABELS[expectedCaptureContext]
+    : null;
+  const currentLoadFailure =
+    loadFailure?.stage === currentStage ? loadFailure : null;
+  const isContextLoading =
+    loading ||
+    (canReadE14 && currentLoadFailure === null && !hasCurrentReportSnapshot);
+  const isSimulationMode = operationStage === "SIMULATION";
+  const reportablePlaces = useMemo(
+    () =>
+      isSimulationMode
+        ? places
+        : places.filter((place) => place.operationalStatus.operationalNow),
+    [isSimulationMode, places],
+  );
   const placesById = useMemo(
     () => new Map(places.map((place) => [place.id, place])),
     [places],
@@ -405,13 +542,26 @@ export default function WarRoomPage() {
     : false;
 
   function openReportDialog(puestoId?: string) {
-    if (!canReportE14 || places.length === 0) return;
+    if (!canReportE14 || reportablePlaces.length === 0) return;
+    const requestedPlace = puestoId
+      ? reportablePlaces.find((place) => place.id === puestoId)
+      : null;
+    if (puestoId && !requestedPlace) {
+      setActionError(
+        "Ese puesto no corresponde a su jornada civil local y no admite una captura REAL ahora.",
+      );
+      return;
+    }
 
     setFormError(null);
     setNotice(null);
     setForm((current) => ({
       ...current,
-      puestoId: puestoId ?? current.puestoId ?? places[0].id,
+      puestoId:
+        requestedPlace?.id ??
+        (reportablePlaces.some((place) => place.id === current.puestoId)
+          ? current.puestoId
+          : reportablePlaces[0].id),
       checkedInAt: current.checkedInAt || localDateTimeInputValue(),
     }));
     setDialogOpen(true);
@@ -439,6 +589,15 @@ export default function WarRoomPage() {
 
     if (!placesById.has(form.puestoId)) {
       setFormError("Selecciona un puesto de votación disponible.");
+      return;
+    }
+    if (
+      !isSimulationMode &&
+      !placesById.get(form.puestoId)?.operationalStatus.operationalNow
+    ) {
+      setFormError(
+        "El puesto no corresponde a su jornada civil local. El servidor no aceptará un E-14 REAL fuera de esa fecha.",
+      );
       return;
     }
 
@@ -511,7 +670,10 @@ export default function WarRoomPage() {
 
     try {
       setSavingStep("uploading");
-      const upload = await uploadFileDirectly(e14File, "e14");
+      const upload = await uploadFileDirectlyWithClientDeclaredHash(
+        e14File,
+        "e14",
+      );
 
       setSavingStep("reporting");
       await createWitnessReport({
@@ -546,7 +708,9 @@ export default function WarRoomPage() {
       setE14File(null);
       setDialogOpen(false);
       setNotice(
-        "Reporte E-14 guardado como lectura interna pendiente. Sus votos solo contarán en el tablero después de una revisión independiente.",
+        isSimulationMode
+          ? "Reporte de simulacro guardado y aislado de la operación real. Solo contará en las métricas del ensayo después de una revisión independiente."
+          : "Reporte E-14 real guardado como lectura interna pendiente. Sus votos solo contarán en el tablero real después de una revisión independiente.",
       );
       if (page === 1) await loadData();
       else setPage(1);
@@ -568,8 +732,7 @@ export default function WarRoomPage() {
     }
 
     setFilterError(null);
-    setLoadError(null);
-    setLoadErrorStatus(null);
+    setLoadFailure(null);
     setPage(1);
     setFilters({
       ...filterDraft,
@@ -582,8 +745,7 @@ export default function WarRoomPage() {
     setFilterDraft(EMPTY_FILTERS);
     setFilters(EMPTY_FILTERS);
     setFilterError(null);
-    setLoadError(null);
-    setLoadErrorStatus(null);
+    setLoadFailure(null);
     setPage(1);
   }
 
@@ -645,7 +807,9 @@ export default function WarRoomPage() {
       setReviewTarget(null);
       setNotice(
         reviewDecision === "ACCEPTED"
-          ? "Reporte aceptado. Esta es ahora la única lectura que alimenta las métricas de la mesa."
+          ? isSimulationMode
+            ? "Reporte de simulacro aceptado. Solo alimenta las métricas aisladas del ensayo."
+            : "Reporte real aceptado. Esta es ahora la única lectura real que alimenta las métricas de la mesa."
           : "Reporte rechazado con motivo registrado en la auditoría.",
       );
       await loadData();
@@ -713,7 +877,7 @@ export default function WarRoomPage() {
     filterDraft.mesa,
   );
   const shouldRetryWithoutFilters =
-    loadErrorStatus === 400 &&
+    currentLoadFailure?.status === 400 &&
     Boolean(filters.status || filters.puestoId || filters.mesa);
 
   const reportFiltersForm = (
@@ -831,15 +995,27 @@ export default function WarRoomPage() {
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
+          {canReportE14 && (
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))
+              }
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 text-sm font-black text-blue-900 transition hover:border-blue-400"
+            >
+              <LockKeyhole aria-hidden="true" size={17} />
+              Capturar offline
+            </button>
+          )}
           <button
             type="button"
             onClick={() => void loadData()}
-            disabled={loading}
+            disabled={isContextLoading}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-blue-300 disabled:opacity-50"
           >
             <RefreshCw
               aria-hidden="true"
-              className={loading ? "animate-spin" : ""}
+              className={isContextLoading ? "animate-spin" : ""}
               size={17}
             />
             Actualizar
@@ -848,14 +1024,62 @@ export default function WarRoomPage() {
             <button
               type="button"
               onClick={() => openReportDialog()}
-              disabled={loading || places.length === 0}
+              disabled={isContextLoading || reportablePlaces.length === 0}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              <Plus aria-hidden="true" size={18} /> Registrar E-14
+              <Plus aria-hidden="true" size={18} />{" "}
+              {isSimulationMode
+                ? "Registrar E-14 de simulacro"
+                : "Registrar E-14 real"}
             </button>
           )}
         </div>
       </header>
+
+      {operationStage === "SIMULATION" && (
+        <div
+          role="status"
+          data-testid="e14-context-banner"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-950"
+        >
+          <p className="font-black">SIMULACRO E-14 · DATOS DE ENSAYO</p>
+          <p className="mt-1 font-medium">
+            Puedes registrar, sincronizar y revisar el flujo completo. Estas
+            actas quedan marcadas como SIMULATION y jamás alimentan tableros,
+            mapas de calor, cierres ni resultados electorales reales.
+          </p>
+        </div>
+      )}
+
+      {(operationStage === "ELECTION_DAY" ||
+        operationStage === "POST_ELECTION" ||
+        operationStage === "CLOSED") && (
+        <div
+          role="status"
+          data-testid="e14-context-banner"
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950"
+        >
+          <p className="font-black">OPERACIÓN ELECTORAL REAL · E-14 REALES</p>
+          <p className="mt-1 font-medium">
+            Esta vista y sus métricas incluyen únicamente actas marcadas como
+            REAL. Los ensayos y los registros históricos sin clasificar
+            permanecen excluidos.
+          </p>
+        </div>
+      )}
+
+      {operationStage === "ELECTION_PREPARATION" && (
+        <div
+          role="status"
+          className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm leading-6 text-blue-950"
+        >
+          <p className="font-black">Preparación electoral</p>
+          <p className="mt-1 font-medium">
+            Configura las mesas esperadas de cada puesto. El registro y la
+            revisión de E-14 se habilitan únicamente al iniciar el Día D.
+          </p>
+        </div>
+      )}
 
       {notice && (
         <div
@@ -900,7 +1124,7 @@ export default function WarRoomPage() {
         >
           Tu rol no tiene acceso al módulo de conciliación E-14.
         </div>
-      ) : loading ? (
+      ) : isContextLoading ? (
         <div
           role="status"
           className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-semibold text-slate-500"
@@ -910,9 +1134,11 @@ export default function WarRoomPage() {
             className="animate-spin text-blue-700"
             size={30}
           />
-          Consultando puestos y reportes reales…
+          {isSimulationMode
+            ? "Consultando puestos y reportes de simulacro…"
+            : "Consultando puestos y reportes reales…"}
         </div>
-      ) : loadError ? (
+      ) : currentLoadFailure ? (
         <div className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
           <div role="alert" className="flex flex-col items-center gap-3">
             <AlertCircle
@@ -925,7 +1151,7 @@ export default function WarRoomPage() {
                 No pudimos cargar el control electoral
               </h2>
               <p className="mt-1 max-w-xl text-sm text-slate-600">
-                {loadError}
+                {currentLoadFailure.message}
               </p>
             </div>
           </div>
@@ -1170,6 +1396,38 @@ export default function WarRoomPage() {
                         {place.parent.name}
                       </p>
                     )}
+                    <div className="mt-3 space-y-1 text-xs leading-5 text-slate-600">
+                      <p>
+                        Código fuente:{" "}
+                        {place.sourceLocationCode ?? "No trazable"}
+                      </p>
+                      <p>
+                        Jornada:{" "}
+                        {place.votingDate?.slice(0, 10) ?? "No documentada"}
+                      </p>
+                      <p>
+                        Zona horaria:{" "}
+                        {place.timeZone ?? "Exterior no verificada"}
+                      </p>
+                      <p>{place.address ?? "Sin dirección publicada"}</p>
+                      {place.commune && <p>Comuna: {place.commune}</p>}
+                      {!isSimulationMode && (
+                        <p
+                          className={
+                            place.operationalStatus.operationalNow
+                              ? "font-black text-emerald-700"
+                              : "font-black text-amber-700"
+                          }
+                        >
+                          {place.operationalStatus.operationalNow
+                            ? "Habilitado para la jornada REAL local"
+                            : place.operationalStatus.code ===
+                                "TIME_ZONE_NOT_VERIFIED"
+                              ? "REAL bloqueado: falta zona horaria verificable"
+                              : "Fuera de su jornada REAL local"}
+                        </p>
+                      )}
+                    </div>
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
@@ -1196,7 +1454,11 @@ export default function WarRoomPage() {
                       <button
                         type="button"
                         onClick={() => openReportDialog(place.id)}
-                        className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-blue-800"
+                        disabled={
+                          !isSimulationMode &&
+                          !place.operationalStatus.operationalNow
+                        }
+                        className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         Reportar mesa
                       </button>
@@ -1242,10 +1504,14 @@ export default function WarRoomPage() {
             <header className="space-y-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5">
               <div>
                 <h2 id="reports-heading" className="font-black text-slate-950">
-                  Reportes registrados
+                  {captureContextPresentation
+                    ? `${captureContextPresentation.short} · Reportes registrados`
+                    : "Reportes E-14 no habilitados"}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  La ruta privada del acta nunca se expone en esta vista.
+                  {captureContextPresentation
+                    ? `${captureContextPresentation.detail} La ruta privada del acta nunca se expone en esta vista.`
+                    : "La captura de actas solo se habilita en simulacro, Día D y poselección."}
                 </p>
               </div>
               {reportFiltersForm}
@@ -1262,7 +1528,7 @@ export default function WarRoomPage() {
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Las métricas permanecerán en cero hasta recibir el primer
-                  reporte real.
+                  reporte de este contexto.
                 </p>
               </div>
             ) : (
@@ -1289,6 +1555,15 @@ export default function WarRoomPage() {
                         className="hover:bg-slate-50/70"
                       >
                         <td className="px-6 py-5">
+                          <span
+                            data-testid={`report-context-${report.id}`}
+                            className={`mb-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black tracking-wide ${CAPTURE_CONTEXT_LABELS[report.captureContext].className}`}
+                          >
+                            {
+                              CAPTURE_CONTEXT_LABELS[report.captureContext]
+                                .short
+                            }
+                          </span>
                           <p className="font-black text-slate-900">
                             {placeName(report, placesById)}
                           </p>
@@ -1475,10 +1750,14 @@ export default function WarRoomPage() {
                   tabIndex={-1}
                   className="text-xl font-black text-slate-950 outline-none"
                 >
-                  Registrar reporte de mesa
+                  {isSimulationMode
+                    ? "Registrar reporte de simulacro"
+                    : "Registrar reporte real de mesa"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  El acta se carga directamente al almacenamiento privado.
+                  {isSimulationMode
+                    ? "Quedará marcado como SIMULATION y aislado de todo resultado real."
+                    : "Quedará marcado como REAL. El acta se carga al almacenamiento privado."}
                 </p>
               </div>
               <button
@@ -1517,7 +1796,7 @@ export default function WarRoomPage() {
                     <option value="" disabled>
                       Seleccionar puesto
                     </option>
-                    {places.map((place) => (
+                    {reportablePlaces.map((place) => (
                       <option key={place.id} value={place.id}>
                         {place.code} · {place.name}
                       </option>
@@ -1907,7 +2186,9 @@ export default function WarRoomPage() {
                   tabIndex={-1}
                   className="text-xl font-black text-slate-950 outline-none"
                 >
-                  Revisar reporte E-14
+                  {reviewTarget.captureContext === "SIMULATION"
+                    ? "Revisar E-14 de simulacro"
+                    : "Revisar reporte E-14 real"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Mesa {reviewTarget.mesa} ·{" "}

@@ -4,6 +4,7 @@ import {
   grantVoterConsent,
   getVoterCaptureContext,
   listVoters,
+  syncOfflineVoter,
 } from "./voters-api";
 
 function successfulPage() {
@@ -204,6 +205,66 @@ test("reauthoriza mediante un endpoint explicito sin aceptar tenant ni actor del
     });
     expect(requests[0].init?.body).not.toContain("tenantId");
     expect(requests[0].init?.body).not.toContain("capturedById");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("sincroniza voter con id/hora del cliente, no-store y señal cancelable", async () => {
+  const requests: Array<{ url: URL; init?: RequestInit }> = [];
+  const originalFetch = globalThis.fetch;
+  const abortController = new AbortController();
+  const operationId = "00000000-0000-4000-8000-000000000042";
+  const capturedAt = "2026-09-09T14:58:00.000Z";
+  globalThis.fetch = async (input, init) => {
+    requests.push({ url: new URL(String(input), "http://localhost"), init });
+    return new Response(
+      JSON.stringify({
+        statusCode: 201,
+        message: "Success",
+        data: {
+          received: true,
+          receiptId: "receipt-42",
+          clientOperationId: operationId,
+          operationType: "VOTER_CAPTURE",
+          status: "APPLIED",
+          capturedAt,
+          receivedAt: "2026-09-09T15:00:00.000Z",
+        },
+      }),
+      { status: 201, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  try {
+    await expect(
+      syncOfflineVoter(
+        {
+          clientOperationId: operationId,
+          capturedAt,
+          documentId: "1012345678",
+          firstName: "María",
+          lastName: "Pérez",
+          puestoId: "puesto-a",
+          mesa: 9,
+          consentAccepted: true,
+          termsVersion: "2026.1",
+          collectionChannel: "IN_PERSON",
+        },
+        abortController.signal,
+      ),
+    ).resolves.toMatchObject({ clientOperationId: operationId });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url.pathname).toBe("/api/logistics/sync/voter");
+    expect(requests[0].init?.method).toBe("POST");
+    expect(requests[0].init?.cache).toBe("no-store");
+    expect(requests[0].init?.signal).toBe(abortController.signal);
+    const body = JSON.parse(String(requests[0].init?.body));
+    expect(body).toMatchObject({ clientOperationId: operationId, capturedAt });
+    expect(body).not.toHaveProperty("tenantId");
+    expect(body).not.toHaveProperty("userId");
+    expect(body).not.toHaveProperty("accessToken");
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -53,6 +53,7 @@ test("requests a bounded unified inbox without accepting tenant or mode", async 
               cases: 0,
               incidents: 0,
               approvals: 0,
+              pqrsd: 0,
             },
           },
           items: [],
@@ -95,6 +96,27 @@ test("filters the inbox by action state and human search terms", () => {
     },
     {
       ...baseItem,
+      id: "PQRSD:pqrsd-a",
+      entityId: "pqrsd-a",
+      kind: "PQRSD",
+      kindLabel: "PQRSD formal",
+      reference: "PQRSD-INT-001",
+      title: "Solicitud de alumbrado público",
+      status: "IN_PROGRESS",
+      statusLabel: "En gestión",
+      priority: "URGENT",
+      responsible: { id: "worker-a", name: "Gestora", role: "CASE_WORKER" },
+      dueAt: "2026-09-01T12:00:00.000Z",
+      overdue: true,
+      blocked: false,
+      blockReason: null,
+      cta: {
+        label: "Gestionar expediente",
+        href: "/dashboard/pqrsd?view=detail&entityId=pqrsd-a",
+      },
+    },
+    {
+      ...baseItem,
       id: "COMMUNICATION_APPROVAL:approval-a",
       entityId: "approval-a",
       kind: "COMMUNICATION_APPROVAL",
@@ -110,7 +132,7 @@ test("filters the inbox by action state and human search terms", () => {
     },
   ];
 
-  expect(filterOperationalInboxItems(items, "OVERDUE", "")).toHaveLength(1);
+  expect(filterOperationalInboxItems(items, "OVERDUE", "")).toHaveLength(2);
   expect(filterOperationalInboxItems(items, "UNASSIGNED", "")).toEqual([
     baseItem,
   ]);
@@ -120,4 +142,7 @@ test("filters the inbox by action state and human search terms", () => {
   expect(filterOperationalInboxItems(items, "ALL", "PQRS-001")).toEqual([
     expect.objectContaining({ id: "CASE:case-a" }),
   ]);
+  expect(filterOperationalInboxItems(items, "ALL", "PQRSD-INT-001")).toEqual(
+    [expect.objectContaining({ id: "PQRSD:pqrsd-a" })],
+  );
 });

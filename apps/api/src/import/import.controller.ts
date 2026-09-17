@@ -13,9 +13,11 @@ import {
   PlanFeature,
   RequiresPlanFeature,
 } from '../auth/decorators/requires-plan-feature.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 
 @Controller('import')
 @RequiresPlanFeature(PlanFeature.IMPORT)
+@BlockWhenOperationClosed()
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
 

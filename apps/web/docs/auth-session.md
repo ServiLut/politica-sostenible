@@ -4,7 +4,7 @@ El frontend autentica contra `POST /auth/login` de NestJS y adjunta el JWT devue
 
 La sesión se conserva en `sessionStorage`: sobrevive a una recarga, se elimina al cerrar la pestaña y no se comparte entre pestañas. Esta es una protección de navegación del cliente, no un control de autorización. Cada endpoint de NestJS debe validar el JWT, derivar allí el `tenantId` y aplicar sus permisos.
 
-`sessionStorage` sigue siendo accesible para JavaScript y, por tanto, un XSS podría leer el token. La aplicación debe mantener una política CSP estricta, evitar HTML sin sanitizar y no registrar el JWT. Si se adopta una cookie `HttpOnly` en el futuro, deberá diseñarse un flujo explícito en NestJS/BFF con protección CSRF; no debe mezclarse con Supabase Auth.
+`sessionStorage` sigue siendo accesible para JavaScript y, por tanto, un XSS podría leer el token. El candidato genera en `proxy.ts` un nonce criptográfico distinto para cada documento, lo entrega a Next.js en el encabezado de la petición y publica una CSP con `script-src 'strict-dynamic'` y sin `unsafe-inline`; además bloquea handlers de script mediante `script-src-attr 'none'`. Los estilos calculados de barras y mapas conservan `style-src 'unsafe-inline'`, que no autoriza ejecución de JavaScript. Esto reduce la superficie, pero no convierte `sessionStorage` en un almacén inaccesible: deben seguir prohibidos HTML no sanitizado, dependencias no confiables y registro del JWT. Si se adopta una cookie `HttpOnly` en el futuro, deberá diseñarse un flujo explícito en NestJS/BFF con protección CSRF; no debe mezclarse con Supabase Auth.
 
 ## Cierre y revocación
 

@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { TenantType } from '../../../prisma/generated/prisma';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from '../public-registration.policy';
 import { RegisterDto } from './register.dto';
 
 const validRegistration = {
@@ -13,7 +14,7 @@ const validRegistration = {
   phone: '3001234567',
   documentId: ' 1012345678 ',
   termsAccepted: true,
-  termsVersion: '2026.1',
+  termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
 };
 
 describe('RegisterDto', () => {
@@ -44,7 +45,15 @@ describe('RegisterDto', () => {
   );
 
   it.each([
-    [{ ...validRegistration, termsVersion: '2026.2' }, 'termsVersion'],
+    [
+      { ...validRegistration, termsVersion: 'version-anterior' },
+      'termsVersion',
+    ],
+    [
+      { ...validRegistration, termsVersion: ' version-invalida ' },
+      'termsVersion',
+    ],
+    [{ ...validRegistration, termsVersion: undefined }, 'termsVersion'],
     [{ ...validRegistration, termsAccepted: false }, 'termsAccepted'],
     [{ ...validRegistration, documentId: '../otro-tenant' }, 'documentId'],
     [

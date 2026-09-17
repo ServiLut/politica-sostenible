@@ -33,7 +33,7 @@ export default function TermsPage() {
         <header className="mt-8 rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200 md:p-12">
           <Scale className="mb-6 text-blue-700" size={34} />
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">
-            Condiciones marco · versión 2026.1
+            Condiciones marco vigentes
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
             Uso responsable de la plataforma

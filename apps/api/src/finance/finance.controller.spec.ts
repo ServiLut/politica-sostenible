@@ -73,7 +73,7 @@ describe('FinanceController CNE review draft', () => {
     };
 
     await expect(
-      controller.markReportedToCne(reportingUser, 'entry-a', dto),
+      controller.markReportedToCne(reportingUser, { id: 'entry-a' }, dto),
     ).resolves.toEqual({ id: 'entry-a', status: 'REPORTED_CNE' });
     expect(markReportedToCne).toHaveBeenCalledWith(
       'tenant-from-jwt',

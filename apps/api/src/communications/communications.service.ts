@@ -17,6 +17,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import {
   COMMUNICATION_RECIPIENT_BASES,
   CreateCommunicationApprovalDto,
@@ -278,6 +279,7 @@ export class CommunicationsService {
     const contentHash = this.hashContent(content);
 
     return this.prisma.$transaction(async (tx) => {
+      await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
       const approval = await tx.communicationApproval.create({
         data: {
           tenantId: user.tenantId,
@@ -334,10 +336,13 @@ export class CommunicationsService {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
           const existing = await tx.communicationApproval.findFirst({
             where: { id, tenantId: user.tenantId, mode },
             select: {
               id: true,
+              title: true,
+              purpose: true,
               status: true,
               requestedById: true,
               channel: true,
@@ -741,6 +746,8 @@ export class CommunicationsService {
 
   private auditSnapshot(
     value: {
+      title: string;
+      purpose: string;
       status: CommunicationApprovalStatus;
       channel: string;
       containsSensitiveData: boolean;
@@ -754,6 +761,8 @@ export class CommunicationsService {
     },
   ): Prisma.InputJsonObject {
     return {
+      title: value.title,
+      purpose: value.purpose,
       status: value.status,
       channel: value.channel,
       containsSensitiveData: value.containsSensitiveData,

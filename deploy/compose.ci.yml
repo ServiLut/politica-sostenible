@@ -6,3 +6,7 @@ services:
   api:
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  catalog-worker:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

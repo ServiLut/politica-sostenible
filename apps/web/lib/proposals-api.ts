@@ -219,3 +219,40 @@ export function deleteProposal(id: string): Promise<{ success: true }> {
     method: "DELETE",
   });
 }
+
+export interface ListResponsiblesParams {
+  search?: string;
+  limit?: number;
+  page?: number;
+}
+
+export interface ComboboxUser {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export interface ResponsiblesPage {
+  items: ComboboxUser[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export function listProposalResponsibles(
+  params: ListResponsiblesParams = {},
+  signal?: AbortSignal,
+): Promise<ResponsiblesPage> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.page) query.set("page", String(params.page));
+  
+  const queryString = query.toString();
+  const url = queryString ? `proposals/responsibles?${queryString}` : "proposals/responsibles";
+  
+  return apiRequest(url, { signal });
+}

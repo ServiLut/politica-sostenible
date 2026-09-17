@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -6,12 +7,38 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StoredObjectStatus } from '../../prisma/generated/prisma';
 import { getTenantEntitledSubscription } from '../auth/guards/plan-limits.guard';
+import {
+  isConfiguredSaasAdminUserId,
+  SAAS_ADMIN_IDENTITY_CONFIG,
+  type SaasAdminIdentityConfig,
+} from '../auth/guards/saas-admin.guard';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+
+const NO_SAAS_ADMINS: SaasAdminIdentityConfig = Object.freeze({
+  userIds: Object.freeze([]),
+});
+
+export interface BillingCapabilities {
+  plan: {
+    code: string;
+    name: string;
+  };
+  features: {
+    export: boolean;
+    import: boolean;
+    mfa: boolean;
+  };
+}
 
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(SAAS_ADMIN_IDENTITY_CONFIG)
+    private readonly saasAdminIdentity: SaasAdminIdentityConfig = NO_SAAS_ADMINS,
+  ) {}
 
   async seedDefaultPlans() {
     this.logger.log('Seeding default subscription plans...');
@@ -113,6 +140,34 @@ export class BillingService {
 
   async getCurrentSubscription(tenantId: string) {
     return getTenantEntitledSubscription(this.prisma, tenantId);
+  }
+
+  /**
+   * Returns only the flags needed to render plan-gated product actions. The
+   * tenant is deliberately taken from the validated JWT user, never from a
+   * request body or query string.
+   */
+  async getCapabilities(
+    user: Pick<AuthenticatedUser, 'tenantId' | 'userId'>,
+  ): Promise<BillingCapabilities> {
+    const subscription = await this.getCurrentSubscription(user.tenantId);
+    const plan = subscription.plan;
+
+    return {
+      plan: {
+        code: plan.code,
+        name: plan.name,
+      },
+      features: {
+        export: plan.includesExport === true,
+        import: plan.includesImport === true,
+        // SaaS operators must retain the MFA-enrolment route that the guard
+        // explicitly grants them, even when their tenant uses a lower plan.
+        mfa:
+          plan.includesMfa === true ||
+          isConfiguredSaasAdminUserId(user.userId, this.saasAdminIdentity),
+      },
+    };
   }
 
   async getUsage(tenantId: string) {

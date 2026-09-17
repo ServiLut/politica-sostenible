@@ -11,11 +11,10 @@ describe('OperationProfile database invariants', () => {
 
   it('owns exactly one aggregate operation profile per tenant', () => {
     expect(model).toBeDefined();
-    expect(model).toContain('tenantId              String');
-    expect(model).toContain('@unique');
-    expect(model).toContain('responsibleDataUserId String');
-    expect(model).toContain('retentionPeriodDays   Int');
-    expect(model).toContain('revocationProcedure   String');
+    expect(model).toMatch(/^\s*tenantId\s+String\s+@unique\b/mu);
+    expect(model).toMatch(/^\s*responsibleDataUserId\s+String\b/mu);
+    expect(model).toMatch(/^\s*retentionPeriodDays\s+Int\b/mu);
+    expect(model).toMatch(/^\s*revocationProcedure\s+String\b/mu);
   });
 
   it('enforces cross-tenant ownership through compound user foreign keys', () => {

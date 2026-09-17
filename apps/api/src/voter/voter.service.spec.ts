@@ -72,6 +72,7 @@ describe('VoterService consent transaction', () => {
 
     return {
       captured,
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode,
@@ -311,6 +312,7 @@ describe('VoterService consent transaction', () => {
         id: 'puesto-from-tenant-b',
         tenantId: 'tenant-a',
         type: 'PUESTO',
+        isActive: true,
       },
       select: { id: true },
     });
@@ -429,6 +431,7 @@ describe('VoterService consent transaction', () => {
         id: 'puesto-a',
         tenantId: 'tenant-from-token',
         type: DivisionType.PUESTO,
+        isActive: true,
       },
       select: { id: true },
     });
@@ -862,7 +865,7 @@ describe('VoterService consent transaction', () => {
       );
 
       expect(prisma.politicalDivision.findMany).toHaveBeenCalledWith({
-        where: { tenantId: 'tenant-a' },
+        where: { tenantId: 'tenant-a', isActive: true },
         select: { id: true, parentId: true },
       });
       const where = findMany.mock.calls[0][0].where as Record<string, unknown>;

@@ -67,6 +67,13 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
+function planCapabilities() {
+  return successful({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 async function mockCaptureApi(
   page: Page,
   puestos: Array<{ id: string; code: string; name: string }>,
@@ -78,6 +85,18 @@ async function mockCaptureApi(
     const request = route.request();
     const url = new URL(request.url());
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (
+      url.pathname === "/api/billing/capabilities" &&
+      request.method() === "GET"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (
       url.pathname === "/api/voters/capture-context" &&
@@ -259,6 +278,19 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
     const url = new URL(request.url());
 
     if (
+      url.pathname === "/api/billing/capabilities" &&
+      request.method() === "GET"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
+
+    if (
       url.pathname === "/api/voters/capture-context" &&
       request.method() === "GET"
     ) {
@@ -343,6 +375,19 @@ test("una captura repetida recibe un resultado indistinguible y no enumera perso
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+
+    if (
+      url.pathname === "/api/billing/capabilities" &&
+      request.method() === "GET"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (
       url.pathname === "/api/voters/capture-context" &&

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   DivisionType,
   PoliticalOperationStage,
+  WitnessCaptureContext,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import {
@@ -41,31 +42,39 @@ export class ElectionDayService {
       tally,
     ] = await Promise.all([
       this.prisma.politicalDivision.aggregate({
-        where: { tenantId, type: DivisionType.PUESTO },
+        where: { tenantId, type: DivisionType.PUESTO, isActive: true },
         _sum: { expectedTables: true },
       }),
       this.prisma.witnessReport.groupBy({
         by: ['status'],
-        where: { tenantId },
+        where: { tenantId, captureContext: WitnessCaptureContext.REAL },
         _count: { _all: true },
       }),
       this.prisma.politicalDivision.findMany({
-        where: { tenantId, type: DivisionType.PUESTO },
+        where: { tenantId, type: DivisionType.PUESTO, isActive: true },
         select: { id: true, name: true, expectedTables: true },
       }),
       this.prisma.witnessReport.findMany({
-        where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+        where: {
+          tenantId,
+          captureContext: WitnessCaptureContext.REAL,
+          status: WitnessReportStatus.ACCEPTED,
+        },
         select: { puestoId: true, mesa: true },
         distinct: ['puestoId', 'mesa'],
       }),
       this.prisma.witnessReport.count({
-        where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+        where: {
+          tenantId,
+          captureContext: WitnessCaptureContext.REAL,
+          status: WitnessReportStatus.ACCEPTED,
+        },
       }),
       this.prisma.witnessReport.count({
         where: this.activeAlertWhere(tenantId),
       }),
       this.prisma.witnessReport.findMany({
-        where: { tenantId },
+        where: { tenantId, captureContext: WitnessCaptureContext.REAL },
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: {
@@ -152,7 +161,11 @@ export class ElectionDayService {
   private async getVoteTallyForAuthorizedTenant(tenantId: string) {
     const reportAggregations = await this.prisma.witnessReport.groupBy({
       by: ['puestoId'],
-      where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+      where: {
+        tenantId,
+        captureContext: WitnessCaptureContext.REAL,
+        status: WitnessReportStatus.ACCEPTED,
+      },
       _sum: {
         candidateVotes: true,
         totalTableVotes: true,
@@ -166,6 +179,7 @@ export class ElectionDayService {
       where: {
         tenantId,
         id: { in: reportAggregations.map((r) => r.puestoId) },
+        isActive: true,
       },
       include: {
         parent: {
@@ -245,6 +259,7 @@ export class ElectionDayService {
   private activeAlertWhere(tenantId: string) {
     return {
       tenantId,
+      captureContext: WitnessCaptureContext.REAL,
       status: {
         in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
       },

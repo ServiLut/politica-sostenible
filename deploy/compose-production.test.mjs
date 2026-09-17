@@ -6,6 +6,17 @@ import { SUPERVISOR_SHUTDOWN_GRACE_MS } from "./start.mjs";
 
 const PROJECT_ROOT = new URL("../", import.meta.url);
 
+function serviceSection(compose, serviceName) {
+  const match = compose.match(
+    new RegExp(
+      `^  ${serviceName}:\\r?\\n([\\s\\S]*?)(?=^  [a-z][a-z0-9-]*:|(?![\\s\\S]))`,
+      "m",
+    ),
+  );
+  assert.ok(match, `no se encontro el servicio ${serviceName}`);
+  return match[0];
+}
+
 test("no conserva el bootstrap legado de Storage público", async () => {
   for (const relativePath of [
     "apps/api/setup-storage.ts",
@@ -56,6 +67,8 @@ test("Docker raiz incluye el contrato baseline para una adopcion segura", async 
   );
   assert.match(dockerfile, /API_PROCESS_UID=1001/);
   assert.match(dockerfile, /WEB_PROCESS_UID=1002/);
+  assert.match(dockerfile, /CATALOG_WORKER_PROCESS_UID=1003/);
+  assert.match(dockerfile, /CATALOG_WORKER_PROCESS_GID=1003/);
   assert.match(dockerfile, /SUPERVISOR_SHUTDOWN_GRACE_MS=30000/);
   assert.match(
     dockerfile,
@@ -64,6 +77,14 @@ test("Docker raiz incluye el contrato baseline para una adopcion segura", async 
   assert.doesNotMatch(dockerfile, /^USER politica$/m);
   assert.match(dockerfile, /^STOPSIGNAL SIGTERM$/m);
   assert.match(dockerfile, /node deploy\/public-build-environment\.mjs/);
+  assert.match(
+    dockerfile,
+    /COPY deploy\/catalog-worker-entrypoint\.mjs \.\/deploy\/catalog-worker-entrypoint\.mjs/,
+  );
+  assert.match(
+    dockerfile,
+    /COPY deploy\/catalog-worker-healthcheck\.mjs \.\/deploy\/catalog-worker-healthcheck\.mjs/,
+  );
   assert.match(publicBuildGuard, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.match(migrator, /baseline\.schema\.prisma/);
   assert.match(migrator, /--to-schema/);
@@ -89,6 +110,7 @@ test("todas las imagenes publican revision y origen OCI verificables", async () 
     [webDockerfile, 1],
   ]) {
     assert.match(dockerfile, /^ARG APP_REVISION=unknown$/m);
+    assert.match(dockerfile, /^ENV APP_REVISION=\$\{APP_REVISION\}$/m);
     assert.match(
       dockerfile,
       /^ARG APP_SOURCE=https:\/\/github\.com\/ServiLut\/politica-sostenible$/m,
@@ -107,7 +129,7 @@ test("todas las imagenes publican revision y origen OCI verificables", async () 
 
   assert.equal(
     [...compose.matchAll(/APP_REVISION: \$\{APP_REVISION:-unknown\}/g)].length,
-    3,
+    4,
   );
   assert.match(env, /^APP_REVISION=replace-with-full-40-character-git-sha$/m);
   assert.match(workflow, /--build-arg APP_REVISION="\$GITHUB_SHA"/);
@@ -133,8 +155,10 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
     readFile(new URL(".env.example", PROJECT_ROOT), "utf8"),
   ]);
 
-  const migrateService = compose.split(/^  api:/m)[0];
-  const apiService = compose.split(/^  api:/m)[1].split(/^  web:/m)[0];
+  const migrateService = serviceSection(compose, "migrate");
+  const apiService = serviceSection(compose, "api");
+  const catalogWorkerService = serviceSection(compose, "catalog-worker");
+  const webService = serviceSection(compose, "web");
   assert.match(migrateService, /target: migrator/);
   assert.match(migrateService, /NODE_ENV: production/);
   assert.match(
@@ -152,6 +176,30 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
     /SAAS_ADMIN_USER_IDS: \$\{SAAS_ADMIN_USER_IDS:\?SAAS_ADMIN_USER_IDS is required\}/,
   );
   assert.match(apiService, /SAAS_ADMIN_EMAILS: \$\{SAAS_ADMIN_EMAILS:-\}/);
+  assert.match(
+    apiService,
+    /OFFLINE_SYNC_HMAC_SECRET: \$\{OFFLINE_SYNC_HMAC_SECRET:\?OFFLINE_SYNC_HMAC_SECRET is required\}/,
+  );
+  assert.match(
+    apiService,
+    /REDIS_URL: \$\{REDIS_URL:\?REDIS_URL is required\}/,
+  );
+  assert.match(
+    apiService,
+    /REDIS_ALLOW_PLAINTEXT_INTERNAL: \$\{REDIS_ALLOW_PLAINTEXT_INTERNAL:-false\}/,
+  );
+  assert.match(
+    apiService,
+    /PUBLIC_REGISTRATION_ENABLED: \$\{PUBLIC_REGISTRATION_ENABLED:-false\}/,
+  );
+  assert.match(
+    apiService,
+    /TEAM_INVITATION_ACCEPTANCE_ENABLED: \$\{TEAM_INVITATION_ACCEPTANCE_ENABLED:-true\}/,
+  );
+  assert.doesNotMatch(migrateService, /OFFLINE_SYNC_HMAC_SECRET/);
+  assert.doesNotMatch(webService, /OFFLINE_SYNC_HMAC_SECRET/);
+  assert.doesNotMatch(migrateService, /REDIS_URL/);
+  assert.doesNotMatch(webService, /REDIS_URL/);
   assert.match(migrateService, /DIRECT_URL: \$\{DIRECT_URL:-\}/);
   assert.match(
     migrateService,
@@ -165,7 +213,8 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
   for (const service of [
     migrateService,
     apiService,
-    compose.split(/^  web:/m)[1],
+    catalogWorkerService,
+    webService,
   ]) {
     assert.match(service, /pids_limit:/);
     assert.match(service, /mem_limit:/);
@@ -174,11 +223,12 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
     assert.match(service, /max-file:/);
   }
   assert.match(apiService, /stop_grace_period: 40s/);
-  assert.match(compose.split(/^  web:/m)[1], /stop_grace_period: 40s/);
+  assert.match(catalogWorkerService, /stop_grace_period: 40s/);
+  assert.match(webService, /stop_grace_period: 40s/);
   const stopGracePeriods = [
     ...compose.matchAll(/stop_grace_period: ([0-9]+)s/g),
   ].map((match) => Number(match[1]) * 1_000);
-  assert.equal(stopGracePeriods.length, 2);
+  assert.equal(stopGracePeriods.length, 3);
   assert.ok(
     stopGracePeriods.every(
       (gracePeriod) => gracePeriod > SUPERVISOR_SHUTDOWN_GRACE_MS,
@@ -194,6 +244,8 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
   assert.match(entrypoint, /la base de datos puede haber cambiado/i);
   assert.doesNotMatch(entrypoint, /antes de modificar la base de datos/i);
   assert.match(dockerfile, /deploy\/api-entrypoint\.mjs/);
+  assert.match(dockerfile, /deploy\/catalog-worker-entrypoint\.mjs/);
+  assert.match(dockerfile, /deploy\/catalog-worker-healthcheck\.mjs/);
   assert.match(
     dockerfile,
     /CMD \["node", "\.\.\/\.\.\/deploy\/api-entrypoint\.mjs"\]/,
@@ -222,6 +274,66 @@ test("compose ejecuta migraciones con normalizacion y guard TLS", async () => {
   );
   assert.doesNotMatch(environmentExample, /^SAAS_ADMIN_EMAILS=/m);
   assert.match(environmentExample, /ALLOW_INSECURE_DATABASE_CONNECTION=false/);
+  assert.match(environmentExample, /^OFFLINE_SYNC_HMAC_SECRET=/m);
+  assert.match(
+    environmentExample,
+    /Rotarlo hace que los reintentos offline pendientes/,
+  );
+  assert.match(
+    environmentExample,
+    /^REDIS_URL=rediss:\/\/default:replace-with-redis-password@/m,
+  );
+  assert.match(environmentExample, /^REDIS_ALLOW_PLAINTEXT_INTERNAL=false$/m);
+  assert.match(environmentExample, /^PUBLIC_REGISTRATION_ENABLED=false$/m);
+  assert.match(
+    environmentExample,
+    /^TEAM_INVITATION_ACCEPTANCE_ENABLED=true$/m,
+  );
+  assert.match(environmentExample, /^CATALOG_WORKER_CPUS_LIMIT=/m);
+  assert.match(environmentExample, /^CATALOG_WORKER_MEMORY_LIMIT=/m);
+  assert.match(environmentExample, /^CATALOG_WORKER_PIDS_LIMIT=/m);
+
+  assert.match(catalogWorkerService, /dockerfile: apps\/api\/Dockerfile/);
+  assert.match(
+    catalogWorkerService,
+    /command: \["node", "\.\.\/\.\.\/deploy\/catalog-worker-entrypoint\.mjs"\]/,
+  );
+  assert.match(
+    catalogWorkerService,
+    /DATABASE_URL: \$\{DATABASE_URL:\?DATABASE_URL is required\}/,
+  );
+  assert.match(
+    catalogWorkerService,
+    /REDIS_URL: \$\{REDIS_URL:\?REDIS_URL is required\}/,
+  );
+  assert.match(
+    catalogWorkerService,
+    /SUPABASE_SERVICE_ROLE_KEY: \$\{SUPABASE_SERVICE_ROLE_KEY:\?SUPABASE_SERVICE_ROLE_KEY is required\}/,
+  );
+  assert.match(
+    catalogWorkerService,
+    /condition: service_completed_successfully/,
+  );
+  assert.match(
+    catalogWorkerService,
+    /\.\.\/\.\.\/deploy\/catalog-worker-healthcheck\.mjs/,
+  );
+  assert.match(catalogWorkerService, /read_only: true/);
+  assert.match(catalogWorkerService, /no-new-privileges:true/);
+  assert.match(catalogWorkerService, /cap_drop:\s*\r?\n\s*- ALL/);
+  assert.doesNotMatch(catalogWorkerService, /^\s+(?:ports|expose):/m);
+  assert.doesNotMatch(catalogWorkerService, /^\s+PORT:/m);
+  for (const forbiddenSecret of [
+    "JWT_SECRET",
+    "CONSENT_IP_SALT",
+    "OFFLINE_SYNC_HMAC_SECRET",
+    "SAAS_ADMIN_USER_IDS",
+    "MFA_TOTP_ENCRYPTION_KEY",
+    "CORS_ORIGINS",
+    "NEXT_PUBLIC_APP_URL",
+  ]) {
+    assert.doesNotMatch(catalogWorkerService, new RegExp(forbiddenSecret));
+  }
 });
 
 test("CI construye y arranca físicamente la topología primaria separada", async () => {
@@ -231,15 +343,40 @@ test("CI construye y arranca físicamente la topología primaria separada", asyn
   ]);
 
   assert.match(workflow, /^  compose-runtime-smoke:$/m);
+  assert.match(workflow, /pnpm --filter api test:e2e --runInBand/);
+  assert.match(
+    workflow,
+    /pnpm --filter api exec eslint "\{src,apps,libs,test\}\/\*\*\/\*\.ts"/,
+  );
+  assert.match(workflow, /pnpm --filter web exec eslint \./);
   assert.match(workflow, /-f compose\.production\.yml/);
   assert.match(workflow, /-f deploy\/compose\.ci\.yml/);
   assert.match(workflow, /build\s*$/m);
   assert.match(workflow, /up -d\s*$/m);
   assert.match(workflow, /health\/ready/);
+  assert.match(workflow, /worker_id=.*ps -q catalog-worker/);
+  assert.match(workflow, /catalog-worker-healthcheck\.mjs/);
+  assert.match(workflow, /State\.Health\.Status[^\n]+worker_id[^\n]+healthy/);
   assert.match(workflow, /ReadonlyRootfs/);
-  assert.match(workflow, /DATABASE_URL\|DIRECT_URL\|JWT_SECRET/);
-  assert.match(workflow, /stop --timeout 40 api web/);
+  assert.match(
+    workflow,
+    /DATABASE_URL\|DIRECT_URL\|JWT_SECRET\|OFFLINE_SYNC_HMAC_SECRET/,
+  );
+  assert.match(workflow, /stop --timeout 40 catalog-worker api web/);
+  assert.match(workflow, /State\.ExitCode[^\n]+worker_id[^\n]+\)" = "0"/);
   assert.match(workflow, /State\.ExitCode[^\n]+web_id[^\n]+\)" = "143"/);
   assert.match(workflow, /down --volumes --remove-orphans/);
   assert.match(composeOverride, /host\.docker\.internal:host-gateway/);
+  assert.match(
+    composeOverride,
+    /catalog-worker:[\s\S]*host\.docker\.internal:host-gateway/,
+  );
+  assert.equal(
+    [
+      ...workflow.matchAll(
+        /redis:7\.4-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf/g,
+      ),
+    ].length,
+    2,
+  );
 });

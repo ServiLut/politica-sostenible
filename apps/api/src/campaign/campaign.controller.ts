@@ -6,11 +6,13 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { Role } from '../../prisma/generated/prisma';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
 import { CreatePoliticalDivisionDto } from './dto/create-political-division.dto';
 import { Throttle } from '@nestjs/throttler';
+import { TerritoryHeatmapQueryDto } from './dto/territory-heatmap-query.dto';
 
 const CAMPAIGN_CONTEXT_READ_ROLES = [
   ...CAMPAIGN_DIVISION_READ_ROLES,
@@ -20,6 +22,7 @@ const CAMPAIGN_CONTEXT_READ_ROLES = [
 
 @ApiTags('Campaigns')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('campaigns')
 export class CampaignController {
   constructor(private readonly campaignService: CampaignService) {}
@@ -30,7 +33,8 @@ export class CampaignController {
     default: { limit: 1, ttl: 600_000, blockDuration: 600_000 },
   })
   @ApiOperation({
-    summary: 'Sincroniza la geografía electoral desde DANE DIVIPOLA MGN 2025',
+    summary:
+      'Sincroniza la geografía administrativa desde DANE DIVIPOLA MGN 2025',
   })
   async init(@CurrentUser() user: AuthenticatedUser) {
     return this.campaignService.initializeElectoralData(user);
@@ -56,6 +60,18 @@ export class CampaignController {
     @Body() dto: CreatePoliticalDivisionDto,
   ) {
     return this.campaignService.createDivision(user, dto);
+  }
+
+  @Get('territory-heatmap')
+  @Roles(...CAMPAIGN_DIVISION_READ_ROLES)
+  @ApiOperation({
+    summary: 'Entrega intensidad territorial agregada y protegida por alcance',
+  })
+  async getTerritoryHeatmap(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: TerritoryHeatmapQueryDto,
+  ) {
+    return this.campaignService.getTerritoryHeatmap(user, query);
   }
 
   @Get()

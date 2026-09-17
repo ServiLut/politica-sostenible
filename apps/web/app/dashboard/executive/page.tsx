@@ -5,16 +5,38 @@ import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
+  CalendarClock,
   CheckCircle2,
   CircleDollarSign,
   ListChecks,
   LoaderCircle,
+  MapPinned,
+  MessageSquareText,
   RefreshCw,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { useAuth } from "@/context/auth";
 import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
+import { getVisibleNavigationItems } from "@/config/navigation";
+import type { PoliticalOperationStage } from "@/types/saas-schema";
+
+const OPERATION_STAGES: ReadonlyArray<{
+  value: PoliticalOperationStage;
+  label: string;
+}> = [
+  { value: "EXPLORATION", label: "Exploración" },
+  { value: "PRE_CAMPAIGN", label: "Precandidatura" },
+  { value: "SIGNATURE_COLLECTION", label: "Firmas" },
+  { value: "CAMPAIGN", label: "Campaña" },
+  { value: "ELECTION_PREPARATION", label: "Preparación" },
+  { value: "SIMULATION", label: "Simulacro" },
+  { value: "ELECTION_DAY", label: "Jornada" },
+  { value: "POST_ELECTION", label: "Poselección" },
+  { value: "CLOSED", label: "Cierre" },
+];
 
 interface ActivationStep {
   code: string;
@@ -38,10 +60,29 @@ interface CommandCenterBriefing {
     steps: ActivationStep[];
   };
   metrics: {
+    people: {
+      total: number;
+      consented: number;
+      consentCoverage: number;
+    };
+    team: { active: number; pendingInvitations: number };
+    territory: {
+      departments: number;
+      municipalities: number;
+      zones: number;
+      pollingPlaces: number;
+    };
+    tasks: { open: number; overdue: number };
+    events: { upcoming: number };
     finance: {
       income: string;
       expenses: string;
+      balance: string;
+      pending: number;
+      overdue: number;
     };
+    electionDay: { reports: number; syncedReports: number };
+    communications: { pendingApproval: number };
   };
   territorialCoverage: Array<{
     name: string;
@@ -52,6 +93,30 @@ interface CommandCenterBriefing {
   }>;
   overdueItemsCount: number;
   teamActivationRate: number;
+  alerts: Array<{
+    code: string;
+    severity: "critical" | "attention" | "ok";
+    title: string;
+    detail: string;
+    href: string;
+    count?: number;
+  }>;
+  agenda: {
+    upcomingEvents: Array<{
+      id: string;
+      name: string;
+      startsAt: string;
+      endsAt: string;
+      status: string;
+    }>;
+    priorityTasks: Array<{
+      id: string;
+      title: string;
+      status: string;
+      priority: "URGENT" | "HIGH";
+      dueAt: string | null;
+    }>;
+  };
 }
 
 type TrafficStatus = "red" | "yellow" | "green" | "neutral";
@@ -77,6 +142,52 @@ function isActivationStep(value: unknown): value is ActivationStep {
   );
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isBriefingAlert(
+  value: unknown,
+): value is CommandCenterBriefing["alerts"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.code === "string" &&
+    (value.severity === "critical" ||
+      value.severity === "attention" ||
+      value.severity === "ok") &&
+    typeof value.title === "string" &&
+    typeof value.detail === "string" &&
+    typeof value.href === "string" &&
+    (value.count === undefined || isFiniteNumber(value.count))
+  );
+}
+
+function isAgendaEvent(
+  value: unknown,
+): value is CommandCenterBriefing["agenda"]["upcomingEvents"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.startsAt === "string" &&
+    typeof value.endsAt === "string" &&
+    typeof value.status === "string"
+  );
+}
+
+function isPriorityTask(
+  value: unknown,
+): value is CommandCenterBriefing["agenda"]["priorityTasks"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.status === "string" &&
+    (value.priority === "URGENT" || value.priority === "HIGH") &&
+    (value.dueAt === null || typeof value.dueAt === "string")
+  );
+}
+
 function isCommandCenterBriefing(
   value: unknown,
 ): value is CommandCenterBriefing {
@@ -86,6 +197,7 @@ function isCommandCenterBriefing(
   const activation = value.activation;
   const metrics = value.metrics;
   const coverage = value.territorialCoverage;
+  const agenda = value.agenda;
 
   if (
     !isRecord(tenant) ||
@@ -99,10 +211,42 @@ function isCommandCenterBriefing(
     !Array.isArray(activation.steps) ||
     !activation.steps.every(isActivationStep) ||
     !isRecord(metrics) ||
+    !isRecord(metrics.people) ||
+    !isFiniteNumber(metrics.people.total) ||
+    !isFiniteNumber(metrics.people.consented) ||
+    !isFiniteNumber(metrics.people.consentCoverage) ||
+    !isRecord(metrics.team) ||
+    !isFiniteNumber(metrics.team.active) ||
+    !isFiniteNumber(metrics.team.pendingInvitations) ||
+    !isRecord(metrics.territory) ||
+    !isFiniteNumber(metrics.territory.departments) ||
+    !isFiniteNumber(metrics.territory.municipalities) ||
+    !isFiniteNumber(metrics.territory.zones) ||
+    !isFiniteNumber(metrics.territory.pollingPlaces) ||
+    !isRecord(metrics.tasks) ||
+    !isFiniteNumber(metrics.tasks.open) ||
+    !isFiniteNumber(metrics.tasks.overdue) ||
+    !isRecord(metrics.events) ||
+    !isFiniteNumber(metrics.events.upcoming) ||
     !isRecord(metrics.finance) ||
     typeof metrics.finance.income !== "string" ||
     typeof metrics.finance.expenses !== "string" ||
-    !Array.isArray(coverage)
+    typeof metrics.finance.balance !== "string" ||
+    !isFiniteNumber(metrics.finance.pending) ||
+    !isFiniteNumber(metrics.finance.overdue) ||
+    !isRecord(metrics.electionDay) ||
+    !isFiniteNumber(metrics.electionDay.reports) ||
+    !isFiniteNumber(metrics.electionDay.syncedReports) ||
+    !isRecord(metrics.communications) ||
+    !isFiniteNumber(metrics.communications.pendingApproval) ||
+    !Array.isArray(coverage) ||
+    !Array.isArray(value.alerts) ||
+    !value.alerts.every(isBriefingAlert) ||
+    !isRecord(agenda) ||
+    !Array.isArray(agenda.upcomingEvents) ||
+    !agenda.upcomingEvents.every(isAgendaEvent) ||
+    !Array.isArray(agenda.priorityTasks) ||
+    !agenda.priorityTasks.every(isPriorityTask)
   ) {
     return false;
   }
@@ -122,6 +266,20 @@ function isCommandCenterBriefing(
           Number.isFinite(division.coveragePercent)),
     )
   );
+}
+
+function formatOperationalDate(value: string | null) {
+  if (!value) return "Sin fecha definida";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Fecha no disponible";
+
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Bogota",
+  }).format(date);
 }
 
 function formatCop(amount: number) {
@@ -377,6 +535,17 @@ export default function ExecutivePage() {
   const team = teamMetric(briefing.teamActivationRate);
   const generatedAt = formatGeneratedAt(briefing.generatedAt);
   const canManageTeam = user?.backendRole === "ADMIN";
+  const canOpenElectionOperations = Boolean(
+    user &&
+    tenant &&
+    getVisibleNavigationItems(user, tenant, tenant.operationStage ?? null).some(
+      ({ href }) => href === "/dashboard/war-room",
+    ),
+  );
+  const electionOperationsUnavailableReason =
+    tenant?.type !== "CANDIDACY"
+      ? "Disponible solo para una candidatura."
+      : "Se habilita desde la preparación electoral, según la etapa configurada.";
 
   return (
     <main
@@ -428,6 +597,8 @@ export default function ExecutivePage() {
         </div>
       )}
 
+      <OperationLifecycle currentStage={tenant?.operationStage ?? null} />
+
       <section className="grid gap-6 md:grid-cols-2">
         <TrafficCard
           title="Ejecución Presupuestal"
@@ -443,6 +614,7 @@ export default function ExecutivePage() {
           subtitle={territoryCoverage.subtitle}
           status={territoryCoverage.status}
           icon={Users}
+          href="/dashboard/territory"
         />
         <TrafficCard
           title="Procesos Críticos"
@@ -466,12 +638,306 @@ export default function ExecutivePage() {
         />
       </section>
 
-      {!briefing.activation.ready && (
-        <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <ActivationChecklist briefing={briefing} loading={loading} />
-        </section>
-      )}
+      <section
+        aria-label="Indicadores operativos de campaña"
+        className="grid gap-px overflow-hidden rounded-3xl bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <OperationalMetric
+          label="Vínculos autorizados"
+          value={`${briefing.metrics.people.consented.toLocaleString("es-CO")} / ${briefing.metrics.people.total.toLocaleString("es-CO")}`}
+          detail={`${briefing.metrics.people.consentCoverage.toLocaleString("es-CO")}% con autorización vigente`}
+          href="/dashboard/votantes"
+          icon={ShieldCheck}
+        />
+        <OperationalMetric
+          label="Puestos electorales"
+          value={briefing.metrics.territory.pollingPlaces.toLocaleString(
+            "es-CO",
+          )}
+          detail={`${briefing.metrics.territory.zones.toLocaleString("es-CO")} zonas configuradas`}
+          href="/dashboard/territory"
+          icon={MapPinned}
+        />
+        <OperationalMetric
+          label="Actas aceptadas"
+          value={briefing.metrics.electionDay.reports.toLocaleString("es-CO")}
+          detail={`${briefing.metrics.electionDay.syncedReports.toLocaleString("es-CO")} sincronizadas`}
+          href={canOpenElectionOperations ? "/dashboard/war-room" : undefined}
+          unavailableReason={electionOperationsUnavailableReason}
+          icon={ListChecks}
+        />
+        <OperationalMetric
+          label="Comunicaciones por revisar"
+          value={briefing.metrics.communications.pendingApproval.toLocaleString(
+            "es-CO",
+          )}
+          detail="Esperan una decisión humana independiente"
+          href="/dashboard/communications"
+          icon={MessageSquareText}
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+            Decisiones del corte
+          </p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            Riesgos que necesitan responsable
+          </h2>
+          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+            {briefing.alerts.map((alert) => (
+              <Link
+                key={alert.code}
+                href={alert.href}
+                className="group grid grid-cols-[40px_1fr_auto] gap-3 py-5"
+              >
+                <span
+                  className={`grid h-10 w-10 place-items-center rounded-xl ${
+                    alert.severity === "critical"
+                      ? "bg-red-50 text-red-700"
+                      : alert.severity === "attention"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {alert.severity === "ok" ? (
+                    <CheckCircle2 aria-hidden="true" size={19} />
+                  ) : (
+                    <AlertTriangle aria-hidden="true" size={19} />
+                  )}
+                </span>
+                <span>
+                  <span className="block text-sm font-black text-slate-900">
+                    {alert.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    {alert.detail}
+                  </span>
+                </span>
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-3 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-800"
+                  size={17}
+                />
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <ActivationChecklist briefing={briefing} loading={loading} />
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <CampaignAgendaPanel
+          title="Agenda próxima"
+          icon={CalendarClock}
+          empty="No hay actividades programadas para las próximas dos semanas."
+        >
+          {briefing.agenda.upcomingEvents.map((event) => (
+            <Link
+              key={event.id}
+              href="/dashboard/events"
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {event.name}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {formatOperationalDate(event.startsAt)}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                className="shrink-0 text-slate-300"
+                size={16}
+              />
+            </Link>
+          ))}
+        </CampaignAgendaPanel>
+
+        <CampaignAgendaPanel
+          title="Tareas de alta prioridad"
+          icon={ListChecks}
+          empty="No hay tareas urgentes o de alta prioridad abiertas."
+        >
+          {briefing.agenda.priorityTasks.map((task) => (
+            <Link
+              key={task.id}
+              href={`/dashboard/tasks?view=tasks&entityId=${encodeURIComponent(task.id)}`}
+              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
+            >
+              <span>
+                <span className="block text-sm font-black text-slate-900">
+                  {task.title}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {task.priority === "URGENT" ? "Urgente" : "Alta"} ·{" "}
+                  {formatOperationalDate(task.dueAt)}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                className="shrink-0 text-slate-300"
+                size={16}
+              />
+            </Link>
+          ))}
+        </CampaignAgendaPanel>
+      </section>
+
+      <p className="text-right text-[11px] font-semibold text-slate-400">
+        Este corte es operativo e interno; no equivale a una certificación de
+        autoridad electoral, contable o de protección de datos.
+      </p>
     </main>
+  );
+}
+
+function OperationLifecycle({
+  currentStage,
+}: {
+  currentStage: PoliticalOperationStage | null;
+}) {
+  const currentIndex = currentStage
+    ? OPERATION_STAGES.findIndex(({ value }) => value === currentStage)
+    : -1;
+
+  return (
+    <section
+      aria-label="Ciclo de la operación política"
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+            Ciclo electoral controlado
+          </p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">
+            {currentIndex >= 0
+              ? `Etapa actual: ${OPERATION_STAGES[currentIndex].label}`
+              : "Perfil operativo pendiente"}
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Cada avance requiere alistamiento y queda registrado; una etapa no
+            se presume por el calendario ni por una decisión de la interfaz.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/operation-profile"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+        >
+          Revisar alistamiento <ArrowRight aria-hidden="true" size={16} />
+        </Link>
+      </div>
+      <ol className="mt-6 grid gap-2 sm:grid-cols-3 xl:grid-cols-9">
+        {OPERATION_STAGES.map((stage, index) => {
+          const status =
+            currentIndex < 0
+              ? "pending"
+              : index < currentIndex
+                ? "previous"
+                : index === currentIndex
+                  ? "current"
+                  : "pending";
+          return (
+            <li
+              key={stage.value}
+              aria-current={status === "current" ? "step" : undefined}
+              className={`rounded-xl border px-3 py-3 text-center text-[11px] font-black uppercase tracking-wide ${
+                status === "current"
+                  ? "border-blue-700 bg-blue-700 text-white"
+                  : status === "previous"
+                    ? "border-slate-300 bg-slate-100 text-slate-700"
+                    : "border-slate-200 bg-slate-50 text-slate-500"
+              }`}
+            >
+              <span className="block text-[10px] opacity-70">{index + 1}</span>
+              {stage.label}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function OperationalMetric({
+  label,
+  value,
+  detail,
+  href,
+  unavailableReason,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  href?: string;
+  unavailableReason?: string;
+  icon: typeof ShieldCheck;
+}) {
+  return (
+    <article className="bg-white p-6">
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700">
+        <Icon aria-hidden="true" size={20} />
+      </div>
+      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+        {value}
+      </p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-slate-500">{detail}</p>
+        {href ? (
+          <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`}>
+            <ArrowRight
+              aria-hidden="true"
+              className="text-slate-300"
+              size={15}
+            />
+          </Link>
+        ) : (
+          <span className="max-w-48 text-right text-[11px] font-bold leading-4 text-amber-800">
+            {unavailableReason ?? "Modulo no habilitado para este contexto."}
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function CampaignAgendaPanel({
+  title,
+  icon: Icon,
+  empty,
+  children,
+}: {
+  title: string;
+  icon: typeof CalendarClock;
+  empty: string;
+  children: React.ReactNode;
+}) {
+  const items = Array.isArray(children) ? children : children ? [children] : [];
+
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex items-center gap-3">
+        <Icon aria-hidden="true" className="text-blue-700" size={20} />
+        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      </div>
+      <div className="mt-4">
+        {items.length > 0 ? (
+          children
+        ) : (
+          <p className="border-t border-slate-100 py-5 text-sm leading-6 text-slate-500">
+            {empty}
+          </p>
+        )}
+      </div>
+    </article>
   );
 }
 

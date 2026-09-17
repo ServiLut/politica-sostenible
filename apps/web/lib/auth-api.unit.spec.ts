@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  getRegistrationPolicy,
   loginWithCredentials,
   logoutAllSessions,
   registerAccount,
@@ -64,7 +65,7 @@ test("envia ambas contraseñas en el contrato de registro", async () => {
       organizationName: "Concejo abierto",
       organizationType: "CANDIDACY",
       termsAccepted: true,
-      termsVersion: "2026.1",
+      termsVersion: "registro-2026.9",
     });
 
     expect(requestInit?.method).toBe("POST");
@@ -72,6 +73,83 @@ test("envia ambas contraseñas en el contrato de registro", async () => {
       password: "clave-segura-2026",
       passwordConfirmation: "clave-segura-2026",
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("consulta la politica publica de registro sin JWT ni cache", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  let requestInit: RequestInit | undefined;
+
+  globalThis.fetch = async (input, init) => {
+    requestedUrl = String(input);
+    requestInit = init;
+    return successful({
+      enabled: false,
+      invitationAcceptanceEnabled: true,
+      mode: "CONTROLLED_ACCESS",
+      message: "Registro controlado",
+      termsVersion: "registro-2026.9",
+    });
+  };
+
+  try {
+    await expect(getRegistrationPolicy()).resolves.toEqual({
+      enabled: false,
+      invitationAcceptanceEnabled: true,
+      mode: "CONTROLLED_ACCESS",
+      message: "Registro controlado",
+      termsVersion: "registro-2026.9",
+    });
+    expect(requestedUrl).toBe("/api/auth/registration-policy");
+    expect(requestInit?.cache).toBe("no-store");
+    expect(new Headers(requestInit?.headers).has("Authorization")).toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rechaza políticas que no identifican términos vigentes o son incoherentes", async () => {
+  const originalFetch = globalThis.fetch;
+  const invalidPolicies = [
+    {
+      enabled: true,
+      invitationAcceptanceEnabled: true,
+      mode: "SELF_SERVICE",
+      message: "Registro habilitado",
+    },
+    {
+      enabled: true,
+      invitationAcceptanceEnabled: true,
+      mode: "SELF_SERVICE",
+      message: "Registro habilitado",
+      termsVersion: " version-con-espacios ",
+    },
+    {
+      enabled: true,
+      invitationAcceptanceEnabled: true,
+      mode: "CONTROLLED_ACCESS",
+      message: "Registro habilitado",
+      termsVersion: "registro-2026.9",
+    },
+    {
+      enabled: true,
+      invitationAcceptanceEnabled: "true",
+      mode: "SELF_SERVICE",
+      message: "Registro habilitado",
+      termsVersion: "registro-2026.9",
+    },
+  ];
+
+  try {
+    for (const policy of invalidPolicies) {
+      globalThis.fetch = async () => successful(policy);
+      await expect(getRegistrationPolicy()).rejects.toThrow(
+        "La política de registro recibida no contiene un contrato legal válido.",
+      );
+    }
   } finally {
     globalThis.fetch = originalFetch;
   }

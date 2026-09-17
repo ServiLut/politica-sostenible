@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Matches,
   Max,
   MaxLength,
@@ -25,6 +26,11 @@ import {
   PoliticalOperationStage,
   PoliticalOperationType,
 } from '../../../prisma/generated/prisma';
+import {
+  CIVIL_DATE_PATTERN,
+  getElectionOperatingWindowError,
+  MAX_VOTING_WINDOW_INCLUSIVE_DAYS,
+} from '../election-operating-window';
 
 const MAX_CAMPAIGN_AMOUNT = 9_999_999_999_999.99;
 const SAFE_IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
@@ -54,6 +60,11 @@ export function getOperationProfileCoherenceError(
     | 'candidateCount'
     | 'maxTotalBudget'
     | 'maxPublicityLimit'
+    | 'electionDate'
+    | 'votingStartDate'
+    | 'votingEndDate'
+    | 'votingWindowSourceUrl'
+    | 'votingWindowReference'
   >,
 ): string | null {
   const supportsCandidateList =
@@ -97,6 +108,9 @@ export function getOperationProfileCoherenceError(
   if (dto.maxPublicityLimit > dto.maxTotalBudget) {
     return 'El limite de publicidad no puede superar el presupuesto total';
   }
+
+  const windowError = getElectionOperatingWindowError(dto);
+  if (windowError) return windowError;
 
   return null;
 }
@@ -165,6 +179,55 @@ export class UpsertOperationProfileDto {
   @Transform(trim)
   @IsDateString({ strict: true })
   electionDate: string;
+
+  @ApiPropertyOptional({
+    example: '2027-10-31',
+    description:
+      'Primera fecha civil inclusiva de operacion electoral en America/Bogota. Si se omiten ambos limites, se usa electionDate como ventana de un dia.',
+  })
+  @Transform(optionalTrim)
+  @IsOptional()
+  @Matches(CIVIL_DATE_PATTERN, {
+    message: 'votingStartDate debe usar el formato civil YYYY-MM-DD',
+  })
+  votingStartDate?: string;
+
+  @ApiPropertyOptional({
+    example: '2027-10-31',
+    description: `Ultima fecha civil inclusiva; la ventana admite maximo ${MAX_VOTING_WINDOW_INCLUSIVE_DAYS} fechas.`,
+  })
+  @Transform(optionalTrim)
+  @IsOptional()
+  @Matches(CIVIL_DATE_PATTERN, {
+    message: 'votingEndDate debe usar el formato civil YYYY-MM-DD',
+  })
+  votingEndDate?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://autoridad.example/actos/ventana-electoral.pdf',
+    maxLength: 2048,
+    description:
+      'Fuente HTTPS obligatoria junto con la referencia documental para ventanas de varios dias; no implica validacion oficial por la plataforma.',
+  })
+  @Transform(optionalTrim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_048)
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  @Matches(/^https:\/\//i, { message: 'La fuente debe usar HTTPS' })
+  votingWindowSourceUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'Resolucion o calendario electoral, articulo 4',
+    minLength: 10,
+    maxLength: 500,
+  })
+  @Transform(optionalTrim)
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  votingWindowReference?: string;
 
   @ApiProperty({ minimum: 1, maximum: 100000, example: 50 })
   @Type(() => Number)

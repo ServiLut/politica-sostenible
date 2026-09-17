@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Check, CheckCircle2, LoaderCircle } from "lucide-react";
+import { useAuth } from "@/context/auth";
+import { getActivationStepGuidance } from "@/lib/role-action-guidance";
 
 export interface ActivationStep {
   code: string;
@@ -30,6 +34,8 @@ export function ActivationChecklist({
   briefing,
   loading,
 }: ActivationChecklistProps) {
+  const { user } = useAuth();
+
   if (loading && !briefing) {
     return (
       <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -91,14 +97,15 @@ export function ActivationChecklist({
               isCampaign ? "text-emerald-950" : "text-blue-950"
             }`}
           >
-            ¡Operación activada!
+            Configuración inicial completa
           </h3>
           <p
             className={`mt-2 text-sm ${
               isCampaign ? "text-emerald-700" : "text-blue-700"
             }`}
           >
-            Has completado todos los pasos de configuración inicial.
+            Los controles iniciales medidos están completos. Revisa el
+            alistamiento antes de cambiar de etapa.
           </p>
         </div>
       ) : (
@@ -128,43 +135,72 @@ export function ActivationChecklist({
           </div>
 
           <div className="space-y-1" role="list">
-            {steps.map((step, index) => (
-              <Link
-                key={step.code}
-                href={step.href}
-                role="listitem"
-                className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0 focus-ring"
-              >
-                <span
-                  className={`grid h-8 w-8 place-items-center text-xs font-black ${
-                    step.complete
-                      ? isCampaign
-                        ? "bg-emerald-600 text-white"
-                        : "bg-blue-700 text-white"
-                      : "border border-slate-300 text-slate-500"
-                  }`}
+            {steps.map((step, index) => {
+              const guidance = getActivationStepGuidance(
+                step.code,
+                step.complete,
+                user?.backendRole,
+              );
+              const content = (
+                <>
+                  <span
+                    className={`grid h-8 w-8 place-items-center text-xs font-black ${
+                      step.complete
+                        ? isCampaign
+                          ? "bg-emerald-600 text-white"
+                          : "bg-blue-700 text-white"
+                        : "border border-slate-300 text-slate-500"
+                    }`}
+                  >
+                    {step.complete ? <Check size={15} /> : index + 1}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-black text-slate-900">
+                      {step.title}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                      {step.detail}
+                    </span>
+                  </span>
+                  {guidance.linkLabel ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-500 transition-colors group-hover:text-slate-900">
+                        {step.complete ? "Completado · " : ""}
+                        {guidance.linkLabel}
+                      </span>
+                      <ArrowRight
+                        aria-hidden="true"
+                        className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
+                        size={16}
+                      />
+                    </div>
+                  ) : (
+                    <span className="max-w-56 text-right text-xs font-semibold leading-5 text-amber-800">
+                      {guidance.advice}
+                    </span>
+                  )}
+                </>
+              );
+
+              return guidance.linkLabel ? (
+                <Link
+                  key={step.code}
+                  href={step.href}
+                  role="listitem"
+                  className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0 focus-ring"
                 >
-                  {step.complete ? <Check size={15} /> : index + 1}
-                </span>
-                <span>
-                  <span className="block text-sm font-black text-slate-900">
-                    {step.title}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    {step.detail}
-                  </span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 transition-colors group-hover:text-slate-900">
-                    {step.complete ? "Completado" : "Configurar"}
-                  </span>
-                  <ArrowRight
-                    className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
-                    size={16}
-                  />
+                  {content}
+                </Link>
+              ) : (
+                <div
+                  key={step.code}
+                  role="listitem"
+                  className="grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
+                >
+                  {content}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

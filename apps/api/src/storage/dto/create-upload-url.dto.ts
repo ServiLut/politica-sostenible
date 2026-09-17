@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -9,6 +9,7 @@ import {
   MaxLength,
   Min,
   IsOptional,
+  Matches,
 } from 'class-validator';
 import {
   STORAGE_MAX_FILE_NAME_LENGTH,
@@ -19,6 +20,9 @@ import {
   DocumentCategory,
   RetentionPhase,
 } from '../../../prisma/generated/prisma';
+
+const trim = ({ value }: TransformFnParams): unknown =>
+  typeof value === 'string' ? value.trim() : value;
 
 export class CreateUploadUrlDto {
   @IsEnum(StorageModuleName)
@@ -39,6 +43,13 @@ export class CreateUploadUrlDto {
   @Min(1)
   @Max(STORAGE_MAX_UPLOAD_BYTES)
   size: number;
+
+  @IsOptional()
+  @Transform(trim)
+  @Matches(/^[0-9a-f]{64}$/, {
+    message: 'contentSha256 debe ser una huella SHA-256 hexadecimal',
+  })
+  contentSha256?: string;
 
   @IsEnum(DocumentCategory)
   @IsOptional()

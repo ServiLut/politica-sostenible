@@ -8,6 +8,7 @@ import {
   FinanceReportScope,
   FinanceStatus,
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Prisma,
   Role,
   TenantType,
@@ -49,6 +50,16 @@ function campaignTenant() {
   };
 }
 
+function openLifecycleQuery() {
+  return jest.fn((query: { sql: string }) =>
+    Promise.resolve(
+      query.sql.includes('FROM "OperationProfile"')
+        ? [{ stage: PoliticalOperationStage.CAMPAIGN }]
+        : [{ locked: true }],
+    ),
+  );
+}
+
 const completeSettings = (overrides: Record<string, unknown> = {}) => ({
   id: 'settings-a',
   maxTotalBudget: new Prisma.Decimal('1000000'),
@@ -85,6 +96,7 @@ describe('FinanceService external CNE reporting', () => {
       .mockResolvedValueOnce(baseEntry)
       .mockResolvedValueOnce(updated);
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest
@@ -182,6 +194,7 @@ describe('FinanceService external CNE reporting', () => {
 
   it('rolls back the transition contract when the private receipt is not confirmed', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest
@@ -232,6 +245,7 @@ describe('FinanceService external CNE reporting', () => {
 
   it('rejects a non-approved state without writing or auditing', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest
@@ -266,6 +280,7 @@ describe('FinanceService external CNE reporting', () => {
 
   it('rejects a repeated confirmation instead of overwriting evidence', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest
@@ -299,6 +314,7 @@ describe('FinanceService external CNE reporting', () => {
 
   it('blocks an external filing transition while the legacy compliance file is incomplete', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest
@@ -339,6 +355,7 @@ describe('FinanceService external CNE reporting', () => {
 
   it('revalidates the persisted actor role before reading the entry', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(campaignTenant()) },
       user: {
         findFirst: jest.fn().mockResolvedValue({

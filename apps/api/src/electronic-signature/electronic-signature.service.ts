@@ -8,7 +8,10 @@ import {
 import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   AuditActorType,
+  PoliticalOperationStage,
+  Prisma,
   Role,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   StorageObjectModule,
 } from '../../prisma/generated/prisma';
@@ -32,6 +35,7 @@ import {
   SupabaseStorageGateway,
 } from '../storage/supabase-storage.gateway';
 import {
+  SignatureModuleQueryDto,
   SignDocumentDto,
   VerifySignatureQueryDto,
 } from './dto/electronic-signature.dto';
@@ -58,6 +62,8 @@ interface IntegrityDocument {
   readonly consumedAt: Date;
   readonly consumedByType: string;
   readonly consumedById: string;
+  readonly calculatedSha256: string;
+  readonly integrityVerifiedAt: Date;
 }
 
 const FINANCE_SIGN_ROLES = [
@@ -95,6 +101,7 @@ const SIGNATURE_RESOURCE_POLICIES: Readonly<
 };
 
 const SIGNATURE_HASH_PREFIX = 'v2:';
+const SIGNING_CANDIDATE_LIMIT = 100;
 
 @Injectable()
 export class ElectronicSignatureService {
@@ -104,6 +111,143 @@ export class ElectronicSignatureService {
     private readonly storage: SupabaseStorageGateway,
     private readonly mfa: MfaService,
   ) {}
+
+  async listSigningCandidates(
+    user: AuthenticatedUser,
+    query: SignatureModuleQueryDto,
+  ) {
+    const policy = this.getPolicy(query.module);
+    const access = await this.resolveAccess(user, policy, 'sign');
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: CAMPAIGN_TENANT_SELECT,
+    });
+    this.assertTenantModuleAccess(tenant, query.module);
+
+    const documents = await this.prisma.storedObject.findMany({
+      where: {
+        tenantId: user.tenantId,
+        uploaderId: user.userId,
+        module: policy.storedModule,
+        status: StoredObjectStatus.CONSUMED,
+        etag: { not: null },
+        actualSize: { not: null },
+        confirmedAt: { not: null },
+        consumedAt: { not: null },
+        consumedByType: policy.resourceType,
+        consumedById: { not: null },
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        integrityVerifiedAt: { not: null },
+      },
+      orderBy: [{ consumedAt: 'desc' }, { id: 'desc' }],
+      take: SIGNING_CANDIDATE_LIMIT + 1,
+      select: {
+        id: true,
+        path: true,
+        contentType: true,
+        actualSize: true,
+        confirmedAt: true,
+        consumedAt: true,
+        consumedById: true,
+        calculatedSha256: true,
+        integrityVerifiedAt: true,
+        signatures: {
+          where: { signerId: user.userId },
+          orderBy: { signedAt: 'desc' },
+          take: 1,
+          select: { id: true, signedAt: true },
+        },
+      },
+    });
+
+    const resourceIds = documents
+      .map(({ consumedById }) => consumedById)
+      .filter((resourceId): resourceId is string => Boolean(resourceId));
+    if (resourceIds.length === 0) {
+      return { items: [], limit: SIGNING_CANDIDATE_LIMIT, truncated: false };
+    }
+
+    if (query.module === StorageModuleName.FINANCE) {
+      const resources = await this.prisma.financialEntry.findMany({
+        where: {
+          id: { in: resourceIds },
+          tenantId: user.tenantId,
+          reporterId: user.userId,
+          evidenceUrl: { not: null },
+        },
+        select: {
+          id: true,
+          evidenceUrl: true,
+          type: true,
+          date: true,
+          description: true,
+        },
+      });
+      const resourcesById = new Map(
+        resources.map((resource) => [resource.id, resource]),
+      );
+      const items = documents.flatMap((document) => {
+        if (!document.consumedById) return [];
+        const resource = resourcesById.get(document.consumedById);
+        if (!resource || resource.evidenceUrl !== document.path) return [];
+        return [
+          this.presentSigningCandidate(document, {
+            kind: 'FinancialEntry' as const,
+            type: resource.type,
+            occurredAt: resource.date,
+            label: resource.description,
+          }),
+        ];
+      });
+      return {
+        items: items.slice(0, SIGNING_CANDIDATE_LIMIT),
+        limit: SIGNING_CANDIDATE_LIMIT,
+        truncated: items.length > SIGNING_CANDIDATE_LIMIT,
+      };
+    }
+
+    const resources = await this.prisma.witnessReport.findMany({
+      where: {
+        id: { in: resourceIds },
+        tenantId: user.tenantId,
+        witnessId: user.userId,
+        ...(access.divisionIds === null
+          ? {}
+          : { puestoId: { in: access.divisionIds } }),
+      },
+      select: {
+        id: true,
+        e14ImageUrl: true,
+        mesa: true,
+        captureContext: true,
+        puesto: { select: { code: true, name: true } },
+      },
+    });
+    const resourcesById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
+    const items = documents.flatMap((document) => {
+      if (!document.consumedById) return [];
+      const resource = resourcesById.get(document.consumedById);
+      if (!resource || resource.e14ImageUrl !== document.path) return [];
+      return [
+        this.presentSigningCandidate(document, {
+          kind: 'WitnessReport' as const,
+          mesa: resource.mesa,
+          captureContext: resource.captureContext,
+          pollingPlace: resource.puesto,
+        }),
+      ];
+    });
+    return {
+      items: items.slice(0, SIGNING_CANDIDATE_LIMIT),
+      limit: SIGNING_CANDIDATE_LIMIT,
+      truncated: items.length > SIGNING_CANDIDATE_LIMIT,
+    };
+  }
 
   async signDocument(
     user: AuthenticatedUser,
@@ -130,6 +274,11 @@ export class ElectronicSignatureService {
         consumedAt: { not: null },
         consumedByType: policy.resourceType,
         consumedById: dto.resourceId,
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        integrityVerifiedAt: { not: null },
       },
       select: {
         id: true,
@@ -144,6 +293,8 @@ export class ElectronicSignatureService {
         consumedByType: true,
         consumedById: true,
         status: true,
+        calculatedSha256: true,
+        integrityVerifiedAt: true,
       },
     });
     const document = this.asIntegrityDocument(
@@ -187,6 +338,48 @@ export class ElectronicSignatureService {
     );
 
     return this.prisma.$transaction(async (transaction) => {
+      // Serialize with operation closure and re-check inside the same
+      // transaction that writes the signature. The request guard is useful
+      // feedback, but it cannot by itself close the close-vs-sign race.
+      await transaction.$queryRaw<Array<{ locked: boolean }>>(Prisma.sql`
+        WITH signature_lifecycle_lock AS MATERIALIZED (
+          SELECT pg_advisory_xact_lock(
+            hashtextextended(${`operation-profile-lifecycle:${user.tenantId}`}, 0)
+          )
+        )
+        SELECT TRUE AS "locked" FROM signature_lifecycle_lock
+      `);
+      const operationProfile = await transaction.operationProfile.findUnique({
+        where: { tenantId: user.tenantId },
+        select: { stage: true },
+      });
+      if (operationProfile?.stage === PoliticalOperationStage.CLOSED) {
+        throw new ConflictException({
+          code: 'OPERATION_CLOSED',
+          message:
+            'La operacion esta cerrada y no admite nuevas firmas electronicas',
+          currentStage: operationProfile.stage,
+        });
+      }
+
+      const existingSignature = await transaction.electronicSignature.findFirst(
+        {
+          where: {
+            tenantId: user.tenantId,
+            documentId: document.id,
+            signerId: user.userId,
+          },
+          select: { id: true },
+        },
+      );
+      if (existingSignature) {
+        throw new ConflictException({
+          code: 'SIGNATURE_ALREADY_EXISTS',
+          message: 'Este documento ya fue firmado por la persona autenticada',
+          signatureId: existingSignature.id,
+        });
+      }
+
       const signature = await transaction.electronicSignature.create({
         data: {
           tenantId: user.tenantId,
@@ -225,6 +418,8 @@ export class ElectronicSignatureService {
         signedAt: signature.signedAt,
         module: dto.module,
         resourceType: policy.resourceType,
+        integrityScope: 'LINK_AND_STORAGE_METADATA' as const,
+        contentIntegrity: 'VERIFIED' as const,
       };
     });
   }
@@ -263,6 +458,8 @@ export class ElectronicSignatureService {
             consumedByType: true,
             consumedById: true,
             status: true,
+            calculatedSha256: true,
+            integrityVerifiedAt: true,
           },
         },
       },
@@ -311,6 +508,8 @@ export class ElectronicSignatureService {
       signedAt: signature.signedAt,
       module: query.module,
       resourceType: policy.resourceType,
+      integrityScope: 'LINK_AND_STORAGE_METADATA' as const,
+      contentIntegrity: 'VERIFIED' as const,
     };
   }
 
@@ -320,6 +519,44 @@ export class ElectronicSignatureService {
       throw new BadRequestException('Módulo de firma no válido');
     }
     return policy;
+  }
+
+  private presentSigningCandidate<
+    TResource extends
+      | {
+          kind: 'FinancialEntry';
+          type: string;
+          occurredAt: Date;
+          label: string;
+        }
+      | {
+          kind: 'WitnessReport';
+          mesa: number;
+          captureContext: string;
+          pollingPlace: { code: string; name: string };
+        },
+  >(
+    document: {
+      id: string;
+      contentType: string;
+      actualSize: number | null;
+      confirmedAt: Date | null;
+      consumedAt: Date | null;
+      consumedById: string | null;
+      signatures: Array<{ id: string; signedAt: Date }>;
+    },
+    resource: TResource,
+  ) {
+    return {
+      documentId: document.id,
+      resourceId: document.consumedById!,
+      contentType: document.contentType,
+      actualSize: document.actualSize!,
+      confirmedAt: document.confirmedAt!,
+      consumedAt: document.consumedAt!,
+      signature: document.signatures[0] ?? null,
+      resource,
+    };
   }
 
   private resolveAccess(
@@ -366,6 +603,8 @@ export class ElectronicSignatureService {
           consumedByType: string | null;
           consumedById: string | null;
           status: StoredObjectStatus;
+          calculatedSha256: string | null;
+          integrityVerifiedAt: Date | null;
         }
       | null
       | undefined,
@@ -385,6 +624,8 @@ export class ElectronicSignatureService {
       !document.consumedAt ||
       document.consumedByType !== policy.resourceType ||
       document.consumedById !== resourceId ||
+      !document.calculatedSha256 ||
+      !document.integrityVerifiedAt ||
       (requiredUploaderId !== undefined &&
         document.uploaderId !== requiredUploaderId)
     ) {

@@ -20,6 +20,11 @@ export class SignatureResourceDto {
   resourceId: string;
 }
 
+export class SignatureModuleQueryDto {
+  @IsIn([StorageModuleName.FINANCE, StorageModuleName.E14])
+  module: StorageModuleName;
+}
+
 export class SignDocumentDto extends SignatureResourceDto {
   @IsString()
   @IsNotEmpty()

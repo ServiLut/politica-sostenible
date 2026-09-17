@@ -11,14 +11,18 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CasesService } from './cases.service';
+import { ListAssigneesQueryDto } from './dto/list-assignees-query.dto';
 import { CreateIssueCaseDto } from './dto/create-issue-case.dto';
 import { ListIssueCasesQueryDto } from './dto/list-issue-cases-query.dto';
 import { UpdateIssueCaseDto } from './dto/update-issue-case.dto';
 
 @ApiTags('Citizen cases')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Roles(
   Role.ADMIN,
   Role.CAMPAIGN_MANAGER,
@@ -39,8 +43,11 @@ export class CasesController {
     Role.CASE_WORKER,
   )
   @ApiOperation({ summary: 'Lista responsables elegibles del tenant activo' })
-  listAssignees(@CurrentUser() user: AuthenticatedUser) {
-    return this.casesService.listAssignees(user);
+  listAssignees(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListAssigneesQueryDto,
+  ) {
+    return this.casesService.listAssignees(user, query);
   }
 
   @Get()
@@ -54,8 +61,11 @@ export class CasesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Consulta un caso del tenant y modo activos' })
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.casesService.findOne(user, id);
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: CuidIdParamsDto,
+  ) {
+    return this.casesService.findOne(user, params.id);
   }
 
   @Post()
@@ -86,9 +96,9 @@ export class CasesController {
   @ApiOperation({ summary: 'Actualiza un caso sin eliminar su historial' })
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: UpdateIssueCaseDto,
   ) {
-    return this.casesService.update(user, id, dto);
+    return this.casesService.update(user, params.id, dto);
   }
 }

@@ -645,6 +645,8 @@ async function populateDemoData(
     where: { tenantId: tenant.id },
     update: {
       electionDate: new Date('2027-10-29T13:00:00Z'),
+      votingStartDate: new Date('2027-10-29T00:00:00Z'),
+      votingEndDate: new Date('2027-10-29T00:00:00Z'),
     },
     create: {
       tenantId: tenant.id,
@@ -654,6 +656,8 @@ async function populateDemoData(
       circumscriptionType: 'MUNICIPAL',
       circumscriptionName: 'Bucaramanga',
       electionDate: new Date('2027-10-29T13:00:00Z'),
+      votingStartDate: new Date('2027-10-29T00:00:00Z'),
+      votingEndDate: new Date('2027-10-29T00:00:00Z'),
       expectedTeamSize: 50,
       dataControllerName: 'Campaña Alcaldía Bucaramanga 2027',
       responsibleDataUserId: adminUser.id,

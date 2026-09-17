@@ -33,12 +33,16 @@ export default function DashboardLayout({
   );
   const isPersonalAccountRoute = pathname === "/dashboard/profile";
   const requiresPasswordChange = user?.mustChangePassword === true;
+  const isCurrentStageAllowed =
+    !currentRouteConfig?.allowedStages ||
+    Boolean(stage && currentRouteConfig.allowedStages.includes(stage));
   const hasPermission = Boolean(
     user &&
     tenant &&
     (!requiresPasswordChange || isPersonalAccountRoute) &&
     (isPersonalAccountRoute ||
       (currentRouteConfig &&
+        isCurrentStageAllowed &&
         canAccessNavigationItem(currentRouteConfig, user, tenant))),
   );
 
@@ -121,8 +125,19 @@ export default function DashboardLayout({
                 Acceso restringido
               </h1>
               <p className="mt-3 font-medium leading-relaxed text-slate-600">
-                El rol <strong>{getRoleLabel(user.backendRole)}</strong> no
-                tiene permiso para consultar esta sección de la organización.
+                {currentRouteConfig?.allowedStages && !isCurrentStageAllowed ? (
+                  <>
+                    Esta sección no está habilitada durante la etapa operativa
+                    actual. Usa el perfil operativo para consultar el avance
+                    permitido.
+                  </>
+                ) : (
+                  <>
+                    El rol <strong>{getRoleLabel(user.backendRole)}</strong> no
+                    tiene permiso para consultar esta sección de la
+                    organización.
+                  </>
+                )}
               </p>
             </div>
             <button

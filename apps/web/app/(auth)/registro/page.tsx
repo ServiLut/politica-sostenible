@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Input, Label } from "@/components/ui";
-import { registerAccount } from "@/lib/auth-api";
+import {
+  getRegistrationPolicy,
+  registerAccount,
+  type RegistrationPolicyResponse,
+} from "@/lib/auth-api";
 import {
   UserPlus,
   Mail,
@@ -19,6 +23,10 @@ import {
 } from "lucide-react";
 
 export default function RegisterPage() {
+  const [registrationPolicy, setRegistrationPolicy] =
+    useState<RegistrationPolicyResponse | null>(null);
+  const [policyLoading, setPolicyLoading] = useState(true);
+  const [policyError, setPolicyError] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -40,6 +48,32 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+
+  const loadRegistrationPolicy = useCallback(async (signal?: AbortSignal) => {
+    setPolicyLoading(true);
+    setPolicyError(false);
+    try {
+      const policy = await getRegistrationPolicy(signal);
+      setRegistrationPolicy(policy);
+    } catch (requestError: unknown) {
+      if (
+        requestError instanceof DOMException &&
+        requestError.name === "AbortError"
+      ) {
+        return;
+      }
+      setRegistrationPolicy(null);
+      setPolicyError(true);
+    } finally {
+      if (!signal?.aborted) setPolicyLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadRegistrationPolicy(controller.signal);
+    return () => controller.abort();
+  }, [loadRegistrationPolicy]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -84,6 +118,12 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!registrationPolicy?.enabled) {
+      setError(
+        "El registro no está habilitado. Actualiza el estado de acceso antes de continuar.",
+      );
+      return;
+    }
     if (formData.password !== formData.passwordConfirmation) {
       setStepError("Las contraseñas no coinciden.");
       return;
@@ -106,7 +146,7 @@ export default function RegisterPage() {
         password: formData.password,
         passwordConfirmation: formData.passwordConfirmation,
         termsAccepted: true,
-        termsVersion: "2026.1",
+        termsVersion: registrationPolicy.termsVersion,
         ...(formData.documentId.trim()
           ? { documentId: formData.documentId.trim() }
           : {}),
@@ -124,6 +164,68 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (!registrationPolicy?.enabled) {
+    const description = policyLoading
+      ? "Estamos verificando si la creación de organizaciones está habilitada."
+      : policyError
+        ? "No fue posible verificar la política de acceso. Por seguridad, el registro permanece cerrado."
+        : registrationPolicy?.message;
+
+    return (
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none dark:bg-slate-950"
+      >
+        <section
+          aria-busy={policyLoading}
+          aria-live="polite"
+          className="w-full max-w-xl space-y-8 rounded-[3rem] border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-12"
+        >
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+            {policyLoading ? (
+              <Loader2 className="h-10 w-10 animate-spin" aria-hidden="true" />
+            ) : (
+              <ShieldCheck className="h-10 w-10" aria-hidden="true" />
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">
+              Acceso a organizaciones
+            </p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-white">
+              {policyLoading ? "Verificando acceso" : "Registro controlado"}
+            </h1>
+            <p className="text-base leading-7 text-slate-600 dark:text-slate-300">
+              {description}
+            </p>
+          </div>
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            {policyError && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={policyLoading}
+                onClick={() => void loadRegistrationPolicy()}
+              >
+                Reintentar verificación
+              </Button>
+            )}
+            {!policyLoading && (
+              <Button asChild>
+                <Link href="/iniciar-sesion">Iniciar sesión</Link>
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-slate-500">
+            ¿Tienes una invitación? Ábrela desde el enlace único que recibió tu
+            correo autorizado.
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   if (success) {
     return (
@@ -529,7 +631,7 @@ export default function RegisterPage() {
                   <span>
                     Acepto expresamente los{" "}
                     <Link href="/terminos" className="font-bold underline">
-                      términos versión 2026.1
+                      términos versión {registrationPolicy.termsVersion}
                     </Link>{" "}
                     y confirmo que leí el aviso de{" "}
                     <Link href="/privacidad" className="font-bold underline">

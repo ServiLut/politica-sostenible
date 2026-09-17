@@ -31,6 +31,7 @@ import {
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { GrantVoterConsentDto } from './dto/grant-voter-consent.dto';
@@ -169,6 +170,7 @@ export class VoterService {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          await lockAndAssertOperationOpen(transaction, user.tenantId);
           const tenant = await transaction.tenant.findUnique({
             where: { id: user.tenantId },
             select: CAMPAIGN_TENANT_SELECT,
@@ -209,6 +211,7 @@ export class VoterService {
                 id: voterData.puestoId,
                 tenantId: user.tenantId,
                 type: DivisionType.PUESTO,
+                isActive: true,
               },
               select: { id: true },
             });
@@ -364,6 +367,7 @@ export class VoterService {
         tenantId: user.tenantId,
         id: { in: divisionIds },
         type: DivisionType.PUESTO,
+        isActive: true,
       },
       select: { id: true, code: true, name: true },
       orderBy: [{ name: 'asc' }, { code: 'asc' }, { id: 'asc' }],
@@ -585,6 +589,7 @@ export class VoterService {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          await lockAndAssertOperationOpen(transaction, user.tenantId);
           const tenant = await transaction.tenant.findUnique({
             where: { id: user.tenantId },
             select: CAMPAIGN_TENANT_SELECT,

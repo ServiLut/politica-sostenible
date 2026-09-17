@@ -94,19 +94,26 @@ describe('UpdateVoterDataDto', () => {
 });
 
 describe('VoterDataRightsParamsDto', () => {
-  it('acepta un identificador interno acotado', async () => {
+  it('acepta el CUID canonico persistido por Prisma', async () => {
     await expect(
-      validate(plainToInstance(VoterDataRightsParamsDto, { id: 'cm123_a-b' })),
+      validate(
+        plainToInstance(VoterDataRightsParamsDto, {
+          id: 'ckl0z7u4f0000qzrmn831i7rn',
+        }),
+      ),
     ).resolves.toHaveLength(0);
   });
 
-  it.each(['', '../tenant-b', 'x'.repeat(129)])(
-    'rechaza el identificador inseguro %p',
-    async (id) => {
-      const errors = await validate(
-        plainToInstance(VoterDataRightsParamsDto, { id }),
-      );
-      expect(errors.map((error) => error.property)).toContain('id');
-    },
-  );
+  it.each([
+    '',
+    'voter-a',
+    '../tenant-b',
+    'CKL0Z7U4F0000QZRMN831I7RN',
+    'x'.repeat(129),
+  ])('rechaza el identificador inseguro %p', async (id) => {
+    const errors = await validate(
+      plainToInstance(VoterDataRightsParamsDto, { id }),
+    );
+    expect(errors.map((error) => error.property)).toContain('id');
+  });
 });

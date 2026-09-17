@@ -48,6 +48,7 @@ const EMPTY_FORM: DetailForm = {
 const EMPTY_PLACES_PAGE: VotingPlacePage = {
   items: [],
   pagination: { page: 1, limit: 25, total: 0, totalPages: 0 },
+  evaluatedAt: "1970-01-01T00:00:00.000Z",
 };
 
 function detailToForm(voter: VoterDetail): DetailForm {

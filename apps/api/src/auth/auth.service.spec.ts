@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   UnauthorizedException,
@@ -14,6 +15,7 @@ import {
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from './public-registration.policy';
 import { createSessionVersion } from './session-version';
 
 const TEST_JWT_SECRET = 'test-only-jwt-secret-at-least-32-bytes-long';
@@ -34,6 +36,51 @@ function createAuthService(prisma: PrismaService, jwt: JwtService) {
 }
 
 describe('AuthService organization onboarding', () => {
+  it('fails closed in production before hashing or touching the database', async () => {
+    const originalNodeEnvironment = process.env.NODE_ENV;
+    const originalRegistrationFlag = process.env.PUBLIC_REGISTRATION_ENABLED;
+    const prisma = {
+      user: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+    jest.mocked(bcrypt.hash).mockClear();
+
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.PUBLIC_REGISTRATION_ENABLED;
+
+      await expect(
+        service.register({
+          email: 'admin@example.test',
+          password: 'clave-segura-2026',
+          passwordConfirmation: 'clave-segura-2026',
+          name: 'Ana Perez',
+          organizationName: 'Concejo abierto',
+          organizationType: TenantType.CANDIDACY,
+          termsAccepted: true,
+          termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
+        }),
+      ).rejects.toMatchObject({
+        constructor: ForbiddenException,
+        message:
+          'El registro publico esta cerrado. Solicita una invitacion a la administracion de la plataforma.',
+      });
+
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    } finally {
+      if (originalNodeEnvironment === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnvironment;
+      if (originalRegistrationFlag === undefined)
+        delete process.env.PUBLIC_REGISTRATION_ENABLED;
+      else process.env.PUBLIC_REGISTRATION_ENABLED = originalRegistrationFlag;
+    }
+  });
+
   it('creates a public-office tenant and versioned terms audit atomically', async () => {
     const tenantCreate = jest.fn().mockResolvedValue({ id: 'tenant-created' });
     const userCreate = jest.fn().mockResolvedValue({ id: 'user-created' });
@@ -63,7 +110,7 @@ describe('AuthService organization onboarding', () => {
       organizationName: 'Concejo abierto',
       organizationType: TenantType.PUBLIC_OFFICE,
       termsAccepted: true,
-      termsVersion: '2026.1',
+      termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
     });
 
     expect(tenantCreate).toHaveBeenCalledWith({
@@ -90,7 +137,7 @@ describe('AuthService organization onboarding', () => {
         actorUserId: 'user-created',
         action: 'ACCOUNT_TERMS_ACCEPTED',
         metadata: {
-          termsVersion: '2026.1',
+          termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
           organizationType: TenantType.PUBLIC_OFFICE,
         },
       }),
@@ -118,7 +165,7 @@ describe('AuthService organization onboarding', () => {
         organizationName: 'Organización',
         organizationType: TenantType.CANDIDACY,
         termsAccepted: true,
-        termsVersion: '2026.1',
+        termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
       }),
     ).rejects.toMatchObject({
       constructor: ConflictException,
@@ -147,9 +194,40 @@ describe('AuthService organization onboarding', () => {
         organizationName: 'Concejo abierto',
         organizationType: TenantType.CANDIDACY,
         termsAccepted: true,
-        termsVersion: '2026.1',
+        termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
       }),
     ).rejects.toThrow('La confirmacion de la contrasena no coincide');
+
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rechaza una versión distinta a la política antes de hashing o acceso a datos', async () => {
+    jest.mocked(bcrypt.hash).mockClear();
+    const prisma = {
+      user: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const service = createAuthService(prisma, {
+      signAsync: jest.fn(),
+    } as unknown as JwtService);
+
+    await expect(
+      service.register({
+        email: 'admin@example.test',
+        password: 'clave-segura-2026',
+        passwordConfirmation: 'clave-segura-2026',
+        name: 'Ana Perez',
+        organizationName: 'Concejo abierto',
+        organizationType: TenantType.CANDIDACY,
+        termsAccepted: true,
+        termsVersion: 'version-anterior',
+      }),
+    ).rejects.toMatchObject({
+      constructor: BadRequestException,
+      message: 'La versión de términos no coincide con la política vigente',
+    });
 
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(bcrypt.hash).not.toHaveBeenCalled();

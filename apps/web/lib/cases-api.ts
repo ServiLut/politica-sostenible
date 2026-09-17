@@ -137,9 +137,15 @@ export function getIssueCase(
 }
 
 export function listCaseAssignees(
+  query: { page?: number; limit?: number; search?: string },
   signal?: AbortSignal,
-): Promise<CaseUserSummary[]> {
-  return apiRequest("cases/assignees", { signal });
+): Promise<{ items: CaseUserSummary[], pagination: { page: number, limit: number, total: number, totalPages: number } }> {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.search) params.set("search", query.search);
+  
+  return apiRequest(`cases/assignees?${params.toString()}`, { signal });
 }
 
 export function createIssueCase(

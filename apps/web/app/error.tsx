@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useEffect } from "react";
 import { AlertTriangle, RefreshCcw, Home, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,11 +18,6 @@ export default function Error({
 }) {
   const pathname = usePathname();
 
-  useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error);
-  }, [error]);
-
   return (
     <div
       id={isDashboardPath(pathname) ? DASHBOARD_CONTENT_ID : MAIN_CONTENT_ID}
@@ -33,13 +27,13 @@ export default function Error({
       <div className="max-w-md w-full bg-white rounded-[2.5rem] border border-zinc-100 shadow-2xl p-10 text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex justify-center">
           <div className="h-20 w-20 rounded-3xl bg-red-50 text-accent flex items-center justify-center shadow-lg shadow-red-100">
-            <AlertTriangle className="h-10 w-10" />
+            <AlertTriangle aria-hidden="true" className="h-10 w-10" />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles aria-hidden="true" className="h-4 w-4 text-primary" />
             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
               Sistema Politica Sostenible
             </span>
@@ -48,8 +42,9 @@ export default function Error({
             Ups, algo salió mal
           </h1>
           <p className="text-zinc-500 font-medium italic leading-relaxed">
-            Hemos detectado una anomalía en la matriz de datos. No te preocupes,
-            tu información está a salvo.
+            Esta pantalla no puede confirmar si la última operación terminó ni
+            si produjo cambios. Intenta cargarla de nuevo y, antes de repetir
+            un envío, verifica su estado para evitar duplicados.
           </p>
         </div>
 
@@ -57,17 +52,17 @@ export default function Error({
           <button
             type="button"
             onClick={() => reset()}
-            className="h-14 w-full bg-primary text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
+            className="h-14 w-full bg-primary text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
           >
-            <RefreshCcw className="h-4 w-4" />
+            <RefreshCcw aria-hidden="true" className="h-4 w-4" />
             Intentar de nuevo
           </button>
 
           <Link
             href="/dashboard"
-            className="h-14 w-full bg-zinc-100 text-secondary rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-zinc-200 transition-all"
+            className="h-14 w-full bg-zinc-100 text-secondary rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-zinc-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
           >
-            <Home className="h-4 w-4" />
+            <Home aria-hidden="true" className="h-4 w-4" />
             Volver al Inicio
           </Link>
         </div>

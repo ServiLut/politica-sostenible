@@ -16,6 +16,7 @@ import {
   Role,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from '../auth/public-registration.policy';
 import { PrismaService } from '../prisma/prisma.service';
 import { TeamService } from './team.service';
 import {
@@ -229,6 +230,7 @@ describe('TeamService administration and tenant isolation', () => {
       },
       data: {
         password: 'bcrypt-reset-hash',
+        authVersion: { increment: 1 },
         mustChangePassword: true,
         temporaryPasswordExpiresAt: result.temporaryPasswordExpiresAt,
       },
@@ -359,9 +361,25 @@ describe('TeamService administration and tenant isolation', () => {
       service.resetMemberAccess(admin, admin.userId),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
-    expect(tx.user.findFirst).toHaveBeenCalledTimes(1);
+    expect(tx.user.findFirst).not.toHaveBeenCalled();
+    expect(bcrypt.hash).not.toHaveBeenCalled();
     expect(tx.user.updateMany).not.toHaveBeenCalled();
     expect(tx.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-admin before spending CPU on password hashing', async () => {
+    const { prisma, service, tx } = createHarness();
+
+    await expect(
+      service.resetMemberAccess(
+        { ...admin, role: Role.CAMPAIGN_MANAGER },
+        'member-a',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.user.findFirst).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -392,6 +410,7 @@ describe('TeamService administration and tenant isolation', () => {
         },
         data: {
           password: 'backup-reset-hash',
+          authVersion: { increment: 1 },
           mustChangePassword: true,
           temporaryPasswordExpiresAt: result.temporaryPasswordExpiresAt,
         },
@@ -603,7 +622,11 @@ describe('TeamService member lifecycle', () => {
         role: Role.VOLUNTEER,
         isActive: true,
       },
-      data: { role: Role.CAMPAIGN_MANAGER, divisionId: null },
+      data: {
+        role: Role.CAMPAIGN_MANAGER,
+        divisionId: null,
+        authVersion: { increment: 1 },
+      },
     });
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -644,7 +667,7 @@ describe('TeamService member lifecycle', () => {
         tenantId: 'tenant-a',
         isActive: true,
       }),
-      data: { isActive: false },
+      data: { isActive: false, authVersion: { increment: 1 } },
     });
     expect(deactivation.tx.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -657,6 +680,14 @@ describe('TeamService member lifecycle', () => {
     const reactivation = withTarget({ isActive: false });
     await reactivation.service.updateMemberStatus(admin, 'member-a', {
       isActive: true,
+    });
+    expect(reactivation.tx.user.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        id: 'member-a',
+        tenantId: 'tenant-a',
+        isActive: false,
+      }),
+      data: { isActive: true, authVersion: { increment: 1 } },
     });
     expect(reactivation.tx.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: 'TEAM_MEMBER_ACTIVATED' }),
@@ -716,6 +747,7 @@ describe('TeamService member lifecycle', () => {
       where: {
         id: 'puesto-a',
         tenantId: 'tenant-a',
+        isActive: true,
         type: { in: [DivisionType.PUESTO] },
       },
       select: { id: true, code: true, name: true, type: true },
@@ -728,7 +760,10 @@ describe('TeamService member lifecycle', () => {
         isActive: true,
         divisionId: null,
       },
-      data: { divisionId: 'puesto-a' },
+      data: {
+        divisionId: 'puesto-a',
+        authVersion: { increment: 1 },
+      },
     });
     expect(tx.auditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -768,7 +803,12 @@ describe('TeamService member lifecycle', () => {
 
     expect(tx.politicalDivision.findFirst).not.toHaveBeenCalled();
     expect(tx.user.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { divisionId: null } }),
+      expect.objectContaining({
+        data: {
+          divisionId: null,
+          authVersion: { increment: 1 },
+        },
+      }),
     );
   });
 
@@ -865,9 +905,22 @@ describe('TeamService member lifecycle', () => {
 });
 
 describe('TeamService invitation acceptance', () => {
+  const originalInvitationAcceptanceFlag =
+    process.env.TEAM_INVITATION_ACCEPTANCE_ENABLED;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.TEAM_INVITATION_ACCEPTANCE_ENABLED;
     jest.mocked(bcrypt.hash).mockResolvedValue('bcrypt-12-hash' as never);
+  });
+
+  afterAll(() => {
+    if (originalInvitationAcceptanceFlag === undefined) {
+      delete process.env.TEAM_INVITATION_ACCEPTANCE_ENABLED;
+    } else {
+      process.env.TEAM_INVITATION_ACCEPTANCE_ENABLED =
+        originalInvitationAcceptanceFlag;
+    }
   });
 
   const token = 't'.repeat(43);
@@ -878,7 +931,7 @@ describe('TeamService invitation acceptance', () => {
     documentId: '1012345678',
     phone: '+573001234567',
     termsAccepted: true,
-    termsVersion: '2026.1',
+    termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
   } as const;
 
   function withValidInvitation(
@@ -886,6 +939,9 @@ describe('TeamService invitation acceptance', () => {
     mode: PoliticalOperationMode = PoliticalOperationMode.CAMPAIGN,
   ) {
     const harness = createHarness(mode);
+    harness.tx.teamInvitation.findFirst.mockResolvedValue({
+      tenantId: 'tenant-a',
+    });
     harness.tx.teamInvitation.findUnique.mockResolvedValue({
       id: 'invitation-a',
       tenantId: 'tenant-a',
@@ -936,6 +992,14 @@ describe('TeamService invitation acceptance', () => {
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
+    expect(tx.teamInvitation.findFirst).toHaveBeenCalledWith({
+      where: {
+        tokenHash: createHash('sha256').update(token).digest('hex'),
+        acceptedAt: null,
+        expiresAt: { gt: expect.any(Date) },
+      },
+      select: { tenantId: true },
+    });
     expect(ensureTenantSubscription).toHaveBeenCalledWith(prisma, 'tenant-a');
     expect(assertPlanQuotaInTransaction).toHaveBeenCalledWith(
       tx,
@@ -954,7 +1018,7 @@ describe('TeamService invitation acceptance', () => {
         }),
         expect.objectContaining({
           action: 'ACCOUNT_TERMS_ACCEPTED',
-          metadata: { termsVersion: '2026.1' },
+          metadata: { termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION },
         }),
       ]),
     );
@@ -964,6 +1028,40 @@ describe('TeamService invitation acceptance', () => {
     expect(serializedAudit).not.toContain(acceptance.documentId);
     expect(serializedAudit).not.toContain(acceptance.phone);
     expect(serializedAudit).not.toContain(acceptance.password);
+  });
+
+  it('rejects a stale terms version before hashing or looking up the invitation', async () => {
+    const { prisma, service, tx } = withValidInvitation();
+
+    await expect(
+      service.acceptInvitation({
+        ...acceptance,
+        termsVersion: 'version-anterior',
+      }),
+    ).rejects.toMatchObject({
+      constructor: BadRequestException,
+      message: 'La version de terminos no coincide con la politica vigente',
+    });
+
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+    expect(tx.teamInvitation.findFirst).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(ensureTenantSubscription).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when controlled invitation acceptance is explicitly disabled', async () => {
+    process.env.TEAM_INVITATION_ACCEPTANCE_ENABLED = 'false';
+    const { prisma, service, tx } = withValidInvitation();
+
+    await expect(service.acceptInvitation(acceptance)).rejects.toMatchObject({
+      constructor: ForbiddenException,
+      message: 'La activacion de invitaciones esta temporalmente deshabilitada',
+    });
+
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+    expect(tx.teamInvitation.findFirst).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(ensureTenantSubscription).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -1015,6 +1113,7 @@ describe('TeamService invitation acceptance', () => {
       await expect(service.acceptInvitation(acceptance)).rejects.toThrow(
         'Invitacion invalida, vencida o utilizada',
       );
+      expect(ensureTenantSubscription).not.toHaveBeenCalled();
       expect(tx.user.create).not.toHaveBeenCalled();
     },
   );

@@ -22,6 +22,7 @@ describe('CasesService tenant and mode isolation', () => {
   };
 
   let prisma: {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock; findMany: jest.Mock };
     voter: { findFirst: jest.Mock };
@@ -41,6 +42,7 @@ describe('CasesService tenant and mode isolation', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest
           .fn()

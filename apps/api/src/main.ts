@@ -9,6 +9,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { enableApplicationShutdownHooks } from './common/lifecycle/graceful-shutdown';
+import { getRequestId, requestIdMiddleware } from './common/http/request-id';
+import { resolveAppRevision } from './common/http/app-revision';
 
 export function resolveCorsOrigins(
   environment: NodeJS.ProcessEnv = process.env,
@@ -72,8 +74,12 @@ async function bootstrap() {
   enableApplicationShutdownHooks(app);
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+  app.use(requestIdMiddleware);
+
+  const appRevision = resolveAppRevision();
 
   app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-App-Revision', appRevision);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-DNS-Prefetch-Control', 'off');
@@ -98,13 +104,16 @@ async function bootstrap() {
   // Structured Logging middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
     const { method, path } = req;
+    const requestId = getRequestId(req);
     const startTime = Date.now();
 
     res.on('finish', () => {
       const { statusCode } = res;
       const duration = Date.now() - startTime;
 
-      logger.log(`${method} ${path} ${statusCode} +${duration}ms`);
+      logger.log(
+        `${method} ${path} ${statusCode} +${duration}ms requestId=${requestId ?? 'unavailable'}`,
+      );
     });
     next();
   });
@@ -124,6 +133,7 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
+    exposedHeaders: ['X-Request-Id', 'X-App-Revision'],
     maxAge: 600,
   });
   const port = process.env.PORT ?? 4000;

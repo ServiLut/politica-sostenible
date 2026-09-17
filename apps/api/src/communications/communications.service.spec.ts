@@ -57,6 +57,7 @@ describe('CommunicationsService approval controls', () => {
   });
 
   let prisma: {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     issueCase: { findFirst: jest.Mock };
@@ -74,6 +75,7 @@ describe('CommunicationsService approval controls', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.CAMPAIGN,

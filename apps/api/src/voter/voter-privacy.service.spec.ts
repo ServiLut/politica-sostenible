@@ -128,6 +128,7 @@ function buildServiceWithTransaction(
 
 function buildConsentGrantTransaction() {
   return {
+    $queryRaw: jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]),
     tenant: {
       findUnique: jest.fn().mockResolvedValue(campaignTenant),
     },
@@ -864,7 +865,7 @@ describe('VoterService privacy controls', () => {
       select: { role: true, divisionId: true },
     });
     expect(divisionFindMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a' },
+      where: { tenantId: 'tenant-a', isActive: true },
       select: { id: true, parentId: true },
     });
 

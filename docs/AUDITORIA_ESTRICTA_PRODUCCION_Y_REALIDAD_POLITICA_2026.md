@@ -1,242 +1,354 @@
 # Auditoría estricta de producción y realidad política colombiana 2026
 
-> Corte de evidencia: 8 de septiembre de 2026.
-> Alcance: aplicación web, API, operación política colombiana y riesgos de salida a producción.
-> Veredicto: **el despliegue observado no está listo para una operación política crítica**. El candidato de código superó los gates locales y una corrida CI remota completa y verde en la rama pública saneada, pero todavía no fue promovido ni probado en staging o producción. Exige inventario de la base real, restauración ensayada, staging equivalente y pruebas con un tenant desechable antes de reemplazar producción.
+> Corte documental: 10 de septiembre de 2026. La evidencia productiva citada
+> corresponde al despliegue observado hasta el 9 de septiembre de 2026.
+>
+> Veredicto: **la versión que continúa en producción no está lista para una
+> operación política crítica y el candidato local aún no está autorizado para
+> reemplazarla**. El candidato local resuelve una parte sustancial de los
+> hallazgos, pero todavía no ha pasado por restauración ensayada, staging
+> equivalente ni despliegue controlado. Este documento no certifica cumplimiento
+> jurídico, electoral, contable, de seguridad o de protección de datos.
 
-## 1. Límites de esta auditoría
+## 1. Cómo leer el estado
 
-Este documento distingue cuatro estados que no deben mezclarse:
+Esta auditoría separa estados que no pueden usarse como sinónimos:
 
-- **Observado en producción:** comportamiento comprobado de forma no destructiva en el despliegue viejo.
-- **Corregido en candidato local:** existe implementación en el monorepo local; no significa que esté desplegada ni que la autoridad la haya certificado.
-- **Pendiente externo:** exige una decisión del dueño del producto, asesoría especializada, credenciales, contrato o integración con un tercero.
-- **No probado por seguridad:** se evitó alterar datos reales, enviar mensajes, mover dinero o ejecutar actuaciones electorales.
+- **Producción observada:** comportamiento comprobado de forma no destructiva
+  sobre la versión antigua.
+- **Candidato local:** código y controles presentes en el monorepo. No implica
+  que estén desplegados, configurados con servicios reales ni aceptados por una
+  autoridad.
+- **Pendiente de verificación:** existe una implementación, pero falta cerrar
+  los gates finales sobre un commit y digest inmutables.
+- **Pendiente externo:** exige autorización de fuente, proveedor, credenciales,
+  decisión institucional o validación profesional.
+- **No probado por seguridad:** se evitó mutar datos reales, enviar mensajes,
+  mover dinero, radicar actuaciones o ejecutar pruebas destructivas.
 
-El recorrido productivo quedó resumido, sin credenciales ni datos personales, en
-[Evidencia no destructiva de producción](./evidence/AUDITORIA_PRODUCCION_2026-09-07.md).
-La comprobación posterior de puertos y superficies administrativas está en
-[Evidencia de exposición externa](./evidence/INFRAESTRUCTURA_EXTERNA_2026-09-08.md).
-Los conteos son evidencia de una sesión contra una versión cuyo commit/digest no
-estaba publicado; no sustituyen una corrida reproducible posterior al despliegue.
+La evidencia saneada está en:
 
-No es un concepto jurídico, contable ni electoral. Tampoco certifica cumplimiento de la SIC, el CNE, la Registraduría o la Ley 1755. Las reglas deben ser validadas por responsables competentes para cada elección y mantenerse versionadas.
+- [auditoría productiva inicial](./evidence/AUDITORIA_PRODUCCION_2026-09-07.md);
+- [auditoría autenticada no destructiva](./evidence/AUDITORIA_PRODUCCION_NO_DESTRUCTIVA_2026-09-09.md);
+- [exposición externa observada](./evidence/INFRAESTRUCTURA_EXTERNA_2026-09-08.md);
+- [infraestructura Dokploy observada](./evidence/INFRAESTRUCTURA_DOKPLOY_2026-09-09.md).
+
+Los recorridos por ciclo y el criterio de aceptación están en la
+[matriz operativa](./MATRIZ_OPERATIVA_CICLO_ELECTORAL_2026.md) y el
+[simulacro integral](./SIMULACRO_INTEGRAL_CICLO_ELECTORAL.md).
 
 ## 2. Diagnóstico ejecutivo
 
-La aplicación ya tiene una base útil de CRM, territorio, casos, finanzas y día electoral, pero un político experimentado no la evaluaría por la cantidad de botones. La evaluaría por cinco preguntas: ¿funciona bajo presión?, ¿deja evidencia?, ¿respeta quién puede hacer qué?, ¿sobrevive sin conectividad?, ¿permite responder ante una autoridad?
+Un dirigente experimentado no evalúa el producto por la cantidad de pantallas,
+sino por continuidad, responsabilidad, evidencia, control territorial y
+capacidad de responder después. Bajo ese estándar:
 
-Hoy la respuesta en el despliegue viejo es insuficiente:
+- **Producción está rezagada.** Varias rutas y contratos del candidato local no
+  existen en el despliegue actual. El manifest y el service worker respondieron
+  404, por lo que allí no hay PWA instalable ni continuidad offline.
+- **Producción no tiene universo electoral operativo.** El inventario
+  autenticado encontró geografía administrativa, pero cero puestos electorales.
+  Por tanto, zonas, puestos, mesas, asignaciones y cobertura real de Día D no
+  pueden considerarse habilitados.
+- **La carga electoral no puede improvisarse.** El candidato local ya tiene
+  releases inmutables, parser, worker, cuarentena, diferencias y aprobación de
+  cuatro ojos. Sin embargo, ninguna fuente RNEC debe descargarse, almacenarse o
+  activarse para el SaaS hasta acreditar autorización o licencia de
+  reutilización y resolver las ambigüedades del archivo.
+- **La continuidad offline es acotada, no universal.** El candidato local
+  ofrece shell PWA, bóveda AES-GCM y comandos idempotentes para captura
+  territorial, E-14 e incidentes, además de snapshots de mapa de calor y
+  calendario. El resto del dashboard exige conectividad y el dispositivo debe
+  preaprovisionarse antes de perder la red.
+- **La integridad de archivos estaba sobreafirmada.** Salvo el importador del
+  catálogo electoral, Nest no descarga ni recalcula los bytes subidos
+  directamente a Storage. Los SHA esperado y reportado proceden del cliente;
+  sirven para continuidad e idempotencia, no como atestación independiente. La
+  interfaz y los contratos locales ahora lo declaran, pero la verificación de
+  contenido sigue siendo un bloqueo P0 de salida.
+- **La operación completa existe como controles internos.** Firmas GSC,
+  calendario, cobertura de testigos, E-14, incidentes, escrutinio, cierre
+  financiero, retención y PQRSD tienen contratos locales más estrictos. Ninguno
+  sustituye una radicación, certificación, firma, notificación o decisión
+  externa.
+- **No existe todavía una salida segura.** Falta demostrar restauración de
+  PostgreSQL y Storage desde un respaldo externo, levantar staging equivalente,
+  ejecutar el simulacro humano y promover exactamente el artefacto aprobado.
+- **La VPS sigue siendo un riesgo de concentración.** La indisponibilidad
+  simultánea reportada de cuatro sitios no tiene causa raíz demostrada. El
+  candidato de software no corrige por sí mismo firewall, capacidad,
+  observabilidad, aislamiento ni recuperación de la infraestructura.
 
-- Hay una **brecha de versión**: producción no contiene varias rutas y contratos que sí existen localmente.
-- El flujo de **mesa electoral** falla ante una entrada inválida y expone un error técnico en inglés.
-- La **PWA no está desplegada** y no existe todavía una cola transaccional offline para el trabajo de campo.
-- Finanzas, testigos, comunicaciones, consentimiento y atención ciudadana necesitan expedientes completos; una etiqueta o un formulario no crean por sí solos una actuación oficial.
-- Recuperación de cuenta, verificación de email y protección distribuida contra abuso siguen incompletas en producción; el candidato local ya invalida JWT al cerrar sesión y evita reutilizar un TOTP aceptado.
-- El incidente reportado en el que cuatro sitios de la VPS quedaron indisponibles no tiene análisis de causa raíz verificable. Compartir capacidad sin límites, aislamiento y observabilidad es un riesgo P0 en campaña y, con mayor razón, el día electoral.
+## 3. Hallazgos exigentes y respuesta real
 
-## 3. Matriz estricta de severidad y realidad política
+| Severidad | Riesgo real | Producción observada | Candidato local | Cierre requerido |
+| --- | --- | --- | --- | --- |
+| **P0** | Desfase entre frontend, API y esquema | Rutas nuevas ausentes y contratos no atribuibles a un commit/digest visible | Guardas de contrato, esquema y revisión disponibles | Restaurar copia, migrar en staging, ejecutar todos los gates y desplegar una sola versión compatible |
+| **P0** | Universo de zonas, puestos y mesas vacío | No hay puestos electorales operativos | Catálogo versionado, importación en worker, cuarentena, diff, proyección y doble aprobación | Obtener autorización/licencia, cargar una fuente apta, resolver ambigüedades y verificar una única proyección activa |
+| **P0** | Cierre de operación con obligaciones abiertas | La versión vieja no demuestra cierre integral | Readiness financiero compartido por tablero, cierre y empalme; escrutinio e incidentes también bloquean | Ensayo sintético completo y validación profesional de criterios |
+| **P0** | Cadena de evidencia de Día D | Una entrada inválida llegó a exponer un error técnico | Cobertura temporal exacta, E-14 conectado/offline, hash, revisión y divergencias | Simulacro con actas ficticias, red intermitente, reemplazos y revisión jurídica/electoral |
+| **P0** | Falsa seguridad sobre integridad de archivos | No se probó una suma independiente de los binarios | Claims corregidos; respuestas de sellado exponen `contentIntegrity: UNVERIFIED`; sólo el importador electoral recalcula bytes | Incorporar un verificador independiente compatible con la arquitectura o aceptar formalmente el límite con controles humanos; no anunciar huella documental verificada |
+| **P0** | Pérdida o corrupción durante migración | No se inventarió la historia real de `_prisma_migrations` ni se restauró un respaldo externo | Migración fail-closed, identidad de base y marca exacta de esquema | Inventario por schema, restauración física ensayada, deriva cero y plan de reversión |
+| **P0** | Caída compartida de la VPS | Incidente de cuatro sitios y exposición observada de superficies administrativas | Contenedores y health checks endurecidos en configuración local | RCA, firewall, límites, alertas, aislamiento, backup externo y prueba de desastre |
+| **P0** | Datos políticos y contacto no autorizado | No se probó propagación de bajas a proveedores | Finalidad, fuente, segmentación, IA, consentimiento y revisión interna | Integrar proveedores reales y demostrar supresión antes del siguiente envío |
+| **P1** | Operación rural o congestionada sin red | PWA ausente | PWA instalable y bóveda cifrada sólo para flujos definidos | Prueba prolongada en dispositivos reales, capacidad, expiración, revocación y canal manual |
+| **P1** | Finanzas presentadas como “oficiales” | Sólo se observó un borrador interno | Expediente versionado, extracto, conciliación, cuentas por pagar, controles independientes y evidencia externa revisada | Validar reglas vigentes y ejecutar la presentación fuera del sistema; nunca inferir radicación |
+| **P1** | GSC confundido con CRM | La versión antigua podía inducir una lectura ambigua | Expediente de formularios/lotes/custodia y correcciones compensatorias auditadas | Validación del procedimiento aplicable y actuación real ante la autoridad |
+| **P1** | PQRSD ficticia | El módulo antiguo de casos no demostró términos ni entrega | Expediente PQRSD separado para `PUBLIC_OFFICE`, reglas versionadas, ACL y workflow completo | Validación escrita de la entidad e integración real de radicación, firma y notificación |
+| **P1** | XSS y robo de sesión | La política observada permitía scripts inline | CSP con nonce y `strict-dynamic`; sólo estilos conservan `unsafe-inline` | El JWT sigue en `sessionStorage`: se requiere hardening adicional y prueba de penetración |
+| **P1** | Fuerza bruta distribuida | No había evidencia de coordinación entre réplicas | Throttle distribuido con Redis en el candidato local | Configurar Redis productivo, alertas y degradación segura |
+| **P1** | Recuperación de cuenta | Depende de intervención administrativa | Revocación de JWT, MFA y control de TOTP reforzados | Falta recuperación autoservicio/proveedor de correo y procedimiento de doble control para pérdida del único administrador |
+| **P1** | Retención entendida como borrado ejecutado | No se demostró disposición | Planes, holds, revisiones y estado terminal `APPROVED_NOT_EXECUTED` | No hay borrado destructivo de PostgreSQL/Storage; sólo habilitarlo tras política, backup y ensayo irreversible |
+| **P1** | Gestión pública incompleta | No existe operación institucional demostrada | Separación de tenant y PQRSD local segura | Faltan expediente de compromisos públicos, agenda legislativa y transferencia formal registro por registro |
+| **P2** | Botones o promesas sin efecto | Se observaron rutas ausentes y funciones incompletas | Navegación y mensajes honestos mejorados | Cada control debe conservar endpoint, autorización, resultado visible, auditoría y recuperación |
 
-| Severidad | Hallazgo y realidad colombiana                                                                                                                     | Producción observada                                                                                                                                                           | Candidato local                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Cierre exigido                                                                                                                                                                             |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **P0**    | **Desfase entre código y despliegue.** Un equipo político no puede operar con menús que apuntan a contratos ausentes.                              | 18 de 47 endpoints GET esperados por el candidato respondieron 404; perfil operativo, bandeja, facturación y propuestas quedaron restringidos.                                 | Las rutas, API y controles existen localmente.                                                                                                                                                                                                                                                                                                                                                                                                                       | Desplegar como una sola versión compatible, verificar migraciones y ejecutar smoke tests autenticados por rol.                                                                             |
-| **P0**    | **Cadena de suministro no atribuible en producción.** No se puede reproducir un binario político crítico desde un árbol mutable.                   | El remoto visible en [GitHub](https://github.com/ServiLut/politica-sostenible) continúa público, `main` no está protegido y producción no expone commit ni digest verificable. | La rama pública saneada del candidato aprobó la [corrida #30](https://github.com/ServiLut/politica-sostenible/actions/runs/34292792376). Acciones e imágenes base están fijadas por SHA/digest; pnpm usa una especificación con integridad en Docker y una lista cerrada de scripts. Dependabot quedó configurado, pero no opera hasta que el archivo llegue a la rama predeterminada. La rama completa de auditoría todavía requiere un remoto privado y protegido. | Volver privado el remoto, proteger `main`, verificar el proyecto Supabase histórico, rotar preventivamente credenciales y registrar el commit y digest exactos promovidos a cada ambiente. |
-| **P0**    | **Linaje de migraciones ambiguo.** Una migración reescrita puede detener el servicio o, peor, dejar código y esquema creyendo historias distintas. | No se obtuvo el inventario de solo lectura de `_prisma_migrations` de la base real.                                                                                            | El guard compara bytes/checksums, identidad física, catálogo de planes, invariantes y deriva; dos archivos históricos conocidos exigen reconciliación previa.                                                                                                                                                                                                                                                                                                        | Inventariar cada base por schema, restaurar backup, ensayar el mismo commit y hacer un corte sin convivencia de binarios viejos/nuevos.                                                    |
-| **P0**    | **Radio de impacto de la VPS.** Una caída simultánea de cuatro sitios puede paralizar comunicaciones, territorio y escrutinio.                     | Incidente reportado por el operador; causa exacta no fue comprobada durante esta auditoría.                                                                                    | No es una corrección de código demostrada.                                                                                                                                                                                                                                                                                                                                                                                                                           | RCA, límites de CPU/RAM, reinicios supervisados, health checks, alertas, aislamiento por servicio y simulacro de recuperación.                                                             |
-| **P0**    | **Servicios administrativos y base expuestos.** Un panel o PostgreSQL alcanzable desde Internet aumenta innecesariamente la superficie de ataque.  | El 8 de septiembre se observó Dokploy por HTTP en 3000 y PostgreSQL aceptando conexiones TCP en 5432; no se intentó autenticar ni acceder a datos.                             | La topología Compose propuesta publica web sólo en loopback y mantiene API interna, pero el código no puede corregir el firewall real de la VPS.                                                                                                                                                                                                                                                                                                                     | Inventariar consumidores; restringir 5432 a red privada/orígenes mínimos, proteger Dokploy por HTTPS+MFA/VPN/IP y validar las cuatro aplicaciones después de cada regla.                   |
-| **P0**    | **Identidad privilegiada.** Una invitación o cuenta administrativa mal protegida equivale a entregar la campaña.                                   | El despliegue viejo no demuestra las defensas nuevas.                                                                                                                          | Se bloquean invitaciones con rol ADMIN, se protegen las identidades SaaS permitidas por ID inmutable y se exige MFA al administrador SaaS.                                                                                                                                                                                                                                                                                                                           | Probar todos los roles en staging, rotar secretos y establecer recuperación administrativa de doble control.                                                                               |
-| **P0**    | **Datos políticos y comunicaciones directas.** Una base de simpatizantes no autoriza perfilar ni contactar indiscriminadamente.                    | Personas sin aviso activo quedan bloqueadas, pero el flujo desplegado no muestra el expediente de base, fuente, segmentación y derechos.                                       | Solicitudes de comunicación registran base de destinatario, audiencia, fuente, segmentación, uso de IA, mecanismo de derechos y referencia de evidencia; se bloquean combinaciones incoherentes.                                                                                                                                                                                                                                                                     | Integrar supresión/bajas con cada proveedor y demostrar que una revocación se propaga antes de enviar.                                                                                     |
-| **P0**    | **Día electoral y cadena de evidencia.** Un número en pantalla no sustituye el formulario, la credencial ni la reclamación escrita.                | Una mesa 999999 produjo error crudo, pérdida de filtros y reintento persistente.                                                                                               | Mesa acotada, errores en español, recuperación; reporte de testigo incorpora credencial E-15/E-16, tipo de E-14, detalle de votos y reclamación trazable.                                                                                                                                                                                                                                                                                                            | Probar con actas ficticias, revisión independiente, conflictos, sincronización repetida y caída de red; validar el procedimiento con dirección jurídica/electoral.                         |
-| **P0**    | **Finanzas electorales.** Un “exportar CNE” o una referencia sobre un movimiento no prueba una rendición oficial.                                  | Solo se generó de forma no destructiva un borrador interno; quedó un evento de auditoría.                                                                                      | Expediente local con elección, alcance, fuente de topes, fecha límite, gerente, contador, cuenta única y código; la UI sólo permite anotar una referencia externa declarada y soporte privado, sin presentarla como radicación.                                                                                                                                                                                                                                      | Crear un expediente de informe/consolidado, conciliar banco-soportes-libro, validar códigos/topes vigentes, controlar cierre y probar con contador y gerente.                              |
-| **P1**    | **Trabajo territorial sin conectividad.** En veredas y puestos congestionados, “recargue la página” no es una estrategia.                          | Recursos PWA devolvieron 404.                                                                                                                                                  | Hay manifest, service worker y página offline para el shell.                                                                                                                                                                                                                                                                                                                                                                                                         | Implementar cola cifrada de mutaciones, reanudación, deduplicación, conflictos visibles, borrado remoto y pruebas prolongadas offline.                                                     |
-| **P1**    | **PQRSD y atención ciudadana.** Un caso interno sin radicación, término legal, competencia y notificación no puede llamarse PQRSD oficial.         | Módulo de casos accesible según modo, sin demostración de cómputo legal de términos.                                                                                           | Se presenta honestamente como registro interno (`CAS-GP`), sin prometer radicación, respuesta o notificación jurídica.                                                                                                                                                                                                                                                                                                                                               | Si el producto asumirá PQRSD: clasificación, calendario oficial, acuse, traslados, prórrogas, respuesta firmada, entrega, ACL y tablero de vencimientos.                                   |
-| **P1**    | **GSC.** Capturar contactos no equivale a recoger apoyos válidos.                                                                                  | El despliegue viejo podía inducir una lectura ambigua del módulo.                                                                                                              | La interfaz aclara que captura territorial y contexto de firmas no sustituyen formularios, validación, radicación ni certificación de la Registraduría.                                                                                                                                                                                                                                                                                                              | Definir, con fuente vigente, comité, formularios, seriales, custodia, responsables, validaciones, rechazos y recibos para cada elección.                                                   |
-| **P1**    | **JWT en el navegador y CSP.** Un XSS podría leer la sesión guardada en `sessionStorage`.                                                          | La CSP observada permite scripts inline.                                                                                                                                       | Se redujo exposición general y no se registran tokens, pero `script-src 'unsafe-inline'` sigue presente por la integración actual con Next.js.                                                                                                                                                                                                                                                                                                                       | Adoptar nonces/hashes compatibles con Next.js o un diseño de cookie `HttpOnly` con CSRF explícito; someter el cambio a pruebas de penetración antes de afirmar cierre.                     |
-| **P1**    | **Sesiones y recuperación.** El coordinador que pierde el teléfono no puede quedar por fuera; el exempleado no puede conservar acceso.             | Recuperación de contraseña es informativa y depende de un administrador.                                                                                                       | MFA está cifrado y exige reautenticación; `authVersion` invalida JWT al cerrar sesión y el último contador TOTP aceptado se persiste con control de concurrencia.                                                                                                                                                                                                                                                                                                    | Proveedor de identidad/correo, verificación de email, recuperación con doble control, códigos de recuperación y simulacro de revocación en todas las réplicas.                             |
-| **P1**    | **Promesas y compromisos sin expediente de cumplimiento.** Marcar 100 % no demuestra ejecutar una política pública.                                | No se comprobó evidencia ni aprobación independiente del resultado.                                                                                                            | Estado sólo avanza, contenido publicado queda inmutable, cambios de responsable/progreso se auditan y una propuesta sólo se borra como borrador; existe snapshot al comprometerla.                                                                                                                                                                                                                                                                                   | Exigir entregables, indicadores, fuente, corte, evidencia, responsable y cuatro ojos antes de declarar completado un compromiso o propuesta.                                               |
-| **P1**    | **Abuso y fuerza bruta distribuidos.** Un límite por proceso/IP no resiste botnets ni réplicas.                                                    | Rate limit observado, sin evidencia de coordinación distribuida.                                                                                                               | Validación y controles locales reforzados.                                                                                                                                                                                                                                                                                                                                                                                                                           | Redis compartido, límites por cuenta/tenant/IP, backoff, alertas y playbook de desbloqueo.                                                                                                 |
-| **P2**    | **Controles decorativos o promesas prematuras.** Una función anunciada sin backend mina la confianza del equipo.                                   | Ctrl+K no hacía nada; PWA y varias rutas estaban ausentes; la recuperación prometía un proceso manual.                                                                         | Paleta, enlaces profundos, rutas, PWA y mensajes honestos se incorporaron; se retiró la promesa de API de planes que no la incluyen.                                                                                                                                                                                                                                                                                                                                 | Ninguna función debe anunciarse antes de tener endpoint, autorización, observabilidad, prueba y responsable operativo.                                                                     |
+## 4. Qué funciona y qué no en la producción antigua
 
-## 4. Lo observado en producción: despliegue viejo
+La inspección productiva fue de solo lectura. Funcionaron autenticación,
+navegación básica y las rutas detalladas en la evidencia enlazada. También se
+observaron razones visibles en controles deshabilitados, lo cual es preferible a
+un botón silencioso.
 
-### Funciona
+No quedó demostrado en producción:
 
-- Las doce entradas principales de la barra lateral navegaron y las rutas base cargaron sin errores de consola en el recorrido normal.
-- La vista móvil de 390 × 844 no mostró desbordamiento horizontal en el muestreo.
-- Las rutas privadas redirigieron al inicio de sesión cuando se consultaron anónimamente.
-- HTTPS, activos básicos, CORS y limitación general de peticiones respondieron en las pruebas no destructivas.
-- Formularios de incidentes, tareas, eventos, comunicaciones, ajustes y equipo rechazaron datos vacíos sin crear registros.
-- Territorio permitió búsqueda, paginación y consulta del catálogo cargado.
-- Personas quedó correctamente cerrado cuando no había aviso de privacidad activo.
+- instalación PWA, service worker o acceso offline;
+- catálogo de zonas, puestos y mesas, pues no hay puestos cargados;
+- cobertura completa de testigos o entrada válida a Día D;
+- bóveda offline de territorio, E-14 o incidentes;
+- calendario electoral versionado;
+- circuito GSC de formularios, custodia y correcciones;
+- expediente de escrutinio;
+- cierre financiero integral;
+- retención gobernada;
+- expediente PQRSD institucional;
+- throttle distribuido, CSP con nonce o contrato nuevo de esquema;
+- restauración, staging, carga sostenida o recuperación de desastre.
 
-### Falla o no está conectado
+La prueba de humo posterior confirmó que el sitio y readiness volvían a
+responder, pero los recursos PWA seguían ausentes. Disponibilidad puntual no
+equivale a corrección funcional.
 
-- Perfil operativo, bandeja, facturación y propuestas devolvieron acceso restringido porque el despliegue no contiene los contratos actuales.
-- Dieciocho endpoints esperados por el candidato local no existen en producción, entre ellos MFA, planes/suscripción/uso, perfil operativo, bandeja, propuestas, exportación/importación, firma electrónica y administración SaaS.
-- La ruta de nueva persona redirigió al listado en lugar de ofrecer un alta utilizable.
-- La paleta Ctrl+K no produjo acción.
-- Manifest, service worker, página offline e icono PWA devolvieron 404.
-- El filtro de mesa aceptó un valor fuera de contrato, mostró el mensaje técnico “mesa must not be greater than 99999”, desmontó los filtros y quedó reintentando hasta recargar.
-- La recuperación de cuenta no recupera una cuenta: solo explica que se contacte a un administrador.
-- El endpoint de readiness revelaba el estado de conexión de base de datos; la raíz API respondía “Hello World”; se exponían cabeceras de tecnología y una CSP permisiva con unsafe-inline.
+## 5. Estado cualitativo del candidato local
 
-### No hace nada útil en la realidad si se deja así
+### Ciclo, autoridad y separación de funciones
 
-- Un borrador financiero sin conciliación ni expediente de soportes no sirve como prueba de reporte al CNE.
-- Un registro de “firma” o contacto GSC sin formulario oficial, serial y custodia no sirve como apoyo electoral.
-- Un reporte de mesa sin credencial, tipo de formulario, desglose y reclamación no basta para defender una inconsistencia.
-- Una PWA que solo abre una pantalla offline, sin guardar trabajo pendiente, no resuelve la operación territorial.
-- Un caso ciudadano sin término legal y alertas de vencimiento no permite dirigir una PQRSD seria.
+El perfil modela exploración, precampaña, firmas, campaña, preparación,
+simulación, jornada, poselección y cierre. El avance ordinario **no tiene cuatro
+ojos universales**: lo ejecuta un actor autorizado, sujeto al grafo irreversible,
+al readiness y a auditoría. La adopción de una operación ya iniciada y la
+terminación excepcional sí requieren solicitud y revisión por una persona
+distinta. Los subprocesos de alto riesgo conservan sus propias matrices de
+revisión.
 
-## 5. Corregido en el candidato local
+### Calendario, territorio y catálogo
 
-Estas correcciones están en el candidato y superaron la validación técnica local y la validación CI remota del árbol de código equivalente descritas abajo. Esto no significa que estén desplegadas ni que se hayan probado con credenciales, proveedores y datos reales:
+El calendario usa paquetes versionados, responsables, suplentes, vigencia,
+fuente y snapshots offline. La geografía administrativa DANE no se confunde con
+DIVIPOLE. El catálogo electoral admite staging, parser, worker, cuarentena,
+diferencias, cuatro ojos y proyección versionada, pero permanece deliberadamente
+sin una fuente RNEC activada mientras no exista autorización/licencia.
 
-- **Navegación:** enlaces profundos conservan ruta y consulta después del login sin aceptar redirecciones externas; paleta de comandos, rutas faltantes, páginas de no encontrado y skip links.
-- **War room:** mesa limitada a 1–99999, mensajes en español, filtros estables y recuperación del error; el tablero electoral queda reservado a candidaturas porque su métrica escalar no representa partidos, listas o GSC.
-- **Personas y privacidad:** aviso activo obligatorio, consentimiento vigente/reconsentimiento, máximo controlado e importación CSV cuya vista previa y ejecución comparten validador; la ejecución vuelve a validar el estado vivo, por lo que no es un snapshot byte a byte de la vista previa. La importación exige evidencia confirmada subida directamente por URL firmada. El alta individual conserva por ahora una atestación del operador, no un objeto probatorio emitido por el titular ni una manifestación demostrada por canal/OTP.
-- **Comunicaciones:** expediente mínimo de autorización, fuente, segmentación, IA, mecanismo de derechos y referencia verificable para opt-in directo; los mensajes que el operador declara sensibles no pueden disfrazarse de audiencia pública. La clasificación de sensibilidad sigue siendo humana: no existe un detector semántico que permita omitir revisión.
-- **Finanzas:** expediente de configuración electoral y bloqueo de hitos si faltan datos críticos; se diferencia el borrador interno de una referencia externa declarada, que exige soporte privado confirmado y se advierte expresamente que no constituye ni demuestra rendición o radicación oficial.
-- **Testigos:** credencial, check-in, tipo de E-14, votos válidos/blancos/nulos/no marcados, causal y descripción de reclamación; revisión separada y un acta aceptada por mesa.
-- **GSC:** texto y métricas corregidos para no confundir contactos con apoyos o firmas válidas ni presentar la plataforma como sustituto de la Registraduría.
-- **Campaña vs. función pública:** los incidentes internos generan referencias `INC-CAM`; los registros de atención en gestión pública usan `CAS-GP` y se declaran internos, evitando fingir una PQRSD oficial.
-- **Seguridad:** MFA cifrado con AES-256-GCM, rotación y reautenticación; `authVersion` revoca JWT y el control persistente impide repetir TOTP; firma electrónica ligada a tenant, usuario, recurso y evidencia de almacenamiento; administrador SaaS por ID inmutable; invitaciones no pueden crear otro ADMIN; seeds de demostración fallan cerrados.
-- **Multitenancy:** la revisión enfocada no encontró una consulta operativa HTTP concreta que omitiera el tenant del JWT; las relaciones compuestas y el almacenamiento canónico incluyen aislamiento. Esto es evidencia de revisión, no una certificación de ausencia de fallas.
-- **Producto:** perfil operativo, bandeja, propuestas, plan/suscripción interna, cuotas de uso, importación, PWA y búsqueda global están conectados localmente; no existe todavía pasarela, cobro ni factura y la interfaz no debe insinuarlos. No se anuncia acceso API cuando el plan no lo incluye y sólo se borran propuestas en borrador.
-- **Código huérfano:** se retiraron un asistente de onboarding obsoleto, un cascarón y un diálogo sin consumidores; el falso módulo de empalme no se carga y el motor de retención no se conecta hasta tener una política aprobada y ejecución segura.
-- **Despliegue:** guard de entorno y migraciones fail-closed, identidad física de base, readiness estructural, contenedores de solo lectura, usuarios separados, límites de recursos/logs y cierre ordenado. La topología separada de Compose sigue siendo la recomendada.
-- **Exposición:** health check mínimo, raíz API adecuada y cabeceras de tecnología desactivadas en el candidato.
-- **Cadena de suministro:** Next.js 16.3.4, sharp 0.35.4 y Turbo 2.9.14 incorporan las correcciones de seguridad revisadas; las GitHub Actions y las imágenes Node/PostgreSQL están fijadas por SHA o digest; Corepack usa la especificación de pnpm con integridad en Docker; los scripts de instalación tienen aprobación explícita y cerrada; Dependabot quedó configurado para npm, Docker y Actions cuando el archivo se promueva a la rama predeterminada.
-- **Riesgo residual de suministro:** `apk add` todavía resuelve paquetes desde índices Alpine mutables, `pnpm dlx` resuelve una versión exacta fuera del lockfile y los paquetes de sistema de Playwright dependen de los repositorios del runner. El digest PostgreSQL usado como servicio de Actions exige además renovación manual verificable. Por ello el build está endurecido, pero no debe describirse como completamente hermético.
+La puerta a Día D exige, como conjunto:
 
-### Evidencia técnica del candidato local
+1. fecha dentro de la ventana electoral aplicable;
+2. exactamente una proyección electoral activa;
+3. al menos un puesto proyectado;
+4. mesas esperadas válidas por puesto;
+5. ventana de cobertura completa para cada puesto;
+6. cobertura de cada mesa esperada por testigo principal y respaldo.
 
-- API: 105 suites y 1.094 pruebas aprobadas; 1 suite y 10 pruebas PostgreSQL omitidas deliberadamente en esa corrida. La suite PostgreSQL se ejecutó aparte contra PostgreSQL 16 desechable y aprobó 10 de 10, para impedir que una prueba mal clasificada toque una base real.
-- Web: 89 de 89 pruebas unitarias y 172 de 172 recorridos Playwright aprobados en escritorio y móvil, sin reintentos y ejecutando el servidor standalone equivalente al artefacto de producción.
-- HTTP: 3 de 3 pruebas e2e de API aprobadas.
-- Despliegue: 84 de 84 pruebas del contrato de migración, entorno, imágenes, procedencia del artefacto, seguridad del repositorio y supervisor; TypeScript, lint y builds de API/web aprobados; auditorías de todas las dependencias y de producción, desde severidad baja, sin vulnerabilidades conocidas.
-- Migración: 18 migraciones aplicadas en una base desechable, deriva cero, invariantes críticas presentes e idempotencia comprobada. Las migraciones multisentencia nuevas están delimitadas por transacción explícita; una inyección de fallo después del DDL y antes del `COMMIT` dejó en cero los objetos, el trigger y el registro de migración, demostrando el rollback atómico.
-- Contenedor combinado: la primera prueba física detectó que faltaba el binario `schema-engine` de Prisma en la imagen final; se corrigió y la imagen final encontró las 18 migraciones sin pendientes, alcanzó readiness y respondió 200/401/404 según contrato. API y web corrieron como UID 1001/1002, sin capacidades efectivas, con `NoNewPrivs=1`, raíz de solo lectura, límites y rotación de logs; el proceso web recibió cero variables protegidas del servidor y el supervisor cerró con código 0.
-- Topología separada recomendada: migrador con salida 0; API y web saludables; respuestas 200/401/404 esperadas; procesos UID 1001, `NoNewPrivs=1`, capacidades efectivas en cero, raíz de solo lectura, límites y rotación de logs; API cerró con código 0 y Next.js con 143 al recibir `SIGTERM`.
-- Observabilidad: 401/404 esperados ya no se registran como fallos internos; quedan en advertencia y los 5xx conservan nivel de error y traza.
-- CI remoto: la [corrida #30](https://github.com/ServiLut/politica-sostenible/actions/runs/34292792376) sobre `d10e8db48ee806a4200ac541147ead42eca4bc70` terminó verde en `test-and-build` y `compose-runtime-smoke`. Se verificó que su árbol de código y configuración equivale al commit privado `4d47956de16aa4f0175fa27639efd88692ce5408`, con diferencias limitadas a los tres documentos privados de auditoría. El commit documental que contiene este informe es posterior y no altera código ni configuración.
+Un conteo global de testigos no satisface esa puerta.
 
-Estas cifras corresponden al candidato identificado por los SHA anteriores, no a la versión vieja actualmente desplegada. Los gates se repitieron en CI remoto, pero todavía deben ejecutarse en staging equivalente y mediante smoke tests posteriores al despliegue antes del corte.
+### PWA, offline y mapas de calor
 
-## 6. Exigencia regulatoria y operativa por dominio
+El candidato es instalable como PWA, pero no replica todo el sistema. El shell y
+los flujos explícitos de captura territorial, E-14 e incidentes pueden trabajar
+con una bóveda local AES-GCM. Los comandos conservan identidad, hash, recibos y
+conflictos; al sincronizar se revalidan tenant, rol, grant y estado vivo.
 
-### Finanzas, CNE y Cuentas Claras
+Los mapas de calor agregan actividad/cobertura con supresión de muestras pequeñas
+y proyección geográfica. También existe snapshot offline de mapa y calendario.
+El snapshot es informativo, puede quedar obsoleto y no autoriza una captura si el
+grant no está vigente. El usuario debe instalar, provisionar y desbloquear el
+dispositivo con red antes de salir a campo.
 
-El CNE presenta [Cuentas Claras](https://www.cne.gov.co/cuentas-claras) como mecanismo oficial y obligatorio para el registro de ingresos y gastos. Su guía de [informes de ingresos y gastos de campaña](https://www.cne.gov.co/informes-de-ingresos-y-gastos-de-campana) exige soportes, libro, formularios y responsabilidades distintas para candidaturas y organizaciones; describe, como regla general, un mes para que la candidatura reporte a la organización y dos meses para que esta presente el consolidado después de la elección. La [Ley 1475 de 2011](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=43332) da el marco general. El calendario concreto siempre debe confirmarse para la elección aplicable.
+### GSC, testigos, E-14 y escrutinio
 
-Por tanto:
+GSC dispone de expediente, formularios/seriales, entregas, devoluciones, lotes,
+conteos y custodia. Las correcciones nunca reescriben el pasado: proponen una
+fotografía compensatoria completa, exigen controles independientes según el
+riesgo y mantienen cuarentena cuando corresponde. Ninguna cifra local convierte
+un apoyo en válido ni prueba radicación.
 
-- Los topes, códigos, elección, alcance y plazos no deben quedar hardcodeados como una regla universal; cambian por elección y acto vigente.
-- “Exportado” debe significar borrador producido por el sistema. Una referencia y su soporte aportados sobre un movimiento son sólo una anotación interna: la rendición oficial ocurre sobre informes y consolidados cuya granularidad y responsables define el CNE.
-- Faltan el modelo de informe/consolidado y sus versiones, conciliación bancaria, donaciones en especie, cuentas por pagar, consecutivos/documentos soporte, control de correcciones y cierre contable completo.
-- La plataforma ayuda a preparar evidencia; no reemplaza al gerente, contador, organización política ni aplicativo oficial.
+Testigos y E-14 registran credencial, asignación, ventana, mesa, desglose,
+archivo privado, SHA declarado cuando aplica, revisión y divergencias. La
+captura offline usa un grant acotado y sincronización idempotente, pero el SHA
+de evidencia continúa siendo una declaración del mismo cliente. Escrutinio
+conserva comisiones, sesiones,
+documentos, discrepancias, reclamaciones, versiones y evidencia externa revisada;
+no calcula ganadores ni ejecuta una reclamación ante la autoridad.
 
-### Protección de datos y comunicaciones políticas
+### Finanzas y cierre
 
-La SIC, en su [Circular Externa 002 de 2026 y comunicado oficial](https://sedeelectronica.sic.gov.co/comunicado/la-sic-expidio-instrucciones-sobre-proteccion-de-datos-personales-en-el-contexto-electoral), exige especial cuidado con autorización previa e informada, avisos en cada canal, datos sensibles, perfilamiento político, transparencia de fuente/segmentación/IA y mecanismos efectivos para ejercer derechos. También advierte contra incorporar personas a listas o grupos sin autorización.
+El mismo evaluador de readiness debe alimentar el tablero financiero, el cierre
+ordinario y el expediente de empalme. Debe bloquear, con los mismos códigos
+resolubles, cuando falte:
 
-Por tanto:
+- configuración de cumplimiento o fecha límite;
+- versión válida del dossier/informe;
+- movimientos pendientes **o aprobados todavía no reportados**;
+- extracto bancario y conciliación;
+- resolución de cuentas por pagar;
+- los tres controles independientes exigidos;
+- evidencia externa confirmada y revisada por otra persona.
 
-- Una lista comprada, un número obtenido de un grupo o la pertenencia supuesta a una comunidad no equivalen a opt-in.
-- La revocatoria debe bloquear futuras campañas en todos los proveedores, no solo cambiar un campo local.
-- Deben existir retención, eliminación, exportación, corrección y trazabilidad de la fuente por tenant y finalidad.
-- El candidato local mejora la autorización de solicitudes; aún falta demostrar supresión efectiva end-to-end con proveedores reales.
+Las correcciones son compensatorias y versionadas. Una referencia externa y un
+archivo prueban sólo lo que el operador registró; no demuestran presentación,
+aceptación o cumplimiento ante el CNE.
 
-### Testigos y día electoral
+### Retención y gestión pública
 
-La [Registraduría explica las funciones de testigos electorales](https://www.registraduria.gov.co/-Testigos-Electorales-articles-1036-.html): acreditación, presencia por mesa o comisión, observación, reclamaciones escritas y límites de actuación. Los formularios E-15, E-16, E-11, E-14 y E-24 tienen funciones distintas.
+Retención permite inventariar, proponer, revisar, aplicar legal holds y llegar a
+`APPROVED_NOT_EXECUTED`. Ese nombre es intencional: no existe un worker que
+destruya datos u objetos y el producto no debe afirmar que ya eliminó.
 
-Por tanto:
+El expediente PQRSD opera localmente sólo para `PUBLIC_OFFICE` con reglas
+versionadas, datos personales separados y enmascarados, competencia, asignación,
+suplencia, traslado, prórroga, respuestas versionadas, revisión, autorización,
+intentos de entrega, cierre y reapertura. No radica, firma, notifica ni consulta
+un sistema institucional. Véanse
+[arquitectura PQRSD segura](./PQRSD_GESTION_PUBLICA_SEGURA.md) y
+[protocolo PQRSD](./PROTOCOLO_PQRSD_GESTION_PUBLICA.md).
 
-- El sistema debe identificar quién estaba acreditado, dónde, cuándo y sobre qué documento reportó.
-- Una foto debe conservar hash, origen, versión, acceso y revisión; OCR o transcripción nunca deben presentarse como resultado oficial.
-- La operación necesita cuatro ojos, divergencias visibles, supersesión trazable y capacidad offline real.
-- Falta un simulacro completo desde check-in hasta consolidación y reclamación, con pérdida de red y reintentos.
+### Seguridad, multitenancy y base
 
-### PQRSD y ejercicio del cargo
+Nest mantiene Prisma y lógica de negocio; el frontend consume la API. Los
+recursos operativos se aíslan por tenant derivado del JWT y Storage usa rutas
+por tenant con subida directa firmada.
 
-La [Ley 1755 de 2015](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=65334) contempla, como punto de partida general, 15 días para peticiones, 10 para información o documentos y 30 para consultas, además del manejo de la imposibilidad excepcional de responder dentro del término. La clasificación, las excepciones y el cómputo de días hábiles deben validarse; un contador simple de días calendario puede ser jurídicamente engañoso.
+El runtime de base exige conexión directa con estado de sesión para fijar
+`search_path` al schema de la aplicación y `pg_catalog`. Se rechazan poolers de
+transacción —incluido el puerto convencional 6543— porque no conservan esa
+garantía. Readiness comprueba identidad y versión exacta del esquema. Esto no
+sustituye el inventario de la base productiva.
 
-Por tanto:
+La CSP usa nonce y `strict-dynamic` para scripts. `style-src 'unsafe-inline'` y
+el JWT en `sessionStorage` siguen siendo riesgos residuales explícitos. El
+throttle distribuido depende de Redis configurado y saludable en el ambiente.
 
-- Se requiere clasificación, calendario de días hábiles, reglas versionadas, vencimiento, prórroga motivada, traslado por competencia y constancia de notificación.
-- Debe mantenerse separación estricta entre datos y finalidades de campaña y de función pública.
-- Casos y compromisos actuales son una base operativa, no un sistema PQRSD completo.
+## 6. Evidencia histórica y gates del candidato actual
 
-### Grupos significativos de ciudadanos
+Las cifras antiguas de suites, pruebas, recorridos Playwright, migraciones,
+imágenes y la corrida CI #30 corresponden a un candidato anterior. Sirven como
+**evidencia histórica**, no como resultado del árbol actual, porque después se
+incorporaron módulos y migraciones. No deben reutilizarse en un acta de salida.
 
-El producto ya evita afirmar que la captura territorial recoge apoyos electorales. Falta un módulo especializado solo si el dueño decide competir en este dominio y una revisión por elección confirma el procedimiento aplicable. Como mínimo necesitaría inventario de formularios/seriales, responsables, entregas y devoluciones, custodia, novedades, validación, lotes de radicación y recibos. No debe reutilizar consentimiento de CRM como supuesto apoyo ni copiar datos a campaña sin finalidad válida.
+### Resultados exactos del candidato actual — completar después de los gates
 
-### Operación territorial y offline
+Esta sección se llena sólo con salidas reproducibles del commit/digest final:
 
-El shell PWA es una mejora de disponibilidad, pero no alcanza. La realidad exige:
+| Gate | Resultado actual | Evidencia que debe registrarse |
+| --- | --- | --- |
+| Prisma generate/validate y deriva | **Pendiente de registro final** | versión de esquema, schema físico y deriva |
+| Integración PostgreSQL 16 | **Pendiente de registro final** | suites/pruebas y base desechable |
+| API unit/integration/e2e | **Pendiente de registro final** | suites/pruebas, omitidas y causa |
+| Web unitarias y TypeScript/lint/build | **Pendiente de registro final** | conteos y artefacto |
+| Playwright escritorio/móvil | **Pendiente de registro final** | proyectos, recorridos y retries |
+| Contrato de despliegue | **Pendiente de registro final** | pruebas y commit |
+| Dependencias | **Pendiente de registro final** | severidad mínima y resultado |
+| Imagen/Compose/runtime | **Pendiente de registro final** | digest, UIDs, health y cierre |
+| CI remoto | **Pendiente de nueva corrida** | URL, SHA y jobs |
 
-- almacenamiento local cifrado y mínimo;
-- cola de operaciones idempotentes con estado visible;
-- reanudación de archivos y sincronización por lotes;
-- resolución explícita de conflictos y duplicados;
-- borrado al cerrar sesión o revocar el dispositivo;
-- mapas/catálogos disponibles sin conexión y pruebas en dispositivos de gama baja;
-- canal alterno y protocolo manual cuando la tecnología falle.
+Aunque todos queden verdes, seguirán faltando staging, restauración y smoke
+productivo hasta que se ejecuten expresamente.
 
-## 7. Pendiente por decisión o proveedor externo
+## 7. Exigencia operativa por dominio
 
-No debe simularse ninguna de estas capacidades:
+### Finanzas electorales
 
-- Proveedor de correo/identidad para verificación de email, recuperación segura y alertas.
-- Redis compartido y política de seguridad para rate limiting distribuido, sesiones/revocación y trabajos en segundo plano.
-- Proveedores de WhatsApp, SMS y correo, con webhooks, bajas, rebotes, plantillas, costos y conciliación de entrega.
-- Pasarela de pagos y flujo legal/contable para aportes o donaciones.
-- Integraciones oficiales con Cuentas Claras, Registraduría u otras autoridades; hoy no existen y no deben anunciarse.
-- Modelo y flujo de informe financiero consolidado, versiones/correcciones, firmas y aceptación separada de gerente y contador; la anotación actual por movimiento no lo sustituye.
-- Fuente y responsable de actualizar topes, códigos, calendarios electorales, DIVIPOLA/DIVIPOLE y días festivos/hábiles.
-- Política aprobada de retención, incidentes de datos, atención de derechos y transferencia a proveedores.
-- Evidencia de autorización emitida por el titular (canal, desafío/OTP o documento, contenido/versionado, fecha y revocación); una atestación del operador no basta para disputas de alto riesgo.
-- Expediente de cumplimiento para propuestas y compromisos con indicador, línea base, meta, fuente, corte, soporte y aprobación independiente.
-- Responsable jurídico/electoral, contador, gerente de campaña y dueño de PQRSD que firmen criterios de aceptación. Si no se decide construir PQRSD, el producto debe conservar siempre la denominación de atención interna.
-- Arquitectura de alta disponibilidad, observabilidad y aislamiento para la VPS o su reemplazo.
+El [CNE presenta Cuentas Claras](https://www.cne.gov.co/cuentas-claras) como el
+mecanismo oficial para registrar ingresos y gastos, y publica
+[orientación sobre informes de campaña](https://www.cne.gov.co/informes-de-ingresos-y-gastos-de-campana).
+Topes, códigos, plazos y responsables deben configurarse desde la fuente vigente
+para la elección concreta y validarse profesionalmente.
 
-## 8. No probado por seguridad
+El software prepara y controla un expediente interno. No presenta el informe, no
+certifica aceptación y no reemplaza a gerente, contador, organización política
+ni autoridad.
 
-La auditoría de producción fue deliberadamente no destructiva. No se realizaron:
+### Datos y comunicaciones políticas
 
-- altas, cambios o eliminaciones reales de personas, finanzas, testigos, casos, equipo o configuración;
-- invitaciones, restablecimientos de terceros, cambios de rol ni bloqueos de cuentas reales;
-- envíos de WhatsApp/SMS/email, cobros, pagos, donaciones o firmas externas;
-- cargas de evidencia real ni validación de archivos con información personal;
-- aprobación de comunicaciones o actas, salvo la generación de un borrador interno CNE ya auditado;
-- pruebas de intrusión, carga sostenida, caos, corte de red, pérdida de nodo o restauración de backup;
-- presentación ante Cuentas Claras, radicación ante Registraduría o respuesta formal a una PQRSD;
-- prueba de fuga entre dos tenants reales de producción.
+La [SIC publicó instrucciones específicas para el contexto electoral](https://sedeelectronica.sic.gov.co/comunicado/la-sic-expidio-instrucciones-sobre-proteccion-de-datos-personales-en-el-contexto-electoral).
+El producto debe conservar finalidad, fuente, autorización, segmentación, uso de
+IA, derechos y revocación. Sin webhook o conciliación del proveedor, una baja
+local no prueba que el siguiente mensaje haya sido suprimido.
 
-Estas pruebas deben hacerse con datos sintéticos, cuentas controladas y un tenant desechable. Omitirlas fue una medida de seguridad, no evidencia de que los flujos funcionen.
+### Testigos, formularios y catálogo
 
-## 9. Criterios obligatorios de salida a producción
+La [Registraduría describe las funciones de los testigos electorales](https://www.registraduria.gov.co/-Testigos-Electorales-articles-1036-.html).
+Credenciales, formularios, reclamaciones y escrutinio tienen alcances distintos.
+Una foto, transcripción o consolidado privado nunca debe etiquetarse como
+resultado oficial.
 
-No hay “go” mientras falte uno de los siguientes puntos:
+La procedencia y los límites de uso del catálogo se documentan en el
+[protocolo de catálogo electoral](./PROTOCOLO_CATALOGO_ELECTORAL_RNEC.md).
+El pipeline técnico listo no concede una licencia.
 
-1. **Versión única:** frontend, API y migraciones identificables por commit; cero 404 para contratos publicados y cero rutas antiguas incompatibles.
-2. **Gates verdes:** pruebas unitarias, integración PostgreSQL, HTTP e2e, Playwright desktop/móvil, builds y escaneo de dependencias repetidos sobre el commit de código candidato; cualquier diferencia posterior debe ser exclusivamente documental y quedar demostrada.
-3. **Migración segura:** inventario de checksums por schema, backup restaurado, ensayo sobre copia desechable, tiempo medido y recuperación documentada; ningún binario viejo convive con la base migrada.
-4. **Configuración:** JWT y claves MFA rotadas, secretos fuera del repositorio, IDs SaaS reales, Supabase/Redis/proveedores separados por ambiente y validación fail-closed al arrancar.
-5. **Tenant de prueba:** recorridos por CANDIDACY, PARTY, GSC y PUBLIC_OFFICE y por cada rol, verificando tanto capacidades permitidas como denegaciones por dominio; incluir lecturas y mutaciones reversibles.
-6. **Seguridad crítica:** invitaciones, cambios de rol, MFA, recuperación, cierre/revocación de sesión, TOTP no reutilizable, rotación de claves, archivos privados y aislamiento tenant probados con concurrencia.
-7. **Operación electoral:** simulacro con mesa, credencial, E-14 ficticio, doble revisión, divergencia, reclamación, offline, reintento y consolidación sin duplicados.
-8. **Finanzas:** informe/consolidado sintético conciliado de inicio a cierre; fuente vigente de topes/códigos/plazo; el resultado se etiqueta como borrador y una referencia por movimiento nunca como radicación automática.
-9. **Datos y mensajes:** aviso versionado, prueba de autorización, fuente, segmentación, IA, baja y derechos; la revocación debe llegar al proveedor antes de un nuevo envío.
-10. **PQRSD:** si entra al alcance, calendario validado, alertas, prórrogas/traslados, respuesta firmada, constancia de entrega y separación campaña–función pública; hasta entonces sólo atención interna.
-11. **Disponibilidad:** monitoreo, alertas, límites de recursos, backups, restauración ensayada, runbooks, responsables y canal manual de contingencia.
-12. **Prueba posterior al despliegue:** smoke autenticado y anónimo, cabeceras/health, errores sin trazas, métricas, colas y navegación; ventana de observación y decisión de corrección hacia adelante o restauración con RPO explícito.
+### PQRSD
 
-## 10. Decisión recomendada
+La [Ley 1755 de 2015](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=65334)
+es un marco general; no autoriza hardcodear 10, 15 o 30 días como respuesta
+universal. La entidad usuaria debe validar clasificación, competencia,
+calendario, excepciones, firma y notificación. Hasta entonces las referencias
+son internas y el módulo no debe anunciarse como canal oficial.
 
-La decisión responsable es **no desplegar directamente sobre producción ni declarar terminado el producto**. Deben conservarse inmutables el commit de código candidato y su evidencia CI; cualquier cambio de código, configuración o lockfile obliga a repetir todos los gates. Antes del corte aún se debe inventariar la base real, restaurar y ensayar su backup, desplegar el mismo digest en un ambiente equivalente con tenant desechable y completar los escenarios críticos. El corte posterior debe hacerse en mantenimiento, drenando la versión anterior e iniciando únicamente el mismo commit que migró la base; no mediante rollout gradual de binarios incompatibles.
+## 8. Capacidades externas que no deben simularse
 
-La plataforma puede convertirse en una herramienta seria si mantiene una regla: cada botón debe producir un resultado comprobable, cada resultado debe tener responsable y evidencia, y ninguna etiqueta debe prometer una actuación oficial que ocurrió fuera del sistema.
+- recuperación autoservicio y verificación de correo sin proveedor configurado;
+- entrega real de WhatsApp, SMS o correo, incluidas bajas y rebotes;
+- cobros, aportes, donaciones o pasarela;
+- radicación o consulta automática ante CNE, Registraduría u otra autoridad;
+- firma y notificación institucional de PQRSD;
+- eliminación física de datos/Storage por política de retención;
+- transferencia automática de bases de campaña a función pública;
+- fuente electoral vigente sin autorización/licencia acreditada;
+- alta disponibilidad, observabilidad y recuperación de la VPS sin operación
+  real de infraestructura.
 
-Este documento complementa [Estrategia de producto 2026](./ESTRATEGIA_PRODUCTO_2026.md); no reemplaza la validación jurídica, electoral, contable, de protección de datos ni de seguridad previa a cada elección.
+## 9. No probado por seguridad
+
+No se hicieron mutaciones productivas de personas, finanzas, roles, testigos,
+formularios, actas, PQRSD o configuración; tampoco envíos, cobros, cargas reales,
+radicaciones, pruebas de intrusión, carga, caos ni restauración. No se probó fuga
+entre dos tenants productivos.
+
+Estas omisiones protegen información y operación reales; no prueban que los
+flujos funcionen.
+
+## 10. Bloqueos de salida a producción
+
+No hay `GO` mientras falte cualquiera de estos puntos:
+
+1. respaldo externo cifrado y restauración ensayada de PostgreSQL y Storage;
+2. inventario de `_prisma_migrations` por schema y ensayo sobre una copia;
+3. staging equivalente con tenant, roles y datos sintéticos;
+4. una fuente electoral con autorización/licencia y única proyección aprobada;
+5. secretos, Supabase, Redis y proveedores separados y validados por ambiente;
+6. gates finales registrados sobre un commit/digest inmutable;
+7. simulacro integral de escritorio, móvil, offline, concurrencia y Día D;
+8. validación profesional de finanzas, GSC, privacidad, testigos y PQRSD;
+9. RCA de la caída compartida, firewall, límites, alertas y contingencia manual;
+10. smoke posterior al despliegue y decisión documentada de avance o recuperación.
+11. decisión formal sobre verificación independiente de bytes y eliminación de
+    cualquier claim comercial o jurídico que exceda el control implementado.
+
+La recomendación sigue siendo **no desplegar directamente sobre producción**.
+Primero se restaura, después se ensaya en staging, luego se congela el artefacto
+y finalmente se corta con una ventana y responsables definidos. Una aplicación
+política útil no es la que promete más: es la que falla cerrado, muestra el
+pendiente exacto y conserva evidencia suficiente para que una persona competente
+tome la decisión.
+
+Este documento complementa la
+[estrategia de producto](./ESTRATEGIA_PRODUCTO_2026.md) y no reemplaza asesoría
+jurídica, electoral, contable, de protección de datos o seguridad.

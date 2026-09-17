@@ -18,6 +18,10 @@ import { CreateVoterDto } from './dto/create-voter.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  AllowWhenOperationClosed,
+  BlockWhenOperationClosed,
+} from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { Role } from '../../prisma/generated/prisma';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
@@ -45,6 +49,7 @@ const VOTER_CONSENT_REVOKE_ROLES = [
 
 @ApiTags('Voters')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('voters')
 export class VoterController {
   constructor(
@@ -64,6 +69,7 @@ export class VoterController {
   }
 
   @Post('search')
+  @AllowWhenOperationClosed()
   @Roles(...VOTER_READ_ROLES)
   @ApiOperation({
     summary:
@@ -128,6 +134,7 @@ export class VoterController {
   }
 
   @Patch(':id')
+  @AllowWhenOperationClosed()
   @Roles(...VOTER_DATA_RIGHTS_ROLES)
   @ApiOperation({
     summary: 'Corrige los datos personales permitidos y audita la operacion',
@@ -141,14 +148,15 @@ export class VoterController {
   }
 
   @Post(':id/consents/revoke')
+  @AllowWhenOperationClosed()
   @Roles(...VOTER_CONSENT_REVOKE_ROLES)
   @ApiOperation({ summary: 'Revoca el consentimiento sin borrar su historial' })
   async revokeConsent(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') voterId: string,
+    @Param() params: VoterDataRightsParamsDto,
     @Body() dto: RevokeVoterConsentDto,
   ) {
-    return this.voterService.revokeConsent(user, voterId, dto);
+    return this.voterService.revokeConsent(user, params.id, dto);
   }
 
   @Post(':id/consents/grant')

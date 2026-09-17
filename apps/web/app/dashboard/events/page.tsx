@@ -32,14 +32,15 @@ import {
   createEvent,
   deleteEvent,
   EventPage,
-  EventResponsible,
-  listEventResponsibles,
   listEvents,
   transitionEvent,
   updateEvent,
 } from "@/lib/events-api";
 import { canExportData } from "@/lib/export-policy";
 import { ExportButton } from "@/components/ui/ExportButton";
+import { UserCombobox } from "@/components/ui/UserCombobox";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { useConfirmation } from "@/context/confirmation";
 
 const PAGE_SIZE = 9;
 
@@ -165,6 +166,7 @@ function toIso(value: string): string {
 }
 
 export default function EventsPage() {
+  const confirm = useConfirmation();
   const { tenant, user } = useAuth();
   const [filters, setFilters] = useState<Filters>({
     page: 1,
@@ -173,7 +175,7 @@ export default function EventsPage() {
   });
   const [searchDraft, setSearchDraft] = useState("");
   const [result, setResult] = useState<EventPage | null>(null);
-  const [responsibles, setResponsibles] = useState<EventResponsible[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogEvent, setDialogEvent] = useState<CampaignEvent | "new" | null>(
@@ -185,6 +187,7 @@ export default function EventsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
 
   const isPublicOffice = tenant?.type === "PUBLIC_OFFICE";
   const canManage = Boolean(
@@ -230,26 +233,28 @@ export default function EventsPage() {
     void loadEvents(controller.signal);
     return () => controller.abort();
   }, [loadEvents, reloadKey]);
-
   useEffect(() => {
-    if (!canManage) {
-      setResponsibles([]);
-      return;
-    }
-    const controller = new AbortController();
-    void listEventResponsibles(controller.signal)
-      .then(setResponsibles)
-      .catch((error) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setLoadError(readableError(error));
-        }
+    const timeout = setTimeout(() => {
+      setFilters((current) => {
+        if (current.search === searchDraft.trim()) return current;
+        return {
+          ...current,
+          page: 1,
+          search: searchDraft.trim(),
+        };
       });
-    return () => controller.abort();
-  }, [canManage]);
-
-  useEffect(() => {
-    if (dialogEvent) dialogTitleRef.current?.focus();
-  }, [dialogEvent]);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchDraft]);
+  useAccessibleDialog({
+    open: dialogEvent !== null,
+    containerRef: dialogRef,
+    initialFocusRef: dialogTitleRef,
+    onClose: () => {
+      if (!mutation) setDialogEvent(null);
+    },
+    closeOnEscape: mutation === null,
+  });
 
   const modeLabel = useMemo(() => {
     const mode = result?.items[0]?.mode;
@@ -335,11 +340,17 @@ export default function EventsPage() {
     setMutationError(null);
     setNotice(null);
     try {
-      await transitionEvent(event.id, status);
+      const updated = await transitionEvent(event.id, status);
       setNotice(
         `Estado de “${event.name}” actualizado a ${statusLabel(status)}.`,
       );
-      setReloadKey((current) => current + 1);
+      setResult((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((i) => (i.id === updated.id ? updated : i)),
+        };
+      });
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -349,9 +360,12 @@ export default function EventsPage() {
 
   async function removeDraft(event: CampaignEvent) {
     if (mutation) return;
-    const confirmed = window.confirm(
-      `¿Eliminar el borrador “${event.name}”? Esta acción no elimina la evidencia de auditoría.`,
-    );
+    const confirmed = await confirm({
+      title: "Eliminar borrador de evento",
+      description: `Se eliminará “${event.name}”. La evidencia de auditoría se conservará.`,
+      confirmLabel: "Eliminar borrador",
+      destructive: true,
+    });
     if (!confirmed) return;
 
     setMutation(`delete-${event.id}`);
@@ -407,7 +421,7 @@ export default function EventsPage() {
 
       <section
         aria-label="Filtros de agenda"
-        className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem_auto]"
+        className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem]"
       >
         <label className="text-sm font-black text-slate-800">
           Buscar
@@ -415,15 +429,6 @@ export default function EventsPage() {
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setFilters((current) => ({
-                  ...current,
-                  page: 1,
-                  search: searchDraft.trim(),
-                }));
-              }
-            }}
             placeholder="Nombre, lugar o descripción"
             className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           />
@@ -451,19 +456,6 @@ export default function EventsPage() {
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          onClick={() =>
-            setFilters((current) => ({
-              ...current,
-              page: 1,
-              search: searchDraft.trim(),
-            }))
-          }
-          className="min-h-11 self-end rounded-xl bg-slate-900 px-5 text-sm font-black text-white hover:bg-blue-700"
-        >
-          Aplicar filtros
-        </button>
       </section>
 
       {notice && (
@@ -510,7 +502,7 @@ export default function EventsPage() {
             onClick={() => setReloadKey((current) => current + 1)}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-blue-700"
           >
-            <RefreshCw size={17} /> Reintentar
+            <RefreshCw size={17} aria-hidden="true" /> Reintentar agenda
           </button>
         </div>
       )}
@@ -715,6 +707,7 @@ export default function EventsPage() {
       {dialogEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <section
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="event-dialog-title"
@@ -831,23 +824,15 @@ export default function EventsPage() {
                 <label className="block text-sm font-black text-slate-800">
                   Responsable{" "}
                   <span className="font-normal text-slate-400">(opcional)</span>
-                  <select
-                    value={form.responsibleId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        responsibleId: event.target.value,
-                      }))
-                    }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                  >
-                    <option value="">Por asignar</option>
-                    {responsibles.map((responsible) => (
-                      <option key={responsible.id} value={responsible.id}>
-                        {responsible.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-2">
+                    <UserCombobox
+                      value={form.responsibleId}
+                      onChange={(val) =>
+                        setForm((current) => ({ ...current, responsibleId: val }))
+                      }
+                      fetchItems={(search, signal) => listEventResponsibles({ search, limit: 10 }, signal)}
+                    />
+                  </div>
                 </label>
                 <label className="block text-sm font-black text-slate-800">
                   Capacidad{" "}

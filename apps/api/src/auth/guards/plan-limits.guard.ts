@@ -248,9 +248,12 @@ export async function assertPlanQuotaInTransaction(
   }
 
   const lockKey = `plan-quota:${tenantId}:${resource}`;
-  await client.$queryRaw(
-    Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`,
-  );
+  await client.$queryRaw<Array<{ locked: boolean }>>(Prisma.sql`
+    WITH plan_quota_lock AS MATERIALIZED (
+      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))
+    )
+    SELECT TRUE AS "locked" FROM plan_quota_lock
+  `);
 
   const subscription = await loadEntitlements(client, tenantId);
   let current: number;

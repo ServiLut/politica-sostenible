@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
+import {
+  getRegistrationPolicy,
+  type RegistrationPolicyResponse,
+} from "@/lib/auth-api";
 import { acceptTeamInvitation } from "@/lib/team-api";
 
 function readableError(error: unknown): string {
@@ -25,6 +29,26 @@ export default function AcceptInvitationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [accessPolicy, setAccessPolicy] =
+    useState<RegistrationPolicyResponse | null>(null);
+  const [policyLoading, setPolicyLoading] = useState(true);
+  const [policyError, setPolicyError] = useState(false);
+
+  const loadAccessPolicy = useCallback(async (signal?: AbortSignal) => {
+    setPolicyLoading(true);
+    setPolicyError(false);
+    setAccessPolicy(null);
+    setTermsAccepted(false);
+    try {
+      const policy = await getRegistrationPolicy(signal);
+      setAccessPolicy(policy);
+    } catch (cause: unknown) {
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+      setPolicyError(true);
+    } finally {
+      if (!signal?.aborted) setPolicyLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (tokenProcessed.current) return;
@@ -40,11 +64,23 @@ export default function AcceptInvitationPage() {
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadAccessPolicy(controller.signal);
+    return () => controller.abort();
+  }, [loadAccessPolicy]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     if (!token) {
       setError("El enlace de invitación no es válido.");
+      return;
+    }
+    if (!accessPolicy?.invitationAcceptanceEnabled) {
+      setError(
+        "No fue posible verificar una política vigente para activar la invitación.",
+      );
       return;
     }
     if (password !== confirmation) {
@@ -65,7 +101,7 @@ export default function AcceptInvitationPage() {
         documentId: documentId.trim(),
         phone: phone.trim() || undefined,
         termsAccepted: true,
-        termsVersion: "2026.1",
+        termsVersion: accessPolicy.termsVersion,
       });
       setCompleted(true);
       setToken(null);
@@ -165,6 +201,38 @@ export default function AcceptInvitationPage() {
                 rol provienen del enlace autorizado y no pueden modificarse.
               </p>
 
+              {policyLoading ? (
+                <p
+                  role="status"
+                  className="mt-5 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm font-bold text-blue-800"
+                >
+                  <Loader2
+                    className="animate-spin"
+                    size={18}
+                    aria-hidden="true"
+                  />
+                  Verificando la versión vigente de los términos…
+                </p>
+              ) : !accessPolicy?.invitationAcceptanceEnabled ? (
+                <div
+                  role="alert"
+                  className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900"
+                >
+                  <p>
+                    {policyError
+                      ? "No fue posible verificar la política de acceso. Por seguridad, la activación permanece bloqueada."
+                      : "La activación por invitación está temporalmente deshabilitada."}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-3 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-black hover:bg-amber-100"
+                    onClick={() => void loadAccessPolicy()}
+                  >
+                    Reintentar verificación
+                  </button>
+                </div>
+              ) : null}
+
               <form onSubmit={handleSubmit} className="mt-7 space-y-4">
                 <label className="block space-y-2 text-sm font-black text-slate-700">
                   Nombre completo
@@ -238,6 +306,7 @@ export default function AcceptInvitationPage() {
                   <input
                     required
                     type="checkbox"
+                    disabled={!accessPolicy?.invitationAcceptanceEnabled}
                     checked={termsAccepted}
                     onChange={(event) => setTermsAccepted(event.target.checked)}
                     className="mt-1 h-4 w-4 shrink-0"
@@ -249,7 +318,9 @@ export default function AcceptInvitationPage() {
                       target="_blank"
                       className="font-black text-blue-700 underline"
                     >
-                      términos versión 2026.1
+                      {accessPolicy
+                        ? `términos versión ${accessPolicy.termsVersion}`
+                        : "términos vigentes pendientes de verificación"}
                     </Link>{" "}
                     y confirmo que estos datos son míos.
                   </span>
@@ -266,7 +337,11 @@ export default function AcceptInvitationPage() {
 
                 <button
                   type="submit"
-                  disabled={saving || !termsAccepted}
+                  disabled={
+                    saving ||
+                    !termsAccepted ||
+                    !accessPolicy?.invitationAcceptanceEnabled
+                  }
                   className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-black text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving && (

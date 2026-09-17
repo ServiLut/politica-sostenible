@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,10 +16,12 @@ import {
   X,
 } from "lucide-react";
 import { ApiError, apiDownload, apiRequest } from "@/lib/api-client";
-import { uploadFileDirectly } from "@/lib/direct-storage-upload";
+import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
 import { openPrivateResource } from "@/lib/private-storage";
 import { useAuth } from "@/context/auth";
 import type { BackendUserRole } from "@/types/saas-schema";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { FinanceCloseoutPanel } from "@/components/finance/FinanceCloseoutPanel";
 
 type EntryType = "INCOME" | "EXPENSE";
 type FinanceStatus = "PENDING" | "APPROVED" | "REJECTED" | "REPORTED_CNE";
@@ -240,6 +242,53 @@ export default function FinancePage() {
   const [downloadingEntryId, setDownloadingEntryId] = useState<string | null>(
     null,
   );
+  const entryDialogRef = useRef<HTMLDivElement>(null);
+  const entryTitleRef = useRef<HTMLHeadingElement>(null);
+  const reviewDialogRef = useRef<HTMLDivElement>(null);
+  const reviewTitleRef = useRef<HTMLHeadingElement>(null);
+  const reportDialogRef = useRef<HTMLDivElement>(null);
+  const reportTitleRef = useRef<HTMLHeadingElement>(null);
+  const settingsDialogRef = useRef<HTMLDivElement>(null);
+  const settingsTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useAccessibleDialog({
+    open: isOpen,
+    containerRef: entryDialogRef,
+    initialFocusRef: entryTitleRef,
+    onClose: () => {
+      if (!saving) {
+        setIsOpen(false);
+        setError(null);
+      }
+    },
+    closeOnEscape: !saving,
+  });
+  useAccessibleDialog({
+    open: reviewEntry !== null,
+    containerRef: reviewDialogRef,
+    initialFocusRef: reviewTitleRef,
+    onClose: closeReview,
+    closeOnEscape: !saving,
+  });
+  useAccessibleDialog({
+    open: reportEntry !== null,
+    containerRef: reportDialogRef,
+    initialFocusRef: reportTitleRef,
+    onClose: closeExternalReport,
+    closeOnEscape: !saving,
+  });
+  useAccessibleDialog({
+    open: isSettingsOpen,
+    containerRef: settingsDialogRef,
+    initialFocusRef: settingsTitleRef,
+    onClose: () => {
+      if (!saving) {
+        setIsSettingsOpen(false);
+        setError(null);
+      }
+    },
+    closeOnEscape: !saving,
+  });
 
   const loadFinance = useCallback(async () => {
     setLoading(true);
@@ -313,7 +362,10 @@ export default function FinancePage() {
     setError(null);
     try {
       const evidence = evidenceFile
-        ? await uploadFileDirectly(evidenceFile, "finance")
+        ? await uploadFileDirectlyWithClientDeclaredHash(
+            evidenceFile,
+            "finance",
+          )
         : null;
       await apiRequest<FinancialEntry>("finance", {
         method: "POST",
@@ -431,7 +483,7 @@ export default function FinancePage() {
 
     if (reviewStatus === "APPROVED" && !reviewEntry.hasEvidence) {
       setError(
-        "Para aprobar el movimiento primero debe existir un soporte verificado.",
+        "Para aprobar el movimiento primero debe existir un soporte adjunto y vinculado.",
       );
       return;
     }
@@ -502,7 +554,7 @@ export default function FinancePage() {
     setSaving(true);
     setError(null);
     try {
-      const evidence = await uploadFileDirectly(
+      const evidence = await uploadFileDirectlyWithClientDeclaredHash(
         cneReportEvidenceFile,
         "finance",
       );
@@ -768,6 +820,13 @@ export default function FinancePage() {
         </section>
       )}
 
+      {hasLoadedFinance && (
+        <FinanceCloseoutPanel
+          financialEntries={entries}
+          complianceReady={complianceReady}
+        />
+      )}
+
       <section className="grid gap-5 md:grid-cols-3">
         <article className="rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl">
           <WalletCards className="mb-5 text-blue-300" />
@@ -897,7 +956,7 @@ export default function FinancePage() {
                       {entry.hasEvidence && (
                         <div className="mt-2 flex flex-col items-start gap-1.5">
                           <span className="text-[10px] font-bold text-emerald-700">
-                            Soporte verificado
+                            Soporte privado adjunto
                           </span>
                           {canReadEvidence && (
                             <button
@@ -966,10 +1025,21 @@ export default function FinancePage() {
 
       {isOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
+          <div
+            ref={entryDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finance-entry-title"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
+          >
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>
-                <h2 className="text-2xl font-black text-slate-950">
+                <h2
+                  ref={entryTitleRef}
+                  id="finance-entry-title"
+                  tabIndex={-1}
+                  className="text-2xl font-black text-slate-950"
+                >
                   Registrar hecho económico
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -1151,13 +1221,11 @@ export default function FinancePage() {
         reviewEntry.status === "PENDING" &&
         !reviewEntry.reportedByMe && (
           <div
+            ref={reviewDialogRef}
             className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-labelledby="finance-review-title"
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && !saving) closeReview();
-            }}
           >
             <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl">
               <div className="flex items-start justify-between border-b border-slate-100 p-7">
@@ -1166,6 +1234,8 @@ export default function FinancePage() {
                     Control de cuatro ojos
                   </p>
                   <h2
+                    ref={reviewTitleRef}
+                    tabIndex={-1}
                     id="finance-review-title"
                     className="mt-2 text-2xl font-black text-slate-950"
                   >
@@ -1229,7 +1299,7 @@ export default function FinancePage() {
                         <span className="mt-1 block text-xs leading-5 text-slate-500">
                           {reviewEntry.hasEvidence
                             ? "El soporte y la clasificación son consistentes."
-                            : "No disponible: falta un soporte verificado."}
+                            : "No disponible: falta un soporte adjunto y vinculado."}
                         </span>
                       </span>
                     </label>
@@ -1322,13 +1392,11 @@ export default function FinancePage() {
 
       {reportEntry && canReview && reportEntry.status === "APPROVED" && (
         <div
+          ref={reportDialogRef}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="finance-cne-report-title"
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && !saving) closeExternalReport();
-          }}
         >
           <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
@@ -1337,6 +1405,8 @@ export default function FinancePage() {
                   Anotación interna aportada por el usuario
                 </p>
                 <h2
+                  ref={reportTitleRef}
+                  tabIndex={-1}
                   id="finance-cne-report-title"
                   className="mt-2 text-2xl font-black text-slate-950"
                 >
@@ -1445,21 +1515,18 @@ export default function FinancePage() {
 
       {isSettingsOpen && canWrite && (
         <div
+          ref={settingsDialogRef}
           className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="finance-settings-title"
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && !saving) {
-              setIsSettingsOpen(false);
-              setError(null);
-            }
-          }}
         >
           <div className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>
                 <h2
+                  ref={settingsTitleRef}
+                  tabIndex={-1}
                   id="finance-settings-title"
                   className="text-2xl font-black text-slate-950"
                 >

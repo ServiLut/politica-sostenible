@@ -11,12 +11,15 @@ import {
   ConsentStatus,
   ConsentSubjectType,
   DivisionType,
+  OfflineSyncOperationType,
   PoliticalOperationMode,
   Prisma,
   Role,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
+import { OfflineSyncService } from '../common/services/offline-sync.service';
 import { requireActiveConsentNotice } from '../common/utils/consent-notice.util';
+import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
   assertCampaignTenant,
@@ -32,7 +35,6 @@ import {
   ensureTenantSubscription,
 } from '../auth/guards/plan-limits.guard';
 
-const VOTER_SYNC_RECEIPT = { received: true } as const;
 const VOTER_SYNC_TRANSACTION_OPTIONS = {
   // The advisory quota lock is acquired in one statement; READ COMMITTED makes
   // the following count observe the transaction that released that lock.
@@ -55,20 +57,30 @@ export class LogisticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly consentEvidence: ConsentEvidenceService,
-    // The default only preserves direct construction in legacy unit tests;
-    // Nest always injects the exported singleton from WitnessModule.
-    private readonly witnessService: WitnessService = new WitnessService(
-      prisma,
-    ),
+    private readonly witnessService: WitnessService,
+    private readonly offlineSync: OfflineSyncService,
   ) {}
 
   /**
    * Sincroniza un acta E-14. Implementa resolución de conflictos básica.
    */
   async syncE14(tenantId: string, witnessId: string, data: SyncE14Dto) {
-    return this.witnessService.create(tenantId, witnessId, data, {
+    const {
+      clientOperationId,
+      capturedAt,
+      captureGrant,
+      evidenceSha256,
+      ...report
+    } = data;
+    return this.witnessService.create(tenantId, witnessId, report, {
       isSynced: true,
       source: 'OFFLINE_SYNC',
+      offlineSync: {
+        clientOperationId,
+        capturedAt,
+        captureGrant,
+        evidenceSha256,
+      },
     });
   }
 
@@ -77,7 +89,7 @@ export class LogisticsService {
    */
   async syncVoter(
     user: AuthenticatedUser,
-    consentIp: string,
+    syncRequestIp: string,
     data: SyncVoterDto,
   ) {
     if (data.consentAccepted !== true) {
@@ -93,27 +105,43 @@ export class LogisticsService {
       phone,
       email,
       puestoId,
+      mesa,
       consentAccepted,
       termsVersion,
       collectionChannel,
+      clientOperationId,
+      capturedAt,
     } = data;
+
+    const descriptor = this.offlineSync.prepare(
+      OfflineSyncOperationType.VOTER_CAPTURE,
+      clientOperationId,
+      capturedAt,
+      {
+        documentId,
+        firstName,
+        lastName,
+        phone,
+        email,
+        puestoId,
+        mesa,
+        consentAccepted,
+        termsVersion,
+        collectionChannel,
+      },
+    );
+    const receivedAt = new Date();
 
     await ensureTenantSubscription(this.prisma, user.tenantId);
 
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, user.tenantId);
         const tenant = await transaction.tenant.findUnique({
           where: { id: user.tenantId },
           select: CAMPAIGN_TENANT_SELECT,
         });
         assertCampaignTenant(tenant);
-        const consentNotice = await requireActiveConsentNotice(
-          transaction,
-          user.tenantId,
-          PoliticalOperationMode.CAMPAIGN,
-          termsVersion,
-          ConsentPurpose.POLITICAL_COMMUNICATION,
-        );
 
         const { divisionIds } = await resolveTerritorialAccess({
           client: transaction,
@@ -142,8 +170,9 @@ export class LogisticsService {
               id: puestoId,
               tenantId: user.tenantId,
               type: DivisionType.PUESTO,
+              isActive: true,
             },
-            select: { id: true },
+            select: { id: true, expectedTables: true },
           });
 
           if (!puesto) {
@@ -151,12 +180,48 @@ export class LogisticsService {
               'Puesto de votación inválido para la campaña autenticada',
             );
           }
+
+          if (mesa && puesto.expectedTables && mesa > puesto.expectedTables) {
+            throw new BadRequestException(
+              `La mesa supera las ${puesto.expectedTables} mesas configuradas para el puesto`,
+            );
+          }
+        } else if (mesa) {
+          throw new BadRequestException(
+            'La mesa solo puede registrarse junto con un puesto de votacion',
+          );
         }
 
+        const duplicate = await this.offlineSync.lockAndFindDuplicate(
+          transaction,
+          user.tenantId,
+          user.userId,
+          descriptor,
+        );
+        if (duplicate) {
+          return this.offlineSync.present(duplicate, 'DUPLICATE');
+        }
+
+        const consentNotice = await requireActiveConsentNotice(
+          transaction,
+          user.tenantId,
+          PoliticalOperationMode.CAMPAIGN,
+          termsVersion,
+          ConsentPurpose.POLITICAL_COMMUNICATION,
+        );
+        if (descriptor.capturedAt < consentNotice.activatedAt) {
+          throw new ConflictException(
+            'La captura es anterior a la activacion del aviso de privacidad presentado',
+          );
+        }
+
+        // Acquire the tenant quota lock before the natural voter-key lookup.
+        // This serializes different offline operation IDs for one document.
         await assertPlanQuotaInTransaction(
           transaction,
           user.tenantId,
           'voters',
+          0,
         );
 
         const existing = await transaction.voter.findUnique({
@@ -165,10 +230,43 @@ export class LogisticsService {
           },
           select: { id: true },
         });
-        if (existing) return VOTER_SYNC_RECEIPT;
+        if (existing) {
+          await transaction.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: user.userId,
+              action: 'VOTER_OFFLINE_SYNC_ACKNOWLEDGED',
+              resourceType: 'Voter',
+              resourceId: existing.id,
+              metadata: {
+                clientOperationId,
+                capturedAt: descriptor.capturedAt.toISOString(),
+                receivedAt: receivedAt.toISOString(),
+                changed: false,
+              },
+            },
+          });
+          const receipt = await this.offlineSync.createReceipt(
+            transaction,
+            user.tenantId,
+            user.userId,
+            descriptor,
+            'Voter',
+            existing.id,
+            receivedAt,
+          );
+          return this.offlineSync.present(receipt, 'APPLIED');
+        }
 
-        const grantedAt = new Date();
-        const sourceIpHash = this.consentEvidence.hashIp(consentIp);
+        await assertPlanQuotaInTransaction(
+          transaction,
+          user.tenantId,
+          'voters',
+        );
+
+        const syncSourceIpHash = this.consentEvidence.hashIp(syncRequestIp);
         const voter = await transaction.voter.create({
           data: {
             documentId,
@@ -179,9 +277,12 @@ export class LogisticsService {
             tenantId: user.tenantId,
             registrarId: user.userId,
             puestoId,
+            mesa,
             consentAccepted,
-            consentIp: sourceIpHash,
-            consentTimestamp: grantedAt,
+            // The request IP belongs to the later synchronization, not to the
+            // original capture event.
+            consentIp: null,
+            consentTimestamp: descriptor.capturedAt,
             termsVersion: consentNotice.version,
           },
           select: { id: true },
@@ -199,9 +300,12 @@ export class LogisticsService {
             status: ConsentStatus.GRANTED,
             collectionChannel,
             noticeVersion: consentNotice.version,
-            sourceIpHash,
+            sourceIpHash: null,
+            capturedAt: descriptor.capturedAt,
+            receivedAt,
+            syncSourceIpHash,
             capturedById: user.userId,
-            grantedAt,
+            grantedAt: descriptor.capturedAt,
           },
         });
 
@@ -223,20 +327,32 @@ export class LogisticsService {
                 phone,
                 email,
                 puestoId,
+                mesa,
               }),
               purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
               collectionChannel,
               noticeVersion: consentNotice.version,
+              source: 'OFFLINE_SYNC',
+              timestampSource: 'CLIENT_CAPTURED_AT',
+              capturedAt: descriptor.capturedAt.toISOString(),
+              receivedAt: receivedAt.toISOString(),
+              syncNetworkEvidenceStored: true,
             },
           },
         });
 
-        return VOTER_SYNC_RECEIPT;
+        const receipt = await this.offlineSync.createReceipt(
+          transaction,
+          user.tenantId,
+          user.userId,
+          descriptor,
+          'Voter',
+          voter.id,
+          receivedAt,
+        );
+        return this.offlineSync.present(receipt, 'APPLIED');
       }, VOTER_SYNC_TRANSACTION_OPTIONS);
     } catch (error: unknown) {
-      if (this.isPrismaUniqueViolation(error)) {
-        return VOTER_SYNC_RECEIPT;
-      }
       if (this.isPrismaError(error, 'P2034')) {
         throw new ConflictException(
           'La sincronizacion cambio durante la solicitud; intente nuevamente',
@@ -244,10 +360,6 @@ export class LogisticsService {
       }
       throw error;
     }
-  }
-
-  private isPrismaUniqueViolation(error: unknown): boolean {
-    return this.isPrismaError(error, 'P2002');
   }
 
   private definedFieldNames(value: object): string[] {

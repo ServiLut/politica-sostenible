@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   allowsInsecureEvaluationDatabase,
+  allowsPlaintextInternalRedis,
   requireRuntimeEnvironment,
 } from "./runtime-environment.mjs";
 
@@ -14,6 +15,14 @@ export async function startApi(
   if (allowsInsecureEvaluationDatabase(environment)) {
     console.warn(
       "ADVERTENCIA: conexion PostgreSQL sin TLS habilitada exclusivamente para evaluacion sin datos reales.",
+    );
+  }
+  if (
+    environment.NODE_ENV === "production" &&
+    allowsPlaintextInternalRedis(environment)
+  ) {
+    console.warn(
+      "ADVERTENCIA: Redis sin TLS habilitado exclusivamente para una red privada verificada.",
     );
   }
   await loadApi();

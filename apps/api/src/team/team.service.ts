@@ -31,6 +31,7 @@ import {
   ensureTenantSubscription,
 } from '../auth/guards/plan-limits.guard';
 import { loadSaasAdminIdentityConfig } from '../auth/guards/saas-admin.guard';
+import { resolvePublicRegistrationPolicy } from '../auth/public-registration.policy';
 
 const INVITATION_LIFETIME_MS = 72 * 60 * 60 * 1_000;
 const TEMPORARY_PASSWORD_BYTES = 24;
@@ -149,7 +150,11 @@ export class TeamService {
             },
             // Role changes invalidate the old territorial grant. An admin must
             // explicitly assign a compatible scope for the new role.
-            data: { role: dto.role, divisionId: null },
+            data: {
+              role: dto.role,
+              divisionId: null,
+              authVersion: { increment: 1 },
+            },
           });
           if (updated.count !== 1) {
             throw this.concurrentTeamChange();
@@ -209,7 +214,10 @@ export class TeamService {
               role: target.role,
               isActive: target.isActive,
             },
-            data: { isActive: dto.isActive },
+            data: {
+              isActive: dto.isActive,
+              authVersion: { increment: 1 },
+            },
           });
           if (updated.count !== 1) {
             throw this.concurrentTeamChange();
@@ -276,6 +284,7 @@ export class TeamService {
                   id: divisionId,
                   tenantId: user.tenantId,
                   type: { in: allowedTypes ?? [] },
+                  isActive: true,
                 },
                 select: { id: true, code: true, name: true, type: true },
               })
@@ -299,7 +308,10 @@ export class TeamService {
               isActive: target.isActive,
               divisionId: target.divisionId,
             },
-            data: { divisionId },
+            data: {
+              divisionId,
+              authVersion: { increment: 1 },
+            },
           });
           if (updated.count !== 1) throw this.concurrentTeamChange();
 
@@ -331,6 +343,19 @@ export class TeamService {
   }
 
   async resetMemberAccess(user: AuthenticatedUser, memberId: string) {
+    // HTTP guards resolve the current database role before this service runs,
+    // but keep a cheap service-level check ahead of bcrypt as defense in depth.
+    if (user.role !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Solo un administrador puede gestionar el equipo',
+      );
+    }
+    if (memberId === user.userId) {
+      throw new ForbiddenException(
+        'No puedes restablecer el acceso de tu propia cuenta',
+      );
+    }
+
     const temporaryPassword = randomBytes(TEMPORARY_PASSWORD_BYTES).toString(
       'base64url',
     );
@@ -343,12 +368,6 @@ export class TeamService {
       const reset = await this.prisma.$transaction(
         async (tx) => {
           const mode = await this.assertCurrentAdmin(user, tx);
-          if (memberId === user.userId) {
-            throw new ForbiddenException(
-              'No puedes restablecer el acceso de tu propia cuenta',
-            );
-          }
-
           const target = await tx.user.findFirst({
             where: {
               id: memberId,
@@ -370,6 +389,7 @@ export class TeamService {
             },
             data: {
               password: passwordHash,
+              authVersion: { increment: 1 },
               mustChangePassword: true,
               temporaryPasswordExpiresAt,
             },
@@ -550,12 +570,31 @@ export class TeamService {
   }
 
   async acceptInvitation(dto: AcceptTeamInvitationDto) {
+    const accessPolicy = resolvePublicRegistrationPolicy();
+    if (!accessPolicy.invitationAcceptanceEnabled) {
+      throw new ForbiddenException(
+        'La activacion de invitaciones esta temporalmente deshabilitada',
+      );
+    }
+    if (dto.termsVersion !== accessPolicy.termsVersion) {
+      throw new BadRequestException(
+        'La version de terminos no coincide con la politica vigente',
+      );
+    }
+
     this.assertBcryptPasswordSize(dto.password);
     const tokenHash = this.hashToken(dto.token);
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const now = new Date();
-    const invitationTenant = await this.prisma.teamInvitation.findUnique({
-      where: { tokenHash },
+    // A public bearer token only grants authority while it is pending and
+    // unexpired. Do not let a stale/consumed token trigger even the legacy
+    // subscription bootstrap for the tenant it used to belong to.
+    const invitationTenant = await this.prisma.teamInvitation.findFirst({
+      where: {
+        tokenHash,
+        acceptedAt: null,
+        expiresAt: { gt: now },
+      },
       select: { tenantId: true },
     });
     if (invitationTenant) {

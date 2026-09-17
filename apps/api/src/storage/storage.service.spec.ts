@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageModuleName } from './storage.constants';
 import { StorageService } from './storage.service';
 import type { SupabaseStorageGateway } from './supabase-storage.gateway';
+import type { StorageIntegrityQueuePort } from './storage-integrity-queue.constants';
 import {
   assertPlanQuotaInTransaction,
   ensureTenantSubscription,
@@ -48,8 +49,11 @@ describe('StorageService durable private-file authorization', () => {
   };
   const financePath =
     'tenant-a/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
+  const e14Path = 'tenant-a/e14/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
   const consentPath =
     'tenant-a/consent/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
+  const scrutinyPath =
+    'tenant-a/scrutiny/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf';
 
   let currentRole: Role;
   let tenantMode: PoliticalOperationMode;
@@ -78,10 +82,12 @@ describe('StorageService durable private-file authorization', () => {
     auditEvent: { create: jest.Mock };
     financialEntry: { findFirst: jest.Mock };
     witnessReport: { findFirst: jest.Mock };
+    scrutinyDocument: { findFirst: jest.Mock };
   };
   let transaction: TransactionMock;
   let prisma: TransactionMock & { $transaction: jest.Mock };
   let service: StorageService;
+  let integrityQueue: { enqueue: jest.Mock; checkReady: jest.Mock };
 
   beforeEach(() => {
     currentRole = Role.ADMIN;
@@ -147,6 +153,7 @@ describe('StorageService durable private-file authorization', () => {
       auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
       financialEntry: { findFirst: jest.fn() },
       witnessReport: { findFirst: jest.fn() },
+      scrutinyDocument: { findFirst: jest.fn() },
     };
     prisma = {
       ...transaction,
@@ -155,9 +162,14 @@ describe('StorageService durable private-file authorization', () => {
           callback(transaction),
       ),
     };
+    integrityQueue = {
+      enqueue: jest.fn().mockResolvedValue(undefined),
+      checkReady: jest.fn().mockResolvedValue(undefined),
+    };
     service = new StorageService(
       gateway as unknown as SupabaseStorageGateway,
       prisma as unknown as PrismaService,
+      integrityQueue as unknown as StorageIntegrityQueuePort,
     );
   });
 
@@ -201,6 +213,113 @@ describe('StorageService durable private-file authorization', () => {
       select: { id: true },
     });
     expect(gateway.createSignedUploadUrl).toHaveBeenCalledWith(result.path);
+  });
+
+  it('binds an E-14 authorization and response metadata to the lowercase SHA-256', async () => {
+    const contentSha256 = 'a'.repeat(64);
+    const result = await service.createUploadUrl(user, {
+      module: StorageModuleName.E14,
+      fileName: 'acta.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+      contentSha256,
+    });
+
+    expect(result.metadata).toEqual({
+      fileName: 'acta.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+      contentSha256,
+    });
+    expect(transaction.storedObject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: user.tenantId,
+        module: StorageObjectModule.E14,
+        expectedSha256: contentSha256,
+      }) as object,
+      select: { id: true },
+    });
+    expect(
+      JSON.stringify(transaction.auditEvent.create.mock.calls),
+    ).not.toContain(contentSha256);
+  });
+
+  it('authorizes financial evidence with a SHA-256 bound to its StoredObject receipt', async () => {
+    const contentSha256 = 'f'.repeat(64);
+    const result = await service.createUploadUrl(user, {
+      module: StorageModuleName.FINANCE,
+      fileName: 'extracto-bancario.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+      contentSha256,
+    });
+
+    expect(result).toMatchObject({
+      path: expect.stringMatching(
+        /^tenant-a\/finance\/[0-9a-f-]{36}\.pdf$/,
+      ) as string,
+      metadata: {
+        fileName: 'extracto-bancario.pdf',
+        contentType: 'application/pdf',
+        size: 100,
+        contentSha256,
+      },
+    });
+    expect(transaction.storedObject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: user.tenantId,
+        module: StorageObjectModule.FINANCE,
+        expectedSha256: contentSha256,
+      }) as object,
+      select: { id: true },
+    });
+  });
+
+  it('binds scrutiny evidence to a tenant path and exact SHA-256', async () => {
+    const contentSha256 = 'b'.repeat(64);
+
+    const result = await service.createUploadUrl(user, {
+      module: StorageModuleName.SCRUTINY,
+      fileName: 'Credencial oficial.PDF',
+      contentType: 'application/pdf',
+      size: 4_096,
+      contentSha256,
+    });
+
+    expect(result).toMatchObject({
+      path: expect.stringMatching(
+        /^tenant-a\/scrutiny\/[0-9a-f-]{36}\.pdf$/,
+      ) as string,
+      metadata: {
+        fileName: 'Credencial oficial.PDF',
+        contentType: 'application/pdf',
+        size: 4_096,
+        contentSha256,
+      },
+    });
+    expect(transaction.storedObject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: user.tenantId,
+        uploaderId: user.userId,
+        module: StorageObjectModule.SCRUTINY,
+        expectedSha256: contentSha256,
+      }) as object,
+      select: { id: true },
+    });
+  });
+
+  it('does not accept client hash metadata for modules outside the integrity allowlist', async () => {
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        fileName: 'soporte.pdf',
+        contentType: 'application/pdf',
+        size: 100,
+        contentSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toThrow(/solo esta habilitada para evidencia electoral/);
+    expect(transaction.storedObject.create).not.toHaveBeenCalled();
+    expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it.each([TenantType.PARTY, TenantType.GSC])(
@@ -254,6 +373,62 @@ describe('StorageService durable private-file authorization', () => {
       select: { id: true },
     });
     expect(gateway.createSignedUploadUrl).toHaveBeenCalledWith(result.path);
+  });
+
+  it('issues only an ADMIN tenant-scoped JSON authorization for electoral catalogs', async () => {
+    const result = await service.createUploadUrl(user, {
+      module: StorageModuleName.ELECTORAL_CATALOG,
+      fileName: 'divipole-oficial.json',
+      contentType: 'application/json',
+      size: 25 * 1024 * 1024,
+    });
+
+    expect(result.path).toMatch(
+      /^tenant-a\/electoral-catalog\/[0-9a-f-]{36}\.json$/,
+    );
+    expect(result.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(transaction.storedObject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-a',
+        uploaderId: 'user-a',
+        path: result.path,
+        module: StorageObjectModule.ELECTORAL_CATALOG,
+        contentType: 'application/json',
+        expectedSize: 25 * 1024 * 1024,
+      }),
+      select: { id: true },
+    });
+  });
+
+  it('rejects catalog files with another MIME, excessive size or a non-ADMIN database role', async () => {
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.ELECTORAL_CATALOG,
+        fileName: 'divipole.csv',
+        contentType: 'text/csv',
+        size: 100,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.ELECTORAL_CATALOG,
+        fileName: 'divipole.json',
+        contentType: 'application/json',
+        size: 25 * 1024 * 1024 + 1,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    currentRole = Role.AUDITOR;
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.ELECTORAL_CATALOG,
+        fileName: 'divipole.json',
+        contentType: 'application/json',
+        size: 100,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(transaction.storedObject.create).not.toHaveBeenCalled();
+    expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it.each(CONSENT_UPLOAD_ROLES)(
@@ -513,6 +688,7 @@ describe('StorageService durable private-file authorization', () => {
       confirmed: true,
       path: financePath,
       module: StorageModuleName.FINANCE,
+      contentIntegrity: 'NOT_PROVIDED',
     });
     expect(transaction.storedObject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -537,6 +713,84 @@ describe('StorageService durable private-file authorization', () => {
     });
   });
 
+  it('confirms E-14 only when authorization, Storage metadata and DTO carry the same hash', async () => {
+    const contentSha256 = 'b'.repeat(64);
+    prisma.storedObject.findFirst.mockResolvedValue({
+      id: 'stored-a',
+      contentType: 'application/pdf',
+      expectedSize: 100,
+      expectedSha256: contentSha256,
+      expiresAt: new Date(Date.now() + 60_000),
+      status: StoredObjectStatus.ISSUED,
+    });
+    gateway.getObjectInfo.mockResolvedValue({
+      name: e14Path,
+      size: 100,
+      contentType: 'application/pdf',
+      etag: 'etag-e14',
+      metadata: { contentSha256 },
+    });
+
+    await expect(
+      service.completeUpload(user, {
+        module: StorageModuleName.E14,
+        path: e14Path,
+        metadata: {
+          fileName: 'acta.pdf',
+          contentType: 'application/pdf',
+          size: 100,
+          contentSha256,
+        },
+      }),
+    ).resolves.toEqual({
+      confirmed: true,
+      path: e14Path,
+      module: StorageModuleName.E14,
+      contentIntegrity: 'CLIENT_DECLARED_UNVERIFIED',
+    });
+    expect(transaction.storedObject.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reportedSha256: contentSha256,
+          etag: 'etag-e14',
+        }) as object,
+      }),
+    );
+  });
+
+  it('rejects an E-14 when Storage omits or changes the declared hash', async () => {
+    const contentSha256 = 'c'.repeat(64);
+    prisma.storedObject.findFirst.mockResolvedValue({
+      id: 'stored-a',
+      contentType: 'application/pdf',
+      expectedSize: 100,
+      expectedSha256: contentSha256,
+      expiresAt: new Date(Date.now() + 60_000),
+      status: StoredObjectStatus.ISSUED,
+    });
+    gateway.getObjectInfo.mockResolvedValue({
+      name: e14Path,
+      size: 100,
+      contentType: 'application/pdf',
+      etag: 'etag-e14',
+      metadata: { contentSha256: 'd'.repeat(64) },
+    });
+
+    await expect(
+      service.completeUpload(user, {
+        module: StorageModuleName.E14,
+        path: e14Path,
+        metadata: {
+          fileName: 'acta.pdf',
+          contentType: 'application/pdf',
+          size: 100,
+          contentSha256,
+        },
+      }),
+    ).rejects.toThrow(/huella SHA-256.*no coincide/);
+    expect(transaction.storedObject.updateMany).not.toHaveBeenCalled();
+  });
+
   it('completes only a tenant-owned consent path using the CONSENT mapping', async () => {
     const result = await service.completeUpload(user, {
       module: StorageModuleName.CONSENT,
@@ -552,6 +806,7 @@ describe('StorageService durable private-file authorization', () => {
       confirmed: true,
       path: consentPath,
       module: StorageModuleName.CONSENT,
+      contentIntegrity: 'NOT_PROVIDED',
     });
     expect(prisma.storedObject.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -619,6 +874,42 @@ describe('StorageService durable private-file authorization', () => {
         consumedById: 'entry-a',
       },
       select: { id: true },
+    });
+  });
+
+  it('issues a scrutiny read only for the tenant resource bound to a consumed object', async () => {
+    prisma.scrutinyDocument.findFirst.mockResolvedValue({
+      storagePath: scrutinyPath,
+    });
+    prisma.storedObject.findFirst.mockResolvedValue({ id: 'stored-scrutiny' });
+
+    const result = await service.createDownloadUrl(user, {
+      module: StorageModuleName.SCRUTINY,
+      resourceId: 'scrutiny-document-a',
+    });
+
+    expect(prisma.scrutinyDocument.findFirst).toHaveBeenCalledWith({
+      where: { id: 'scrutiny-document-a', tenantId: user.tenantId },
+      select: { storagePath: true },
+    });
+    expect(prisma.storedObject.findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: user.tenantId,
+        path: scrutinyPath,
+        module: StorageObjectModule.SCRUTINY,
+        status: StoredObjectStatus.CONSUMED,
+        consumedByType: 'ScrutinyDocument',
+        consumedById: 'scrutiny-document-a',
+      },
+      select: { id: true },
+    });
+    expect(gateway.createSignedDownloadUrl).toHaveBeenCalledWith(
+      scrutinyPath,
+      300,
+    );
+    expect(result).toEqual({
+      url: 'https://storage.example/read?token=signed',
+      expiresAt: expect.any(String) as string,
     });
   });
 

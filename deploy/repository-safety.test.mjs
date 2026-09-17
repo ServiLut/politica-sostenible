@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -26,6 +26,12 @@ const REQUIRED_EXCLUSION_PATTERNS = Object.freeze([
   "**/coverage/",
   "*.old.prisma",
 ]);
+const GENERATED_SOURCE_DIRECTORIES = new Set([
+  ".next",
+  "node_modules",
+  "playwright-report",
+  "test-results",
+]);
 
 function nonCommentLines(contents) {
   return new Set(
@@ -34,6 +40,30 @@ function nonCommentLines(contents) {
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith("#")),
   );
+}
+
+async function sourceFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  return (
+    await Promise.all(
+      entries.map(async (entry) => {
+        const path = `${directory}/${entry.name}`;
+        if (entry.isDirectory()) {
+          return GENERATED_SOURCE_DIRECTORIES.has(entry.name)
+            ? []
+            : sourceFiles(path);
+        }
+        if (
+          entry.isFile() &&
+          /\.(?:ts|tsx)$/u.test(entry.name) &&
+          !/\.(?:spec|test)\.(?:ts|tsx)$/u.test(entry.name)
+        ) {
+          return [path];
+        }
+        return [];
+      }),
+    )
+  ).flat();
 }
 
 test("Git y Docker excluyen formatos comunes de credenciales", async () => {
@@ -83,6 +113,66 @@ test("el repositorio no versiona credenciales ni backups de autenticación", asy
   );
 });
 
+test("Next.js permanece como capa de presentacion sin Prisma ni Server Actions", async () => {
+  // Inspect the working candidate, including newly-created files that have not
+  // been staged yet. `git ls-files` made this guard blind during development,
+  // exactly when an agent can accidentally introduce a forbidden dependency.
+  const sourcePaths = [
+    ...(await sourceFiles(`${PROJECT_ROOT}/apps/web`)),
+    `${PROJECT_ROOT}/apps/web/package.json`,
+  ];
+  const violations = [];
+
+  for (const path of sourcePaths) {
+    const contents = await readFile(path, "utf8").catch((error) => {
+      if (error?.code === "ENOENT") return null;
+      throw error;
+    });
+    if (contents === null) continue;
+    if (
+      /(?:from\s+|require\s*\()['"](?:@prisma\/client|[^'"]*generated\/prisma)/u.test(
+        contents,
+      ) ||
+      /(?:^|\r?\n)\s*["']use server["'];?/u.test(contents)
+    ) {
+      violations.push(
+        path.slice(PROJECT_ROOT.length + 1).replaceAll("\\", "/"),
+      );
+    }
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    `codigo de persistencia prohibido en Next.js: ${violations.join(", ")}`,
+  );
+});
+
+test("la aplicacion no contiene texto de produccion con UTF-8 corrompido", async () => {
+  const files = (
+    await Promise.all([
+      sourceFiles(`${PROJECT_ROOT}/apps/api/src`),
+      sourceFiles(`${PROJECT_ROOT}/apps/web`),
+    ])
+  ).flat();
+  const violations = [];
+
+  for (const path of files) {
+    const contents = await readFile(path, "utf8");
+    if (/[ÃÂ]|â(?:€|€¦|€™|€œ|€|†|”)/u.test(contents)) {
+      violations.push(
+        path.slice(PROJECT_ROOT.length + 1).replaceAll("\\", "/"),
+      );
+    }
+  }
+
+  assert.deepEqual(
+    violations.sort(),
+    [],
+    `texto visible con mojibake: ${violations.join(", ")}`,
+  );
+});
+
 test("Docker y pnpm fijan herramientas y scripts de instalacion revisados", async () => {
   const [packageJsonContents, workspace, ...dockerfiles] = await Promise.all([
     readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -124,7 +214,7 @@ test("Docker y pnpm fijan herramientas y scripts de instalacion revisados", asyn
   assert.ok(allowBuildsBlock, "no se encontro el bloque allowBuilds cerrado");
   const allowBuildLines = allowBuildsBlock[1]
     .split(/\r?\n/u)
-    .filter((line) => line.trim().length > 0);
+    .filter((line) => line.trim().length > 0 && !line.trim().startsWith("#"));
   const allowBuildEntries = allowBuildLines.map((line) => {
     const entry = line.match(/^  (?:(?:"([^"]+)")|([^:]+)): (true|false)$/u);
     assert.ok(entry, `entrada allowBuilds invalida: ${line}`);
@@ -139,9 +229,58 @@ test("Docker y pnpm fijan herramientas y scripts de instalacion revisados", asyn
     "@prisma/engines@7.9.1": true,
     "@scarf/scarf": false,
     "bcrypt@6.0.0": true,
+    "msgpackr-extract@3.0.4": true,
     prisma: false,
     "unrs-resolver@1.11.1": true,
   });
+});
+
+test("la imagen de produccion conserva el cliente Redis requerido por BullMQ", async () => {
+  const [apiPackageContents, lockfile] = await Promise.all([
+    readFile(new URL("../apps/api/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../pnpm-lock.yaml", import.meta.url), "utf8"),
+  ]);
+  const apiPackage = JSON.parse(apiPackageContents);
+
+  assert.match(apiPackage.dependencies?.bullmq ?? "", /^\^?6\./u);
+  assert.match(apiPackage.dependencies?.ioredis ?? "", /^\^?[56]\./u);
+  const apiImporter = lockfile.match(
+    /^  apps\/api:\r?\n([\s\S]*?)(?=^  [^ ].*:\r?$|^packages:)/mu,
+  );
+  assert.ok(apiImporter, "pnpm-lock no contiene el importer apps/api");
+  assert.match(apiImporter[1], /^      ioredis:\r?$/mu);
+  assert.match(lockfile, /^  ioredis@(?:5|6)\./mu);
+});
+
+test("Prisma y la integracion fisica confinan SQL directo al esquema de la aplicacion", async () => {
+  const [prismaService, workflow] = await Promise.all([
+    readFile(
+      new URL("../apps/api/src/prisma/prisma.service.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    prismaService,
+    /options:\s*resolveDatabaseSearchPathOptions\(schema\)/u,
+  );
+  assert.match(
+    prismaService,
+    /return `-c search_path="\$\{schema\}",pg_catalog`/u,
+  );
+
+  const physicalDatabaseUrls = [
+    ...workflow.matchAll(/^\s+TEST_DATABASE_URL:\s*(\S+)$/gmu),
+  ].map((match) => match[1]);
+  assert.ok(
+    physicalDatabaseUrls.length > 0,
+    "CI debe ejecutar las pruebas PostgreSQL fisicas",
+  );
+  for (const databaseUrl of physicalDatabaseUrls) {
+    assert.match(databaseUrl, /[?&]schema=politica-sostenible(?:&|$)/u);
+    assert.doesNotMatch(databaseUrl, /[?&]schema=public(?:&|$)/u);
+  }
 });
 
 test("las imagenes y acciones externas son inmutables y configuran su renovacion", async () => {
@@ -167,6 +306,14 @@ test("las imagenes y acciones externas son inmutables y configuran su renovacion
   assert.doesNotMatch(workflow, /ubuntu-latest/u);
   assert.equal(
     [...workflow.matchAll(/^\s+NEXT_TELEMETRY_DISABLED: "1"$/gmu)].length,
+    2,
+  );
+  assert.equal(
+    [
+      ...workflow.matchAll(
+        /^\s*image: redis:7\.4-alpine@sha256:[a-f0-9]{64}$/gmu,
+      ),
+    ].length,
     2,
   );
   assert.equal(

@@ -53,7 +53,7 @@ function activeSubscription(
 
 function quotaClient(subscription = activeSubscription()) {
   return {
-    $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: '' }]),
+    $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
     tenantSubscription: {
       findUnique: jest.fn().mockResolvedValue(subscription),
       create: jest.fn(),

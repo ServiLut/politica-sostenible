@@ -102,22 +102,44 @@ const teamMembers = [
   },
 ];
 
-function configuredContext(
-  overrides: Record<string, unknown> = {},
-) {
+function configuredContext(overrides: Record<string, unknown> = {}) {
+  const stage = String(overrides.stage ?? "ELECTION_DAY");
+  const allowedNextStagesByStage: Record<string, string[]> = {
+    EXPLORATION: ["EXPLORATION", "PRE_CAMPAIGN"],
+    PRE_CAMPAIGN: ["PRE_CAMPAIGN", "SIGNATURE_COLLECTION", "CAMPAIGN"],
+    SIGNATURE_COLLECTION: [
+      "SIGNATURE_COLLECTION",
+      "CAMPAIGN",
+      "ELECTION_PREPARATION",
+    ],
+    CAMPAIGN: ["CAMPAIGN", "ELECTION_PREPARATION"],
+    ELECTION_PREPARATION: [
+      "ELECTION_PREPARATION",
+      "SIMULATION",
+      "ELECTION_DAY",
+    ],
+    SIMULATION: ["SIMULATION", "ELECTION_DAY"],
+    ELECTION_DAY: ["ELECTION_DAY", "POST_ELECTION"],
+    POST_ELECTION: ["POST_ELECTION", "CLOSED"],
+    CLOSED: ["CLOSED"],
+  };
   return {
     configured: true as const,
     profile: {
       id: "profile-e2e",
       tenantId: "tenant-operation-e2e",
       operationType: "SINGLE_CANDIDACY",
-      stage: "ELECTION_DAY",
+      stage,
       electionType: "MAYORALTY",
       circumscriptionType: "MUNICIPAL",
       circumscriptionName: "Municipio de Medellín",
       circumscriptionCode: "05001",
       listType: null,
       electionDate: "2027-10-31T17:00:00.000Z",
+      votingStartDate: "2027-10-30",
+      votingEndDate: "2027-11-01",
+      votingWindowSourceUrl: "https://example.test/calendario-electoral.pdf",
+      votingWindowReference: "Resolución de prueba, artículo 4",
       expectedTeamSize: 48,
       candidateCount: 1,
       dataControllerName: "Campaña Horizonte",
@@ -147,9 +169,66 @@ function configuredContext(
       createdAt: "2026-09-01T12:00:00.000Z",
       updatedAt: "2026-09-07T12:00:00.000Z",
       ...overrides,
+      allowedNextStages: allowedNextStagesByStage[stage] ?? [stage],
     },
   };
 }
+
+const readinessFixture = {
+  stage: "ELECTION_DAY",
+  electionDate: "2027-10-31T17:00:00.000Z",
+  votingStartDate: "2027-10-30",
+  votingEndDate: "2027-11-01",
+  votingWindowSourceUrl: "https://example.test/calendario-electoral.pdf",
+  votingWindowReference: "Resolución de prueba, artículo 4",
+  generatedAt: "2026-09-09T15:30:00.000Z",
+  overall: "BLOCKED",
+  sections: {
+    BEFORE_CAMPAIGN: [
+      {
+        code: "ACTIVE_CONSENT_NOTICE",
+        label: "Aviso de consentimiento activo",
+        status: "WARN",
+        detail: "Revise la vigencia del aviso antes de continuar.",
+        href: "/dashboard/settings",
+      },
+      {
+        code: "ACTIVE_NON_ADMIN_TEAM",
+        label: "Equipo operativo activo",
+        status: "BLOCK",
+        detail: "No hay integrantes activos distintos de administración.",
+        href: "/dashboard/team",
+      },
+    ],
+    CAMPAIGN: [
+      {
+        code: "OPEN_TASKS",
+        label: "Tareas abiertas",
+        status: "WARN",
+        detail: "Hay tareas operativas pendientes de cierre.",
+        href: "/dashboard/tasks",
+      },
+    ],
+    ELECTION_DAY: [
+      {
+        code: "E14_DIVERGENT",
+        label: "Mesas con E-14 divergentes",
+        status: "BLOCK",
+        detail: "Una mesa tiene capturas pendientes con resultados distintos.",
+        href: "/dashboard/war-room",
+      },
+    ],
+    POST_ELECTION: [
+      {
+        code: "POST_ELECTION_OPERATIONAL_CLOSEOUT",
+        label: "Cierre operativo poselectoral",
+        status: "PASS",
+        detail: "No quedan asuntos operativos abiertos.",
+        href: "/dashboard/executive",
+      },
+    ],
+  },
+} as const;
 
 test("administración configura todos los parámetros y sincroniza la etapa local", async ({
   page,
@@ -186,10 +265,34 @@ test("administración configura todos los parámetros y sincroniza la etapa loca
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(
-          successful(
-            currentContext ?? { configured: false, profile: null },
-          ),
+          successful(currentContext ?? { configured: false, profile: null }),
         ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/adoption"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({ configured: Boolean(currentContext), profile: null, request: null }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/readiness"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(readinessFixture)),
       });
       return;
     }
@@ -225,6 +328,10 @@ test("administración configura todos los parámetros y sincroniza la etapa loca
         circumscriptionCode: body.circumscriptionCode ?? null,
         listType: body.listType ?? null,
         electionDate: body.electionDate,
+        votingStartDate: body.votingStartDate,
+        votingEndDate: body.votingEndDate,
+        votingWindowSourceUrl: body.votingWindowSourceUrl ?? null,
+        votingWindowReference: body.votingWindowReference ?? null,
         expectedTeamSize: body.expectedTeamSize,
         candidateCount: body.candidateCount,
         dataControllerName: body.dataControllerName,
@@ -255,20 +362,27 @@ test("administración configura todos los parámetros y sincroniza la etapa loca
     page.getByRole("option", { name: /Voluntariado activo/ }),
   ).toHaveCount(0);
 
-  await page.getByLabel("Etapa operativa").selectOption("ELECTION_DAY");
+  await expect(
+    page.getByRole("option", { name: "Jornada electoral" }),
+  ).toHaveCount(0);
+  await page.getByLabel("Etapa operativa").selectOption("PRE_CAMPAIGN");
   await page.getByLabel("Tipo de elección").selectOption("MAYORALTY");
   await page.getByLabel("Fecha electoral").fill("2027-10-31");
+  await page.getByLabel("Primera fecha incluida").fill("2027-10-30");
+  await page.getByLabel("Última fecha incluida").fill("2027-11-01");
+  await page
+    .getByLabel("Fuente documental HTTPS (si aplica)")
+    .fill("https://example.test/calendario-electoral.pdf");
+  await page
+    .getByLabel("Referencia documental (si aplica)")
+    .fill("Resolución de prueba, artículo 4");
   await page
     .getByLabel("Nombre de la circunscripción")
     .fill("Municipio de Medellín");
-  await page
-    .getByLabel("Código de circunscripción (opcional)")
-    .fill("05001");
+  await page.getByLabel("Código de circunscripción (opcional)").fill("05001");
   await page.getByLabel("Tamaño esperado del equipo").fill("48");
   await page.getByLabel("Presupuesto total máximo (COP)").fill("500000000");
-  await page
-    .getByLabel("Límite máximo de publicidad (COP)")
-    .fill("100000000");
+  await page.getByLabel("Límite máximo de publicidad (COP)").fill("100000000");
   await page
     .getByLabel("Responsable del tratamiento")
     .fill("Campaña Horizonte");
@@ -281,20 +395,26 @@ test("administración configura todos los parámetros y sincroniza la etapa loca
     );
   await page.getByRole("button", { name: "Guardar perfil" }).click();
 
-  await expect(page.getByRole("status")).toContainText(
-    "Perfil operativo guardado y navegación actualizada",
-  );
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Perfil operativo guardado y navegación actualizada",
+    }),
+  ).toBeVisible();
   await expect
     .poll(() => mutationBodies.length, { message: "se envió el PUT" })
     .toBe(1);
   expect(mutationBodies[0]).toEqual({
     operationType: "SINGLE_CANDIDACY",
-    stage: "ELECTION_DAY",
+    stage: "PRE_CAMPAIGN",
     electionType: "MAYORALTY",
     circumscriptionType: "MUNICIPAL",
     circumscriptionName: "Municipio de Medellín",
     circumscriptionCode: "05001",
-    electionDate: "2027-10-31T17:00:00.000Z",
+    electionDate: "2027-10-31",
+    votingStartDate: "2027-10-30",
+    votingEndDate: "2027-11-01",
+    votingWindowSourceUrl: "https://example.test/calendario-electoral.pdf",
+    votingWindowReference: "Resolución de prueba, artículo 4",
     expectedTeamSize: 48,
     candidateCount: 1,
     maxTotalBudget: 500_000_000,
@@ -317,11 +437,12 @@ test("administración configura todos los parámetros y sincroniza la etapa loca
           "politica-sostenible.auth-session",
         );
         if (!serialized) return null;
-        return (JSON.parse(serialized) as { tenant?: { operationStage?: string } })
-          .tenant?.operationStage;
+        return (
+          JSON.parse(serialized) as { tenant?: { operationStage?: string } }
+        ).tenant?.operationStage;
       }),
     )
-    .toBe("ELECTION_DAY");
+    .toBe("PRE_CAMPAIGN");
 });
 
 test("cumplimiento consulta el resumen sin cargar equipo ni exponer escritura", async ({
@@ -362,6 +483,70 @@ test("cumplimiento consulta el resumen sin cargar equipo ni exponer escritura", 
       return;
     }
 
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/termination"
+    ) {
+      const current = configuredContext().profile;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            profile: {
+              id: current.id,
+              stage: current.stage,
+              updatedAt: current.updatedAt,
+              votingStartDate: current.votingStartDate,
+              votingEndDate: current.votingEndDate,
+              votingWindowSourceUrl: current.votingWindowSourceUrl,
+              votingWindowReference: current.votingWindowReference,
+              closureType: current.closureType,
+              terminatedAt: current.terminatedAt,
+              terminationCause: current.terminationCause,
+            },
+            request: null,
+            dossier: null,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/adoption"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({ configured: true, profile: { id: "profile-e2e", stage: "ELECTION_DAY" }, request: null }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/readiness"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(readinessFixture)),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      await route.fulfill({ status: 403, body: "{}" });
+      return;
+    }
+
     unexpectedRequests.push(`${request.method()} ${pathname}`);
     await route.fulfill({ status: 403, body: "{}" });
   });
@@ -370,8 +555,58 @@ test("cumplimiento consulta el resumen sin cargar equipo ni exponer escritura", 
   await expect(
     page.getByRole("heading", { name: "Perfil de operación" }),
   ).toBeVisible();
-  await expect(page.getByText("Perfil configurado", { exact: true })).toBeVisible();
-  await expect(page.getByText("Laura Dirección", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Perfil configurado", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Laura Dirección", { exact: false }),
+  ).toBeVisible();
+  const readinessPanel = page.locator(
+    'section[aria-labelledby="operation-readiness-title"]',
+  );
+  await expect(readinessPanel).toBeVisible();
+  await expect(
+    readinessPanel.getByRole("heading", { name: "Alistamiento por ciclo" }),
+  ).toBeVisible();
+  for (const sectionName of ["Antes", "Campaña", "Elección", "Después"]) {
+    await expect(
+      readinessPanel.getByRole("heading", { name: sectionName, exact: true }),
+    ).toBeVisible();
+  }
+  await expect(
+    readinessPanel.getByRole("status", {
+      name: "Estado general: Con bloqueos",
+    }),
+  ).toBeVisible();
+  await expect(
+    readinessPanel.getByText("Atención", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    readinessPanel.getByText("Bloqueo", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    readinessPanel.getByText("Cumplido", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    readinessPanel.getByRole("link", {
+      name: "Revisar: Aviso de consentimiento activo",
+    }),
+  ).toHaveAttribute("href", "/dashboard/settings");
+  await expect(
+    readinessPanel.getByRole("link", {
+      name: "Revisar: Equipo operativo activo",
+    }),
+  ).toHaveCount(0);
+  await expect(
+    readinessPanel.getByText("La corrección requiere un rol autorizado."),
+  ).toBeVisible();
+
+  const readinessText = await readinessPanel.innerText();
+  expect(readinessText).not.toContain("tenant-operation-e2e");
+  expect(readinessText).not.toContain("profile-e2e");
+  expect(readinessText).not.toContain("compliance@example.test");
+  expect(readinessText).not.toContain("500.000.000");
+  expect(readinessText).not.toContain("voterCount");
   await expect(
     page.getByText(/Solo Administración puede modificar/),
   ).toBeVisible();
@@ -380,4 +615,115 @@ test("cumplimiento consulta el resumen sin cargar equipo ni exponer escritura", 
   ).toHaveCount(0);
   await expect(page.getByLabel("Tipo de operación")).toHaveCount(0);
   expect(unexpectedRequests).toEqual([]);
+});
+
+test("conserva el perfil y permite reintentar si falla el alistamiento", async ({
+  page,
+}) => {
+  const session = await installSession(page, "COMPLIANCE_OFFICER");
+  let readinessRequests = 0;
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === "GET" && pathname === "/api/auth/me") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            user: {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.name,
+              role: "COMPLIANCE_OFFICER",
+              tenant: session.tenant,
+            },
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (request.method() === "GET" && pathname === "/api/operation-profile") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful(configuredContext())),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/adoption"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({ configured: true, profile: { id: "profile-e2e", stage: "ELECTION_DAY" }, request: null }),
+        ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/operation-profile/readiness"
+    ) {
+      readinessRequests += 1;
+      if (readinessRequests === 1) {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            statusCode: 503,
+            message: "Falla temporal al calcular el alistamiento.",
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(successful(readinessFixture)),
+        });
+      }
+      return;
+    }
+
+    await route.fulfill({ status: 403, body: "{}" });
+  });
+
+  await page.goto("/dashboard/operation-profile");
+  await expect(
+    page.getByText("Perfil configurado", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "No pudimos verificar el alistamiento",
+    }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('section[aria-labelledby="operation-readiness-title"]')
+      .getByRole("alert"),
+  ).toContainText("Falla temporal al calcular el alistamiento.");
+
+  await page.getByRole("button", { name: "Reintentar alistamiento" }).click();
+
+  await expect
+    .poll(() => readinessRequests, {
+      message: "el panel repitió la consulta de estado",
+    })
+    .toBe(2);
+  await expect(
+    page.getByRole("status", { name: "Estado general: Con bloqueos" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "No pudimos verificar el alistamiento",
+    }),
+  ).toHaveCount(0);
 });

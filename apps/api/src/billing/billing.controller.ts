@@ -9,6 +9,17 @@ import { Role } from '../../prisma/generated/prisma';
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
+  /**
+   * Deliberately small, tenant-scoped product-entitlement snapshot. Every
+   * authenticated role needs this to decide whether to present an action; the
+   * backend feature guards remain the authority for the action itself.
+   */
+  @Get('capabilities')
+  @Roles(...Object.values(Role))
+  async getCapabilities(@CurrentUser() user: AuthenticatedUser) {
+    return this.billingService.getCapabilities(user);
+  }
+
   @Get('plans')
   async getPlans() {
     return this.billingService.listPlans();

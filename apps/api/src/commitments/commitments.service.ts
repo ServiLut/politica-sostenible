@@ -14,6 +14,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { CreateCommitmentDto } from './dto/create-commitment.dto';
 import { ListCommitmentsQueryDto } from './dto/list-commitments-query.dto';
 import { UpdateCommitmentDto } from './dto/update-commitment.dto';
@@ -242,6 +243,11 @@ export class CommitmentsService {
     ]);
 
     const created = await this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertCampaignOperationOpen(
+        transaction,
+        user.tenantId,
+        mode,
+      );
       const commitment = await transaction.commitment.create({
         data: {
           tenantId: user.tenantId,
@@ -364,6 +370,11 @@ export class CommitmentsService {
     try {
       const updated = await this.prisma.$transaction(
         async (transaction) => {
+          await lockAndAssertCampaignOperationOpen(
+            transaction,
+            user.tenantId,
+            mode,
+          );
           const current = await transaction.commitment.findFirst({
             where: scopedWhere,
             select: { status: true, progress: true },

@@ -45,7 +45,7 @@ const validTotpResult = {
   timeStep: verifiedTimeStep,
 };
 
-function digest(value: string): string {
+function digest(value: string | Uint8Array): string {
   return createHash('sha256').update(value).digest('hex');
 }
 

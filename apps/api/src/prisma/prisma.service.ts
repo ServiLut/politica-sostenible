@@ -32,6 +32,21 @@ export function resolveDatabaseSchema(
   return schema;
 }
 
+export function resolveDatabaseSearchPathOptions(
+  schema: string | undefined,
+): string | undefined {
+  if (!schema) return undefined;
+  if (!POSTGRES_IDENTIFIER.test(schema)) {
+    throw new Error(
+      'DATABASE_SCHEMA contains an invalid PostgreSQL identifier',
+    );
+  }
+  // Prisma qualifies generated statements with the adapter schema, while raw
+  // SQL and trigger bodies use PostgreSQL's session search_path. Pin both to
+  // the same validated schema and keep pg_catalog explicit.
+  return `-c search_path="${schema}",pg_catalog`;
+}
+
 export function resolveDatabaseSsl(
   environment: NodeJS.ProcessEnv = process.env,
 ): false | { rejectUnauthorized: boolean } {
@@ -83,14 +98,16 @@ export class PrismaService
       console.warn('DATABASE_URL is not configured. Database calls will fail.');
     }
 
+    const schema = resolveDatabaseSchema(connectionString);
     const pool = new pg.Pool({
       connectionString,
       ssl: resolveDatabaseSsl(),
+      max: 10,
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 30_000,
+      options: resolveDatabaseSearchPathOptions(schema),
     });
 
-    const schema = resolveDatabaseSchema(connectionString);
     const adapter = new PrismaPg(pool, schema ? { schema } : undefined);
     super({ adapter });
   }

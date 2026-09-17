@@ -660,6 +660,23 @@ test("el registro permite omitir el documento y evidencia términos versionados"
   page,
 }) => {
   let registrationPayload: Record<string, unknown> | null = null;
+  await page.route("**/api/auth/registration-policy", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        statusCode: 200,
+        message: "Success",
+        data: {
+          enabled: true,
+          invitationAcceptanceEnabled: true,
+          mode: "SELF_SERVICE",
+          message: "El registro público de organizaciones está habilitado.",
+          termsVersion: "registro-2026.9",
+        },
+      }),
+    });
+  });
   await page.route("**/api/auth/register", async (route) => {
     registrationPayload = route.request().postDataJSON() as Record<
       string,
@@ -716,7 +733,7 @@ test("el registro permite omitir el documento y evidencia términos versionados"
     password: "clave-segura-2026",
     passwordConfirmation: "clave-segura-2026",
     termsAccepted: true,
-    termsVersion: "2026.1",
+    termsVersion: "registro-2026.9",
   });
   expect(registrationPayload).not.toHaveProperty("documentId");
   expect(registrationPayload).not.toHaveProperty("tenantId");
@@ -750,6 +767,7 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
                 name: "Campaña verificable",
                 slug: "campana-verificable",
                 type: "CANDIDACY",
+                operationStage: "CAMPAIGN",
               },
             },
           },
@@ -829,7 +847,26 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
             href: "/dashboard/tasks",
           },
         ],
-        agenda: { upcomingEvents: [], priorityTasks: [] },
+        agenda: {
+          upcomingEvents: [
+            {
+              id: "event-e2e",
+              name: "Consejo territorial",
+              startsAt: "2026-09-10T14:00:00.000Z",
+              endsAt: "2026-09-10T16:00:00.000Z",
+              status: "SCHEDULED",
+            },
+          ],
+          priorityTasks: [
+            {
+              id: "task-e2e",
+              title: "Cerrar cobertura de testigos",
+              status: "IN_PROGRESS",
+              priority: "URGENT",
+              dueAt: "2026-09-10T12:00:00.000Z",
+            },
+          ],
+        },
       },
     };
 
@@ -858,7 +895,32 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Abrir Cumplimiento de Metas" }),
+  ).toHaveAttribute("href", "/dashboard/territory");
+  await expect(
+    page.getByRole("link", { name: "Abrir actas aceptadas" }),
   ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Se habilita desde la preparación electoral, según la etapa configurada.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Riesgos que necesitan responsable" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Etapa actual: Campaña" }),
+  ).toBeVisible();
+  const currentStage = page
+    .locator('li[aria-current="step"]')
+    .filter({ hasText: "Campaña" });
+  await expect(currentStage).toBeVisible();
+  await expect(page.getByText("Controles críticos al día")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Consejo territorial/ }),
+  ).toHaveAttribute("href", "/dashboard/events");
+  await expect(
+    page.getByRole("link", { name: /Cerrar cobertura de testigos/ }),
+  ).toHaveAttribute("href", "/dashboard/tasks?view=tasks&entityId=task-e2e");
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(1);
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,

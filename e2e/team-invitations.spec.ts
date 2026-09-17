@@ -230,6 +230,21 @@ test("la persona invitada activa su cuenta con términos versionados", async ({
   const token = "a".repeat(43);
   let acceptanceBody: Record<string, unknown> | null = null;
 
+  await page.route("**/api/auth/registration-policy", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        successful({
+          enabled: false,
+          invitationAcceptanceEnabled: true,
+          mode: "CONTROLLED_ACCESS",
+          message: "El registro público está cerrado.",
+          termsVersion: "registro-2026.9",
+        }),
+      ),
+    });
+  });
   await page.route("**/api/auth/invitations/accept", async (route) => {
     acceptanceBody = route.request().postDataJSON() as Record<string, unknown>;
     await route.fulfill({
@@ -249,6 +264,9 @@ test("la persona invitada activa su cuenta con términos versionados", async ({
     page.getByRole("heading", { name: "Activa tu acceso" }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/aceptar-invitacion$/);
+  await expect(
+    page.getByRole("link", { name: "términos versión registro-2026.9" }),
+  ).toBeVisible();
 
   await page.getByLabel("Nombre completo").fill("Ana Pérez");
   await page.getByLabel("Número de documento").fill("1012345678");
@@ -270,11 +288,51 @@ test("la persona invitada activa su cuenta con términos versionados", async ({
     documentId: "1012345678",
     phone: "+573001234567",
     termsAccepted: true,
-    termsVersion: "2026.1",
+    termsVersion: "registro-2026.9",
   });
   expect(acceptanceBody).not.toHaveProperty("email");
   expect(acceptanceBody).not.toHaveProperty("tenantId");
   expect(acceptanceBody).not.toHaveProperty("role");
+});
+
+test("la activación por invitación falla cerrada si la política la deshabilita", async ({
+  page,
+}) => {
+  const token = "b".repeat(43);
+  let acceptanceRequests = 0;
+
+  await page.route("**/api/auth/registration-policy", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        successful({
+          enabled: false,
+          invitationAcceptanceEnabled: false,
+          mode: "CONTROLLED_ACCESS",
+          message: "El registro público está cerrado.",
+          termsVersion: "registro-2026.9",
+        }),
+      ),
+    });
+  });
+  await page.route("**/api/auth/invitations/accept", async (route) => {
+    acceptanceRequests += 1;
+    await route.fulfill({ status: 500, body: "No debió enviarse" });
+  });
+
+  await page.goto(`/aceptar-invitacion#token=${token}`);
+
+  await expect(
+    page.getByText(
+      "La activación por invitación está temporalmente deshabilitada.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole("checkbox")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Activar acceso" }),
+  ).toBeDisabled();
+  expect(acceptanceRequests).toBe(0);
 });
 
 test("administracion cambia rol y desactiva una cuenta sin poder tocarse a si misma", async ({

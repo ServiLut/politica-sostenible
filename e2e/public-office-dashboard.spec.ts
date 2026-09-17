@@ -77,6 +77,7 @@ const briefing = {
     commitments: { open: 6, atRisk: 1, overdue: 1, teamVisible: 3 },
     events: { upcoming: 0 },
     communications: { pendingApproval: 2 },
+    pqrsd: { open: 7, criticalAlerts: 2, configurationReady: true },
   },
   alerts: [
     {
@@ -99,6 +100,15 @@ const briefing = {
         dueAt: "2026-08-30T12:00:00.000Z",
       },
     ],
+  },
+};
+
+const planCapabilitiesResponse = {
+  statusCode: 200,
+  message: "Success",
+  data: {
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
   },
 };
 
@@ -146,6 +156,18 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
     authorizationHeaders.push(request.headers().authorization ?? "");
     requestedUrls.push(url);
 
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/api/billing/capabilities"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilitiesResponse),
+      });
+      return;
+    }
+
     if (url.pathname === "/api/command-center/briefing") {
       await route.fulfill({
         status: 200,
@@ -175,6 +197,8 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
     page.getByText(/Seguimiento de Alcaldía verificable/),
   ).toBeVisible();
   await expect(page.getByTestId("open-cases-metric")).toHaveText("12");
+  await expect(page.getByTestId("open-pqrsd-metric")).toHaveText("7");
+  await expect(page.getByText("PQRSD formales abiertas")).toBeVisible();
   await expect(page.getByTestId("overdue-cases-metric")).toHaveText("2");
   await expect(page.getByTestId("overdue-tasks-metric")).toHaveText("4");
   await expect(page.getByTestId("team-visible-commitments-metric")).toHaveText(
@@ -195,10 +219,10 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
   ).toHaveAttribute("href", "/dashboard/cases");
 
   expect(new Set(requestedUrls.map((url) => url.pathname))).toEqual(
-    new Set(["/api/command-center/briefing"]),
+    new Set(["/api/billing/capabilities", "/api/command-center/briefing"]),
   );
-  expect(requestedUrls.length).toBeGreaterThanOrEqual(1);
-  expect(requestedUrls.length).toBeLessThanOrEqual(2);
+  expect(requestedUrls.length).toBeGreaterThanOrEqual(2);
+  expect(requestedUrls.length).toBeLessThanOrEqual(3);
   expect(
     requestedUrls.every(
       (url) =>
@@ -237,7 +261,8 @@ test("un rol operativo no recibe atajos hacia la administración de equipo", asy
   );
 
   await page.route("**/api/**", async (route) => {
-    const url = new URL(route.request().url());
+    const request = route.request();
+    const url = new URL(request.url());
     if (url.pathname === "/api/auth/me") {
       await route.fulfill({
         status: 200,
@@ -255,6 +280,21 @@ test("un rol operativo no recibe atajos hacia la administración de equipo", asy
             },
           },
         }),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/api/billing/capabilities"
+    ) {
+      expect(request.headers().authorization).toBe(
+        `Bearer ${operationalSession.accessToken}`,
+      );
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilitiesResponse),
       });
       return;
     }

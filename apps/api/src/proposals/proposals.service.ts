@@ -14,6 +14,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { ListProposalsQueryDto } from './dto/list-proposals-query.dto';
 import { UpdateProposalDto } from './dto/update-proposal.dto';
@@ -111,6 +112,45 @@ export class ProposalsService {
     };
   }
 
+  async listResponsibles(
+    user: AuthenticatedUser,
+    query: ListResponsiblesQueryDto,
+  ) {
+    await this.assertProposalDomain(user.tenantId);
+    
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const where: Prisma.UserWhereInput = {
+      tenantId: user.tenantId,
+      isActive: true,
+      ...(query.search
+        ? { name: { contains: query.search, mode: 'insensitive' } }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: { id: true, name: true, role: true },
+        orderBy: { name: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(user: AuthenticatedUser, id: string) {
     await this.assertProposalDomain(user.tenantId);
     const proposal = await this.findProposalInTenant(user.tenantId, id);
@@ -133,6 +173,7 @@ export class ProposalsService {
     const nextRef = await this.generateReferenceCode(user.tenantId);
 
     const created = await this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertOperationOpen(transaction, user.tenantId);
       const proposal = await transaction.politicalProposal.create({
         data: {
           tenantId: user.tenantId,
@@ -211,6 +252,7 @@ export class ProposalsService {
       .sort();
 
     const updated = await this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertOperationOpen(transaction, user.tenantId);
       const proposal = await transaction.politicalProposal.update({
         where: { id_tenantId: { id, tenantId: user.tenantId } },
         data: {
@@ -262,6 +304,7 @@ export class ProposalsService {
     }
 
     await this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertOperationOpen(transaction, user.tenantId);
       const deleted = await transaction.politicalProposal.deleteMany({
         where: {
           id,
@@ -372,6 +415,7 @@ export class ProposalsService {
       status: proposal.status,
       progressPercent: proposal.progressPercent,
       ownerId: proposal.ownerId,
+      isPublic: proposal.isPublic,
     };
   }
 

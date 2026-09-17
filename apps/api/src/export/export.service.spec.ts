@@ -7,9 +7,10 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import type { ExportModule } from './dto/export-module-params.dto';
 import { ExportService } from './export.service';
 
-describe('ExportService tenant isolation and privacy', () => {
+describe('ExportService tenant isolation, privacy and bounded streaming', () => {
   const currentUser: AuthenticatedUser = {
     userId: 'admin-a',
     tenantId: 'tenant-a',
@@ -29,6 +30,22 @@ describe('ExportService tenant isolation and privacy', () => {
     auditEvent: { create: jest.Mock };
   };
   let service: ExportService;
+
+  async function collectExport(
+    moduleName: ExportModule,
+    user: AuthenticatedUser = currentUser,
+    signal?: AbortSignal,
+  ): Promise<{ fileName: string; csv: string }> {
+    const opened = await service.openExport(moduleName, user, signal);
+    const chunks: Buffer[] = [];
+    for await (const chunk of opened.chunks) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    return {
+      fileName: opened.fileName,
+      csv: Buffer.concat(chunks).toString('utf8'),
+    };
+  }
 
   beforeEach(() => {
     prisma = {
@@ -56,7 +73,7 @@ describe('ExportService tenant isolation and privacy', () => {
     service = new ExportService(prisma as unknown as PrismaService);
   });
 
-  it('uses the server-side tenant mode and scopes both actor and exported records', async () => {
+  it('uses server-side tenant mode, bounded queries and a tenant-scoped actor', async () => {
     prisma.tenant.findUnique.mockResolvedValue({
       name: 'Despacho de Prueba',
       defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
@@ -64,6 +81,7 @@ describe('ExportService tenant isolation and privacy', () => {
     });
     prisma.task.findMany.mockResolvedValue([
       {
+        id: 'task-a',
         title: 'Seguimiento',
         description: '=SUM(1,1)\nsegunda fila',
         status: 'OPEN',
@@ -75,7 +93,7 @@ describe('ExportService tenant isolation and privacy', () => {
       },
     ]);
 
-    const result = await service.generateExport('tareas', currentUser);
+    const result = await collectExport('tareas');
 
     expect(prisma.tenant.findUnique).toHaveBeenCalledWith({
       where: { id: 'tenant-a' },
@@ -85,14 +103,20 @@ describe('ExportService tenant isolation and privacy', () => {
       where: { id: 'admin-a', tenantId: 'tenant-a' },
       select: { name: true },
     });
-    expect(prisma.task.findMany).toHaveBeenCalledWith({
-      where: {
-        tenantId: 'tenant-a',
-        mode: PoliticalOperationMode.PUBLIC_OFFICE,
-      },
-      include: { assignee: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tenantId: 'tenant-a',
+          mode: PoliticalOperationMode.PUBLIC_OFFICE,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 250,
+      }),
+    );
+    expect(prisma.task.findMany.mock.calls[0][0]).not.toHaveProperty('include');
+    expect(prisma.task.findMany.mock.calls[0][0].select).toEqual(
+      expect.objectContaining({ id: true, title: true, createdAt: true }),
+    );
     expect(prisma.auditEvent.create).toHaveBeenCalledWith({
       data: {
         tenantId: 'tenant-a',
@@ -104,15 +128,15 @@ describe('ExportService tenant isolation and privacy', () => {
         resourceId: 'ALL',
       },
     });
-
-    const csv = result.toString('utf8');
-    expect(csv.startsWith('\uFEFF')).toBe(true);
-    expect(csv).toContain("'=SUM(1,1) segunda fila");
+    expect(result.fileName).toMatch(/^export-tareas-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(result.csv.startsWith('\uFEFF')).toBe(true);
+    expect(result.csv).toContain("'=SUM(1,1) segunda fila");
   });
 
-  it('masks sensitive voter values and neutralizes spreadsheet formulas', async () => {
+  it('masks voter PII and neutralizes spreadsheet formulas', async () => {
     prisma.voter.findMany.mockResolvedValue([
       {
+        id: 'voter-a',
         documentId: '12345678',
         firstName: 'Ana',
         lastName: 'Prueba',
@@ -120,7 +144,6 @@ describe('ExportService tenant isolation and privacy', () => {
         email: 'ana@example.test',
         puesto: { name: 'Puesto 1' },
         mesa: 12,
-        consentAccepted: true,
         consentRecords: [
           {
             id: 'consent-a',
@@ -136,17 +159,20 @@ describe('ExportService tenant isolation and privacy', () => {
       },
     ]);
 
-    const result = await service.generateExport('personas', currentUser);
+    const { csv } = await collectExport('personas');
 
-    expect(prisma.voter.findMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a' },
-      include: {
-        puesto: { select: { name: true } },
-        consentRecords: expect.objectContaining({ take: 1 }),
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    const csv = result.toString('utf8');
+    expect(prisma.voter.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: 'tenant-a' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 250,
+        select: expect.objectContaining({
+          id: true,
+          puesto: { select: { name: true } },
+          consentRecords: expect.objectContaining({ take: 1 }),
+        }),
+      }),
+    );
     expect(csv).toContain('****5678');
     expect(csv).toContain('******4567');
     expect(csv).not.toContain('12345678');
@@ -159,6 +185,7 @@ describe('ExportService tenant isolation and privacy', () => {
   it('never exports historical consent as current after the notice changes', async () => {
     prisma.voter.findMany.mockResolvedValue([
       {
+        id: 'voter-a',
         documentId: '12345678',
         firstName: 'Ana',
         lastName: 'Prueba',
@@ -166,7 +193,6 @@ describe('ExportService tenant isolation and privacy', () => {
         email: null,
         puesto: null,
         mesa: null,
-        consentAccepted: true,
         consentRecords: [
           {
             id: 'consent-old',
@@ -182,9 +208,7 @@ describe('ExportService tenant isolation and privacy', () => {
       },
     ]);
 
-    const csv = (
-      await service.generateExport('personas', currentUser)
-    ).toString('utf8');
+    const { csv } = await collectExport('personas');
 
     expect(csv).toContain('"No"');
     expect(csv).not.toContain('"Sí"');
@@ -195,7 +219,7 @@ describe('ExportService tenant isolation and privacy', () => {
     ['compromisos', 'commitment'],
     ['eventos', 'campaignEvent'],
   ] as const)(
-    'filters %s by both the JWT tenant and the server-side active mode',
+    'filters %s by both JWT tenant and server-side active mode',
     async (moduleName, modelName) => {
       prisma.tenant.findUnique.mockResolvedValue({
         name: 'Despacho de Prueba',
@@ -203,7 +227,7 @@ describe('ExportService tenant isolation and privacy', () => {
         type: TenantType.PUBLIC_OFFICE,
       });
 
-      await service.generateExport(moduleName, currentUser);
+      await collectExport(moduleName);
 
       expect(prisma[modelName].findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -211,6 +235,7 @@ describe('ExportService tenant isolation and privacy', () => {
             tenantId: 'tenant-a',
             mode: PoliticalOperationMode.PUBLIC_OFFICE,
           },
+          take: 250,
         }),
       );
     },
@@ -220,7 +245,7 @@ describe('ExportService tenant isolation and privacy', () => {
     'blocks team exports for non-admin role %s before reading users',
     async (role) => {
       await expect(
-        service.generateExport('equipo', { ...currentUser, role }),
+        service.openExport('equipo', { ...currentUser, role }),
       ).rejects.toBeInstanceOf(ForbiddenException);
 
       expect(prisma.user.findFirst).not.toHaveBeenCalled();
@@ -236,12 +261,66 @@ describe('ExportService tenant isolation and privacy', () => {
       type: TenantType.PUBLIC_OFFICE,
     });
 
-    await expect(
-      service.generateExport('personas', currentUser),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.openExport('personas', currentUser)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
 
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
     expect(prisma.voter.findMany).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('uses a stable keyset cursor instead of an unbounded offset', async () => {
+    const firstBatch = Array.from({ length: 250 }, (_, index) => ({
+      id: `task-${index.toString().padStart(3, '0')}`,
+      title: `Tarea ${index}`,
+      description: null,
+      status: 'OPEN',
+      priority: 'MEDIUM',
+      assignee: null,
+      dueAt: null,
+      completedAt: null,
+      createdAt: new Date('2026-09-01T00:00:00.000Z'),
+    }));
+    prisma.task.findMany
+      .mockResolvedValueOnce(firstBatch)
+      .mockResolvedValueOnce([]);
+
+    await collectExport('tareas');
+
+    expect(prisma.task.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.task.findMany.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        cursor: { id: 'task-249' },
+        skip: 1,
+        take: 250,
+      }),
+    );
+  });
+
+  it('does not audit a download that the client cancels before completion', async () => {
+    const opened = await service.openExport('tareas', currentUser);
+
+    await opened.chunks.next();
+    await opened.chunks.return(undefined);
+
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('honors an already-aborted request before reading export data', async () => {
+    const abortController = new AbortController();
+    const opened = await service.openExport(
+      'tareas',
+      currentUser,
+      abortController.signal,
+    );
+    abortController.abort();
+
+    await expect(opened.chunks.next()).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
     expect(prisma.auditEvent.create).not.toHaveBeenCalled();
   });
 });

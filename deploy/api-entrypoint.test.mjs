@@ -13,8 +13,16 @@ const validEnvironment = {
     "postgresql://migration:secret@db.invalid.co:5432/politica?sslmode=verify-full&schema=politica",
   DATABASE_SSL: "true",
   DATABASE_SSL_REJECT_UNAUTHORIZED: "true",
+  REDIS_URL:
+    "rediss://default:redis-password-with-32-random-bytes@cache.invalid.co:6380/0",
+  REDIS_ALLOW_PLAINTEXT_INTERNAL: "false",
+  REDIS_URL:
+    "rediss://default:redis-password-with-32-random-bytes@cache.invalid.co:6380/0",
+  REDIS_ALLOW_PLAINTEXT_INTERNAL: "false",
   JWT_SECRET: "0123456789abcdefghijklmnopqrstuvwxyz-API",
   CONSENT_IP_SALT: "abcdefghijklmnopqrstuvwxyz0123456789-SALT",
+  OFFLINE_SYNC_HMAC_SECRET:
+    "offline-sync-secret-abcdefghijklmnopqrstuvwxyz0123456789",
   SAAS_ADMIN_USER_IDS: "00000000-0000-4000-8000-000000000001",
   MFA_TOTP_ACTIVE_KEY_ID: "key-2026-09",
   MFA_TOTP_ENCRYPTION_KEY:

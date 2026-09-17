@@ -64,7 +64,7 @@ export interface AcceptTeamInvitationInput {
   documentId: string;
   phone?: string;
   termsAccepted: true;
-  termsVersion: "2026.1";
+  termsVersion: string;
 }
 
 async function listAllTeamPages<T>(path: string, signal?: AbortSignal) {

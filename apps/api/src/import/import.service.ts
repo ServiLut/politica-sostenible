@@ -25,6 +25,7 @@ import {
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
+import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import {
   CANONICAL_PHONE_PATTERN,
   normalizePhoneInput,
@@ -44,6 +45,11 @@ interface ParsedCsvRecord {
 interface ImportContext {
   noticeVersion: string;
   noticeActivatedAt: Date;
+}
+
+interface PollingPlaceReference {
+  code: string;
+  name: string;
 }
 
 type ImportContextClient = Pick<
@@ -132,6 +138,7 @@ export class ImportService {
 
     return this.prisma.$transaction(
       async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, user.tenantId);
         const currentContext = await this.loadImportContext(transaction, user);
         if (currentContext.noticeVersion !== context.noticeVersion) {
           throw new BadRequestException(
@@ -140,7 +147,11 @@ export class ImportService {
         }
 
         const puestos = await transaction.politicalDivision.findMany({
-          where: { tenantId: user.tenantId, type: DivisionType.PUESTO },
+          where: {
+            tenantId: user.tenantId,
+            type: DivisionType.PUESTO,
+            isActive: true,
+          },
           select: { id: true, name: true, code: true },
         });
 
@@ -172,19 +183,23 @@ export class ImportService {
           }
 
           const puestoValue = this.csvValue(row, 'Puesto');
-          const puesto = puestoValue
-            ? puestos.find(
-                (item) =>
-                  item.name.toLocaleLowerCase('es-CO') ===
-                    puestoValue.toLocaleLowerCase('es-CO') ||
-                  item.code === puestoValue,
-              )
-            : undefined;
-          if (puestoValue && !puesto) {
+          const puestoResolution = puestoValue
+            ? this.resolvePollingPlace(puestoValue, puestos)
+            : { status: 'empty' as const };
+          if (puestoResolution.status === 'missing') {
             throw new BadRequestException(
               `El puesto de la fila ${row.lineNumber} no existe en la organización`,
             );
           }
+          if (puestoResolution.status === 'ambiguous') {
+            throw new BadRequestException(
+              `El nombre del puesto de la fila ${row.lineNumber} coincide con varios puestos. Use el código electoral único del puesto`,
+            );
+          }
+          const puesto =
+            puestoResolution.status === 'matched'
+              ? puestoResolution.value
+              : undefined;
 
           const grantedAt = new Date(
             this.csvValue(row, 'Fecha consentimiento'),
@@ -510,6 +525,32 @@ export class ImportService {
     return row.fields[header]?.trim() ?? '';
   }
 
+  /**
+   * Los nombres de puestos se repiten entre municipios. El código exacto es
+   * autoritativo; un nombre solo es válido cuando identifica un único puesto
+   * dentro del tenant. Escoger silenciosamente el primer resultado podría
+   * enviar votantes y testigos al municipio equivocado.
+   */
+  private resolvePollingPlace<T extends PollingPlaceReference>(
+    value: string,
+    candidates: readonly T[],
+  ): { status: 'matched'; value: T } | { status: 'missing' | 'ambiguous' } {
+    const codeMatch = candidates.find((candidate) => candidate.code === value);
+    if (codeMatch) return { status: 'matched', value: codeMatch };
+
+    const normalizedName = value.normalize('NFKC').toLocaleLowerCase('es-CO');
+    const nameMatches = candidates.filter(
+      (candidate) =>
+        candidate.name.normalize('NFKC').toLocaleLowerCase('es-CO') ===
+        normalizedName,
+    );
+
+    if (nameMatches.length === 1) {
+      return { status: 'matched', value: nameMatches[0] };
+    }
+    return { status: nameMatches.length > 1 ? 'ambiguous' : 'missing' };
+  }
+
   private async validateVoters(
     rows: ParsedCsvRow[],
     tenantId: string,
@@ -549,6 +590,7 @@ export class ImportService {
             where: {
               tenantId,
               type: DivisionType.PUESTO,
+              isActive: true,
             },
             select: { name: true, code: true },
           });
@@ -595,15 +637,16 @@ export class ImportService {
       if (email && (email.length > 254 || !isEmail(email))) {
         addError('Correo', 'El correo no tiene un formato válido');
       }
-      if (
-        puesto &&
-        !puestos.some(
-          (candidate) =>
-            candidate.name.toLocaleLowerCase('es-CO') ===
-              puesto.toLocaleLowerCase('es-CO') || candidate.code === puesto,
-        )
-      ) {
-        addError('Puesto', 'El puesto no existe en la organización');
+      if (puesto) {
+        const puestoResolution = this.resolvePollingPlace(puesto, puestos);
+        if (puestoResolution.status === 'missing') {
+          addError('Puesto', 'El puesto no existe en la organización');
+        } else if (puestoResolution.status === 'ambiguous') {
+          addError(
+            'Puesto',
+            'El nombre coincide con varios puestos. Use el código electoral único del puesto',
+          );
+        }
       }
       if (mesa && (!/^\d{1,5}$/u.test(mesa) || Number(mesa) < 1)) {
         addError('Mesa', 'La mesa debe ser un entero entre 1 y 99999');

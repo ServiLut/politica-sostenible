@@ -54,7 +54,7 @@ export async function resolveTerritorialAccess({
   }
 
   const divisions = await client.politicalDivision.findMany({
-    where: { tenantId },
+    where: { tenantId, isActive: true },
     select: { id: true, parentId: true },
   });
   const tenantDivisionIds = new Set(divisions.map(({ id }) => id));

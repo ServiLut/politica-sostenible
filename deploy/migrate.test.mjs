@@ -415,6 +415,17 @@ test("las invariantes PostgreSQL fallan cerradas si falta o cambia una protecciÃ
     changed.includes("CampaignSettings_report_deadline_check"),
     true,
   );
+
+  const unsafeFunctions = databaseInvariantIssues({
+    constraints,
+    triggers: [],
+    indexes: [],
+    unsafeFunctionSearchPaths: [{ name: "unsafe_trigger_function" }],
+  });
+  assert.equal(
+    unsafeFunctions.includes("ApplicationFunctions_search_path"),
+    true,
+  );
 });
 
 test("classifyDatabaseState distingue base vacia y schema sin historial", () => {

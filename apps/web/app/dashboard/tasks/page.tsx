@@ -45,6 +45,7 @@ import { canExportData } from "@/lib/export-policy";
 import type { BackendUserRole } from "@/types/saas-schema";
 import { getRoleLabel } from "@/config/navigation";
 import { ExportButton } from "@/components/ui/ExportButton";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 type View = "tasks" | "commitments";
 type Dialog = "task" | "commitment" | null;
@@ -315,6 +316,17 @@ export default function TasksPage() {
     {},
   );
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+
+  useAccessibleDialog({
+    open: dialog !== null,
+    containerRef: dialogRef,
+    initialFocusRef: dialogTitleRef,
+    onClose: () => {
+      if (!mutation) setDialog(null);
+    },
+    closeOnEscape: mutation === null,
+  });
   const queryContextReadRef = useRef(false);
 
   const [newTask, setNewTask] = useState({
@@ -551,23 +563,6 @@ export default function TasksPage() {
     taskResult,
     view,
   ]);
-
-  useEffect(() => {
-    if (!dialog) return;
-
-    const previousActiveElement = document.activeElement as HTMLElement | null;
-    dialogTitleRef.current?.focus();
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDialog(null);
-    };
-
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      window.removeEventListener("keydown", closeOnEscape);
-      previousActiveElement?.focus();
-    };
-  }, [dialog]);
 
   useEffect(() => {
     if (!user || !linkedCase || !requestedDialog) return;
@@ -1537,6 +1532,7 @@ export default function TasksPage() {
       {dialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <section
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="work-dialog-title"

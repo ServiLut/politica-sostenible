@@ -37,7 +37,31 @@ const groupedResponse = {
       referenceCode: "P-01",
     },
   ],
-  documents: [],
+  tasks: [
+    {
+      id: "task-call-leaders",
+      title: "Llamar líderes",
+      status: "TODO",
+      priority: "HIGH",
+    },
+  ],
+  commitments: [
+    {
+      id: "commitment-water",
+      title: "Agua rural",
+      reference: "CMP-01",
+      status: "PROPOSED",
+    },
+  ],
+  cases: [],
+  incidents: [
+    {
+      id: "incident-access",
+      title: "Acceso bloqueado",
+      reference: "INC-CAM-01",
+      status: "OPEN",
+    },
+  ],
 };
 
 type SearchMode = "results" | "empty" | "error";
@@ -55,6 +79,7 @@ function successful(data: unknown) {
 
 async function preparePalette(page: Page, mode: SearchMode) {
   const searchRequests: SearchRequest[] = [];
+  const capabilityRequests: string[] = [];
   const voterListRequests: URL[] = [];
   const voterDetailRequests: URL[] = [];
   const pageErrors: string[] = [];
@@ -107,6 +132,23 @@ async function preparePalette(page: Page, mode: SearchMode) {
       return;
     }
 
+    if (
+      url.pathname === "/api/billing/capabilities" &&
+      request.method() === "GET"
+    ) {
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      capabilityRequests.push(`${request.method()} ${url.pathname}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: successful({
+          plan: { code: "PRO", name: "Profesional" },
+          features: { export: true, import: true, mfa: true },
+        }),
+      });
+      return;
+    }
+
     if (url.pathname === "/api/search") {
       searchRequests.push({
         method: request.method(),
@@ -133,7 +175,15 @@ async function preparePalette(page: Page, mode: SearchMode) {
         body: successful(
           mode === "results"
             ? groupedResponse
-            : { voters: [], users: [], proposals: [], documents: [] },
+            : {
+                voters: [],
+                users: [],
+                proposals: [],
+                tasks: [],
+                commitments: [],
+                cases: [],
+                incidents: [],
+              },
         ),
       });
       return;
@@ -277,6 +327,7 @@ async function preparePalette(page: Page, mode: SearchMode) {
 
   return {
     searchRequests,
+    capabilityRequests,
     voterListRequests,
     voterDetailRequests,
     pageErrors,
@@ -289,6 +340,39 @@ async function openPalette(page: Page) {
   await expect(dialog).toBeVisible();
   return dialog;
 }
+
+test("atrapa Tab, enfoca la búsqueda, cierra con Escape y restaura el disparador", async ({
+  page,
+}) => {
+  const { pageErrors } = await preparePalette(page, "empty");
+  const trigger = page.getByRole("button", {
+    name: "Abrir opciones de usuario",
+  });
+  await trigger.focus();
+  await expect(trigger).toBeFocused();
+
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog", { name: "Búsqueda global" });
+  const input = dialog.getByRole("searchbox", {
+    name: "Buscar en la organización",
+  });
+  const close = dialog.getByRole("button", { name: "Cerrar búsqueda" });
+  await expect(input).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(input).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(input).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(pageErrors).toEqual([]);
+});
 
 test("Ctrl+K busca por POST, agrupa resultados y navega sin exponer el término", async ({
   page,
@@ -311,22 +395,44 @@ test("Ctrl+K busca por POST, agrupa resultados y navega sin exponer el término"
   await expect(dialog.getByText("Personas", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Equipo", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Propuestas", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Tareas", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Compromisos", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("Incidentes y crisis", { exact: true }),
+  ).toBeVisible();
   await expect(dialog.getByRole("link", { name: /Ana Pérez/ })).toBeVisible();
   await expect(
     dialog.getByRole("link", { name: /Ana Administradora/ }),
   ).toBeVisible();
   await expect(dialog.getByRole("link", { name: /Agua segura/ })).toBeVisible();
+  await expect(
+    dialog.getByRole("link", { name: /Llamar líderes/ }),
+  ).toHaveAttribute(
+    "href",
+    "/dashboard/tasks?view=tasks&entityId=task-call-leaders",
+  );
+  await expect(
+    dialog.getByRole("link", { name: /Agua rural/ }),
+  ).toHaveAttribute(
+    "href",
+    "/dashboard/tasks?view=commitments&entityId=commitment-water",
+  );
+  await expect(
+    dialog.getByRole("link", { name: /Acceso bloqueado/ }),
+  ).toHaveAttribute(
+    "href",
+    "/dashboard/incidents?view=detail&entityId=incident-access",
+  );
   await expect(dialog.getByRole("link", { name: /Ana Pérez/ })).toHaveAttribute(
     "href",
     "/dashboard/votantes?view=detail&entityId=voter-ana",
   );
   await expect(
     dialog.getByRole("link", { name: /Ana Administradora/ }),
+  ).toHaveAttribute("href", "/dashboard/team?view=detail&entityId=user-ana");
+  await expect(
+    dialog.getByRole("link", { name: /Agua segura/ }),
   ).toHaveAttribute(
-    "href",
-    "/dashboard/team?view=detail&entityId=user-ana",
-  );
-  await expect(dialog.getByRole("link", { name: /Agua segura/ })).toHaveAttribute(
     "href",
     "/dashboard/proposals?view=detail&entityId=proposal-water",
   );
@@ -376,8 +482,12 @@ test("muestra un estado vacío para una búsqueda válida sin coincidencias", as
 test("el resultado de persona conserva el id y abre solo el detalle autorizado", async ({
   page,
 }) => {
-  const { voterListRequests, voterDetailRequests, pageErrors } =
-    await preparePalette(page, "results");
+  const {
+    capabilityRequests,
+    voterListRequests,
+    voterDetailRequests,
+    pageErrors,
+  } = await preparePalette(page, "results");
   const dialog = await openPalette(page);
   await dialog
     .getByRole("searchbox", { name: "Buscar en la organización" })
@@ -401,6 +511,7 @@ test("el resultado de persona conserva el id y abre solo el detalle autorizado",
   expect(voterListRequests.at(-1)?.searchParams.has("mode")).toBe(false);
   await expect.poll(() => voterDetailRequests.length).toBe(1);
   expect(voterDetailRequests[0].search).toBe("");
+  expect(capabilityRequests).toContain("GET /api/billing/capabilities");
   expect(pageErrors).toEqual([]);
 });
 

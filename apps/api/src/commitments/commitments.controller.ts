@@ -11,7 +11,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CommitmentsService } from './commitments.service';
 import { CreateCommitmentDto } from './dto/create-commitment.dto';
 import { ListCommitmentsQueryDto } from './dto/list-commitments-query.dto';
@@ -27,6 +29,7 @@ const COMMITMENT_MANAGER_ROLES = [
 
 @ApiTags('Commitments')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('commitments')
 export class CommitmentsController {
   constructor(private readonly commitmentsService: CommitmentsService) {}
@@ -60,9 +63,9 @@ export class CommitmentsController {
   })
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: UpdateCommitmentDto,
   ) {
-    return this.commitmentsService.update(user, id, dto);
+    return this.commitmentsService.update(user, params.id, dto);
   }
 }

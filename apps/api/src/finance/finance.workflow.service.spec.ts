@@ -11,6 +11,7 @@ import {
   FinanceReportScope,
   FinanceStatus,
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Prisma,
   Role,
   TenantType,
@@ -22,6 +23,16 @@ const CAMPAIGN_TENANT = {
   defaultMode: PoliticalOperationMode.CAMPAIGN,
   type: TenantType.CANDIDACY,
 };
+
+function openLifecycleQuery() {
+  return jest.fn((query: { sql: string }) =>
+    Promise.resolve(
+      query.sql.includes('FROM "OperationProfile"')
+        ? [{ stage: PoliticalOperationStage.CAMPAIGN }]
+        : [{ locked: true }],
+    ),
+  );
+}
 
 const completeSettings = (overrides: Record<string, unknown> = {}) => ({
   id: 'settings-a',
@@ -103,6 +114,7 @@ describe('FinanceService controlled workflow', () => {
       );
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-a' });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'reporter-a' }) },
       campaignSettings: {
@@ -191,6 +203,7 @@ describe('FinanceService controlled workflow', () => {
     const financialCreate = jest.fn();
     const auditCreate = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'reporter-a' }) },
       campaignSettings: {
@@ -320,6 +333,7 @@ describe('FinanceService controlled workflow', () => {
     ]);
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-export' });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest
@@ -390,6 +404,7 @@ describe('FinanceService controlled workflow', () => {
   it('rejects lowering either setting below current non-rejected expenses', async () => {
     const upsert = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest
@@ -465,6 +480,7 @@ describe('FinanceService controlled workflow', () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-review' });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -535,6 +551,7 @@ describe('FinanceService controlled workflow', () => {
   it('rejects approval when the movement has no verified evidence', async () => {
     const updateMany = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -572,6 +589,7 @@ describe('FinanceService controlled workflow', () => {
   it('blocks approval of a legacy pending movement while the compliance file is incomplete', async () => {
     const updateMany = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -618,6 +636,7 @@ describe('FinanceService controlled workflow', () => {
   it('forbids a reporter from reviewing their own pending entry', async () => {
     const updateMany = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -659,6 +678,7 @@ describe('FinanceService controlled workflow', () => {
   it('does not find or mutate an entry from another tenant', async () => {
     const updateMany = jest.fn();
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({
@@ -695,6 +715,7 @@ describe('FinanceService controlled workflow', () => {
 
   it('returns a conflict when another reviewer wins the optimistic transition', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: jest.fn().mockResolvedValue(CAMPAIGN_TENANT) },
       user: {
         findFirst: jest.fn().mockResolvedValue({

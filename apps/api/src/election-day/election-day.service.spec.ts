@@ -4,6 +4,7 @@ import {
   PoliticalOperationMode,
   PoliticalOperationStage,
   TenantType,
+  WitnessCaptureContext,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
@@ -64,6 +65,7 @@ describe('ElectionDayService', () => {
       expect.objectContaining({
         where: {
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.REAL,
           status: WitnessReportStatus.ACCEPTED,
         },
       }),
@@ -73,6 +75,7 @@ describe('ElectionDayService', () => {
         where: {
           tenantId: 'tenant-a',
           id: { in: ['puesto-a'] },
+          isActive: true,
         },
       }),
     );
@@ -109,13 +112,18 @@ describe('ElectionDayService', () => {
     await service.getElectionDayDashboard('tenant-a');
 
     expect(prisma.politicalDivision.aggregate).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a', type: DivisionType.PUESTO },
+      where: {
+        tenantId: 'tenant-a',
+        type: DivisionType.PUESTO,
+        isActive: true,
+      },
       _sum: { expectedTables: true },
     });
     expect(prisma.witnessReport.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.REAL,
           status: WitnessReportStatus.ACCEPTED,
         },
       }),
@@ -123,6 +131,7 @@ describe('ElectionDayService', () => {
     expect(prisma.witnessReport.findMany).toHaveBeenCalledWith({
       where: {
         tenantId: 'tenant-a',
+        captureContext: WitnessCaptureContext.REAL,
         status: WitnessReportStatus.ACCEPTED,
       },
       select: { puestoId: true, mesa: true },
@@ -191,6 +200,7 @@ describe('ElectionDayService', () => {
     expect(reportFindMany).toHaveBeenNthCalledWith(1, {
       where: {
         tenantId: 'tenant-a',
+        captureContext: WitnessCaptureContext.REAL,
         status: WitnessReportStatus.ACCEPTED,
       },
       select: { puestoId: true, mesa: true },
@@ -224,6 +234,7 @@ describe('ElectionDayService', () => {
       expect.objectContaining({
         where: {
           tenantId: 'tenant-a',
+          captureContext: WitnessCaptureContext.REAL,
           status: {
             in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
           },

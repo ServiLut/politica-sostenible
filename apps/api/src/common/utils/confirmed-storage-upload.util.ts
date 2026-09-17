@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   Prisma,
+  StorageIntegrityStatus,
   StorageObjectModule,
   StoredObjectStatus,
 } from '../../../prisma/generated/prisma';
@@ -8,6 +9,15 @@ import { assertPlanQuotaInTransaction } from '../../auth/guards/plan-limits.guar
 
 export const STORAGE_UPLOAD_CONFIRMED_ACTION = 'STORAGE_UPLOAD_CONFIRMED';
 export const STORAGE_OBJECT_RESOURCE_TYPE = 'StorageObject';
+
+const BYTE_VERIFIED_EVIDENCE_MODULES = new Set<StorageObjectModule>([
+  StorageObjectModule.FINANCE,
+  StorageObjectModule.E14,
+  StorageObjectModule.SCRUTINY,
+  StorageObjectModule.ELECTORAL_CALENDAR,
+  StorageObjectModule.SIGNATURE_COLLECTION,
+  StorageObjectModule.PQRSD,
+]);
 
 type StoredObjectClient = Pick<
   Prisma.TransactionClient,
@@ -31,13 +41,33 @@ export async function consumeConfirmedStorageUpload(
   resourceType: string,
   resourceId: string,
   uploaderId?: string,
+  integrity?: { readonly expectedSha256: string },
 ): Promise<void> {
+  const requiresIndependentIntegrity =
+    BYTE_VERIFIED_EVIDENCE_MODULES.has(module);
   const transition = await client.storedObject.updateMany({
     where: {
       tenantId,
       path,
       module,
       ...(uploaderId ? { uploaderId } : {}),
+      ...(integrity || requiresIndependentIntegrity
+        ? {
+            expectedSha256: integrity
+              ? integrity.expectedSha256
+              : { not: null },
+            reportedSha256: integrity
+              ? integrity.expectedSha256
+              : { not: null },
+            calculatedSha256: integrity
+              ? integrity.expectedSha256
+              : { not: null },
+            integrityStatus: StorageIntegrityStatus.VERIFIED,
+          }
+        : {
+            expectedSha256: null,
+            reportedSha256: null,
+          }),
       status: StoredObjectStatus.CONFIRMED,
       consumedAt: null,
     },
@@ -51,7 +81,7 @@ export async function consumeConfirmedStorageUpload(
 
   if (transition.count !== 1) {
     throw new BadRequestException(
-      'El archivo debe estar confirmado, pertenecer al módulo y no haber sido asociado antes',
+      'El archivo debe estar confirmado, no haberse asociado antes y, si declara SHA-256, haber superado la verificación independiente de bytes',
     );
   }
 
@@ -73,6 +103,8 @@ export async function assertConfirmedStorageUpload(
   path: string,
   module?: StorageObjectModule,
 ): Promise<void> {
+  const requiresIndependentIntegrity =
+    module !== undefined && BYTE_VERIFIED_EVIDENCE_MODULES.has(module);
   const receipt = await client.storedObject.findFirst({
     where: {
       tenantId,
@@ -80,13 +112,31 @@ export async function assertConfirmedStorageUpload(
       ...(module ? { module } : {}),
       status: StoredObjectStatus.CONFIRMED,
       consumedAt: null,
+      ...(requiresIndependentIntegrity
+        ? {
+            expectedSha256: { not: null },
+            reportedSha256: { not: null },
+            calculatedSha256: { not: null },
+            integrityStatus: StorageIntegrityStatus.VERIFIED,
+          }
+        : {
+            OR: [
+              { expectedSha256: null, reportedSha256: null },
+              {
+                expectedSha256: { not: null },
+                reportedSha256: { not: null },
+                calculatedSha256: { not: null },
+                integrityStatus: StorageIntegrityStatus.VERIFIED,
+              },
+            ],
+          }),
     },
     select: { id: true },
   });
 
   if (!receipt) {
     throw new BadRequestException(
-      'El archivo debe completarse y verificarse en almacenamiento antes de asociarlo',
+      'El archivo debe estar confirmado y toda huella declarada debe estar verificada independientemente antes de asociarlo',
     );
   }
 }

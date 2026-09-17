@@ -15,13 +15,12 @@ const HISTORY_SENSITIVE_CHECKSUMS = Object.freeze({
     "4b69078f4848c7da9819758323cf85f7563df3bd97364dd2f9d81976c3bb088f",
 });
 
-const TRANSACTIONAL_MULTI_STATEMENT_MIGRATIONS = Object.freeze([
-  "20260907160000_finance_compliance_file",
-  "20260907170000_witness_report_traceability",
-  "20260907180000_auth_session_replay",
-  "20260907190000_database_identity",
-  "20260907200000_proposal_status_lifecycle",
-]);
+// From this point forward every migration is authored as one explicit
+// PostgreSQL transaction. A rolling hand-maintained allowlist silently stops
+// protecting new migrations, which is precisely when this gate matters most.
+const TRANSACTIONAL_MIGRATION_CUTOFF =
+  "20260907160000_finance_compliance_file";
+const SCHEMA_CONTRACT_MARKER_SUFFIX = "_schema_contract_marker";
 
 async function migrationFiles() {
   const entries = await readdir(MIGRATIONS_DIRECTORY, {
@@ -150,9 +149,9 @@ test("las migraciones nuevas de varias sentencias son atómicas", async () => {
     (await migrationFiles()).map((migration) => [migration.name, migration]),
   );
 
-  for (const name of TRANSACTIONAL_MULTI_STATEMENT_MIGRATIONS) {
-    const migration = files.get(name);
-    assert.ok(migration, `${name} debe existir`);
+  for (const [name, migration] of [...files].filter(
+    ([migrationName]) => migrationName >= TRANSACTIONAL_MIGRATION_CUTOFF,
+  )) {
     const sql = (await readFile(migration.url, "utf8")).trim();
     const executableSql = sql.replace(
       /^(?:(?:[ \t]*--[^\n]*(?:\n|$))|\s)*/u,
@@ -186,5 +185,45 @@ test("la cadena de migraciones no vuelve a crear objetos ya declarados", async (
       );
       firstDeclaration.set(event.key, migration.name);
     }
+  }
+});
+
+test("la ultima migracion vincula API y base al mismo contrato de schema", async () => {
+  const migrations = await migrationFiles();
+  const latest = migrations.at(-1);
+  assert.ok(latest, "debe existir al menos una migracion");
+  assert.ok(
+    latest.name.endsWith(SCHEMA_CONTRACT_MARKER_SUFFIX),
+    "toda funcionalidad nueva debe cerrar con una migracion schema_contract_marker",
+  );
+
+  const sql = await readFile(latest.url, "utf8");
+  assert.match(sql, /ADD COLUMN "schemaVersion" VARCHAR\(64\)/u);
+  assert.match(sql, /"fingerprint" = "fingerprint" \|\| "fingerprint"/u);
+  assert.match(
+    sql,
+    /ALTER FUNCTION %I\.%I\(\) SET search_path TO %I, pg_catalog/u,
+  );
+  assert.ok(
+    sql.includes(`"schemaVersion" = '${latest.name}'`),
+    "el marcador SQL debe guardar el nombre exacto de la migracion final",
+  );
+
+  const [healthSource, migratorSource] = await Promise.all([
+    readFile(new URL("../apps/api/src/health.controller.ts", import.meta.url), "utf8"),
+    readFile(new URL("migrate.mjs", import.meta.url), "utf8"),
+  ]);
+  for (const [label, source] of [
+    ["readiness", healthSource],
+    ["migrador", migratorSource],
+  ]) {
+    const match = source.match(
+      /export const EXPECTED_SCHEMA_VERSION\s*=\s*["']([^"']+)["']/u,
+    );
+    assert.equal(
+      match?.[1],
+      latest.name,
+      `${label} debe exigir el marcador de la ultima migracion`,
+    );
   }
 });

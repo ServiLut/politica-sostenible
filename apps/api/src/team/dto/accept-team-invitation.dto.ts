@@ -2,7 +2,6 @@ import { Transform } from 'class-transformer';
 import {
   Equals,
   IsBoolean,
-  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,6 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from '../../auth/public-registration.policy';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -63,6 +63,11 @@ export class AcceptTeamInvitationDto {
   termsAccepted: boolean;
 
   @IsString()
-  @IsIn(['2026.1'], { message: 'La version de terminos no es valida' })
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/, {
+    message: 'La version de terminos no tiene un formato valido',
+  })
+  @Equals(PUBLIC_REGISTRATION_TERMS_VERSION, {
+    message: 'La version de terminos no es la vigente',
+  })
   termsVersion: string;
 }

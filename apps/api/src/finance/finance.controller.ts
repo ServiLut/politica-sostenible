@@ -16,6 +16,8 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';
 import { Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { UpsertFinanceSettingsDto } from './dto/upsert-finance-settings.dto';
 import { ReviewFinancialEntryDto } from './dto/review-financial-entry.dto';
 import { MarkCneReportedDto } from './dto/mark-cne-reported.dto';
@@ -38,6 +40,7 @@ const FINANCE_REVIEW_ROLES = [
 
 @ApiTags('Finance')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('finance')
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
@@ -82,10 +85,15 @@ export class FinanceController {
   @Roles(...FINANCE_REVIEW_ROLES)
   review(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') entryId: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: ReviewFinancialEntryDto,
   ) {
-    return this.financeService.review(user.tenantId, user.userId, entryId, dto);
+    return this.financeService.review(
+      user.tenantId,
+      user.userId,
+      params.id,
+      dto,
+    );
   }
 
   @Patch(':id/cne-report')
@@ -95,13 +103,13 @@ export class FinanceController {
   })
   markReportedToCne(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') entryId: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: MarkCneReportedDto,
   ) {
     return this.financeService.markReportedToCne(
       user.tenantId,
       user.userId,
-      entryId,
+      params.id,
       dto,
     );
   }

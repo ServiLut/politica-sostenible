@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -42,6 +42,7 @@ import { canAccessVoterImport } from "@/lib/voter-import";
 import { BackendUserRole } from "@/types/saas-schema";
 
 import { ExportButton } from "@/components/ui/ExportButton";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 const PAGE_SIZE = 25;
 const CREATE_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
@@ -152,6 +153,34 @@ export default function VotantesPage() {
     currentConsentNoticeKey !== null &&
     grantConfirmed &&
     grantAcceptedNoticeKey === currentConsentNoticeKey;
+  const createDialogRef = useRef<HTMLDivElement>(null);
+  const createTitleRef = useRef<HTMLHeadingElement>(null);
+  const grantDialogRef = useRef<HTMLDivElement>(null);
+  const grantTitleRef = useRef<HTMLHeadingElement>(null);
+  const revokeDialogRef = useRef<HTMLDivElement>(null);
+  const revokeTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useAccessibleDialog({
+    open: isCreateOpen,
+    containerRef: createDialogRef,
+    initialFocusRef: createTitleRef,
+    onClose: closeCreate,
+    closeOnEscape: !saving,
+  });
+  useAccessibleDialog({
+    open: grantTarget !== null,
+    containerRef: grantDialogRef,
+    initialFocusRef: grantTitleRef,
+    onClose: closeGrant,
+    closeOnEscape: !granting,
+  });
+  useAccessibleDialog({
+    open: revokeTarget !== null,
+    containerRef: revokeDialogRef,
+    initialFocusRef: revokeTitleRef,
+    onClose: closeRevocation,
+    closeOnEscape: false,
+  });
 
   const loadVoters = useCallback(
     (signal: AbortSignal) =>
@@ -853,6 +882,7 @@ export default function VotantesPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
+            ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-voter-title"
@@ -861,6 +891,8 @@ export default function VotantesPage() {
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>
                 <h2
+                  ref={createTitleRef}
+                  tabIndex={-1}
                   id="new-voter-title"
                   className="text-2xl font-black text-slate-950"
                 >
@@ -1068,6 +1100,7 @@ export default function VotantesPage() {
       {grantTarget && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
           <div
+            ref={grantDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="grant-consent-title"
@@ -1079,6 +1112,8 @@ export default function VotantesPage() {
                   <UserCheck aria-hidden="true" size={20} />
                 </div>
                 <h2
+                  ref={grantTitleRef}
+                  tabIndex={-1}
                   id="grant-consent-title"
                   className="text-2xl font-black text-slate-950"
                 >
@@ -1210,6 +1245,7 @@ export default function VotantesPage() {
       {revokeTarget && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
           <div
+            ref={revokeDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="revoke-consent-title"
@@ -1221,6 +1257,8 @@ export default function VotantesPage() {
                   <UserMinus size={20} />
                 </div>
                 <h2
+                  ref={revokeTitleRef}
+                  tabIndex={-1}
                   id="revoke-consent-title"
                   className="text-2xl font-black text-slate-950"
                 >

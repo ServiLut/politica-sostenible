@@ -10,6 +10,7 @@ import {
   ConsentStatus,
   DivisionType,
   E14FormType,
+  OfflineSyncOperationType,
   PoliticalOperationMode,
   Prisma,
   Role,
@@ -18,9 +19,14 @@ import {
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
+import {
+  OfflineSyncDescriptor,
+  OfflineSyncReceiptRecord,
+  OfflineSyncService,
+} from '../common/services/offline-sync.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WitnessService } from '../witness/witness.service';
-import { LogisticsService } from './logistics.service';
+import { LogisticsService as ProductionLogisticsService } from './logistics.service';
 import {
   assertPlanQuotaInTransaction,
   ensureTenantSubscription,
@@ -31,7 +37,15 @@ jest.mock('../auth/guards/plan-limits.guard', () => ({
   ensureTenantSubscription: jest.fn().mockResolvedValue(undefined),
 }));
 
+const e14OfflineMetadata = {
+  clientOperationId: '11111111-1111-4111-8111-111111111111',
+  capturedAt: '2026-08-21T12:00:00.000Z',
+  captureGrant: 'A'.repeat(43),
+  evidenceSha256: 'a'.repeat(64),
+} as const;
+
 const e14Traceability = {
+  ...e14OfflineMetadata,
   credentialType: WitnessCredentialType.E15,
   credentialReference: 'E15-BOG-001-0001',
   checkedInAt: '2026-08-21T07:00:00.000-05:00',
@@ -41,6 +55,78 @@ const e14Traceability = {
   unmarkedVotes: 1,
   hasWrittenClaim: false,
 } as const;
+
+const voterOfflineMetadata = {
+  clientOperationId: '22222222-2222-4222-8222-222222222222',
+  capturedAt: '2026-08-21T12:00:00.000Z',
+} as const;
+
+function offlineSyncFixture(): OfflineSyncService {
+  const prepare = jest.fn(
+    (
+      operationType: OfflineSyncOperationType,
+      clientOperationId: string,
+      capturedAt: string,
+    ): OfflineSyncDescriptor => ({
+      operationType,
+      clientOperationId,
+      capturedAt: new Date(capturedAt),
+      payloadHmac: 'a'.repeat(64),
+    }),
+  );
+  const createReceipt = jest.fn(
+    (
+      _transaction: unknown,
+      tenantId: string,
+      actorUserId: string,
+      descriptor: OfflineSyncDescriptor,
+      _resourceType: string,
+      _resourceId: string,
+      receivedAt: Date,
+    ): Promise<OfflineSyncReceiptRecord> =>
+      Promise.resolve({
+        id: 'offline-receipt-a',
+        tenantId,
+        actorUserId,
+        clientOperationId: descriptor.clientOperationId,
+        operationType: descriptor.operationType,
+        payloadHmac: descriptor.payloadHmac,
+        capturedAt: descriptor.capturedAt,
+        receivedAt,
+      }),
+  );
+
+  return {
+    prepare,
+    lockAndFindDuplicate: jest.fn().mockResolvedValue(null),
+    createReceipt,
+    present: jest.fn((receipt: OfflineSyncReceiptRecord, status) => ({
+      received: true,
+      receiptId: receipt.id,
+      clientOperationId: receipt.clientOperationId,
+      operationType: receipt.operationType,
+      status,
+      capturedAt: receipt.capturedAt.toISOString(),
+      receivedAt: receipt.receivedAt.toISOString(),
+    })),
+  } as unknown as OfflineSyncService;
+}
+
+class LogisticsService extends ProductionLogisticsService {
+  constructor(
+    prisma: PrismaService,
+    consentEvidence: ConsentEvidenceService,
+    witnessService?: WitnessService,
+  ) {
+    const offlineSync = offlineSyncFixture();
+    super(
+      prisma,
+      consentEvidence,
+      witnessService ?? new WitnessService(prisma, offlineSync),
+      offlineSync,
+    );
+  }
+}
 
 function activeConsentNoticeDelegate() {
   return {
@@ -57,6 +143,10 @@ function activeConsentNoticeDelegate() {
       activatedAt: new Date('2026-01-01T00:00:00.000Z'),
     }),
   };
+}
+
+function openLifecycleQuery() {
+  return jest.fn().mockResolvedValue([{ stage: 'CAMPAIGN' }]);
 }
 
 describe('LogisticsService tenant isolation', () => {
@@ -103,7 +193,11 @@ describe('LogisticsService tenant isolation', () => {
       'tenant-a',
       'witness-a',
       expect.objectContaining({ puestoId: 'puesto-from-tenant-b' }),
-      { isSynced: true, source: 'OFFLINE_SYNC' },
+      {
+        isSynced: true,
+        source: 'OFFLINE_SYNC',
+        offlineSync: e14OfflineMetadata,
+      },
     );
     expect(divisionFindFirst).not.toHaveBeenCalled();
     expect(reportCreate).not.toHaveBeenCalled();
@@ -111,6 +205,7 @@ describe('LogisticsService tenant isolation', () => {
 
   it('rejects an offline voter voting place from another tenant', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -150,6 +245,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'registrar-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -173,8 +269,9 @@ describe('LogisticsService tenant isolation', () => {
         id: 'puesto-from-tenant-b',
         tenantId: 'tenant-a',
         type: DivisionType.PUESTO,
+        isActive: true,
       },
-      select: { id: true },
+      select: { id: true, expectedTables: true },
     });
     expect(transaction.voter.findUnique).not.toHaveBeenCalled();
     expect(transaction.voter.create).not.toHaveBeenCalled();
@@ -241,6 +338,7 @@ describe('LogisticsService tenant isolation', () => {
 
   it('blocks offline voter synchronization in public-office mode', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
           defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
@@ -265,6 +363,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'volunteer-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -348,7 +447,11 @@ describe('LogisticsService tenant isolation', () => {
         puestoId: 'puesto-a',
         mesa: 1,
       }),
-      { isSynced: true, source: 'OFFLINE_SYNC' },
+      {
+        isSynced: true,
+        source: 'OFFLINE_SYNC',
+        offlineSync: e14OfflineMetadata,
+      },
     );
     expect(reportFindFirst).not.toHaveBeenCalled();
   });
@@ -412,6 +515,7 @@ describe('LogisticsService tenant isolation', () => {
       consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
     });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -453,6 +557,7 @@ describe('LogisticsService tenant isolation', () => {
       { tenantId: 'tenant-a', userId: 'volunteer-a' },
       '203.0.113.42',
       {
+        ...voterOfflineMetadata,
         documentId: '1012345678',
         firstName: 'María',
         lastName: 'Pérez',
@@ -464,7 +569,16 @@ describe('LogisticsService tenant isolation', () => {
       },
     );
 
-    expect(result).toEqual({ received: true });
+    expect(result).toEqual(
+      expect.objectContaining({
+        received: true,
+        receiptId: 'offline-receipt-a',
+        clientOperationId: voterOfflineMetadata.clientOperationId,
+        operationType: OfflineSyncOperationType.VOTER_CAPTURE,
+        status: 'APPLIED',
+        capturedAt: voterOfflineMetadata.capturedAt,
+      }),
+    );
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('documentId');
     expect(result).not.toHaveProperty('phone');
@@ -485,7 +599,8 @@ describe('LogisticsService tenant isolation', () => {
           tenantId: 'tenant-a',
           registrarId: 'volunteer-a',
           consentAccepted: true,
-          consentIp: 'hashed-ip',
+          consentIp: null,
+          consentTimestamp: new Date(voterOfflineMetadata.capturedAt),
         }) as object,
         select: { id: true },
       }),
@@ -496,10 +611,13 @@ describe('LogisticsService tenant isolation', () => {
         voterId: 'voter-a',
         subjectRef: 'voter-a',
         status: ConsentStatus.GRANTED,
+        sourceIpHash: null,
+        capturedAt: new Date(voterOfflineMetadata.capturedAt),
+        syncSourceIpHash: 'hashed-ip',
       }) as object,
     });
     expect(transaction.auditEvent.create).toHaveBeenCalledWith({
-      data: {
+      data: expect.objectContaining({
         tenantId: 'tenant-a',
         mode: PoliticalOperationMode.CAMPAIGN,
         actorType: AuditActorType.USER,
@@ -508,7 +626,7 @@ describe('LogisticsService tenant isolation', () => {
         resourceType: 'Voter',
         resourceId: 'voter-a',
         after: { consentStatus: ConsentStatus.GRANTED },
-        metadata: {
+        metadata: expect.objectContaining({
           registeredFields: [
             'documentId',
             'email',
@@ -519,8 +637,12 @@ describe('LogisticsService tenant isolation', () => {
           purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
           collectionChannel: ConsentCollectionChannel.IN_PERSON,
           noticeVersion: '2026.1',
-        },
-      },
+          source: 'OFFLINE_SYNC',
+          timestampSource: 'CLIENT_CAPTURED_AT',
+          capturedAt: voterOfflineMetadata.capturedAt,
+          syncNetworkEvidenceStored: true,
+        }),
+      }),
     });
     const serializedAudit = JSON.stringify(
       transaction.auditEvent.create.mock.calls,
@@ -536,6 +658,7 @@ describe('LogisticsService tenant isolation', () => {
 
   it('fails the offline voter operation when its audit cannot persist', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -577,6 +700,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'volunteer-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -617,6 +741,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'volunteer-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -647,6 +772,7 @@ describe('LogisticsService tenant isolation', () => {
       expiresAt: null,
     });
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -691,6 +817,7 @@ describe('LogisticsService tenant isolation', () => {
       { tenantId: 'tenant-a', userId: 'volunteer-a' },
       '203.0.113.42',
       {
+        ...voterOfflineMetadata,
         documentId: '1012345678',
         firstName: 'Nombre que no debe reemplazarse',
         lastName: 'Apellido que no debe reemplazarse',
@@ -703,7 +830,13 @@ describe('LogisticsService tenant isolation', () => {
       },
     );
 
-    expect(result).toEqual({ received: true });
+    expect(result).toEqual(
+      expect.objectContaining({
+        received: true,
+        receiptId: 'offline-receipt-a',
+        status: 'APPLIED',
+      }),
+    );
     expect(result).not.toHaveProperty('id');
     expect(transaction.voter.findUnique).toHaveBeenCalledWith({
       where: {
@@ -720,15 +853,22 @@ describe('LogisticsService tenant isolation', () => {
         id: 'puesto-a',
         tenantId: 'tenant-a',
         type: DivisionType.PUESTO,
+        isActive: true,
       },
-      select: { id: true },
+      select: { id: true, expectedTables: true },
     });
     expect(hashIp).not.toHaveBeenCalled();
     expect(voterCreate).not.toHaveBeenCalled();
     expect(voterUpdate).not.toHaveBeenCalled();
     expect(voterUpsert).not.toHaveBeenCalled();
     expect(consentCreate).not.toHaveBeenCalled();
-    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'VOTER_OFFLINE_SYNC_ACKNOWLEDGED',
+        resourceId: 'voter-a',
+        metadata: expect.objectContaining({ changed: false }),
+      }),
+    });
   });
 
   it.each([
@@ -747,6 +887,7 @@ describe('LogisticsService tenant isolation', () => {
       const voterUpdate = jest.fn();
       const consentCreate = jest.fn();
       const transaction = {
+        $queryRaw: openLifecycleQuery(),
         consentNotice: activeConsentNoticeDelegate(),
         tenant: {
           findUnique: jest.fn().mockResolvedValue({
@@ -773,6 +914,7 @@ describe('LogisticsService tenant isolation', () => {
           findFirst: jest.fn().mockResolvedValue(latestConsent),
           create: consentCreate,
         },
+        auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit-a' }) },
       };
       const hashIp = jest.fn();
       const service = new LogisticsService(
@@ -790,6 +932,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'volunteer-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -799,7 +942,9 @@ describe('LogisticsService tenant isolation', () => {
         },
       );
 
-      await expect(synchronization).resolves.toEqual({ received: true });
+      await expect(synchronization).resolves.toEqual(
+        expect.objectContaining({ received: true, status: 'APPLIED' }),
+      );
       expect(transaction.consentRecord.findFirst).not.toHaveBeenCalled();
       expect(hashIp).not.toHaveBeenCalled();
       expect(voterCreate).not.toHaveBeenCalled();
@@ -808,13 +953,14 @@ describe('LogisticsService tenant isolation', () => {
     },
   );
 
-  it('returns the same non-disclosing receipt after a concurrent insert', async () => {
+  it('does not acknowledge an unexpected unique violation without a durable receipt', async () => {
     const concurrentVoter = {
       id: 'voter-concurrent',
       consentAccepted: true,
       consentTimestamp: new Date('2026-08-21T00:00:00.000Z'),
     };
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -860,6 +1006,7 @@ describe('LogisticsService tenant isolation', () => {
         { tenantId: 'tenant-a', userId: 'volunteer-a' },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',
@@ -868,7 +1015,7 @@ describe('LogisticsService tenant isolation', () => {
           collectionChannel: ConsentCollectionChannel.IN_PERSON,
         },
       ),
-    ).resolves.toEqual({ received: true });
+    ).rejects.toEqual({ code: 'P2002' });
     expect(concurrentFindUnique).not.toHaveBeenCalled();
     expect(concurrentConsentFindFirst).not.toHaveBeenCalled();
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
@@ -877,6 +1024,7 @@ describe('LogisticsService tenant isolation', () => {
 
   it('denies offline voter capture outside the persisted volunteer territory', async () => {
     const transaction = {
+      $queryRaw: openLifecycleQuery(),
       consentNotice: activeConsentNoticeDelegate(),
       tenant: {
         findUnique: jest.fn().mockResolvedValue({
@@ -921,6 +1069,7 @@ describe('LogisticsService tenant isolation', () => {
         },
         '203.0.113.42',
         {
+          ...voterOfflineMetadata,
           documentId: '1012345678',
           firstName: 'María',
           lastName: 'Pérez',

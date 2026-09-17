@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  LockKeyhole,
   MapPin,
   RefreshCw,
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/context/auth";
+import { useOfflineVault } from "@/context/offline-vault";
 import { getConsentNoticePresentationKey } from "@/lib/consent-notices-api";
 import type { CapturableConsentCollectionChannel } from "@/lib/interactions-api";
 import {
@@ -50,6 +52,15 @@ function readableError(error: unknown, fallback: string) {
 
 export default function CapturaTerritorialPage() {
   const { tenant } = useAuth();
+  const {
+    captureContext: offlineCaptureContext,
+    enqueueVoter,
+    isOnline,
+    phase: vaultPhase,
+    provisionCaptureContext,
+  } = useOfflineVault();
+  const offlineCaptureContextRef = useRef(offlineCaptureContext);
+  offlineCaptureContextRef.current = offlineCaptureContext;
   const [context, setContext] = useState<VoterCaptureContext | null>(null);
   const [selectedPuestoId, setSelectedPuestoId] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
@@ -62,46 +73,93 @@ export default function CapturaTerritorialPage() {
   const [acceptedNoticeKey, setAcceptedNoticeKey] = useState<string | null>(
     null,
   );
+  const [encryptedSaveOffered, setEncryptedSaveOffered] = useState(false);
 
-  const loadContext = useCallback(async (signal: AbortSignal) => {
-    setLoadingContext(true);
-    setContextError(null);
-    setAcceptedNoticeKey(null);
-    setForm((current) => ({
-      ...current,
-      collectionChannel: "",
-      consentAccepted: false,
-    }));
+  const loadContext = useCallback(
+    async (signal: AbortSignal) => {
+      setLoadingContext(true);
+      setContextError(null);
+      setAcceptedNoticeKey(null);
+      setForm((current) => ({
+        ...current,
+        collectionChannel: "",
+        consentAccepted: false,
+      }));
 
-    try {
-      const response = await getVoterCaptureContext(signal);
-      if (signal.aborted) return;
+      const loadProvisionedContext = () => {
+        const provisioned = offlineCaptureContextRef.current;
+        if (!provisioned) return false;
+        setContext(provisioned);
+        setSelectedPuestoId((current) => {
+          if (provisioned.puestos.some(({ id }) => id === current))
+            return current;
+          return provisioned.puestos.length === 1
+            ? provisioned.puestos[0].id
+            : "";
+        });
+        setContextError(null);
+        return true;
+      };
 
-      setContext(response);
-      setSelectedPuestoId((current) => {
-        if (response.puestos.some(({ id }) => id === current)) return current;
-        return response.puestos.length === 1 ? response.puestos[0].id : "";
-      });
-    } catch (error: unknown) {
-      if (signal.aborted) return;
-      setContext(null);
-      setSelectedPuestoId("");
-      setContextError(
-        readableError(
-          error,
-          "No fue posible consultar tu asignación territorial.",
-        ),
-      );
-    } finally {
-      if (!signal.aborted) setLoadingContext(false);
-    }
-  }, []);
+      if (!isOnline) {
+        if (!loadProvisionedContext()) {
+          setContext(null);
+          setSelectedPuestoId("");
+          setContextError(
+            vaultPhase === "UNLOCKED"
+              ? "Esta bóveda no tiene un contexto territorial provisionado. Conéctate y actualiza la asignación antes de capturar."
+              : "Sin conexión: desbloquea la bóveda offline para recuperar el contexto territorial cifrado.",
+          );
+        }
+        setLoadingContext(false);
+        return;
+      }
+
+      try {
+        const response = await getVoterCaptureContext(signal);
+        if (signal.aborted) return;
+
+        setContext(response);
+        setSelectedPuestoId((current) => {
+          if (response.puestos.some(({ id }) => id === current)) return current;
+          return response.puestos.length === 1 ? response.puestos[0].id : "";
+        });
+      } catch (error: unknown) {
+        if (signal.aborted) return;
+        if (
+          error instanceof ApiError &&
+          error.status === 0 &&
+          loadProvisionedContext()
+        ) {
+          return;
+        }
+        setContext(null);
+        setSelectedPuestoId("");
+        setContextError(
+          readableError(
+            error,
+            "No fue posible consultar tu asignación territorial.",
+          ),
+        );
+      } finally {
+        if (!signal.aborted) setLoadingContext(false);
+      }
+    },
+    [isOnline, vaultPhase],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
     void loadContext(controller.signal);
     return () => controller.abort();
   }, [loadContext, reload]);
+
+  useEffect(() => {
+    if (!context || !isOnline || vaultPhase !== "UNLOCKED") return;
+    void provisionCaptureContext(context).catch(() => {
+      // El panel de bóveda presenta el fallo sin copiar contexto o PII a logs.
+    });
+  }, [context, isOnline, provisionCaptureContext, vaultPhase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -160,13 +218,32 @@ export default function CapturaTerritorialPage() {
 
     setSaving(true);
     try {
+      if (!isOnline || encryptedSaveOffered) {
+        await enqueueVoter(payload, new Date().toISOString());
+        setForm(EMPTY_FORM);
+        setAcceptedNoticeKey(null);
+        setEncryptedSaveOffered(false);
+        setNotice(
+          "Captura guardada cifrada en este dispositivo. Sigue pendiente y no se considera recibida hasta sincronizarla manualmente.",
+        );
+        return;
+      }
+
       await createVoter(payload);
       setForm(EMPTY_FORM);
       setAcceptedNoticeKey(null);
+      setEncryptedSaveOffered(false);
       setNotice(
         "Solicitud recibida y procesada con trazabilidad. Puedes continuar con la siguiente persona.",
       );
     } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 0) {
+        setEncryptedSaveOffered(true);
+        setFormError(
+          "La API no confirmó la recepción. Revisa la información y elige “Guardar cifrado para sincronizar”; no se encoló automáticamente.",
+        );
+        return;
+      }
       setFormError(
         readableError(error, "No fue posible guardar la captura territorial."),
       );
@@ -353,6 +430,21 @@ export default function CapturaTerritorialPage() {
             </div>
           )}
 
+          {(!isOnline || encryptedSaveOffered) && (
+            <div
+              role="note"
+              className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950"
+            >
+              <LockKeyhole
+                aria-hidden="true"
+                className="mt-0.5 shrink-0"
+                size={19}
+              />
+              Esta acción cifra la captura en la bóveda local. No la marca como
+              recibida ni intenta sincronizarla en segundo plano.
+            </div>
+          )}
+
           <div className="grid gap-5 md:grid-cols-2">
             <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
               Nombres
@@ -527,10 +619,14 @@ export default function CapturaTerritorialPage() {
                   className="animate-spin"
                   size={17}
                 />
+              ) : !isOnline || encryptedSaveOffered ? (
+                <LockKeyhole aria-hidden="true" size={17} />
               ) : (
                 <UserPlus aria-hidden="true" size={17} />
               )}
-              Guardar con trazabilidad
+              {!isOnline || encryptedSaveOffered
+                ? "Guardar cifrado para sincronizar"
+                : "Guardar con trazabilidad"}
             </button>
           </div>
         </form>

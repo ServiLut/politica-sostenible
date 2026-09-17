@@ -54,6 +54,13 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
+function planCapabilities() {
+  return successful({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 async function installSession(
   page: Page,
   authSession: ReturnType<typeof session>,
@@ -121,6 +128,15 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (pathname === "/api/billing/capabilities" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (pathname === "/api/events/responsibles" && method === "GET") {
       await route.fulfill({
@@ -244,8 +260,26 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
     "Reunión de líderes",
   );
 
-  await page.getByRole("button", { name: "Editar Reunión de líderes" }).click();
+  const editTrigger = page.getByRole("button", {
+    name: "Editar Reunión de líderes",
+  });
+  await editTrigger.click();
   const editDialog = page.getByRole("dialog", { name: "Editar evento" });
+  await expect(
+    editDialog.getByRole("heading", { name: "Editar evento" }),
+  ).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    editDialog.getByRole("button", { name: "Guardar cambios" }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(
+    editDialog.getByRole("button", { name: "Cerrar formulario" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(editDialog).toHaveCount(0);
+  await expect(editTrigger).toBeFocused();
+  await editTrigger.click();
   await editDialog.getByLabel("Lugar (opcional)").fill("Casa comunitaria");
   await editDialog.getByLabel("Capacidad (opcional)").fill("140");
   await editDialog.getByRole("button", { name: "Guardar cambios" }).click();
@@ -289,9 +323,18 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
     "Foro de propuestas",
   );
 
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "Eliminar Foro de propuestas" })
+    .click();
+  const deleteConfirmation = page.getByRole("alertdialog", {
+    name: "Eliminar borrador de evento",
+  });
+  await expect(deleteConfirmation).toBeVisible();
+  await expect(
+    deleteConfirmation.getByRole("button", { name: "Cancelar" }),
+  ).toBeFocused();
+  await deleteConfirmation
+    .getByRole("button", { name: "Eliminar borrador", exact: true })
     .click();
   await expect(
     page.getByText("Borrador “Foro de propuestas” eliminado."),
@@ -356,6 +399,14 @@ test("muestra agenda pública vacía en modo de sólo lectura", async ({
 
     requestedPaths.push(pathname);
     authorizationHeaders.push(request.headers().authorization ?? "");
+    if (request.method() === "GET" && pathname === "/api/billing/capabilities") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -384,7 +435,13 @@ test("muestra agenda pública vacía en modo de sólo lectura", async ({
     page.getByRole("link", { name: "Agenda y eventos" }),
   ).toBeVisible();
   expect(requestedPaths.length).toBeGreaterThanOrEqual(1);
-  expect(requestedPaths.every((path) => path === "/api/events")).toBe(true);
+  expect(
+    requestedPaths.every((path) =>
+      ["/api/events", "/api/billing/capabilities"].includes(path),
+    ),
+  ).toBe(true);
+  expect(requestedPaths).toContain("/api/events");
+  expect(requestedPaths).toContain("/api/billing/capabilities");
   expect(authorizationHeaders.every((value) => value === `Bearer ${jwt}`)).toBe(
     true,
   );
@@ -425,6 +482,15 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
             },
           }),
         ),
+      });
+      return;
+    }
+
+    if (method === "GET" && pathname === "/api/billing/capabilities") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
       });
       return;
     }
@@ -472,7 +538,7 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
     page.getByText("Agenda temporalmente no disponible"),
   ).toBeVisible();
   backendAvailable = true;
-  await page.getByRole("button", { name: "Reintentar" }).click();
+  await page.getByRole("button", { name: "Reintentar agenda" }).click();
   await expect(
     page.getByRole("heading", { name: "No hay eventos para estos filtros" }),
   ).toBeVisible();

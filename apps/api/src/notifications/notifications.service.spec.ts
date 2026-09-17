@@ -30,7 +30,7 @@ describe('NotificationsService tenant isolation', () => {
       { id: 'task-b', assignee: null },
     ]);
 
-    const result = await service.sendTaskReminders('tenant-a');
+    const result = await service.findTaskReminderCandidates('tenant-a');
 
     expect(findMany).toHaveBeenCalledWith({
       where: {
@@ -49,7 +49,7 @@ describe('NotificationsService tenant isolation', () => {
       orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
       take: TASK_REMINDER_BATCH_SIZE,
     });
-    expect(result).toEqual({ pendingRecipients: 1, nextCursor: null });
+    expect(result).toEqual({ candidateRecipients: 1, nextCursor: null });
   });
 
   it('uses an explicit cursor and returns the next bounded-page cursor', async () => {
@@ -60,7 +60,10 @@ describe('NotificationsService tenant isolation', () => {
       })),
     );
 
-    const result = await service.sendTaskReminders('tenant-a', 'previous-task');
+    const result = await service.findTaskReminderCandidates(
+      'tenant-a',
+      'previous-task',
+    );
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -71,7 +74,7 @@ describe('NotificationsService tenant isolation', () => {
       }),
     );
     expect(result).toEqual({
-      pendingRecipients: TASK_REMINDER_BATCH_SIZE,
+      candidateRecipients: TASK_REMINDER_BATCH_SIZE,
       nextCursor: `task-${TASK_REMINDER_BATCH_SIZE - 1}`,
     });
   });

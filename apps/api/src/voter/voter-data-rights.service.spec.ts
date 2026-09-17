@@ -384,6 +384,7 @@ describe('VoterDataRightsService', () => {
         id: 'puesto-b',
         tenantId: 'tenant-a',
         type: DivisionType.PUESTO,
+        isActive: true,
       },
       select: { id: true },
     });

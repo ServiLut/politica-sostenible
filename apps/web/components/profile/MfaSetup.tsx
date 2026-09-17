@@ -6,7 +6,7 @@ import { Button, Input } from "@/components/ui";
 import { getMfaStatus, setupMfa, verifyMfa, disableMfa } from "@/lib/mfa-api";
 import { ApiError } from "@/lib/api-client";
 import Image from "next/image";
-import { useAuth } from "@/context/auth";
+import { useAuth, usePlanCapability } from "@/context/auth";
 
 type MfaState =
   | "loading"
@@ -19,6 +19,7 @@ type CopyState = "idle" | "copying" | "copied" | "failed";
 
 export function MfaSetup() {
   const { signOut } = useAuth();
+  const mfaCapability = usePlanCapability("mfa");
   const [state, setState] = useState<MfaState>("loading");
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export function MfaSetup() {
 
   async function handleEnable(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentPassword) return;
+    if (!currentPassword || !mfaCapability.enabled) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -63,6 +64,9 @@ export function MfaSetup() {
       setCopyState("idle");
       setState("setup");
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        mfaCapability.refresh();
+      }
       setError(err instanceof ApiError ? err.message : "Error al configurar 2FA");
     } finally {
       setIsSubmitting(false);
@@ -151,7 +155,7 @@ export function MfaSetup() {
             >
               {statusError}
             </p>
-            <Button className="mt-5" onClick={() => void fetchStatus()}>
+            <Button type="button" className="mt-5" onClick={() => void fetchStatus()}>
               Reintentar
             </Button>
           </div>
@@ -184,7 +188,47 @@ export function MfaSetup() {
               </p>
             )}
 
-            {state === "not_enabled" && (
+            {state === "not_enabled" &&
+              mfaCapability.status === "checking" && (
+                <div
+                  role="status"
+                  className="flex max-w-md items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700"
+                >
+                  <Loader2
+                    aria-hidden="true"
+                    className="h-5 w-5 animate-spin"
+                  />
+                  Validando si tu plan incluye 2FA…
+                </div>
+              )}
+
+            {state === "not_enabled" &&
+              mfaCapability.status === "unavailable" && (
+                <div className="max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                  <p className="font-black">2FA no está incluido en tu plan</p>
+                  <p className="mt-1 font-medium">{mfaCapability.reason}</p>
+                </div>
+              )}
+
+            {state === "not_enabled" && mfaCapability.status === "error" && (
+              <div
+                role="alert"
+                className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"
+              >
+                <p className="font-black">No pudimos validar tu plan</p>
+                <p className="mt-1 font-medium">{mfaCapability.reason}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={mfaCapability.refresh}
+                >
+                  Reintentar
+                </Button>
+              </div>
+            )}
+
+            {state === "not_enabled" && mfaCapability.enabled && (
               <form onSubmit={handleEnable} className="max-w-md space-y-4">
                 <div className="space-y-2">
                   <label
@@ -203,7 +247,10 @@ export function MfaSetup() {
                     required
                   />
                 </div>
-                <Button type="submit" disabled={isSubmitting || !currentPassword}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !currentPassword}
+                >
                   {isSubmitting ? "Cargando..." : "Habilitar 2FA"}
                 </Button>
               </form>
@@ -316,7 +363,7 @@ export function MfaSetup() {
                   ✓ Activo
                 </div>
                 <div>
-                  <Button variant="outline" onClick={() => setState("disabling")}>
+                  <Button type="button" variant="outline" onClick={() => setState("disabling")}>
                     Deshabilitar
                   </Button>
                 </div>

@@ -1,9 +1,25 @@
-export type SearchResourceCategory = "Voters" | "Users" | "Proposals";
+export type SearchResourceCategory =
+  | "Voters"
+  | "Users"
+  | "Proposals"
+  | "Tasks"
+  | "Commitments"
+  | "Cases"
+  | "Incidents"
+  | "Pqrsd";
 
-const RESOURCE_TARGETS: Record<SearchResourceCategory, string> = {
-  Voters: "/dashboard/votantes",
-  Users: "/dashboard/team",
-  Proposals: "/dashboard/proposals",
+const RESOURCE_TARGETS: Record<
+  SearchResourceCategory,
+  { pathname: string; view: string }
+> = {
+  Voters: { pathname: "/dashboard/votantes", view: "detail" },
+  Users: { pathname: "/dashboard/team", view: "detail" },
+  Proposals: { pathname: "/dashboard/proposals", view: "detail" },
+  Tasks: { pathname: "/dashboard/tasks", view: "tasks" },
+  Commitments: { pathname: "/dashboard/tasks", view: "commitments" },
+  Cases: { pathname: "/dashboard/cases", view: "detail" },
+  Incidents: { pathname: "/dashboard/incidents", view: "detail" },
+  Pqrsd: { pathname: "/dashboard/pqrsd", view: "detail" },
 };
 
 const RESOURCE_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
@@ -20,8 +36,9 @@ export function buildSearchResultHref(
     throw new Error("La búsqueda devolvió un identificador inválido.");
   }
 
-  const query = new URLSearchParams({ view: "detail", entityId });
-  return `${RESOURCE_TARGETS[category]}?${query.toString()}`;
+  const target = RESOURCE_TARGETS[category];
+  const query = new URLSearchParams({ view: target.view, entityId });
+  return `${target.pathname}?${query.toString()}`;
 }
 
 export function readEntityDeepLink(search: string): string | null {

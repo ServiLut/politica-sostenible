@@ -111,6 +111,19 @@ test("importa con evidencia directa y reutiliza exactamente el CSV validado", as
       await route.fulfill({ status: 503, body: "{}" });
       return;
     }
+    if (url.pathname === "/api/billing/capabilities" && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            plan: { code: "PRO", name: "Profesional" },
+            features: { export: true, import: true, mfa: true },
+          }),
+        ),
+      });
+      return;
+    }
     if (url.pathname === "/api/consent-notices/current" && method === "GET") {
       await route.fulfill({
         status: 200,
@@ -362,6 +375,19 @@ test("el plan sin importación queda bloqueado antes de cualquier mutación", as
       await route.fulfill({ status: 503, body: "{}" });
       return;
     }
+    if (url.pathname === "/api/billing/capabilities") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            plan: { code: "BASIC", name: "Básico" },
+            features: { export: false, import: false, mfa: false },
+          }),
+        ),
+      });
+      return;
+    }
     if (url.pathname === "/api/consent-notices/current") {
       await route.fulfill({
         status: 200,
@@ -401,7 +427,7 @@ test("el plan sin importación queda bloqueado antes de cualquier mutación", as
 
   await page.goto("/dashboard/votantes");
   const unavailable = page.getByRole("button", {
-    name: "Importación no incluida",
+    name: "Tu plan no incluye importación",
   });
   await expect(unavailable).toBeVisible();
   await expect(unavailable).toBeDisabled();

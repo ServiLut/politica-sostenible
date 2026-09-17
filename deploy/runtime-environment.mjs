@@ -1,11 +1,23 @@
+import { isIP } from "node:net";
+
 const REQUIRED_VARIABLES = Object.freeze([
   "DATABASE_URL",
+  "REDIS_URL",
   "JWT_SECRET",
   "CONSENT_IP_SALT",
+  "OFFLINE_SYNC_HMAC_SECRET",
   "SAAS_ADMIN_USER_IDS",
   "MFA_TOTP_ACTIVE_KEY_ID",
   "MFA_TOTP_ENCRYPTION_KEY",
   "MFA_TOTP_LEGACY_PLAINTEXT_MODE",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_STORAGE_BUCKET",
+]);
+
+const CATALOG_WORKER_REQUIRED_VARIABLES = Object.freeze([
+  "DATABASE_URL",
+  "REDIS_URL",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_STORAGE_BUCKET",
@@ -25,6 +37,8 @@ const INSECURE_EVALUATION_PROFILE = "evaluation";
 const IMMUTABLE_USER_ID_PATTERN =
   /^(?:c[a-z0-9]{24}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 const MAX_SAAS_ADMINS = 32;
+const MINIMUM_REDIS_PASSWORD_BYTES = 16;
+const MINIMUM_STORAGE_SERVICE_KEY_BYTES = 32;
 
 export function allowsInsecureEvaluationDatabase(environment = process.env) {
   return (
@@ -37,9 +51,7 @@ export function allowsInsecureEvaluationDatabase(environment = process.env) {
 
 function isPlaceholder(value) {
   const normalized = value.toLowerCase();
-  if (
-    PLACEHOLDER_FRAGMENTS.some((fragment) => normalized.includes(fragment))
-  ) {
+  if (PLACEHOLDER_FRAGMENTS.some((fragment) => normalized.includes(fragment))) {
     return true;
   }
 
@@ -89,9 +101,7 @@ function validateSaasAdminIdentities(issues, environment, values) {
     candidate.trim().toLowerCase(),
   );
   if (
-    normalizedUserIds.some(
-      (userId) => !IMMUTABLE_USER_ID_PATTERN.test(userId),
-    )
+    normalizedUserIds.some((userId) => !IMMUTABLE_USER_ID_PATTERN.test(userId))
   ) {
     issues.push(
       "SAAS_ADMIN_USER_IDS debe contener unicamente CUIDs o UUIDs canonicos separados por coma",
@@ -210,7 +220,8 @@ function connectionFromPostgresParts(environment) {
     "schema",
     configuredSchema || inheritedSchema || "public",
   );
-  if (inheritedSslMode) connection.searchParams.set("sslmode", inheritedSslMode);
+  if (inheritedSslMode)
+    connection.searchParams.set("sslmode", inheritedSslMode);
 
   return connection.toString();
 }
@@ -305,9 +316,7 @@ function validateProductionDatabaseTls(issues, environment, name, value) {
     const parsed = new URL(value);
     const sslMode = parsed.searchParams.get("sslmode")?.toLowerCase();
     if (sslMode !== "verify-full") {
-      issues.push(
-        `${name} debe declarar sslmode=verify-full en produccion`,
-      );
+      issues.push(`${name} debe declarar sslmode=verify-full en produccion`);
     }
   } catch {
     // validateUrl reports the malformed URL with the canonical message.
@@ -348,8 +357,201 @@ function validateProductionDatabaseFlags(issues, environment) {
     issues.push("DATABASE_SSL debe ser true en produccion");
   }
   if (environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "true") {
+    issues.push("DATABASE_SSL_REJECT_UNAUTHORIZED debe ser true en produccion");
+  }
+}
+
+function validateSessionBoundDatabaseConnection(
+  issues,
+  environment,
+  name,
+  value,
+) {
+  if (environment.NODE_ENV !== "production" || !value) return;
+
+  try {
+    const parsed = new URL(value);
+    const poolMode = parsed.searchParams.get("pool_mode")?.toLowerCase();
+    const usesTransactionPooler =
+      parsed.searchParams.get("pgbouncer")?.toLowerCase() === "true" ||
+      poolMode === "transaction" ||
+      parsed.port === "6543";
+    if (usesTransactionPooler) {
+      issues.push(
+        `${name} debe ser una conexion directa o de sesion: el SQL directo exige un search_path verificable y no admite pool_mode=transaction, pgbouncer=true ni el puerto 6543`,
+      );
+    }
+  } catch {
+    // validateUrl reports malformed URLs with the canonical message.
+  }
+}
+
+function isEvaluationProfile(environment) {
+  return (
+    environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() ===
+    INSECURE_EVALUATION_PROFILE
+  );
+}
+
+function isPrivateRedisHostname(hostname) {
+  const normalized = hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  const ipVersion = isIP(normalized);
+
+  if (ipVersion === 4) {
+    const octets = normalized.split(".").map(Number);
+    return (
+      octets[0] === 10 ||
+      octets[0] === 127 ||
+      (octets[0] === 169 && octets[1] === 254) ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168)
+    );
+  }
+  if (ipVersion === 6) {
+    return (
+      normalized === "::1" ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd") ||
+      normalized.startsWith("fe8") ||
+      normalized.startsWith("fe9") ||
+      normalized.startsWith("fea") ||
+      normalized.startsWith("feb")
+    );
+  }
+
+  return (
+    normalized.length > 0 &&
+    (!normalized.includes(".") ||
+      normalized === "localhost" ||
+      normalized.endsWith(".localhost") ||
+      normalized.endsWith(".internal") ||
+      normalized.endsWith(".local") ||
+      normalized.endsWith(".lan"))
+  );
+}
+
+export function allowsPlaintextInternalRedis(environment = process.env) {
+  if (environment.NODE_ENV !== "production") return true;
+  if (environment.REDIS_ALLOW_PLAINTEXT_INTERNAL !== "true") return false;
+
+  try {
+    const parsed = new URL(environment.REDIS_URL?.trim() ?? "");
+    return (
+      parsed.protocol === "redis:" && isPrivateRedisHostname(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validateRedisConfiguration(issues, environment, value) {
+  const plaintextFlag = environment.REDIS_ALLOW_PLAINTEXT_INTERNAL?.trim();
+  if (plaintextFlag && !["true", "false"].includes(plaintextFlag)) {
+    issues.push("REDIS_ALLOW_PLAINTEXT_INTERNAL debe ser true o false");
+  }
+  if (!value) return;
+
+  validateUrl(issues, "REDIS_URL", value, ["redis:", "rediss:"]);
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return;
+  }
+  if (!["redis:", "rediss:"].includes(parsed.protocol)) return;
+  if (parsed.hash) {
+    issues.push("REDIS_URL no debe contener un fragmento");
+  }
+
+  for (const [name, configured] of parsed.searchParams.entries()) {
+    const normalizedName = name.toLowerCase().replaceAll("_", "");
+    const normalizedValue = configured.trim().toLowerCase();
+    if (
+      ["rejectunauthorized", "tls.rejectunauthorized"].includes(
+        normalizedName,
+      ) &&
+      ["0", "false", "no"].includes(normalizedValue)
+    ) {
+      issues.push(
+        "REDIS_URL intenta desactivar la validacion del certificado TLS",
+      );
+    }
+  }
+
+  if (environment.NODE_ENV !== "production") return;
+
+  if (parsed.protocol === "redis:") {
+    if (!allowsPlaintextInternalRedis(environment)) {
+      issues.push(
+        "REDIS_URL debe usar rediss en produccion; redis sin TLS exige REDIS_ALLOW_PLAINTEXT_INTERNAL=true y un host privado",
+      );
+    }
+  } else if (plaintextFlag === "true") {
     issues.push(
-      "DATABASE_SSL_REJECT_UNAUTHORIZED debe ser true en produccion",
+      "REDIS_ALLOW_PLAINTEXT_INTERNAL solo debe activarse cuando REDIS_URL usa redis hacia una red privada",
+    );
+  }
+
+  let decodedPassword = "";
+  try {
+    decodedPassword = decodeURIComponent(parsed.password);
+  } catch {
+    issues.push("REDIS_URL contiene una credencial con codificacion invalida");
+  }
+  if (!decodedPassword) {
+    if (!isEvaluationProfile(environment)) {
+      issues.push("REDIS_URL debe incluir autenticacion en produccion");
+    }
+  } else if (
+    Buffer.byteLength(decodedPassword, "utf8") < MINIMUM_REDIS_PASSWORD_BYTES
+  ) {
+    issues.push(
+      `la credencial de REDIS_URL debe contener al menos ${MINIMUM_REDIS_PASSWORD_BYTES} bytes`,
+    );
+  }
+}
+
+function validatePublicRegistrationConfiguration(issues, environment) {
+  const configured = environment.PUBLIC_REGISTRATION_ENABLED?.trim();
+  if (configured && !["true", "false"].includes(configured)) {
+    issues.push("PUBLIC_REGISTRATION_ENABLED debe ser true o false");
+  }
+
+  const invitationAcceptance =
+    environment.TEAM_INVITATION_ACCEPTANCE_ENABLED?.trim();
+  if (
+    environment.TEAM_INVITATION_ACCEPTANCE_ENABLED !== undefined &&
+    !["true", "false"].includes(invitationAcceptance)
+  ) {
+    issues.push("TEAM_INVITATION_ACCEPTANCE_ENABLED debe ser true o false");
+  }
+}
+
+function validateStorageConfiguration(issues, values) {
+  validateUrl(issues, "SUPABASE_URL", values.SUPABASE_URL, ["https:"]);
+
+  const serviceKey = values.SUPABASE_SERVICE_ROLE_KEY;
+  if (
+    serviceKey &&
+    Buffer.byteLength(serviceKey, "utf8") < MINIMUM_STORAGE_SERVICE_KEY_BYTES
+  ) {
+    issues.push(
+      `SUPABASE_SERVICE_ROLE_KEY debe contener al menos ${MINIMUM_STORAGE_SERVICE_KEY_BYTES} bytes`,
+    );
+  }
+
+  const bucket = values.SUPABASE_STORAGE_BUCKET;
+  if (
+    bucket &&
+    (!/^[a-z0-9][a-z0-9._-]*[a-z0-9]$/i.test(bucket) || bucket.length > 100)
+  ) {
+    issues.push(
+      "SUPABASE_STORAGE_BUCKET debe ser un nombre valido de hasta 100 caracteres",
     );
   }
 }
@@ -381,7 +583,11 @@ export function runtimeEnvironmentIssues(environment = process.env) {
     issues.push("DIRECT_URL contiene un placeholder publico sin resolver");
   }
 
-  for (const name of ["JWT_SECRET", "CONSENT_IP_SALT"]) {
+  for (const name of [
+    "JWT_SECRET",
+    "CONSENT_IP_SALT",
+    "OFFLINE_SYNC_HMAC_SECRET",
+  ]) {
     if (values[name] && Buffer.byteLength(values[name], "utf8") < 32) {
       issues.push(`${name} debe contener al menos 32 bytes aleatorios`);
     }
@@ -389,6 +595,7 @@ export function runtimeEnvironmentIssues(environment = process.env) {
 
   validateSaasAdminIdentities(issues, environment, values);
   validateMfaEncryption(issues, environment, values);
+  validatePublicRegistrationConfiguration(issues, environment);
 
   validateUrl(issues, "DATABASE_URL", values.DATABASE_URL, [
     "postgres:",
@@ -401,16 +608,18 @@ export function runtimeEnvironmentIssues(environment = process.env) {
     "DATABASE_URL",
     values.DATABASE_URL,
   );
-  validateProductionDatabaseTls(
+  validateSessionBoundDatabaseConnection(
     issues,
     environment,
-    "DIRECT_URL",
-    directUrl,
+    "DATABASE_URL",
+    values.DATABASE_URL,
   );
+  validateProductionDatabaseTls(issues, environment, "DIRECT_URL", directUrl);
 
   validateProductionDatabaseFlags(issues, environment);
 
-  validateUrl(issues, "SUPABASE_URL", values.SUPABASE_URL, ["https:"]);
+  validateRedisConfiguration(issues, environment, values.REDIS_URL);
+  validateStorageConfiguration(issues, values);
   validateUrl(
     issues,
     "NEXT_PUBLIC_APP_URL",
@@ -424,6 +633,48 @@ export function runtimeEnvironmentIssues(environment = process.env) {
   for (const origin of corsOrigins ?? []) {
     validateUrl(issues, "CORS_ORIGINS", origin, ["https:"]);
   }
+
+  return issues;
+}
+
+export function catalogWorkerEnvironmentIssues(environment = process.env) {
+  const issues = [];
+  const values = Object.fromEntries(
+    CATALOG_WORKER_REQUIRED_VARIABLES.map((name) => [
+      name,
+      environment[name]?.trim() ?? "",
+    ]),
+  );
+  const missing = CATALOG_WORKER_REQUIRED_VARIABLES.filter(
+    (name) => !values[name],
+  );
+  if (missing.length) issues.push(`faltan: ${missing.join(", ")}`);
+
+  for (const name of CATALOG_WORKER_REQUIRED_VARIABLES) {
+    if (values[name] && isPlaceholder(values[name])) {
+      issues.push(`${name} contiene un placeholder publico sin resolver`);
+    }
+  }
+
+  validateUrl(issues, "DATABASE_URL", values.DATABASE_URL, [
+    "postgres:",
+    "postgresql:",
+  ]);
+  validateProductionDatabaseTls(
+    issues,
+    environment,
+    "DATABASE_URL",
+    values.DATABASE_URL,
+  );
+  validateSessionBoundDatabaseConnection(
+    issues,
+    environment,
+    "DATABASE_URL",
+    values.DATABASE_URL,
+  );
+  validateProductionDatabaseFlags(issues, environment);
+  validateRedisConfiguration(issues, environment, values.REDIS_URL);
+  validateStorageConfiguration(issues, values);
 
   return issues;
 }
@@ -471,6 +722,16 @@ export function requireRuntimeEnvironment(environment = process.env) {
   if (issues.length > 0) {
     throw new Error(
       `Configuracion de ejecucion invalida:\n${issues.map((issue) => `- ${issue}`).join("\n")}`,
+    );
+  }
+}
+
+export function requireCatalogWorkerEnvironment(environment = process.env) {
+  prepareRuntimeEnvironment(environment);
+  const issues = catalogWorkerEnvironmentIssues(environment);
+  if (issues.length > 0) {
+    throw new Error(
+      `Configuracion del worker de catalogo electoral invalida:\n${issues.map((issue) => `- ${issue}`).join("\n")}`,
     );
   }
 }

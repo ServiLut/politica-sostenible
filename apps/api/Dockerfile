@@ -54,6 +54,7 @@ ARG APP_SOURCE
 LABEL org.opencontainers.image.revision="${APP_REVISION}" \
       org.opencontainers.image.source="${APP_SOURCE}"
 ENV NODE_ENV=production
+ENV APP_REVISION=${APP_REVISION}
 ENV PORT=4000
 
 RUN apk add --no-cache openssl \
@@ -66,6 +67,8 @@ COPY --from=builder --chown=nestjs:nodejs /app/apps/api/package.json ./apps/api/
 COPY --from=prod-deps --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/apps/api/prisma/generated ./apps/api/prisma/generated
 COPY --chown=nestjs:nodejs deploy/api-entrypoint.mjs ./deploy/api-entrypoint.mjs
+COPY --chown=nestjs:nodejs deploy/catalog-worker-entrypoint.mjs ./deploy/catalog-worker-entrypoint.mjs
+COPY --chown=nestjs:nodejs deploy/catalog-worker-healthcheck.mjs ./deploy/catalog-worker-healthcheck.mjs
 COPY --chown=nestjs:nodejs deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
 
 WORKDIR /app/apps/api

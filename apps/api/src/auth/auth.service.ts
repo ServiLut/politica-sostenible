@@ -24,6 +24,7 @@ import type { AuthenticatedUser } from './interfaces/authenticated-user.interfac
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import { createSessionVersion } from './session-version';
 import type { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { resolvePublicRegistrationPolicy } from './public-registration.policy';
 
 import { MfaService } from './mfa.service';
 
@@ -62,6 +63,10 @@ export class AuthService {
     private jwtService: JwtService,
     private mfaService: MfaService,
   ) {}
+
+  registrationPolicy() {
+    return resolvePublicRegistrationPolicy();
+  }
 
   async login(dto: LoginDto) {
     const { email, password, totpCode } = dto;
@@ -152,6 +157,17 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
+    const registrationPolicy = this.registrationPolicy();
+    if (!registrationPolicy.enabled) {
+      throw new ForbiddenException(registrationPolicy.message);
+    }
+
+    if (dto.termsVersion !== registrationPolicy.termsVersion) {
+      throw new BadRequestException(
+        'La versión de términos no coincide con la política vigente',
+      );
+    }
+
     const {
       email,
       password,

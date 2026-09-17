@@ -57,6 +57,11 @@ interface PublicOfficeBriefing {
     };
     events: { upcoming: number };
     communications: { pendingApproval: number };
+    pqrsd?: {
+      open: number;
+      criticalAlerts: number;
+      configurationReady: boolean;
+    };
   };
   alerts: Array<{
     code: string;
@@ -167,7 +172,8 @@ export default function PublicOfficePage() {
             <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
               Seguimiento de{" "}
               {briefing?.tenant.name ?? tenant?.name ?? "la organización"},
-              calculado con casos, tareas y compromisos del modo autenticado.
+              calculado con PQRSD formales, casos, tareas y compromisos del
+              modo autenticado.
             </p>
           </div>
 
@@ -253,8 +259,25 @@ export default function PublicOfficePage() {
 
       <section
         aria-label="Indicadores de gestión pública"
-        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-5"
       >
+        <MetricCard
+          label="PQRSD formales abiertas"
+          value={briefing?.metrics.pqrsd?.open ?? null}
+          detail={
+            briefing?.metrics.pqrsd
+              ? briefing.metrics.pqrsd.configurationReady
+                ? `${briefing.metrics.pqrsd.criticalAlerts} alertas críticas`
+                : "Falta aprobar reglas y calendario"
+              : "Datos no disponibles"
+          }
+          icon={FileText}
+          testId="open-pqrsd-metric"
+          href="/dashboard/pqrsd"
+          accent={
+            briefing?.metrics.pqrsd?.criticalAlerts ? "red" : "emerald"
+          }
+        />
         <MetricCard
           label="Casos abiertos"
           value={briefing?.metrics.cases.open ?? null}

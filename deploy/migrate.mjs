@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { requireMigrationEnvironment } from "./runtime-environment.mjs";
 
 export const BASELINE_MIGRATION = "20260827000000_baseline";
+export const EXPECTED_SCHEMA_VERSION = "20260909310000_schema_contract_marker";
 export const HISTORICAL_MIGRATIONS = Object.freeze([
   "20260821123000_issue_case_mode_reference",
   "20260821140000_consent_revocation_reason",
@@ -168,6 +169,14 @@ const REQUIRED_CHECK_CONSTRAINTS = Object.freeze({
     '"lasttotptimestep" >= 0',
   ],
   SystemDatabaseIdentity_singleton_check: ["id::text", "'primary'"],
+  SystemDatabaseIdentity_fingerprint_format_check: [
+    "fingerprint",
+    "'^[a-f0-9]{64}$'",
+  ],
+  SystemDatabaseIdentity_schema_version_format_check: [
+    '"schemaversion"',
+    "'^[0-9]{14}_[a-z0-9_]+$'",
+  ],
   WitnessReport_vote_totals_check: [
     "mesa > 0",
     '"candidatevotes" >= 0',
@@ -202,6 +211,8 @@ const REQUIRED_CONSTRAINT_TABLES = Object.freeze({
   User_authVersion_non_negative_check: "User",
   User_lastTotpTimeStep_non_negative_check: "User",
   SystemDatabaseIdentity_singleton_check: "SystemDatabaseIdentity",
+  SystemDatabaseIdentity_fingerprint_format_check: "SystemDatabaseIdentity",
+  SystemDatabaseIdentity_schema_version_format_check: "SystemDatabaseIdentity",
   WitnessReport_vote_totals_check: "WitnessReport",
   WitnessReport_four_eyes_check: "WitnessReport",
   WitnessReport_review_state_check: "WitnessReport",
@@ -253,11 +264,16 @@ const INVARIANT_INTRODUCING_MIGRATIONS = Object.freeze({
     "20260907200000_proposal_status_lifecycle",
   enforce_political_proposal_status_transition:
     "20260907200000_proposal_status_lifecycle",
+  SystemDatabaseIdentity_fingerprint_format_check: EXPECTED_SCHEMA_VERSION,
+  SystemDatabaseIdentity_schema_version_format_check: EXPECTED_SCHEMA_VERSION,
+  ApplicationFunctions_search_path: EXPECTED_SCHEMA_VERSION,
+  WitnessReport_one_accepted_per_context_table_key:
+    "20260909160000_witness_capture_context_isolation",
 });
 const REQUIRED_INDEX_DEFINITIONS = Object.freeze({
-  WitnessReport_one_accepted_per_table_key: [
+  WitnessReport_one_accepted_per_context_table_key: [
     "create unique index",
-    '"tenantid", "puestoid", mesa',
+    '"tenantid", "capturecontext", "puestoid", mesa',
     "where (status = 'accepted'",
   ],
 });
@@ -612,7 +628,11 @@ export async function proveSameDatabase(
   }
 }
 
-async function inspectDatabaseIdentity(client, schema) {
+async function inspectDatabaseIdentity(
+  client,
+  schema,
+  { requireCurrent = false } = {},
+) {
   const qualifiedIdentity = `${quotedIdentifier(schema)}."SystemDatabaseIdentity"`;
   const lookup = await client.query("SELECT to_regclass($1) AS name", [
     qualifiedIdentity,
@@ -620,20 +640,41 @@ async function inspectDatabaseIdentity(client, schema) {
   if (lookup.rows[0]?.name === null) return null;
 
   const identity = await client.query(
-    `SELECT fingerprint FROM ${qualifiedIdentity} WHERE id = $1`,
+    `SELECT
+       identity_row.fingerprint,
+       to_jsonb(identity_row)->>'schemaVersion' AS "schemaVersion"
+     FROM ${qualifiedIdentity} AS identity_row
+     WHERE identity_row.id = $1`,
     [DATABASE_IDENTITY_ID],
   );
   const fingerprint = identity.rows[0]?.fingerprint;
+  const schemaVersion = identity.rows[0]?.schemaVersion ?? null;
+  const legacyIdentity =
+    typeof fingerprint === "string" &&
+    /^[a-f0-9]{32}$/.test(fingerprint) &&
+    schemaVersion === null;
+  const currentIdentity =
+    typeof fingerprint === "string" &&
+    /^[a-f0-9]{64}$/.test(fingerprint) &&
+    schemaVersion === EXPECTED_SCHEMA_VERSION;
   if (
     identity.rows.length !== 1 ||
-    typeof fingerprint !== "string" ||
-    !/^[a-f0-9]{32}$/.test(fingerprint)
+    (!legacyIdentity && !currentIdentity) ||
+    (requireCurrent && !currentIdentity)
   ) {
     throw new Error(
       "la identidad de la base de datos falta, esta duplicada o es invalida",
     );
   }
-  return fingerprint;
+  return { fingerprint, schemaVersion };
+}
+
+function databaseIdentitiesMatch(left, right) {
+  if (left === null || right === null) return left === right;
+  return (
+    left.fingerprint === right.fingerprint &&
+    left.schemaVersion === right.schemaVersion
+  );
 }
 
 function normalizedPlan(row) {
@@ -785,6 +826,9 @@ export function databaseInvariantIssues(snapshot, { ignoredNames = [] } = {}) {
       issues.push(name);
     }
   }
+  if ((snapshot.unsafeFunctionSearchPaths ?? []).length > 0) {
+    issues.push("ApplicationFunctions_search_path");
+  }
   const ignored = new Set(ignoredNames);
   return issues.filter((name) => !ignored.has(name));
 }
@@ -804,9 +848,10 @@ async function inspectDatabaseInvariants(client, schema) {
   const triggerNames = Object.keys(REQUIRED_TRIGGER_DEFINITIONS);
   const functionNames = Object.keys(REQUIRED_FUNCTION_DEFINITIONS);
   const indexNames = Object.keys(REQUIRED_INDEX_DEFINITIONS);
-  const [constraints, triggers, functions, indexes] = await Promise.all([
-    client.query(
-      `SELECT
+  const [constraints, triggers, functions, indexes, unsafeFunctionSearchPaths] =
+    await Promise.all([
+      client.query(
+        `SELECT
          constraint_row.conname AS name,
          relation.relname AS "tableName",
          constraint_row.contype AS type,
@@ -818,10 +863,10 @@ async function inspectDatabaseInvariants(client, schema) {
        JOIN pg_class AS relation ON relation.oid = constraint_row.conrelid
        WHERE namespace.nspname = $1
          AND constraint_row.conname = ANY($2::text[])`,
-      [schema, constraintNames],
-    ),
-    client.query(
-      `SELECT
+        [schema, constraintNames],
+      ),
+      client.query(
+        `SELECT
          trigger_row.tgname AS name,
          relation.relname AS "tableName",
          trigger_row.tgenabled AS enabled,
@@ -832,10 +877,10 @@ async function inspectDatabaseInvariants(client, schema) {
        WHERE namespace.nspname = $1
          AND NOT trigger_row.tgisinternal
          AND trigger_row.tgname = ANY($2::text[])`,
-      [schema, triggerNames],
-    ),
-    client.query(
-      `SELECT
+        [schema, triggerNames],
+      ),
+      client.query(
+        `SELECT
          procedure.proname AS name,
          pg_get_functiondef(procedure.oid) AS definition
        FROM pg_proc AS procedure
@@ -843,24 +888,41 @@ async function inspectDatabaseInvariants(client, schema) {
          ON namespace.oid = procedure.pronamespace
        WHERE namespace.nspname = $1
          AND procedure.proname = ANY($2::text[])`,
-      [schema, functionNames],
-    ),
-    client.query(
-      `SELECT
+        [schema, functionNames],
+      ),
+      client.query(
+        `SELECT
          indexname AS name,
          tablename AS "tableName",
          indexdef AS definition
        FROM pg_indexes
        WHERE schemaname = $1
          AND indexname = ANY($2::text[])`,
-      [schema, indexNames],
-    ),
-  ]);
+        [schema, indexNames],
+      ),
+      client.query(
+        `SELECT procedure.proname AS name
+       FROM pg_proc AS procedure
+       JOIN pg_namespace AS namespace
+         ON namespace.oid = procedure.pronamespace
+       JOIN pg_language AS language
+         ON language.oid = procedure.prolang
+       WHERE namespace.nspname = $1
+         AND language.lanname = 'plpgsql'
+         AND procedure.pronargs = 0
+         AND NOT (
+           COALESCE(procedure.proconfig, ARRAY[]::text[])
+             @> ARRAY['search_path=' || quote_ident($1) || ', pg_catalog']
+         )`,
+        [schema],
+      ),
+    ]);
   return {
     constraints: constraints.rows,
     triggers: triggers.rows,
     functions: functions.rows,
     indexes: indexes.rows,
+    unsafeFunctionSearchPaths: unsafeFunctionSearchPaths.rows,
   };
 }
 
@@ -1004,7 +1066,7 @@ export async function runSafeMigrations(environment = process.env) {
       inspectDatabaseIdentity(client, schema),
       inspectDatabaseIdentity(runtimeClient, schema),
     ]);
-    if (directIdentity !== runtimeIdentity) {
+    if (!databaseIdentitiesMatch(directIdentity, runtimeIdentity)) {
       throw new Error(
         "DIRECT_URL y DATABASE_URL apuntan a identidades de base de datos diferentes",
       );
@@ -1172,12 +1234,12 @@ export async function runSafeMigrations(environment = process.env) {
       );
     }
     const [finalDirectIdentity, finalRuntimeIdentity] = await Promise.all([
-      inspectDatabaseIdentity(client, schema),
-      inspectDatabaseIdentity(runtimeClient, schema),
+      inspectDatabaseIdentity(client, schema, { requireCurrent: true }),
+      inspectDatabaseIdentity(runtimeClient, schema, { requireCurrent: true }),
     ]);
     if (
       finalDirectIdentity === null ||
-      finalDirectIdentity !== finalRuntimeIdentity
+      !databaseIdentitiesMatch(finalDirectIdentity, finalRuntimeIdentity)
     ) {
       throw new Error(
         "la conexion de ejecucion no coincide con la identidad migrada; la API no puede iniciar",

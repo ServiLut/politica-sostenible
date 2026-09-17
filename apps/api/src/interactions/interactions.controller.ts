@@ -3,6 +3,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  AllowWhenOperationClosed,
+  BlockWhenOperationClosed,
+} from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CaseConsentQueryDto } from './dto/case-consent-query.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
@@ -52,6 +56,7 @@ const CASE_CONSENT_REVOKE_ROLES = [
 
 @ApiTags('Interactions')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('interactions')
 export class InteractionsController {
   constructor(private readonly interactionsService: InteractionsService) {}
@@ -85,6 +90,7 @@ export class InteractionsController {
   }
 
   @Post('consents/revocations')
+  @AllowWhenOperationClosed()
   @Roles(...CASE_CONSENT_REVOKE_ROLES)
   @ApiOperation({
     summary: 'Revoca una autorizacion de seguimiento sin borrar historial',

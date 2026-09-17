@@ -61,7 +61,7 @@ describe('loadSaasAdminIdentityConfig', () => {
     });
   });
 
-  it.each([
+  it.each<[string, string]>([
     ['', 'lista ausente'],
     ['not-an-immutable-id', 'identificador no canónico'],
     [`${ADMIN_USER_ID},`, 'entrada vacía'],
@@ -171,7 +171,7 @@ describe('SaasAdminGuard', () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
-  it.each([
+  it.each<[Parameters<typeof buildPrisma>[0], string]>([
     [
       {
         id: ADMIN_USER_ID,
@@ -196,7 +196,7 @@ describe('SaasAdminGuard', () => {
     ).resolves.toBe(false);
   });
 
-  it.each([
+  it.each<[string | null, Date | null, string]>([
     [null, null, 'MFA no configurado'],
     ['totp:v1:test:key:ciphertext', null, 'activacion incompleta'],
     [null, new Date('2026-09-07T12:00:00.000Z'), 'secreto ausente'],

@@ -82,20 +82,26 @@ test("la navegación usa lenguaje neutral y cuatro espacios de trabajo", () => {
   ).toEqual(["Dirección", "Coordinación", "Campo", "Revisión especializada"]);
 });
 
-test("la bandeja convive con los accesos operativos especializados", () => {
+test("dirección descubre la operación electoral cuando la etapa la habilita", () => {
   const user = {
     role: UserRole.AdminCampana,
     backendRole: "ADMIN" as const,
   };
   const tenant = { type: "CANDIDACY" as const };
-  const visibleHrefs = getVisibleNavigationItems(user, tenant).map(
+  const campaignHrefs = getVisibleNavigationItems(user, tenant, "CAMPAIGN").map(
     ({ href }) => href,
   );
+  const preparationHrefs = getVisibleNavigationItems(
+    user,
+    tenant,
+    "ELECTION_PREPARATION",
+  ).map(({ href }) => href);
 
-  expect(visibleHrefs).toContain("/dashboard/inbox");
-  expect(visibleHrefs).toContain("/dashboard/incidents");
-  expect(visibleHrefs).toContain("/dashboard/tasks");
-  expect(visibleHrefs).not.toContain("/dashboard/war-room");
+  expect(campaignHrefs).toContain("/dashboard/inbox");
+  expect(campaignHrefs).toContain("/dashboard/incidents");
+  expect(campaignHrefs).toContain("/dashboard/tasks");
+  expect(campaignHrefs).not.toContain("/dashboard/war-room");
+  expect(preparationHrefs).toContain("/dashboard/war-room");
   expect(
     canAccessNavigationItem(item("/dashboard/incidents"), user, tenant),
   ).toBe(true);
@@ -317,4 +323,78 @@ test("war-room solo se muestra en las etapas permitidas", () => {
       (i) => i.href === "/dashboard/war-room",
     ),
   ).toBe(true);
+  expect(
+    getVisibleNavigationItems(user, tenant, "CLOSED").some(
+      (i) => i.href === "/dashboard/war-room",
+    ),
+  ).toBe(true);
+});
+
+test("el expediente de cierre solo aparece después de la elección y para control especializado", () => {
+  const tenant = { type: "CANDIDACY" as const };
+  const admin = {
+    role: UserRole.AdminCampana,
+    backendRole: "ADMIN" as const,
+  };
+  const volunteer = {
+    role: UserRole.Voluntario,
+    backendRole: "VOLUNTEER" as const,
+  };
+  const closeout = item("/dashboard/transition");
+
+  expect(
+    getVisibleNavigationItems(admin, tenant, "ELECTION_DAY").map(
+      ({ href }) => href,
+    ),
+  ).not.toContain(closeout.href);
+  expect(
+    getVisibleNavigationItems(admin, tenant, "POST_ELECTION").map(
+      ({ href }) => href,
+    ),
+  ).toContain(closeout.href);
+  expect(
+    getVisibleNavigationItems(admin, tenant, "CLOSED").map(({ href }) => href),
+  ).toContain(closeout.href);
+  expect(canAccessNavigationItem(closeout, volunteer, tenant)).toBe(false);
+  expect(
+    canAccessNavigationItem(closeout, admin, { type: "PUBLIC_OFFICE" }),
+  ).toBe(false);
+});
+
+test("el catálogo electoral queda limitado a revisión especializada de organizaciones de campaña", () => {
+  const catalog = item("/dashboard/electoral-catalog");
+  const tenant = { type: "CANDIDACY" as const };
+
+  for (const backendRole of [
+    "ADMIN",
+    "COMPLIANCE_OFFICER",
+    "AUDITOR",
+  ] as const) {
+    expect(
+      canAccessNavigationItem(
+        catalog,
+        {
+          role:
+            backendRole === "ADMIN" ? UserRole.AdminCampana : UserRole.Auditor,
+          backendRole,
+        },
+        tenant,
+      ),
+    ).toBe(true);
+  }
+
+  expect(
+    canAccessNavigationItem(
+      catalog,
+      { role: UserRole.GerenteOps, backendRole: "CAMPAIGN_MANAGER" },
+      tenant,
+    ),
+  ).toBe(false);
+  expect(
+    canAccessNavigationItem(
+      catalog,
+      { role: UserRole.AdminCampana, backendRole: "ADMIN" },
+      { type: "PUBLIC_OFFICE" },
+    ),
+  ).toBe(false);
 });

@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { Role } from '../../../prisma/generated/prisma';
+import { PUBLIC_REGISTRATION_TERMS_VERSION } from '../../auth/public-registration.policy';
 import { AcceptTeamInvitationDto } from './accept-team-invitation.dto';
 import { CreateTeamInvitationDto } from './create-team-invitation.dto';
 import {
@@ -56,7 +57,7 @@ describe('Team invitation DTO validation', () => {
     );
   });
 
-  it('accepts a complete 2026.1 acceptance payload', async () => {
+  it('accepts a complete payload with the authoritative terms version', async () => {
     const dto = plainToInstance(AcceptTeamInvitationDto, {
       token: 'a'.repeat(43),
       password: 'una-clave-segura-2026',
@@ -64,7 +65,7 @@ describe('Team invitation DTO validation', () => {
       documentId: '  1012345678 ',
       phone: '  +573001234567 ',
       termsAccepted: true,
-      termsVersion: '2026.1',
+      termsVersion: PUBLIC_REGISTRATION_TERMS_VERSION,
     });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
@@ -77,7 +78,7 @@ describe('Team invitation DTO validation', () => {
 
   it('validates strict member lifecycle inputs without coercing status', async () => {
     const params = plainToInstance(TeamMemberParamsDto, {
-      memberId: 'member_valid-123',
+      memberId: 'cmembervalid1234567890123',
     });
     const role = plainToInstance(UpdateTeamMemberRoleDto, {
       role: Role.VOLUNTEER,

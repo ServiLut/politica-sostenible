@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -38,6 +45,8 @@ import {
 import { canExportData } from "@/lib/export-policy";
 import { BackendUserRole } from "@/types/saas-schema";
 import { ExportButton } from "@/components/ui/ExportButton";
+import { UserCombobox } from "@/components/ui/UserCombobox";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 const PAGE_SIZE = 12;
 
@@ -360,18 +369,12 @@ function CaseCard({
           {canManageAssignments && (
             <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">
               Responsable
-              <select
+              <UserCombobox
                 value={assigneeId}
-                onChange={(event) => setAssigneeId(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
-              >
-                <option value="">Sin asignar</option>
-                {assignees.map((assignee) => (
-                  <option key={assignee.id} value={assignee.id}>
-                    {assignee.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setAssigneeId(value)}
+                fetchItems={async (search, signal) => listCaseAssignees({ page: 1, limit: 10, search }, signal)}
+                className="mt-1"
+              />
             </label>
           )}
           <button
@@ -431,6 +434,18 @@ export default function CasesPage() {
     assigneeId: "",
     dueDate: "",
     confidential: false,
+  });
+  const createDialogRef = useRef<HTMLDivElement>(null);
+  const createDialogTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useAccessibleDialog({
+    open: isCreateOpen,
+    containerRef: createDialogRef,
+    initialFocusRef: createDialogTitleRef,
+    onClose: () => {
+      if (saving !== "create") setIsCreateOpen(false);
+    },
+    closeOnEscape: saving !== "create",
   });
 
   useEffect(() => {
@@ -511,14 +526,19 @@ export default function CasesPage() {
     return () => controller.abort();
   }, [canManageAssignments]);
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFilters((current) => ({
-      ...current,
-      page: 1,
-      search: searchDraft.trim(),
-    }));
-  }
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setFilters((current) => {
+        if (current.search === searchDraft.trim()) return current;
+        return {
+          ...current,
+          page: 1,
+          search: searchDraft.trim(),
+        };
+      });
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchDraft]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -572,6 +592,20 @@ export default function CasesPage() {
     setSaving(issueCase.id);
     setMutationError(null);
 
+    const previousResult = result;
+    setResult((current) =>
+      current
+        ? {
+            ...current,
+            items: current.items.map((item) =>
+              item.id === issueCase.id
+                ? { ...item, status: change.status, priority: change.priority }
+                : item,
+            ),
+          }
+        : current,
+    );
+
     try {
       const updated = await updateIssueCase(issueCase.id, change);
       setResult((current) =>
@@ -586,6 +620,7 @@ export default function CasesPage() {
       );
       setNotice(`${updated.reference} actualizado y auditado.`);
     } catch (requestError: unknown) {
+      setResult(previousResult);
       setMutationError(readableError(requestError));
     } finally {
       setSaving(null);
@@ -646,10 +681,7 @@ export default function CasesPage() {
       </header>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <form
-          onSubmit={submitSearch}
-          className="grid gap-3 lg:grid-cols-[1fr_190px_170px_auto]"
-        >
+        <div className="grid gap-3 lg:grid-cols-[1fr_190px_190px]">
           <label className="relative">
             <span className="sr-only">Buscar casos</span>
             <Search
@@ -701,13 +733,7 @@ export default function CasesPage() {
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700"
-          >
-            Buscar
-          </button>
-        </form>
+        </div>
       </section>
 
       {mutationError && (
@@ -819,6 +845,7 @@ export default function CasesPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
+            ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-case-title"
@@ -827,6 +854,8 @@ export default function CasesPage() {
             <div className="flex items-start justify-between border-b border-slate-100 p-7">
               <div>
                 <h2
+                  ref={createDialogTitleRef}
+                  tabIndex={-1}
                   id="new-case-title"
                   className="text-2xl font-black text-slate-950"
                 >
@@ -937,20 +966,12 @@ export default function CasesPage() {
                 {canManageAssignments ? (
                   <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
                     Responsable
-                    <select
+                    <UserCombobox
                       value={form.assigneeId}
-                      onChange={(event) =>
-                        setForm({ ...form, assigneeId: event.target.value })
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
-                    >
-                      <option value="">Sin asignar</option>
-                      {assignees.map((assignee) => (
-                        <option key={assignee.id} value={assignee.id}>
-                          {assignee.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setForm({ ...form, assigneeId: value })}
+                      fetchItems={async (search, signal) => listCaseAssignees({ page: 1, limit: 10, search }, signal)}
+                      className="mt-2"
+                    />
                   </label>
                 ) : (
                   <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-900">

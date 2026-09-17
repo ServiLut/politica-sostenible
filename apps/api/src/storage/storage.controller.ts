@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -9,6 +17,7 @@ import { CreateUploadUrlDto } from './dto/create-upload-url.dto';
 import { StorageService } from './storage.service';
 import { Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { StorageIntegrityParamsDto } from './dto/storage-integrity-params.dto';
 
 @ApiTags('Storage')
 @ApiBearerAuth()
@@ -41,6 +50,18 @@ export class StorageController {
     @Body() dto: CompleteUploadDto,
   ) {
     return this.storageService.completeUpload(user, dto);
+  }
+
+  @Get(':objectId/integrity')
+  @Throttle({ default: { limit: 300, ttl: 600_000 } })
+  @ApiOperation({
+    summary: 'Consulta el resultado de integridad sin exponer ruta ni PII',
+  })
+  getIntegrityStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: StorageIntegrityParamsDto,
+  ) {
+    return this.storageService.getIntegrityStatus(user, params.objectId);
   }
 
   @Post('download-url')

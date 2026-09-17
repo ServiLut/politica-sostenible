@@ -1,6 +1,7 @@
 import {
   PrismaService,
   resolveDatabaseSchema,
+  resolveDatabaseSearchPathOptions,
   resolveDatabaseSsl,
 } from './prisma.service';
 
@@ -53,6 +54,18 @@ describe('resolveDatabaseSchema', () => {
         'postgresql://user:password@db.example.com/postgres',
         'public; DROP SCHEMA public',
       ),
+    ).toThrow('DATABASE_SCHEMA contains an invalid PostgreSQL identifier');
+  });
+});
+
+describe('resolveDatabaseSearchPathOptions', () => {
+  it('pins raw SQL to the same validated custom schema as Prisma', () => {
+    expect(resolveDatabaseSearchPathOptions('politica-sostenible')).toBe(
+      '-c search_path="politica-sostenible",pg_catalog',
+    );
+    expect(resolveDatabaseSearchPathOptions(undefined)).toBeUndefined();
+    expect(() =>
+      resolveDatabaseSearchPathOptions('public,attacker_schema'),
     ).toThrow('DATABASE_SCHEMA contains an invalid PostgreSQL identifier');
   });
 });

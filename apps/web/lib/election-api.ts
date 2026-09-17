@@ -12,10 +12,33 @@ export interface VotingPlace extends DivisionSummary {
   parentId: string | null;
   parent: DivisionSummary | null;
   expectedTables: number | null;
+  sourceNamespace: "RNEC_DIVIPOLE" | "DANE_DIVIPOLA" | null;
+  sourceReleaseId: string | null;
+  sourceLocationCode: string | null;
+  votingDate: string | null;
+  address: string | null;
+  commune: string | null;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  timeZone: string | null;
+  operationalStatus: PollingPlaceOperationalStatus;
+}
+
+export interface PollingPlaceOperationalStatus {
+  code:
+    | "OPEN_FOR_LOGICAL_VOTING_DATE"
+    | "VOTING_DATE_NOT_DOCUMENTED"
+    | "TIME_ZONE_NOT_VERIFIED"
+    | "OUTSIDE_LOGICAL_VOTING_DATE";
+  operationalNow: boolean;
+  votingDate: string | null;
+  evaluatedLocalDate: string | null;
+  timeZone: string | null;
 }
 
 export interface VotingPlacePage {
   items: VotingPlace[];
+  evaluatedAt: string;
   pagination: Pagination;
 }
 
@@ -30,6 +53,16 @@ export type WitnessReportStatus =
   | "ACCEPTED"
   | "REJECTED"
   | "SUPERSEDED";
+
+export type WitnessCaptureContext =
+  | "SIMULATION"
+  | "REAL"
+  | "LEGACY_UNCLASSIFIED";
+
+export type ActiveWitnessCaptureContext = Exclude<
+  WitnessCaptureContext,
+  "LEGACY_UNCLASSIFIED"
+>;
 
 export type WitnessCredentialType = "E15" | "E16";
 export type E14FormType = "DELEGADOS" | "CLAVEROS" | "TRANSMISION";
@@ -75,6 +108,7 @@ export const WITNESS_RECLAMATION_GROUND_LABELS: Record<
 
 export interface WitnessReport {
   id: string;
+  captureContext: WitnessCaptureContext;
   witnessId: string;
   puestoId: string;
   mesa: number;
@@ -136,6 +170,7 @@ export interface WitnessReportSummary {
 }
 
 export interface WitnessReportPage {
+  captureContext: ActiveWitnessCaptureContext;
   items: WitnessReport[];
   pagination: Pagination;
   summary: WitnessReportSummary;

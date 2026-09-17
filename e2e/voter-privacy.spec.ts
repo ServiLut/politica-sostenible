@@ -815,6 +815,22 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
       });
       return;
     }
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            plan: { code: "BASIC", name: "Básico" },
+            features: { export: false, import: false, mfa: false },
+          }),
+        ),
+      });
+      return;
+    }
 
     if (
       request.method() === "GET" &&
@@ -1011,6 +1027,22 @@ test("los roles operativos conservan el listado enmascarado sin acceso al detall
       });
       return;
     }
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successful({
+            plan: { code: "BASIC", name: "Básico" },
+            features: { export: false, import: false, mfa: false },
+          }),
+        ),
+      });
+      return;
+    }
     await route.fulfill({ status: 403, body: "{}" });
   });
 
@@ -1027,7 +1059,8 @@ test("los roles operativos conservan el listado enmascarado sin acceso al detall
       (path) =>
         path === "GET /api/voters" ||
         path === "GET /api/auth/me" ||
-        path === "GET /api/consent-notices/current",
+        path === "GET /api/consent-notices/current" ||
+        path === "GET /api/billing/capabilities",
     ),
   ).toBe(true);
 });

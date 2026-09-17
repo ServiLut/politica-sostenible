@@ -27,8 +27,10 @@ test("todas las rutas publicas y de autenticacion exponen un destino enfocable",
   }
 
   const registerPage = read("apps/web/app/(auth)/registro/page.tsx");
-  expect(registerPage.match(/id="main-content"/g)).toHaveLength(2);
-  expect(registerPage.match(/tabIndex=\{-1\}/g)).toHaveLength(2);
+  // Loading/controlled access, successful creation and the open form are
+  // mutually exclusive render branches; each preserves the skip destination.
+  expect(registerPage.match(/id="main-content"/g)).toHaveLength(3);
+  expect(registerPage.match(/tabIndex=\{-1\}/g)).toHaveLength(3);
 });
 
 test("dashboard conserva un solo skip-link global y destinos en todos sus estados", () => {

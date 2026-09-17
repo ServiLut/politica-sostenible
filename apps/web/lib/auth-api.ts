@@ -36,6 +36,14 @@ export interface RegisterResponse {
   userId: string;
 }
 
+export interface RegistrationPolicyResponse {
+  enabled: boolean;
+  invitationAcceptanceEnabled: boolean;
+  mode: "SELF_SERVICE" | "CONTROLLED_ACCESS";
+  message: string;
+  termsVersion: string;
+}
+
 interface CurrentSessionResponse {
   user: BackendAuthUser;
 }
@@ -67,6 +75,44 @@ export function registerAccount(data: RegisterDto) {
     body: JSON.stringify(data),
     method: "POST",
   });
+}
+
+function isRegistrationPolicyResponse(
+  value: unknown,
+): value is RegistrationPolicyResponse {
+  if (typeof value !== "object" || value === null) return false;
+
+  const policy = value as Record<string, unknown>;
+  const modeMatchesState = policy.enabled
+    ? policy.mode === "SELF_SERVICE"
+    : policy.mode === "CONTROLLED_ACCESS";
+
+  return (
+    typeof policy.enabled === "boolean" &&
+    typeof policy.invitationAcceptanceEnabled === "boolean" &&
+    modeMatchesState &&
+    typeof policy.message === "string" &&
+    policy.message.trim().length > 0 &&
+    policy.message.length <= 500 &&
+    typeof policy.termsVersion === "string" &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/.test(policy.termsVersion)
+  );
+}
+
+export async function getRegistrationPolicy(signal?: AbortSignal) {
+  const policy = await apiRequest<unknown>("/auth/registration-policy", {
+    auth: false,
+    cache: "no-store",
+    signal,
+  });
+
+  if (!isRegistrationPolicyResponse(policy)) {
+    throw new Error(
+      "La política de registro recibida no contiene un contrato legal válido.",
+    );
+  }
+
+  return policy;
 }
 
 export async function getCurrentAuthUser(signal?: AbortSignal) {

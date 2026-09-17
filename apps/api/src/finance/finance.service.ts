@@ -25,6 +25,7 @@ import {
 } from '../common/utils/campaign-mode.util';
 import { consumeConfirmedStorageUpload } from '../common/utils/confirmed-storage-upload.util';
 import { isOwnedCanonicalStoragePath } from '../common/utils/tenant-storage-path.util';
+import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import {
   getFinanceSettingsCoherenceError,
   UpsertFinanceSettingsDto,
@@ -116,6 +117,7 @@ export class FinanceService {
 
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, tenantId);
         const [tenant, reporter, settings] = await Promise.all([
           transaction.tenant.findUnique({
             where: { id: tenantId },
@@ -344,6 +346,7 @@ export class FinanceService {
 
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, tenantId);
         const [tenant, actor] = await Promise.all([
           transaction.tenant.findUnique({
             where: { id: tenantId },
@@ -437,6 +440,7 @@ export class FinanceService {
   ) {
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, tenantId);
         const tenant = await transaction.tenant.findUnique({
           where: { id: tenantId },
           select: CAMPAIGN_TENANT_SELECT,
@@ -547,6 +551,7 @@ export class FinanceService {
 
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, tenantId);
         const tenant = await transaction.tenant.findUnique({
           where: { id: tenantId },
           select: CAMPAIGN_TENANT_SELECT,
@@ -678,6 +683,10 @@ export class FinanceService {
     actorUserId: string,
   ): Promise<string> {
     return this.prisma.$transaction(async (transaction) => {
+      // The export appends an audit record, so it is a mutation even though
+      // the HTTP response is a download. Serialize it with the controller's
+      // CLOSED policy exactly like the other finance writes.
+      await lockAndAssertOperationOpen(transaction, tenantId);
       const tenant = await transaction.tenant.findUnique({
         where: { id: tenantId },
         select: CAMPAIGN_TENANT_SELECT,

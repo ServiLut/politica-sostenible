@@ -8,6 +8,7 @@ import {
   EntryType,
   FinanceReportScope,
   PoliticalOperationMode,
+  PqrsdDossierStatus,
   Prisma,
   Role,
   TaskStatus,
@@ -17,6 +18,8 @@ import {
 } from '../../prisma/generated/prisma';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { ElectoralCalendarService } from '../electoral-calendar/electoral-calendar.service';
+import { PqrsdService } from '../pqrsd/pqrsd.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   COMMAND_CENTER_ROLES,
@@ -68,8 +71,11 @@ describe('CommandCenterService secure briefing', () => {
     communicationApproval: { count: jest.Mock };
     issueCase: { count: jest.Mock };
     commitment: { count: jest.Mock };
+    pqrsdDossier: { count: jest.Mock };
     $transaction: jest.Mock;
   };
+  let electoralCalendar: { getCommandCenterSummary: jest.Mock };
+  let pqrsd: { overview: jest.Mock };
   let service: CommandCenterService;
 
   beforeEach(() => {
@@ -173,12 +179,35 @@ describe('CommandCenterService secure briefing', () => {
       communicationApproval: { count: jest.fn().mockResolvedValue(1) },
       issueCase: { count: jest.fn() },
       commitment: { count: jest.fn() },
+      pqrsdDossier: { count: jest.fn().mockResolvedValue(7) },
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation(
       (callback: (transaction: typeof prisma) => unknown) => callback(prisma),
     );
-    service = new CommandCenterService(prisma as unknown as PrismaService);
+    electoralCalendar = {
+      getCommandCenterSummary: jest.fn().mockResolvedValue({
+        activeReleaseId: null,
+        overdue: [],
+        disclaimer:
+          'Calendario interno pendiente de una version aprobada y vigente.',
+        href: '/dashboard/electoral-calendar',
+      }),
+    };
+    pqrsd = {
+      overview: jest.fn().mockResolvedValue({
+        alerts: [],
+        configurationReady: true,
+        institutionalStatus: 'INTERNAL_ONLY',
+        institutionalMessage:
+          'Expediente interno; no constituye radicacion institucional.',
+      }),
+    };
+    service = new CommandCenterService(
+      prisma as unknown as PrismaService,
+      electoralCalendar as unknown as ElectoralCalendarService,
+      pqrsd as unknown as PqrsdService,
+    );
   });
 
   it('builds one deterministic campaign read model without returning PII', async () => {
@@ -408,6 +437,19 @@ describe('CommandCenterService secure briefing', () => {
         cases: { open: 5, overdue: 2, urgent: 1 },
         tasks: { open: 6, overdue: 2 },
         commitments: { open: 4, atRisk: 1, overdue: 2, teamVisible: 3 },
+        pqrsd: { open: 7, criticalAlerts: 0, configurationReady: true },
+      },
+    });
+    expect(pqrsd.overview).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant-a' }),
+      { limit: 100 },
+    );
+    expect(prisma.pqrsdDossier.count).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-a',
+        status: {
+          notIn: [PqrsdDossierStatus.CLOSED, PqrsdDossierStatus.CANCELLED],
+        },
       },
     });
     expect(result.activation.steps).toEqual(

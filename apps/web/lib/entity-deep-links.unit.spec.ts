@@ -9,6 +9,11 @@ test("crea deep-links por recurso sin aceptar tenant ni mode del cliente", () =>
     buildSearchResultHref("Voters", "voter-a"),
     buildSearchResultHref("Users", "user-a"),
     buildSearchResultHref("Proposals", "proposal-a"),
+    buildSearchResultHref("Tasks", "task-a"),
+    buildSearchResultHref("Commitments", "commitment-a"),
+    buildSearchResultHref("Cases", "case-a"),
+    buildSearchResultHref("Incidents", "incident-a"),
+    buildSearchResultHref("Pqrsd", "pqrsd-a"),
   ].map((href) => new URL(href, "http://localhost"));
 
   expect(
@@ -38,6 +43,41 @@ test("crea deep-links por recurso sin aceptar tenant ni mode del cliente", () =>
       pathname: "/dashboard/proposals",
       view: "detail",
       entityId: "proposal-a",
+      tenantId: null,
+      mode: null,
+    },
+    {
+      pathname: "/dashboard/tasks",
+      view: "tasks",
+      entityId: "task-a",
+      tenantId: null,
+      mode: null,
+    },
+    {
+      pathname: "/dashboard/tasks",
+      view: "commitments",
+      entityId: "commitment-a",
+      tenantId: null,
+      mode: null,
+    },
+    {
+      pathname: "/dashboard/cases",
+      view: "detail",
+      entityId: "case-a",
+      tenantId: null,
+      mode: null,
+    },
+    {
+      pathname: "/dashboard/incidents",
+      view: "detail",
+      entityId: "incident-a",
+      tenantId: null,
+      mode: null,
+    },
+    {
+      pathname: "/dashboard/pqrsd",
+      view: "detail",
+      entityId: "pqrsd-a",
       tenantId: null,
       mode: null,
     },

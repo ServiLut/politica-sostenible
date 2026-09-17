@@ -11,7 +11,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../prisma/generated/prisma';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -29,6 +31,7 @@ const TASK_MANAGER_ROLES = [
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -65,9 +68,9 @@ export class TasksController {
   @ApiOperation({ summary: 'Actualiza una tarea del tenant y modo activos' })
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param() params: CuidIdParamsDto,
     @Body() dto: UpdateTaskDto,
   ) {
-    return this.tasksService.update(user, id, dto);
+    return this.tasksService.update(user, params.id, dto);
   }
 }

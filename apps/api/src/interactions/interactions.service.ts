@@ -26,6 +26,7 @@ import {
   type ConsentNoticeView,
 } from '../common/utils/consent-notice.util';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { GrantCaseConsentDto } from './dto/grant-case-consent.dto';
@@ -233,14 +234,21 @@ export class InteractionsService {
       throw new BadRequestException('El resumen no puede quedar vacio');
     }
     this.assertRequestedSubjectShape(dto, externalContactRef);
+    const operationMode = await this.getActiveMode(this.prisma, user.tenantId);
 
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(
+            tx,
+            user.tenantId,
+            operationMode,
+          );
           const [mode, access] = await Promise.all([
             this.getActiveMode(tx, user.tenantId),
             this.getCurrentAccess(tx, user),
           ]);
+          this.assertStableMode(operationMode, mode);
           this.assertModeAccess(access.role, mode, 'write');
 
           if (
@@ -427,7 +435,7 @@ export class InteractionsService {
   ) {
     if (dto.collectionChannel === ConsentCollectionChannel.IMPORT) {
       throw new BadRequestException(
-        'La captura importada requiere una evidencia verificada y no esta disponible en este flujo',
+        'El canal IMPORT requiere el flujo de importacion dedicado y su evidencia asociada; no esta disponible aqui',
       );
     }
 
@@ -436,14 +444,21 @@ export class InteractionsService {
       throw new BadRequestException('La fecha de expiracion no es valida');
     }
     const sourceIpHash = this.consentEvidence.hashIp(sourceIp);
+    const operationMode = await this.getActiveMode(this.prisma, user.tenantId);
 
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(
+            tx,
+            user.tenantId,
+            operationMode,
+          );
           const [mode, access] = await Promise.all([
             this.getActiveMode(tx, user.tenantId),
             this.getCurrentAccess(tx, user),
           ]);
+          this.assertStableMode(operationMode, mode);
           this.assertCaseConsentAccess(access.role, mode, 'grant');
 
           const grantedAt = new Date();
@@ -1189,6 +1204,21 @@ export class InteractionsService {
     }
 
     return tenant.defaultMode;
+  }
+
+  private assertStableMode(
+    expected: PoliticalOperationMode,
+    current: PoliticalOperationMode,
+  ): void {
+    if (expected !== current) {
+      throw new ConflictException({
+        code: 'OPERATION_MODE_CHANGED',
+        message:
+          'El modo operativo cambio durante la solicitud; recarga y vuelve a intentarlo',
+        expectedMode: expected,
+        currentMode: current,
+      });
+    }
   }
 
   private isPrismaError(error: unknown, code: string): boolean {

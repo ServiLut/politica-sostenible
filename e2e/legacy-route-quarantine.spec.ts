@@ -113,6 +113,22 @@ test("un alias heredado no permite saltarse el RBAC del módulo real", async ({
       return;
     }
 
+    if (method === "GET" && pathname === "/api/billing/capabilities") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          statusCode: 200,
+          message: "Success",
+          data: {
+            plan: { code: "PRO", name: "Profesional" },
+            features: { export: true, import: true, mfa: true },
+          },
+        }),
+      });
+      return;
+    }
+
     const requestLabel = `${method} ${pathname}`;
     unexpectedApiRequests.push(requestLabel);
     await route.fulfill({

@@ -15,9 +15,13 @@ import {
   Role,
   StoredObjectStatus,
   StorageObjectModule,
+  WitnessCaptureContext,
   WitnessReportStatus,
 } from '../../prisma/generated/prisma';
-import { resolveDatabaseSchema } from './prisma.service';
+import {
+  resolveDatabaseSchema,
+  resolveDatabaseSearchPathOptions,
+} from './prisma.service';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim();
 const testDatabaseSchema = resolveDatabaseSchema(testDatabaseUrl) ?? 'public';
@@ -62,7 +66,10 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
 
   beforeAll(async () => {
     const adapter = new PrismaPg(
-      { connectionString: testDatabaseUrl },
+      {
+        connectionString: testDatabaseUrl,
+        options: resolveDatabaseSearchPathOptions(testDatabaseSchema),
+      },
       { schema: testDatabaseSchema },
     );
     prisma = new PrismaClient({ adapter });
@@ -616,7 +623,7 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     expect(consumed.confirmedAt?.toISOString()).toBe(confirmedAt.toISOString());
   });
 
-  it('enforces E-14 four-eyes state and one accepted reading per tenant table', async () => {
+  it('enforces E-14 four-eyes state and one accepted reading per tenant, context and table', async () => {
     const tenant = await createTenant();
     const reporter = await createUser(tenant.id);
     const reviewer = await createUser(tenant.id);
@@ -638,6 +645,7 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
         puestoId: puesto.id,
         mesa: 7,
         e14ImageUrl: `${tenant.id}/e14/${randomUUID()}.pdf`,
+        captureContext: WitnessCaptureContext.REAL,
         candidateVotes: 120,
         totalTableVotes: 240,
       },
@@ -689,6 +697,7 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
         puestoId: puesto.id,
         mesa: 7,
         e14ImageUrl: `${tenant.id}/e14/${randomUUID()}.pdf`,
+        captureContext: WitnessCaptureContext.REAL,
         candidateVotes: 118,
         totalTableVotes: 240,
       },
@@ -706,10 +715,57 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
       }),
     ).rejects.toMatchObject({ code: 'P2002' });
 
+    const simulation = await prisma.witnessReport.create({
+      data: {
+        id: nextId('e14-simulation'),
+        tenantId: tenant.id,
+        witnessId: reporter.id,
+        puestoId: puesto.id,
+        mesa: 7,
+        e14ImageUrl: `${tenant.id}/e14/${randomUUID()}.pdf`,
+        captureContext: WitnessCaptureContext.SIMULATION,
+        candidateVotes: 115,
+        totalTableVotes: 240,
+      },
+    });
+    await expect(
+      prisma.witnessReport.update({
+        where: { id: simulation.id },
+        data: {
+          status: WitnessReportStatus.ACCEPTED,
+          reviewerId: reviewer.id,
+          reviewReason: 'Reporte de simulacro validado de manera independiente',
+          reviewedAt: new Date(),
+        },
+      }),
+    ).resolves.toMatchObject({
+      captureContext: WitnessCaptureContext.SIMULATION,
+      status: WitnessReportStatus.ACCEPTED,
+    });
+
+    await expect(
+      prisma.witnessReport.update({
+        where: { id: simulation.id },
+        data: { captureContext: WitnessCaptureContext.REAL },
+      }),
+    ).rejects.toBeDefined();
+
     await expect(
       prisma.witnessReport.count({
         where: {
           tenantId: tenant.id,
+          captureContext: WitnessCaptureContext.REAL,
+          puestoId: puesto.id,
+          mesa: 7,
+          status: WitnessReportStatus.ACCEPTED,
+        },
+      }),
+    ).resolves.toBe(1);
+    await expect(
+      prisma.witnessReport.count({
+        where: {
+          tenantId: tenant.id,
+          captureContext: WitnessCaptureContext.SIMULATION,
           puestoId: puesto.id,
           mesa: 7,
           status: WitnessReportStatus.ACCEPTED,

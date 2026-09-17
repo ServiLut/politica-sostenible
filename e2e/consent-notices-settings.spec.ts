@@ -48,6 +48,13 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
+function planCapabilities() {
+  return successful({
+    plan: { code: "PRO", name: "Profesional" },
+    features: { export: true, import: true, mfa: true },
+  });
+}
+
 const noticeInput = {
   version: "campaign-2026-09-v1",
   title: "Autorizacion para comunicaciones politicas",
@@ -84,6 +91,18 @@ test("administracion activa el aviso del tenant sin enviar tenant, modo ni actor
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     authorizationHeaders.push(request.headers().authorization ?? "");
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
+      });
+      return;
+    }
 
     if (request.method() === "GET" && pathname === "/api/auth/me") {
       await route.fulfill({
@@ -191,6 +210,7 @@ test("cumplimiento verifica la version vigente sin controles de escritura", asyn
 }) => {
   const session = await installSession(page, "COMPLIANCE_OFFICER");
   const mutationMethods: string[] = [];
+  let capabilityRequests = 0;
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -211,6 +231,20 @@ test("cumplimiento verifica la version vigente sin controles de escritura", asyn
             },
           }),
         ),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/billing/capabilities"
+    ) {
+      capabilityRequests += 1;
+      expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(planCapabilities()),
       });
       return;
     }
@@ -243,5 +277,6 @@ test("cumplimiento verifica la version vigente sin controles de escritura", asyn
     page.getByRole("button", { name: /Activar y exigir esta versi.n/ }),
   ).toHaveCount(0);
   await expect(page.getByLabel(/^Versi/)).toBeDisabled();
+  expect(capabilityRequests).toBeGreaterThanOrEqual(1);
   expect(mutationMethods).toHaveLength(0);
 });

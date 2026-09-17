@@ -13,6 +13,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
@@ -174,6 +175,11 @@ export class TasksService {
     ]);
 
     return this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertCampaignOperationOpen(
+        transaction,
+        user.tenantId,
+        mode,
+      );
       const created = await transaction.task.create({
         data: {
           tenantId: user.tenantId,
@@ -278,6 +284,11 @@ export class TasksService {
     }
 
     return this.prisma.$transaction(async (transaction) => {
+      await lockAndAssertCampaignOperationOpen(
+        transaction,
+        user.tenantId,
+        mode,
+      );
       const updated = await transaction.task.update({
         where: scopedWhere,
         data,

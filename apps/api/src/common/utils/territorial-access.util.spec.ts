@@ -58,7 +58,7 @@ describe('resolveTerritorialAccess', () => {
       select: { role: true, divisionId: true },
     });
     expect(divisionFindMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-a' },
+      where: { tenantId: 'tenant-a', isActive: true },
       select: { id: true, parentId: true },
     });
     expect(result.divisionIds).toEqual(

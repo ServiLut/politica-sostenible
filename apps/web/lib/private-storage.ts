@@ -1,6 +1,9 @@
 import { apiRequest } from "@/lib/api-client";
 
-export type ReviewableStorageModule = "finance" | "e14";
+export type ReviewableStorageModule =
+  | "finance"
+  | "e14"
+  | "signature-collection";
 
 export interface PrivateDownloadAuthorization {
   url: string;

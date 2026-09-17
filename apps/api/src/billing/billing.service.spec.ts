@@ -10,6 +10,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { BillingService } from './billing.service';
+import type { SaasAdminIdentityConfig } from '../auth/guards/saas-admin.guard';
+
+const SAAS_ADMIN_ID = `c${'1'.repeat(24)}`;
 
 const freePlan = {
   id: 'plan-free',
@@ -37,6 +40,127 @@ function existingSubscription(
 }
 
 describe('BillingService', () => {
+  it('construye capacidades minimas desde la suscripcion vigente del tenant autenticado', async () => {
+    const entitled = existingSubscription({
+      tenantId: 'tenant-a',
+      plan: {
+        ...freePlan,
+        code: 'PROFESSIONAL',
+        name: 'Profesional',
+        includesExport: true,
+        includesImport: true,
+        includesMfa: true,
+        monthlyPriceCop: 299000,
+        yearlyPriceCop: 3588000,
+        maxUsers: 50,
+        maxVoters: 10000,
+        maxStorageMb: 2048,
+      },
+    });
+    const findUnique = jest.fn().mockResolvedValue(entitled);
+    const service = new BillingService({
+      tenantSubscription: { findUnique },
+    } as unknown as PrismaService);
+
+    await expect(
+      service.getCapabilities({ userId: 'user-a', tenantId: 'tenant-a' }),
+    ).resolves.toEqual({
+      plan: { code: 'PROFESSIONAL', name: 'Profesional' },
+      features: { export: true, import: true, mfa: true },
+    });
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-a' },
+      include: { plan: true },
+    });
+    expect(
+      findUnique.mock.calls.every(
+        ([query]) => query.where.tenantId === 'tenant-a',
+      ),
+    ).toBe(true);
+  });
+
+  it('no revela capacidades cuando la suscripcion del tenant no esta vigente', async () => {
+    const expired = existingSubscription({
+      currentPeriodEnd: new Date(Date.now() - 60_000),
+      plan: {
+        ...freePlan,
+        code: 'STARTER',
+        includesExport: true,
+        includesImport: false,
+        includesMfa: false,
+      },
+    });
+    const service = new BillingService({
+      tenantSubscription: { findUnique: jest.fn().mockResolvedValue(expired) },
+      subscriptionPlan: { findUnique: jest.fn() },
+    } as unknown as PrismaService);
+
+    await expect(
+      service.getCapabilities({ userId: 'user-a', tenantId: 'tenant-a' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('mapea cada bandera de plan y no filtra IDs, precios, limites ni PII', async () => {
+    const entitled = existingSubscription({
+      plan: {
+        ...freePlan,
+        includesExport: true,
+        includesImport: false,
+        includesMfa: false,
+        monthlyPriceCop: 99000,
+        yearlyPriceCop: 1188000,
+      },
+    });
+    const service = new BillingService({
+      tenantSubscription: { findUnique: jest.fn().mockResolvedValue(entitled) },
+    } as unknown as PrismaService);
+
+    const result = await service.getCapabilities({
+      userId: 'user-a',
+      tenantId: 'tenant-a',
+    });
+
+    expect(result).toEqual({
+      plan: { code: 'FREE', name: 'Gratis' },
+      features: { export: true, import: false, mfa: false },
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /plan-free|subscription-a|tenant-a|99000|1188000|maxUsers|maxVoters|maxStorageMb/i,
+    );
+  });
+
+  it('mantiene MFA para un administrador SaaS configurado sin elevar otras funciones', async () => {
+    const saasIdentity: SaasAdminIdentityConfig = {
+      userIds: [SAAS_ADMIN_ID],
+    };
+    const entitled = existingSubscription({
+      plan: {
+        ...freePlan,
+        includesExport: false,
+        includesImport: false,
+        includesMfa: false,
+      },
+    });
+    const service = new BillingService(
+      {
+        tenantSubscription: {
+          findUnique: jest.fn().mockResolvedValue(entitled),
+        },
+      } as unknown as PrismaService,
+      saasIdentity,
+    );
+
+    await expect(
+      service.getCapabilities({
+        userId: SAAS_ADMIN_ID.toUpperCase(),
+        tenantId: 'tenant-a',
+      }),
+    ).resolves.toEqual({
+      plan: { code: 'FREE', name: 'Gratis' },
+      features: { export: false, import: false, mfa: true },
+    });
+  });
+
   it('completa el catálogo manual sin sobrescribir contratos existentes', async () => {
     const createMany = jest.fn().mockResolvedValue({ count: 4 });
     const findMany = jest
@@ -105,7 +229,7 @@ describe('BillingService', () => {
   it('resuelve la carrera entre suscripción y uso devolviendo el único registro del tenant', async () => {
     let persistedSubscription: Record<string, unknown> | null = null;
     let createAttempts = 0;
-    let releaseCreates = () => undefined;
+    let releaseCreates: () => void = () => undefined;
     const bothCreatesStarted = new Promise<void>((resolve) => {
       releaseCreates = resolve;
     });

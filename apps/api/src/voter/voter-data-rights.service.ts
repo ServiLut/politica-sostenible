@@ -156,6 +156,7 @@ export class VoterDataRightsService {
                 id: dto.puestoId,
                 tenantId: user.tenantId,
                 type: DivisionType.PUESTO,
+                isActive: true,
               },
               select: { id: true },
             });

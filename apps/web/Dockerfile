@@ -42,6 +42,7 @@ ARG APP_SOURCE
 LABEL org.opencontainers.image.revision="${APP_REVISION}" \
       org.opencontainers.image.source="${APP_SOURCE}"
 ENV NODE_ENV=production
+ENV APP_REVISION=${APP_REVISION}
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV NESTJS_API_URL=http://api:4000

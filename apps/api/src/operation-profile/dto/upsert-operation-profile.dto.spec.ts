@@ -17,7 +17,9 @@ const validInput = {
   circumscriptionName: '  Medellin  ',
   circumscriptionCode: '  05001  ',
   listType: CandidateListType.OPEN_PREFERENTIAL,
-  electionDate: '2027-10-31T13:00:00.000Z',
+  electionDate: '2027-10-31',
+  votingStartDate: '2027-10-31',
+  votingEndDate: '2027-10-31',
   expectedTeamSize: '80',
   candidateCount: '21',
   maxTotalBudget: '500000000.00',
@@ -107,6 +109,29 @@ describe('UpsertOperationProfileDto', () => {
     ['unclear revocation', { revocationProcedure: 'Llame' }],
     ['invalid election date', { electionDate: 'proximo domingo' }],
     ['zero team', { expectedTeamSize: 0 }],
+    [
+      'only one window boundary',
+      { votingStartDate: '2027-10-30', votingEndDate: undefined },
+    ],
+    [
+      'principal date outside window',
+      { votingStartDate: '2027-11-01', votingEndDate: '2027-11-02' },
+    ],
+    [
+      'window longer than 14 inclusive days',
+      { votingStartDate: '2027-10-18', votingEndDate: '2027-10-31' },
+    ],
+    [
+      'multi-day without documentary source',
+      { votingStartDate: '2027-10-30', votingEndDate: '2027-10-31' },
+    ],
+    [
+      'unsafe window source credentials',
+      {
+        votingWindowSourceUrl: 'https://user:secret@example.test/window',
+        votingWindowReference: 'Resolucion de prueba',
+      },
+    ],
   ])('rejects invalid readiness data: %s', async (_label, patch) => {
     const errors = await validate(
       plainToInstance(UpsertOperationProfileDto, {
@@ -116,5 +141,22 @@ describe('UpsertOperationProfileDto', () => {
     );
 
     expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('accepts a documented 14-date inclusive window and trims provenance', async () => {
+    const dto = plainToInstance(UpsertOperationProfileDto, {
+      ...validInput,
+      electionDate: '2027-10-31',
+      votingStartDate: '2027-10-18',
+      votingEndDate: '2027-10-31',
+      votingWindowSourceUrl: '  https://example.test/calendario.pdf  ',
+      votingWindowReference: '  Resolucion de prueba, articulo 4  ',
+    });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.votingWindowSourceUrl).toBe(
+      'https://example.test/calendario.pdf',
+    );
+    expect(dto.votingWindowReference).toBe('Resolucion de prueba, articulo 4');
   });
 });

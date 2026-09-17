@@ -5,8 +5,18 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { SyncE14Dto } from './dto/sync-e14.dto';
 import { SyncVoterDto } from './dto/sync-voter.dto';
 import { LogisticsService } from './logistics.service';
-import { Role } from '../../prisma/generated/prisma';
+import { PoliticalOperationStage, Role } from '../../prisma/generated/prisma';
 import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  BlockWhenOperationClosed,
+  RequireOperationStages,
+} from '../auth/decorators/operation-stage-policy.decorator';
+
+const E14_SYNC_STAGES = [
+  PoliticalOperationStage.SIMULATION,
+  PoliticalOperationStage.ELECTION_DAY,
+  PoliticalOperationStage.POST_ELECTION,
+];
 
 const E14_WRITE_ROLES = [
   Role.ADMIN,
@@ -23,11 +33,13 @@ const VOTER_WRITE_ROLES = [
 
 @ApiTags('Logistics')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('logistics')
 export class LogisticsController {
   constructor(private readonly logisticsService: LogisticsService) {}
 
   @Post('sync/e14')
+  @RequireOperationStages(...E14_SYNC_STAGES)
   @Roles(...E14_WRITE_ROLES)
   async syncE14(
     @CurrentUser() user: AuthenticatedUser,
@@ -41,8 +53,8 @@ export class LogisticsController {
   async syncVoter(
     @CurrentUser() user: AuthenticatedUser,
     @Body() data: SyncVoterDto,
-    @Ip() consentIp: string,
+    @Ip() syncRequestIp: string,
   ) {
-    return this.logisticsService.syncVoter(user, consentIp, data);
+    return this.logisticsService.syncVoter(user, syncRequestIp, data);
   }
 }

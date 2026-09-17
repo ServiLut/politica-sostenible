@@ -135,7 +135,10 @@ describe('SaaS administrator MFA bootstrap', () => {
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-event' });
     const transactionClient = {
       user: {
-        findUnique: jest.fn(() => Promise.resolve({ ...state })),
+        findUnique: jest.fn((query: unknown) => {
+          void query;
+          return Promise.resolve({ ...state });
+        }),
         updateMany: jest.fn(
           ({ where, data }: Record<string, Record<string, unknown>>) => {
             if (!matchesSecurityState(state, where)) {

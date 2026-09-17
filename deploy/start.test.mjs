@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   API_READY_URL,
+  CATALOG_WORKER_READY_TIMEOUT_MS,
   SUPERVISOR_SHUTDOWN_GRACE_MS,
   assertCombinedRuntimeBoundary,
   buildChildEnvironment,
@@ -14,6 +15,7 @@ import {
   scrubSupervisorSecrets,
   stopChildrenGracefully,
   waitForApiReady,
+  waitForCatalogWorkerReady,
 } from "./start.mjs";
 
 test("separa secretos de API y web en el supervisor combinado", () => {
@@ -21,8 +23,11 @@ test("separa secretos de API y web en el supervisor combinado", () => {
     PATH: "/usr/bin",
     NODE_ENV: "production",
     DATABASE_URL: "postgresql://runtime-secret",
+    REDIS_URL: "rediss://default:redis-secret@cache.internal:6380/0",
+    REDIS_ALLOW_PLAINTEXT_INTERNAL: "false",
     DIRECT_URL: "postgresql://migration-secret",
     JWT_SECRET: "jwt-secret",
+    OFFLINE_SYNC_HMAC_SECRET: "offline-sync-secret",
     SUPABASE_SERVICE_ROLE_KEY: "storage-secret",
     NEXT_PUBLIC_APP_URL: "https://politica.invalid",
     NEXT_PUBLIC_SUPABASE_URL: "https://storage.invalid",
@@ -31,15 +36,27 @@ test("separa secretos de API y web en el supervisor combinado", () => {
   };
 
   const api = buildChildEnvironment("api", source, { PORT: "4000" });
+  const worker = buildChildEnvironment("catalog-worker", source);
   const web = buildChildEnvironment("web", source, { PORT: "3000" });
 
   assert.equal(api.DATABASE_URL, source.DATABASE_URL);
   assert.equal(api.JWT_SECRET, source.JWT_SECRET);
+  assert.equal(api.OFFLINE_SYNC_HMAC_SECRET, source.OFFLINE_SYNC_HMAC_SECRET);
+  assert.equal(api.REDIS_URL, source.REDIS_URL);
+  assert.equal(worker.DATABASE_URL, source.DATABASE_URL);
+  assert.equal(worker.REDIS_URL, source.REDIS_URL);
+  assert.equal(
+    worker.SUPABASE_SERVICE_ROLE_KEY,
+    source.SUPABASE_SERVICE_ROLE_KEY,
+  );
+  assert.equal(worker.JWT_SECRET, undefined);
+  assert.equal(worker.OFFLINE_SYNC_HMAC_SECRET, undefined);
   assert.equal(api.DIRECT_URL, undefined);
   assert.equal(web.NESTJS_API_URL, source.NESTJS_API_URL);
   assert.equal(web.NEXT_PUBLIC_SUPABASE_ANON_KEY, "public-anon");
   assert.equal(web.DATABASE_URL, undefined);
   assert.equal(web.JWT_SECRET, undefined);
+  assert.equal(web.OFFLINE_SYNC_HMAC_SECRET, undefined);
   assert.equal(web.SUPABASE_SERVICE_ROLE_KEY, undefined);
 });
 
@@ -49,6 +66,8 @@ test("borra secretos del supervisor después de iniciar la API", () => {
     DIRECT_URL: "migration-secret",
     POSTGRES_PASSWORD: "postgres-secret",
     JWT_SECRET: "jwt-secret",
+    REDIS_URL: "rediss://default:redis-secret@cache.internal:6380/0",
+    OFFLINE_SYNC_HMAC_SECRET: "offline-sync-secret",
     MFA_TOTP_ENCRYPTION_KEY: "mfa-secret",
     SUPABASE_SERVICE_ROLE_KEY: "storage-secret",
     NEXT_PUBLIC_APP_URL: "https://politica.invalid",
@@ -65,6 +84,8 @@ test("exige identidades Unix distintas para API y web en el contenedor combinado
   const environment = {
     API_PROCESS_UID: "1001",
     API_PROCESS_GID: "1001",
+    CATALOG_WORKER_PROCESS_UID: "1003",
+    CATALOG_WORKER_PROCESS_GID: "1003",
     WEB_PROCESS_UID: "1002",
     WEB_PROCESS_GID: "1002",
   };
@@ -76,6 +97,7 @@ test("exige identidades Unix distintas para API y web en el contenedor combinado
     }),
     {
       api: { uid: 1001, gid: 1001 },
+      catalogWorker: { uid: 1003, gid: 1003 },
       web: { uid: 1002, gid: 1002 },
     },
   );
@@ -108,6 +130,7 @@ test("exige identidades Unix distintas para API y web en el contenedor combinado
 test("el fallback combinado exige no-new-privileges y /app de solo lectura", () => {
   const identities = {
     api: { uid: 1001, gid: 1001 },
+    catalogWorker: { uid: 1003, gid: 1003 },
     web: { uid: 1002, gid: 1002 },
   };
   assert.doesNotThrow(() =>
@@ -138,10 +161,14 @@ test("el fallback combinado exige no-new-privileges y /app de solo lectura", () 
   );
 });
 
-test("limpia grupos suplementarios antes de crear API y web", () => {
+test("limpia grupos suplementarios antes de crear API, worker y web", () => {
   const calls = [];
   clearSupervisorSupplementaryGroups(
-    { api: { uid: 1001, gid: 1001 }, web: { uid: 1002, gid: 1002 } },
+    {
+      api: { uid: 1001, gid: 1001 },
+      catalogWorker: { uid: 1003, gid: 1003 },
+      web: { uid: 1002, gid: 1002 },
+    },
     (groups) => calls.push(groups),
   );
   assert.deepEqual(calls, [[]]);
@@ -171,7 +198,7 @@ test("propaga SIGTERM y espera el cierre ordenado de todos los hijos", async () 
   const processExits = [];
   let scheduledGrace;
   let timerCleared = false;
-  const children = ["api", "web"].map((name) => {
+  const children = ["api", "catalog-worker", "web"].map((name) => {
     const child = new EventEmitter();
     child.exitCode = null;
     child.signalCode = null;
@@ -201,6 +228,7 @@ test("propaga SIGTERM y espera el cierre ordenado de todos los hijos", async () 
   assert.ok(scheduledGrace > 5_000);
   assert.deepEqual(signals, [
     ["api", "SIGTERM"],
+    ["catalog-worker", "SIGTERM"],
     ["web", "SIGTERM"],
   ]);
   assert.equal(timerCleared, true);
@@ -295,12 +323,57 @@ test("la espera de la API termina de forma acotada", async () => {
   assert.equal(currentTime, 250);
 });
 
-test("ejecuta migraciones, inicia API, espera readiness y luego inicia web", async () => {
+test("espera un heartbeat reciente del worker antes de iniciar la API", async () => {
+  let currentTime = 0;
+  let healthChecks = 0;
+
+  await waitForCatalogWorkerReady({
+    timeoutMs: 1_000,
+    retryMs: 100,
+    healthIssues: () => {
+      healthChecks += 1;
+      return healthChecks < 3 ? ["heartbeat ausente o ilegible"] : [];
+    },
+    now: () => currentTime,
+    sleep: async (milliseconds) => {
+      currentTime += milliseconds;
+    },
+  });
+
+  assert.equal(healthChecks, 3);
+  assert.equal(currentTime, 200);
+});
+
+test("la espera del worker termina de forma acotada y conserva la causa", async () => {
+  let currentTime = 0;
+
+  await assert.rejects(
+    waitForCatalogWorkerReady({
+      timeoutMs: 250,
+      retryMs: 100,
+      healthIssues: () => ["heartbeat vencido"],
+      now: () => currentTime,
+      sleep: async (milliseconds) => {
+        currentTime += milliseconds;
+      },
+    }),
+    /El worker no estuvo listo en 250 ms \(heartbeat vencido\)/,
+  );
+  assert.equal(currentTime, 250);
+  assert.equal(CATALOG_WORKER_READY_TIMEOUT_MS, 60_000);
+});
+
+test("ejecuta migraciones, espera worker y API, y luego inicia web", async () => {
   const order = [];
   const neverExits = new Promise(() => undefined);
 
   const web = await launchServicesInOrder({
     runMigrations: async () => order.push("migrations"),
+    startCatalogWorker: () => {
+      order.push("worker");
+      return { exited: neverExits };
+    },
+    awaitCatalogWorkerReady: async () => order.push("worker-ready"),
     startApi: () => {
       order.push("api");
       return { exited: neverExits };
@@ -312,7 +385,14 @@ test("ejecuta migraciones, inicia API, espera readiness y luego inicia web", asy
     },
   });
 
-  assert.deepEqual(order, ["migrations", "api", "ready", "web"]);
+  assert.deepEqual(order, [
+    "migrations",
+    "worker",
+    "worker-ready",
+    "api",
+    "ready",
+    "web",
+  ]);
   assert.deepEqual(web, { name: "web" });
 });
 
@@ -322,6 +402,8 @@ test("no inicia web cuando la API no alcanza readiness", async () => {
   await assert.rejects(
     launchServicesInOrder({
       runMigrations: async () => order.push("migrations"),
+      startCatalogWorker: () => ({ exited: new Promise(() => undefined) }),
+      awaitCatalogWorkerReady: async () => order.push("worker-ready"),
       startApi: () => {
         order.push("api");
         return { exited: new Promise(() => undefined) };
@@ -335,7 +417,12 @@ test("no inicia web cuando la API no alcanza readiness", async () => {
     /readiness timeout/,
   );
 
-  assert.deepEqual(order, ["migrations", "api", "ready-failed"]);
+  assert.deepEqual(order, [
+    "migrations",
+    "worker-ready",
+    "api",
+    "ready-failed",
+  ]);
 });
 
 test("no inicia web cuando la API termina durante la espera", async () => {
@@ -344,6 +431,8 @@ test("no inicia web cuando la API termina durante la espera", async () => {
   await assert.rejects(
     launchServicesInOrder({
       runMigrations: async () => order.push("migrations"),
+      startCatalogWorker: () => ({ exited: new Promise(() => undefined) }),
+      awaitCatalogWorkerReady: async () => order.push("worker-ready"),
       startApi: () => {
         order.push("api");
         return {
@@ -353,10 +442,54 @@ test("no inicia web cuando la API termina durante la espera", async () => {
       awaitApiReady: () => new Promise(() => undefined),
       startWeb: () => order.push("web"),
     }),
-    /La API termino antes de estar lista \(codigo 1\)/,
+    /La API termino antes de estar disponible \(codigo 1\)/,
   );
 
-  assert.deepEqual(order, ["migrations", "api"]);
+  assert.deepEqual(order, ["migrations", "worker-ready", "api"]);
+});
+
+test("no inicia API ni web cuando el worker no alcanza readiness", async () => {
+  const order = [];
+
+  await assert.rejects(
+    launchServicesInOrder({
+      runMigrations: async () => order.push("migrations"),
+      startCatalogWorker: () => {
+        order.push("worker");
+        return { exited: new Promise(() => undefined) };
+      },
+      awaitCatalogWorkerReady: async () => {
+        order.push("worker-failed");
+        throw new Error("worker readiness timeout");
+      },
+      startApi: () => order.push("api"),
+      awaitApiReady: async () => order.push("api-ready"),
+      startWeb: () => order.push("web"),
+    }),
+    /worker readiness timeout/,
+  );
+
+  assert.deepEqual(order, ["migrations", "worker", "worker-failed"]);
+});
+
+test("no inicia API cuando el worker termina durante la espera", async () => {
+  const order = [];
+
+  await assert.rejects(
+    launchServicesInOrder({
+      runMigrations: async () => order.push("migrations"),
+      startCatalogWorker: () => ({
+        exited: Promise.resolve({ error: null, code: 1, signal: null }),
+      }),
+      awaitCatalogWorkerReady: () => new Promise(() => undefined),
+      startApi: () => order.push("api"),
+      awaitApiReady: async () => order.push("api-ready"),
+      startWeb: () => order.push("web"),
+    }),
+    /El worker termino antes de estar disponible \(codigo 1\)/,
+  );
+
+  assert.deepEqual(order, ["migrations"]);
 });
 
 test("no inicia ningun servicio si fallan las migraciones", async () => {
@@ -368,6 +501,8 @@ test("no inicia ningun servicio si fallan las migraciones", async () => {
         order.push("migrations-failed");
         throw new Error("migration failed");
       },
+      startCatalogWorker: () => order.push("worker"),
+      awaitCatalogWorkerReady: async () => order.push("worker-ready"),
       startApi: () => order.push("api"),
       awaitApiReady: async () => order.push("ready"),
       startWeb: () => order.push("web"),

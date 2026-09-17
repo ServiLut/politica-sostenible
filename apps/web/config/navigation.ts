@@ -25,7 +25,10 @@ export type NavigationIcon =
   | "communications"
   | "audit"
   | "finance"
+  | "signature"
   | "election"
+  | "logistics"
+  | "handover"
   | "settings"
   | "commitments"
   | "billing";
@@ -42,12 +45,6 @@ export interface NavItem {
   allowedBackendRolesByTenantType?: Partial<
     Record<Tenant["type"], BackendUserRole[]>
   >;
-  /**
-   * Restringe solamente la aparicion en el menu. La autorizacion de la ruta
-   * sigue dependiendo de allowedRoles/allowedBackendRoles en el layout y de
-   * los guards de la API.
-   */
-  navigationBackendRoles?: BackendUserRole[];
   /** Stages during which this item should be visible in navigation. If omitted, the item is always visible. */
   allowedStages?: PoliticalOperationStage[];
 }
@@ -86,7 +83,7 @@ const DEFAULT_ROUTE_PREFERENCES: Partial<
   COMPLIANCE_OFFICER: ["/dashboard/inbox", "/dashboard/audit"],
   AUDITOR: ["/dashboard/audit", "/dashboard/inbox"],
   ZONE_COORDINATOR: ["/dashboard/inbox", "/dashboard/captura-territorial"],
-  WITNESS: ["/dashboard/war-room"],
+  WITNESS: ["/dashboard/war-room", "/dashboard/witness-planning"],
   VOLUNTEER: ["/dashboard/captura-territorial", "/dashboard/tasks"],
 };
 
@@ -283,6 +280,151 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
+    title: "Calendario electoral",
+    mobileTitle: "Calendario",
+    href: "/dashboard/electoral-calendar",
+    icon: "election",
+    group: "COORDINATION",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.GerenteFinanzas,
+      UserRole.Coordinador,
+      UserRole.Testigo,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "FINANCE_MANAGER",
+      "ZONE_COORDINATOR",
+      "WITNESS",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+    allowedStages: [
+      "EXPLORATION",
+      "PRE_CAMPAIGN",
+      "SIGNATURE_COLLECTION",
+      "CAMPAIGN",
+      "ELECTION_PREPARATION",
+      "SIMULATION",
+      "ELECTION_DAY",
+      "POST_ELECTION",
+      "CLOSED",
+    ],
+  },
+  {
+    title: "Firmas y apoyos",
+    mobileTitle: "Firmas",
+    href: "/dashboard/signatures",
+    icon: "signature",
+    group: "FIELD",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "ZONE_COORDINATOR",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+    allowedStages: [
+      "PRE_CAMPAIGN",
+      "SIGNATURE_COLLECTION",
+      "CAMPAIGN",
+      "ELECTION_PREPARATION",
+      "SIMULATION",
+      "ELECTION_DAY",
+      "POST_ELECTION",
+      "CLOSED",
+    ],
+  },
+  {
+    title: "Logística electoral",
+    mobileTitle: "Logística",
+    href: "/dashboard/logistics",
+    icon: "logistics",
+    group: "FIELD",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "ZONE_COORDINATOR",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
+    title: "Planificación de testigos",
+    mobileTitle: "Testigos",
+    href: "/dashboard/witness-planning",
+    icon: "election",
+    group: "FIELD",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
+      UserRole.Testigo,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "ZONE_COORDINATOR",
+      "WITNESS",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
+    title: "Escrutinios y reclamaciones",
+    mobileTitle: "Escrutinios",
+    href: "/dashboard/scrutiny",
+    icon: "election",
+    group: "REVIEW",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
+      UserRole.Testigo,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+      "ZONE_COORDINATOR",
+      "WITNESS",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+    allowedStages: ["ELECTION_DAY", "POST_ELECTION", "CLOSED"],
+  },
+  {
+    title: "Catálogo electoral",
+    mobileTitle: "Catálogo",
+    href: "/dashboard/electoral-catalog",
+    icon: "territory",
+    group: "REVIEW",
+    allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
+    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
     title: "Personas",
     mobileTitle: "Personas",
     href: "/dashboard/votantes",
@@ -309,6 +451,26 @@ export const dashboardConfig: NavItem[] = [
     href: "/dashboard/cases",
     icon: "cases",
     group: "COORDINATION",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.Coordinador,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CONSTITUENT_SERVICES_MANAGER",
+      "CASE_WORKER",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: ["PUBLIC_OFFICE"],
+  },
+  {
+    title: "Expedientes PQRSD",
+    mobileTitle: "PQRSD",
+    href: "/dashboard/pqrsd",
+    icon: "cases",
+    group: "REVIEW",
     allowedRoles: [
       UserRole.AdminCampana,
       UserRole.Coordinador,
@@ -407,6 +569,27 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
+    title: "Cierre poselectoral",
+    mobileTitle: "Cierre",
+    href: "/dashboard/transition",
+    icon: "handover",
+    group: "REVIEW",
+    allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
+    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+    allowedStages: ["POST_ELECTION", "CLOSED"],
+  },
+  {
+    title: "Gobierno de retención",
+    mobileTitle: "Retención",
+    href: "/dashboard/retention",
+    icon: "handover",
+    group: "REVIEW",
+    allowedRoles: [UserRole.AdminCampana, UserRole.Auditor],
+    allowedBackendRoles: ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
     title: "Aviso de privacidad",
     mobileTitle: "Privacidad",
     href: "/dashboard/settings",
@@ -502,6 +685,31 @@ export const dashboardConfig: NavItem[] = [
     allowedTenantTypes: CAMPAIGN_TENANTS,
   },
   {
+    title: "Sellos de metadatos",
+    mobileTitle: "Sellos",
+    href: "/dashboard/integrity-signatures",
+    icon: "signature",
+    group: "REVIEW",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.GerenteFinanzas,
+      UserRole.Coordinador,
+      UserRole.Testigo,
+      UserRole.Auditor,
+    ],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "FINANCE_MANAGER",
+      "ZONE_COORDINATOR",
+      "WITNESS",
+      "COMPLIANCE_OFFICER",
+      "AUDITOR",
+    ],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
+  },
+  {
     title: "Operación electoral",
     mobileTitle: "Elección",
     href: "/dashboard/war-room",
@@ -523,12 +731,12 @@ export const dashboardConfig: NavItem[] = [
       "AUDITOR",
     ],
     allowedTenantTypes: ["CANDIDACY"],
-    navigationBackendRoles: ["WITNESS", "COMPLIANCE_OFFICER", "AUDITOR"],
     allowedStages: [
       "ELECTION_PREPARATION",
       "SIMULATION",
       "ELECTION_DAY",
       "POST_ELECTION",
+      "CLOSED",
     ],
   },
   {
@@ -588,11 +796,7 @@ export function getVisibleNavigationItems(
       (!item.allowedStages ||
         Boolean(stage && item.allowedStages.includes(stage))),
   );
-  return accessibleItems.filter(
-    (item) =>
-      !item.navigationBackendRoles ||
-      item.navigationBackendRoles.includes(user.backendRole),
-  );
+  return accessibleItems;
 }
 
 export function getDefaultDashboardRoute(

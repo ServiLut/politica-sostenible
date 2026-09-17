@@ -15,6 +15,7 @@ import {
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-lifecycle-fence.util';
 import { CreateIssueCaseDto } from './dto/create-issue-case.dto';
 import { ListIssueCasesQueryDto } from './dto/list-issue-cases-query.dto';
 import { UpdateIssueCaseDto } from './dto/update-issue-case.dto';
@@ -136,6 +137,12 @@ interface CaseAuditSource {
   assigneeId: string | null;
   dueAt: Date | null;
   confidential: boolean;
+  title: string;
+  description: string;
+  externalContactRef: string | null;
+  voterId: string | null;
+  divisionId: string | null;
+  occurredOn?: Date | null;
 }
 
 @Injectable()
@@ -262,35 +269,66 @@ export class CasesService {
     return this.toIssueCaseView(issueCase);
   }
 
-  async listAssignees(user: AuthenticatedUser) {
+  async listAssignees(
+    user: AuthenticatedUser,
+    query: { page?: number; limit?: number; search?: string }
+  ) {
     this.assertCaseWriteAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
     this.assertRoleAllowedForMode(user, mode, 'write');
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const search = query.search?.trim();
+
+    let where: Prisma.UserWhereInput;
+
     if (this.isCaseWorker(user)) {
-      return this.prisma.user.findMany({
-        where: { id: user.userId, tenantId: user.tenantId },
-        select: { id: true, name: true, role: true },
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      });
-    }
-
-    if (!this.canManageAllCases(user, mode)) {
-      throw new ForbiddenException(
-        'Su rol no puede administrar responsables de casos',
-      );
-    }
-
-    const eligibleRoles = CASE_MODE_WRITE_ROLES[mode];
-
-    return this.prisma.user.findMany({
-      where: {
+      where = { id: user.userId, tenantId: user.tenantId };
+    } else {
+      if (!this.canManageAllCases(user, mode)) {
+        throw new ForbiddenException(
+          'Su rol no puede administrar responsables de casos',
+        );
+      }
+      const eligibleRoles = CASE_MODE_WRITE_ROLES[mode];
+      where = {
         tenantId: user.tenantId,
         role: { in: [...eligibleRoles] },
+      };
+    }
+
+    if (search) {
+      where = {
+        ...where,
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { documentId: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: { id: true, name: true, role: true },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      select: { id: true, name: true, role: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-    });
+    };
   }
 
   async create(user: AuthenticatedUser, dto: CreateIssueCaseDto) {
@@ -340,6 +378,7 @@ export class CasesService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
         const issueCase = await tx.issueCase.create({
           data: {
             tenantId: user.tenantId,
@@ -442,6 +481,7 @@ export class CasesService {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          await lockAndAssertCampaignOperationOpen(tx, user.tenantId, mode);
           const existing = await tx.issueCase.findFirst({
             where: {
               id,
@@ -460,6 +500,10 @@ export class CasesService {
               confidential: true,
               voterId: true,
               externalContactRef: true,
+              title: true,
+              description: true,
+              divisionId: true,
+              occurredOn: true,
               firstResponseAt: true,
               resolvedAt: true,
             },
@@ -684,7 +728,7 @@ export class CasesService {
     divisionId: string,
   ): Promise<void> {
     const division = await this.prisma.politicalDivision.findFirst({
-      where: { id: divisionId, tenantId },
+      where: { id: divisionId, tenantId, isActive: true },
       select: { id: true },
     });
 
@@ -778,6 +822,12 @@ export class CasesService {
       assigneeId: value.assigneeId,
       dueAt: value.dueAt?.toISOString() ?? null,
       confidential: value.confidential,
+      title: value.title,
+      description: value.description,
+      externalContactRef: value.externalContactRef,
+      voterId: value.voterId,
+      divisionId: value.divisionId,
+      occurredOn: value.occurredOn?.toISOString() ?? null,
     };
   }
 

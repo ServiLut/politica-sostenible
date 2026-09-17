@@ -9,9 +9,11 @@ import {
   RequiresPlanFeature,
 } from '../auth/decorators/requires-plan-feature.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import { ElectronicSignatureService } from './electronic-signature.service';
 import {
   SignatureParamsDto,
+  SignatureModuleQueryDto,
   SignDocumentDto,
   VerifySignatureQueryDto,
 } from './dto/electronic-signature.dto';
@@ -32,9 +34,20 @@ const SIGNATURE_VERIFY_ROLES = [
 
 @ApiTags('Electronic signatures')
 @ApiBearerAuth()
+@BlockWhenOperationClosed()
 @Controller('electronic-signature')
 export class ElectronicSignatureController {
   constructor(private readonly signatureService: ElectronicSignatureService) {}
+
+  @Get('candidates')
+  @Roles(...SIGNATURE_SIGN_ROLES)
+  @RequiresPlanFeature(PlanFeature.MFA)
+  async listSigningCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: SignatureModuleQueryDto,
+  ) {
+    return this.signatureService.listSigningCandidates(user, query);
+  }
 
   @Post('sign')
   @Roles(...SIGNATURE_SIGN_ROLES)

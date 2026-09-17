@@ -2,7 +2,21 @@ export enum StorageModuleName {
   FINANCE = 'finance',
   E14 = 'e14',
   CONSENT = 'consent',
+  ELECTORAL_CATALOG = 'electoral-catalog',
+  SCRUTINY = 'scrutiny',
+  ELECTORAL_CALENDAR = 'electoral-calendar',
+  SIGNATURE_COLLECTION = 'signature-collection',
+  PQRSD = 'pqrsd',
 }
+
+export const STORAGE_INTEGRITY_REQUIRED_MODULES = [
+  StorageModuleName.FINANCE,
+  StorageModuleName.E14,
+  StorageModuleName.SCRUTINY,
+  StorageModuleName.ELECTORAL_CALENDAR,
+  StorageModuleName.SIGNATURE_COLLECTION,
+  StorageModuleName.PQRSD,
+] as const;
 
 export interface StorageUploadPolicy {
   readonly maxBytes: number;
@@ -42,6 +56,40 @@ export const STORAGE_UPLOAD_POLICIES: Readonly<
   },
   [StorageModuleName.CONSENT]: {
     maxBytes: 15 * 1024 * 1024,
+    mimeTypes: {
+      ...IMAGE_MIME_TYPES,
+      ...DOCUMENT_MIME_TYPES,
+    },
+  },
+  [StorageModuleName.ELECTORAL_CATALOG]: {
+    maxBytes: 25 * 1024 * 1024,
+    mimeTypes: {
+      'application/json': ['json'],
+    },
+  },
+  [StorageModuleName.SCRUTINY]: {
+    maxBytes: 25 * 1024 * 1024,
+    mimeTypes: {
+      ...IMAGE_MIME_TYPES,
+      ...DOCUMENT_MIME_TYPES,
+    },
+  },
+  [StorageModuleName.ELECTORAL_CALENDAR]: {
+    maxBytes: 20 * 1024 * 1024,
+    mimeTypes: {
+      ...IMAGE_MIME_TYPES,
+      ...DOCUMENT_MIME_TYPES,
+    },
+  },
+  [StorageModuleName.SIGNATURE_COLLECTION]: {
+    maxBytes: 20 * 1024 * 1024,
+    mimeTypes: {
+      ...IMAGE_MIME_TYPES,
+      ...DOCUMENT_MIME_TYPES,
+    },
+  },
+  [StorageModuleName.PQRSD]: {
+    maxBytes: 25 * 1024 * 1024,
     mimeTypes: {
       ...IMAGE_MIME_TYPES,
       ...DOCUMENT_MIME_TYPES,

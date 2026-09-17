@@ -39,7 +39,7 @@ export function LandingAuthCta() {
         href="/registro"
         className="inline-flex items-center justify-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b1f1c]"
       >
-        Crear organización
+        Acceso de organización
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
     </div>

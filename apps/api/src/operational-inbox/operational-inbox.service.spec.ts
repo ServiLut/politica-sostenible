@@ -4,8 +4,12 @@ import {
   CommunicationApprovalStatus,
   IssueCaseStatus,
   PoliticalOperationMode,
+  PqrsdDeadlineCalculationStatus,
+  PqrsdDossierStatus,
+  PqrsdRiskLevel,
   Role,
   TaskStatus,
+  TenantType,
   WorkPriority,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -30,6 +34,7 @@ describe('OperationalInboxService secure unified read model', () => {
     commitment: { findMany: jest.Mock; count: jest.Mock };
     issueCase: { findMany: jest.Mock; count: jest.Mock };
     communicationApproval: { findMany: jest.Mock; count: jest.Mock };
+    pqrsdDossier: { findMany: jest.Mock; count: jest.Mock };
     $transaction: jest.Mock;
   };
   let service: OperationalInboxService;
@@ -40,6 +45,7 @@ describe('OperationalInboxService secure unified read model', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 'tenant-a',
           defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
         }),
       },
       user: {
@@ -107,6 +113,10 @@ describe('OperationalInboxService secure unified read model', () => {
         ]),
         count: jest.fn().mockResolvedValue(1),
       },
+      pqrsdDossier: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation(
@@ -133,6 +143,7 @@ describe('OperationalInboxService secure unified read model', () => {
         cases: 0,
         incidents: 1,
         approvals: 1,
+        pqrsd: 0,
       },
     });
     expect(result.items.map((item) => item.id)).toEqual([
@@ -179,7 +190,7 @@ describe('OperationalInboxService secure unified read model', () => {
 
     expect(prisma.tenant.findUnique).toHaveBeenCalledWith({
       where: { id: 'tenant-a' },
-      select: { id: true, defaultMode: true },
+      select: { id: true, defaultMode: true, type: true },
     });
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { id: 'leader-a', tenantId: 'tenant-a', isActive: true },
@@ -210,6 +221,7 @@ describe('OperationalInboxService secure unified read model', () => {
     prisma.tenant.findUnique.mockResolvedValue({
       id: 'tenant-a',
       defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+      type: TenantType.PUBLIC_OFFICE,
     });
     prisma.user.findFirst.mockResolvedValue({
       role: Role.CASE_WORKER,
@@ -242,6 +254,11 @@ describe('OperationalInboxService secure unified read model', () => {
     );
     expect(approvalWhere).toEqual(
       expect.objectContaining({ AND: [{ requestedById: 'worker-a' }] }),
+    );
+    expect(prisma.pqrsdDossier.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenantId: 'tenant-a' }),
+      }),
     );
     expect(
       result.items.find((item) => item.kind === 'COMMUNICATION_APPROVAL')?.cta,
@@ -345,5 +362,113 @@ describe('OperationalInboxService secure unified read model', () => {
       auditorResult.items.find((item) => item.kind === 'COMMUNICATION_APPROVAL')
         ?.cta.label,
     ).toBe('Revisar solicitud');
+  });
+
+  it('adds only open formal PQRSD with the latest deadline and safe assignment projection', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      id: 'tenant-a',
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+      type: TenantType.PUBLIC_OFFICE,
+    });
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.CONSTITUENT_SERVICES_MANAGER,
+      divisionId: null,
+    });
+    prisma.pqrsdDossier.findMany.mockResolvedValue([
+      {
+        id: 'pqrsd-a',
+        reference: 'PQRSD-INT-001',
+        subject: 'Solicitud de alumbrado público',
+        status: PqrsdDossierStatus.WAITING_ON_PETITIONER,
+        riskLevel: PqrsdRiskLevel.HIGH,
+        createdAt: oldDate,
+        currentPrimaryAssignee: {
+          id: 'inactive-primary',
+          name: 'Responsable inactivo',
+          role: Role.CASE_WORKER,
+          isActive: false,
+        },
+        currentBackupAssignee: {
+          id: 'active-backup',
+          name: 'Suplencia activa',
+          role: Role.CASE_WORKER,
+          isActive: true,
+        },
+        deadlines: [
+          {
+            calculationStatus: PqrsdDeadlineCalculationStatus.MANUAL_REVIEWED,
+            dueAt: oldDate,
+          },
+        ],
+      },
+    ]);
+    prisma.pqrsdDossier.count.mockResolvedValue(1);
+
+    const result = await service.findAll(
+      { ...leader, role: Role.CONSTITUENT_SERVICES_MANAGER },
+      { limit: 20 },
+    );
+
+    const dossierQuery = prisma.pqrsdDossier.findMany.mock.calls[0][0];
+    expect(dossierQuery.where).toEqual(
+      expect.objectContaining({
+        tenantId: 'tenant-a',
+        status: {
+          in: expect.not.arrayContaining([
+            PqrsdDossierStatus.CLOSED,
+            PqrsdDossierStatus.CANCELLED,
+          ]),
+        },
+      }),
+    );
+    expect(dossierQuery.select.deadlines).toEqual({
+      orderBy: { versionNumber: 'desc' },
+      take: 1,
+      select: { calculationStatus: true, dueAt: true },
+    });
+    expect(dossierQuery.select).not.toHaveProperty('description');
+    expect(dossierQuery.select).not.toHaveProperty('petitioner');
+    expect(result.summary.byKind.pqrsd).toBe(1);
+    expect(result.items).toContainEqual(
+      expect.objectContaining({
+        id: 'PQRSD:pqrsd-a',
+        kind: 'PQRSD',
+        reference: 'PQRSD-INT-001',
+        title: 'Solicitud de alumbrado público',
+        status: PqrsdDossierStatus.WAITING_ON_PETITIONER,
+        priority: WorkPriority.URGENT,
+        responsible: expect.objectContaining({ id: 'active-backup' }),
+        dueAt: oldDate.toISOString(),
+        overdue: true,
+        blocked: true,
+        cta: {
+          label: 'Gestionar expediente',
+          href: '/dashboard/pqrsd?view=detail&entityId=pqrsd-a',
+        },
+      }),
+    );
+    expect(JSON.stringify(result)).not.toContain('Responsable inactivo');
+  });
+
+  it('does not expose PQRSD to a role outside the formal read policy', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      id: 'tenant-a',
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+      type: TenantType.PUBLIC_OFFICE,
+    });
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.COMMUNICATIONS_MANAGER,
+      divisionId: null,
+    });
+
+    const result = await service.findAll(
+      { ...leader, role: Role.COMMUNICATIONS_MANAGER },
+      {},
+    );
+
+    expect(prisma.pqrsdDossier.findMany).not.toHaveBeenCalled();
+    expect(prisma.pqrsdDossier.count).not.toHaveBeenCalled();
+    expect(result.summary.byKind.pqrsd).toBe(0);
+    expect(result.items.some((item) => item.kind === 'PQRSD')).toBe(false);
   });
 });

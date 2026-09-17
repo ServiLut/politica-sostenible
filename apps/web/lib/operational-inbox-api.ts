@@ -5,6 +5,7 @@ export type InboxItemKind =
   | "COMMITMENT"
   | "CASE"
   | "INCIDENT"
+  | "PQRSD"
   | "COMMUNICATION_APPROVAL";
 
 export type InboxPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
@@ -49,6 +50,7 @@ export interface OperationalInboxResponse {
       cases: number;
       incidents: number;
       approvals: number;
+      pqrsd: number;
     };
   };
   items: OperationalInboxItem[];

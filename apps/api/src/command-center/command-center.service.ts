@@ -15,9 +15,11 @@ import {
   FinanceStatus,
   IssueCaseStatus,
   PoliticalOperationMode,
+  PqrsdDossierStatus,
   Prisma,
   Role,
   TaskStatus,
+  WitnessCaptureContext,
   WitnessReportStatus,
   WorkPriority,
 } from '../../prisma/generated/prisma';
@@ -27,6 +29,8 @@ import {
   getFinanceComplianceReadiness,
 } from '../finance/finance-compliance';
 import { PrismaService } from '../prisma/prisma.service';
+import { ElectoralCalendarService } from '../electoral-calendar/electoral-calendar.service';
+import { PqrsdService } from '../pqrsd/pqrsd.service';
 
 const CAMPAIGN_LEADERS: readonly Role[] = [Role.ADMIN, Role.CAMPAIGN_MANAGER];
 const PUBLIC_OFFICE_LEADERS: readonly Role[] = [
@@ -91,7 +95,11 @@ interface BriefingActor {
 
 @Injectable()
 export class CommandCenterService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly electoralCalendar: ElectoralCalendarService,
+    private readonly pqrsd: PqrsdService,
+  ) {}
 
   async getBriefing(user: AuthenticatedUser) {
     const [tenant, currentUser] = await Promise.all([
@@ -136,6 +144,29 @@ export class CommandCenterService {
         ? await this.loadCampaignBriefing(user.tenantId, now, actor)
         : await this.loadPublicOfficeBriefing(user.tenantId, now, actor);
 
+    const pqrsdSummary =
+      tenant.defaultMode === PoliticalOperationMode.PUBLIC_OFFICE
+        ? await this.pqrsd.overview(user, { limit: 100 })
+        : null;
+    const pqrsdOpenCount = pqrsdSummary
+      ? await this.prisma.pqrsdDossier.count({
+          where: {
+            tenantId: user.tenantId,
+            status: {
+              notIn: [PqrsdDossierStatus.CLOSED, PqrsdDossierStatus.CANCELLED],
+            },
+          },
+        })
+      : null;
+
+    const calendarSummary =
+      tenant.defaultMode === PoliticalOperationMode.CAMPAIGN
+        ? await this.electoralCalendar.getCommandCenterSummary(
+            user.tenantId,
+            now,
+          )
+        : null;
+
     const commonMetrics = await this.prisma.$transaction(async (tx) => {
       const [
         topLevelDivisions,
@@ -147,7 +178,11 @@ export class CommandCenterService {
         nonAdminTeamMemberCount,
       ] = await Promise.all([
         tx.politicalDivision.findMany({
-          where: { tenantId: user.tenantId, parentId: null },
+          where: {
+            tenantId: user.tenantId,
+            parentId: null,
+            isActive: true,
+          },
           select: {
             name: true,
             code: true,
@@ -192,11 +227,65 @@ export class CommandCenterService {
         },
       };
     });
+    const pqrsdAlerts: BriefingAlert[] = pqrsdSummary
+      ? [
+          ...pqrsdSummary.alerts.map((alert) => ({
+            code: alert.code,
+            severity:
+              alert.severity === 'critical'
+                ? ('critical' as const)
+                : ('attention' as const),
+            title: alert.reference,
+            detail: alert.message,
+            href: alert.href,
+          })),
+          ...(!pqrsdSummary.configurationReady
+            ? [
+                {
+                  code: 'PQRSD_CONFIGURATION_REQUIRED',
+                  severity: 'critical' as const,
+                  title: 'PQRSD formal sin configuracion aprobada',
+                  detail:
+                    'No se infieren plazos ni se habilita recepcion formal hasta aprobar un paquete normativo/calendario.',
+                  href: '/dashboard/pqrsd',
+                },
+              ]
+            : []),
+        ]
+      : [];
+
     const overdueItemsCount =
       briefing.metrics.tasks.overdue +
       ('commitments' in briefing.metrics
         ? briefing.metrics.commitments.overdue
-        : 0);
+        : 0) +
+      (calendarSummary?.overdue.length ?? 0);
+
+    const calendarAlerts: BriefingAlert[] = calendarSummary
+      ? calendarSummary.activeReleaseId === null
+        ? [
+            {
+              code: 'ELECTORAL_CALENDAR_NOT_ACTIVE',
+              severity: 'attention',
+              title: 'Calendario electoral interno sin version activa',
+              detail: calendarSummary.disclaimer,
+              href: calendarSummary.href,
+            },
+          ]
+        : calendarSummary.overdue.length > 0
+          ? [
+              {
+                code: 'ELECTORAL_CALENDAR_OVERDUE',
+                severity: 'critical',
+                title: 'Hitos electorales internos vencidos sin resolver',
+                detail:
+                  'Revise el resultado y la evidencia; no se presume cumplimiento por una tarea cerrada.',
+                href: calendarSummary.href,
+                count: calendarSummary.overdue.length,
+              },
+            ]
+          : []
+      : [];
 
     return {
       generatedAt: now.toISOString(),
@@ -207,6 +296,37 @@ export class CommandCenterService {
         mode: tenant.defaultMode,
       },
       ...briefing,
+      metrics: {
+        ...briefing.metrics,
+        ...(pqrsdSummary
+          ? {
+              pqrsd: {
+                open: pqrsdOpenCount ?? 0,
+                criticalAlerts: pqrsdSummary.alerts.filter(
+                  ({ severity }) => severity === 'critical',
+                ).length,
+                configurationReady: pqrsdSummary.configurationReady,
+              },
+            }
+          : {}),
+      },
+      alerts: [
+        ...calendarAlerts,
+        ...pqrsdAlerts,
+        ...briefing.alerts.filter(
+          ({ code }) =>
+            code !== 'NO_CRITICAL_ALERTS' || pqrsdAlerts.length === 0,
+        ),
+      ],
+      formalPqrsd: pqrsdSummary
+        ? {
+            configurationReady: pqrsdSummary.configurationReady,
+            institutionalStatus: pqrsdSummary.institutionalStatus,
+            institutionalMessage: pqrsdSummary.institutionalMessage,
+            href: '/dashboard/pqrsd',
+          }
+        : null,
+      electoralCalendar: calendarSummary,
       ...commonMetrics,
       overdueItemsCount,
     };
@@ -256,7 +376,7 @@ export class CommandCenterService {
           }),
           tx.politicalDivision.groupBy({
             by: ['type'],
-            where: { tenantId },
+            where: { tenantId, isActive: true },
             _count: { _all: true },
           }),
           tx.voter.count({ where: { tenantId } }),
@@ -302,11 +422,16 @@ export class CommandCenterService {
             },
           }),
           tx.witnessReport.count({
-            where: { tenantId, status: WitnessReportStatus.ACCEPTED },
+            where: {
+              tenantId,
+              captureContext: WitnessCaptureContext.REAL,
+              status: WitnessReportStatus.ACCEPTED,
+            },
           }),
           tx.witnessReport.count({
             where: {
               tenantId,
+              captureContext: WitnessCaptureContext.REAL,
               status: WitnessReportStatus.ACCEPTED,
               isSynced: true,
             },

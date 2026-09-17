@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -16,8 +17,10 @@ import {
   PoliticalOperationMode,
   Prisma,
   Role,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   StorageObjectModule,
+  TenantType,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
@@ -39,6 +42,7 @@ import { CompleteUploadDto } from './dto/complete-upload.dto';
 import { CreateDownloadUrlDto } from './dto/create-download-url.dto';
 import { CreateUploadUrlDto } from './dto/create-upload-url.dto';
 import {
+  STORAGE_INTEGRITY_REQUIRED_MODULES,
   STORAGE_MAX_FILE_NAME_LENGTH,
   STORAGE_UPLOAD_POLICIES,
   StorageModuleName,
@@ -48,11 +52,16 @@ import {
   StoredObjectInfo,
   SupabaseStorageGateway,
 } from './supabase-storage.gateway';
+import {
+  STORAGE_INTEGRITY_QUEUE_PORT,
+  type StorageIntegrityQueuePort,
+} from './storage-integrity-queue.constants';
 
 interface NormalizedUploadMetadata {
   readonly fileName: string;
   readonly contentType: string;
   readonly size: number;
+  readonly contentSha256?: string;
 }
 
 type StorageAccessClient = Pick<Prisma.TransactionClient, 'tenant' | 'user'>;
@@ -76,6 +85,33 @@ const STORAGE_MODULE_ROLES: Partial<
     Role.CAMPAIGN_MANAGER,
     Role.COMPLIANCE_OFFICER,
   ],
+  [StorageModuleName.ELECTORAL_CATALOG]: [Role.ADMIN],
+  [StorageModuleName.SCRUTINY]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.COMPLIANCE_OFFICER,
+  ],
+  [StorageModuleName.ELECTORAL_CALENDAR]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.FINANCE_MANAGER,
+    Role.COMPLIANCE_OFFICER,
+    Role.ZONE_COORDINATOR,
+  ],
+  [StorageModuleName.SIGNATURE_COLLECTION]: [
+    Role.ADMIN,
+    Role.CAMPAIGN_MANAGER,
+    Role.ZONE_COORDINATOR,
+    Role.COMPLIANCE_OFFICER,
+    Role.AUDITOR,
+  ],
+  [StorageModuleName.PQRSD]: [
+    Role.ADMIN,
+    Role.CONSTITUENT_SERVICES_MANAGER,
+    Role.CASE_WORKER,
+    Role.COMPLIANCE_OFFICER,
+    Role.AUDITOR,
+  ],
 };
 
 const STORAGE_AUTHORIZATION_TTL_MS = 15 * 60 * 1_000;
@@ -86,6 +122,10 @@ const DOWNLOAD_URL_TTL_SECONDS = 300;
 const DOWNLOADABLE_STORAGE_MODULES: readonly StorageModuleName[] = [
   StorageModuleName.FINANCE,
   StorageModuleName.E14,
+  StorageModuleName.SCRUTINY,
+  StorageModuleName.ELECTORAL_CALENDAR,
+  StorageModuleName.SIGNATURE_COLLECTION,
+  StorageModuleName.PQRSD,
 ];
 const CONFIRMED_ORPHAN_RETENTION_MS = 24 * 60 * 60 * 1_000;
 const ORPHAN_CLEANUP_BATCH_SIZE = 10;
@@ -107,6 +147,38 @@ const E14_DOWNLOAD_ROLES = [
   Role.WITNESS,
 ] as const;
 
+const SCRUTINY_DOWNLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+] as const;
+
+const ELECTORAL_CALENDAR_DOWNLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.FINANCE_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+  Role.ZONE_COORDINATOR,
+] as const;
+
+const SIGNATURE_COLLECTION_DOWNLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.ZONE_COORDINATOR,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+] as const;
+
+const PQRSD_DOWNLOAD_ROLES = [
+  Role.ADMIN,
+  Role.CONSTITUENT_SERVICES_MANAGER,
+  Role.CASE_WORKER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+] as const;
+
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
@@ -114,6 +186,8 @@ export class StorageService {
   constructor(
     private readonly storageGateway: SupabaseStorageGateway,
     private readonly prisma: PrismaService,
+    @Inject(STORAGE_INTEGRITY_QUEUE_PORT)
+    private readonly integrityQueue: StorageIntegrityQueuePort,
   ) {}
 
   async createUploadUrl(user: AuthenticatedUser, dto: CreateUploadUrlDto) {
@@ -144,6 +218,7 @@ export class StorageService {
           module: this.toStoredModule(dto.module),
           contentType: metadata.contentType,
           expectedSize: metadata.size,
+          expectedSha256: metadata.contentSha256,
           expiresAt,
           documentCategory: dto.documentCategory,
           retentionPhase: dto.retentionPhase,
@@ -178,6 +253,9 @@ export class StorageService {
         fileName: metadata.fileName,
         contentType: metadata.contentType,
         size: metadata.size,
+        ...(metadata.contentSha256
+          ? { contentSha256: metadata.contentSha256 }
+          : {}),
       },
     };
   }
@@ -216,6 +294,8 @@ export class StorageService {
         id: true,
         contentType: true,
         expectedSize: true,
+        expectedSha256: true,
+        integrityStatus: true,
         expiresAt: true,
         status: true,
       },
@@ -228,7 +308,9 @@ export class StorageService {
     }
     if (
       authorization.contentType !== metadata.contentType ||
-      authorization.expectedSize !== metadata.size
+      authorization.expectedSize !== metadata.size ||
+      (authorization.expectedSha256 ?? null) !==
+        (metadata.contentSha256 ?? null)
     ) {
       throw new BadRequestException(
         'Los metadatos no coinciden con la autorización de subida',
@@ -261,6 +343,7 @@ export class StorageService {
 
     const actualSize = this.readStoredSize(object);
     const actualContentType = this.readStoredContentType(object);
+    const reportedSha256 = this.readStoredSha256(object);
 
     if (actualSize !== metadata.size) {
       throw new BadRequestException(
@@ -271,6 +354,12 @@ export class StorageService {
     if (actualContentType !== metadata.contentType) {
       throw new BadRequestException(
         'El tipo de contenido almacenado no coincide con el autorizado',
+      );
+    }
+
+    if (metadata.contentSha256 && reportedSha256 !== metadata.contentSha256) {
+      throw new BadRequestException(
+        'La huella SHA-256 declarada en Storage no coincide con la autorizacion',
       );
     }
 
@@ -287,8 +376,12 @@ export class StorageService {
         },
         data: {
           status: StoredObjectStatus.CONFIRMED,
+          integrityStatus: authorization.expectedSha256
+            ? StorageIntegrityStatus.PENDING
+            : StorageIntegrityStatus.NOT_PROVIDED,
           actualSize,
           etag: object.etag,
+          reportedSha256,
           confirmedAt: new Date(),
         },
       });
@@ -323,16 +416,68 @@ export class StorageService {
             bucket: this.storageGateway.bucketName,
             contentType: actualContentType,
             size: actualSize,
+            contentIntegrity: authorization.expectedSha256
+              ? 'CLIENT_DECLARED_UNVERIFIED'
+              : 'NOT_PROVIDED',
             ...(object.etag ? { etag: object.etag } : {}),
           },
         },
       });
     });
 
+    if (
+      authorization.expectedSha256 &&
+      authorization.integrityStatus !== StorageIntegrityStatus.VERIFIED &&
+      authorization.integrityStatus !== StorageIntegrityStatus.FAILED
+    ) {
+      await this.integrityQueue.enqueue({
+        tenantId,
+        storedObjectId: authorization.id,
+      });
+    }
+
+    const contentIntegrity = authorization.expectedSha256
+      ? authorization.integrityStatus === StorageIntegrityStatus.VERIFIED
+        ? StorageIntegrityStatus.VERIFIED
+        : authorization.integrityStatus === StorageIntegrityStatus.FAILED
+          ? StorageIntegrityStatus.FAILED
+          : StorageIntegrityStatus.PENDING
+      : StorageIntegrityStatus.NOT_PROVIDED;
+
     return {
       confirmed: true,
+      objectId: authorization.id,
       path: dto.path,
       module: dto.module,
+      contentIntegrity,
+    };
+  }
+
+  async getIntegrityStatus(user: AuthenticatedUser, objectId: string) {
+    const tenantId = this.requireIdentitySegment(user.tenantId, 'tenant');
+    const userId = this.requireIdentitySegment(user.userId, 'usuario');
+    const safeObjectId = this.requireIdentitySegment(objectId, 'objeto');
+    const object = await this.prisma.storedObject.findFirst({
+      where: {
+        id: safeObjectId,
+        tenantId,
+        uploaderId: userId,
+      },
+      select: {
+        id: true,
+        integrityStatus: true,
+        integrityVerifiedAt: true,
+        integrityFailureCode: true,
+      },
+    });
+    if (!object) {
+      throw new NotFoundException('Estado de integridad no encontrado');
+    }
+    return {
+      objectId: object.id,
+      status: object.integrityStatus,
+      verifiedAt: object.integrityVerifiedAt,
+      failureCode: object.integrityFailureCode,
     };
   }
 
@@ -346,7 +491,13 @@ export class StorageService {
     const tenantId = this.requireIdentitySegment(user.tenantId, 'tenant');
     const userId = this.requireIdentitySegment(user.userId, 'usuario');
     let path: string;
-    let resourceType: 'FinancialEntry' | 'WitnessReport';
+    let resourceType:
+      | 'FinancialEntry'
+      | 'WitnessReport'
+      | 'ScrutinyDocument'
+      | 'SignatureCountCorrectionProposal'
+      | 'PqrsdDocument'
+      | 'ElectoralCalendarMilestoneResult';
 
     if (dto.module === StorageModuleName.FINANCE) {
       await resolveTerritorialAccess({
@@ -369,7 +520,7 @@ export class StorageService {
       }
       path = entry.evidenceUrl;
       resourceType = 'FinancialEntry';
-    } else {
+    } else if (dto.module === StorageModuleName.E14) {
       const access = await resolveTerritorialAccess({
         client: this.prisma,
         tenantId,
@@ -393,6 +544,97 @@ export class StorageService {
       }
       path = report.e14ImageUrl;
       resourceType = 'WitnessReport';
+    } else if (dto.module === StorageModuleName.SCRUTINY) {
+      await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: SCRUTINY_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [],
+      });
+      await this.assertCampaignModeForDownload(
+        tenantId,
+        StorageModuleName.SCRUTINY,
+      );
+      const document = await this.prisma.scrutinyDocument.findFirst({
+        where: { id: dto.resourceId, tenantId },
+        select: { storagePath: true },
+      });
+      if (!document) {
+        throw new NotFoundException('Documento de escrutinio no encontrado');
+      }
+      path = document.storagePath;
+      resourceType = 'ScrutinyDocument';
+    } else if (dto.module === StorageModuleName.SIGNATURE_COLLECTION) {
+      await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: SIGNATURE_COLLECTION_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [],
+      });
+      await this.assertCampaignModeForDownload(
+        tenantId,
+        StorageModuleName.SIGNATURE_COLLECTION,
+      );
+      const proposal =
+        await this.prisma.signatureCountCorrectionProposal.findFirst({
+          where: { id: dto.resourceId, tenantId },
+          select: {
+            evidenceStorageObject: { select: { path: true } },
+          },
+        });
+      if (!proposal) {
+        throw new NotFoundException(
+          'Evidencia de la correccion de conteos no encontrada',
+        );
+      }
+      path = proposal.evidenceStorageObject.path;
+      resourceType = 'SignatureCountCorrectionProposal';
+    } else if (dto.module === StorageModuleName.PQRSD) {
+      await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: PQRSD_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [],
+      });
+      await this.assertPublicOfficeForDownload(tenantId);
+      const document = await this.prisma.pqrsdDocument.findFirst({
+        where: { id: dto.resourceId, tenantId },
+        select: { storagePath: true },
+      });
+      if (!document) {
+        throw new NotFoundException('Documento PQRSD no encontrado');
+      }
+      path = document.storagePath;
+      resourceType = 'PqrsdDocument';
+    } else {
+      await resolveTerritorialAccess({
+        client: this.prisma,
+        tenantId,
+        userId,
+        allowedRoles: ELECTORAL_CALENDAR_DOWNLOAD_ROLES,
+        territoriallyScopedRoles: [],
+      });
+      await this.assertCampaignModeForDownload(
+        tenantId,
+        StorageModuleName.ELECTORAL_CALENDAR,
+      );
+      const result =
+        await this.prisma.electoralCalendarMilestoneResult.findFirst({
+          where: {
+            id: dto.resourceId,
+            tenantId,
+            evidencePath: { not: null },
+          },
+          select: { evidencePath: true },
+        });
+      if (!result?.evidencePath) {
+        throw new NotFoundException('Evidencia del hito no encontrada');
+      }
+      path = result.evidencePath;
+      resourceType = 'ElectoralCalendarMilestoneResult';
     }
 
     const stored = await this.prisma.storedObject.findFirst({
@@ -403,6 +645,11 @@ export class StorageService {
         status: StoredObjectStatus.CONSUMED,
         consumedByType: resourceType,
         consumedById: dto.resourceId,
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        calculatedSha256: { not: null },
+        integrityVerifiedAt: { not: null },
       },
       select: { id: true },
     });
@@ -417,7 +664,10 @@ export class StorageService {
     await this.prisma.auditEvent.create({
       data: {
         tenantId,
-        mode: PoliticalOperationMode.CAMPAIGN,
+        mode:
+          dto.module === StorageModuleName.PQRSD
+            ? PoliticalOperationMode.PUBLIC_OFFICE
+            : PoliticalOperationMode.CAMPAIGN,
         actorType: AuditActorType.USER,
         actorUserId: userId,
         action: 'STORAGE_DOWNLOAD_AUTHORIZED',
@@ -437,7 +687,12 @@ export class StorageService {
 
   private validateUploadMetadata(
     module: StorageModuleName,
-    raw: { fileName: string; contentType: string; size: number },
+    raw: {
+      fileName: string;
+      contentType: string;
+      size: number;
+      contentSha256?: string;
+    },
   ): NormalizedUploadMetadata {
     const policy = STORAGE_UPLOAD_POLICIES[module];
 
@@ -475,10 +730,31 @@ export class StorageService {
       );
     }
 
+    const contentSha256 = raw.contentSha256?.trim();
+    const requiresIndependentIntegrity = (
+      STORAGE_INTEGRITY_REQUIRED_MODULES as readonly StorageModuleName[]
+    ).includes(module);
+    if (contentSha256 && !requiresIndependentIntegrity) {
+      throw new BadRequestException(
+        'La huella de contenido solo esta habilitada para evidencia electoral',
+      );
+    }
+    if (contentSha256 && !/^[0-9a-f]{64}$/.test(contentSha256)) {
+      throw new BadRequestException(
+        'contentSha256 debe ser una huella SHA-256 hexadecimal',
+      );
+    }
+    if (requiresIndependentIntegrity && !contentSha256) {
+      throw new BadRequestException(
+        `${module} exige SHA-256 antes de autorizar o confirmar el archivo`,
+      );
+    }
+
     return {
       fileName,
       contentType,
       size: raw.size,
+      ...(contentSha256 ? { contentSha256 } : {}),
     };
   }
 
@@ -509,6 +785,14 @@ export class StorageService {
       where: { id: tenantId },
       select: CAMPAIGN_TENANT_SELECT,
     });
+    if (module === StorageModuleName.PQRSD) {
+      if (tenant?.type !== TenantType.PUBLIC_OFFICE) {
+        throw new ForbiddenException(
+          'Los documentos PQRSD solo pertenecen a tenants PUBLIC_OFFICE',
+        );
+      }
+      return PoliticalOperationMode.PUBLIC_OFFICE;
+    }
     if (module === StorageModuleName.E14) {
       assertCandidacyCampaignTenant(tenant);
     } else {
@@ -625,9 +909,19 @@ export class StorageService {
           },
           data: {
             status: StoredObjectStatus.EXPIRED,
+            integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
             actualSize: null,
             etag: null,
             confirmedAt: null,
+            calculatedSha256: null,
+            observedSize: null,
+            observedContentType: null,
+            integrityCheckedAt: null,
+            integrityVerifiedAt: null,
+            integrityFailureCode: null,
+            integrityVerificationAttempts: 0,
+            integrityVerificationStartedAt: null,
+            integrityVerificationLeaseId: null,
           },
         });
         claimed = transition.count === 1;
@@ -690,6 +984,14 @@ export class StorageService {
       [StorageModuleName.FINANCE]: StorageObjectModule.FINANCE,
       [StorageModuleName.E14]: StorageObjectModule.E14,
       [StorageModuleName.CONSENT]: StorageObjectModule.CONSENT,
+      [StorageModuleName.ELECTORAL_CATALOG]:
+        StorageObjectModule.ELECTORAL_CATALOG,
+      [StorageModuleName.SCRUTINY]: StorageObjectModule.SCRUTINY,
+      [StorageModuleName.ELECTORAL_CALENDAR]:
+        StorageObjectModule.ELECTORAL_CALENDAR,
+      [StorageModuleName.SIGNATURE_COLLECTION]:
+        StorageObjectModule.SIGNATURE_COLLECTION,
+      [StorageModuleName.PQRSD]: StorageObjectModule.PQRSD,
     };
     return mapping[module];
   }
@@ -706,6 +1008,18 @@ export class StorageService {
       assertCandidacyCampaignTenant(tenant);
     } else {
       assertCampaignTenant(tenant);
+    }
+  }
+
+  private async assertPublicOfficeForDownload(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { type: true },
+    });
+    if (tenant?.type !== TenantType.PUBLIC_OFFICE) {
+      throw new ForbiddenException(
+        'Los documentos PQRSD solo pertenecen a tenants PUBLIC_OFFICE',
+      );
     }
   }
 
@@ -837,6 +1151,20 @@ export class StorageService {
     }
 
     return candidate.trim().toLowerCase();
+  }
+
+  private readStoredSha256(object: StoredObjectInfo): string | undefined {
+    const candidate = this.readMetadataValue(object.metadata, [
+      'contentSha256',
+      'sha256',
+    ]);
+    if (candidate === undefined) return undefined;
+    if (typeof candidate !== 'string' || !/^[0-9a-f]{64}$/.test(candidate)) {
+      throw new BadRequestException(
+        'Storage no reporto una huella SHA-256 valida para el archivo',
+      );
+    }
+    return candidate;
   }
 
   private readMetadataValue(

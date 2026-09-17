@@ -23,6 +23,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "default",
       size = "default",
       asChild = false,
+      type = "button",
       ...props
     },
     ref,
@@ -59,6 +60,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className,
         )}
         ref={ref}
+        {...(!asChild ? { type } : {})}
         {...props}
       />
     );

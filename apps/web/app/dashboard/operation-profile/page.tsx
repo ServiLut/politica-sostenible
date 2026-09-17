@@ -5,32 +5,60 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
   Gauge,
+  ListChecks,
   Loader2,
   RefreshCw,
   Save,
   Settings2,
   ShieldCheck,
+  TriangleAlert,
   UsersRound,
+  XCircle,
 } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { Select } from "@/components/ui/select";
-import { getRoleLabel } from "@/config/navigation";
+import {
+  OperationAdoptionFields,
+  OperationAdoptionStatusPanel,
+  type OperationAdoptionDraft,
+} from "@/components/operation-profile/OperationStageAdoption";
+import { OperationTerminationPanel } from "@/components/operation-profile/OperationTermination";
+import {
+  canAccessNavigationItem,
+  dashboardConfig,
+  getRoleLabel,
+  matchesNavigationPath,
+} from "@/config/navigation";
 import { useAuth } from "@/context/auth";
+import { useConfirmation } from "@/context/confirmation";
 import { ApiError } from "@/lib/api-client";
 import {
+  ADOPTABLE_OPERATION_STAGES,
+  computeOperationAdoptionPayloadSha256,
+  getOperationReadiness,
   getOperationProfile,
+  requestOperationAdoption,
   saveOperationProfile,
+  type AdoptableOperationStage,
   type CandidateListType,
   type ElectoralCircumscriptionType,
   type ElectoralContestType,
   type OperationProfile,
   type OperationProfileContext,
+  type OperationReadiness,
+  type OperationReadinessCheck,
+  type OperationReadinessCheckStatus,
+  type OperationReadinessOverall,
+  type OperationReadinessSectionKey,
   type PoliticalOperationType,
   type UpsertOperationProfileInput,
 } from "@/lib/operation-profile-api";
@@ -39,6 +67,7 @@ import type {
   BackendUserRole,
   PoliticalOperationStage,
   Tenant,
+  User,
 } from "@/types/saas-schema";
 
 type Option<T extends string> = { value: T; label: string };
@@ -52,6 +81,10 @@ interface OperationProfileForm {
   circumscriptionCode: string;
   listType: CandidateListType | "";
   electionDate: string;
+  votingStartDate: string;
+  votingEndDate: string;
+  votingWindowSourceUrl: string;
+  votingWindowReference: string;
   expectedTeamSize: string;
   candidateCount: string;
   maxTotalBudget: string;
@@ -85,6 +118,31 @@ const STAGES: readonly Option<PoliticalOperationStage>[] = [
   { value: "POST_ELECTION", label: "Poselectoral" },
   { value: "CLOSED", label: "Cerrada" },
 ];
+
+const TERMINATION_CAUSE_LABELS: Record<string, string> = {
+  CANDIDACY_WITHDRAWAL: "Retiro de candidatura",
+  REGISTRATION_DENIED: "Inscripción negada",
+  REGISTRATION_REVOKED: "Inscripción revocada",
+  DISQUALIFICATION: "Inhabilidad",
+  SIGNATURE_THRESHOLD_NOT_MET: "Umbral de firmas no alcanzado",
+  ENDORSEMENT_WITHDRAWN: "Aval retirado",
+  ELECTION_CANCELLED: "Elección cancelada",
+  OTHER: "Otra causal documentada",
+};
+
+const SAFE_INITIAL_STAGES: readonly PoliticalOperationStage[] = [
+  "EXPLORATION",
+  "PRE_CAMPAIGN",
+];
+
+const DEFAULT_ADOPTION_DRAFT: OperationAdoptionDraft = {
+  effectiveAt: "",
+  justification: "",
+  evidenceReference: "",
+  evidenceSha256: "",
+  incompleteHistoryAcknowledged: false,
+  confirmation: "",
+};
 
 const ELECTION_TYPES: readonly Option<ElectoralContestType>[] = [
   { value: "PRESIDENCY", label: "Presidencia" },
@@ -176,17 +234,13 @@ function defaultOperationType(
 }
 
 function dateInputValue(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Bogota",
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((candidate) => candidate.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
+  const civilDate = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(civilDate)) return "";
+  const parsed = new Date(`${civilDate}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== civilDate
+    ? ""
+    : civilDate;
 }
 
 function defaultForm(
@@ -201,13 +255,20 @@ function defaultForm(
 
   return {
     operationType,
-    stage: tenant.operationStage ?? "EXPLORATION",
+    // Si la API no tiene perfil, una etapa conservada en una sesión antigua no
+    // constituye historia auditable. El backend solo permite iniciar de forma
+    // segura en exploración o precampaña.
+    stage: "EXPLORATION",
     electionType: "OTHER",
     circumscriptionType: "MUNICIPAL",
     circumscriptionName: "",
     circumscriptionCode: "",
     listType: operationType === "PARTY_MOVEMENT" ? "CLOSED" : "",
     electionDate: "",
+    votingStartDate: "",
+    votingEndDate: "",
+    votingWindowSourceUrl: "",
+    votingWindowReference: "",
     expectedTeamSize: "10",
     candidateCount: "1",
     maxTotalBudget: "",
@@ -236,6 +297,10 @@ function formFromProfile(
     circumscriptionCode: profile.circumscriptionCode ?? "",
     listType: profile.listType ?? "",
     electionDate: dateInputValue(profile.electionDate),
+    votingStartDate: dateInputValue(profile.votingStartDate),
+    votingEndDate: dateInputValue(profile.votingEndDate),
+    votingWindowSourceUrl: profile.votingWindowSourceUrl ?? "",
+    votingWindowReference: profile.votingWindowReference ?? "",
     expectedTeamSize: String(profile.expectedTeamSize),
     candidateCount: String(profile.candidateCount),
     maxTotalBudget: String(profile.budget.maxTotalBudget),
@@ -284,6 +349,15 @@ type InputResult =
   | { ok: true; input: UpsertOperationProfileInput }
   | { ok: false; message: string };
 
+function isCivilDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    Number.isFinite(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
 function buildInput(
   form: OperationProfileForm,
   eligibleMembers: TeamMember[],
@@ -293,6 +367,8 @@ function buildInput(
   const circumscriptionCode = form.circumscriptionCode.trim();
   const dataControllerName = form.dataControllerName.trim();
   const revocationProcedure = form.revocationProcedure.trim();
+  const votingWindowSourceUrl = form.votingWindowSourceUrl.trim();
+  const votingWindowReference = form.votingWindowReference.trim();
 
   if (!circumscriptionName || circumscriptionName.length > 160) {
     return {
@@ -311,12 +387,82 @@ function buildInput(
         "El código de circunscripción solo admite letras, números, punto, guion, barra y guion bajo.",
     };
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.electionDate)) {
+  if (!isCivilDate(form.electionDate)) {
     return { ok: false, message: "Selecciona una fecha electoral válida." };
   }
-  const electionDate = new Date(`${form.electionDate}T12:00:00-05:00`);
-  if (Number.isNaN(electionDate.getTime())) {
-    return { ok: false, message: "Selecciona una fecha electoral válida." };
+  if (!isCivilDate(form.votingStartDate) || !isCivilDate(form.votingEndDate)) {
+    return {
+      ok: false,
+      message:
+        "Selecciona un inicio y un fin válidos para la ventana electoral.",
+    };
+  }
+  if (
+    form.votingStartDate > form.electionDate ||
+    form.electionDate > form.votingEndDate
+  ) {
+    return {
+      ok: false,
+      message:
+        "La fecha electoral principal debe estar dentro de la ventana operativa.",
+    };
+  }
+  const inclusiveDays =
+    Math.round(
+      (Date.parse(`${form.votingEndDate}T00:00:00.000Z`) -
+        Date.parse(`${form.votingStartDate}T00:00:00.000Z`)) /
+        86_400_000,
+    ) + 1;
+  if (inclusiveDays < 1 || inclusiveDays > 14) {
+    return {
+      ok: false,
+      message: "La ventana admite entre 1 y 14 fechas civiles inclusivas.",
+    };
+  }
+  if (Boolean(votingWindowSourceUrl) !== Boolean(votingWindowReference)) {
+    return {
+      ok: false,
+      message:
+        "La fuente HTTPS y la referencia documental deben declararse juntas.",
+    };
+  }
+  if (
+    votingWindowReference &&
+    (votingWindowReference.length < 10 || votingWindowReference.length > 500)
+  ) {
+    return {
+      ok: false,
+      message: "La referencia documental debe tener entre 10 y 500 caracteres.",
+    };
+  }
+  if (votingWindowSourceUrl) {
+    let source: URL;
+    try {
+      source = new URL(votingWindowSourceUrl);
+    } catch {
+      return { ok: false, message: "La fuente debe ser una URL HTTPS válida." };
+    }
+    if (
+      source.protocol !== "https:" ||
+      !source.hostname ||
+      source.username ||
+      source.password ||
+      /\s/u.test(votingWindowSourceUrl) ||
+      votingWindowSourceUrl.length > 2_048
+    ) {
+      return {
+        ok: false,
+        message:
+          "La fuente debe ser una URL HTTPS sin espacios ni credenciales embebidas.",
+      };
+    }
+  }
+  if (inclusiveDays > 1 && (!votingWindowSourceUrl || !votingWindowReference)) {
+    return {
+      ok: false,
+      message:
+        "Una ventana de varios días exige fuente HTTPS y referencia documental.",
+    };
   }
 
   const expectedTeamSize = parseNumericField(
@@ -438,7 +584,13 @@ function buildInput(
       circumscriptionName,
       ...(circumscriptionCode ? { circumscriptionCode } : {}),
       ...(form.listType ? { listType: form.listType } : {}),
-      electionDate: electionDate.toISOString(),
+      // These are declared civil dates. Sending YYYY-MM-DD preserves the
+      // official calendar key instead of reinterpreting UTC midnight in Bogotá.
+      electionDate: form.electionDate,
+      votingStartDate: form.votingStartDate,
+      votingEndDate: form.votingEndDate,
+      ...(votingWindowSourceUrl ? { votingWindowSourceUrl } : {}),
+      ...(votingWindowReference ? { votingWindowReference } : {}),
       expectedTeamSize: expectedTeamSize.value,
       candidateCount: candidateCount.value,
       maxTotalBudget: maxTotalBudget.value,
@@ -453,11 +605,12 @@ function buildInput(
 }
 
 function formatElectionDate(value: string): string {
-  const date = new Date(value);
+  const civilDate = dateInputValue(value);
+  const date = new Date(`${civilDate}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
   return new Intl.DateTimeFormat("es-CO", {
     dateStyle: "long",
-    timeZone: "America/Bogota",
+    timeZone: "UTC",
   }).format(date);
 }
 
@@ -479,6 +632,468 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
         {value}
       </dd>
     </div>
+  );
+}
+
+const READINESS_SECTIONS: ReadonlyArray<{
+  key: OperationReadinessSectionKey;
+  name: string;
+  description: string;
+}> = [
+  {
+    key: "BEFORE_CAMPAIGN",
+    name: "Antes",
+    description: "Perfil, cumplimiento, equipo y base territorial",
+  },
+  {
+    key: "CAMPAIGN",
+    name: "Campaña",
+    description: "Puestos, testigos y operación cotidiana",
+  },
+  {
+    key: "ELECTION_DAY",
+    name: "Elección",
+    description: "Fecha electoral, E-14 y conciliación",
+  },
+  {
+    key: "POST_ELECTION",
+    name: "Después",
+    description: "Obligaciones financieras y cierre operativo",
+  },
+];
+
+const READINESS_STATUS: Record<
+  OperationReadinessCheckStatus,
+  {
+    label: string;
+    icon: typeof CheckCircle2;
+    containerClass: string;
+    iconClass: string;
+    badgeClass: string;
+  }
+> = {
+  PASS: {
+    label: "Cumplido",
+    icon: CheckCircle2,
+    containerClass: "border-emerald-200 bg-emerald-50/70",
+    iconClass: "text-emerald-700",
+    badgeClass: "bg-emerald-100 text-emerald-800",
+  },
+  WARN: {
+    label: "Atención",
+    icon: TriangleAlert,
+    containerClass: "border-amber-200 bg-amber-50/70",
+    iconClass: "text-amber-700",
+    badgeClass: "bg-amber-100 text-amber-900",
+  },
+  BLOCK: {
+    label: "Bloqueo",
+    icon: XCircle,
+    containerClass: "border-red-200 bg-red-50/70",
+    iconClass: "text-red-700",
+    badgeClass: "bg-red-100 text-red-900",
+  },
+};
+
+const READINESS_OVERALL: Record<
+  OperationReadinessOverall,
+  { label: string; detail: string; className: string }
+> = {
+  READY: {
+    label: "Listo",
+    detail: "Todos los controles verificables están cumplidos.",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-950",
+  },
+  ATTENTION: {
+    label: "Requiere atención",
+    detail: "Hay advertencias que deben revisarse antes de avanzar.",
+    className: "border-amber-200 bg-amber-50 text-amber-950",
+  },
+  BLOCKED: {
+    label: "Con bloqueos",
+    detail: "Hay requisitos que impiden declarar completa la preparación.",
+    className: "border-red-200 bg-red-50 text-red-950",
+  },
+};
+
+const READINESS_ACTION_OVERRIDES: Readonly<Record<string, string>> = {
+  OPEN_INCIDENTS_CASES: "/dashboard/incidents",
+  POST_ELECTION_OPERATIONAL_CLOSEOUT: "/dashboard/transition",
+};
+
+function formatReadinessTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "momento no disponible";
+  return new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Bogota",
+  }).format(date);
+}
+
+function authorizedReadinessHref(
+  check: OperationReadinessCheck,
+  user: Pick<User, "role" | "backendRole">,
+  tenant: Pick<Tenant, "type">,
+): string | null {
+  const href = READINESS_ACTION_OVERRIDES[check.code] ?? check.href;
+  if (!href.startsWith("/dashboard/")) return null;
+  const item = dashboardConfig.find((candidate) =>
+    matchesNavigationPath(href, candidate.href),
+  );
+  return item && canAccessNavigationItem(item, user, tenant) ? href : null;
+}
+
+function ReadinessPanel({
+  readiness,
+  loading,
+  error,
+  onReload,
+  user,
+  tenant,
+}: {
+  readiness: OperationReadiness | null;
+  loading: boolean;
+  error: string | null;
+  onReload: () => void;
+  user: Pick<User, "role" | "backendRole">;
+  tenant: Pick<Tenant, "type">;
+}) {
+  if (loading && !readiness) {
+    return (
+      <section
+        aria-labelledby="operation-readiness-title"
+        aria-busy="true"
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2
+          id="operation-readiness-title"
+          className="flex items-center gap-3 text-xl font-black text-slate-950"
+        >
+          <ListChecks aria-hidden="true" className="text-blue-700" />
+          Alistamiento por ciclo
+        </h2>
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-5 flex items-center gap-3 text-sm font-semibold text-slate-600"
+        >
+          <Loader2 aria-hidden="true" className="animate-spin text-blue-700" />
+          Verificando controles operativos...
+        </div>
+      </section>
+    );
+  }
+
+  if (!readiness) {
+    return (
+      <section
+        aria-labelledby="operation-readiness-title"
+        className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm"
+      >
+        <h2
+          id="operation-readiness-title"
+          className="flex items-center gap-3 text-xl font-black text-red-950"
+        >
+          <AlertCircle aria-hidden="true" className="text-red-700" />
+          No pudimos verificar el alistamiento
+        </h2>
+        <p role="alert" className="mt-3 text-sm leading-6 text-red-900">
+          {error ?? "No se recibió un estado de alistamiento verificable."}
+        </p>
+        <Button type="button" className="mt-5 gap-2" onClick={onReload}>
+          <RefreshCw aria-hidden="true" size={16} />
+          Reintentar alistamiento
+        </Button>
+      </section>
+    );
+  }
+
+  const allChecks = READINESS_SECTIONS.flatMap(
+    ({ key }) => readiness.sections[key],
+  );
+  const blocked = allChecks.filter(({ status }) => status === "BLOCK").length;
+  const warnings = allChecks.filter(({ status }) => status === "WARN").length;
+  const passed = allChecks.filter(({ status }) => status === "PASS").length;
+  const overall = READINESS_OVERALL[readiness.overall];
+
+  return (
+    <section
+      aria-labelledby="operation-readiness-title"
+      aria-busy={loading}
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+    >
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <h2
+            id="operation-readiness-title"
+            className="flex items-center gap-3 text-xl font-black text-slate-950 sm:text-2xl"
+          >
+            <ListChecks aria-hidden="true" className="text-blue-700" />
+            Alistamiento por ciclo
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Controles calculados por el servidor con datos agregados de esta
+            organización. Una advertencia no se presenta como certificación ni
+            como dato electoral validado.
+          </p>
+          <p className="mt-2 text-xs font-semibold text-slate-500">
+            Etapa:{" "}
+            {readiness.stage ? STAGE_LABELS[readiness.stage] : "sin definir"}
+            {readiness.electionDate
+              ? ` · Elección: ${formatElectionDate(readiness.electionDate)}`
+              : " · Fecha electoral sin definir"}
+            {readiness.votingStartDate && readiness.votingEndDate
+              ? ` · Ventana Bogotá: ${readiness.votingStartDate} a ${readiness.votingEndDate} (inclusiva)`
+              : ""}
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          <div
+            role="status"
+            aria-label={`Estado general: ${overall.label}`}
+            className={`rounded-2xl border px-4 py-3 ${overall.className}`}
+          >
+            <p className="text-xs font-black uppercase tracking-[0.14em]">
+              {overall.label}
+            </p>
+            <p className="mt-1 max-w-xs text-xs font-semibold leading-5">
+              {overall.detail}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={onReload}
+            disabled={loading}
+            aria-label="Actualizar alistamiento por ciclo"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              size={15}
+              className={loading ? "animate-spin" : undefined}
+            />
+            Actualizar
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
+        <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-900">
+          {blocked} {blocked === 1 ? "bloqueo" : "bloqueos"}
+        </span>
+        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">
+          {warnings} {warnings === 1 ? "advertencia" : "advertencias"}
+        </span>
+        <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">
+          {passed} cumplidos
+        </span>
+        <span className="self-center font-semibold text-slate-500">
+          Generado:{" "}
+          <time dateTime={readiness.generatedAt}>
+            {formatReadinessTimestamp(readiness.generatedAt)}
+          </time>
+        </span>
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span>
+            No se pudo actualizar. Se conserva la última verificación: {error}
+          </span>
+          <button
+            type="button"
+            className="shrink-0 underline"
+            onClick={onReload}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-5 xl:grid-cols-2">
+        {READINESS_SECTIONS.map((section) => {
+          const headingId = `readiness-${section.key.toLowerCase()}`;
+          return (
+            <section
+              key={section.key}
+              aria-labelledby={headingId}
+              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5"
+            >
+              <div className="border-b border-slate-200 pb-3">
+                <h3
+                  id={headingId}
+                  className="text-lg font-black text-slate-950"
+                >
+                  {section.name}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  {section.description}
+                </p>
+              </div>
+              <ul className="mt-4 space-y-3">
+                {readiness.sections[section.key].map((item) => {
+                  const status = READINESS_STATUS[item.status];
+                  const StatusIcon = status.icon;
+                  const actionHref =
+                    item.status === "PASS"
+                      ? null
+                      : authorizedReadinessHref(item, user, tenant);
+                  return (
+                    <li
+                      key={item.code}
+                      className={`rounded-xl border p-4 ${status.containerClass}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <StatusIcon
+                          aria-hidden="true"
+                          size={20}
+                          className={`mt-0.5 shrink-0 ${status.iconClass}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <h4 className="text-sm font-black leading-5 text-slate-950">
+                              {item.label}
+                            </h4>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${status.badgeClass}`}
+                            >
+                              {status.label}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-slate-700">
+                            {item.detail}
+                          </p>
+                          {actionHref ? (
+                            <Link
+                              href={actionHref}
+                              className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-1 text-xs font-black text-blue-800 underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+                              aria-label={`Revisar: ${item.label}`}
+                            >
+                              Revisar acción
+                              <ExternalLink aria-hidden="true" size={14} />
+                            </Link>
+                          ) : item.status !== "PASS" ? (
+                            <p className="mt-3 text-[11px] font-bold text-slate-600">
+                              La corrección requiere un rol autorizado.
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+const LIFECYCLE_PHASES: ReadonlyArray<{
+  name: string;
+  purpose: string;
+  stages: readonly PoliticalOperationStage[];
+}> = [
+  {
+    name: "Antes",
+    purpose: "Viabilidad, precampaña y firmas",
+    stages: ["EXPLORATION", "PRE_CAMPAIGN", "SIGNATURE_COLLECTION"],
+  },
+  {
+    name: "Campaña",
+    purpose: "Ejecución, alistamiento y simulacro",
+    stages: ["CAMPAIGN", "ELECTION_PREPARATION", "SIMULATION"],
+  },
+  {
+    name: "Elección",
+    purpose: "Testigos, E-14, incidentes y control",
+    stages: ["ELECTION_DAY"],
+  },
+  {
+    name: "Después",
+    purpose: "Revisión, reclamaciones, cierre y conservación",
+    stages: ["POST_ELECTION", "CLOSED"],
+  },
+];
+
+function ElectionLifecycle({ profile }: { profile: OperationProfile }) {
+  const permittedAdvances = new Set(
+    profile.allowedNextStages.filter((stage) => stage !== profile.stage),
+  );
+
+  return (
+    <section
+      aria-labelledby="election-lifecycle-title"
+      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+    >
+      <div>
+        <p
+          id="election-lifecycle-title"
+          className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500"
+        >
+          Ciclo electoral controlado
+        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-600">
+          La etapa vigente y sus próximos avances son decididos por la API y
+          quedan auditados; no se permiten retrocesos silenciosos.
+        </p>
+      </div>
+      <ol className="mt-4 grid gap-3 sm:grid-cols-2">
+        {LIFECYCLE_PHASES.map((phase) => {
+          const active = phase.stages.includes(profile.stage);
+          return (
+            <li
+              key={phase.name}
+              className={`rounded-xl border p-3 ${
+                active
+                  ? "border-blue-700 bg-blue-700 text-white"
+                  : "border-slate-200 bg-white text-slate-700"
+              }`}
+            >
+              <p className="text-xs font-black uppercase tracking-wider">
+                {phase.name}
+                {active ? " · etapa vigente" : ""}
+              </p>
+              <p
+                className={`mt-1 text-xs leading-5 ${
+                  active ? "text-blue-100" : "text-slate-500"
+                }`}
+              >
+                {phase.purpose}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {phase.stages.map((stage) => (
+                  <span
+                    key={stage}
+                    aria-current={stage === profile.stage ? "step" : undefined}
+                    className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                      stage === profile.stage
+                        ? "bg-white text-blue-800"
+                        : permittedAdvances.has(stage)
+                          ? "border border-blue-300 bg-blue-50 text-blue-800"
+                          : active
+                            ? "bg-blue-800 text-blue-100"
+                            : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {STAGE_LABELS[stage]}
+                    {permittedAdvances.has(stage) ? " · siguiente" : ""}
+                  </span>
+                ))}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -504,16 +1119,54 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
 
   return (
     <div className="space-y-6">
+      <ElectionLifecycle profile={profile} />
       <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
         <SummaryItem
           label="Tipo de operación"
           value={OPERATION_TYPE_LABELS[profile.operationType]}
         />
         <SummaryItem label="Etapa" value={STAGE_LABELS[profile.stage]} />
+        {profile.stage === "CLOSED" && (
+          <SummaryItem
+            label="Clasificación del cierre"
+            value={
+              profile.closureType === "CLOSED_EXCEPTIONAL"
+                ? `Excepcional · ${
+                    TERMINATION_CAUSE_LABELS[
+                      profile.terminationCause ?? "OTHER"
+                    ] ?? "Causal documentada"
+                  } · efectiva ${formatElectionDate(profile.terminatedAt ?? "")}`
+                : "Ordinario poselectoral"
+            }
+          />
+        )}
         <SummaryItem
           label="Elección y fecha"
           value={`${ELECTION_TYPE_LABELS[profile.electionType]} · ${formatElectionDate(profile.electionDate)}`}
         />
+        <SummaryItem
+          label="Ventana operativa (America/Bogota)"
+          value={`${profile.votingStartDate} a ${profile.votingEndDate}, ambas fechas incluidas`}
+        />
+        {profile.votingWindowSourceUrl && profile.votingWindowReference && (
+          <div>
+            <dt className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              Fuente de la ventana
+            </dt>
+            <dd className="mt-1 text-sm font-semibold leading-6 text-slate-800">
+              {profile.votingWindowReference}.{" "}
+              <a
+                href={profile.votingWindowSourceUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1 text-blue-800 underline decoration-2 underline-offset-4"
+              >
+                Abrir fuente
+                <ExternalLink aria-hidden="true" size={14} />
+              </a>
+            </dd>
+          </div>
+        )}
         <SummaryItem
           label="Circunscripción"
           value={`${CIRCUMSCRIPTION_TYPE_LABELS[profile.circumscriptionType]} · ${profile.circumscriptionName}${profile.circumscriptionCode ? ` (${profile.circumscriptionCode})` : ""}`}
@@ -583,33 +1236,50 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
 }
 
 export default function OperationProfilePage() {
+  const confirm = useConfirmation();
   const { synchronizeTenant, tenant, user } = useAuth();
   const canEdit = user?.backendRole === "ADMIN";
   const [context, setContext] = useState<OperationProfileContext | null>(null);
+  const [readiness, setReadiness] = useState<OperationReadiness | null>(null);
   const [eligibleMembers, setEligibleMembers] = useState<TeamMember[]>([]);
   const [form, setForm] = useState<OperationProfileForm | null>(null);
   const [loading, setLoading] = useState(true);
+  const [readinessLoading, setReadinessLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [membersError, setMembersError] = useState<string | null>(null);
+  const [readinessError, setReadinessError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [adoptionMode, setAdoptionMode] = useState(false);
+  const [adoptionDraft, setAdoptionDraft] = useState<OperationAdoptionDraft>(
+    DEFAULT_ADOPTION_DRAFT,
+  );
+  const [adoptionReload, setAdoptionReload] = useState(0);
+  const adoptionAttempt = useRef<{ fingerprint: string; id: string } | null>(
+    null,
+  );
 
   const load = useCallback(
     async (signal: AbortSignal) => {
       if (!tenant || !user) {
         setLoading(false);
+        setReadinessLoading(false);
         return;
       }
 
       setLoading(true);
+      setReadinessLoading(true);
       setError(null);
       setMembersError(null);
-      const [profileResult, membersResult] = await Promise.allSettled([
-        getOperationProfile(signal),
-        canEdit ? listTeamMembers(signal) : Promise.resolve([]),
-      ]);
+      setReadinessError(null);
+      const [profileResult, readinessResult, membersResult] =
+        await Promise.allSettled([
+          getOperationProfile(signal),
+          getOperationReadiness(signal),
+          canEdit ? listTeamMembers(signal) : Promise.resolve([]),
+        ]);
       if (signal.aborted) return;
 
       let members: TeamMember[] = [];
@@ -645,7 +1315,18 @@ export default function OperationProfilePage() {
           ),
         );
       }
+      if (readinessResult.status === "fulfilled") {
+        setReadiness(readinessResult.value);
+      } else {
+        setReadinessError(
+          readableError(
+            readinessResult.reason,
+            "No fue posible verificar el alistamiento por ciclo.",
+          ),
+        );
+      }
       setLoading(false);
+      setReadinessLoading(false);
     },
     [canEdit, tenant, user],
   );
@@ -671,6 +1352,13 @@ export default function OperationProfilePage() {
     eligibleMembers.length > 0,
   );
   const currentProfile = context?.configured ? context.profile : null;
+  const allowedStageValues = new Set<PoliticalOperationStage>(
+    currentProfile?.allowedNextStages ??
+      (adoptionMode ? ADOPTABLE_OPERATION_STAGES : SAFE_INITIAL_STAGES),
+  );
+  const availableStageOptions = STAGES.filter(({ value }) =>
+    allowedStageValues.has(value),
+  );
 
   const responsibleHelp = useMemo(() => {
     if (membersError) return "Recarga para volver a consultar el equipo.";
@@ -707,6 +1395,29 @@ export default function OperationProfilePage() {
     setNotice(null);
   }
 
+  function setAdoptionDraftField<K extends keyof OperationAdoptionDraft>(
+    field: K,
+    value: OperationAdoptionDraft[K],
+  ) {
+    setAdoptionDraft((current) => ({ ...current, [field]: value }));
+    setSaveError(null);
+    setNotice(null);
+  }
+
+  function selectCreationMode(nextAdoptionMode: boolean) {
+    setAdoptionMode(nextAdoptionMode);
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            stage: nextAdoptionMode ? "SIGNATURE_COLLECTION" : "EXPLORATION",
+          }
+        : current,
+    );
+    setSaveError(null);
+    setNotice(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit || !form || !tenant) return;
@@ -716,6 +1427,97 @@ export default function OperationProfilePage() {
     const result = buildInput(form, eligibleMembers, currentProfile?.updatedAt);
     if (!result.ok) {
       setSaveError(result.message);
+      return;
+    }
+
+    if (adoptionMode && !currentProfile) {
+      const effectiveAt = new Date(adoptionDraft.effectiveAt);
+      if (
+        !adoptionDraft.effectiveAt ||
+        !Number.isFinite(effectiveAt.getTime()) ||
+        effectiveAt.getTime() > Date.now()
+      ) {
+        setSaveError(
+          "El inicio real de la etapa debe ser un instante válido y no puede estar en el futuro.",
+        );
+        return;
+      }
+      if (adoptionDraft.justification.trim().length < 80) {
+        setSaveError("La justificación debe tener al menos 80 caracteres.");
+        return;
+      }
+      if (adoptionDraft.evidenceReference.trim().length < 3) {
+        setSaveError("La referencia externa de evidencia es obligatoria.");
+        return;
+      }
+      if (!/^[a-f0-9]{64}$/.test(adoptionDraft.evidenceSha256)) {
+        setSaveError(
+          "El SHA-256 declarado debe contener exactamente 64 caracteres hexadecimales en minúscula.",
+        );
+        return;
+      }
+      if (
+        !adoptionDraft.incompleteHistoryAcknowledged ||
+        adoptionDraft.confirmation.trim() !== "ADOPTAR HISTORIA INCOMPLETA"
+      ) {
+        setSaveError(
+          "Debes reconocer la historia incompleta y escribir la confirmación exacta.",
+        );
+        return;
+      }
+      if (
+        !(await confirm({
+          title: "Enviar adopción de historia incompleta",
+          description:
+            "Esta solicitud declara una etapa ya iniciada, no certifica la historia previa y requerirá revisión independiente.",
+          confirmLabel: "Enviar solicitud",
+          destructive: true,
+        }))
+      ) {
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const { stage: targetStage, ...profile } = result.input;
+        const logicalPayload = {
+          ...profile,
+          targetStage: targetStage as AdoptableOperationStage,
+          effectiveAt: effectiveAt.toISOString(),
+          justification: adoptionDraft.justification.trim(),
+          evidenceReference: adoptionDraft.evidenceReference.trim(),
+          evidenceSha256: adoptionDraft.evidenceSha256,
+          incompleteHistoryAcknowledged: true as const,
+        };
+        const fingerprint = JSON.stringify(logicalPayload);
+        const clientRequestId =
+          adoptionAttempt.current?.fingerprint === fingerprint
+            ? adoptionAttempt.current.id
+            : globalThis.crypto.randomUUID();
+        adoptionAttempt.current = { fingerprint, id: clientRequestId };
+        const hashInput = { ...logicalPayload, clientRequestId };
+        const payloadSha256 =
+          await computeOperationAdoptionPayloadSha256(hashInput);
+        const response = await requestOperationAdoption({
+          ...hashInput,
+          payloadSha256,
+        });
+        setNotice(
+          response.noOp
+            ? "La misma solicitud ya estaba registrada; se conservó sin duplicarla."
+            : "Solicitud enviada. Caduca en 72 horas y requiere revisión independiente.",
+        );
+        setAdoptionReload((value) => value + 1);
+      } catch (requestError: unknown) {
+        setSaveError(
+          readableError(
+            requestError,
+            "No fue posible registrar la solicitud de adopción.",
+          ),
+        );
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -729,6 +1531,7 @@ export default function OperationProfilePage() {
         operationStage: response.profile.stage,
       });
       setNotice("Perfil operativo guardado y navegación actualizada.");
+      setReload((value) => value + 1);
       if (!synchronized) {
         setSaveError(
           "El perfil se guardó, pero la sesión local no pudo actualizarse. Vuelve a ingresar para ver el menú de la nueva etapa.",
@@ -767,7 +1570,7 @@ export default function OperationProfilePage() {
           variant="outline"
           size="sm"
           onClick={() => setReload((value) => value + 1)}
-          disabled={loading || saving}
+          disabled={loading || readinessLoading || saving}
           className="w-full gap-2 sm:w-auto"
         >
           <RefreshCw
@@ -775,9 +1578,20 @@ export default function OperationProfilePage() {
             size={15}
             className={loading ? "animate-spin" : undefined}
           />
-          Recargar perfil
+          Recargar perfil y alistamiento
         </Button>
       </header>
+
+      {user && tenant && (
+        <ReadinessPanel
+          readiness={readiness}
+          loading={readinessLoading}
+          error={readinessError}
+          onReload={() => setReload((value) => value + 1)}
+          user={user}
+          tenant={tenant}
+        />
+      )}
 
       {notice && (
         <div
@@ -789,6 +1603,50 @@ export default function OperationProfilePage() {
           {notice}
         </div>
       )}
+
+      {user &&
+        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
+          user.backendRole,
+        ) && (
+          <OperationAdoptionStatusPanel
+            role={user.backendRole}
+            userId={user.id}
+            reloadKey={adoptionReload}
+            onApproved={(stage) => {
+              const synchronized = tenant
+                ? synchronizeTenant({ ...tenant, operationStage: stage })
+                : false;
+              setNotice(
+                synchronized
+                  ? "Adopción aprobada: perfil, etapa y alistamiento se están recargando."
+                  : "La adopción fue aprobada y el perfil se recargará, pero la sesión local no pudo sincronizar la navegación; vuelve a ingresar.",
+              );
+              setReload((value) => value + 1);
+            }}
+          />
+        )}
+
+      {user &&
+        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
+          user.backendRole,
+        ) && (
+          <OperationTerminationPanel
+            role={user.backendRole}
+            userId={user.id}
+            profile={currentProfile}
+            onApproved={() => {
+              const synchronized = tenant
+                ? synchronizeTenant({ ...tenant, operationStage: "CLOSED" })
+                : false;
+              setNotice(
+                synchronized
+                  ? "Cierre excepcional confirmado: la operación quedó en modo de solo lectura y el expediente se está recargando."
+                  : "El cierre excepcional fue confirmado, pero la navegación local no pudo sincronizarse; vuelve a ingresar.",
+              );
+              setReload((value) => value + 1);
+            }}
+          />
+        )}
 
       {error && context && (
         <div
@@ -864,6 +1722,32 @@ export default function OperationProfilePage() {
                   Todos los cambios se validan en el servidor y quedan ligados
                   exclusivamente a esta organización.
                 </p>
+                {!currentProfile && (
+                  <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      aria-pressed={!adoptionMode}
+                      onClick={() => selectCreationMode(false)}
+                      className={`rounded-xl px-4 py-3 text-left text-sm font-black ${!adoptionMode ? "bg-white text-blue-900 shadow-sm ring-2 ring-blue-700" : "text-slate-600"}`}
+                    >
+                      Alta segura
+                      <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
+                        Inicia en exploración o precampaña.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={adoptionMode}
+                      onClick={() => selectCreationMode(true)}
+                      className={`rounded-xl px-4 py-3 text-left text-sm font-black ${adoptionMode ? "bg-amber-50 text-amber-950 shadow-sm ring-2 ring-amber-600" : "text-slate-600"}`}
+                    >
+                      Adopción excepcional
+                      <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
+                        Para una campaña que ya inició fuera del sistema.
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <fieldset className="space-y-5">
@@ -903,14 +1787,25 @@ export default function OperationProfilePage() {
                         )
                       }
                     >
-                      {STAGES.map((option) => (
+                      {availableStageOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </Select>
                     <p className="text-xs leading-5 text-slate-500">
-                      Cambiarla actualiza los módulos visibles en el menú.
+                      {currentProfile
+                        ? currentProfile.allowedNextStages.length > 1
+                          ? `Avances permitidos: ${currentProfile.allowedNextStages
+                              .filter((stage) => stage !== currentProfile.stage)
+                              .map((stage) => STAGE_LABELS[stage])
+                              .join(
+                                " o ",
+                              )}. No se permiten retrocesos ni saltos de control.`
+                          : "La operación está cerrada y no admite reapertura desde este perfil."
+                        : adoptionMode
+                          ? "Solo se ofrecen las seis etapas adoptables autorizadas por el servidor; exige evidencia y cuatro ojos."
+                          : "Un perfil nuevo inicia en exploración o precampaña; después avanza con trazabilidad."}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -940,8 +1835,107 @@ export default function OperationProfilePage() {
                       type="date"
                       required
                       value={form.electionDate}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setForm((current) =>
+                          current
+                            ? {
+                                ...current,
+                                electionDate: value,
+                                votingStartDate:
+                                  current.votingStartDate || value,
+                                votingEndDate: current.votingEndDate || value,
+                              }
+                            : current,
+                        );
+                        setSaveError(null);
+                        setNotice(null);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-950">
+                        Ventana operativa electoral
+                      </p>
+                      <p
+                        id="voting-window-help"
+                        className="mt-2 text-xs leading-5 text-blue-950/75"
+                      >
+                        Fechas civiles inclusivas en America/Bogota, máximo 14.
+                        La fecha principal debe quedar dentro de la ventana. Una
+                        ventana de varios días exige una fuente HTTPS y una
+                        referencia documental; registrarla no significa que la
+                        plataforma la certifique como oficial.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="voting-start-date">
+                      Primera fecha incluida
+                    </Label>
+                    <Input
+                      id="voting-start-date"
+                      type="date"
+                      required
+                      aria-describedby="voting-window-help"
+                      value={form.votingStartDate}
                       onChange={(event) =>
-                        setFormField("electionDate", event.target.value)
+                        setFormField("votingStartDate", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="voting-end-date">
+                      Última fecha incluida
+                    </Label>
+                    <Input
+                      id="voting-end-date"
+                      type="date"
+                      required
+                      aria-describedby="voting-window-help"
+                      value={form.votingEndDate}
+                      onChange={(event) =>
+                        setFormField("votingEndDate", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="voting-window-source-url">
+                      Fuente documental HTTPS (si aplica)
+                    </Label>
+                    <Input
+                      id="voting-window-source-url"
+                      type="url"
+                      inputMode="url"
+                      maxLength={2_048}
+                      aria-describedby="voting-window-help"
+                      placeholder="https://autoridad.example/calendario.pdf"
+                      value={form.votingWindowSourceUrl}
+                      onChange={(event) =>
+                        setFormField(
+                          "votingWindowSourceUrl",
+                          event.target.value,
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="voting-window-reference">
+                      Referencia documental (si aplica)
+                    </Label>
+                    <Input
+                      id="voting-window-reference"
+                      minLength={10}
+                      maxLength={500}
+                      aria-describedby="voting-window-help"
+                      placeholder="Acto, resolución, artículo o página de la fuente"
+                      value={form.votingWindowReference}
+                      onChange={(event) =>
+                        setFormField(
+                          "votingWindowReference",
+                          event.target.value,
+                        )
                       }
                     />
                   </div>
@@ -995,6 +1989,14 @@ export default function OperationProfilePage() {
                   </div>
                 </div>
               </fieldset>
+
+              {adoptionMode && !currentProfile && (
+                <OperationAdoptionFields
+                  value={adoptionDraft}
+                  disabled={saving}
+                  onChange={setAdoptionDraftField}
+                />
+              )}
 
               <fieldset className="space-y-5 border-t border-slate-100 pt-7">
                 <legend className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
@@ -1242,8 +2244,9 @@ export default function OperationProfilePage() {
 
               <div className="flex flex-col gap-3 border-t border-slate-100 pt-7 sm:flex-row sm:items-center sm:justify-between">
                 <p className="max-w-md text-xs font-semibold leading-5 text-slate-500">
-                  La versión abierta se envía al servidor para evitar que un
-                  cambio simultáneo sobrescriba el trabajo de otra persona.
+                  {adoptionMode && !currentProfile
+                    ? "La solicitud no activa la etapa: una persona de cumplimiento o auditoría debe revisar la evidencia y decidir."
+                    : "La versión abierta se envía al servidor para evitar que un cambio simultáneo sobrescriba el trabajo de otra persona."}
                 </p>
                 <Button
                   type="submit"
@@ -1259,7 +2262,11 @@ export default function OperationProfilePage() {
                   ) : (
                     <Save aria-hidden="true" size={17} />
                   )}
-                  {saving ? "Guardando…" : "Guardar perfil"}
+                  {saving
+                    ? "Guardando…"
+                    : adoptionMode && !currentProfile
+                      ? "Solicitar revisión independiente"
+                      : "Guardar perfil"}
                 </Button>
               </div>
             </form>
