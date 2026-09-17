@@ -30,6 +30,7 @@ import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
 import { GrantVoterConsentDto } from './dto/grant-voter-consent.dto';
 import { UpdateVoterDataDto } from './dto/update-voter-data.dto';
 import { VoterDataRightsParamsDto } from './dto/voter-data-rights-params.dto';
+import { UpdateVotingStatusDto } from './dto/update-voting-status.dto';
 import {
   VOTER_DATA_RIGHTS_ROLES,
   VoterDataRightsService,
@@ -106,6 +107,24 @@ export class VoterController {
   @ApiOperation({ summary: 'Obtiene estadísticas de la campaña' })
   async getStats(@CurrentUser() user: AuthenticatedUser) {
     return this.voterService.getStats(user);
+  }
+
+  @Get('election-day')
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
+  @ApiOperation({ summary: 'Resumen del Día D con todos los votantes y su estado' })
+  async getElectionDaySummary(@CurrentUser() user: AuthenticatedUser) {
+    return this.voterService.getElectionDaySummary(user);
+  }
+
+  @Patch(':id/voting-status')
+  @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
+  @ApiOperation({ summary: 'Actualiza el estado de votación de un simpatizante el Día D' })
+  async updateVotingStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: VoterDataRightsParamsDto,
+    @Body() dto: UpdateVotingStatusDto,
+  ) {
+    return this.voterService.updateVotingStatus(user, params.id, dto.status);
   }
 
   @Get(':id/export')

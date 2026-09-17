@@ -795,6 +795,79 @@ export class VoterService {
     return { total, consented };
   }
 
+  async getElectionDaySummary(user: AuthenticatedUser) {
+    const tenantId = user.tenantId;
+    
+    const [voters, statusCounts] = await Promise.all([
+      this.prisma.voter.findMany({
+        where: { tenantId, consentAccepted: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          votingStatus: true,
+          votedAt: true,
+          puestoId: true,
+          mesa: true,
+          registrar: { select: { id: true, name: true } },
+          puesto: { select: { id: true, name: true } },
+        },
+        orderBy: [{ votingStatus: 'asc' }, { lastName: 'asc' }],
+      }),
+      this.prisma.voter.groupBy({
+        by: ['votingStatus'],
+        where: { tenantId, consentAccepted: true },
+        _count: true,
+      }),
+    ]);
+
+    const summary = {
+      total: voters.length,
+      voted: 0,
+      pending: 0,
+      needsTransport: 0,
+      noShow: 0,
+    };
+    
+    for (const group of statusCounts) {
+      if (group.votingStatus === 'VOTED') summary.voted = group._count;
+      else if (group.votingStatus === 'PENDING') summary.pending = group._count;
+      else if (group.votingStatus === 'NEEDS_TRANSPORT') summary.needsTransport = group._count;
+      else if (group.votingStatus === 'NO_SHOW') summary.noShow = group._count;
+    }
+
+    return { summary, voters };
+  }
+
+  async updateVotingStatus(user: AuthenticatedUser, voterId: string, status: string) {
+    const voter = await this.prisma.voter.findFirst({
+      where: { id: voterId, tenantId: user.tenantId },
+    });
+    if (!voter) throw new NotFoundException('Votante no encontrado');
+
+    const data: any = { votingStatus: status };
+    if (status === 'VOTED') {
+      data.votedAt = new Date();
+      data.votedConfirmedBy = user.userId;
+    } else {
+      data.votedAt = null;
+      data.votedConfirmedBy = null;
+    }
+
+    return this.prisma.voter.update({
+      where: { id: voterId },
+      data,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        votingStatus: true,
+        votedAt: true,
+      },
+    });
+  }
+
   private async assertCampaignMode(tenantId: string): Promise<void> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },

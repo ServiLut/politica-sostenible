@@ -363,6 +363,9 @@ exports.Prisma.VoterScalarFieldEnum = {
   consentIp: 'consentIp',
   consentTimestamp: 'consentTimestamp',
   termsVersion: 'termsVersion',
+  votingStatus: 'votingStatus',
+  votedAt: 'votedAt',
+  votedConfirmedBy: 'votedConfirmedBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -2440,6 +2443,13 @@ exports.ElectoralCatalogImportStatus = exports.$Enums.ElectoralCatalogImportStat
   PROCESSING: 'PROCESSING',
   SUCCEEDED: 'SUCCEEDED',
   FAILED: 'FAILED'
+};
+
+exports.VotingStatus = exports.$Enums.VotingStatus = {
+  PENDING: 'PENDING',
+  VOTED: 'VOTED',
+  NEEDS_TRANSPORT: 'NEEDS_TRANSPORT',
+  NO_SHOW: 'NO_SHOW'
 };
 
 exports.EntryType = exports.$Enums.EntryType = {

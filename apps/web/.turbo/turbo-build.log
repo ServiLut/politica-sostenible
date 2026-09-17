@@ -3,18 +3,18 @@
 > next build
 
 ▲ Next.js 16.3.4 (Turbopack)
-✓ Running next.config.ts took 20ms
+✓ Running next.config.ts took 35ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 4.8s
+✓ Compiled successfully in 1395ms
   Running TypeScript ...
-  Finished TypeScript in 9.1s ...
+  Finished TypeScript in 1727ms ...
   Collecting page data using 11 workers ...
-  Generating static pages using 11 workers (0/45) ...
-  Generating static pages using 11 workers (11/45) 
-  Generating static pages using 11 workers (22/45) 
-  Generating static pages using 11 workers (33/45) 
-✓ Generating static pages using 11 workers (45/45) in 387ms
+  Generating static pages using 11 workers (0/46) ...
+  Generating static pages using 11 workers (11/46) 
+  Generating static pages using 11 workers (22/46) 
+  Generating static pages using 11 workers (34/46) 
+✓ Generating static pages using 11 workers (46/46) in 359ms
   Finalizing page optimization ...
 
 Route (app)
@@ -28,6 +28,7 @@ Route (app)
 ├ ƒ /dashboard/captura-territorial
 ├ ƒ /dashboard/cases
 ├ ƒ /dashboard/communications
+├ ƒ /dashboard/dia-d
 ├ ƒ /dashboard/electoral-calendar
 ├ ƒ /dashboard/electoral-catalog
 ├ ƒ /dashboard/events

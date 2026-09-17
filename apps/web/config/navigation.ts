@@ -751,9 +751,13 @@ export const dashboardConfig: NavItem[] = [
       "CAMPAIGN_MANAGER",
       "ZONE_COORDINATOR",
     ],
-    allowedTenantTypes: ["CANDIDACY"],
+    allowedTenantTypes: CAMPAIGN_TENANTS,
     allowedStages: [
+      "CAMPAIGN",
+      "ELECTION_PREPARATION",
+      "SIMULATION",
       "ELECTION_DAY",
+      "POST_ELECTION",
     ],
   },
   {

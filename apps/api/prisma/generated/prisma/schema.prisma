@@ -638,6 +638,9 @@ model Voter {
   consentIp         String?
   consentTimestamp  DateTime?
   termsVersion      String?            @default("2026.1")
+  votingStatus      VotingStatus       @default(PENDING)
+  votedAt           DateTime?
+  votedConfirmedBy  String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   tenant            Tenant             @relation(fields: [tenantId], references: [id])
@@ -651,6 +654,7 @@ model Voter {
   @@unique([documentId, tenantId])
   @@index([tenantId, puestoId])
   @@index([tenantId, registrarId])
+  @@index([tenantId, votingStatus])
   @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin)
 }
@@ -4874,4 +4878,11 @@ enum PqrsdCommandType {
   DELIVERY_ATTEMPT_RECORD
   DOSSIER_CLOSE
   DOSSIER_REOPEN
+}
+
+enum VotingStatus {
+  PENDING
+  VOTED
+  NEEDS_TRANSPORT
+  NO_SHOW
 }
