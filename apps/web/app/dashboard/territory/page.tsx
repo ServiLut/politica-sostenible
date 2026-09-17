@@ -12,11 +12,13 @@ import {
   Plus,
   RefreshCw,
   Search,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { UserRole } from "@/types/saas-schema";
 import { TerritoryHeatmap } from "@/components/territory/TerritoryHeatmap";
+import { CreateLeaderModal } from "@/components/territory/CreateLeaderModal";
 
 type DivisionType = "MUNICIPIO" | "ZONA" | "PUESTO";
 
@@ -118,6 +120,7 @@ export default function TerritoryPage() {
   const [parentId, setParentId] = useState("");
   const [loadingParents, setLoadingParents] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [selectedDivisionForLeader, setSelectedDivisionForLeader] = useState<Division | null>(null);
 
   const canSynchronize =
     user?.role === UserRole.AdminCampana || user?.role === UserRole.SuperAdmin;
@@ -647,6 +650,16 @@ export default function TerritoryPage() {
                     Pertenece a <strong>{division.parent.name}</strong>
                   </p>
                 )}
+                <div className="mt-4 flex items-center justify-end border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDivisionForLeader(division)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                  >
+                    <UserPlus size={14} />
+                    Crear Líder
+                  </button>
+                </div>
               </article>
             ))}
           </section>
@@ -680,6 +693,18 @@ export default function TerritoryPage() {
         sincronización conserva los registros existentes y nunca elimina
         divisiones.
       </p>
+
+      {selectedDivisionForLeader && (
+        <CreateLeaderModal
+          divisionId={selectedDivisionForLeader.id}
+          divisionName={selectedDivisionForLeader.name}
+          onClose={() => setSelectedDivisionForLeader(null)}
+          onSuccess={() => {
+            setSelectedDivisionForLeader(null);
+            setNotice(`Líder asignado exitosamente a ${selectedDivisionForLeader.name}.`);
+          }}
+        />
+      )}
     </div>
   );
 }

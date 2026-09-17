@@ -112,7 +112,7 @@ export class StorageIntegrityVerificationService {
       current.integrityStatus !== StorageIntegrityStatus.PENDING ||
       !current.expectedSha256 ||
       current.reportedSha256 !== current.expectedSha256 ||
-      ![StoredObjectStatus.CONFIRMED, StoredObjectStatus.CONSUMED].includes(
+      !([StoredObjectStatus.CONFIRMED, StoredObjectStatus.CONSUMED] as StoredObjectStatus[]).includes(
         current.status,
       )
     ) {

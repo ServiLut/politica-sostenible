@@ -640,6 +640,8 @@ export class ElectronicSignatureService {
       consumedAt: document.consumedAt,
       consumedByType: document.consumedByType,
       consumedById: document.consumedById,
+      calculatedSha256: document.calculatedSha256,
+      integrityVerifiedAt: document.integrityVerifiedAt,
     };
   }
 

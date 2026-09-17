@@ -1,57 +1,70 @@
 
-> web@0.1.0 build C:\Users\user\Desktop\politica-sostenible\apps\web
+> web@0.1.0 build C:\Users\user\Documents\politica-sostenible\apps\web
 > next build
 
-▲ Next.js 16.3.2 (Turbopack)
-✓ Running next.config.ts took 62ms
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 20ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 2.6s
+✓ Compiled successfully in 4.8s
   Running TypeScript ...
-  Finished TypeScript in 5.3s ...
-  Collecting page data using 7 workers ...
-  Generating static pages using 7 workers (0/33) ...
-  Generating static pages using 7 workers (8/33) 
-  Generating static pages using 7 workers (16/33) 
-  Generating static pages using 7 workers (24/33) 
-✓ Generating static pages using 7 workers (33/33) in 1055ms
+  Finished TypeScript in 9.1s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/45) ...
+  Generating static pages using 11 workers (11/45) 
+  Generating static pages using 11 workers (22/45) 
+  Generating static pages using 11 workers (33/45) 
+✓ Generating static pages using 11 workers (45/45) in 387ms
   Finalizing page optimization ...
 
 Route (app)
-┌ ○ /
-├ ○ /_not-found
-├ ○ /aceptar-invitacion
-├ ○ /dashboard
-├ ○ /dashboard/audit
-├ ○ /dashboard/billing
-├ ○ /dashboard/captura-territorial
-├ ○ /dashboard/cases
-├ ○ /dashboard/communications
-├ ○ /dashboard/events
-├ ○ /dashboard/executive
-├ ○ /dashboard/finance
-├ ○ /dashboard/inbox
-├ ○ /dashboard/incidents
-├ ○ /dashboard/operation-profile
-├ ○ /dashboard/profile
-├ ○ /dashboard/proposals
-├ ○ /dashboard/public-office
-├ ○ /dashboard/settings
-├ ○ /dashboard/tasks
-├ ○ /dashboard/team
-├ ○ /dashboard/territory
-├ ○ /dashboard/votantes
-├ ○ /dashboard/votantes/new
-├ ○ /dashboard/war-room
-├ ○ /iniciar-sesion
-├ ○ /olvide-mi-contrasena
-├ ○ /privacidad
-├ ○ /registro
-├ ○ /reiniciar-contrasena
-└ ○ /terminos
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /aceptar-invitacion
+├ ƒ /aplicacion
+├ ƒ /dashboard
+├ ƒ /dashboard/audit
+├ ƒ /dashboard/billing
+├ ƒ /dashboard/captura-territorial
+├ ƒ /dashboard/cases
+├ ƒ /dashboard/communications
+├ ƒ /dashboard/electoral-calendar
+├ ƒ /dashboard/electoral-catalog
+├ ƒ /dashboard/events
+├ ƒ /dashboard/executive
+├ ƒ /dashboard/finance
+├ ƒ /dashboard/inbox
+├ ƒ /dashboard/incidents
+├ ƒ /dashboard/integrity-signatures
+├ ƒ /dashboard/logistics
+├ ƒ /dashboard/operation-profile
+├ ƒ /dashboard/pqrsd
+├ ƒ /dashboard/profile
+├ ƒ /dashboard/proposals
+├ ƒ /dashboard/public-office
+├ ƒ /dashboard/retention
+├ ƒ /dashboard/scrutiny
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/signatures
+├ ƒ /dashboard/tasks
+├ ƒ /dashboard/team
+├ ƒ /dashboard/territory
+├ ƒ /dashboard/transition
+├ ƒ /dashboard/votantes
+├ ƒ /dashboard/votantes/new
+├ ƒ /dashboard/war-room
+├ ƒ /dashboard/witness-planning
+├ ƒ /iniciar-sesion
+├ ○ /manifest.webmanifest
+├ ƒ /olvide-mi-contrasena
+├ ƒ /privacidad
+├ ƒ /registro
+├ ƒ /reiniciar-contrasena
+└ ƒ /terminos
 
 
 ƒ Proxy (Middleware)
 
-○  (Static)  prerendered as static content
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
 

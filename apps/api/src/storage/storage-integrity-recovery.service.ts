@@ -8,6 +8,7 @@ import {
 import {
   StorageIntegrityStatus,
   StoredObjectStatus,
+  Prisma,
 } from '../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -51,7 +52,7 @@ export class StorageIntegrityRecoveryService
     this.running = true;
     try {
       const staleBefore = new Date(Date.now() - STALE_LEASE_MS);
-      const pending = {
+      const pending: Prisma.StoredObjectWhereInput = {
         expectedSha256: { not: null },
         integrityStatus: StorageIntegrityStatus.PENDING,
         status: {
@@ -61,7 +62,7 @@ export class StorageIntegrityRecoveryService
           { integrityVerificationStartedAt: null },
           { integrityVerificationStartedAt: { lte: staleBefore } },
         ],
-      } as const;
+      };
 
       // Tenant is the discovery root. Operational rows are then fetched only
       // with that exact tenantId, preserving zero-trust isolation.

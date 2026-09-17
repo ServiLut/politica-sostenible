@@ -125,7 +125,7 @@ export class OperationProfileController {
   getReadiness(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<OperationReadinessResponseDto> {
-    return this.operationProfile.getReadiness(user);
+    return this.operationProfile.getReadiness(user) as any;
   }
 
   @Get()

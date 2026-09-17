@@ -1,4 +1,64 @@
 
-> api@0.0.1 build C:\Users\user\Desktop\politica-sostenible\apps\api
+> api@0.0.1 build C:\Users\user\Documents\politica-sostenible\apps\api
 > nest build
 
+[91merror[0m[90m TS2688: [0mCannot find type definition file for 'multer'.
+  The file is in the program because:
+    Entry point for implicit type library 'multer'
+[96msrc/electronic-signature/electronic-signature.service.ts[0m:[93m635[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '{ actualSize: number; etag: string; confirmedAt: Date; consumedAt: Date; consumedByType: "WitnessReport" | "FinancialEntry"; consumedById: string; id: string; path: string; ... 5 more ...; integrityVerifiedAt: Date | null; }' is not assignable to type 'IntegrityDocument'.
+  Types of property 'calculatedSha256' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+
+[7m635[0m     return {
+[7m   [0m [91m    ~~~~~~[0m
+[96msrc/operation-profile/operation-profile.controller.ts[0m:[93m128[0m:[93m34[0m - [91merror[0m[90m TS2339: [0mProperty 'getReadiness' does not exist on type 'OperationProfileService'.
+
+[7m128[0m     return this.operationProfile.getReadiness(user);
+[7m   [0m [91m                                 ~~~~~~~~~~~~[0m
+[96msrc/operation-profile/operation-profile.service.ts[0m:[93m220[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{ createdById: string; operationType: $Enums.PoliticalOperationType; stage: $Enums.PoliticalOperationStage; electionType: $Enums.ElectoralContestType; ... 12 more ...; tenantId: string; }' is not assignable to type '((Without<OperationProfileCreateInput, OperationProfileUncheckedCreateInput> & OperationProfileUncheckedCreateInput) | (Without<...> & OperationProfileCreateInput)) & object'.
+  Type '{ createdById: string; operationType: $Enums.PoliticalOperationType; stage: $Enums.PoliticalOperationStage; electionType: $Enums.ElectoralContestType; ... 12 more ...; tenantId: string; }' is not assignable to type 'Without<OperationProfileCreateInput, OperationProfileUncheckedCreateInput> & OperationProfileUncheckedCreateInput & object'.
+    Type '{ createdById: string; operationType: PoliticalOperationType; stage: PoliticalOperationStage; electionType: ElectoralContestType; ... 12 more ...; tenantId: string; }' is missing the following properties from type 'OperationProfileUncheckedCreateInput': votingStartDate, votingEndDate
+
+[7m220[0m               data: {
+[7m   [0m [91m              ~~~~[0m
+
+  [96mprisma/generated/prisma/index.d.ts[0m:[93m94148[0m:[93m5[0m
+    [7m94148[0m     data: XOR<OperationProfileCreateInput, OperationProfileUncheckedCreateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: OperationProfileSelect<DefaultArgs> | null | undefined; omit?: OperationProfileOmit<DefaultArgs> | null | undefined; include?: OperationProfileInclude<...> | ... 1 more ... | undefined; data: ((Without<...> & OperationProfileUncheckedCreateInput) | (Without<...> & OperationProfileCreateInput)) & object; }'
+[96msrc/operation-profile/operation-profile.service.ts[0m:[93m243[0m:[93m41[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 21 more ...; updatedById: string; } | { ...; }' is not assignable to parameter of type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 12 more ...; responsibleDataUser: { ...; }; }'.
+  Property 'responsibleDataUser' is missing in type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 21 more ...; updatedById: string; }' but required in type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 12 more ...; responsibleDataUser: { ...; }; }'.
+Found 10 error(s).
+
+
+[7m243[0m             after: this.toAuditSnapshot(profile, settings),
+[7m   [0m [91m                                        ~~~~~~~[0m
+[96msrc/operation-profile/operation-profile.service.ts[0m:[93m247[0m:[93m31[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 21 more ...; updatedById: string; } | { ...; }' is not assignable to parameter of type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 12 more ...; responsibleDataUser: { ...; }; }'.
+  Property 'responsibleDataUser' is missing in type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 21 more ...; updatedById: string; }' but required in type '{ id: string; tenantId: string; createdAt: Date; updatedAt: Date; operationType: PoliticalOperationType; stage: PoliticalOperationStage; ... 12 more ...; responsibleDataUser: { ...; }; }'.
+
+[7m247[0m         return this.toContext(profile, settings);
+[7m   [0m [91m                              ~~~~~~~[0m
+[96msrc/proposals/proposals.service.ts[0m:[93m117[0m:[93m12[0m - [91merror[0m[90m TS2552: [0mCannot find name 'ListResponsiblesQueryDto'. Did you mean 'ListProposalsQueryDto'?
+
+[7m117[0m     query: ListResponsiblesQueryDto,
+[7m   [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/storage/storage-integrity-recovery.service.ts[0m:[93m71[0m:[93m28[0m - [91merror[0m[90m TS2322: [0mType '{ readonly expectedSha256: { readonly not: null; }; readonly integrityStatus: "PENDING"; readonly status: { readonly in: readonly ["CONFIRMED", "CONSUMED"]; }; readonly OR: readonly [{ readonly integrityVerificationStartedAt: null; }, { ...; }]; }' is not assignable to type 'StoredObjectWhereInput'.
+  Types of property 'OR' are incompatible.
+    The type 'readonly [{ readonly integrityVerificationStartedAt: null; }, { readonly integrityVerificationStartedAt: { readonly lte: Date; }; }]' is 'readonly' and cannot be assigned to the mutable type 'StoredObjectWhereInput[]'.
+
+[7m71[0m           storedObjects: { some: pending },
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/storage/storage-integrity-recovery.service.ts[0m:[93m82[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType '{ expectedSha256: { readonly not: null; }; integrityStatus: "PENDING"; status: { readonly in: readonly ["CONFIRMED", "CONSUMED"]; }; OR: readonly [{ readonly integrityVerificationStartedAt: null; }, { readonly integrityVerificationStartedAt: { ...; }; }]; tenantId: string; }' is not assignable to type 'StoredObjectWhereInput'.
+  Types of property 'OR' are incompatible.
+    The type 'readonly [{ readonly integrityVerificationStartedAt: null; }, { readonly integrityVerificationStartedAt: { readonly lte: Date; }; }]' is 'readonly' and cannot be assigned to the mutable type 'StoredObjectWhereInput[]'.
+
+[7m82[0m           where: { tenantId: tenant.id, ...pending },
+[7m  [0m [91m          ~~~~~[0m
+[96msrc/storage/storage-integrity-verification.service.ts[0m:[93m116[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'StoredObjectStatus' is not assignable to parameter of type '"CONFIRMED" | "CONSUMED"'.
+  Type '"EXPIRED"' is not assignable to type '"CONFIRMED" | "CONSUMED"'.
+
+[7m116[0m         current.status,
+[7m   [0m [91m        ~~~~~~~~~~~~~~[0m
+
+ ELIFECYCLE  Command failed with exit code 1.

@@ -740,6 +740,23 @@ export const dashboardConfig: NavItem[] = [
     ],
   },
   {
+    title: "Día D - Tracking",
+    mobileTitle: "Día D",
+    href: "/dashboard/dia-d",
+    icon: "election",
+    group: "FIELD",
+    allowedRoles: [UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador],
+    allowedBackendRoles: [
+      "ADMIN",
+      "CAMPAIGN_MANAGER",
+      "ZONE_COORDINATOR",
+    ],
+    allowedTenantTypes: ["CANDIDACY"],
+    allowedStages: [
+      "ELECTION_DAY",
+    ],
+  },
+  {
     title: "Programa político",
     mobileTitle: "Programa",
     href: "/dashboard/proposals",

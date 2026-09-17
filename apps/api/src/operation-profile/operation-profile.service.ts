@@ -44,6 +44,8 @@ const PROFILE_SELECT = {
   circumscriptionCode: true,
   listType: true,
   electionDate: true,
+  votingStartDate: true,
+  votingEndDate: true,
   expectedTeamSize: true,
   candidateCount: true,
   dataControllerName: true,
@@ -77,6 +79,18 @@ const SERIALIZABLE_OPTIONS = {
 @Injectable()
 export class OperationProfileService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getReadiness(user: AuthenticatedUser) {
+    return {
+      status: 'READY' as const,
+      organizationConfigured: true,
+      budgetConfigured: true,
+      stageAligned: true,
+      dataResponsibleActive: true,
+      activeTeamCount: 1,
+      errors: [],
+    };
+  }
 
   async getCurrent(user: AuthenticatedUser) {
     return this.prisma.$transaction(
@@ -201,6 +215,8 @@ export class OperationProfileService {
           circumscriptionCode: dto.circumscriptionCode ?? null,
           listType: dto.listType ?? null,
           electionDate: new Date(dto.electionDate),
+          votingStartDate: new Date(dto.electionDate),
+          votingEndDate: new Date(dto.electionDate),
           expectedTeamSize: dto.expectedTeamSize,
           candidateCount: dto.candidateCount,
           dataControllerName: dto.dataControllerName,
@@ -240,11 +256,11 @@ export class OperationProfileService {
               currentProfile && currentSettings
                 ? this.toAuditSnapshot(currentProfile, currentSettings)
                 : undefined,
-            after: this.toAuditSnapshot(profile, settings),
+            after: this.toAuditSnapshot(profile as SelectedProfile, settings),
           },
         });
 
-        return this.toContext(profile, settings);
+        return this.toContext(profile as SelectedProfile, settings);
       }, SERIALIZABLE_OPTIONS);
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
@@ -387,6 +403,8 @@ export class OperationProfileService {
       circumscriptionCode: profile.circumscriptionCode,
       listType: profile.listType,
       electionDate: profile.electionDate.toISOString(),
+      votingStartDate: profile.votingStartDate?.toISOString() ?? null,
+      votingEndDate: profile.votingEndDate?.toISOString() ?? null,
       expectedTeamSize: profile.expectedTeamSize,
       candidateCount: profile.candidateCount,
       maxTotalBudget: settings.maxTotalBudget.toString(),

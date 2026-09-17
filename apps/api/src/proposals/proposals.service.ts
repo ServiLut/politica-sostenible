@@ -18,6 +18,7 @@ import { lockAndAssertOperationOpen } from '../common/utils/operation-lifecycle-
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { ListProposalsQueryDto } from './dto/list-proposals-query.dto';
 import { UpdateProposalDto } from './dto/update-proposal.dto';
+import { ListResponsiblesQueryDto } from './dto/list-responsibles-query.dto';
 
 const PROPOSAL_SELECT = {
   id: true,
