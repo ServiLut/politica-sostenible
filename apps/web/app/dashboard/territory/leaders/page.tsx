@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ChevronRight,
   Loader2,
+  Mail,
   MapPin,
   Phone,
   RefreshCw,
@@ -27,8 +28,11 @@ interface Leader {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
   socialNetworkUrl: string | null;
   roleDescription: string;
+  politicalAffinity: string | null;
+  observations: string | null;
 }
 
 interface DivisionResult {
@@ -185,17 +189,24 @@ export default function TerritoryLeadersPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {(leadersByDivision[div.id] ?? []).map((leader) => (
-                  <div key={leader.id} className="px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-green-100 text-green-700 p-2 rounded-full">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{leader.name}</p>
-                        <p className="text-xs text-gray-500">{leader.roleDescription}</p>
+                  <div key={leader.id} className="px-6 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-green-100 text-green-700 p-2 rounded-full mt-0.5">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{leader.name}</p>
+                          <p className="text-xs text-gray-500">{leader.roleDescription}</p>
+                          {leader.politicalAffinity && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                              {leader.politicalAffinity}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="mt-2 ml-11 flex flex-wrap items-center gap-x-4 gap-y-1">
                       {leader.phone && (
                         <a
                           href={`tel:${leader.phone}`}
@@ -203,6 +214,15 @@ export default function TerritoryLeadersPage() {
                         >
                           <Phone className="w-3.5 h-3.5" />
                           {leader.phone}
+                        </a>
+                      )}
+                      {leader.email && (
+                        <a
+                          href={`mailto:${leader.email}`}
+                          className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          {leader.email}
                         </a>
                       )}
                       {leader.socialNetworkUrl && (
@@ -217,6 +237,11 @@ export default function TerritoryLeadersPage() {
                         </a>
                       )}
                     </div>
+                    {leader.observations && (
+                      <p className="mt-2 ml-11 text-xs text-gray-400 italic">
+                        {leader.observations}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

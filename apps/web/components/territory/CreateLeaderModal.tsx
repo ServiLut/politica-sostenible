@@ -13,8 +13,10 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
   const [name, setName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [socialNetworkUrl, setSocialNetworkUrl] = useState("");
   const [politicalAffinity, setPoliticalAffinity] = useState("");
+  const [observations, setObservations] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,14 +26,16 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
     setError(null);
 
     try {
-      await apiRequest(`/campaigns/divisions/${divisionId}/leaders`, {
+      await apiRequest(`campaigns/divisions/${encodeURIComponent(divisionId)}/leaders`, {
         method: "POST",
         body: JSON.stringify({
           name: name.trim(),
           roleDescription: roleDescription.trim(),
           phone: phone.trim() || undefined,
+          email: email.trim() || undefined,
           socialNetworkUrl: socialNetworkUrl.trim() || undefined,
           politicalAffinity: politicalAffinity.trim() || undefined,
+          observations: observations.trim() || undefined,
         }),
       });
       onSuccess();
@@ -43,7 +47,7 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-xl font-black text-slate-900">
             <UserPlus size={20} className="text-blue-600" />
@@ -58,7 +62,8 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
         </div>
 
         <p className="mb-6 text-sm text-slate-500">
-          Agrega un nuevo líder para el territorio <strong className="text-slate-700">{divisionName}</strong>.
+          Agrega un nuevo líder para <strong className="text-slate-700">{divisionName}</strong>.
+          Puede ser un edil JAL, presidente JAC, coordinador de zona o cualquier contacto clave.
         </p>
 
         {error && (
@@ -69,56 +74,86 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Nombre *
+            Nombre completo *
             <input
               required
               maxLength={200}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Ej. María López Cardona"
+              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </label>
 
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Descripción de rol *
+            Rol o cargo *
             <input
               required
               maxLength={200}
               value={roleDescription}
               onChange={(e) => setRoleDescription(e.target.value)}
-              placeholder="Ej. Coordinador de logística"
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Ej. Edil JAL Comuna 5, Presidente JAC Barrio X"
+              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </label>
 
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Teléfono
-            <input
-              maxLength={20}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Teléfono / WhatsApp
+              <input
+                maxLength={20}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="300 123 4567"
+                className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </label>
+
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Correo electrónico
+              <input
+                type="email"
+                maxLength={200}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="maria@correo.com"
+                className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </label>
+          </div>
 
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Red Social (URL)
+            Red social o perfil público
             <input
               type="url"
               maxLength={500}
               value={socialNetworkUrl}
               onChange={(e) => setSocialNetworkUrl(e.target.value)}
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="https://facebook.com/marialopez"
+              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </label>
 
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Afinidad Política
+            Afinidad política
             <input
               maxLength={100}
               value={politicalAffinity}
               onChange={(e) => setPoliticalAffinity(e.target.value)}
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Ej. Aliado, Neutral, Oposición"
+              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </label>
+
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            Observaciones
+            <textarea
+              maxLength={1000}
+              rows={3}
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              placeholder="Notas internas sobre este contacto..."
+              className="mt-1 block w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </label>
 
@@ -126,14 +161,14 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+              className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {loading && <Loader2 className="animate-spin" size={16} />}
               Guardar Líder
