@@ -361,6 +361,9 @@ export default function TerritoryPage() {
         </div>
       )}
 
+      {/* ─── MAPA DE CALOR TERRITORIAL ─── */}
+      <TerritoryHeatmap />
+
       {error && (
         <div
           role="alert"
