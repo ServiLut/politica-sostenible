@@ -33,7 +33,8 @@ try {
 $headers = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" }
 
 function Find-Division($type, $name) {
-    $uri = "$BASE/campaigns/divisions?type=$type&search=$([uri]::EscapeDataString($name))&page=1&limit=5"
+    $searchEncoded = [uri]::EscapeDataString($name)
+    $uri = "$BASE/campaigns/divisions?type=$type" + "&search=$searchEncoded" + "&page=1" + "&limit=5"
     $resp = Invoke-RestMethod -Uri $uri -Headers $headers
     $items = if ($resp.data) { $resp.data.items } else { $resp.items }
     $found = $items | Where-Object { $_.name -eq $name } | Select-Object -First 1
@@ -44,10 +45,10 @@ function Find-Division($type, $name) {
 function Create-Leader($divisionId, $leader) {
     try {
         $body = $leader | ConvertTo-Json
-        Invoke-RestMethod -Uri "$BASE/campaigns/divisions/$divisionId/leaders" -Method POST -Headers $headers -Body $body | Out-Null
+        Invoke-RestMethod -Uri "$BASE/campaigns/divisions/$divisionId/leaders" -Method POST -Headers $headers -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -ContentType "application/json; charset=utf-8" | Out-Null
         Write-Host "  ✅ $($leader.name) — $($leader.roleDescription)" -ForegroundColor Green
         return $true
-    } catch {
+    } catch [System.Exception] {
         Write-Host "  ⚠️ $($leader.name): $($_.Exception.Message)" -ForegroundColor Yellow
         return $false
     }
