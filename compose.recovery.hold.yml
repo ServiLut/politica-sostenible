@@ -1,0 +1,51 @@
+# Staging phase only. PID1 sleeps; no app, worker, Redis or migrations start.
+# Use Dokploy's authenticated container terminal for reviewed one-shot commands.
+services:
+  app:
+    image: politica-recovery:${APP_REVISION:?exact repair commit is required}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:?exact repair commit is required}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:?profile is required}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?existing public origin is required}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?existing Supabase origin is required}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?existing public key is required}
+    entrypoint: ["sleep", "infinity"]
+    command: []
+    environment:
+      NODE_ENV: production
+      DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:?}
+      DATABASE_URL: ${DATABASE_URL:?preserve existing database URL}
+      DIRECT_URL: ${DIRECT_URL:?preserve existing direct database URL}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA:?preserve existing schema}
+      DATABASE_SSL: ${DATABASE_SSL:-true}
+      DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
+      ALLOW_INSECURE_DATABASE_CONNECTION: ${ALLOW_INSECURE_DATABASE_CONNECTION:-false}
+      ALLOW_DEMO_SEED: "false"
+      PRISMA_HIDE_UPDATE_MESSAGE: "true"
+      CHECKPOINT_DISABLE: "1"
+    user: "0:0"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=268435456
+    networks:
+      - dokploy-network
+    labels:
+      traefik.enable: "false"
+    healthcheck:
+      disable: true
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  dokploy-network:
+    external: true
