@@ -80,6 +80,9 @@ export default function TerritoryLeadersPage() {
   const [leaderNameFilter, setLeaderNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
+  // Available division types (auto-detected based on data)
+  const [availableTypes, setAvailableTypes] = useState(DIVISION_TYPES);
+
   // Data
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [loadingDivisions, setLoadingDivisions] = useState(true);
@@ -102,7 +105,34 @@ export default function TerritoryLeadersPage() {
   // Errors
   const [error, setError] = useState<string | null>(null);
 
-
+  // Auto-detect which division types have data
+  useEffect(() => {
+    async function detectTypes() {
+      const detected: typeof DIVISION_TYPES = [];
+      for (const dt of DIVISION_TYPES) {
+        try {
+          const result = await apiRequest<DivisionResult>(
+            `campaigns/divisions?type=${dt.value}&page=1&limit=1`,
+          );
+          if (result.pagination.total > 0) {
+            detected.push(dt);
+          }
+        } catch {
+          // If API fails for a type, include it anyway
+          detected.push(dt);
+        }
+      }
+      if (detected.length > 0) {
+        setAvailableTypes(detected);
+        // If current type is not available, switch to first available
+        if (!detected.find((d) => d.value === divisionType)) {
+          setDivisionType(detected[0].value);
+        }
+      }
+    }
+    void detectTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ─── Load divisions ─── */
 
@@ -244,7 +274,7 @@ export default function TerritoryLeadersPage() {
             Nivel territorial
           </label>
           <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-            {DIVISION_TYPES.map((dt) => (
+            {availableTypes.map((dt) => (
               <button
                 key={dt.value}
                 onClick={() => {
