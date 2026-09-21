@@ -61,6 +61,7 @@ services:
     networks:
       - private
       - dokploy-network
+      - supabase-database
     restart: unless-stopped
     stop_grace_period: 40s
     healthcheck:
@@ -117,3 +118,8 @@ networks:
     internal: true
   dokploy-network:
     external: true
+  # Reach the existing PostgreSQL directly; the session pooler ignores startup
+  # search_path options required by application raw SQL. No database is created.
+  supabase-database:
+    external: true
+    name: servilution-supabase-wl6nsn
