@@ -94,6 +94,7 @@ export default function DiaDTrackingPage() {
   const [filter, setFilter] = useState<VotingStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
@@ -125,14 +126,19 @@ export default function DiaDTrackingPage() {
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
+    const controller = new AbortController();
     const interval = setInterval(() => {
-      void loadData();
+      void loadData(controller.signal);
     }, 30_000);
-    return () => clearInterval(interval);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [loadData]);
 
   async function handleStatusChange(voterId: string, newStatus: VotingStatus) {
     setUpdatingIds((prev) => new Set([...prev, voterId]));
+    setUpdateError(null);
     try {
       const updated = await updateVoterStatus(voterId, newStatus);
       setData((prev) => {
@@ -152,8 +158,12 @@ export default function DiaDTrackingPage() {
         };
         return { summary, voters: updatedVoters };
       });
-    } catch {
-      // Silently fail - the UI will still show the old status
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : "No fue posible actualizar el estado del votante.";
+      setUpdateError(message);
+      setTimeout(() => setUpdateError(null), 5000);
     } finally {
       setUpdatingIds((prev) => {
         const next = new Set(prev);
@@ -179,12 +189,12 @@ export default function DiaDTrackingPage() {
 
   // Group by registrar (leader)
   const groupedByLeader = useMemo(() => {
-    const groups: Record<string, { leaderName: string; voters: ElectionDayVoter[] }> = {};
+    const groups: Record<string, { leaderId: string; leaderName: string; voters: ElectionDayVoter[] }> = {};
     for (const voter of filteredVoters) {
       const leaderKey = voter.registrar?.id ?? "sin-lider";
       const leaderName = voter.registrar?.name ?? "Sin líder asignado";
       if (!groups[leaderKey]) {
-        groups[leaderKey] = { leaderName, voters: [] };
+        groups[leaderKey] = { leaderId: leaderKey, leaderName, voters: [] };
       }
       groups[leaderKey].voters.push(voter);
     }
@@ -221,6 +231,12 @@ export default function DiaDTrackingPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {updateError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-center justify-between">
+          <span>{updateError}</span>
+          <button onClick={() => setUpdateError(null)} className="ml-4 text-red-500 hover:text-red-700">✕</button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -370,7 +386,7 @@ export default function DiaDTrackingPage() {
           const groupProgress = groupTotal > 0 ? Math.round((groupVoted / groupTotal) * 100) : 0;
 
           return (
-            <div key={group.leaderName} className="bg-white rounded-xl border shadow-sm overflow-hidden">
+            <div key={group.leaderId} className="bg-white rounded-xl border shadow-sm overflow-hidden">
               <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 text-blue-700 p-2 rounded-lg">

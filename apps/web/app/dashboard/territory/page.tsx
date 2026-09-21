@@ -234,7 +234,6 @@ export default function TerritoryPage() {
       setNotice(
         `${sync.synchronized.municipalities.toLocaleString("es-CO")} municipios y ${sync.synchronized.departments.toLocaleString("es-CO")} departamentos sincronizados desde DANE.`,
       );
-      await loadDivisions();
     } catch (requestError) {
       setError(messageFrom(requestError));
     } finally {
@@ -272,7 +271,6 @@ export default function TerritoryPage() {
       setSearch("");
       setSearchDraft("");
       setNotice(`${created.name} quedó disponible para asignaciones.`);
-      await loadDivisions({ type: created.type, page: 1, search: "" });
     } catch (requestError) {
       setError(messageFrom(requestError));
     } finally {
