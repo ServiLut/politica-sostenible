@@ -15,7 +15,8 @@ export const CATALOG_WORKER_READY_TIMEOUT_MS = 60_000;
 export const SUPERVISOR_SHUTDOWN_GRACE_MS = 30_000;
 const MINIMUM_SUPERVISOR_SHUTDOWN_GRACE_MS = 10_000;
 const MAXIMUM_SUPERVISOR_SHUTDOWN_GRACE_MS = 120_000;
-const API_READY_RETRY_MS = 250;
+// Stay below the API's 120 requests/minute limit during a slow readiness check.
+const API_READY_RETRY_MS = 1_000;
 const API_READY_REQUEST_TIMEOUT_MS = 2_000;
 const CATALOG_WORKER_READY_RETRY_MS = 250;
 
@@ -412,6 +413,7 @@ export async function waitForApiReady({
     lastError = undefined;
     lastStatus = undefined;
     const remaining = timeoutMs - (now() - startedAt);
+    let nextRetryMs = retryMs;
     const controller = new AbortController();
     const requestTimer = setTimer(
       () => controller.abort(),
@@ -425,6 +427,15 @@ export async function waitForApiReady({
         signal: controller.signal,
       });
       lastStatus = response.status;
+      if (response.status === 429) {
+        const retryAfter = response.headers?.get?.("retry-after")?.trim();
+        const retryAfterMs = /^\d+(?:\.\d+)?$/.test(retryAfter ?? "")
+          ? Number(retryAfter) * 1_000
+          : Date.parse(retryAfter ?? "") - now();
+        if (Number.isFinite(retryAfterMs) && retryAfterMs > 0) {
+          nextRetryMs = Math.max(retryMs, retryAfterMs);
+        }
+      }
       const ready = response.ok;
       if (response.body && typeof response.body.cancel === "function") {
         await response.body.cancel().catch(() => undefined);
@@ -438,7 +449,7 @@ export async function waitForApiReady({
 
     const elapsed = now() - startedAt;
     if (elapsed >= timeoutMs) break;
-    await sleep(Math.min(retryMs, timeoutMs - elapsed));
+    await sleep(Math.min(nextRetryMs, timeoutMs - elapsed));
   }
 
   throw new Error(

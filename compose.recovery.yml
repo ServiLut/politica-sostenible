@@ -51,6 +51,8 @@ services:
     cap_add:
       - SETUID
       - SETGID
+      # The root supervisor must signal children running under distinct UIDs.
+      - KILL
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=268435456
     depends_on:

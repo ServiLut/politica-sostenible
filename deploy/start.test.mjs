@@ -327,6 +327,101 @@ test("la espera de la API termina de forma acotada", async () => {
   assert.equal(currentTime, 250);
 });
 
+test("un arranque lento no excede 120 sondeos por minuto", async () => {
+  let currentTime = 0;
+  let calls = 0;
+  await assert.rejects(
+    waitForApiReady({
+      fetchImpl: async () => {
+        calls += 1;
+        return { ok: false, status: 503 };
+      },
+      now: () => currentTime,
+      sleep: async (milliseconds) => {
+        currentTime += milliseconds;
+      },
+    }),
+    /HTTP 503/,
+  );
+  assert.equal(currentTime, 60_000);
+  assert.equal(calls, 60);
+});
+
+test("recupera readiness a los 40 segundos sin autobloquearse por el límite de 120", async () => {
+  let currentTime = 0;
+  let calls = 0;
+  await waitForApiReady({
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls > 120) {
+        return {
+          ok: false,
+          status: 429,
+          headers: new Headers({ "Retry-After": "60" }),
+        };
+      }
+      return currentTime >= 40_000
+        ? { ok: true, status: 200 }
+        : { ok: false, status: 503 };
+    },
+    now: () => currentTime,
+    sleep: async (milliseconds) => {
+      currentTime += milliseconds;
+    },
+  });
+  assert.equal(currentTime, 40_000);
+  assert.equal(calls, 41);
+});
+
+test("respeta Retry-After de 429 sin aceptar disponibilidad falsa", async () => {
+  let currentTime = 0;
+  let calls = 0;
+  const delays = [];
+  await waitForApiReady({
+    timeoutMs: 5_000,
+    fetchImpl: async () =>
+      ++calls === 1
+        ? {
+            ok: false,
+            status: 429,
+            headers: new Headers({ "Retry-After": "2" }),
+          }
+        : { ok: true, status: 200 },
+    now: () => currentTime,
+    sleep: async (milliseconds) => {
+      delays.push(milliseconds);
+      currentTime += milliseconds;
+    },
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(delays, [2_000]);
+});
+
+test("un Retry-After largo conserva el límite total de espera", async () => {
+  let currentTime = 0;
+  let calls = 0;
+  await assert.rejects(
+    waitForApiReady({
+      timeoutMs: 3_000,
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 429,
+          headers: new Headers({ "Retry-After": "60" }),
+        };
+      },
+      now: () => currentTime,
+      sleep: async (milliseconds) => {
+        currentTime += milliseconds;
+      },
+    }),
+    /en 3000 ms \(HTTP 429\)/,
+  );
+  assert.equal(calls, 1);
+  assert.equal(currentTime, 3_000);
+});
+
 test("espera un heartbeat reciente del worker antes de iniciar la API", async () => {
   let currentTime = 0;
   let healthChecks = 0;
