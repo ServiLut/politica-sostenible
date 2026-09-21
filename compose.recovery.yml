@@ -63,7 +63,7 @@ services:
       - dokploy-network
       - supabase-database
     labels:
-      traefik.docker.network: dokploy-network
+      - traefik.docker.network=dokploy-network
     restart: unless-stopped
     stop_grace_period: 40s
     healthcheck:
