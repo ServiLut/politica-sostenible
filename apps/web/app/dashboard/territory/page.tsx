@@ -701,8 +701,9 @@ export default function TerritoryPage() {
           divisionName={selectedDivisionForLeader.name}
           onClose={() => setSelectedDivisionForLeader(null)}
           onSuccess={() => {
+            const name = selectedDivisionForLeader.name;
             setSelectedDivisionForLeader(null);
-            setNotice(`Líder asignado exitosamente a ${selectedDivisionForLeader.name}.`);
+            setNotice(`Líder asignado exitosamente a ${name}.`);
           }}
         />
       )}

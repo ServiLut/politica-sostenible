@@ -283,23 +283,41 @@ function validateHeatmapItem(
 ): TerritoryHeatmapItem {
   if (
     !isRecord(value) ||
-    !hasExactKeys(value, [
-      "id",
-      "code",
-      "name",
-      "type",
-      "parentId",
-      "hasChildren",
-      "nextLevel",
-      "value",
-      "displayValue",
-      "suppressed",
-      "intensity",
-      "bucket",
-      "operationalContext",
-      "geo",
-      "leaders",
-    ]) ||
+    !(
+      hasExactKeys(value, [
+        "id",
+        "code",
+        "name",
+        "type",
+        "parentId",
+        "hasChildren",
+        "nextLevel",
+        "value",
+        "displayValue",
+        "suppressed",
+        "intensity",
+        "bucket",
+        "operationalContext",
+        "geo",
+      ]) ||
+      hasExactKeys(value, [
+        "id",
+        "code",
+        "name",
+        "type",
+        "parentId",
+        "hasChildren",
+        "nextLevel",
+        "value",
+        "displayValue",
+        "suppressed",
+        "intensity",
+        "bucket",
+        "operationalContext",
+        "geo",
+        "leaders",
+      ])
+    ) ||
     !isIdentifier(value.id) ||
     !requiredText(value.code, 128) ||
     !requiredText(value.name, 256) ||

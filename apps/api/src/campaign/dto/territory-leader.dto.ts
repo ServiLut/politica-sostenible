@@ -38,4 +38,6 @@ export class CreateTerritoryLeaderDto {
   observations?: string;
 }
 
-export class UpdateTerritoryLeaderDto extends CreateTerritoryLeaderDto {}
+import { PartialType } from '@nestjs/swagger';
+
+export class UpdateTerritoryLeaderDto extends PartialType(CreateTerritoryLeaderDto) {}

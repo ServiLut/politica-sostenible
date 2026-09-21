@@ -54,6 +54,7 @@ const RESPONSE: TerritoryHeatmapResponse = {
         locatedPollingPlaces: 180,
         totalPollingPlaces: 200,
       },
+      leaders: [],
     },
   ],
 };

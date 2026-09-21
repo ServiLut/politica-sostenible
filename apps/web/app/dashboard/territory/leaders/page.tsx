@@ -102,11 +102,7 @@ export default function TerritoryLeadersPage() {
   // Errors
   const [error, setError] = useState<string | null>(null);
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalLeadersLoaded: 0,
-    divisionsWithLeaders: 0,
-  });
+
 
   /* ─── Load divisions ─── */
 
