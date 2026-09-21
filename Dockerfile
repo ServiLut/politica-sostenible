@@ -31,7 +31,10 @@ COPY deploy/public-build-environment.mjs ./deploy/public-build-environment.mjs
 COPY deploy/artifact-metadata.mjs ./deploy/artifact-metadata.mjs
 RUN node deploy/artifact-metadata.mjs
 RUN node deploy/public-build-environment.mjs
-RUN pnpm --filter api generate && pnpm --filter api build && pnpm --filter web build
+RUN pnpm --filter api generate \
+    && pnpm --filter api build \
+    && test -s apps/api/dist/electoral-catalog-worker.main.js \
+    && pnpm --filter web build
 
 FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS prod-deps
 WORKDIR /app
@@ -48,11 +51,14 @@ LABEL org.opencontainers.image.revision="${APP_REVISION}" \
       org.opencontainers.image.source="${APP_SOURCE}"
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NESTJS_API_URL=http://127.0.0.1:4000
 ENV API_PROCESS_UID=1001 API_PROCESS_GID=1001 WEB_PROCESS_UID=1002 WEB_PROCESS_GID=1002 SUPERVISOR_SHUTDOWN_GRACE_MS=30000
+ENV CATALOG_WORKER_PROCESS_UID=1003 CATALOG_WORKER_PROCESS_GID=1003
 RUN apk add --no-cache openssl \
     && addgroup --system --gid 1001 politica-api \
     && adduser --system --uid 1001 --ingroup politica-api politica-api \
     && addgroup --system --gid 1002 politica-web \
-    && adduser --system --uid 1002 --ingroup politica-web politica-web
+    && adduser --system --uid 1002 --ingroup politica-web politica-web \
+    && addgroup --system --gid 1003 politica-worker \
+    && adduser --system --uid 1003 --ingroup politica-worker politica-worker
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
 # pnpm --ignore-scripts deliberately omits Prisma's schema-engine download in
@@ -73,6 +79,8 @@ COPY --from=builder /app/apps/web/.next/standalone ./
 COPY deploy/start.mjs ./deploy/start.mjs
 COPY deploy/migrate.mjs ./deploy/migrate.mjs
 COPY deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
+COPY deploy/catalog-worker-entrypoint.mjs ./deploy/catalog-worker-entrypoint.mjs
+COPY deploy/catalog-worker-healthcheck.mjs ./deploy/catalog-worker-healthcheck.mjs
 EXPOSE 3000
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 CMD wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health/ready || exit 1

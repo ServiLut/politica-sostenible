@@ -1,0 +1,114 @@
+# Candidate only: validate the repaired image and explicit environment before
+# assigning the existing production domains in Dokploy. No host ports exposed.
+services:
+  app:
+    image: politica-recovery:${APP_REVISION:?exact repair commit is required}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:?exact repair commit is required}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:?profile is required}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?existing public origin is required}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?existing Supabase origin is required}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?existing public key is required}
+    environment:
+      NODE_ENV: production
+      DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:?}
+      DATABASE_URL: ${DATABASE_URL:?preserve existing database URL}
+      DIRECT_URL: ${DIRECT_URL:?preserve existing direct database URL}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA:?preserve existing schema}
+      DATABASE_SSL: ${DATABASE_SSL:-true}
+      DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
+      ALLOW_INSECURE_DATABASE_CONNECTION: ${ALLOW_INSECURE_DATABASE_CONNECTION:-false}
+      ALLOW_DEMO_SEED: "false"
+      REDIS_URL: redis://:${REDIS_PASSWORD:?new private Redis password required}@redis:6379/0
+      REDIS_ALLOW_PLAINTEXT_INTERNAL: "true"
+      JWT_SECRET: ${JWT_SECRET:?preserve existing key}
+      CONSENT_IP_SALT: ${CONSENT_IP_SALT:?preserve existing salt}
+      OFFLINE_SYNC_HMAC_SECRET: ${OFFLINE_SYNC_HMAC_SECRET:?32 random bytes minimum}
+      SAAS_ADMIN_USER_IDS: ${SAAS_ADMIN_USER_IDS:?explicitly authorized immutable user ID required}
+      MFA_TOTP_ACTIVE_KEY_ID: ${MFA_TOTP_ACTIVE_KEY_ID:?key identifier required}
+      MFA_TOTP_ENCRYPTION_KEY: ${MFA_TOTP_ENCRYPTION_KEY:?32 byte canonical base64 key required}
+      MFA_TOTP_LEGACY_PLAINTEXT_MODE: ${MFA_TOTP_LEGACY_PLAINTEXT_MODE:?migrate or reject required}
+      MFA_TOTP_PREVIOUS_KEYS: ${MFA_TOTP_PREVIOUS_KEYS:-}
+      SUPABASE_URL: ${SUPABASE_URL:?preserve existing origin}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?preserve existing storage key}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:?preserve existing bucket}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?}
+      CORS_ORIGINS: ${CORS_ORIGINS:?exact existing HTTPS origins required}
+    user: "0:0"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=268435456
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - private
+      - dokploy-network
+    restart: unless-stopped
+    stop_grace_period: 40s
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health/ready"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  redis:
+    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?64 hexadecimal characters required}
+    # Validate a hex-only password before writing a private, transient config.
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        case "$${REDIS_PASSWORD}" in *[!a-fA-F0-9]*|'') exit 64;; esac
+        test "$${#REDIS_PASSWORD}" -eq 64
+        umask 077
+        printf 'bind 0.0.0.0\nprotected-mode yes\nport 6379\ndir /data\nappendonly yes\nmaxmemory-policy noeviction\nrequirepass %s\n' "$${REDIS_PASSWORD}" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    user: "999:1000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=16777216
+    volumes:
+      - redis-data:/data
+    networks:
+      - private
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q '^PONG$'"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  redis-data:
+networks:
+  private:
+    internal: true
+  dokploy-network:
+    external: true

@@ -15,14 +15,14 @@ import {
   type StorageIntegrityQueuePort,
 } from './storage/storage-integrity-queue.constants';
 
-export const EXPECTED_SCHEMA_VERSION = '20260909340000_schema_contract_marker';
+export const EXPECTED_SCHEMA_VERSION = '20260921182000_schema_contract_marker';
 
 const REQUIRED_PLAN_CATALOG = new Map([
   [
     'FREE',
     {
       maxUsers: 3,
-      maxVoters: 100,
+      maxVoters: 500,
       maxStorageMb: 50,
       includesExport: false,
       includesImport: false,
@@ -36,15 +36,15 @@ const REQUIRED_PLAN_CATALOG = new Map([
   [
     'STARTER',
     {
-      maxUsers: 10,
-      maxVoters: 1_000,
+      maxUsers: 15,
+      maxVoters: 5_000,
       maxStorageMb: 500,
       includesExport: true,
       includesImport: false,
       includesMfa: false,
       includesApi: false,
-      monthlyPriceCop: 99_000,
-      yearlyPriceCop: 1_188_000,
+      monthlyPriceCop: 290_000,
+      yearlyPriceCop: 3_480_000,
       sortOrder: 2,
     },
   ],
@@ -52,14 +52,14 @@ const REQUIRED_PLAN_CATALOG = new Map([
     'PROFESSIONAL',
     {
       maxUsers: 50,
-      maxVoters: 10_000,
+      maxVoters: 50_000,
       maxStorageMb: 2_048,
       includesExport: true,
       includesImport: true,
       includesMfa: true,
       includesApi: false,
-      monthlyPriceCop: 299_000,
-      yearlyPriceCop: 3_588_000,
+      monthlyPriceCop: 990_000,
+      yearlyPriceCop: 11_880_000,
       sortOrder: 3,
     },
   ],
@@ -73,8 +73,8 @@ const REQUIRED_PLAN_CATALOG = new Map([
       includesImport: true,
       includesMfa: true,
       includesApi: false,
-      monthlyPriceCop: 799_000,
-      yearlyPriceCop: 9_588_000,
+      monthlyPriceCop: 3_500_000,
+      yearlyPriceCop: 42_000_000,
       sortOrder: 4,
     },
   ],

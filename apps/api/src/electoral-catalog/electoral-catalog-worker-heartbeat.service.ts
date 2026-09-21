@@ -61,7 +61,10 @@ export class ElectoralCatalogWorkerHeartbeatService
       ]);
       await writeFile(HEALTH_FILE, new Date().toISOString(), {
         encoding: 'utf8',
-        mode: 0o600,
+        // The UID-separated supervisor has no DAC override capability. The
+        // heartbeat contains only a timestamp; keep writes exclusive to the
+        // worker while allowing the supervisor to check readiness.
+        mode: 0o644,
       });
     } catch {
       await rm(HEALTH_FILE, { force: true }).catch(() => undefined);
