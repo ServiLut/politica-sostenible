@@ -22,7 +22,10 @@ import {
   PlanLimitsService,
 } from './plan-limits.guard';
 import type { PrismaService } from '../../prisma/prisma.service';
-import type { SaasAdminIdentityConfig } from './saas-admin.guard';
+import {
+  loadSaasAdminIdentityConfig,
+  type SaasAdminIdentityConfig,
+} from './saas-admin.guard';
 
 const ADMIN_USER_ID = `c${'1'.repeat(24)}`;
 const MEMBER_USER_ID = `c${'2'.repeat(24)}`;
@@ -430,6 +433,30 @@ describe('PlanLimitsGuard', () => {
       }),
     } as unknown as Reflector;
   }
+
+  it.each([true, false])(
+    'SaaS desactivado conserva MFA ordinario del plan=%s sin excepción',
+    async (allowed) => {
+      const denied = new ForbiddenException('El plan no incluye MFA.');
+      const planLimits = { assertFeature: jest.fn() };
+      if (allowed) planLimits.assertFeature.mockResolvedValue(undefined);
+      else planLimits.assertFeature.mockRejectedValue(denied);
+      const guard = new PlanLimitsGuard(
+        reflectorFor(PlanFeature.MFA, true),
+        planLimits as unknown as PlanLimitsService,
+        loadSaasAdminIdentityConfig({ SAAS_ADMIN_DISABLED: 'true' }),
+      );
+      const result = guard.canActivate(
+        executionContext({ tenantId: 'tenant-a', userId: ADMIN_USER_ID }),
+      );
+      if (allowed) await expect(result).resolves.toBe(true);
+      else await expect(result).rejects.toBe(denied);
+      expect(planLimits.assertFeature).toHaveBeenCalledWith(
+        'tenant-a',
+        PlanFeature.MFA,
+      );
+    },
+  );
 
   it('permite exclusivamente el enrolamiento MFA de un ID SaaS inmutable allowlisted sin consultar el plan', async () => {
     const planLimits = {

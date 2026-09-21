@@ -27,7 +27,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:?preserve existing key}
       CONSENT_IP_SALT: ${CONSENT_IP_SALT:?preserve existing salt}
       OFFLINE_SYNC_HMAC_SECRET: ${OFFLINE_SYNC_HMAC_SECRET:?32 random bytes minimum}
-      SAAS_ADMIN_USER_IDS: ${SAAS_ADMIN_USER_IDS:?explicitly authorized immutable user ID required}
+      # Explicit disabled=true with no IDs denies all platform administration.
+      # With false/absent, API validation still requires authorized real IDs.
+      SAAS_ADMIN_DISABLED: ${SAAS_ADMIN_DISABLED:-false}
+      SAAS_ADMIN_USER_IDS: ${SAAS_ADMIN_USER_IDS:-}
       MFA_TOTP_ACTIVE_KEY_ID: ${MFA_TOTP_ACTIVE_KEY_ID:?key identifier required}
       MFA_TOTP_ENCRYPTION_KEY: ${MFA_TOTP_ENCRYPTION_KEY:?32 byte canonical base64 key required}
       MFA_TOTP_LEGACY_PLAINTEXT_MODE: ${MFA_TOTP_LEGACY_PLAINTEXT_MODE:?migrate or reject required}

@@ -28,6 +28,7 @@ test("separa secretos de API y web en el supervisor combinado", () => {
     DIRECT_URL: "postgresql://migration-secret",
     JWT_SECRET: "jwt-secret",
     OFFLINE_SYNC_HMAC_SECRET: "offline-sync-secret",
+    SAAS_ADMIN_DISABLED: "true",
     SUPABASE_SERVICE_ROLE_KEY: "storage-secret",
     NEXT_PUBLIC_APP_URL: "https://politica.invalid",
     NEXT_PUBLIC_SUPABASE_URL: "https://storage.invalid",
@@ -42,6 +43,9 @@ test("separa secretos de API y web en el supervisor combinado", () => {
   assert.equal(api.DATABASE_URL, source.DATABASE_URL);
   assert.equal(api.JWT_SECRET, source.JWT_SECRET);
   assert.equal(api.OFFLINE_SYNC_HMAC_SECRET, source.OFFLINE_SYNC_HMAC_SECRET);
+  assert.equal(api.SAAS_ADMIN_DISABLED, "true");
+  assert.equal(worker.SAAS_ADMIN_DISABLED, undefined);
+  assert.equal(web.SAAS_ADMIN_DISABLED, undefined);
   assert.equal(api.REDIS_URL, source.REDIS_URL);
   assert.equal(worker.DATABASE_URL, source.DATABASE_URL);
   assert.equal(worker.REDIS_URL, source.REDIS_URL);

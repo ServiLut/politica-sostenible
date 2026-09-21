@@ -39,6 +39,7 @@ const SAAS_ADMIN_USER_ID = `c${'4'.repeat(24)}`;
 
 function createHarness(
   mode: PoliticalOperationMode = PoliticalOperationMode.CAMPAIGN,
+  saasConfiguration: Record<string, string | undefined> = {},
 ) {
   const tx = {
     tenant: {
@@ -110,6 +111,9 @@ function createHarness(
   };
   const config = {
     get: jest.fn().mockImplementation((key: string) => {
+      if (Object.prototype.hasOwnProperty.call(saasConfiguration, key)) {
+        return saasConfiguration[key];
+      }
       if (key === 'NEXT_PUBLIC_APP_URL') {
         return 'https://politica.example.test';
       }
@@ -127,6 +131,22 @@ function createHarness(
 
 describe('TeamService administration and tenant isolation', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('con SaaS desactivado conserva lecturas ADMIN dentro del tenant y rechaza otro rol', async () => {
+    const { service, tx } = createHarness(PoliticalOperationMode.CAMPAIGN, {
+      SAAS_ADMIN_DISABLED: 'true',
+      SAAS_ADMIN_USER_IDS: undefined,
+    });
+    await expect(service.listMembers(admin, {})).resolves.toBeDefined();
+    expect(tx.user.findMany.mock.calls[0][0].where).toEqual({
+      tenantId: admin.tenantId,
+    });
+    tx.user.findMany.mockClear();
+    await expect(
+      service.listMembers({ ...admin, role: Role.VOLUNTEER }, {}),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(tx.user.findMany).not.toHaveBeenCalled();
+  });
 
   it('scopes member reads to the JWT tenant and never selects credentials', async () => {
     const { service, tx } = createHarness();

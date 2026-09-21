@@ -77,6 +77,7 @@ export class TeamService {
   ) {
     this.protectedSaasAdminUserIds = new Set(
       loadSaasAdminIdentityConfig({
+        SAAS_ADMIN_DISABLED: this.config.get<string>('SAAS_ADMIN_DISABLED'),
         SAAS_ADMIN_USER_IDS: this.config.get<string>('SAAS_ADMIN_USER_IDS'),
         SAAS_ADMIN_EMAILS: this.config.get<string>('SAAS_ADMIN_EMAILS'),
       }).userIds,

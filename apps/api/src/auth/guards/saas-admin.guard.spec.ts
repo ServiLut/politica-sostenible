@@ -51,6 +51,56 @@ function buildPrisma(
 }
 
 describe('loadSaasAdminIdentityConfig', () => {
+  it('permite deny-all explícito e inmutable sin identidades ficticias', () => {
+    const config = loadSaasAdminIdentityConfig({ SAAS_ADMIN_DISABLED: 'true' });
+    expect(config).toEqual({ userIds: [] });
+    expect(Object.isFrozen(config)).toBe(true);
+    expect(Object.isFrozen(config.userIds)).toBe(true);
+    expect(isConfiguredSaasAdminUserId(ADMIN_USER_ID, config)).toBe(false);
+  });
+
+  it.each(['', 'TRUE', '1', 'yes', ' true', 'false '])(
+    'rechaza flag ambiguo %s incluso con una lista válida',
+    (disabled) => {
+      expect(() =>
+        loadSaasAdminIdentityConfig({
+          SAAS_ADMIN_DISABLED: disabled,
+          SAAS_ADMIN_USER_IDS: ADMIN_USER_ID,
+        }),
+      ).toThrow('SAAS_ADMIN_DISABLED debe ser true o false');
+    },
+  );
+
+  it.each([undefined, 'false'])(
+    'mantiene lista obligatoria con flag %s',
+    (disabled) => {
+      expect(() =>
+        loadSaasAdminIdentityConfig({ SAAS_ADMIN_DISABLED: disabled }),
+      ).toThrow('SAAS_ADMIN_USER_IDS es obligatorio');
+      expect(
+        loadSaasAdminIdentityConfig({
+          SAAS_ADMIN_DISABLED: disabled,
+          SAAS_ADMIN_USER_IDS: ADMIN_USER_ID,
+        }),
+      ).toEqual({ userIds: [ADMIN_USER_ID] });
+    },
+  );
+
+  it('rechaza desactivación junto a IDs o correos', () => {
+    expect(() =>
+      loadSaasAdminIdentityConfig({
+        SAAS_ADMIN_DISABLED: 'true',
+        SAAS_ADMIN_USER_IDS: ADMIN_USER_ID,
+      }),
+    ).toThrow('SAAS_ADMIN_DISABLED=true no permite SAAS_ADMIN_USER_IDS');
+    expect(() =>
+      loadSaasAdminIdentityConfig({
+        SAAS_ADMIN_DISABLED: 'true',
+        SAAS_ADMIN_EMAILS: 'operator@example.test',
+      }),
+    ).toThrow('SAAS_ADMIN_EMAILS ya no es compatible');
+  });
+
   it('acepta CUID actual y UUID futuro explícitos, y los normaliza', () => {
     expect(
       loadSaasAdminIdentityConfig({
@@ -114,6 +164,26 @@ describe('isConfiguredSaasAdminUserId', () => {
 });
 
 describe('SaasAdminGuard', () => {
+  it.each([ADMIN_USER_ID, SECOND_ADMIN_USER_ID, MEMBER_USER_ID, undefined])(
+    'desactivado rechaza %s antes de consultar Prisma, incluso con MFA',
+    async (userId) => {
+      const prisma = buildPrisma({
+        id: ADMIN_USER_ID,
+        isActive: true,
+        totpSecret: 'encrypted-fixture',
+        totpEnabledAt: new Date(),
+      });
+      const guard = new SaasAdminGuard(
+        prisma as unknown as PrismaService,
+        loadSaasAdminIdentityConfig({ SAAS_ADMIN_DISABLED: 'true' }),
+      );
+      await expect(
+        guard.canActivate(contextFor(userId ? { userId } : undefined)),
+      ).resolves.toBe(false);
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    },
+  );
+
   it('autoriza un ID allowlisted únicamente si el usuario actual sigue activo en su tenant', async () => {
     const prisma = buildPrisma({
       id: ADMIN_USER_ID,

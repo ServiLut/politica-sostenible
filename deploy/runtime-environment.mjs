@@ -81,6 +81,10 @@ function isCanonical32ByteBase64(value) {
 }
 
 function validateSaasAdminIdentities(issues, environment, values) {
+  const disabled = environment.SAAS_ADMIN_DISABLED;
+  if (disabled !== undefined && !["true", "false"].includes(disabled)) {
+    issues.push("SAAS_ADMIN_DISABLED debe ser true o false");
+  }
   if (environment.SAAS_ADMIN_EMAILS?.trim()) {
     issues.push(
       "SAAS_ADMIN_EMAILS ya no es compatible; usa exclusivamente SAAS_ADMIN_USER_IDS",
@@ -88,6 +92,12 @@ function validateSaasAdminIdentities(issues, environment, values) {
   }
 
   const serializedUserIds = values.SAAS_ADMIN_USER_IDS;
+  if (disabled === "true") {
+    if (serializedUserIds) {
+      issues.push("SAAS_ADMIN_DISABLED=true no permite SAAS_ADMIN_USER_IDS");
+    }
+    return;
+  }
   if (!serializedUserIds) return;
 
   const candidates = serializedUserIds.split(",");
@@ -561,7 +571,14 @@ export function runtimeEnvironmentIssues(environment = process.env) {
   const values = Object.fromEntries(
     REQUIRED_VARIABLES.map((name) => [name, environment[name]?.trim() ?? ""]),
   );
-  const missing = REQUIRED_VARIABLES.filter((name) => !values[name]);
+  const missing = REQUIRED_VARIABLES.filter(
+    (name) =>
+      !values[name] &&
+      !(
+        name === "SAAS_ADMIN_USER_IDS" &&
+        environment.SAAS_ADMIN_DISABLED === "true"
+      ),
+  );
 
   if (missing.length) issues.push(`faltan: ${missing.join(", ")}`);
 
