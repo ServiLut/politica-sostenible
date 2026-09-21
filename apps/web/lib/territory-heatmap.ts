@@ -298,6 +298,7 @@ function validateHeatmapItem(
       "bucket",
       "operationalContext",
       "geo",
+      "leaders",
     ]) ||
     !isIdentifier(value.id) ||
     !requiredText(value.code, 128) ||
@@ -342,6 +343,32 @@ function validateHeatmapItem(
 
   const geo = validateHeatmapGeo(value.geo, value.type);
 
+  const leaders: TerritoryHeatmapItem["leaders"] = Array.isArray(value.leaders)
+    ? (value.leaders as unknown[]).flatMap((leader) => {
+        if (
+          !isRecord(leader) ||
+          typeof leader.id !== "string" ||
+          typeof leader.name !== "string" ||
+          typeof leader.roleDescription !== "string"
+        ) {
+          return [];
+        }
+        return [
+          {
+            id: leader.id,
+            name: leader.name,
+            phone:
+              typeof leader.phone === "string" ? leader.phone : null,
+            socialNetworkUrl:
+              typeof leader.socialNetworkUrl === "string"
+                ? leader.socialNetworkUrl
+                : null,
+            roleDescription: leader.roleDescription,
+          },
+        ];
+      })
+    : [];
+
   return {
     id: value.id,
     code: value.code,
@@ -360,6 +387,7 @@ function validateHeatmapItem(
       acceptedTables: value.operationalContext.acceptedTables,
     },
     geo,
+    leaders,
   };
 }
 
