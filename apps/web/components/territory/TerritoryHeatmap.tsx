@@ -83,9 +83,9 @@ function tileClass(bucket: number): string {
 }
 
 function messageFrom(error: unknown): string {
-  return error instanceof ApiError
-    ? error.message
-    : "No fue posible construir el mapa de calor territorial.";
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return "No fue posible construir el mapa de calor territorial.";
 }
 
 function formatTimestamp(timestamp: string): string {
