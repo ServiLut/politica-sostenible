@@ -809,8 +809,35 @@ function ReadinessPanel({
     );
   }
 
+  if (!readiness.sections || !readiness.overall) {
+    return (
+      <section
+        aria-labelledby="operation-readiness-title"
+        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+      >
+        <h2
+          id="operation-readiness-title"
+          className="flex items-center gap-3 text-xl font-black text-slate-950 sm:text-2xl"
+        >
+          <ListChecks aria-hidden="true" className="text-blue-700" />
+          Alistamiento por ciclo
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          El servidor indicó que la organización está activa pero aún no
+          entregó el detalle de alistamiento por sección. Esto puede
+          ocurrir mientras se completa la configuración del perfil
+          operativo.
+        </p>
+        <Button type="button" className="mt-5 gap-2" onClick={onReload}>
+          <RefreshCw aria-hidden="true" size={16} />
+          Reintentar alistamiento
+        </Button>
+      </section>
+    );
+  }
+
   const allChecks = READINESS_SECTIONS.flatMap(
-    ({ key }) => readiness.sections[key],
+    ({ key }) => readiness.sections[key] ?? [],
   );
   const blocked = allChecks.filter(({ status }) => status === "BLOCK").length;
   const warnings = allChecks.filter(({ status }) => status === "WARN").length;
