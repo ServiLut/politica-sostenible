@@ -54,6 +54,63 @@ test("acepta una configuracion de produccion completa", () => {
   assert.doesNotThrow(() => requireRuntimeEnvironment(environment));
 });
 
+test("desactiva SaaS solo con true explicito y sin asignar identidades", () => {
+  const environment = {
+    ...validEnvironment(),
+    SAAS_ADMIN_DISABLED: "true",
+    SAAS_ADMIN_USER_IDS: "",
+  };
+  assert.deepEqual(runtimeEnvironmentIssues(environment), []);
+  assert.doesNotThrow(() => requireRuntimeEnvironment(environment));
+  assert.equal(environment.SAAS_ADMIN_USER_IDS, "");
+});
+
+test("conserva IDs obligatorios cuando desactivacion esta ausente o false", () => {
+  for (const disabled of [undefined, "false"]) {
+    assert.ok(
+      runtimeEnvironmentIssues({
+        ...validEnvironment(),
+        SAAS_ADMIN_DISABLED: disabled,
+        SAAS_ADMIN_USER_IDS: "",
+      }).some((issue) => issue.includes("faltan: SAAS_ADMIN_USER_IDS")),
+    );
+    assert.deepEqual(
+      runtimeEnvironmentIssues({
+        ...validEnvironment(),
+        SAAS_ADMIN_DISABLED: disabled,
+      }),
+      [],
+    );
+  }
+});
+
+test("rechaza flags SaaS ambiguos e identidades contradictorias", () => {
+  for (const disabled of ["", "TRUE", "1", "yes", " true", "false "]) {
+    assert.ok(
+      runtimeEnvironmentIssues({
+        ...validEnvironment(),
+        SAAS_ADMIN_DISABLED: disabled,
+      }).includes("SAAS_ADMIN_DISABLED debe ser true o false"),
+    );
+  }
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...validEnvironment(),
+      SAAS_ADMIN_DISABLED: "true",
+    }).includes("SAAS_ADMIN_DISABLED=true no permite SAAS_ADMIN_USER_IDS"),
+  );
+  assert.ok(
+    runtimeEnvironmentIssues({
+      ...validEnvironment(),
+      SAAS_ADMIN_DISABLED: "true",
+      SAAS_ADMIN_USER_IDS: "",
+      SAAS_ADMIN_EMAILS: "operator@example.test",
+    }).some((issue) =>
+      issue.startsWith("SAAS_ADMIN_EMAILS ya no es compatible"),
+    ),
+  );
+});
+
 test("rechaza valores ambiguos para la apertura del registro publico", () => {
   const issues = runtimeEnvironmentIssues({
     ...validEnvironment(),

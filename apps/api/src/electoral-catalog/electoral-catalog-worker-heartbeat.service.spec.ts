@@ -54,7 +54,7 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
     expect(mockedWriteFile).toHaveBeenCalledWith(
       '/tmp/electoral-catalog-worker.ready',
       expect.any(String),
-      { encoding: 'utf8', mode: 0o600 },
+      { encoding: 'utf8', mode: 0o644 },
     );
     expect(mockedRm).toHaveBeenCalledWith(
       '/tmp/electoral-catalog-worker.ready',

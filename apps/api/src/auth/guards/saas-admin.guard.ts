@@ -42,6 +42,12 @@ export class SaasAdminConfigurationError extends Error {
 export function loadSaasAdminIdentityConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): SaasAdminIdentityConfig {
+  const disabled = environment.SAAS_ADMIN_DISABLED;
+  if (disabled !== undefined && !['true', 'false'].includes(disabled)) {
+    throw new SaasAdminConfigurationError(
+      'SAAS_ADMIN_DISABLED debe ser true o false.',
+    );
+  }
   if (environment.SAAS_ADMIN_EMAILS?.trim()) {
     throw new SaasAdminConfigurationError(
       'SAAS_ADMIN_EMAILS ya no es compatible; el privilegio SaaS debe asignarse exclusivamente por ID inmutable.',
@@ -49,6 +55,16 @@ export function loadSaasAdminIdentityConfig(
   }
 
   const serializedUserIds = environment.SAAS_ADMIN_USER_IDS?.trim();
+  if (disabled === 'true') {
+    if (serializedUserIds) {
+      throw new SaasAdminConfigurationError(
+        'SAAS_ADMIN_DISABLED=true no permite SAAS_ADMIN_USER_IDS.',
+      );
+    }
+    // An explicit empty allowlist denies every platform request. Tenant roles,
+    // MFA and plan entitlements remain governed by their existing guards.
+    return Object.freeze({ userIds: Object.freeze([]) });
+  }
   if (!serializedUserIds) {
     throw new SaasAdminConfigurationError(
       'SAAS_ADMIN_USER_IDS es obligatorio.',

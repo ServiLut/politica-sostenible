@@ -198,8 +198,11 @@ test("la ultima migracion vincula API y base al mismo contrato de schema", async
   );
 
   const sql = await readFile(latest.url, "utf8");
-  assert.match(sql, /ADD COLUMN "schemaVersion" VARCHAR\(64\)/u);
-  assert.match(sql, /"fingerprint" = "fingerprint" \|\| "fingerprint"/u);
+  const firstMarker = migrations.find(({ name }) => name.endsWith(SCHEMA_CONTRACT_MARKER_SUFFIX));
+  const firstMarkerSql = await readFile(firstMarker.url, "utf8");
+  assert.match(firstMarkerSql, /ADD COLUMN "schemaVersion" VARCHAR\(64\)/u);
+  assert.match(firstMarkerSql, /"fingerprint" = "fingerprint" \|\| "fingerprint"/u);
+  assert.match(sql, /UPDATE "SystemDatabaseIdentity"/u);
   assert.match(
     sql,
     /ALTER FUNCTION %I\.%I\(\) SET search_path TO %I, pg_catalog/u,

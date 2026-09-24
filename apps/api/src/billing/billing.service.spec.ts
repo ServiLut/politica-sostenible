@@ -10,7 +10,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { BillingService } from './billing.service';
-import type { SaasAdminIdentityConfig } from '../auth/guards/saas-admin.guard';
+import {
+  loadSaasAdminIdentityConfig,
+  type SaasAdminIdentityConfig,
+} from '../auth/guards/saas-admin.guard';
 
 const SAAS_ADMIN_ID = `c${'1'.repeat(24)}`;
 
@@ -40,6 +43,28 @@ function existingSubscription(
 }
 
 describe('BillingService', () => {
+  it.each([true, false])(
+    'SaaS desactivado publica MFA=%s exclusivamente según el plan',
+    async (includesMfa) => {
+      const entitled = existingSubscription({
+        plan: { ...freePlan, includesMfa },
+      });
+      const service = new BillingService(
+        {
+          tenantSubscription: {
+            findUnique: jest.fn().mockResolvedValue(entitled),
+          },
+        } as unknown as PrismaService,
+        loadSaasAdminIdentityConfig({ SAAS_ADMIN_DISABLED: 'true' }),
+      );
+      const capabilities = await service.getCapabilities({
+        userId: SAAS_ADMIN_ID,
+        tenantId: 'tenant-a',
+      });
+      expect(capabilities.features.mfa).toBe(includesMfa);
+    },
+  );
+
   it('construye capacidades minimas desde la suscripcion vigente del tenant autenticado', async () => {
     const entitled = existingSubscription({
       tenantId: 'tenant-a',

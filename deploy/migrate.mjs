@@ -8,7 +8,13 @@ import { fileURLToPath } from "node:url";
 import { requireMigrationEnvironment } from "./runtime-environment.mjs";
 
 export const BASELINE_MIGRATION = "20260827000000_baseline";
-export const EXPECTED_SCHEMA_VERSION = "20260909310000_schema_contract_marker";
+export const EXPECTED_SCHEMA_VERSION = "20260921182000_schema_contract_marker";
+const FIRST_SCHEMA_CONTRACT_MARKER = "20260909310000_schema_contract_marker";
+const SUPPORTED_SCHEMA_CONTRACT_MARKERS = new Set([
+  FIRST_SCHEMA_CONTRACT_MARKER,
+  "20260909340000_schema_contract_marker",
+  EXPECTED_SCHEMA_VERSION,
+]);
 export const HISTORICAL_MIGRATIONS = Object.freeze([
   "20260821123000_issue_case_mode_reference",
   "20260821140000_consent_revocation_reason",
@@ -72,7 +78,7 @@ const REQUIRED_PLAN_CATALOG = Object.freeze([
   {
     code: "FREE",
     maxUsers: 3,
-    maxVoters: 100,
+    maxVoters: 500,
     maxStorageMb: 50,
     includesExport: false,
     includesImport: false,
@@ -85,29 +91,29 @@ const REQUIRED_PLAN_CATALOG = Object.freeze([
   },
   {
     code: "STARTER",
-    maxUsers: 10,
-    maxVoters: 1_000,
+    maxUsers: 15,
+    maxVoters: 5_000,
     maxStorageMb: 500,
     includesExport: true,
     includesImport: false,
     includesMfa: false,
     includesApi: false,
-    monthlyPriceCop: 99_000,
-    yearlyPriceCop: 1_188_000,
+    monthlyPriceCop: 290_000,
+    yearlyPriceCop: 3_480_000,
     isActive: true,
     sortOrder: 2,
   },
   {
     code: "PROFESSIONAL",
     maxUsers: 50,
-    maxVoters: 10_000,
+    maxVoters: 50_000,
     maxStorageMb: 2_048,
     includesExport: true,
     includesImport: true,
     includesMfa: true,
     includesApi: false,
-    monthlyPriceCop: 299_000,
-    yearlyPriceCop: 3_588_000,
+    monthlyPriceCop: 990_000,
+    yearlyPriceCop: 11_880_000,
     isActive: true,
     sortOrder: 3,
   },
@@ -120,8 +126,8 @@ const REQUIRED_PLAN_CATALOG = Object.freeze([
     includesImport: true,
     includesMfa: true,
     includesApi: false,
-    monthlyPriceCop: 799_000,
-    yearlyPriceCop: 9_588_000,
+    monthlyPriceCop: 3_500_000,
+    yearlyPriceCop: 42_000_000,
     isActive: true,
     sortOrder: 4,
   },
@@ -264,9 +270,9 @@ const INVARIANT_INTRODUCING_MIGRATIONS = Object.freeze({
     "20260907200000_proposal_status_lifecycle",
   enforce_political_proposal_status_transition:
     "20260907200000_proposal_status_lifecycle",
-  SystemDatabaseIdentity_fingerprint_format_check: EXPECTED_SCHEMA_VERSION,
-  SystemDatabaseIdentity_schema_version_format_check: EXPECTED_SCHEMA_VERSION,
-  ApplicationFunctions_search_path: EXPECTED_SCHEMA_VERSION,
+  SystemDatabaseIdentity_fingerprint_format_check: FIRST_SCHEMA_CONTRACT_MARKER,
+  SystemDatabaseIdentity_schema_version_format_check: FIRST_SCHEMA_CONTRACT_MARKER,
+  ApplicationFunctions_search_path: FIRST_SCHEMA_CONTRACT_MARKER,
   WitnessReport_one_accepted_per_context_table_key:
     "20260909160000_witness_capture_context_isolation",
 });
@@ -647,19 +653,24 @@ async function inspectDatabaseIdentity(
      WHERE identity_row.id = $1`,
     [DATABASE_IDENTITY_ID],
   );
-  const fingerprint = identity.rows[0]?.fingerprint;
-  const schemaVersion = identity.rows[0]?.schemaVersion ?? null;
+  return validateDatabaseIdentity(identity.rows, { requireCurrent });
+}
+
+export function validateDatabaseIdentity(rows, { requireCurrent = false } = {}) {
+  const fingerprint = rows[0]?.fingerprint;
+  const schemaVersion = rows[0]?.schemaVersion ?? null;
   const legacyIdentity =
     typeof fingerprint === "string" &&
     /^[a-f0-9]{32}$/.test(fingerprint) &&
     schemaVersion === null;
-  const currentIdentity =
+  const recognizedIdentity =
     typeof fingerprint === "string" &&
     /^[a-f0-9]{64}$/.test(fingerprint) &&
-    schemaVersion === EXPECTED_SCHEMA_VERSION;
+    SUPPORTED_SCHEMA_CONTRACT_MARKERS.has(schemaVersion);
+  const currentIdentity = recognizedIdentity && schemaVersion === EXPECTED_SCHEMA_VERSION;
   if (
-    identity.rows.length !== 1 ||
-    (!legacyIdentity && !currentIdentity) ||
+    rows.length !== 1 ||
+    (!legacyIdentity && !recognizedIdentity) ||
     (requireCurrent && !currentIdentity)
   ) {
     throw new Error(
