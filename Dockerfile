@@ -2,13 +2,13 @@ ARG APP_REVISION=unknown
 ARG APP_SOURCE=https://github.com/ServiLut/politica-sostenible
 ARG DEPLOYMENT_PROFILE=production
 
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS pruner
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS pruner
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264 --activate
 COPY . .
 RUN TURBO_TELEMETRY_DISABLED=1 pnpm dlx --allow-build= turbo@2.9.14 prune api web --docker
 
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS builder
 WORKDIR /app
 ARG APP_REVISION
 ARG APP_SOURCE
@@ -36,14 +36,14 @@ RUN pnpm --filter api generate \
     && test -s apps/api/dist/electoral-catalog-worker.main.js \
     && pnpm --filter web build
 
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS prod-deps
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS prod-deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264 --activate
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts --config.auto-install-peers=false
 
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS runner
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS runner
 WORKDIR /app
 ARG APP_REVISION
 ARG APP_SOURCE
