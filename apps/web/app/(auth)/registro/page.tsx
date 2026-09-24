@@ -325,7 +325,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-xs font-black uppercase tracking-[0.3em] text-slate-600">
-          <span>POLITICA SOSTENIBLE © 2026</span>
+          <span>POLITICA SOSTENIBLE © {new Date().getFullYear()}</span>
           <div className="flex gap-10">
             <Link
               href="/privacidad"

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { UserNav } from "@/components/UserNav";
 import { useAuth } from "@/context/auth";
@@ -17,6 +17,7 @@ import {
 
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { buildLoginRedirectHref } from "@/lib/post-login-navigation";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 
 export default function DashboardLayout({
   children,
@@ -26,6 +27,7 @@ export default function DashboardLayout({
   const { tenant, user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const stage = tenant?.operationStage;
   const currentRouteConfig = dashboardConfig.find((item) =>
@@ -48,7 +50,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace(buildLoginRedirectHref(pathname, window.location.search));
+      router.replace(buildLoginRedirectHref(pathname, searchParams.toString() ? `?${searchParams.toString()}` : ""));
       return;
     }
 
@@ -60,7 +62,7 @@ export default function DashboardLayout({
     if (!loading && user && tenant && pathname === "/dashboard") {
       router.replace(getDefaultDashboardRoute(user, tenant, stage));
     }
-  }, [user, tenant, loading, pathname, router, isPersonalAccountRoute, stage]);
+  }, [user, tenant, loading, pathname, router, isPersonalAccountRoute, stage, searchParams]);
 
   if (loading || !user) {
     return (
@@ -209,7 +211,9 @@ export default function DashboardLayout({
             tabIndex={-1}
             className="flex-1 overflow-y-auto p-4 pb-24 outline-none sm:p-6 sm:pb-24 lg:p-8 lg:pb-8"
           >
-            {children}
+            <DashboardErrorBoundary>
+              {children}
+            </DashboardErrorBoundary>
           </main>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, Label } from "@/components/ui";
 import {
   LogIn,
@@ -16,13 +16,12 @@ import { useAuth } from "@/context/auth";
 import type { LoginDto } from "@/lib/auth-api";
 import { resolvePostLoginDestination } from "@/lib/post-login-navigation";
 
-function getRequestedPostLoginPath(): string | null {
-  return new URLSearchParams(window.location.search).get("next");
-}
+
 
 export default function LoginPage() {
   const { login, tenant, user, loading: sessionLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -36,19 +35,20 @@ export default function LoginPage() {
     "mfa-enabled" | "mfa-disabled" | null
   >(null);
 
+  const requestedPostLoginPath = searchParams.get("next");
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setPasswordChanged(params.get("passwordChanged") === "1");
-    const change = params.get("securityChanged");
+    setPasswordChanged(searchParams.get("passwordChanged") === "1");
+    const change = searchParams.get("securityChanged");
     setSecurityChanged(
       change === "mfa-enabled" || change === "mfa-disabled" ? change : null,
     );
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!sessionLoading && user && tenant) {
       router.replace(
-        resolvePostLoginDestination(getRequestedPostLoginPath(), user, tenant),
+        resolvePostLoginDestination(requestedPostLoginPath, user, tenant),
       );
     }
   }, [router, sessionLoading, tenant, user]);
@@ -83,7 +83,7 @@ export default function LoginPage() {
 
       router.replace(
         resolvePostLoginDestination(
-          getRequestedPostLoginPath(),
+          requestedPostLoginPath,
           session.user,
           session.tenant,
         ),
@@ -132,7 +132,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-600">
-          <span>© 2026 POLITICA SOSTENIBLE</span>
+          <span>© {new Date().getFullYear()} POLITICA SOSTENIBLE</span>
           <div className="flex gap-6">
             <Link
               href="/privacidad"

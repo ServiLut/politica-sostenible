@@ -104,6 +104,7 @@ export default function TerritoryLeadersPage() {
 
   // Errors
   const [error, setError] = useState<string | null>(null);
+  const [leaderLoadError, setLeaderLoadError] = useState<string | null>(null);
 
   // Auto-detect which division types have data
   useEffect(() => {
@@ -185,13 +186,19 @@ export default function TerritoryLeadersPage() {
   const loadLeaders = useCallback(
     async (divisionId: string) => {
       setLoadingLeaders(divisionId);
+      setLeaderLoadError(null);
       try {
         const leaders = await apiRequest<Leader[]>(
           `campaigns/divisions/${encodeURIComponent(divisionId)}/leaders`,
         );
         setLeadersByDivision((prev) => ({ ...prev, [divisionId]: leaders }));
-      } catch {
+      } catch (err) {
         setLeadersByDivision((prev) => ({ ...prev, [divisionId]: [] }));
+        setLeaderLoadError(
+          err instanceof Error
+            ? err.message
+            : "No fue posible cargar los líderes de este territorio.",
+        );
       } finally {
         setLoadingLeaders(null);
       }
@@ -503,8 +510,23 @@ export default function TerritoryLeadersPage() {
                       </div>
                     )}
 
+                    {/* Leader load error */}
+                    {!isLoading && leaderLoadError && expandedId === div.id && (
+                      <div className="mx-4 my-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                        <AlertCircle size={14} className="shrink-0" />
+                        {leaderLoadError}
+                        <button
+                          type="button"
+                          onClick={() => void loadLeaders(div.id)}
+                          className="ml-auto shrink-0 rounded-lg bg-red-700 px-3 py-1 text-[10px] font-bold uppercase text-white hover:bg-red-800"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    )}
+
                     {/* No leaders */}
-                    {!isLoading && leaders && filteredLeaders.length === 0 && (
+                    {!isLoading && leaders && filteredLeaders.length === 0 && !leaderLoadError && (
                       <div className="py-8 text-center">
                         <Users className="mx-auto mb-2 text-slate-300" size={32} />
                         <p className="text-sm font-medium text-slate-500">

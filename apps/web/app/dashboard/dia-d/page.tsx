@@ -126,12 +126,14 @@ export default function DiaDTrackingPage() {
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    const controller = new AbortController();
+    let currentController: AbortController | null = null;
     const interval = setInterval(() => {
-      void loadData(controller.signal);
+      currentController?.abort();
+      currentController = new AbortController();
+      void loadData(currentController.signal);
     }, 30_000);
     return () => {
-      controller.abort();
+      currentController?.abort();
       clearInterval(interval);
     };
   }, [loadData]);
