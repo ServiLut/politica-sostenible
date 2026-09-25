@@ -441,7 +441,6 @@ export default function CommunicationsPage() {
     data: result,
     loading,
     error: requestError,
-    setData: setResult,
   } = usePageRequest(request, { reloadKey: reloadVersion });
   const loadError = requestError ? readableError(requestError) : null;
 
@@ -605,36 +604,19 @@ export default function CommunicationsPage() {
     setMutationError(null);
     setNotice(null);
     try {
-      await decideCommunicationApproval(decision.approval.id, {
+      const updated = await decideCommunicationApproval(decision.approval.id, {
         status: decision.status,
         decisionReason: decisionReason.trim(),
       });
       setNotice(
-        decision.status === "APPROVED"
+        updated.status === "APPROVED"
           ? "Comunicación aprobada. La plataforma no la publicó ni la envió."
           : "Comunicación rechazada y devuelta para corrección.",
       );
       setDecision(null);
       setDecisionReason("");
-      setResult((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          items: current.items.map((item) =>
-            item.id === decision.approval.id
-              ? {
-                  ...item,
-                  status: decision.status,
-                  decisionReason: decisionReason.trim(),
-                  decidedBy: user
-                    ? { id: user.id, name: user.name, role: user.backendRole }
-                    : null,
-                  decidedAt: new Date().toISOString(),
-                }
-              : item,
-          ),
-        };
-      });
+      // Refresh both the server's decision metadata and the filtered page/count.
+      setReloadVersion((value) => value + 1);
     } catch (error: unknown) {
       setMutationError(readableError(error));
     } finally {

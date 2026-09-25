@@ -485,6 +485,7 @@ export default function RetentionGovernancePage() {
             <select
               id="retention-scope"
               value={scope}
+              disabled={Boolean(busy)}
               onChange={(event) => {
                 setScope(event.target.value as RetentionDataScope);
                 setPreview(null);
@@ -508,6 +509,7 @@ export default function RetentionGovernancePage() {
               type="datetime-local"
               required
               value={cutoff}
+              disabled={Boolean(busy)}
               onChange={(event) => {
                 setCutoff(event.target.value);
                 setPreview(null);

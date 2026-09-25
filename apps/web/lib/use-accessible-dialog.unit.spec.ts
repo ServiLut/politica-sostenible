@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
-import { dialogTabDestination, moveDialogTabFocus } from "./use-accessible-dialog";
+import { dialogOwnsEscape, dialogTabDestination, moveDialogTabFocus } from "./use-accessible-dialog";
 
 const webRoot = resolve(__dirname, "..");
+
+test("Escape cierra primero el selector abierto dentro del diálogo", () => {
+  const selector = {} as Element;
+  const unrelated = {} as Element;
+  const parent = { contains: (element: Node | null) => element === selector };
+  const nestedInput = { closest: () => selector };
+  expect(dialogOwnsEscape(parent, nestedInput)).toBe(false);
+  expect(dialogOwnsEscape(parent, { closest: () => unrelated })).toBe(true);
+  expect(dialogOwnsEscape(parent, { closest: () => null })).toBe(true);
+  expect(dialogOwnsEscape(parent, null)).toBe(true);
+});
 
 test("Tab recorre los controles y contiene el foco en ambos extremos del diálogo", () => {
   expect(dialogTabDestination(3, 0, false)).toBeNull();

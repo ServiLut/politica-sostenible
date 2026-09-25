@@ -5,10 +5,10 @@ import { usePageRequest } from "@/lib/use-page-request";
 import { useSearchParams } from "next/navigation";
 
 import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
+import { UserCombobox } from "@/components/ui/UserCombobox";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
-  CaseUserSummary,
   CommunicationChannel,
   createIssueCase,
   getIssueCase,
@@ -50,6 +50,8 @@ import {
 } from "react";
 
 const PAGE_SIZE = 12;
+const searchIncidentAssignees = (search: string, signal: AbortSignal) =>
+  listCaseAssignees({ search, limit: 20 }, signal);
 
 const INCIDENT_WRITE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -201,14 +203,12 @@ function severityClasses(priority: WorkPriority) {
 
 function IncidentCard({
   incident,
-  assignees,
   canMutate,
   saving,
   onSave,
   onOpenInteractions,
 }: {
   incident: IssueCase;
-  assignees: CaseUserSummary[];
   canMutate: boolean;
   saving: boolean;
   onSave: (incident: IssueCase, input: UpdateIssueCaseInput) => Promise<void>;
@@ -378,19 +378,15 @@ function IncidentCard({
             </label>
             <label className="text-sm font-semibold text-slate-500 min-w-0">
               Responsable
-              <select
-                aria-label={`Responsable de ${incident.reference}`}
+              <UserCombobox
+                ariaLabel={`Responsable de ${incident.reference}`}
                 value={assigneeId}
-                onChange={(event) => setAssigneeId(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
-              >
-                <option value="">Sin asignar</option>
-                {assignees.map((assignee) => (
-                  <option key={assignee.id} value={assignee.id}>
-                    {assignee.name}
-                  </option>
-                ))}
-              </select>
+                selectedLabel={assigneeId === incident.assignee?.id ? incident.assignee.name : undefined}
+                onChange={setAssigneeId}
+                fetchItems={searchIncidentAssignees}
+                disabled={saving}
+                className="mt-1"
+              />
             </label>
             <label className="text-sm font-semibold text-slate-500 min-w-0">
               Vencimiento
@@ -434,7 +430,6 @@ export default function IncidentsPage() {
   const canMutate = user !== null && INCIDENT_WRITE_ROLES.has(user.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
-  const [assignees, setAssignees] = useState<CaseUserSummary[]>([]);
   const [reload, setReload] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
@@ -517,23 +512,6 @@ export default function IncidentsPage() {
     setData: setResult,
   } = usePageRequest(loadIncidents, { reloadKey: reload });
   const error = requestError ? readableError(requestError) : null;
-
-  useEffect(() => {
-    if (!canMutate) return;
-    const controller = new AbortController();
-
-    void listCaseAssignees({}, controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setAssignees(response.items);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) {
-          setMutationError(readableError(requestError));
-        }
-      });
-
-    return () => controller.abort();
-  }, [canMutate]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -806,7 +784,6 @@ export default function IncidentsPage() {
               <IncidentCard
                 key={`${incident.id}:${incident.updatedAt}`}
                 incident={incident}
-                assignees={assignees}
                 canMutate={canMutate}
                 saving={saving === incident.id}
                 onSave={handleUpdate}
@@ -976,20 +953,15 @@ export default function IncidentsPage() {
                 </label>
                 <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Responsable
-                  <select
+                  <UserCombobox
+                    ariaLabel="Responsable del nuevo incidente"
                     value={form.assigneeId}
-                    onChange={(event) =>
-                      setForm({ ...form, assigneeId: event.target.value })
+                    onChange={(assigneeId) =>
+                      setForm({ ...form, assigneeId })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  >
-                    <option value="">Sin asignar</option>
-                    {assignees.map((assignee) => (
-                      <option key={assignee.id} value={assignee.id}>
-                        {assignee.name}
-                      </option>
-                    ))}
-                  </select>
+                    fetchItems={searchIncidentAssignees}
+                    disabled={saving === "create"}
+                  />
                 </label>
                 <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Vencimiento

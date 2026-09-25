@@ -316,11 +316,13 @@ export default function AuditPage() {
       setError("La fecha inicial no puede ser posterior a la fecha final.");
       return;
     }
+    setError(null);
     setPage(1);
     setFilters({ ...draftFilters });
   }
 
   function clearFilters() {
+    setError(null);
     setDraftFilters(EMPTY_FILTERS);
     setPage(1);
     setFilters(EMPTY_FILTERS);

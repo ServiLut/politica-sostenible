@@ -72,6 +72,15 @@ body[data-local-evaluation="true"] {
   }
 }
 
+@media (pointer: coarse) {
+  /* Keep editing controls legible on touch screens, including landscape. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

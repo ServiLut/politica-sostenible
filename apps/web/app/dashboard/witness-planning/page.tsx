@@ -1,6 +1,9 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { isOperationProfileRequired } from "@/lib/operation-profile-required";
+import { OperationProfileRequired } from "@/components/operation-profile/OperationProfileRequired";
+import { canEditWitnessPlanning } from "@/lib/witness-planning-presentation";
 
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
@@ -149,9 +152,13 @@ export default function WitnessPlanningPage() {
   const error =
     mutationError ?? (requestError ? readableError(requestError) : null);
 
-  const canPlan = Boolean(
-    isPlannerRole && !coverage?.operationStage?.match(/POST_ELECTION|CLOSED/),
-  );
+  const canPlan = canEditWitnessPlanning({
+    stage: coverage?.operationStage,
+    isPlanner: isPlannerRole,
+    windowsReadOnly: data?.windows.readOnly,
+    assignmentsReadOnly: data?.assignments.readOnly,
+    context,
+  });
   const selectedWindow = useMemo(
     () => windows.find(({ id }) => id === selectedWindowId) ?? null,
     [selectedWindowId, windows],
@@ -278,18 +285,22 @@ export default function WitnessPlanningPage() {
     );
   }
 
+  if (!coverage && isOperationProfileRequired(requestError)) {
+    return <OperationProfileRequired title="Planificación de testigos" description="El perfil identifica la operación electoral y su etapa. Después podrás organizar puestos, horarios y asignaciones de testigos principales y suplentes." />;
+  }
+
   return (
     <main className="mx-auto max-w-7xl space-y-6 min-w-0">
       <header className="flex flex-wrap items-start justify-between gap-4 min-w-0">
         <div>
           <p className="text-sm font-semibold text-blue-700">Día D</p>
           <h1 className="font-semibold text-slate-950 text-2xl sm:text-3xl break-words">
-            Planificación exacta de testigos
+            Planificación de testigos
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
-            La cobertura sólo cuenta cuando PRIMARY y BACKUP confirmados cubren
-            cada mesa durante toda la ventana local declarada. Una asignación
-            parcial nunca aparece como lista.
+            Revisa que cada mesa tenga un testigo principal y un suplente
+            confirmados durante todo el horario requerido. Las asignaciones
+            parciales se muestran como cobertura pendiente.
           </p>
         </div>
         <button
@@ -370,12 +381,12 @@ export default function WitnessPlanningPage() {
               value={coverage.summary.expectedTableWindows}
             />
             <SummaryCard
-              label="Huecos PRIMARY"
+              label="Sin testigo principal"
               value={coverage.summary.missingPrimaryTables}
               alert={coverage.summary.missingPrimaryTables > 0}
             />
             <SummaryCard
-              label="Huecos BACKUP"
+              label="Sin suplente"
               value={coverage.summary.missingBackupTables}
               alert={coverage.summary.missingBackupTables > 0}
             />
@@ -391,11 +402,11 @@ export default function WitnessPlanningPage() {
               {coverage.summary.confirmedPrimaryUncoveredMinutes.toLocaleString(
                 "es-CO",
               )}{" "}
-              minutos-mesa PRIMARY y{" "}
+              minutos-mesa sin principal y{" "}
               {coverage.summary.confirmedBackupUncoveredMinutes.toLocaleString(
                 "es-CO",
               )}{" "}
-              minutos-mesa BACKUP.
+              minutos-mesa sin suplente.
             </p>
           )}
         </section>
@@ -650,11 +661,11 @@ export default function WitnessPlanningPage() {
                 ) : (
                   <div className="mt-2 grid gap-2 md:grid-cols-2 min-w-0">
                     <GapList
-                      label="PRIMARY"
+                      label="Principal"
                       groups={window.primaryConfirmedTemporalGaps}
                     />
                     <GapList
-                      label="BACKUP"
+                      label="Suplente"
                       groups={window.backupConfirmedTemporalGaps}
                     />
                   </div>
@@ -808,8 +819,7 @@ export default function WitnessPlanningPage() {
       )}
 
       <p className="text-xs text-slate-500">
-        Las mutaciones requieren conexión y confirmación de la API. La interfaz
-        no simula guardados offline.
+        Necesitas conexión para guardar y confirmar cambios en la planificación.
       </p>
     </main>
   );

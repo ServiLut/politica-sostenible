@@ -43,6 +43,8 @@ const EMPTY_INBOX_FLOW_HREFS = new Set([
   "/dashboard/cases",
   "/dashboard/tasks",
   "/dashboard/pqrsd",
+  "/dashboard/commitments",
+  "/dashboard/communications",
 ]);
 
 const PRIORITY_LABELS: Readonly<Record<InboxPriority, string>> = {
@@ -403,7 +405,7 @@ export default function OperationalInboxPage() {
                 ))}
               </div>
               <label className="relative block w-full lg:max-w-sm min-w-0">
-                <span className="sr-only">Buscar en la bandeja</span>
+                <span className="sr-only">Buscar entre las acciones cargadas</span>
                 <Search
                   aria-hidden="true"
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -413,7 +415,7 @@ export default function OperationalInboxPage() {
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar título o referencia"
+                  placeholder="Buscar entre acciones cargadas"
                   className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
@@ -426,14 +428,24 @@ export default function OperationalInboxPage() {
               <span>Corte: {formatDate(result.generatedAt)}</span>
             </div>
             {result.summary.truncated && (
-              <p
+              <div
                 role="status"
                 className="mt-3 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900"
               >
-                Se muestran las {result.summary.visible} acciones más críticas
-                de {result.summary.total}. Resuelve o filtra el trabajo para
-                reducir la cola.
-              </p>
+                <p>
+                  Se muestran las {result.summary.visible} acciones más críticas
+                  de {result.summary.total}. Los filtros y la búsqueda solo
+                  consultan estas acciones cargadas. Para encontrar otras,
+                  abre el módulo correspondiente.
+                </p>
+                <nav aria-label="Consultar todos los registros por módulo" className="mt-3 flex flex-wrap gap-2">
+                  {emptyStateFlows.map((item) => (
+                    <Link key={item.href} href={item.href} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100">
+                      Abrir {item.title}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
             )}
           </section>
 
@@ -456,12 +468,12 @@ export default function OperationalInboxPage() {
               <h2 className="mt-4 text-xl font-semibold text-slate-950">
                 {result.summary.total === 0
                   ? "La operación está al día"
-                  : "No hay resultados para este filtro"}
+                  : "Sin coincidencias entre las acciones cargadas"}
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
                 {result.summary.total === 0
                   ? "Cuando aparezca una tarea, compromiso, caso, expediente PQRSD, incidente o aprobación pendiente, quedará priorizado aquí."
-                  : "Cambia el filtro o la búsqueda para volver a ver el trabajo abierto."}
+                  : "Cambia el filtro o busca en el módulo correspondiente para consultar el resto del trabajo abierto."}
               </p>
               {result.summary.total === 0 && emptyStateFlows.length > 0 && (
                 <nav

@@ -14,6 +14,7 @@ import {
 } from "@/lib/search-api";
 import { startDebouncedRequest } from "./debounced-request";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { GLOBAL_SEARCH_OPEN_EVENT } from "@/lib/global-search";
 
 const CATEGORY_LABELS: Record<string, string> = {
   Voters: "Personas",
@@ -57,6 +58,10 @@ export function CommandPalette() {
   }, []);
 
   useEffect(() => {
+    const handleOpen = () => {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      openPalette();
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         if (!open && document.querySelector('[aria-modal="true"]')) return;
@@ -66,7 +71,11 @@ export function CommandPalette() {
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener(GLOBAL_SEARCH_OPEN_EVENT, handleOpen);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(GLOBAL_SEARCH_OPEN_EVENT, handleOpen);
+    };
   }, [closePalette, open, openPalette]);
 
   useAccessibleDialog({ open, containerRef: dialogRef, initialFocusRef: inputRef, restoreFocusRef, onClose: closePalette });
@@ -168,7 +177,7 @@ export function CommandPalette() {
           results.length === 0 &&
           !loading &&
           !error && (
-            <div className="p-8 text-center text-slate-500">
+            <div className="min-w-0 overflow-y-auto break-words p-6 text-center text-sm text-slate-500 [overflow-wrap:anywhere]">
               No se encontraron resultados para &quot;{query}&quot;
             </div>
           )}
@@ -187,11 +196,11 @@ export function CommandPalette() {
                     onClick={() => closePalette(false)}
                     className="block min-h-11 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                   >
-                    <div className="font-medium text-slate-900">
+                    <div className="break-words font-medium text-slate-900 [overflow-wrap:anywhere]">
                       {item.title}
                     </div>
                     {item.subtitle && (
-                      <div className="text-sm text-slate-500">
+                      <div className="break-words text-sm text-slate-500 [overflow-wrap:anywhere]">
                         {item.subtitle}
                       </div>
                     )}

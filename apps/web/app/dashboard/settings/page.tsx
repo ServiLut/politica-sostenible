@@ -128,7 +128,7 @@ export default function ConsentSettingsPage() {
         <button
           type="button"
           onClick={() => setReload((value) => value + 1)}
-          disabled={loading}
+          disabled={loading || saving}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
         >
           <RefreshCw

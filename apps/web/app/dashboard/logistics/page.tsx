@@ -1,6 +1,8 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { isOperationProfileRequired } from "@/lib/operation-profile-required";
+import { OperationProfileRequired } from "@/components/operation-profile/OperationProfileRequired";
 
 import { useAuth } from "@/context/auth";
 import { useConfirmation } from "@/context/confirmation";
@@ -489,6 +491,10 @@ export default function LogisticsPage() {
         </span>
       </div>
     );
+  }
+
+  if (!overview && isOperationProfileRequired(requestError)) {
+    return <OperationProfileRequired title="Logística electoral" description="El perfil permite organizar bodegas, entregas y responsables según la etapa de la campaña. Revísalo para empezar a gestionar el inventario." />;
   }
 
   if (loadError && !overview) {

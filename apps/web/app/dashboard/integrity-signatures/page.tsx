@@ -125,7 +125,7 @@ export default function IntegritySignaturesPage() {
     (requestError
       ? errorMessage(requestError)
       : candidateResult?.truncated
-        ? `Se muestran los ${candidateResult.limit} documentos más recientes. Firma o archiva pendientes para consultar los anteriores.`
+        ? `El listado incluye los ${candidateResult.limit} documentos más recientes, también los ya sellados. Los documentos anteriores no se pueden seleccionar desde esta pantalla.`
         : null);
 
   const selectedCandidate = candidates.find(
@@ -134,7 +134,7 @@ export default function IntegritySignaturesPage() {
 
   async function handleSign(event: React.FormEvent) {
     event.preventDefault();
-    if (!selectedCandidate || !/^\d{6}$/.test(otpCode)) {
+    if (!selectedCandidate || selectedCandidate.signature || !/^\d{6}$/.test(otpCode)) {
       setCandidateError(
         "Selecciona un documento y escribe el código vigente de seis dígitos de tu MFA.",
       );
@@ -151,6 +151,7 @@ export default function IntegritySignaturesPage() {
         otpCode,
       });
       setOtpCode("");
+      setSelectedDocumentId("");
       setSignNotice(
         `Sello ${result.id} registrado a las ${formatDate(result.signedAt)}. Conserva el identificador para comprobar el vínculo y los metadatos.`,
       );
@@ -375,7 +376,7 @@ export default function IntegritySignaturesPage() {
                 <Button
                   type="submit"
                   disabled={
-                    signing || !selectedCandidate || otpCode.length !== 6
+                    signing || !selectedCandidate || Boolean(selectedCandidate.signature) || otpCode.length !== 6
                   }
                 >
                   {signing ? (

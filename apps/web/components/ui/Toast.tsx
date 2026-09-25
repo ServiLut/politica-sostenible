@@ -29,23 +29,25 @@ const borders = {
 
 export const Toast = ({ id, message, type, onClose }: ToastProps) => {
   return (
-    <div 
+    <div
+      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
+      aria-atomic="true"
       className={cn(
-        "flex items-center gap-3 bg-white border-l-4 p-4 rounded-xl shadow-2xl min-w-[300px] animate-in slide-in-from-right-full duration-300 mb-3",
+        "pointer-events-auto flex w-full min-w-0 items-start gap-3 rounded-xl border border-slate-200 border-l-4 bg-white p-3 shadow-lg sm:p-4",
         borders[type]
       )}
     >
-      <div className="flex-shrink-0">
+      <div aria-hidden="true" className="mt-3 shrink-0">
         {icons[type]}
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-bold text-slate-800">{message}</p>
+      <div className="min-w-0 flex-1 py-2.5">
+        <p className="break-words text-sm font-medium leading-6 text-slate-800 [overflow-wrap:anywhere]">{message}</p>
       </div>
       <button
         type="button"
         onClick={() => onClose(id)}
         aria-label="Cerrar notificación"
-        className="text-slate-400 hover:text-slate-600 transition-colors"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-ring"
       >
         <X size={16} />
       </button>
@@ -55,10 +57,8 @@ export const Toast = ({ id, message, type, onClose }: ToastProps) => {
 
 export const ToastContainer = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="fixed top-6 right-6 z-[100] flex flex-col items-end pointer-events-none">
-      <div className="pointer-events-auto">
-        {children}
-      </div>
+    <div className="pointer-events-none fixed inset-x-3 top-[calc(var(--app-banner-height)+0.75rem+env(safe-area-inset-top))] z-[200] flex max-h-[calc(100dvh-2rem)] flex-col gap-2 overflow-y-auto overscroll-contain sm:left-auto sm:right-6 sm:w-96">
+      {children}
     </div>
   );
 };

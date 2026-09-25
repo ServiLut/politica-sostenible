@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { openGlobalSearch } from "@/lib/global-search";
+import { MOBILE_NAVIGATION_OPEN_EVENT } from "@/lib/mobile-navigation";
 import {
   getNavigationGroupsForRole,
   getRoleLabel,
@@ -211,6 +213,16 @@ export function Sidebar() {
   });
 
   useEffect(() => {
+    function openFromHeader() {
+      if (window.matchMedia("(min-width: 1024px)").matches || document.querySelector('[aria-modal="true"]')) return;
+      restoreDrawerFocusRef.current = true;
+      setMobileMenuOpen(true);
+    }
+    window.addEventListener(MOBILE_NAVIGATION_OPEN_EVENT, openFromHeader);
+    return () => window.removeEventListener(MOBILE_NAVIGATION_OPEN_EVENT, openFromHeader);
+  }, []);
+
+  useEffect(() => {
     if (!mobileMenuOpen) return;
     const desktop = window.matchMedia("(min-width: 1024px)");
     function closeHiddenDrawer(event: MediaQueryListEvent) {
@@ -268,17 +280,15 @@ export function Sidebar() {
         >
           <button
             type="button"
-            onClick={() =>
-              window.dispatchEvent(
-                new KeyboardEvent("keydown", { key: "k", metaKey: true }),
-              )
-            }
+            onClick={openGlobalSearch}
+            aria-label="Buscar en la organización"
+            aria-haspopup="dialog"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 bg-slate-900 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <Search size={18} />
             <span className="flex-1 text-left">Buscar...</span>
             <span className="text-[10px] uppercase tracking-widest font-semibold opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">
-              Cmd+K
+              Ctrl/⌘ K
             </span>
           </button>
 
@@ -316,7 +326,7 @@ export function Sidebar() {
 
       <nav
         aria-label="Navegación principal móvil"
-        className="fixed inset-x-0 bottom-0 z-[80] grid auto-cols-fr grid-flow-col border-t border-slate-200 bg-white/95 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(15,23,42,0.04)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-[80] grid auto-cols-fr grid-flow-col border-t border-slate-200 bg-white px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(15,23,42,0.04)] lg:hidden"
       >
         {mobilePrimary.map((item) => {
           const Icon = NAV_ICONS[item.icon];
@@ -366,7 +376,7 @@ export function Sidebar() {
             tabIndex={-1}
             aria-label="Cerrar más opciones"
             onClick={() => closeMobileMenu()}
-            className="absolute inset-0 h-full w-full bg-slate-950/65 backdrop-blur-sm"
+            className="absolute inset-0 h-full w-full bg-slate-950/65"
           />
           <aside
             ref={drawerRef}
@@ -377,7 +387,7 @@ export function Sidebar() {
             tabIndex={-1}
             className="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-var(--app-banner-height)-1rem)] overflow-y-auto overscroll-contain rounded-t-2xl bg-white shadow-2xl"
           >
-            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white/95 px-5 py-5 backdrop-blur">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white px-5 py-5">
               <div className="min-w-0 pr-4">
                 <p className="text-xs font-semibold text-blue-700">
                   Navegación

@@ -148,6 +148,7 @@ export default function ProposalsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PoliticalProposal | null>(
     null,
   );
+  const [deleting, setDeleting] = useState(false);
   const proposalDialogRef = useRef<HTMLElement>(null);
   const proposalDialogTitleRef = useRef<HTMLHeadingElement>(null);
   const deleteDialogRef = useRef<HTMLDivElement>(null);
@@ -166,7 +167,7 @@ export default function ProposalsPage() {
     open: deleteTarget !== null,
     containerRef: deleteDialogRef,
     initialFocusRef: deleteDialogTitleRef,
-    onClose: () => setDeleteTarget(null),
+    onClose: () => { if (!deleting) setDeleteTarget(null); },
     closeOnEscape: false,
   });
 
@@ -201,7 +202,7 @@ export default function ProposalsPage() {
 
   const openCreate = () => {
     if (!canMutate) return;
-    setForm({ ...EMPTY_FORM });
+    setForm({ ...EMPTY_FORM, ownerId: user.id });
     setMutationError(null);
     setDialogProposal("new");
   };
@@ -235,7 +236,8 @@ export default function ProposalsPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget || !canMutate) return;
+    if (!deleteTarget || !canMutate || deleting) return;
+    setDeleting(true);
     try {
       await deleteProposal(deleteTarget.id);
       setDeleteTarget(null);
@@ -245,6 +247,8 @@ export default function ProposalsPage() {
         errorMessage(error, "No se pudo eliminar la propuesta."),
       );
       setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -255,6 +259,10 @@ export default function ProposalsPage() {
     const title = form.title.trim();
     if (!title) {
       setMutationError("El título es obligatorio.");
+      return;
+    }
+    if (!form.ownerId) {
+      setMutationError("Selecciona el responsable de la propuesta.");
       return;
     }
 
@@ -270,7 +278,7 @@ export default function ProposalsPage() {
       progressPercent,
       estimatedCost,
       isPublic: form.internalDistributionFlag,
-      ownerId: form.ownerId || undefined,
+      ownerId: form.ownerId,
     };
 
     setSubmitting(true);
@@ -331,6 +339,7 @@ export default function ProposalsPage() {
     dialogProposal !== null && dialogProposal !== "new" ? dialogProposal : null;
   const committedContentLocked =
     editedProposal !== null && editedProposal.status !== "DRAFT";
+  const terminalProposal = editedProposal?.status === "COMPLETED" || editedProposal?.status === "WITHDRAWN";
   const progressInputLocked =
     dialogProposal === "new" ||
     form.status === "DRAFT" ||
@@ -403,7 +412,7 @@ export default function ProposalsPage() {
           />
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-1 min-w-0 max-w-full">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 pb-1 min-w-0 max-w-full">
           {(["ALL", ...PROPOSAL_STATUSES] as const).map((status) => (
             <button
               type="button"
@@ -656,6 +665,7 @@ export default function ProposalsPage() {
               <button
                 type="button"
                 aria-label="Cerrar"
+                disabled={submitting}
                 onClick={() => setDialogProposal(null)}
                 className="rounded-full p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
               >
@@ -670,9 +680,9 @@ export default function ProposalsPage() {
               )}
               {committedContentLocked && (
                 <p className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-blue-950">
-                  El texto, categoría, fuente y costo comprometidos quedan
-                  bloqueados al salir de borrador. Para corregirlos, retire esta
-                  propuesta y registre una nueva versión trazable.
+                  {terminalProposal
+                    ? "Esta propuesta está finalizada. Se conservan su contenido, responsable y progreso."
+                    : "El texto, categoría, fuente y costo comprometidos quedan bloqueados al salir de borrador. Para corregirlos, retire esta propuesta y registre una nueva versión trazable."}
                 </p>
               )}
               <label className="block text-sm font-semibold text-slate-800 min-w-0">
@@ -707,6 +717,9 @@ export default function ProposalsPage() {
                   <div className="mt-2 min-w-0">
                     <UserCombobox
                       value={form.ownerId}
+                      allowUnassigned={false}
+                      disabled={submitting || terminalProposal}
+                      selectedLabel={form.ownerId === user.id ? user.name : form.ownerId === editedProposal?.ownerId ? editedProposal.owner.name : undefined}
                       onChange={(val) => setForm({ ...form, ownerId: val })}
                       fetchItems={(search, signal) =>
                         listProposalResponsibles({ search, limit: 10 }, signal)
@@ -822,6 +835,7 @@ export default function ProposalsPage() {
               <footer className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4 min-w-0 flex-wrap">
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={() => setDialogProposal(null)}
                   className="rounded-xl px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 max-w-full whitespace-normal"
                 >
@@ -866,6 +880,7 @@ export default function ProposalsPage() {
             <div className="mt-6 flex justify-end gap-3 min-w-0 flex-wrap">
               <button
                 type="button"
+                disabled={deleting}
                 onClick={() => setDeleteTarget(null)}
                 className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 max-w-full whitespace-normal"
               >
@@ -873,10 +888,11 @@ export default function ProposalsPage() {
               </button>
               <button
                 type="button"
+                disabled={deleting}
                 onClick={() => void confirmDelete()}
                 className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 max-w-full whitespace-normal"
               >
-                Eliminar
+                {deleting ? "Eliminando…" : "Eliminar"}
               </button>
             </div>
           </div>

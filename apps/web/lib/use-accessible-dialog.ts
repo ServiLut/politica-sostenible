@@ -57,6 +57,14 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
   );
 }
 
+export function dialogOwnsEscape(
+  container: Pick<HTMLElement, "contains">,
+  target: Pick<Element, "closest"> | null,
+): boolean {
+  const nestedDismissal = target?.closest('[data-escape-dismiss="true"]');
+  return !nestedDismissal || !container.contains(nestedDismissal);
+}
+
 interface AccessibleDialogOptions {
   open: boolean;
   containerRef: RefObject<HTMLElement | null>;
@@ -140,6 +148,7 @@ export function useAccessibleDialog({
       const container = containerRef.current;
       if (!container) return;
       if (event.key === "Escape") {
+        if (!dialogOwnsEscape(container, event.target instanceof Element ? event.target : null)) return;
         event.preventDefault();
         event.stopPropagation();
         if (closeOnEscapeRef.current) closeRef.current();

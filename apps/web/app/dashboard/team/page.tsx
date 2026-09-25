@@ -1,6 +1,7 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 import { useSearchParams } from "next/navigation";
 
@@ -131,6 +132,8 @@ export default function TeamPage() {
     null,
   );
   const [divisionReload, setDivisionReload] = useState(0);
+  const divisionDialogRef = useRef<HTMLElement>(null);
+  const divisionTitleRef = useRef<HTMLHeadingElement>(null);
   const resetDialogRef = useRef<HTMLElement>(null);
   const resetBusyRef = useRef(false);
   const [resetMember, setResetMember] = useState<TeamMember | null>(null);
@@ -142,6 +145,17 @@ export default function TeamPage() {
   const [resetCopyStatus, setResetCopyStatus] = useState<
     "idle" | "copied" | "failed"
   >("idle");
+  const savingDivision = divisionMember !== null && updatingMemberId === divisionMember.id;
+  function closeDivisionAssignment() {
+    if (!savingDivision) setDivisionMember(null);
+  }
+  useAccessibleDialog({
+    open: divisionMember !== null,
+    containerRef: divisionDialogRef,
+    initialFocusRef: divisionTitleRef,
+    onClose: closeDivisionAssignment,
+    closeOnEscape: !savingDivision,
+  });
 
   const request = useCallback(async (signal: AbortSignal) => {
     const [members, invitations] = await Promise.all([
@@ -326,9 +340,9 @@ export default function TeamPage() {
   }
 
   async function saveDivisionAssignment() {
-    if (!divisionMember || loadingDivisions) return;
+    if (!divisionMember || loadingDivisions || savingDivision) return;
     setUpdatingMemberId(divisionMember.id);
-    setMutationError(null);
+    setDivisionError(null);
     try {
       const updated = await updateTeamMemberDivision(
         divisionMember.id,
@@ -341,7 +355,7 @@ export default function TeamPage() {
       );
       setDivisionMember(null);
     } catch (error: unknown) {
-      setMutationError(readableError(error));
+      setDivisionError(readableError(error));
     } finally {
       setUpdatingMemberId(null);
     }
@@ -809,14 +823,15 @@ export default function TeamPage() {
           role="presentation"
           className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDivisionMember(null);
+            if (event.target === event.currentTarget) closeDivisionAssignment();
           }}
         >
           <section
+            ref={divisionDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="division-dialog-title"
-            className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl min-w-0"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl sm:p-6 min-w-0"
           >
             <div className="flex items-start justify-between gap-4 min-w-0 flex-wrap">
               <div>
@@ -824,6 +839,8 @@ export default function TeamPage() {
                   Permiso territorial
                 </p>
                 <h2
+                  ref={divisionTitleRef}
+                  tabIndex={-1}
                   id="division-dialog-title"
                   className="mt-2 text-2xl font-semibold text-slate-950"
                 >
@@ -836,7 +853,8 @@ export default function TeamPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setDivisionMember(null)}
+                onClick={closeDivisionAssignment}
+                disabled={savingDivision}
                 aria-label="Cerrar asignación territorial"
                 className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
               >
@@ -852,7 +870,7 @@ export default function TeamPage() {
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
-                autoFocus
+                disabled={savingDivision}
                 maxLength={100}
                 value={divisionSearch}
                 onChange={(event) => setDivisionSearch(event.target.value)}
@@ -865,8 +883,11 @@ export default function TeamPage() {
               División compatible con {ROLE_LABELS.get(divisionMember.role)}
               <select
                 value={selectedDivisionId}
-                onChange={(event) => setSelectedDivisionId(event.target.value)}
-                disabled={loadingDivisions}
+                onChange={(event) => {
+                  setSelectedDivisionId(event.target.value);
+                  setDivisionError(null);
+                }}
+                disabled={loadingDivisions || savingDivision}
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold disabled:opacity-60 min-w-0 max-w-full"
               >
                 <option value="">Sin asignación</option>
@@ -891,13 +912,13 @@ export default function TeamPage() {
                 className="mt-3 flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between min-w-0"
               >
                 <span>{divisionError}</span>
-                <button
+                {!divisionMutationError && <button
                   type="button"
                   onClick={() => setDivisionReload((value) => value + 1)}
                   className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-800 max-w-full whitespace-normal"
                 >
                   Reintentar territorio
-                </button>
+                </button>}
               </div>
             )}
             {!loadingDivisions &&
@@ -911,7 +932,8 @@ export default function TeamPage() {
             <div className="mt-6 flex justify-end gap-3 min-w-0 flex-wrap">
               <button
                 type="button"
-                onClick={() => setDivisionMember(null)}
+                onClick={closeDivisionAssignment}
+                disabled={savingDivision}
                 className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 max-w-full whitespace-normal"
               >
                 Cancelar
@@ -920,7 +942,7 @@ export default function TeamPage() {
                 type="button"
                 onClick={() => void saveDivisionAssignment()}
                 disabled={
-                  loadingDivisions || updatingMemberId === divisionMember.id
+                  loadingDivisions || savingDivision || Boolean(divisions.error)
                 }
                 className="min-h-11 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
               >

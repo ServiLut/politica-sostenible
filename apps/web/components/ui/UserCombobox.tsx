@@ -5,6 +5,8 @@ import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { startDebouncedRequest } from "./debounced-request";
+import { getRoleLabel } from "../../config/navigation";
+import type { BackendUserRole } from "../../types/saas-schema";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,6 +27,10 @@ interface UserComboboxProps {
   onChange: (value: string) => void;
   className?: string;
   name?: string;
+  allowUnassigned?: boolean;
+  selectedLabel?: string;
+  disabled?: boolean;
+  ariaLabel?: string;
   fetchItems: (
     search: string,
     signal: AbortSignal,
@@ -37,6 +43,10 @@ export function UserCombobox({
   className,
   name,
   fetchItems,
+  allowUnassigned = true,
+  selectedLabel,
+  disabled = false,
+  ariaLabel,
 }: UserComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -51,11 +61,12 @@ export function UserCombobox({
       ? response
       : null;
   const items = currentResponse?.items ?? [];
-  const loading = open && !currentResponse;
+  const loading = open && !disabled && !currentResponse;
   const error = currentResponse?.error ?? false;
   const [selectedUser, setSelectedUser] = useState<ComboboxUser | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -71,7 +82,7 @@ export function UserCombobox({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || disabled) return;
 
     return startDebouncedRequest(
       (signal) => fetchItems(search, signal),
@@ -80,36 +91,54 @@ export function UserCombobox({
       () => setResponse({ search, fetchItems, items: [], error: true }),
       400,
     );
-  }, [search, open, fetchItems]);
+  }, [search, open, fetchItems, disabled]);
 
   const displayValue =
     (selectedUser?.id === value ? selectedUser.name : null) ||
     items.find((i) => i.id === value)?.name ||
-    (value ? "Seleccionado" : "Por asignar");
+    (value ? selectedLabel || "Responsable seleccionado" : allowUnassigned ? "Por asignar" : "Selecciona un responsable");
 
   return (
-    <div className={cn("relative w-full", className)} ref={containerRef}>
+    <div
+      className={cn("relative min-w-0 w-full", className)}
+      ref={containerRef}
+      data-escape-dismiss={open && !disabled ? "true" : undefined}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open && !disabled) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+          triggerRef.current?.focus({ preventScroll: true });
+        }
+      }}
+    >
       {name && <input type="hidden" name={name} value={value} />}
       <button
+        ref={triggerRef}
         type="button"
-        aria-expanded={open}
+        aria-label={ariaLabel}
+        aria-expanded={open && !disabled}
+        disabled={disabled}
         onClick={() => {
           if (!open) setResponse(null);
           setOpen(!open);
         }}
-        className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 min-h-12 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        className="flex min-w-0 w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-2 min-h-12 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500"
       >
-        <span className="truncate">{displayValue}</span>
+        <span className="min-w-0 whitespace-normal break-words text-left">{displayValue}</span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full rounded-2xl border border-slate-200 bg-white p-1 shadow-xl">
           <div className="flex items-center border-b border-slate-100 px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
             <input
               autoFocus
-              className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-400"
+              className="flex h-11 min-w-0 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-400"
               placeholder="Buscar usuario..."
               aria-label="Buscar usuario para asignar"
               value={search}
@@ -132,10 +161,10 @@ export function UserCombobox({
               </div>
             )}
 
-            <button
+            {allowUnassigned && <button
               type="button"
               className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-xl px-2 py-2.5 text-sm outline-none hover:bg-slate-100 focus:bg-slate-100",
+                "relative flex min-h-11 w-full cursor-default select-none items-center rounded-xl px-2 py-2.5 text-sm outline-none hover:bg-slate-100 focus:bg-slate-100",
                 value === "" && "bg-slate-50",
               )}
               onClick={() => {
@@ -151,14 +180,14 @@ export function UserCombobox({
                 )}
               />
               <span>Por asignar</span>
-            </button>
+            </button>}
 
             {items.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-xl px-2 py-2.5 text-sm outline-none hover:bg-slate-100 focus:bg-slate-100",
+                  "relative flex min-h-11 w-full cursor-default select-none items-center gap-1 rounded-xl px-2 py-2.5 text-sm outline-none hover:bg-slate-100 focus:bg-slate-100",
                   value === item.id && "bg-slate-50",
                 )}
                 onClick={() => {
@@ -169,13 +198,13 @@ export function UserCombobox({
               >
                 <Check
                   className={cn(
-                    "mr-2 h-4 w-4",
+                    "mr-2 h-4 w-4 shrink-0",
                     value === item.id ? "opacity-100" : "opacity-0",
                   )}
                 />
-                <span className="truncate">{item.name}</span>
-                <span className="ml-auto text-xs text-slate-400">
-                  {item.role}
+                <span className="min-w-0 flex-1 break-words text-left">{item.name}</span>
+                <span className="ml-auto max-w-[44%] shrink-0 break-words text-right text-xs text-slate-500">
+                  {getRoleLabel(item.role as BackendUserRole) || "Rol no disponible"}
                 </span>
               </button>
             ))}

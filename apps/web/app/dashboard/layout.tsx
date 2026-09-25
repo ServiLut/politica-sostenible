@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Menu, Search, ShieldAlert } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { UserNav } from "@/components/UserNav";
@@ -18,6 +18,8 @@ import {
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { buildLoginRedirectHref } from "@/lib/post-login-navigation";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
+import { openGlobalSearch } from "@/lib/global-search";
+import { openMobileNavigation } from "@/lib/mobile-navigation";
 
 export default function DashboardLayout({
   children,
@@ -179,7 +181,18 @@ export default function DashboardLayout({
         {!requiresPasswordChange && <Sidebar />}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
-            <div className="min-w-0 pr-4">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              {!requiresPasswordChange && <button
+                type="button"
+                onClick={openMobileNavigation}
+                aria-label="Abrir menú de navegación"
+                aria-haspopup="dialog"
+                aria-controls="mobile-navigation-drawer"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-ring lg:hidden"
+              >
+                <Menu aria-hidden="true" size={21} />
+              </button>}
+              <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950" title={tenant?.name}>
                 {tenant?.name ?? "Organización"}
               </p>
@@ -189,8 +202,18 @@ export default function DashboardLayout({
                   : (currentRouteConfig?.title ?? "Panel")}
                 {tenant ? ` · ${getTenantTypeLabel(tenant.type)}` : ""}
               </p>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+              <button
+                type="button"
+                onClick={openGlobalSearch}
+                aria-label="Buscar en la organización"
+                aria-haspopup="dialog"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-ring lg:hidden"
+              >
+                <Search aria-hidden="true" size={20} />
+              </button>
               <span
                 role={requiresPasswordChange ? "status" : undefined}
                 aria-live={requiresPasswordChange ? "assertive" : undefined}
