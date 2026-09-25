@@ -1,8 +1,16 @@
 # Despliegue seguro
 
+Estado observado el 25 de septiembre de 2026: la instalación compartida usa
+`compose.recovery.yml` y la imagen preconstruida `ecc9221`, con autodeploy
+desactivado y actualización acotada a `app`. El procedimiento y la evidencia
+vigentes están en [Despliegue y validación](docs/DESPLIEGUE_Y_VALIDACION_2026-09-25.md).
+Las instrucciones de la topología separada siguientes no describen un cambio
+ya realizado sobre la infraestructura compartida.
+
 La aplicación está preparada para ejecutarse detrás del proxy HTTPS del VPS.
 La web se publica únicamente en `127.0.0.1`; NestJS permanece en la red interna
-de Compose. Redis y BullMQ se incorporarán cuando exista el primer worker real.
+de Compose. Redis y BullMQ sostienen los límites distribuidos y el worker de
+catálogo electoral; ambos deben verificarse en el entorno de destino.
 
 Compose usa `.env.production` sólo para interpolar variables y entrega a cada
 contenedor una lista explícita. La web nunca recibe `DATABASE_URL`, `DIRECT_URL`
@@ -13,10 +21,10 @@ de Docker equivale a acceso a esos secretos y se restringe al personal de
 plataforma. Tras una exposición o copia no controlada, se rotan las credenciales;
 ocultar el archivo después no corrige la exposición.
 
-La topología primaria y soportada es `compose.production.yml`: migrador, API y
-web en contenedores separados, con identidades, secretos, health checks y
+La topología primaria y soportada es `compose.production.yml`: migrador, API,
+web y worker de catálogo en contenedores separados, con identidades, secretos, health checks y
 límites propios. El `Dockerfile` raíz combinado es únicamente una compatibilidad
-para plataformas que no admiten esa topología. Conserva dos usuarios distintos,
+para plataformas que no admiten esa topología. Conserva usuarios distintos para API, web y worker,
 pero comparte kernel, red, PID namespace y un supervisor root; no ofrece el
 mismo límite de impacto que Compose separado.
 
@@ -51,6 +59,29 @@ el mismo digest aprobado en staging. Una variable, dominio o identidad de base
 que apunte a producción durante la preparación de staging es `STOP`.
 
 ## Antes de cualquier despliegue
+
+El punto de entrada de migraciones es `node deploy/migrate-entrypoint.mjs`.
+No lo sustituyas por `prisma migrate deploy` directo: dos archivos publicados
+sin `BEGIN/COMMIT` necesitan el ejecutor transaccional acotado de
+`deploy/legacy-migration-atomicity.mjs`. Sus nombres y SHA-256 están sellados;
+el ejecutor conserva sus bytes y confirma el DDL junto con una nueva fila de
+historial en la misma transacción. Nunca reescribe filas existentes ni resuelve
+automáticamente un historial fallido. Un reintento verifica primero el checksum
+ya aplicado. Todas las migraciones nuevas siguen exigiendo transacción explícita.
+
+Antes del seed histórico de planes, el migrador instala una protección temporal
+en PostgreSQL: un conflicto no puede cambiar identidad, nombres, descripciones,
+precios, límites ni prestaciones de filas existentes. Un catálogo incompatible
+detiene el proceso y requiere reconciliación; no se iguala automáticamente al
+catálogo de la aplicación. La protección se conserva si el despliegue falla y
+se retira después de verificar el estado final. El bootstrap aplica primero un
+prefijo canónico para disponer de la tabla, sin cambiar archivos históricos.
+
+CI ejecuta pruebas físicas de rollback, reintento y protección comercial en
+PostgreSQL 16. Las pruebas de atomicidad crean bases efímeras con el prefijo
+`audit_atomicity_` y eliminan únicamente las que ellas mismas crearon. Por eso
+`MIGRATION_TEST_DATABASE_URL` debe pertenecer a una base de integración y su rol
+necesita `CREATEDB`; no se ejecutan contra producción.
 
 1. Rota toda credencial compartida fuera de un gestor de secretos: PostgreSQL,
    service role de Storage, JWT de Supabase y secretos de sesión de la app.
