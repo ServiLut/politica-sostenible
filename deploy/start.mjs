@@ -35,6 +35,7 @@ const SYSTEM_ENVIRONMENT_KEYS = Object.freeze([
 ]);
 const API_ENVIRONMENT_KEYS = Object.freeze([
   "NODE_ENV",
+  "APP_REVISION",
   "DATABASE_URL",
   "DATABASE_SCHEMA",
   "DATABASE_SSL",
@@ -62,6 +63,7 @@ const API_ENVIRONMENT_KEYS = Object.freeze([
 ]);
 const CATALOG_WORKER_ENVIRONMENT_KEYS = Object.freeze([
   "NODE_ENV",
+  "APP_REVISION",
   "DATABASE_URL",
   "DATABASE_SCHEMA",
   "DATABASE_SSL",
@@ -78,6 +80,7 @@ const CATALOG_WORKER_ENVIRONMENT_KEYS = Object.freeze([
 ]);
 const WEB_ENVIRONMENT_KEYS = Object.freeze([
   "NODE_ENV",
+  "APP_REVISION",
   "HOSTNAME",
   "NESTJS_API_URL",
   "NEXT_PUBLIC_APP_URL",

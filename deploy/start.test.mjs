@@ -84,6 +84,64 @@ test("borra secretos del supervisor después de iniciar la API", () => {
   });
 });
 
+test("conserva la misma revisión pública en worker, API y web al limpiar secretos del supervisor", async () => {
+  const revision = "0123456789abcdef0123456789abcdef01234567";
+  const source = {
+    NODE_ENV: "production",
+    APP_REVISION: revision,
+    DATABASE_URL: "postgresql://runtime-secret",
+    DIRECT_URL: "postgresql://migration-secret",
+    JWT_SECRET: "jwt-secret",
+    REDIS_URL: "rediss://default:redis-secret@cache.internal:6380/0",
+    MFA_TOTP_ENCRYPTION_KEY: "mfa-secret",
+    SUPABASE_SERVICE_ROLE_KEY: "storage-secret",
+    NEXT_PUBLIC_APP_URL: "https://politica.invalid",
+  };
+  const captured = {};
+  const neverExits = new Promise(() => undefined);
+  const webBeforeScrubbing = buildChildEnvironment("web", source);
+
+  await launchServicesInOrder({
+    runMigrations: async () => undefined,
+    startCatalogWorker: () => {
+      captured.worker = buildChildEnvironment("catalog-worker", source);
+      return { exited: neverExits };
+    },
+    awaitCatalogWorkerReady: async () => undefined,
+    startApi: () => {
+      captured.api = buildChildEnvironment("api", source, { PORT: "4000" });
+      scrubSupervisorSecrets(source);
+      return { exited: neverExits };
+    },
+    awaitApiReady: async () => undefined,
+    startWeb: () => {
+      captured.web = buildChildEnvironment("web", source, { PORT: "3000" });
+      return captured.web;
+    },
+  });
+
+  assert.equal(source.APP_REVISION, revision);
+  for (const target of ["worker", "api", "web"]) {
+    assert.equal(captured[target].APP_REVISION, revision, target);
+  }
+  for (const web of [webBeforeScrubbing, captured.web]) {
+    assert.equal(web.APP_REVISION, revision);
+    for (const key of [
+      "DATABASE_URL",
+      "DIRECT_URL",
+      "JWT_SECRET",
+      "REDIS_URL",
+      "MFA_TOTP_ENCRYPTION_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+    ]) {
+      assert.equal(Object.hasOwn(web, key), false, key);
+    }
+  }
+  assert.equal(captured.api.JWT_SECRET, "jwt-secret");
+  assert.equal(captured.worker.SUPABASE_SERVICE_ROLE_KEY, "storage-secret");
+  assert.equal(source.JWT_SECRET, undefined);
+});
+
 test("exige identidades Unix distintas para API y web en el contenedor combinado", () => {
   const environment = {
     API_PROCESS_UID: "1001",
