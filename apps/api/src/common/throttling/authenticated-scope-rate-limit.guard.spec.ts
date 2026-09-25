@@ -38,7 +38,7 @@ describe('AuthenticatedScopeRateLimitGuard', () => {
     const increment = jest.fn().mockResolvedValue(allowed);
     const guard = new AuthenticatedScopeRateLimitGuard({
       increment,
-    } as ThrottlerStorage);
+    });
     const request = context({
       userId: 'user-sensitive-123',
       tenantId: 'tenant-sensitive-456',
@@ -81,7 +81,7 @@ describe('AuthenticatedScopeRateLimitGuard', () => {
       .mockResolvedValueOnce(allowed);
     const guard = new AuthenticatedScopeRateLimitGuard({
       increment,
-    } as ThrottlerStorage);
+    });
     const request = context({ userId: 'user-a', tenantId: 'tenant-a' });
 
     await expect(guard.canActivate(request.value)).rejects.toBeInstanceOf(

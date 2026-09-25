@@ -30,7 +30,12 @@ test("autoriza con JSON, sube el binario sólo a Storage y confirma con JSON", a
     type: "application/pdf",
   });
   const authorization = authorizationFor(file);
-  const confirmation: UploadConfirmation = { confirmed: true, path: PATH };
+  const confirmation: UploadConfirmation = {
+    confirmed: true,
+    objectId: "storage-finance-a",
+    path: PATH,
+    contentIntegrity: "NOT_PROVIDED",
+  };
   const requests: Array<{ path: string; body: unknown }> = [];
   const uploadedFiles: File[] = [];
   const request: DirectStorageUploadDependencies["request"] = async <T>(
@@ -157,7 +162,13 @@ test("extiende la subida directa a CONSENT sin enviar tenant ni binarios a NestJ
       return (
         bodies.length === 1
           ? authorization
-          : { confirmed: true, path: consentPath, module: "consent" }
+          : {
+              confirmed: true,
+              objectId: "storage-consent-a",
+              path: consentPath,
+              module: "consent",
+              contentIntegrity: "NOT_PROVIDED",
+            }
       ) as T;
     },
     upload: async () => undefined,
@@ -165,8 +176,10 @@ test("extiende la subida directa a CONSENT sin enviar tenant ni binarios a NestJ
 
   await expect(uploader(file, "consent")).resolves.toEqual({
     confirmed: true,
+    objectId: "storage-consent-a",
     path: consentPath,
     module: "consent",
+    contentIntegrity: "NOT_PROVIDED",
   });
   expect(bodies).toEqual([
     {
@@ -209,7 +222,13 @@ test("envía la huella de escrutinio a Storage sin pasar el binario por NestJS",
       return (
         bodies.length === 1
           ? authorization
-          : { confirmed: true, path: scrutinyPath, module: "scrutiny" }
+          : {
+              confirmed: true,
+              objectId: "storage-scrutiny-a",
+              path: scrutinyPath,
+              module: "scrutiny",
+              contentIntegrity: "VERIFIED",
+            }
       ) as T;
     },
     upload: async () => undefined,

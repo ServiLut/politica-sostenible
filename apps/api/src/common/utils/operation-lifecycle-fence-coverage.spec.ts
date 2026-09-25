@@ -7,7 +7,7 @@ type ServiceFenceContract = Readonly<{
 }>;
 
 const SERVICE_FENCE_CONTRACTS: readonly ServiceFenceContract[] = [
-  { file: 'campaign/campaign.service.ts', firstFencedTransactions: 2 },
+  { file: 'campaign/campaign.service.ts', firstFencedTransactions: 5 },
   { file: 'cases/cases.service.ts', firstFencedTransactions: 2 },
   { file: 'commitments/commitments.service.ts', firstFencedTransactions: 2 },
   {

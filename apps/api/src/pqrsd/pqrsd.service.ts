@@ -60,7 +60,7 @@ import {
 } from './dto/pqrsd.dto';
 import { PQRSD_READ_ROLES } from './pqrsd-access.constants';
 import { calculatePqrsdDeadline } from './pqrsd-deadline';
-import { computePqrsdCommandSha256, type PqrsdCommandName } from './pqrsd.hash';
+import { computePqrsdCommandSha256 } from './pqrsd.hash';
 
 type Tx = Prisma.TransactionClient;
 
@@ -2243,10 +2243,7 @@ export class PqrsdService {
       context: MutationContext,
     ) => Promise<CommandResult<T>>,
   ): Promise<T> {
-    const expectedHash = computePqrsdCommandSha256(
-      type as PqrsdCommandName,
-      input,
-    );
+    const expectedHash = computePqrsdCommandSha256(type, input);
     if (expectedHash !== input.payloadSha256) {
       throw new BadRequestException({
         code: 'PQRSD_PAYLOAD_HASH_MISMATCH',

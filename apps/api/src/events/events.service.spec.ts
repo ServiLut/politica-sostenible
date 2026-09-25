@@ -42,7 +42,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
   let prisma: {
     $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
-    user: { findFirst: jest.Mock; findMany: jest.Mock };
+    user: { findFirst: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     campaignEvent: {
       findMany: jest.Mock;
       count: jest.Mock;
@@ -75,6 +75,7 @@ describe('EventsService tenant, mode and lifecycle controls', () => {
             ),
           ),
         findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       campaignEvent: {
         findMany: jest.fn().mockResolvedValue([]),

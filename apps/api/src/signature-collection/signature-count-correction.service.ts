@@ -924,7 +924,7 @@ export class SignatureCountCorrectionService {
     resourceType: string,
   ) {
     if (
-      command.type !== (type as SignatureCountCorrectionCommandType) ||
+      command.type !== type ||
       command.payloadSha256 !== payloadSha256 ||
       command.actorUserId !== actorUserId ||
       command.resourceType !== resourceType

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useOfflineVault } from "@/context/offline-vault";
+import { useKeyedState } from "@/hooks/use-keyed-state";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
 import {
@@ -27,7 +29,6 @@ import {
   type HeatmapMetric,
   type TerritoryHeatmapItem,
   type TerritoryHeatmapQuery,
-  type TerritoryHeatmapResponse,
   type TerritoryHeatmapView,
 } from "@/lib/territory-heatmap";
 
@@ -106,79 +107,32 @@ export function TerritoryHeatmap() {
   const [metric, setMetric] = useState<HeatmapMetric>("E14_COVERAGE");
   const [parentId, setParentId] = useState<string | null>(null);
   const [history, setHistory] = useState<HeatmapHistoryEntry[]>([]);
-  const [result, setResult] = useState<TerritoryHeatmapResponse | null>(null);
-  const [viewSource, setViewSource] = useState<
-    TerritoryHeatmapView["source"] | null
-  >(null);
-  const [offlineSavedAt, setOfflineSavedAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const viewKey = `${level}:${metric}:${parentId}:${vaultPhase}`;
+  const [saveMessage, setSaveMessage] = useKeyedState<string | null>(viewKey, null);
+  const [saveError, setSaveError] = useKeyedState<string | null>(viewKey, null);
   const [displayMode, setDisplayMode] =
     useState<HeatmapDisplayMode>("GEOGRAPHIC");
-  const requestSequence = useRef(0);
-  const abortController = useRef<AbortController | null>(null);
-
   const query = useMemo<TerritoryHeatmapQuery>(
     () => ({ level, metric, parentId }),
     [level, metric, parentId],
   );
 
-  const load = useCallback(async () => {
-    const sequence = ++requestSequence.current;
-    abortController.current?.abort();
-    const requestAbortController = new AbortController();
-    abortController.current = requestAbortController;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setViewSource(null);
-    setOfflineSavedAt(null);
+  const requestView = useCallback((signal: AbortSignal) =>
+    resolveTerritoryHeatmapView(query, {
+      loadOnline: (validatedQuery) => apiRequest<unknown>(buildTerritoryHeatmapPath(validatedQuery), { signal }),
+      readOffline: vaultPhase === "UNLOCKED" ? readHeatmapSnapshot : undefined,
+    }), [query, readHeatmapSnapshot, vaultPhase]);
+  const { data: view, loading, error: loadError, refresh } = usePageRequest<TerritoryHeatmapView>(requestView);
+  const result = view?.response ?? null;
+  const viewSource = view?.source ?? null;
+  const offlineSavedAt = view?.savedAt ?? null;
+  const error = loadError ? messageFrom(loadError) : null;
+  const load = () => {
     setSaveMessage(null);
     setSaveError(null);
-
-    try {
-      const view = await resolveTerritoryHeatmapView(query, {
-        loadOnline: (validatedQuery) =>
-          apiRequest<unknown>(buildTerritoryHeatmapPath(validatedQuery), {
-            signal: requestAbortController.signal,
-          }),
-        readOffline:
-          vaultPhase === "UNLOCKED" ? readHeatmapSnapshot : undefined,
-      });
-      if (sequence !== requestSequence.current) return;
-      setResult(view.response);
-      setViewSource(view.source);
-      setOfflineSavedAt(view.savedAt);
-    } catch (requestError) {
-      if (
-        sequence !== requestSequence.current ||
-        (requestError instanceof DOMException &&
-          requestError.name === "AbortError")
-      ) {
-        return;
-      }
-      setError(messageFrom(requestError));
-    } finally {
-      if (sequence === requestSequence.current) {
-        setLoading(false);
-        if (abortController.current === requestAbortController) {
-          abortController.current = null;
-        }
-      }
-    }
-  }, [query, readHeatmapSnapshot, vaultPhase]);
-
-  useEffect(() => {
-    void load();
-    return () => {
-      requestSequence.current += 1;
-      abortController.current?.abort();
-      abortController.current = null;
-    };
-  }, [load]);
+    return refresh();
+  };
 
   function drillDown(item: TerritoryHeatmapItem) {
     if (!item.hasChildren || !item.nextLevel) return;
@@ -486,7 +440,8 @@ export function TerritoryHeatmap() {
                       const canDrill = Boolean(
                         item.hasChildren && item.nextLevel,
                       );
-                      const hasLowPresenceAlert = metric === "VOTER_ACTIVITY" && item.bucket <= 1;
+                      const hasLowPresenceAlert =
+                        metric === "VOTER_ACTIVITY" && item.bucket <= 1;
                       const label = `${hasLowPresenceAlert ? "⚠️ ALERTA BAJA PRESENCIA - " : ""}${item.name}: ${item.displayValue}; ${item.geo.locatedPollingPlaces.toLocaleString("es-CO")} de ${item.geo.totalPollingPlaces.toLocaleString("es-CO")} registros de puesto o jornada con coordenadas${canDrill ? "; abrir siguiente nivel" : ""}`;
                       const pointClass = `absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-[10px] font-black shadow-md ${tileClass(item.bucket)}`;
                       const style = {
@@ -564,12 +519,15 @@ export function TerritoryHeatmap() {
                       </p>
                       <p className="mt-3 text-2xl font-black flex items-center gap-2">
                         {item.displayValue}
-                        {metric === "VOTER_ACTIVITY" && item.bucket <= 1 && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-widest text-red-700 ring-1 ring-inset ring-red-600/20">
-                            <AlertCircle size={10} />
-                            ALERTA: BAJA PRESENCIA
-                          </span>
-                        )}
+                        {metric === "VOTER_ACTIVITY" &&
+                          !item.suppressed &&
+                          item.value !== null &&
+                          item.bucket <= 1 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-widest text-red-700 ring-1 ring-inset ring-red-600/20">
+                              <AlertCircle size={10} />
+                              POCOS REGISTROS AUTORIZADOS
+                            </span>
+                          )}
                       </p>
                       {metric === "E14_COVERAGE" && (
                         <p className="mt-1 text-xs font-semibold opacity-75">
@@ -582,36 +540,6 @@ export function TerritoryHeatmap() {
                           )}{" "}
                           mesas configuradas
                         </p>
-                      )}
-                      {(item.leaders ?? []).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-black/10">
-                          <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70 mb-2">Líderes de Zona</p>
-                          <ul className="space-y-2">
-                            {item.leaders?.map((leader) => (
-                              <li key={leader.id} className="text-xs">
-                                <span className="font-bold">{leader.name}</span>
-                                <br />
-                                <span className="opacity-80">{leader.roleDescription}</span>
-                                {leader.phone && (
-                                  <>
-                                    <br />
-                                    <span className="opacity-80">📞 {leader.phone}</span>
-                                  </>
-                                )}
-                                {leader.socialNetworkUrl && (
-                                  <>
-                                    <br />
-                                    <span className="opacity-80 break-all text-blue-600">
-                                      <a href={leader.socialNetworkUrl} target="_blank" rel="noreferrer">
-                                        🔗 {leader.socialNetworkUrl}
-                                      </a>
-                                    </span>
-                                  </>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
                       )}
                     </>
                   );

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
+import { LEGACY_IMPLICIT_TRANSACTION_MIGRATIONS } from "./legacy-migration-atomicity.mjs";
 
 const MIGRATIONS_DIRECTORY = new URL(
   "../apps/api/prisma/migrations/",
@@ -15,9 +16,9 @@ const HISTORY_SENSITIVE_CHECKSUMS = Object.freeze({
     "4b69078f4848c7da9819758323cf85f7563df3bd97364dd2f9d81976c3bb088f",
 });
 
-// From this point forward every migration is authored as one explicit
-// PostgreSQL transaction. A rolling hand-maintained allowlist silently stops
-// protecting new migrations, which is precisely when this gate matters most.
+// New migrations require an explicit transaction. Two byte-pinned, already
+// published exceptions are executed by the guarded transactional runner and
+// verified with PostgreSQL fault injection in CI; their SQL is not rewritten.
 const TRANSACTIONAL_MIGRATION_CUTOFF =
   "20260907160000_finance_compliance_file";
 const SCHEMA_CONTRACT_MARKER_SUFFIX = "_schema_contract_marker";
@@ -157,6 +158,15 @@ test("las migraciones nuevas de varias sentencias son atómicas", async () => {
       /^(?:(?:[ \t]*--[^\n]*(?:\n|$))|\s)*/u,
       "",
     );
+    const guardedChecksum = LEGACY_IMPLICIT_TRANSACTION_MIGRATIONS[name];
+    if (guardedChecksum) {
+      assert.equal(
+        createHash("sha256").update(await readFile(migration.url)).digest("hex"),
+        guardedChecksum,
+        `${name} debe conservar el SQL canónico protegido por el ejecutor transaccional`,
+      );
+      continue;
+    }
     assert.match(
       executableSql,
       /^BEGIN;\s/iu,
@@ -164,6 +174,20 @@ test("las migraciones nuevas de varias sentencias son atómicas", async () => {
     );
     assert.match(sql, /\sCOMMIT;$/iu, `${name} debe cerrar la transacción`);
   }
+});
+
+test("el ejecutor protege las dos migraciones históricas antes de Prisma deploy", async () => {
+  assert.deepEqual(Object.keys(LEGACY_IMPLICIT_TRANSACTION_MIGRATIONS), [
+    "20260909320000_transition_handover_reports",
+    "20260917350000_voter_election_day_tracking",
+  ]);
+  const source = await readFile(new URL("migrate.mjs", import.meta.url), "utf8");
+  const guarded = source.indexOf("await applyGuardedLegacyMigrations(");
+  const finalDeploy = source.lastIndexOf('await runPrisma(["migrate", "deploy"]');
+  assert.ok(guarded >= 0 && finalDeploy > guarded, "El guard debe ejecutarse antes del despliegue final");
+  const ci = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  assert.match(ci, /node --test deploy\/migration-atomicity\.integration\.test\.mjs/);
+  assert.match(ci, /MIGRATION_TEST_DATABASE_URL: postgresql:/);
 });
 
 test("la cadena de migraciones no vuelve a crear objetos ya declarados", async () => {

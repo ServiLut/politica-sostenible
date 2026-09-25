@@ -52,6 +52,18 @@ test.describe("strict content security policy", () => {
     );
   });
 
+  test("local evaluation keeps strict scripts while allowing its explicit loopback HTTP origin", () => {
+    const policy = buildContentSecurityPolicy(
+      "local-evaluation-nonce",
+      false,
+      true,
+    );
+    expect(policy).not.toContain("upgrade-insecure-requests");
+    expect(policy).not.toContain("'unsafe-eval'");
+    expect(policy).not.toMatch(/script-src[^;]*'unsafe-inline'/u);
+    expect(policy).toContain("'nonce-local-evaluation-nonce' 'strict-dynamic'");
+  });
+
   test("covers rendered routes while excluding API and immutable assets", () => {
     expect(config.matcher).toHaveLength(1);
     expect(config.matcher[0]).toMatchObject({

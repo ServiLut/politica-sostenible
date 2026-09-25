@@ -1,14 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
-import {
-  getRegistrationPolicy,
-  type RegistrationPolicyResponse,
-} from "@/lib/auth-api";
+import { getRegistrationPolicy } from "@/lib/auth-api";
 import { acceptTeamInvitation } from "@/lib/team-api";
+import { usePageClientReady } from "@/lib/use-page-client-ready";
+import { usePageRequest } from "@/lib/use-page-request";
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 
 function readableError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -17,9 +16,22 @@ function readableError(error: unknown): string {
 }
 
 export default function AcceptInvitationPage() {
-  const tokenProcessed = useRef(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenReady, setTokenReady] = useState(false);
+  const ready = usePageClientReady();
+  return ready ? (
+    <InvitationForm />
+  ) : (
+    <p role="status">Preparando invitación…</p>
+  );
+}
+
+function InvitationForm() {
+  const [token, setToken] = useState<string | null>(() => {
+    const secret = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    ).get("token");
+    return secret && /^[A-Za-z0-9_-]{43}$/.test(secret) ? secret : null;
+  });
+  const tokenReady = true;
   const [name, setName] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [phone, setPhone] = useState("");
@@ -29,46 +41,23 @@ export default function AcceptInvitationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
-  const [accessPolicy, setAccessPolicy] =
-    useState<RegistrationPolicyResponse | null>(null);
-  const [policyLoading, setPolicyLoading] = useState(true);
-  const [policyError, setPolicyError] = useState(false);
-
-  const loadAccessPolicy = useCallback(async (signal?: AbortSignal) => {
-    setPolicyLoading(true);
-    setPolicyError(false);
-    setAccessPolicy(null);
+  const {
+    data: accessPolicy,
+    loading: policyLoading,
+    error: accessPolicyError,
+    refresh,
+  } = usePageRequest(getRegistrationPolicy);
+  const policyError = Boolean(accessPolicyError);
+  function loadAccessPolicy() {
     setTermsAccepted(false);
-    try {
-      const policy = await getRegistrationPolicy(signal);
-      setAccessPolicy(policy);
-    } catch (cause: unknown) {
-      if (cause instanceof DOMException && cause.name === "AbortError") return;
-      setPolicyError(true);
-    } finally {
-      if (!signal?.aborted) setPolicyLoading(false);
-    }
-  }, []);
+    return refresh();
+  }
 
   useEffect(() => {
-    if (tokenProcessed.current) return;
-    tokenProcessed.current = true;
-    const hash = window.location.hash.startsWith("#")
-      ? window.location.hash.slice(1)
-      : window.location.hash;
-    const secret = new URLSearchParams(hash).get("token");
-    setToken(secret && /^[A-Za-z0-9_-]{43}$/.test(secret) ? secret : null);
-    setTokenReady(true);
     // El secreto sigue en memoria solo durante este formulario y se retira de
     // la barra para evitar capturas accidentales o copias posteriores.
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadAccessPolicy(controller.signal);
-    return () => controller.abort();
-  }, [loadAccessPolicy]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

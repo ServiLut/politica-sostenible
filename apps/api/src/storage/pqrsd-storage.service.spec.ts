@@ -10,7 +10,6 @@ import type { PrismaService } from '../prisma/prisma.service';
 import { StorageModuleName } from './storage.constants';
 import { StorageService } from './storage.service';
 import type { SupabaseStorageGateway } from './supabase-storage.gateway';
-import type { StorageIntegrityQueuePort } from './storage-integrity-queue.constants';
 
 describe('PQRSD direct Storage integrity', () => {
   const digest = 'a'.repeat(64);
@@ -70,7 +69,7 @@ describe('PQRSD direct Storage integrity', () => {
       {
         enqueue: jest.fn().mockResolvedValue(undefined),
         checkReady: jest.fn().mockResolvedValue(undefined),
-      } as unknown as StorageIntegrityQueuePort,
+      },
     );
   });
 

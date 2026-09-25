@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
+@theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -15,16 +15,70 @@
   --color-border: #e2e8f0;
   --color-surface: #ffffff;
   --color-bg: #f8fafc;
+  --app-banner-height: 0px;
 }
 
 body {
   color: var(--color-text-main);
   background-color: var(--color-bg);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+body[data-local-evaluation="true"] {
+  --app-banner-height: 28px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  :where(button, a, input, select, textarea) {
+    touch-action: manipulation;
+  }
+
+  :where(button, [role="button"]):not(:disabled) {
+    cursor: pointer;
+  }
+
+  :where(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+  }
+
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+  }
+
+  :where(input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  #dashboard-content :where(h1, h2, h3, p, dd, dt) {
+    overflow-wrap: anywhere;
+  }
 }
 
 @layer utilities {
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

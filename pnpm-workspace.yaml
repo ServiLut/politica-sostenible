@@ -17,6 +17,7 @@ allowBuilds:
   "@prisma/engines@7.9.1": true
   "@scarf/scarf": false
   "bcrypt@6.0.0": true
+  "msgpackr-extract@3.0.4": true
   prisma: false
   "unrs-resolver@1.11.1": true
 strictDepBuilds: true

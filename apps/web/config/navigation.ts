@@ -7,10 +7,7 @@ import {
 } from "../types/saas-schema";
 
 export type NavigationGroupId =
-  | "DIRECTION"
-  | "COORDINATION"
-  | "FIELD"
-  | "REVIEW";
+  "DIRECTION" | "COORDINATION" | "FIELD" | "REVIEW";
 
 export type NavigationIcon =
   | "dashboard"
@@ -782,25 +779,19 @@ export const dashboardConfig: NavItem[] = [
     ],
   },
   {
-    title: "Día D - Tracking",
+    title: "Seguimiento de participación",
     mobileTitle: "Día D",
     href: "/dashboard/dia-d",
     icon: "election",
     group: "FIELD",
-    allowedRoles: [UserRole.AdminCampana, UserRole.GerenteOps, UserRole.Coordinador],
-    allowedBackendRoles: [
-      "ADMIN",
-      "CAMPAIGN_MANAGER",
-      "ZONE_COORDINATOR",
+    allowedRoles: [
+      UserRole.AdminCampana,
+      UserRole.GerenteOps,
+      UserRole.Coordinador,
     ],
+    allowedBackendRoles: ["ADMIN", "CAMPAIGN_MANAGER", "ZONE_COORDINATOR"],
     allowedTenantTypes: CAMPAIGN_TENANTS,
-    allowedStages: [
-      "CAMPAIGN",
-      "ELECTION_PREPARATION",
-      "SIMULATION",
-      "ELECTION_DAY",
-      "POST_ELECTION",
-    ],
+    allowedStages: ["ELECTION_DAY"],
   },
   {
     title: "Programa político",

@@ -287,11 +287,85 @@ async function frontendPathBuilders() {
   return builders;
 }
 
-function frontendPathCandidates(node, pathBuilders) {
+function frontendPathCandidates(node, pathBuilders, visited = new Set()) {
   const direct = literalCandidates(node);
-  if (direct.length > 0 || !node || !ts.isCallExpression(node)) return direct;
-  return [...(pathBuilders.get(calledName(node.expression)) ?? [])];
+  if (direct.length > 0 || !node || visited.has(node)) return direct;
+  visited.add(node);
+  if (ts.isCallExpression(node)) {
+    return [...(pathBuilders.get(calledName(node.expression)) ?? [])];
+  }
+  if (!ts.isIdentifier(node)) return [];
+
+  // Resolve immutable local aliases without borrowing a same-named variable
+  // from an unrelated function or pretending a mutable route is constant.
+  for (let scope = node.parent; scope; scope = scope.parent) {
+    if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
+      for (const statement of scope.statements) {
+        if (!ts.isVariableStatement(statement)) continue;
+        const declaration = statement.declarationList.declarations.find(
+          (candidate) =>
+            ts.isIdentifier(candidate.name) &&
+            candidate.name.text === node.text,
+        );
+        if (!declaration) continue;
+        if (
+          !(statement.declarationList.flags & ts.NodeFlags.Const) ||
+          declaration.pos >= node.pos
+        )
+          return [];
+        return frontendPathCandidates(
+          declaration.initializer,
+          pathBuilders,
+          visited,
+        );
+      }
+    }
+    if (
+      ts.isFunctionLike(scope) &&
+      scope.parameters.some(
+        (parameter) =>
+          ts.isIdentifier(parameter.name) && parameter.name.text === node.text,
+      )
+    )
+      return [];
+  }
+  return [];
 }
+
+test("el inventario resuelve alias const sin aceptar rutas mutables ni mezclar funciones", () => {
+  const source = ts.createSourceFile(
+    "route-fixture.ts",
+    `
+    function allowed(query: string) {
+      const url = query ? \`proposals/responsibles?\${query}\` : "proposals/responsibles";
+      apiRequest(url);
+    }
+    function mutable() { let url = "proposals/responsibles"; apiRequest(url); }
+    function unrelated(url: string) { apiRequest(url); }
+  `,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const candidates = [];
+  const visit = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      calledName(node.expression) === "apiRequest"
+    ) {
+      candidates.push(
+        frontendPathCandidates(node.arguments[0], new Map()).map(normalizePath),
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert.deepEqual(candidates, [
+    ["proposals/responsibles", "proposals/responsibles"],
+    [],
+    [],
+  ]);
+});
 
 async function frontendRequests() {
   const requests = [];

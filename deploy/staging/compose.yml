@@ -1,0 +1,255 @@
+name: politica-local-staging
+
+x-api-build: &api-build
+  context: ../..
+  dockerfile: apps/api/Dockerfile
+  args:
+    APP_REVISION: ${APP_REVISION:-unknown}
+    DEPLOYMENT_PROFILE: evaluation
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DEPLOYMENT_PROFILE: evaluation
+  ALLOW_LOCAL_STAGING_BUILD: "true"
+  ALLOW_INSECURE_DATABASE_CONNECTION: "true"
+  DATABASE_URL: postgresql://politica_staging:${STAGING_APP_DB_PASSWORD:?generate local environment}@app-db:5432/politica_staging?schema=politica-staging&sslmode=disable
+  DATABASE_SCHEMA: politica-staging
+  DATABASE_SSL: "false"
+  DATABASE_SSL_REJECT_UNAUTHORIZED: "false"
+  REDIS_URL: redis://:${STAGING_REDIS_PASSWORD:?generate local environment}@redis:6379/0
+  REDIS_ALLOW_PLAINTEXT_INTERNAL: "true"
+  SUPABASE_URL: http://127.0.0.1:5800
+  SUPABASE_SERVICE_ROLE_KEY: ${STAGING_STORAGE_SERVICE_KEY:?generate local environment}
+  SUPABASE_STORAGE_BUCKET: politica-local-staging-private
+
+services:
+  app-db:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    environment:
+      POSTGRES_USER: politica_staging
+      POSTGRES_DB: politica_staging
+      POSTGRES_PASSWORD: ${STAGING_APP_DB_PASSWORD:?generate local environment}
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+      - ./app-database.sql:/docker-entrypoint-initdb.d/staging.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U politica_staging -d politica_staging']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  storage-db:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: politica_storage_metadata
+      POSTGRES_PASSWORD: ${STAGING_STORAGE_DB_PASSWORD:?generate local environment}
+    volumes:
+      - storage-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d politica_storage_metadata']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    environment:
+      REDIS_PASSWORD: ${STAGING_REDIS_PASSWORD:?generate local environment}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  storage:
+    image: supabase/storage-api:v1.74.0@sha256:f1546fac6d1c7e345428ac904bfaa7be7cecd50a1f549fe1cf38c628a7b15c85
+    environment:
+      NODE_ENV: production
+      SERVER_PORT: "5000"
+      AUTH_JWT_SECRET: ${STAGING_STORAGE_JWT_SECRET:?generate local environment}
+      AUTH_JWT_ALGORITHM: HS256
+      ANON_KEY: ${STAGING_STORAGE_ANON_KEY:?generate local environment}
+      SERVICE_KEY: ${STAGING_STORAGE_SERVICE_KEY:?generate local environment}
+      DATABASE_URL: postgresql://postgres:${STAGING_STORAGE_DB_PASSWORD:?generate local environment}@storage-db:5432/politica_storage_metadata
+      DB_INSTALL_ROLES: "true"
+      DB_SUPER_USER: postgres
+      DB_ALLOW_MIGRATION_REFRESH: "false"
+      DATABASE_SEARCH_PATH: storage,public
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      GLOBAL_S3_BUCKET: politica-local-staging-files
+      TENANT_ID: politica-local-staging
+      REGION: local
+      FILE_SIZE_LIMIT: "52428800"
+      IMAGE_TRANSFORMATION_ENABLED: "false"
+      S3_PROTOCOL_ENABLED: "false"
+      PG_QUEUE_ENABLE: "false"
+      EXPOSE_DOCS: "false"
+    depends_on:
+      storage-db:
+        condition: service_healthy
+    volumes:
+      - storage-files:/var/lib/storage
+    healthcheck:
+      test: [CMD, wget, --quiet, --tries=1, --spider, 'http://127.0.0.1:5000/status']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  storage-init:
+    image: node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+    command: [node, /staging/initialize-storage.mjs]
+    environment:
+      STAGING_STORAGE_SERVICE_KEY: ${STAGING_STORAGE_SERVICE_KEY:?generate local environment}
+    volumes:
+      - ./initialize-storage.mjs:/staging/initialize-storage.mjs:ro
+    depends_on:
+      storage:
+        condition: service_healthy
+    restart: "no"
+
+  storage-gateway:
+    image: node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+    command: [node, /staging/storage-gateway.mjs]
+    volumes:
+      - ./storage-gateway.mjs:/staging/storage-gateway.mjs:ro
+    ports:
+      - '127.0.0.1:5800:5800'
+      - '127.0.0.1:5401:4000'
+    networks: [default, frontend]
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, --quiet, --tries=1, --spider, 'http://127.0.0.1:5800/storage/v1/status']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  migrate:
+    build:
+      <<: *api-build
+      target: migrator
+    environment:
+      <<: *app-environment
+      DIRECT_URL: postgresql://politica_staging:${STAGING_APP_DB_PASSWORD:?generate local environment}@app-db:5432/politica_staging?schema=politica-staging&sslmode=disable
+    depends_on:
+      app-db:
+        condition: service_healthy
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+
+  api:
+    build: *api-build
+    network_mode: service:storage-gateway
+    environment:
+      <<: *app-environment
+      PORT: "4000"
+      JWT_SECRET: ${STAGING_APP_JWT_SECRET:?generate local environment}
+      CONSENT_IP_SALT: ${STAGING_CONSENT_IP_SALT:?generate local environment}
+      OFFLINE_SYNC_HMAC_SECRET: ${STAGING_OFFLINE_SYNC_HMAC_SECRET:?generate local environment}
+      MFA_TOTP_ACTIVE_KEY_ID: staging-ephemeral
+      MFA_TOTP_ENCRYPTION_KEY: ${STAGING_MFA_KEY:?generate local environment}
+      MFA_TOTP_LEGACY_PLAINTEXT_MODE: reject
+      SAAS_ADMIN_DISABLED: "true"
+      PUBLIC_REGISTRATION_ENABLED: "true"
+      TEAM_INVITATION_ACCEPTANCE_ENABLED: "true"
+      CORS_ORIGINS: http://127.0.0.1:5310
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:5310
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      storage-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, --quiet, --tries=1, --spider, 'http://127.0.0.1:4000/health/ready']
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  catalog-worker:
+    build: *api-build
+    command: [node, ../../deploy/catalog-worker-entrypoint.mjs]
+    network_mode: service:storage-gateway
+    environment:
+      <<: *app-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      storage-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, ../../deploy/catalog-worker-healthcheck.mjs]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:-unknown}
+        DEPLOYMENT_PROFILE: evaluation
+        ALLOW_LOCAL_STAGING_BUILD: "true"
+        NEXT_PUBLIC_APP_URL: http://127.0.0.1:5310
+        NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:5800
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${STAGING_STORAGE_ANON_KEY:?generate local environment}
+        NESTJS_API_URL: http://storage-gateway:4000
+    environment:
+      NODE_ENV: production
+      DEPLOYMENT_PROFILE: evaluation
+      ALLOW_LOCAL_STAGING_BUILD: "true"
+      PORT: "3000"
+      NESTJS_API_URL: http://storage-gateway:4000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:5310
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:5800
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${STAGING_STORAGE_ANON_KEY:?generate local environment}
+    ports:
+      - '127.0.0.1:5310:3000'
+    networks: [frontend]
+    depends_on:
+      api:
+        condition: service_healthy
+      catalog-worker:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/apps/web/.next/cache
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+networks:
+  default:
+    internal: true
+  frontend:
+    internal: false
+
+volumes:
+  app-db-data:
+  storage-db-data:
+  redis-data:
+  storage-files:

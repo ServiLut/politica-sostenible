@@ -65,8 +65,7 @@ const POLLING_PLACE_CONFIGURATION_STAGES = [
 
 function policy(target: object): OperationStagePolicy | undefined {
   return Reflect.getMetadata(OPERATION_STAGE_POLICY_KEY, target) as
-    | OperationStagePolicy
-    | undefined;
+    OperationStagePolicy | undefined;
 }
 
 describe('operation stage policy coverage', () => {

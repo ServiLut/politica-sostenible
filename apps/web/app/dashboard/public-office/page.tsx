@@ -1,7 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
+import { useAuth } from "@/context/auth";
+import { ApiError, apiRequest } from "@/lib/api-client";
 import {
   AlertTriangle,
   ArrowRight,
@@ -19,9 +22,8 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { useAuth } from "@/context/auth";
-import { ApiError, apiRequest } from "@/lib/api-client";
-import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
+import Link from "next/link";
+import { useCallback } from "react";
 
 type AlertSeverity = "critical" | "attention" | "ok";
 
@@ -108,41 +110,22 @@ function formatDate(value: string | null) {
 
 export default function PublicOfficePage() {
   const { tenant, user } = useAuth();
-  const [briefing, setBriefing] = useState<PublicOfficeBriefing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadBriefing = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await apiRequest<PublicOfficeBriefing>(
-        "command-center/briefing",
-        { signal },
-      );
-      setBriefing(result);
-    } catch (requestError) {
-      if (
-        requestError instanceof DOMException &&
-        requestError.name === "AbortError"
-      ) {
-        return;
-      }
-      setError(
-        requestError instanceof ApiError
-          ? requestError.message
-          : "No fue posible consultar el centro de gestión pública.",
-      );
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadBriefing(controller.signal);
-    return () => controller.abort();
-  }, [loadBriefing]);
+  const request = useCallback(
+    (signal: AbortSignal) =>
+      apiRequest<PublicOfficeBriefing>("command-center/briefing", { signal }),
+    [],
+  );
+  const {
+    data: briefing,
+    loading,
+    error: requestError,
+    refresh: loadBriefing,
+  } = usePageRequest(request);
+  const error = requestError
+    ? requestError instanceof ApiError
+      ? requestError.message
+      : "No fue posible consultar el centro de gestión pública."
+    : null;
 
   const progress = briefing
     ? Math.round(
@@ -153,12 +136,12 @@ export default function PublicOfficePage() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9">
-        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.22),transparent_62%)]" />
-        <div className="relative grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
+    <div className="mx-auto max-w-[1500px] space-y-6 min-w-0">
+      <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9 min-w-0">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.22),transparent_62%)] min-w-0" />
+        <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end min-w-0">
           <div>
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-300">
+            <p className="flex items-center gap-2 text-xs font-bold text-blue-300">
               <Landmark size={15} aria-hidden="true" /> Gestión pública ·
               Espacio separado
             </p>
@@ -166,24 +149,24 @@ export default function PublicOfficePage() {
               Hola, {user?.name?.split(" ")[0] ?? "equipo"}. Este es el corte de
               atención y cumplimiento.
             </p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+            <h1 className="mt-1 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               Centro de gestión pública
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
               Seguimiento de{" "}
               {briefing?.tenant.name ?? tenant?.name ?? "la organización"},
-              calculado con PQRSD formales, casos, tareas y compromisos del
-              modo autenticado.
+              calculado con PQRSD formales, casos, tareas y compromisos del modo
+              autenticado.
             </p>
           </div>
 
-          <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
-            <div className="flex items-center justify-between gap-4">
+          <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur min-w-0">
+            <div className="flex items-center justify-between gap-4 min-w-0 flex-wrap">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <p className="text-xs font-bold text-slate-400">
                   Activación del servicio
                 </p>
-                <p className="mt-1 text-2xl font-black">
+                <p className="mt-1 text-2xl font-semibold">
                   {briefing
                     ? `${briefing.activation.completedSteps}/${briefing.activation.totalSteps}`
                     : "—"}
@@ -194,7 +177,7 @@ export default function PublicOfficePage() {
                 onClick={() => void loadBriefing()}
                 disabled={loading}
                 aria-label="Actualizar centro de gestión"
-                className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 transition hover:bg-white/20 disabled:opacity-50"
+                className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 transition hover:bg-white/20 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 {loading ? (
                   <LoaderCircle className="animate-spin" size={18} />
@@ -204,7 +187,7 @@ export default function PublicOfficePage() {
               </button>
             </div>
             <div
-              className="mt-4 h-1.5 overflow-hidden bg-white/10"
+              className="mt-4 h-1.5 overflow-hidden bg-white/10 min-w-0"
               role="progressbar"
               aria-label="Progreso de activación de gestión pública"
               aria-valuemin={0}
@@ -212,7 +195,7 @@ export default function PublicOfficePage() {
               aria-valuenow={briefing ? progress : undefined}
             >
               <div
-                className="h-full bg-blue-400 transition-[width]"
+                className="h-full bg-blue-400 transition-[width] min-w-0"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -232,12 +215,12 @@ export default function PublicOfficePage() {
       {error && (
         <div
           role="alert"
-          className="flex flex-col items-start gap-4 border border-red-200 bg-red-50 p-5 text-sm text-red-800 sm:flex-row sm:justify-between"
+          className="flex flex-col items-start gap-4 border border-red-200 bg-red-50 p-5 text-sm text-red-800 sm:flex-row sm:justify-between min-w-0"
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 min-w-0">
             <AlertTriangle className="mt-0.5 shrink-0" size={19} />
             <div>
-              <p className="font-black">No se pudo actualizar el centro</p>
+              <p className="font-semibold">No se pudo actualizar el centro</p>
               <p className="mt-1">{error}</p>
               <p className="mt-1 text-xs font-semibold">
                 {briefing
@@ -250,7 +233,7 @@ export default function PublicOfficePage() {
             type="button"
             onClick={() => void loadBriefing()}
             disabled={loading}
-            className="inline-flex min-h-10 shrink-0 items-center gap-2 bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 bg-red-700 px-4 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw aria-hidden="true" size={15} /> Reintentar
           </button>
@@ -259,7 +242,7 @@ export default function PublicOfficePage() {
 
       <section
         aria-label="Indicadores de gestión pública"
-        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-5"
+        className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-5 min-w-0"
       >
         <MetricCard
           label="PQRSD formales abiertas"
@@ -274,9 +257,7 @@ export default function PublicOfficePage() {
           icon={FileText}
           testId="open-pqrsd-metric"
           href="/dashboard/pqrsd"
-          accent={
-            briefing?.metrics.pqrsd?.criticalAlerts ? "red" : "emerald"
-          }
+          accent={briefing?.metrics.pqrsd?.criticalAlerts ? "red" : "emerald"}
         />
         <MetricCard
           label="Casos abiertos"
@@ -329,20 +310,20 @@ export default function PublicOfficePage() {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] min-w-0">
+        <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7 min-w-0">
+          <p className="text-xs font-semibold text-red-600">
             Decisiones del corte
           </p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
             Riesgos que necesitan responsable
           </h2>
-          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100 min-w-0">
             {(briefing?.alerts ?? []).map((alert) => (
               <Link
                 key={alert.code}
                 href={alert.href}
-                className="group grid grid-cols-[40px_1fr_auto] gap-3 py-5"
+                className="group grid grid-cols-[40px_minmax(0,1fr)_auto] gap-3 py-5"
               >
                 <span
                   className={`grid h-10 w-10 place-items-center ${
@@ -360,7 +341,7 @@ export default function PublicOfficePage() {
                   )}
                 </span>
                 <span>
-                  <span className="block text-sm font-black text-slate-900">
+                  <span className="block text-sm font-semibold text-slate-900">
                     {alert.title}
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-slate-500">
@@ -374,7 +355,7 @@ export default function PublicOfficePage() {
               </Link>
             ))}
             {loading && (
-              <div className="flex items-center gap-3 py-8 text-sm font-semibold text-slate-500">
+              <div className="flex items-center gap-3 py-8 text-sm font-semibold text-slate-500 min-w-0">
                 <LoaderCircle className="animate-spin" size={18} />
                 Consolidando casos, tareas y compromisos…
               </div>
@@ -390,7 +371,7 @@ export default function PublicOfficePage() {
         <ActivationChecklist briefing={briefing} loading={loading} />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-2 min-w-0">
         <AgendaPanel
           title="Agenda pública próxima"
           icon={CalendarClock}
@@ -409,7 +390,7 @@ export default function PublicOfficePage() {
               className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
             >
               <span>
-                <span className="block text-sm font-black text-slate-900">
+                <span className="block text-sm font-semibold text-slate-900">
                   {event.name}
                 </span>
                 <span className="mt-1 block text-xs text-slate-500">
@@ -439,7 +420,7 @@ export default function PublicOfficePage() {
               className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
             >
               <span>
-                <span className="block text-sm font-black text-slate-900">
+                <span className="block text-sm font-semibold text-slate-900">
                   {task.title}
                 </span>
                 <span className="mt-1 block text-xs text-slate-500">
@@ -453,33 +434,33 @@ export default function PublicOfficePage() {
         </AgendaPanel>
       </section>
 
-      <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7 min-w-0">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between min-w-0">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            <p className="text-xs font-semibold text-slate-500">
               Operación conectada
             </p>
-            <h2 className="mt-1 text-xl font-black text-slate-950">
+            <h2 className="mt-1 text-xl font-semibold text-slate-950">
               Atender, ejecutar, demostrar
             </h2>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row min-w-0">
             <Link
               href="/dashboard/cases"
-              className="inline-flex min-h-11 items-center justify-center gap-2 bg-blue-700 px-5 text-sm font-black text-white transition hover:bg-blue-800"
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 max-w-full whitespace-normal"
             >
               <FileText size={17} /> Gestionar casos
             </Link>
             <Link
               href="/dashboard/tasks"
-              className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 max-w-full whitespace-normal"
             >
               <ListChecks size={17} /> Tareas y compromisos
             </Link>
             {user?.backendRole === "ADMIN" && (
               <Link
                 href="/dashboard/team"
-                className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 border border-slate-300 px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 max-w-full whitespace-normal"
               >
                 <Users aria-hidden="true" size={17} /> Equipo
               </Link>
@@ -489,7 +470,7 @@ export default function PublicOfficePage() {
       </section>
 
       {briefing?.generatedAt && (
-        <p className="text-right text-[11px] font-semibold text-slate-400">
+        <p className="text-right text-xs font-semibold text-slate-400">
           Corte generado {formatDate(briefing.generatedAt)}
         </p>
       )}
@@ -522,20 +503,18 @@ function MetricCard({
   };
 
   return (
-    <article className="bg-white p-5 sm:p-6">
+    <article className="bg-white p-5 sm:p-6 min-w-0">
       <div className={`grid h-10 w-10 place-items-center ${accents[accent]}`}>
         <Icon size={20} aria-hidden="true" />
       </div>
-      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-        {label}
-      </p>
+      <p className="mt-5 text-xs font-semibold text-slate-500">{label}</p>
       <p
         data-testid={testId}
-        className="mt-1 text-3xl font-black tracking-tight text-slate-950"
+        className="mt-1 text-2xl font-semibold tracking-tight text-slate-950"
       >
         {value === null ? "—" : formatNumber(value)}
       </p>
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="mt-2 flex items-center justify-between gap-3 min-w-0 flex-wrap">
         <p className="text-xs font-medium text-slate-500">{detail}</p>
         <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`}>
           <ArrowRight className="text-slate-300" size={15} />
@@ -561,12 +540,12 @@ function AgendaPanel({
     : Boolean(children);
 
   return (
-    <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-      <div className="flex items-center gap-3">
+    <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <Icon className="text-blue-700" size={20} aria-hidden="true" />
-        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
       </div>
-      <div className="mt-4">
+      <div className="mt-4 min-w-0">
         {hasChildren ? (
           children
         ) : (

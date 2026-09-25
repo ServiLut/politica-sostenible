@@ -1,14 +1,29 @@
 "use client";
 
-import Link from "next/link";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useSearchParams } from "next/navigation";
+
+import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { UserCombobox } from "@/components/ui/UserCombobox";
+import { useAuth } from "@/context/auth";
+import { ApiError } from "@/lib/api-client";
 import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  CaseUserSummary,
+  CommunicationChannel,
+  createIssueCase,
+  getIssueCase,
+  IssueCase,
+  IssueCaseStatus,
+  listCaseAssignees,
+  listIssueCases,
+  updateIssueCase,
+  WorkPriority,
+} from "@/lib/cases-api";
+import { canExportData } from "@/lib/export-policy";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { BackendUserRole } from "@/types/saas-schema";
 import {
   AlertCircle,
   CheckCircle2,
@@ -26,27 +41,15 @@ import {
   Target,
   X,
 } from "lucide-react";
-import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
-import { useAuth } from "@/context/auth";
-import { ApiError } from "@/lib/api-client";
+import Link from "next/link";
 import {
-  CaseUserSummary,
-  CommunicationChannel,
-  createIssueCase,
-  getIssueCase,
-  IssueCase,
-  IssueCasePage,
-  IssueCaseStatus,
-  listCaseAssignees,
-  listIssueCases,
-  updateIssueCase,
-  WorkPriority,
-} from "@/lib/cases-api";
-import { canExportData } from "@/lib/export-policy";
-import { BackendUserRole } from "@/types/saas-schema";
-import { ExportButton } from "@/components/ui/ExportButton";
-import { UserCombobox } from "@/components/ui/UserCombobox";
-import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const PAGE_SIZE = 12;
 
@@ -178,7 +181,6 @@ function modeLabel(mode: IssueCase["mode"] | undefined) {
 
 function CaseCard({
   issueCase,
-  assignees,
   canMutate,
   canManageAssignments,
   saving,
@@ -215,14 +217,14 @@ function CaseCard({
   return (
     <article
       data-testid={`case-card-${issueCase.id}`}
-      className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 min-w-0 flex-wrap">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-xs font-semibold text-blue-700">
             {issueCase.reference}
           </p>
-          <h2 className="mt-2 text-lg font-black leading-tight text-slate-950">
+          <h2 className="mt-2 text-lg font-semibold leading-tight text-slate-950">
             {issueCase.title}
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500">
@@ -233,7 +235,7 @@ function CaseCard({
         {issueCase.confidential && (
           <span
             title="Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del caso"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-violet-700"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-xs font-semibold text-violet-700"
           >
             <FileLock2 aria-hidden="true" size={17} />
             Manejo especial
@@ -245,22 +247,22 @@ function CaseCard({
         {issueCase.description}
       </p>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 text-xs">
-        <div className="rounded-2xl bg-slate-50 p-3">
+      <dl className="mt-5 grid gap-3 text-xs min-w-0 grid-cols-1 sm:grid-cols-2">
+        <div className="rounded-2xl bg-slate-50 p-3 min-w-0">
           <dt className="font-bold text-slate-400">Responsable</dt>
-          <dd className="mt-1 font-black text-slate-700">
+          <dd className="mt-1 font-semibold text-slate-700">
             {issueCase.assignee?.name ?? "Sin asignar"}
           </dd>
         </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
+        <div className="rounded-2xl bg-slate-50 p-3 min-w-0">
           <dt className="font-bold text-slate-400">Vencimiento</dt>
-          <dd className="mt-1 font-black text-slate-700">
+          <dd className="mt-1 font-semibold text-slate-700">
             {formatDate(issueCase.dueAt)}
           </dd>
         </div>
       </dl>
 
-      <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+      <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-500 min-w-0">
         <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
           {optionLabel(issueCase.status, STATUS_OPTIONS)}
         </span>
@@ -278,12 +280,12 @@ function CaseCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+      <div className="mt-5 grid gap-2 sm:grid-cols-3 min-w-0">
         <button
           type="button"
           aria-label={`Abrir bitácora de ${issueCase.reference}`}
           onClick={() => onOpenInteractions(issueCase)}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 max-w-full whitespace-normal"
         >
           <History aria-hidden="true" size={16} />
           Bitácora
@@ -293,7 +295,7 @@ function CaseCard({
             <Link
               href={`/dashboard/tasks?create=task&issueCaseId=${encodeURIComponent(issueCase.id)}`}
               aria-label={`Crear tarea vinculada a ${issueCase.reference}`}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 max-w-full whitespace-normal"
             >
               <ListChecks aria-hidden="true" size={16} />
               Crear tarea
@@ -301,7 +303,7 @@ function CaseCard({
             <Link
               href={`/dashboard/tasks?create=commitment&issueCaseId=${encodeURIComponent(issueCase.id)}`}
               aria-label={`Registrar compromiso vinculado a ${issueCase.reference}`}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-xs font-black text-violet-800 transition hover:border-violet-700 hover:bg-violet-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-800 transition hover:border-violet-700 hover:bg-violet-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2 max-w-full whitespace-normal"
             >
               <Target aria-hidden="true" size={16} />
               Compromiso
@@ -311,16 +313,16 @@ function CaseCard({
       </div>
 
       {canMutate && (
-        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 min-w-0">
+          <div className="grid gap-3 sm:grid-cols-2 min-w-0">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Estado
               <select
                 value={status}
                 onChange={(event) =>
                   setStatus(event.target.value as IssueCaseStatus)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               >
                 {STATUS_OPTIONS.filter(({ value }) =>
                   nextStatuses.includes(value),
@@ -342,14 +344,14 @@ function CaseCard({
                 ))}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Prioridad
               <select
                 value={priority}
                 onChange={(event) =>
                   setPriority(event.target.value as WorkPriority)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               >
                 {PRIORITY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -367,12 +369,14 @@ function CaseCard({
               </p>
             )}
           {canManageAssignments && (
-            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">
+            <label className="block text-sm font-semibold text-slate-500 min-w-0">
               Responsable
               <UserCombobox
                 value={assigneeId}
                 onChange={(value) => setAssigneeId(value)}
-                fetchItems={async (search, signal) => listCaseAssignees({ page: 1, limit: 10, search }, signal)}
+                fetchItems={async (search, signal) =>
+                  listCaseAssignees({ page: 1, limit: 10, search }, signal)
+                }
                 className="mt-1"
               />
             </label>
@@ -389,7 +393,7 @@ function CaseCard({
                   : {}),
               })
             }
-            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 max-w-full whitespace-normal"
           >
             {saving ? (
               <Loader2 className="animate-spin" size={15} />
@@ -414,14 +418,21 @@ export default function CasesPage() {
   const canExport = canExportData(user?.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
-  const [result, setResult] = useState<IssueCasePage | null>(null);
   const [assignees, setAssignees] = useState<CaseUserSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [actionError, setMutationError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const entityId =
+    searchParams.get("view") === "detail"
+      ? (searchParams.get("entityId")?.trim() ?? "")
+      : "";
+  const mutationError =
+    actionError ??
+    (entityId.length > 128
+      ? "El vínculo recibido no tiene un identificador de caso válido."
+      : null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedCase, setSelectedCase] = useState<IssueCase | null>(null);
   const [form, setForm] = useState({
@@ -449,16 +460,7 @@ export default function CasesPage() {
   });
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const entityId = searchParams.get("entityId")?.trim() ?? "";
-    if (searchParams.get("view") !== "detail" || !entityId) return;
-    if (entityId.length > 128) {
-      setMutationError(
-        "El vínculo recibido no tiene un identificador de caso válido.",
-      );
-      return;
-    }
-
+    if (!entityId || entityId.length > 128) return;
     const controller = new AbortController();
     void getIssueCase(entityId, controller.signal)
       .then((issueCase) => {
@@ -473,7 +475,7 @@ export default function CasesPage() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [entityId]);
 
   const loadCases = useCallback(
     (signal: AbortSignal) =>
@@ -490,24 +492,13 @@ export default function CasesPage() {
     [filters],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-
-    void loadCases(controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setResult(response);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) setError(readableError(requestError));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [loadCases, reload]);
+  const {
+    data: result,
+    loading,
+    error: requestError,
+    setData: setResult,
+  } = usePageRequest(loadCases, { reloadKey: reload });
+  const error = requestError ? readableError(requestError) : null;
 
   useEffect(() => {
     if (!canManageAssignments) return;
@@ -630,11 +621,11 @@ export default function CasesPage() {
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 min-w-0">
       {notice && (
         <div
           role="status"
-          className="fixed right-6 top-6 z-[90] flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl"
+          className="fixed right-6 top-6 z-[90] flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl min-w-0 flex-wrap"
         >
           <CheckCircle2 size={18} /> {notice}
           <button
@@ -647,12 +638,12 @@ export default function CasesPage() {
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
             <ShieldCheck size={13} /> {modeLabel(result?.items[0]?.mode)}
           </div>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
+          <h1 className="mt-3 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Atención ciudadana y registro interno
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
@@ -662,7 +653,7 @@ export default function CasesPage() {
           </p>
         </div>
         {(canExport || canMutate) && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-wrap">
             {canExport && <ExportButton moduleName="casos" />}
             {canMutate && (
               <button
@@ -671,7 +662,7 @@ export default function CasesPage() {
                   setMutationError(null);
                   setIsCreateOpen(true);
                 }}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-6 text-sm font-semibold text-white transition hover:bg-slate-950 max-w-full whitespace-normal"
               >
                 <Plus size={17} /> Registrar solicitud interna
               </button>
@@ -680,9 +671,9 @@ export default function CasesPage() {
         )}
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[1fr_190px_190px]">
-          <label className="relative">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_190px] min-w-0">
+          <label className="relative min-w-0">
             <span className="sr-only">Buscar casos</span>
             <Search
               className="absolute left-4 top-3.5 text-slate-400"
@@ -692,7 +683,7 @@ export default function CasesPage() {
               value={searchDraft}
               onChange={(event) => setSearchDraft(event.target.value)}
               placeholder="Referencia, asunto, categoría o descripción"
-              className="min-h-11 w-full rounded-xl border border-slate-200 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500"
+              className="min-h-11 w-full rounded-xl border border-slate-200 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 min-w-0 max-w-full"
             />
           </label>
           <select
@@ -705,7 +696,7 @@ export default function CasesPage() {
                 status: event.target.value as Filters["status"],
               }))
             }
-            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700"
+            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 min-w-0 max-w-full"
           >
             <option value="">Todos los estados</option>
             {STATUS_OPTIONS.map((option) => (
@@ -724,7 +715,7 @@ export default function CasesPage() {
                 priority: event.target.value as Filters["priority"],
               }))
             }
-            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700"
+            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 min-w-0 max-w-full"
           >
             <option value="">Toda prioridad</option>
             {PRIORITY_OPTIONS.map((option) => (
@@ -739,7 +730,7 @@ export default function CasesPage() {
       {mutationError && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
         >
           <AlertCircle className="mt-0.5 shrink-0" size={18} /> {mutationError}
         </div>
@@ -748,7 +739,7 @@ export default function CasesPage() {
       {loading ? (
         <div
           role="status"
-          className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500"
+          className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500 min-w-0"
         >
           <Loader2 className="animate-spin text-blue-700" size={30} />
           <span className="font-bold">
@@ -758,11 +749,11 @@ export default function CasesPage() {
       ) : error ? (
         <div
           role="alert"
-          className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
+          className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center min-w-0"
         >
           <AlertCircle className="text-red-600" size={34} />
           <div>
-            <h2 className="font-black text-slate-950">
+            <h2 className="font-semibold text-slate-950">
               No fue posible cargar los casos
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-600">{error}</p>
@@ -770,15 +761,15 @@ export default function CasesPage() {
           <button
             type="button"
             onClick={() => setReload((value) => value + 1)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-xs font-black uppercase tracking-wider text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white max-w-full whitespace-normal"
           >
             <RefreshCw size={16} /> Reintentar
           </button>
         </div>
       ) : !result?.items.length ? (
-        <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+        <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
           <Inbox className="mb-4 text-slate-300" size={48} />
-          <h2 className="font-black text-slate-950">
+          <h2 className="font-semibold text-slate-950">
             No hay casos para estos filtros
           </h2>
           <p className="mt-2 max-w-xl text-sm text-slate-500">
@@ -788,13 +779,13 @@ export default function CasesPage() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 min-w-0 flex-wrap gap-3">
             <span>{result.pagination.total} casos encontrados</span>
             <span>
               Página {filters.page} de {totalPages}
             </span>
           </div>
-          <section className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-3">
+          <section className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-3 min-w-0">
             {result.items.map((issueCase) => (
               <CaseCard
                 key={`${issueCase.id}:${issueCase.updatedAt}`}
@@ -810,7 +801,7 @@ export default function CasesPage() {
           </section>
           <nav
             aria-label="Paginación de casos"
-            className="flex justify-end gap-3"
+            className="flex justify-end gap-3 min-w-0 flex-wrap"
           >
             <button
               type="button"
@@ -821,7 +812,7 @@ export default function CasesPage() {
                   page: current.page - 1,
                 }))
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               <ChevronLeft size={16} /> Anterior
             </button>
@@ -834,7 +825,7 @@ export default function CasesPage() {
                   page: current.page + 1,
                 }))
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               Siguiente <ChevronRight size={16} />
             </button>
@@ -843,21 +834,21 @@ export default function CasesPage() {
       )}
 
       {isCreateOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-case-title"
-            className="max-h-[94vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
               <div>
                 <h2
                   ref={createDialogTitleRef}
                   tabIndex={-1}
                   id="new-case-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-2xl font-semibold text-slate-950"
                 >
                   Registrar solicitud ciudadana
                 </h2>
@@ -871,22 +862,22 @@ export default function CasesPage() {
                 type="button"
                 aria-label="Cerrar"
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 <X />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-5 p-7">
+            <form onSubmit={handleCreate} className="space-y-5 p-7 min-w-0">
               {mutationError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
                 >
                   {mutationError}
                 </div>
               )}
-              <div className="grid gap-5 md:grid-cols-2">
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+              <div className="grid gap-5 md:grid-cols-2 min-w-0">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Asunto
                   <input
                     required
@@ -895,10 +886,10 @@ export default function CasesPage() {
                     onChange={(event) =>
                       setForm({ ...form, title: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Descripción
                   <textarea
                     required
@@ -908,10 +899,10 @@ export default function CasesPage() {
                     onChange={(event) =>
                       setForm({ ...form, description: event.target.value })
                     }
-                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Categoría
                   <input
                     required
@@ -921,10 +912,10 @@ export default function CasesPage() {
                     onChange={(event) =>
                       setForm({ ...form, category: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Canal de ingreso
                   <select
                     value={form.sourceChannel}
@@ -935,7 +926,7 @@ export default function CasesPage() {
                           .value as CommunicationChannel,
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     {CHANNEL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -944,7 +935,7 @@ export default function CasesPage() {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Prioridad
                   <select
                     value={form.priority}
@@ -954,7 +945,7 @@ export default function CasesPage() {
                         priority: event.target.value as WorkPriority,
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     {PRIORITY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -964,21 +955,28 @@ export default function CasesPage() {
                   </select>
                 </label>
                 {canManageAssignments ? (
-                  <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                     Responsable
                     <UserCombobox
                       value={form.assigneeId}
-                      onChange={(value) => setForm({ ...form, assigneeId: value })}
-                      fetchItems={async (search, signal) => listCaseAssignees({ page: 1, limit: 10, search }, signal)}
+                      onChange={(value) =>
+                        setForm({ ...form, assigneeId: value })
+                      }
+                      fetchItems={async (search, signal) =>
+                        listCaseAssignees(
+                          { page: 1, limit: 10, search },
+                          signal,
+                        )
+                      }
                       className="mt-2"
                     />
                   </label>
                 ) : (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-900 min-w-0">
                     El caso quedara asignado automaticamente a tu usuario.
                   </div>
                 )}
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Fecha límite
                   <input
                     type="date"
@@ -986,10 +984,10 @@ export default function CasesPage() {
                     onChange={(event) =>
                       setForm({ ...form, dueDate: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Referencia externa opcional
                   <input
                     maxLength={200}
@@ -1001,17 +999,17 @@ export default function CasesPage() {
                         externalContactRef: event.target.value,
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
+                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2 min-w-0">
                   <input
                     type="checkbox"
                     checked={form.confidential}
                     onChange={(event) =>
                       setForm({ ...form, confidential: event.target.checked })
                     }
-                    className="mt-0.5 h-4 w-4 shrink-0"
+                    className="mt-0.5 h-4 w-4 shrink-0 min-w-0 max-w-full"
                   />
                   <FileLock2
                     aria-hidden="true"
@@ -1030,18 +1028,18 @@ export default function CasesPage() {
                   </span>
                 </label>
               </div>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-xs font-black uppercase tracking-wider text-slate-600"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   disabled={saving === "create"}
                   type="submit"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   {saving === "create" ? (
                     <Loader2 className="animate-spin" size={16} />

@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, FileSearch, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
 import { openPrivateResource } from "@/lib/private-storage";
@@ -174,9 +175,7 @@ export function SignatureCountCorrectionPanel({
   readOnly: boolean;
   onChanged?: () => void;
 }) {
-  const [overview, setOverview] = useState<SignatureCountCorrectionOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState("");
@@ -191,24 +190,9 @@ export function SignatureCountCorrectionPanel({
 
   const refresh = useCallback(() => setReload((value) => value + 1), []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    void getSignatureCountCorrections(controller.signal)
-      .then((result) => {
-        if (!controller.signal.aborted) setOverview(result);
-      })
-      .catch((loadError: unknown) => {
-        if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
-          setError(readableError(loadError));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [reload]);
+  const { data: overview, loading, error: loadError } =
+    usePageRequest<SignatureCountCorrectionOverview>(getSignatureCountCorrections, { reloadKey: reload });
+  const error = mutationError ?? (loadError ? readableError(loadError) : null);
 
   async function submitProposal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

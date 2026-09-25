@@ -13,6 +13,7 @@ import {
   ProposalCategory,
   ProposalStatus,
   Role,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   StorageObjectModule,
   WitnessCaptureContext,
@@ -575,6 +576,7 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
     const tenant = await createTenant();
     const uploader = await createUser(tenant.id);
     const path = `${tenant.id}/e14/${randomUUID()}.pdf`;
+    const digest = 'a'.repeat(64);
     const stored = await prisma.storedObject.create({
       data: {
         id: nextId('stored'),
@@ -584,6 +586,7 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
         module: StorageObjectModule.E14,
         contentType: 'application/pdf',
         expectedSize: 512,
+        expectedSha256: digest,
         expiresAt: new Date(Date.now() + 60_000),
       },
     });
@@ -606,7 +609,31 @@ describeWithPostgres('Prisma 7.9 PostgreSQL integration', () => {
       data: {
         status: StoredObjectStatus.CONFIRMED,
         actualSize: 512,
+        reportedSha256: digest,
+        integrityStatus: StorageIntegrityStatus.PENDING,
         confirmedAt,
+      },
+    });
+    await expect(
+      prisma.storedObject.update({
+        where: { id: stored.id },
+        data: {
+          status: StoredObjectStatus.CONSUMED,
+          consumedAt: new Date(),
+          consumedByType: 'WitnessReport',
+          consumedById: 'report-a',
+        },
+      }),
+    ).rejects.toBeDefined();
+    await prisma.storedObject.update({
+      where: { id: stored.id },
+      data: {
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        calculatedSha256: digest,
+        observedSize: 512,
+        observedContentType: 'application/pdf',
+        integrityCheckedAt: confirmedAt,
+        integrityVerifiedAt: confirmedAt,
       },
     });
     const consumed = await prisma.storedObject.update({

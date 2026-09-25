@@ -13,15 +13,15 @@ import {
   ShieldCheck,
   TriangleAlert,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { usePageRequest } from "@/lib/use-page-request";
+import { useKeyedState } from "@/hooks/use-keyed-state";
 import { useAuth } from "@/context/auth";
 import {
   activateCatalogRelease,
   CatalogIntegrityReport,
   catalogErrorMessage,
-  CatalogReleaseDetail,
   CatalogReleaseDiff,
-  CatalogReleaseGaps,
   diffCatalogRelease,
   ElectoralCatalogEntry,
   ElectoralCatalogRelease,
@@ -204,7 +204,12 @@ function IntegrityPanel({ integrity }: { integrity: CatalogIntegrityReport }) {
 
 function EntryTable({ entries }: { entries: ElectoralCatalogEntry[] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+    <div
+      role="region"
+      aria-label="Entradas del catálogo: tabla con desplazamiento horizontal"
+      tabIndex={0}
+      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    >
       <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
         <thead className="bg-slate-950 text-xs uppercase tracking-wider text-white">
           <tr>
@@ -280,106 +285,90 @@ export function ElectoralCatalogConsole() {
   const [statusFilter, setStatusFilter] = useState<ElectoralCatalogStatus | "">(
     "",
   );
-  const [releases, setReleases] = useState<ElectoralCatalogRelease[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<CatalogReleaseDetail | null>(null);
-  const [gaps, setGaps] = useState<CatalogReleaseGaps | null>(null);
-  const [diff, setDiff] = useState<CatalogReleaseDiff | null>(null);
-  const [againstReleaseId, setAgainstReleaseId] = useState("");
-  const [hashInput, setHashInput] = useState("");
-  const [reviewConfirmed, setReviewConfirmed] = useState(false);
-  const [activationPhrase, setActivationPhrase] = useState("");
-  const [loadingList, setLoadingList] = useState(true);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const requestReleases = useCallback(
+    (signal: AbortSignal) =>
+      listCatalogReleases(
+        {
+          type: typeFilter || undefined,
+          status: statusFilter || undefined,
+          limit: 100,
+        },
+        signal,
+      ),
+    [statusFilter, typeFilter],
+  );
+  const {
+    data: releaseList,
+    setData: setReleases,
+    loading: loadingList,
+    error: releaseError,
+    refresh: refreshReleases,
+  } = usePageRequest<ElectoralCatalogRelease[]>(requestReleases);
+  const releases = useMemo(() => releaseList ?? [], [releaseList]);
+  const listError = releaseError ? catalogErrorMessage(releaseError) : null;
+  const loadReleases = useCallback(async () => {
+    await refreshReleases();
+  }, [refreshReleases]);
+  const [selection, setSelectedId] = useState<string | null>(null);
+  const selectedId = releases.some((item) => item.id === selection)
+    ? selection
+    : (releases[0]?.id ?? null);
+  const requestDetail = useCallback(
+    async (signal: AbortSignal) => {
+      const [detail, gaps] = await Promise.all([
+        getCatalogRelease(selectedId!, { entryLimit: 100 }, signal),
+        getCatalogReleaseGaps(selectedId!, signal),
+      ]);
+      return { detail, gaps };
+    },
+    [selectedId],
+  );
+  const {
+    data: releaseData,
+    setData: setReleaseData,
+    loading: loadingDetail,
+    error: readDetailError,
+    refresh: refreshDetail,
+  } = usePageRequest(requestDetail, { enabled: selectedId !== null });
+  const detail = releaseData?.detail ?? null;
+  const gaps = releaseData?.gaps ?? null;
+  const [detailActionError, setDetailError] = useKeyedState<string | null>(
+    selectedId,
+    null,
+  );
+  const detailError =
+    detailActionError ??
+    (readDetailError ? catalogErrorMessage(readDetailError) : null);
+  const [diff, setDiff] = useKeyedState<CatalogReleaseDiff | null>(
+    selectedId,
+    null,
+  );
+  const [againstReleaseId, setAgainstReleaseId] = useKeyedState(selectedId, "");
+  const [hashInput, setHashInput] = useKeyedState(selectedId, "");
+  const [reviewConfirmed, setReviewConfirmed] = useKeyedState(
+    selectedId,
+    false,
+  );
+  const [activationPhrase, setActivationPhrase] = useKeyedState(selectedId, "");
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingDiff, setLoadingDiff] = useState(false);
   const [reviewing, setReviewing] = useState<"validate" | "activate" | null>(
     null,
   );
-  const [listError, setListError] = useState<string | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const loadReleases = useCallback(
-    async (signal?: AbortSignal) => {
-      setLoadingList(true);
-      setListError(null);
-      try {
-        const loaded = await listCatalogReleases(
-          {
-            type: typeFilter || undefined,
-            status: statusFilter || undefined,
-            limit: 100,
-          },
-          signal,
-        );
-        setReleases(loaded);
-        setSelectedId((current) =>
-          current && loaded.some((release) => release.id === current)
-            ? current
-            : (loaded.at(0)?.id ?? null),
-        );
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setListError(catalogErrorMessage(error));
-      } finally {
-        if (!signal?.aborted) setLoadingList(false);
-      }
-    },
-    [statusFilter, typeFilter],
+  const [actionError, setActionError] = useKeyedState<string | null>(
+    selectedId,
+    null,
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadReleases(controller.signal);
-    return () => controller.abort();
-  }, [loadReleases]);
-
-  const loadDetail = useCallback(
-    async (releaseId: string, signal?: AbortSignal) => {
-      setLoadingDetail(true);
-      setDetailError(null);
-      setDiff(null);
-      setDetail((current) =>
-        current?.release.id === releaseId ? current : null,
-      );
-      setGaps((current) => (current?.releaseId === releaseId ? current : null));
-      try {
-        const [releaseDetail, releaseGaps] = await Promise.all([
-          getCatalogRelease(releaseId, { entryLimit: 100 }, signal),
-          getCatalogReleaseGaps(releaseId, signal),
-        ]);
-        setDetail(releaseDetail);
-        setGaps(releaseGaps);
-        setHashInput("");
-        setReviewConfirmed(false);
-        setActivationPhrase("");
-        setAgainstReleaseId("");
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setDetailError(catalogErrorMessage(error));
-      } finally {
-        if (!signal?.aborted) setLoadingDetail(false);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!selectedId) {
-      setDetail(null);
-      setGaps(null);
-      return;
-    }
-    setActionError(null);
-    setNotice(null);
-    const controller = new AbortController();
-    void loadDetail(selectedId, controller.signal);
-    return () => controller.abort();
-  }, [loadDetail, selectedId]);
+  const [notice, setNotice] = useKeyedState<string | null>(selectedId, null);
+  const loadDetail = async () => {
+    setDetailError(null);
+    setDiff(null);
+    setHashInput("");
+    setReviewConfirmed(false);
+    setActivationPhrase("");
+    setAgainstReleaseId("");
+    await refreshDetail();
+  };
 
   const release = detail?.release ?? null;
   const matchingBases = useMemo(
@@ -412,13 +401,16 @@ export function ElectoralCatalogConsole() {
         entryLimit: 100,
         entryCursorId: detail.pagination.nextCursorId,
       });
-      setDetail((current) =>
-        current
+      setReleaseData((current) =>
+        current && current.detail.release.id === next.release.id
           ? {
-              ...next,
-              entries: [...current.entries, ...next.entries],
+              ...current,
+              detail: {
+                ...next,
+                entries: [...current.detail.entries, ...next.entries],
+              },
             }
-          : next,
+          : current,
       );
     } catch (error) {
       setDetailError(catalogErrorMessage(error));
@@ -465,11 +457,11 @@ export function ElectoralCatalogConsole() {
             : "Release activado. La proyección territorial oficial quedó disponible.",
       );
       setReleases((current) =>
-        current.map((item) =>
+        (current ?? []).map((item) =>
           item.id === result.release.id ? result.release : item,
         ),
       );
-      await loadDetail(release.id);
+      await loadDetail();
     } catch (error) {
       setActionError(catalogErrorMessage(error));
     } finally {
@@ -485,7 +477,7 @@ export function ElectoralCatalogConsole() {
             <ShieldCheck size={13} aria-hidden="true" /> Control de fuente
             electoral
           </div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-3 break-words text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
             Catálogo electoral verificable
           </h1>
           <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-600">
@@ -717,7 +709,7 @@ export function ElectoralCatalogConsole() {
                     <h2 className="mt-3 break-words text-2xl font-black text-slate-950">
                       {release.sourceDataset}
                     </h2>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                    <p className="mt-1 min-w-0 text-sm font-semibold text-slate-500 [overflow-wrap:anywhere]">
                       {releaseTypeLabel(release.type)} · {release.catalogKey}
                     </p>
                   </div>

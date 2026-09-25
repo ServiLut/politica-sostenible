@@ -89,7 +89,7 @@ function dossierDto(overrides: Partial<CreateFinanceDossierDto> = {}) {
       FinanceCloseoutCommandType.DOSSIER_CREATE,
       input,
     ),
-  } as CreateFinanceDossierDto;
+  };
 }
 
 describe('FinanceCloseoutService critical boundaries', () => {

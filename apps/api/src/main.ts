@@ -11,6 +11,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { enableApplicationShutdownHooks } from './common/lifecycle/graceful-shutdown';
 import { getRequestId, requestIdMiddleware } from './common/http/request-id';
 import { resolveAppRevision } from './common/http/app-revision';
+import { isLocalEvaluationOrigin } from './common/config/local-evaluation-origin';
 
 export function resolveCorsOrigins(
   environment: NodeJS.ProcessEnv = process.env,
@@ -44,7 +45,8 @@ export function resolveCorsOrigins(
 
       if (
         environment.NODE_ENV === 'production' &&
-        parsed.protocol !== 'https:'
+        parsed.protocol !== 'https:' &&
+        !isLocalEvaluationOrigin(parsed, environment)
       ) {
         throw new Error(`El origen CORS debe usar HTTPS: ${origin}`);
       }

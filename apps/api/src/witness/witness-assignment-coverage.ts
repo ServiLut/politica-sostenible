@@ -1,8 +1,6 @@
 export type WitnessAssignmentCoverageType = 'PRIMARY' | 'BACKUP';
 export type WitnessAssignmentCoverageStatus =
-  | 'PLANNED'
-  | 'CONFIRMED'
-  | 'CANCELLED';
+  'PLANNED' | 'CONFIRMED' | 'CANCELLED';
 
 export interface WitnessCoverageRange {
   from: number;

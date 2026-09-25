@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ChevronDown,
@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { CreateLeaderModal } from "@/components/territory/CreateLeaderModal";
+import { useAuth } from "@/context/auth";
+import {
+  getLeaderWhatsAppHref,
+  getPublicProfileHref,
+} from "@/lib/territory-leader-contact";
 
 /* ─── Types ─── */
 
@@ -71,6 +76,11 @@ const DIVISION_TYPES = [
 /* ─── Component ─── */
 
 export default function TerritoryLeadersPage() {
+  const { user } = useAuth();
+  const canCreate = ["ADMIN", "CAMPAIGN_MANAGER", "ZONE_COORDINATOR"].includes(
+    user?.backendRole ?? "",
+  );
+  const divisionRequest = useRef<AbortController | null>(null);
   // Filters
   const [divisionType, setDivisionType] = useState<
     "MUNICIPIO" | "ZONA" | "PUESTO"
@@ -95,7 +105,9 @@ export default function TerritoryLeadersPage() {
   const [leadersByDivision, setLeadersByDivision] = useState<
     Record<string, Leader[]>
   >({});
-  const [loadingLeaders, setLoadingLeaders] = useState<string | null>(null);
+  const [loadingLeaders, setLoadingLeaders] = useState<Record<string, boolean>>(
+    {},
+  );
 
   // Create modal
   const [selectedDivision, setSelectedDivision] = useState<Division | null>(
@@ -104,26 +116,31 @@ export default function TerritoryLeadersPage() {
 
   // Errors
   const [error, setError] = useState<string | null>(null);
-  const [leaderLoadError, setLeaderLoadError] = useState<string | null>(null);
+  const [leaderErrors, setLeaderErrors] = useState<
+    Record<string, string | null>
+  >({});
 
   // Auto-detect which division types have data
   useEffect(() => {
+    const controller = new AbortController();
     async function detectTypes() {
       const detected: typeof DIVISION_TYPES = [];
       for (const dt of DIVISION_TYPES) {
         try {
           const result = await apiRequest<DivisionResult>(
             `campaigns/divisions?type=${dt.value}&page=1&limit=1`,
+            { signal: controller.signal },
           );
           if (result.pagination.total > 0) {
             detected.push(dt);
           }
         } catch {
+          if (controller.signal.aborted) return;
           // If API fails for a type, include it anyway
           detected.push(dt);
         }
       }
-      if (detected.length > 0) {
+      if (!controller.signal.aborted && detected.length > 0) {
         setAvailableTypes(detected);
         // If current type is not available, switch to first available
         if (!detected.find((d) => d.value === divisionType)) {
@@ -132,6 +149,7 @@ export default function TerritoryLeadersPage() {
       }
     }
     void detectTypes();
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,6 +161,9 @@ export default function TerritoryLeadersPage() {
       page?: number;
       search?: string;
     }) => {
+      divisionRequest.current?.abort();
+      const controller = new AbortController();
+      divisionRequest.current = controller;
       setLoadingDivisions(true);
       setError(null);
 
@@ -160,18 +181,24 @@ export default function TerritoryLeadersPage() {
       try {
         const result = await apiRequest<DivisionResult>(
           `campaigns/divisions?${params}`,
+          { signal: controller.signal },
         );
+        if (controller.signal.aborted) return;
         setDivisions(result.items);
         setTotalDivisionPages(result.pagination.totalPages);
         setTotalDivisions(result.pagination.total);
       } catch (err) {
+        if (controller.signal.aborted) return;
+        setDivisions([]);
+        setTotalDivisions(0);
+        setTotalDivisionPages(1);
         setError(
           err instanceof ApiError
             ? err.message
             : "No fue posible cargar los territorios.",
         );
       } finally {
-        setLoadingDivisions(false);
+        if (!controller.signal.aborted) setLoadingDivisions(false);
       }
     },
     [divisionType, divisionPage, territorySearch],
@@ -179,32 +206,31 @@ export default function TerritoryLeadersPage() {
 
   useEffect(() => {
     void loadDivisions();
+    return () => divisionRequest.current?.abort();
   }, [loadDivisions]);
 
   /* ─── Load leaders for a division ─── */
 
-  const loadLeaders = useCallback(
-    async (divisionId: string) => {
-      setLoadingLeaders(divisionId);
-      setLeaderLoadError(null);
-      try {
-        const leaders = await apiRequest<Leader[]>(
-          `campaigns/divisions/${encodeURIComponent(divisionId)}/leaders`,
-        );
-        setLeadersByDivision((prev) => ({ ...prev, [divisionId]: leaders }));
-      } catch (err) {
-        setLeadersByDivision((prev) => ({ ...prev, [divisionId]: [] }));
-        setLeaderLoadError(
+  const loadLeaders = useCallback(async (divisionId: string) => {
+    setLoadingLeaders((previous) => ({ ...previous, [divisionId]: true }));
+    setLeaderErrors((previous) => ({ ...previous, [divisionId]: null }));
+    try {
+      const leaders = await apiRequest<Leader[]>(
+        `campaigns/divisions/${encodeURIComponent(divisionId)}/leaders`,
+      );
+      setLeadersByDivision((prev) => ({ ...prev, [divisionId]: leaders }));
+    } catch (err) {
+      setLeaderErrors((previous) => ({
+        ...previous,
+        [divisionId]:
           err instanceof Error
             ? err.message
             : "No fue posible cargar los líderes de este territorio.",
-        );
-      } finally {
-        setLoadingLeaders(null);
-      }
-    },
-    [],
-  );
+      }));
+    } finally {
+      setLoadingLeaders((previous) => ({ ...previous, [divisionId]: false }));
+    }
+  }, []);
 
   /* ─── Toggle expand ─── */
 
@@ -214,7 +240,7 @@ export default function TerritoryLeadersPage() {
       return;
     }
     setExpandedId(divisionId);
-    if (!leadersByDivision[divisionId]) {
+    if (!leadersByDivision[divisionId] && !loadingLeaders[divisionId]) {
       void loadLeaders(divisionId);
     }
   }
@@ -245,51 +271,54 @@ export default function TerritoryLeadersPage() {
   /* ─── Render ─── */
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Header */}
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between min-w-0">
+        <div className="space-y-2 min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
             <Users size={13} /> Directorio de líderes
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950">
+          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Líderes Territoriales
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
             Consulta y gestiona los líderes asignados a cada territorio. Filtra
-            por departamento, municipio, comuna o puesto de votación.
+            por municipio, zona o puesto de votación. Los filtros de nombre y
+            cargo se aplican a los líderes del territorio que abras.
           </p>
         </div>
         <button
+          type="button"
           onClick={() => {
             setExpandedId(null);
             setLeadersByDivision({});
             void loadDivisions();
           }}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-black uppercase tracking-wider text-slate-700 hover:bg-slate-50"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
         >
           <RefreshCw size={16} /> Actualizar
         </button>
       </header>
 
       {/* Filters Bar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-end">
+      <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-4 xl:items-end">
         {/* Territory Type */}
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="flex-1 min-w-0">
+          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
             <Filter size={11} className="mr-1 inline" />
             Nivel territorial
           </label>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <div className="grid min-w-0 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-3">
             {availableTypes.map((dt) => (
               <button
+                type="button"
                 key={dt.value}
                 onClick={() => {
                   setDivisionType(dt.value);
                   setDivisionPage(1);
                   setExpandedId(null);
                 }}
-                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                className={`min-w-0 whitespace-normal rounded-lg px-2 py-2 text-sm font-semibold transition-all ${
                   divisionType === dt.value
                     ? "bg-white text-blue-700 shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
@@ -302,21 +331,21 @@ export default function TerritoryLeadersPage() {
         </div>
 
         {/* Territory Search */}
-        <form onSubmit={handleTerritorySearch} className="flex-1">
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <form onSubmit={handleTerritorySearch} className="flex-1 min-w-0">
+          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
             <MapPin size={11} className="mr-1 inline" />
             Buscar territorio
           </label>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 gap-2 flex-wrap">
             <input
               value={territorySearchInput}
               onChange={(e) => setTerritorySearchInput(e.target.value)}
               placeholder="Ej: Medellín, Bello, Itagüí..."
-              className="min-h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="min-h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
             />
             <button
               type="submit"
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white hover:bg-blue-700"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white hover:bg-blue-700 max-w-full whitespace-normal"
             >
               <Search size={14} /> Buscar
             </button>
@@ -324,8 +353,8 @@ export default function TerritoryLeadersPage() {
         </form>
 
         {/* Leader Name Filter */}
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="flex-1 min-w-0">
+          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
             <Users size={11} className="mr-1 inline" />
             Filtrar por nombre de líder
           </label>
@@ -333,19 +362,19 @@ export default function TerritoryLeadersPage() {
             value={leaderNameFilter}
             onChange={(e) => setLeaderNameFilter(e.target.value)}
             placeholder="Nombre del líder..."
-            className="min-h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="min-h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
           />
         </div>
 
         {/* Role Filter */}
-        <div className="w-full lg:w-56">
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="w-full min-w-0">
+          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
             Cargo
           </label>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
           >
             {ROLE_FILTERS.map((rf) => (
               <option key={rf.value} value={rf.value}>
@@ -360,51 +389,54 @@ export default function TerritoryLeadersPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 min-w-0"
         >
           <AlertCircle className="mt-0.5 shrink-0" size={18} /> {error}
         </div>
       )}
 
       {/* Results summary */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-500">
-        <span>
-          {totalDivisions.toLocaleString("es-CO")}{" "}
-          {divisionType === "MUNICIPIO"
-            ? "municipios"
-            : divisionType === "ZONA"
-              ? "zonas"
-              : "puestos"}
-          {territorySearch && (
-            <>
-              {" "}
-              para &ldquo;{territorySearch}&rdquo;
-              <button
-                onClick={() => {
-                  setTerritorySearchInput("");
-                  setTerritorySearch("");
-                  setDivisionPage(1);
-                }}
-                className="ml-2 text-blue-600 underline"
-              >
-                Limpiar
-              </button>
-            </>
-          )}
-        </span>
-        <span>
-          Página {divisionPage} de {Math.max(totalDivisionPages, 1)}
-        </span>
-      </div>
+      {!error && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-500 min-w-0">
+          <span>
+            {totalDivisions.toLocaleString("es-CO")}{" "}
+            {divisionType === "MUNICIPIO"
+              ? "municipios"
+              : divisionType === "ZONA"
+                ? "zonas"
+                : "puestos"}
+            {territorySearch && (
+              <>
+                {" "}
+                para &ldquo;{territorySearch}&rdquo;
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTerritorySearchInput("");
+                    setTerritorySearch("");
+                    setDivisionPage(1);
+                  }}
+                  className="ml-2 text-blue-600 underline max-w-full whitespace-normal"
+                >
+                  Limpiar
+                </button>
+              </>
+            )}
+          </span>
+          <span>
+            Página {divisionPage} de {Math.max(totalDivisionPages, 1)}
+          </span>
+        </div>
+      )}
 
       {/* Division List */}
       {loadingDivisions ? (
-        <div className="flex min-h-48 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-500">
-          <Loader2 className="animate-spin text-blue-600" size={24} />{" "}
-          Cargando territorios…
+        <div className="flex min-h-48 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-500 min-w-0">
+          <Loader2 className="animate-spin text-blue-600" size={24} /> Cargando
+          territorios…
         </div>
-      ) : divisions.length === 0 ? (
-        <div className="py-16 text-center">
+      ) : error ? null : divisions.length === 0 ? (
+        <div className="py-16 text-center min-w-0">
           <MapPin className="mx-auto mb-3 text-slate-300" size={48} />
           <h3 className="text-lg font-bold text-slate-900">
             No hay{" "}
@@ -422,23 +454,25 @@ export default function TerritoryLeadersPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           {divisions.map((div) => {
             const isExpanded = expandedId === div.id;
             const leaders = leadersByDivision[div.id];
-            const isLoading = loadingLeaders === div.id;
+            const isLoading = loadingLeaders[div.id] === true;
+            const leaderLoadError = leaderErrors[div.id];
             const filteredLeaders = leaders ? filterLeaders(leaders) : [];
 
             return (
               <div
                 key={div.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm min-w-0"
               >
                 {/* Division Header (clickable to expand) */}
                 <button
                   type="button"
+                  aria-expanded={isExpanded}
                   onClick={() => toggleExpand(div.id)}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50 max-w-full whitespace-normal"
                 >
                   <div
                     className={`rounded-lg p-2 ${isExpanded ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"}`}
@@ -446,11 +480,11 @@ export default function TerritoryLeadersPage() {
                     <MapPin size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <h3 className="truncate font-bold text-slate-900">
                         {div.name}
                       </h3>
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
                         {div.type}
                       </span>
                     </div>
@@ -459,7 +493,7 @@ export default function TerritoryLeadersPage() {
                       {div.parent && <> · {div.parent.name}</>}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {leaders && (
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-bold ${
@@ -482,9 +516,9 @@ export default function TerritoryLeadersPage() {
 
                 {/* Expanded: Leaders List */}
                 {isExpanded && (
-                  <div className="border-t border-slate-100 bg-slate-50/50">
+                  <div className="border-t border-slate-100 bg-slate-50/50 min-w-0">
                     {/* Action bar */}
-                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 min-w-0 flex-wrap gap-3">
                       <p className="text-xs font-bold text-slate-500">
                         {isLoading
                           ? "Cargando líderes…"
@@ -492,33 +526,36 @@ export default function TerritoryLeadersPage() {
                             ? `${filteredLeaders.length} líder(es) encontrado(s)`
                             : ""}
                       </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDivision(div);
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
-                      >
-                        <UserPlus size={14} /> Agregar líder
-                      </button>
+                      {canCreate && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDivision(div);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-blue-700 max-w-full whitespace-normal"
+                        >
+                          <UserPlus size={14} /> Agregar líder
+                        </button>
+                      )}
                     </div>
 
                     {/* Loading state */}
                     {isLoading && (
-                      <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400">
+                      <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400 min-w-0">
                         <Loader2 className="animate-spin" size={16} /> Cargando…
                       </div>
                     )}
 
                     {/* Leader load error */}
                     {!isLoading && leaderLoadError && expandedId === div.id && (
-                      <div className="mx-4 my-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                      <div className="mx-4 my-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700 min-w-0 flex-wrap">
                         <AlertCircle size={14} className="shrink-0" />
                         {leaderLoadError}
                         <button
                           type="button"
                           onClick={() => void loadLeaders(div.id)}
-                          className="ml-auto shrink-0 rounded-lg bg-red-700 px-3 py-1 text-[10px] font-bold uppercase text-white hover:bg-red-800"
+                          className="ml-auto shrink-0 rounded-lg bg-red-700 px-3 py-1 text-sm font-bold text-white hover:bg-red-800 max-w-full whitespace-normal"
                         >
                           Reintentar
                         </button>
@@ -526,90 +563,112 @@ export default function TerritoryLeadersPage() {
                     )}
 
                     {/* No leaders */}
-                    {!isLoading && leaders && filteredLeaders.length === 0 && !leaderLoadError && (
-                      <div className="py-8 text-center">
-                        <Users className="mx-auto mb-2 text-slate-300" size={32} />
-                        <p className="text-sm font-medium text-slate-500">
-                          {leaders.length === 0
-                            ? "Sin líderes asignados"
-                            : "Ningún líder coincide con los filtros"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">
-                          Usa el botón &ldquo;Agregar líder&rdquo; para asignar
-                          uno.
-                        </p>
-                      </div>
-                    )}
+                    {!isLoading &&
+                      leaders &&
+                      filteredLeaders.length === 0 &&
+                      !leaderLoadError && (
+                        <div className="py-8 text-center min-w-0">
+                          <Users
+                            className="mx-auto mb-2 text-slate-300"
+                            size={32}
+                          />
+                          <p className="text-sm font-medium text-slate-500">
+                            {leaders.length === 0
+                              ? "Sin líderes asignados"
+                              : "Ningún líder coincide con los filtros"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {leaders.length > 0
+                              ? "Cambia el nombre o cargo para ampliar los resultados."
+                              : canCreate
+                                ? "Usa Agregar líder para registrar uno."
+                                : "Un administrador, gerente o coordinador autorizado puede registrar líderes."}
+                          </p>
+                        </div>
+                      )}
 
                     {/* Leaders list */}
                     {!isLoading && filteredLeaders.length > 0 && (
-                      <div className="divide-y divide-slate-100">
-                        {filteredLeaders.map((leader) => (
-                          <div
-                            key={leader.id}
-                            className="px-5 py-4 transition-colors hover:bg-white"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 rounded-full bg-green-100 p-2 text-green-700">
-                                  <Users size={14} />
-                                </div>
-                                <div>
-                                  <p className="font-bold text-slate-900">
-                                    {leader.name}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {leader.roleDescription}
-                                  </p>
-                                  {leader.politicalAffinity && (
-                                    <span className="mt-1 inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                                      {leader.politicalAffinity}
-                                    </span>
-                                  )}
+                      <div className="divide-y divide-slate-100 min-w-0">
+                        {filteredLeaders.map((leader) => {
+                          const whatsAppHref = getLeaderWhatsAppHref(
+                            leader.phone,
+                          );
+                          const profileHref = getPublicProfileHref(
+                            leader.socialNetworkUrl,
+                          );
+                          return (
+                            <div
+                              key={leader.id}
+                              className="px-5 py-4 transition-colors hover:bg-white min-w-0"
+                            >
+                              <div className="flex items-start justify-between gap-4 min-w-0 flex-wrap">
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className="mt-0.5 rounded-full bg-green-100 p-2 text-green-700 min-w-0">
+                                    <Users size={14} />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-slate-900">
+                                      {leader.name}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {leader.roleDescription}
+                                    </p>
+                                    {leader.politicalAffinity && (
+                                      <span className="mt-1 inline-block rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
+                                        {leader.politicalAffinity}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Contact info */}
-                            <div className="mt-2 ml-9 flex flex-wrap items-center gap-x-4 gap-y-1">
-                              {leader.phone && (
-                                <a
-                                  href={`https://wa.me/57${leader.phone.replace(/\D/g, "")}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
-                                >
-                                  <Phone size={12} /> {leader.phone}
-                                </a>
-                              )}
-                              {leader.email && (
-                                <a
-                                  href={`mailto:${leader.email}`}
-                                  className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                                >
-                                  <Mail size={12} /> {leader.email}
-                                </a>
-                              )}
-                              {leader.socialNetworkUrl && (
-                                <a
-                                  href={leader.socialNetworkUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1 text-xs text-purple-600 hover:underline"
-                                >
-                                  <Share2 size={12} /> Red social
-                                </a>
+                              {/* Contact info */}
+                              <div className="mt-2 ml-9 flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
+                                {leader.phone &&
+                                  (whatsAppHref ? (
+                                    <a
+                                      href={whatsAppHref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
+                                    >
+                                      <Phone size={12} /> {leader.phone}
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-slate-600">
+                                      {leader.phone}
+                                    </span>
+                                  ))}
+                                {leader.email && (
+                                  <a
+                                    href={`mailto:${leader.email}`}
+                                    className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                                  >
+                                    <Mail size={12} /> {leader.email}
+                                  </a>
+                                )}
+                                {profileHref && (
+                                  <a
+                                    href={profileHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs text-purple-600 hover:underline"
+                                  >
+                                    <Share2 size={12} /> Red social
+                                  </a>
+                                )}
+                              </div>
+
+                              {/* Observations */}
+                              {leader.observations && (
+                                <p className="mt-2 ml-9 text-xs italic text-slate-400">
+                                  {leader.observations}
+                                </p>
                               )}
                             </div>
-
-                            {/* Observations */}
-                            {leader.observations && (
-                              <p className="mt-2 ml-9 text-xs italic text-slate-400">
-                                {leader.observations}
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -624,13 +683,13 @@ export default function TerritoryLeadersPage() {
       {totalDivisionPages > 1 && (
         <nav
           aria-label="Paginación de territorios"
-          className="flex justify-end gap-3"
+          className="flex justify-end gap-3 min-w-0 flex-wrap"
         >
           <button
             type="button"
             disabled={divisionPage <= 1}
             onClick={() => setDivisionPage((p) => Math.max(1, p - 1))}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
           >
             Anterior
           </button>
@@ -638,7 +697,7 @@ export default function TerritoryLeadersPage() {
             type="button"
             disabled={divisionPage >= totalDivisionPages}
             onClick={() => setDivisionPage((p) => p + 1)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
           >
             Siguiente
           </button>
@@ -653,7 +712,7 @@ export default function TerritoryLeadersPage() {
       </p>
 
       {/* Create Leader Modal */}
-      {selectedDivision && (
+      {selectedDivision && canCreate && (
         <CreateLeaderModal
           divisionId={selectedDivision.id}
           divisionName={selectedDivision.name}

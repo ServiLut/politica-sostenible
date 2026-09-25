@@ -54,7 +54,6 @@ const RESPONSE: TerritoryHeatmapResponse = {
         locatedPollingPlaces: 180,
         totalPollingPlaces: 200,
       },
-      leaders: [],
     },
   ],
 };
@@ -101,6 +100,30 @@ test("rechaza campos extra con PII o actores antes de persistir o mostrar", () =
     expect(() => validateTerritoryHeatmapResponse(candidate, QUERY)).toThrow(
       /validación/,
     );
+  }
+});
+
+test("descarta los contactos de líderes de respuestas y copias offline heredadas", () => {
+  const legacyResponse = {
+    ...structuredClone(RESPONSE),
+    items: RESPONSE.items.map((item) => ({
+      ...item,
+      leaders: [
+        { id: "legacy-person", name: "Persona de prueba", phone: "3000000000" },
+      ],
+    })),
+  };
+  const online = validateTerritoryHeatmapResponse(legacyResponse, QUERY);
+  const offline = validateTerritoryHeatmapSnapshot({
+    ...SNAPSHOT,
+    response: legacyResponse,
+  });
+  expect(online).toEqual(RESPONSE);
+  expect(offline.response).toEqual(RESPONSE);
+  for (const value of [online, offline]) {
+    expect(JSON.stringify(value)).not.toContain("legacy-person");
+    expect(JSON.stringify(value)).not.toContain("3000000000");
+    expect(value).not.toHaveProperty("items.0.leaders");
   }
 });
 

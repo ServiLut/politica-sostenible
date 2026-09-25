@@ -7,51 +7,123 @@
  */
 
 import 'reflect-metadata';
+import { METHOD_METADATA } from '@nestjs/common/constants';
 
 // ── Mock heavy service dependencies before any controller import ────────────
 jest.mock('../mfa.service', () => ({ MfaService: class {} }));
 jest.mock('../../search/search.service', () => ({ SearchService: class {} }));
-jest.mock('../../billing/billing.service', () => ({ BillingService: class {} }));
-jest.mock('../../saas-admin/saas-admin.service', () => ({ SaasAdminService: class {} }));
-jest.mock('../../campaign/campaign.service', () => ({ CampaignService: class {} }));
-jest.mock('../../finance/finance.service', () => ({ FinanceService: class {} }));
-jest.mock('../../finance/finance-closeout.service', () => ({ FinanceCloseoutService: class {} }));
-jest.mock('../../voter/voter.service', () => ({ VoterService: class {} }));
+jest.mock('../../billing/billing.service', () => ({
+  BillingService: class {},
+}));
+jest.mock('../../saas-admin/saas-admin.service', () => ({
+  SaasAdminService: class {},
+}));
+jest.mock('../../campaign/campaign.service', () => ({
+  ...jest.requireActual<Record<string, unknown>>(
+    '../../campaign/campaign.service',
+  ),
+  CampaignService: class {},
+}));
+jest.mock('../../finance/finance.service', () => ({
+  FinanceService: class {},
+}));
+jest.mock('../../finance/finance-closeout.service', () => ({
+  FinanceCloseoutService: class {},
+}));
+jest.mock('../../voter/voter.service', () => ({
+  ...jest.requireActual<Record<string, unknown>>('../../voter/voter.service'),
+  VoterService: class {},
+}));
 jest.mock('../../cases/cases.service', () => ({ CasesService: class {} }));
-jest.mock('../../cases/offline-incident.service', () => ({ OfflineIncidentService: class {} }));
+jest.mock('../../cases/offline-incident.service', () => ({
+  OfflineIncidentService: class {},
+}));
 jest.mock('../../pqrsd/pqrsd.service', () => ({ PqrsdService: class {} }));
 jest.mock('../../tasks/tasks.service', () => ({ TasksService: class {} }));
-jest.mock('../../commitments/commitments.service', () => ({ CommitmentsService: class {} }));
+jest.mock('../../commitments/commitments.service', () => ({
+  CommitmentsService: class {},
+}));
 jest.mock('../../events/events.service', () => ({ EventsService: class {} }));
-jest.mock('../../proposals/proposals.service', () => ({ ProposalsService: class {} }));
-jest.mock('../../communications/communications.service', () => ({ CommunicationsService: class {} }));
-jest.mock('../../consent-notices/consent-notices.service', () => ({ ConsentNoticesService: class {} }));
-jest.mock('../../retention-governance/retention-governance.service', () => ({ RetentionGovernanceService: class {} }));
-jest.mock('../../audit-events/audit-events.service', () => ({ AuditEventsService: class {} }));
-jest.mock('../../witness/witness.service', () => ({ WitnessService: class {} }));
-jest.mock('../../witness/witness-assignment.service', () => ({ WitnessAssignmentService: class {} }));
-jest.mock('../../election-day/election-day.service', () => ({ ElectionDayService: class {} }));
-jest.mock('../../scrutiny/scrutiny.service', () => ({ ScrutinyService: class {} }));
-jest.mock('../../logistics/logistics.service', () => ({ LogisticsService: class {} }));
-jest.mock('../../logistics/inventory-operations.service', () => ({ InventoryOperationsService: class {} }));
-jest.mock('../../signature-collection/signature-collection.service', () => ({ SignatureCollectionService: class {} }));
-jest.mock('../../signature-collection/signature-count-correction.service', () => ({ SignatureCountCorrectionService: class {} }));
-jest.mock('../../electoral-calendar/electoral-calendar.service', () => ({ ElectoralCalendarService: class {} }));
-jest.mock('../../electoral-catalog/electoral-catalog.service', () => ({ ElectoralCatalogService: class {} }));
-jest.mock('../../electoral-catalog/electoral-catalog-import.service', () => ({ ElectoralCatalogImportService: class {} }));
+jest.mock('../../proposals/proposals.service', () => ({
+  ProposalsService: class {},
+}));
+jest.mock('../../communications/communications.service', () => ({
+  CommunicationsService: class {},
+}));
+jest.mock('../../consent-notices/consent-notices.service', () => ({
+  ConsentNoticesService: class {},
+}));
+jest.mock('../../retention-governance/retention-governance.service', () => ({
+  RetentionGovernanceService: class {},
+}));
+jest.mock('../../audit-events/audit-events.service', () => ({
+  AuditEventsService: class {},
+}));
+jest.mock('../../witness/witness.service', () => ({
+  WitnessService: class {},
+}));
+jest.mock('../../witness/witness-assignment.service', () => ({
+  WitnessAssignmentService: class {},
+}));
+jest.mock('../../election-day/election-day.service', () => ({
+  ElectionDayService: class {},
+}));
+jest.mock('../../scrutiny/scrutiny.service', () => ({
+  ScrutinyService: class {},
+}));
+jest.mock('../../logistics/logistics.service', () => ({
+  LogisticsService: class {},
+}));
+jest.mock('../../logistics/inventory-operations.service', () => ({
+  ...jest.requireActual<Record<string, unknown>>(
+    '../../logistics/inventory-operations.service',
+  ),
+  InventoryOperationsService: class {},
+}));
+jest.mock('../../signature-collection/signature-collection.service', () => ({
+  SignatureCollectionService: class {},
+}));
+jest.mock(
+  '../../signature-collection/signature-count-correction.service',
+  () => ({ SignatureCountCorrectionService: class {} }),
+);
+jest.mock('../../electoral-calendar/electoral-calendar.service', () => ({
+  ElectoralCalendarService: class {},
+}));
+jest.mock('../../electoral-catalog/electoral-catalog.service', () => ({
+  ElectoralCatalogService: class {},
+}));
+jest.mock('../../electoral-catalog/electoral-catalog-import.service', () => ({
+  ElectoralCatalogImportService: class {},
+}));
 jest.mock('../../import/import.service', () => ({ ImportService: class {} }));
 jest.mock('../../export/export.service', () => ({ ExportService: class {} }));
-jest.mock('../../storage/storage.service', () => ({ StorageService: class {} }));
-jest.mock('../../electronic-signature/electronic-signature.service', () => ({ ElectronicSignatureService: class {} }));
-jest.mock('../../command-center/command-center.service', () => ({ CommandCenterService: class {} }));
-jest.mock('../../operational-inbox/operational-inbox.service', () => ({ OperationalInboxService: class {} }));
-jest.mock('../../operation-profile/operation-profile.service', () => ({ OperationProfileService: class {} }));
-jest.mock('../../interactions/interactions.service', () => ({ InteractionsService: class {} }));
-jest.mock('../../transition-handover/transition-handover.service', () => ({ TransitionHandoverService: class {} }));
+jest.mock('../../storage/storage.service', () => ({
+  StorageService: class {},
+}));
+jest.mock('../../electronic-signature/electronic-signature.service', () => ({
+  ElectronicSignatureService: class {},
+}));
+jest.mock('../../command-center/command-center.service', () => ({
+  CommandCenterService: class {},
+}));
+jest.mock('../../operational-inbox/operational-inbox.service', () => ({
+  OperationalInboxService: class {},
+}));
+jest.mock('../../operation-profile/operation-profile.service', () => ({
+  OperationProfileService: class {},
+}));
+jest.mock('../../interactions/interactions.service', () => ({
+  InteractionsService: class {},
+}));
+jest.mock('../../transition-handover/transition-handover.service', () => ({
+  TransitionHandoverService: class {},
+}));
 jest.mock('../../team/team.service', () => ({ TeamService: class {} }));
-jest.mock('../../team/invitation-acceptance.service', () => ({ InvitationAcceptanceService: class {} }));
 jest.mock('../../prisma/prisma.service', () => ({ PrismaService: class {} }));
-jest.mock('../../common/throttling/redis-throttler-storage', () => ({ RedisThrottlerStorage: class {} }));
+jest.mock('../../common/throttling/redis-throttler-storage', () => ({
+  RedisThrottlerStorage: class {},
+}));
 jest.mock('../auth.service', () => ({ AuthService: class {} }));
 jest.mock('../../health.controller', () => ({
   HealthController: class {
@@ -70,6 +142,8 @@ import { Role } from '../../../prisma/generated/prisma';
 
 import { AuthController } from '../auth.controller';
 import { TeamController } from '../../team/team.controller';
+import { InvitationAcceptanceController } from '../../team/invitation-acceptance.controller';
+import { OfflineIncidentController } from '../../cases/offline-incident.controller';
 import { BillingController } from '../../billing/billing.controller';
 import { FinanceController } from '../../finance/finance.controller';
 import { FinanceCloseoutController } from '../../finance/finance-closeout.controller';
@@ -110,14 +184,29 @@ import { ElectoralCatalogImportController } from '../../electoral-catalog/electo
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function getEndpointMethods(ctrl: new (...a: any[]) => any): string[] {
-  return Object.getOwnPropertyNames(ctrl.prototype).filter(
-    (n) => n !== 'constructor' && typeof ctrl.prototype[n] === 'function',
-  );
+type AuditedController = { prototype: object; name: string };
+
+function getEndpointMethods(ctrl: AuditedController): string[] {
+  return Object.getOwnPropertyNames(ctrl.prototype).filter((name) => {
+    const member: unknown = Reflect.get(ctrl.prototype, name);
+    return (
+      name !== 'constructor' &&
+      typeof member === 'function' &&
+      Reflect.hasMetadata(METHOD_METADATA, member)
+    );
+  });
 }
 
-function hasRbac(ctrl: new (...a: any[]) => any, method: string) {
-  const m = ctrl.prototype[method];
+function getEndpointTarget(ctrl: AuditedController, method: string): object {
+  const member: unknown = Reflect.get(ctrl.prototype, method);
+  if (typeof member !== 'function') {
+    throw new Error(`${ctrl.name}.${method} must be a controller method`);
+  }
+  return member;
+}
+
+function hasRbac(ctrl: AuditedController, method: string) {
+  const m = getEndpointTarget(ctrl, method);
   const roles =
     Reflect.getMetadata(ROLES_KEY, m) ?? Reflect.getMetadata(ROLES_KEY, ctrl);
   const isPublic =
@@ -131,9 +220,14 @@ function hasRbac(ctrl: new (...a: any[]) => any, method: string) {
 
 // ── Controllers to audit ────────────────────────────────────────────────────
 
-const CONTROLLERS: Array<{ name: string; ctrl: new (...a: any[]) => any }> = [
+const CONTROLLERS: Array<{ name: string; ctrl: AuditedController }> = [
   { name: 'AuthController', ctrl: AuthController },
   { name: 'TeamController', ctrl: TeamController },
+  {
+    name: 'InvitationAcceptanceController',
+    ctrl: InvitationAcceptanceController,
+  },
+  { name: 'OfflineIncidentController', ctrl: OfflineIncidentController },
   { name: 'BillingController', ctrl: BillingController },
   { name: 'FinanceController', ctrl: FinanceController },
   { name: 'FinanceCloseoutController', ctrl: FinanceCloseoutController },
@@ -149,13 +243,22 @@ const CONTROLLERS: Array<{ name: string; ctrl: new (...a: any[]) => any }> = [
   { name: 'ProposalsController', ctrl: ProposalsController },
   { name: 'CommunicationsController', ctrl: CommunicationsController },
   { name: 'ConsentNoticesController', ctrl: ConsentNoticesController },
-  { name: 'RetentionGovernanceController', ctrl: RetentionGovernanceController },
+  {
+    name: 'RetentionGovernanceController',
+    ctrl: RetentionGovernanceController,
+  },
   { name: 'WitnessController', ctrl: WitnessController },
   { name: 'WitnessAssignmentController', ctrl: WitnessAssignmentController },
   { name: 'ScrutinyController', ctrl: ScrutinyController },
   { name: 'ElectoralCalendarController', ctrl: ElectoralCalendarController },
-  { name: 'SignatureCollectionController', ctrl: SignatureCollectionController },
-  { name: 'SignatureCountCorrectionController', ctrl: SignatureCountCorrectionController },
+  {
+    name: 'SignatureCollectionController',
+    ctrl: SignatureCollectionController,
+  },
+  {
+    name: 'SignatureCountCorrectionController',
+    ctrl: SignatureCountCorrectionController,
+  },
   { name: 'CampaignController', ctrl: CampaignController },
   { name: 'OperationProfileController', ctrl: OperationProfileController },
   { name: 'ElectionDayController', ctrl: ElectionDayController },
@@ -166,11 +269,17 @@ const CONTROLLERS: Array<{ name: string; ctrl: new (...a: any[]) => any }> = [
   { name: 'CommitmentsController', ctrl: CommitmentsController },
   { name: 'ImportController', ctrl: ImportController },
   { name: 'ExportController', ctrl: ExportController },
-  { name: 'ElectronicSignatureController', ctrl: ElectronicSignatureController },
+  {
+    name: 'ElectronicSignatureController',
+    ctrl: ElectronicSignatureController,
+  },
   { name: 'LogisticsController', ctrl: LogisticsController },
   { name: 'InventoryLogisticsController', ctrl: InventoryLogisticsController },
   { name: 'ElectoralCatalogController', ctrl: ElectoralCatalogController },
-  { name: 'ElectoralCatalogImportController', ctrl: ElectoralCatalogImportController },
+  {
+    name: 'ElectoralCatalogImportController',
+    ctrl: ElectoralCatalogImportController,
+  },
 ];
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -211,13 +320,19 @@ describe('RBAC Contract — sensitive endpoints block VOLUNTEER and WITNESS', ()
 
 describe('RBAC Contract — public endpoints are intentional', () => {
   const EXPECTED_PUBLIC = [
-    { ctrl: AuthController, methods: ['login', 'register', 'registrationPolicy'] },
+    { ctrl: InvitationAcceptanceController, methods: ['accept'] },
+    {
+      ctrl: AuthController,
+      methods: ['login', 'register', 'registrationPolicy'],
+    },
   ];
 
   for (const { ctrl, methods } of EXPECTED_PUBLIC) {
     for (const method of methods) {
       it(`${ctrl.name}.${method}() is @Public`, () => {
-        expect(Reflect.getMetadata(IS_PUBLIC_KEY, ctrl.prototype[method])).toBe(true);
+        expect(
+          Reflect.getMetadata(IS_PUBLIC_KEY, getEndpointTarget(ctrl, method)),
+        ).toBe(true);
       });
     }
   }
@@ -230,7 +345,10 @@ describe('RBAC Contract — ADMIN-only endpoints', () => {
   });
 
   it('AuthController.updateOrganization is ADMIN only', () => {
-    const roles = Reflect.getMetadata(ROLES_KEY, AuthController.prototype.updateOrganization);
+    const roles = Reflect.getMetadata(
+      ROLES_KEY,
+      AuthController.prototype.updateOrganization,
+    );
     expect(roles).toEqual([Role.ADMIN]);
   });
 });

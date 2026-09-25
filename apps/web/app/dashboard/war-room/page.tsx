@@ -1,13 +1,46 @@
 "use client";
 
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useAuth } from "@/context/auth";
+import { ApiError } from "@/lib/api-client";
+import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
 import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  canConfigurePollingPlaces,
+  canPersistE14,
+} from "@/lib/e14-stage-policy";
+import {
+  createWitnessReport,
+  E14_FORM_LABELS,
+  E14FormType,
+  hasCompleteWitnessTraceability,
+  listVotingPlaces,
+  listWitnessReports,
+  MAX_WITNESS_REPORT_MESA,
+  MAX_WITNESS_REPORT_VOTES,
+  MIN_WITNESS_REPORT_MESA,
+  reviewWitnessReport,
+  updatePollingPlaceProfile,
+  validateWitnessReportMesaFilter,
+  validateWitnessVoteBreakdown,
+  VotingPlace,
+  WITNESS_CHECK_IN_CLOCK_SKEW_MS,
+  WITNESS_CREDENTIAL_LABELS,
+  WITNESS_RECLAMATION_GROUND_LABELS,
+  WitnessCaptureContext,
+  WitnessCredentialType,
+  WitnessReclamationGround,
+  WitnessReport,
+  WitnessReportPage,
+  WitnessReportStatus,
+  type ActiveWitnessCaptureContext,
+} from "@/lib/election-api";
+import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
+import { openPrivateResource } from "@/lib/private-storage";
+import type {
+  BackendUserRole,
+  PoliticalOperationStage,
+} from "@/types/saas-schema";
 import {
   AlertCircle,
   AlertTriangle,
@@ -30,46 +63,14 @@ import {
   Vote,
   X,
 } from "lucide-react";
-import { ApiError } from "@/lib/api-client";
-import { useAuth } from "@/context/auth";
-import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
-import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
-import { openPrivateResource } from "@/lib/private-storage";
-import type {
-  BackendUserRole,
-  PoliticalOperationStage,
-} from "@/types/saas-schema";
 import {
-  canConfigurePollingPlaces,
-  canPersistE14,
-} from "@/lib/e14-stage-policy";
-import {
-  createWitnessReport,
-  type ActiveWitnessCaptureContext,
-  E14_FORM_LABELS,
-  hasCompleteWitnessTraceability,
-  listVotingPlaces,
-  listWitnessReports,
-  MAX_WITNESS_REPORT_MESA,
-  MAX_WITNESS_REPORT_VOTES,
-  MIN_WITNESS_REPORT_MESA,
-  reviewWitnessReport,
-  updatePollingPlaceProfile,
-  validateWitnessReportMesaFilter,
-  validateWitnessVoteBreakdown,
-  VotingPlace,
-  VotingPlacePage,
-  WITNESS_CREDENTIAL_LABELS,
-  WITNESS_RECLAMATION_GROUND_LABELS,
-  E14FormType,
-  WitnessCredentialType,
-  WitnessCaptureContext,
-  WitnessReclamationGround,
-  WitnessReport,
-  WitnessReportPage,
-  WitnessReportStatus,
-  WITNESS_CHECK_IN_CLOCK_SKEW_MS,
-} from "@/lib/election-api";
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type ReportFormState = {
   puestoId: string;
@@ -304,30 +305,12 @@ export default function WarRoomPage() {
     isPollingPlaceConfigurationAllowed &&
     user !== null &&
     E14_PROFILE_ROLES.has(user.backendRole);
-  const [placesPage, setPlacesPage] = useState<VotingPlacePage>({
-    items: [],
-    evaluatedAt: new Date(0).toISOString(),
-    pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
-  });
   const [placePage, setPlacePage] = useState(1);
   const [placeSearchDraft, setPlaceSearchDraft] = useState("");
   const [placeSearch, setPlaceSearch] = useState("");
-  const initialCaptureContext =
-    expectedCaptureContextForStage(operationStage) ?? "REAL";
-  const [reportPage, setReportPage] = useState<WitnessReportPage>(() =>
-    emptyReportPage(initialCaptureContext),
-  );
-  const [reportSnapshotStage, setReportSnapshotStage] =
-    useState<PoliticalOperationStage | null>(null);
   const [page, setPage] = useState(1);
   const [filterDraft, setFilterDraft] = useState<ReportFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<ReportFilters>(EMPTY_FILTERS);
-  const [loading, setLoading] = useState(true);
-  const [loadFailure, setLoadFailure] = useState<{
-    stage: PoliticalOperationStage | null;
-    message: string;
-    status: number | null;
-  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -351,7 +334,6 @@ export default function WarRoomPage() {
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const reviewTitleRef = useRef<HTMLHeadingElement>(null);
   const profileTitleRef = useRef<HTMLHeadingElement>(null);
-  const loadRequestIdRef = useRef(0);
 
   async function handleOpenReport(reportId: string) {
     setOpeningReportId(reportId);
@@ -367,104 +349,74 @@ export default function WarRoomPage() {
     }
   }
 
-  const loadData = useCallback(
-    async (signal?: AbortSignal) => {
-      const requestId = ++loadRequestIdRef.current;
+  const request = useCallback(
+    async (signal: AbortSignal) => {
       const requestedStage = operationStage ?? null;
       const requestedContext = expectedCaptureContextForStage(requestedStage);
-
-      // Never retain a report snapshot while its context is being refreshed.
-      // This also hides SIMULATION data synchronously when the stage changes.
-      setReportSnapshotStage(null);
-      setReportPage(emptyReportPage(requestedContext ?? "REAL"));
-      setLoadFailure(null);
-
-      if (!canReadE14) {
-        setLoading(false);
-        return;
+      const [loadedPlaces, loadedReports] = await Promise.all([
+        listVotingPlaces(
+          { page: placePage, limit: 50, search: placeSearch || undefined },
+          signal,
+        ),
+        operationStage === "ELECTION_PREPARATION"
+          ? Promise.resolve(emptyReportPage("REAL"))
+          : listWitnessReports(
+              {
+                page,
+                limit: PAGE_SIZE,
+                ...(filters.status ? { status: filters.status } : {}),
+                ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
+                ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
+              },
+              signal,
+            ),
+      ]);
+      if (
+        (requestedContext !== null &&
+          loadedReports.captureContext !== requestedContext) ||
+        loadedReports.items.some(
+          (report) => report.captureContext !== loadedReports.captureContext,
+        )
+      ) {
+        throw new Error(
+          "La respuesta E-14 mezcló contextos electorales incompatibles.",
+        );
       }
-      setLoading(true);
-
-      try {
-        const reportRequest =
-          operationStage === "ELECTION_PREPARATION"
-            ? Promise.resolve(emptyReportPage("REAL"))
-            : listWitnessReports(
-                {
-                  page,
-                  limit: PAGE_SIZE,
-                  ...(filters.status ? { status: filters.status } : {}),
-                  ...(filters.puestoId ? { puestoId: filters.puestoId } : {}),
-                  ...(filters.mesa ? { mesa: Number(filters.mesa) } : {}),
-                },
-                signal,
-              );
-        const [loadedPlaces, loadedReports] = await Promise.all([
-          listVotingPlaces(
-            { page: placePage, limit: 50, search: placeSearch || undefined },
-            signal,
-          ),
-          reportRequest,
-        ]);
-
-        if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
-
-        if (
-          (requestedContext !== null &&
-            loadedReports.captureContext !== requestedContext) ||
-          loadedReports.items.some(
-            (report) => report.captureContext !== loadedReports.captureContext,
-          )
-        ) {
-          throw new Error(
-            "La respuesta E-14 mezcló contextos electorales incompatibles.",
-          );
-        }
-
-        setPlacesPage(loadedPlaces);
-        setReportPage(loadedReports);
-        setReportSnapshotStage(requestedStage);
-        setForm((current) => {
-          const selectedPlaceStillExists = loadedPlaces.items.some(
+      if (!signal.aborted)
+        setForm((current) => ({
+          ...current,
+          puestoId: loadedPlaces.items.some(
             (place) => place.id === current.puestoId,
-          );
-
-          return {
-            ...current,
-            puestoId: selectedPlaceStillExists
-              ? current.puestoId
-              : (loadedPlaces.items[0]?.id ?? ""),
-          };
-        });
-      } catch (error) {
-        if (
-          signal?.aborted ||
-          requestId !== loadRequestIdRef.current ||
-          (error instanceof DOMException && error.name === "AbortError")
-        ) {
-          return;
-        }
-        setReportSnapshotStage(null);
-        setReportPage(emptyReportPage(requestedContext ?? "REAL"));
-        setLoadFailure({
-          stage: requestedStage,
-          message: readableLoadError(error),
-          status: error instanceof ApiError ? error.status : null,
-        });
-      } finally {
-        if (!signal?.aborted && requestId === loadRequestIdRef.current) {
-          setLoading(false);
-        }
-      }
+          )
+            ? current.puestoId
+            : (loadedPlaces.items[0]?.id ?? ""),
+        }));
+      return { loadedPlaces, loadedReports, requestedStage };
     },
-    [canReadE14, filters, operationStage, page, placePage, placeSearch],
+    [filters, operationStage, page, placePage, placeSearch],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadData(controller.signal);
-    return () => controller.abort();
-  }, [loadData]);
+  const {
+    data,
+    loading,
+    error: requestError,
+    refresh: loadData,
+  } = usePageRequest(request, { enabled: canReadE14 });
+  const placesPage = data?.loadedPlaces ?? {
+    items: [],
+    evaluatedAt: new Date(0).toISOString(),
+    pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
+  };
+  const reportPage =
+    data?.loadedReports ??
+    emptyReportPage(expectedCaptureContextForStage(operationStage) ?? "REAL");
+  const reportSnapshotStage = data?.requestedStage ?? null;
+  const loadFailure = requestError
+    ? {
+        stage: operationStage ?? null,
+        message: readableLoadError(requestError),
+        status: requestError instanceof ApiError ? requestError.status : null,
+      }
+    : null;
 
   useEffect(() => {
     const activeDialogTitle = dialogOpen
@@ -732,7 +684,6 @@ export default function WarRoomPage() {
     }
 
     setFilterError(null);
-    setLoadFailure(null);
     setPage(1);
     setFilters({
       ...filterDraft,
@@ -745,7 +696,6 @@ export default function WarRoomPage() {
     setFilterDraft(EMPTY_FILTERS);
     setFilters(EMPTY_FILTERS);
     setFilterError(null);
-    setLoadFailure(null);
     setPage(1);
   }
 
@@ -885,9 +835,9 @@ export default function WarRoomPage() {
       aria-label="Filtrar reportes E-14"
       noValidate
       onSubmit={applyFilters}
-      className="grid w-full gap-3 text-left sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]"
+      className="grid w-full gap-3 text-left sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] min-w-0"
     >
-      <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+      <label className="text-sm font-semibold text-slate-500 min-w-0">
         Estado
         <select
           value={filterDraft.status}
@@ -897,7 +847,7 @@ export default function WarRoomPage() {
               status: event.target.value as ReportFilters["status"],
             }))
           }
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
         >
           <option value="">Todos</option>
           {Object.entries(STATUS_LABELS).map(([value, meta]) => (
@@ -907,7 +857,7 @@ export default function WarRoomPage() {
           ))}
         </select>
       </label>
-      <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+      <label className="text-sm font-semibold text-slate-500 min-w-0">
         Puesto
         <select
           value={filterDraft.puestoId}
@@ -917,7 +867,7 @@ export default function WarRoomPage() {
               puestoId: event.target.value,
             }))
           }
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
         >
           <option value="">Todos los visibles</option>
           {places.map((place) => (
@@ -927,7 +877,7 @@ export default function WarRoomPage() {
           ))}
         </select>
       </label>
-      <label className="text-xs font-black uppercase tracking-wider text-slate-500">
+      <label className="text-sm font-semibold text-slate-500 min-w-0">
         Mesa
         <input
           type="number"
@@ -946,7 +896,7 @@ export default function WarRoomPage() {
             setFilterError(null);
           }}
           placeholder="Cualquier mesa"
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 aria-invalid:border-red-500 aria-invalid:ring-4 aria-invalid:ring-red-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 aria-invalid:border-red-500 aria-invalid:ring-4 aria-invalid:ring-red-100 min-w-0 max-w-full"
         />
         {filterError && (
           <span
@@ -958,10 +908,10 @@ export default function WarRoomPage() {
           </span>
         )}
       </label>
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 min-w-0 flex-wrap">
         <button
           type="submit"
-          className="min-h-11 flex-1 rounded-xl bg-slate-950 px-4 text-sm font-black text-white hover:bg-blue-800"
+          className="min-h-11 flex-1 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
         >
           Filtrar
         </button>
@@ -969,7 +919,7 @@ export default function WarRoomPage() {
           <button
             type="button"
             onClick={clearFilters}
-            className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 hover:bg-slate-100"
+            className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100 max-w-full whitespace-normal"
           >
             Limpiar filtros
           </button>
@@ -979,13 +929,13 @@ export default function WarRoomPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mx-auto max-w-7xl space-y-7 min-w-0">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
         <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-700">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
             <ShieldCheck aria-hidden="true" size={14} /> Reportes verificables
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Control de reportes E-14
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
@@ -994,14 +944,14 @@ export default function WarRoomPage() {
             tablero; no sustituyen el escrutinio oficial.
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row min-w-0">
           {canReportE14 && (
             <button
               type="button"
               onClick={() =>
                 window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))
               }
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 text-sm font-black text-blue-900 transition hover:border-blue-400"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 text-sm font-semibold text-blue-900 transition hover:border-blue-400 max-w-full whitespace-normal"
             >
               <LockKeyhole aria-hidden="true" size={17} />
               Capturar offline
@@ -1011,7 +961,7 @@ export default function WarRoomPage() {
             type="button"
             onClick={() => void loadData()}
             disabled={isContextLoading}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-blue-300 disabled:opacity-50"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-blue-300 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw
               aria-hidden="true"
@@ -1025,7 +975,7 @@ export default function WarRoomPage() {
               type="button"
               onClick={() => openReportDialog()}
               disabled={isContextLoading || reportablePlaces.length === 0}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-black text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45 max-w-full whitespace-normal"
             >
               <Plus aria-hidden="true" size={18} />{" "}
               {isSimulationMode
@@ -1040,9 +990,9 @@ export default function WarRoomPage() {
         <div
           role="status"
           data-testid="e14-context-banner"
-          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-950"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-950 min-w-0"
         >
-          <p className="font-black">SIMULACRO E-14 · DATOS DE ENSAYO</p>
+          <p className="font-semibold">SIMULACRO E-14 · DATOS DE ENSAYO</p>
           <p className="mt-1 font-medium">
             Puedes registrar, sincronizar y revisar el flujo completo. Estas
             actas quedan marcadas como SIMULATION y jamás alimentan tableros,
@@ -1057,9 +1007,11 @@ export default function WarRoomPage() {
         <div
           role="status"
           data-testid="e14-context-banner"
-          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950"
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950 min-w-0"
         >
-          <p className="font-black">OPERACIÓN ELECTORAL REAL · E-14 REALES</p>
+          <p className="font-semibold">
+            OPERACIÓN ELECTORAL REAL · E-14 REALES
+          </p>
           <p className="mt-1 font-medium">
             Esta vista y sus métricas incluyen únicamente actas marcadas como
             REAL. Los ensayos y los registros históricos sin clasificar
@@ -1071,9 +1023,9 @@ export default function WarRoomPage() {
       {operationStage === "ELECTION_PREPARATION" && (
         <div
           role="status"
-          className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm leading-6 text-blue-950"
+          className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm leading-6 text-blue-950 min-w-0"
         >
-          <p className="font-black">Preparación electoral</p>
+          <p className="font-semibold">Preparación electoral</p>
           <p className="mt-1 font-medium">
             Configura las mesas esperadas de cada puesto. El registro y la
             revisión de E-14 se habilitan únicamente al iniciar el Día D.
@@ -1084,7 +1036,7 @@ export default function WarRoomPage() {
       {notice && (
         <div
           aria-live="polite"
-          className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-900"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-900 min-w-0 flex-wrap"
         >
           <span className="inline-flex items-center gap-2">
             <CheckCircle2 aria-hidden="true" size={19} /> {notice}
@@ -1102,7 +1054,7 @@ export default function WarRoomPage() {
       {actionError && !reviewTarget && !profileTarget && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-900"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-900 min-w-0 flex-wrap"
         >
           <span className="inline-flex items-center gap-2">
             <AlertCircle aria-hidden="true" size={19} /> {actionError}
@@ -1120,14 +1072,14 @@ export default function WarRoomPage() {
       {!canReadE14 ? (
         <div
           role="alert"
-          className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-950"
+          className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-950 min-w-0"
         >
           Tu rol no tiene acceso al módulo de conciliación E-14.
         </div>
       ) : isContextLoading ? (
         <div
           role="status"
-          className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-semibold text-slate-500"
+          className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-semibold text-slate-500 min-w-0"
         >
           <Loader2
             aria-hidden="true"
@@ -1139,15 +1091,18 @@ export default function WarRoomPage() {
             : "Consultando puestos y reportes reales…"}
         </div>
       ) : currentLoadFailure ? (
-        <div className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-          <div role="alert" className="flex flex-col items-center gap-3">
+        <div className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center min-w-0">
+          <div
+            role="alert"
+            className="flex flex-col items-center gap-3 min-w-0"
+          >
             <AlertCircle
               aria-hidden="true"
               className="text-red-600"
               size={34}
             />
             <div>
-              <h2 className="font-black text-slate-950">
+              <h2 className="font-semibold text-slate-950">
                 No pudimos cargar el control electoral
               </h2>
               <p className="mt-1 max-w-xl text-sm text-slate-600">
@@ -1155,13 +1110,13 @@ export default function WarRoomPage() {
               </p>
             </div>
           </div>
-          <div className="w-full max-w-4xl rounded-2xl border border-red-200 bg-white p-4">
+          <div className="w-full max-w-4xl rounded-2xl border border-red-200 bg-white p-4 min-w-0">
             <p className="mb-3 text-left text-xs font-bold text-slate-600">
               Corrige los filtros o límpialos para recuperar la consulta.
             </p>
             {reportFiltersForm}
           </div>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => {
@@ -1171,7 +1126,7 @@ export default function WarRoomPage() {
                 }
                 void loadData();
               }}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-800"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
             >
               <RefreshCw aria-hidden="true" size={16} />
               {shouldRetryWithoutFilters
@@ -1184,20 +1139,20 @@ export default function WarRoomPage() {
         <>
           <section
             aria-label="Métricas de reportes"
-            className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+            className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 min-w-0"
           >
-            <article className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl">
+            <article className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl min-w-0">
               <FileCheck2
                 aria-hidden="true"
                 className="text-blue-300"
                 size={24}
               />
-              <p className="mt-5 text-xs font-black uppercase tracking-wider text-slate-400">
+              <p className="mt-5 text-xs font-semibold text-slate-400">
                 Actas conciliadas
               </p>
               <p
                 data-testid="reports-metric"
-                className="mt-2 text-4xl font-black tracking-tight"
+                className="mt-2 text-2xl font-semibold tracking-tight"
               >
                 {formatNumber(metrics.reports)}
               </p>
@@ -1205,14 +1160,14 @@ export default function WarRoomPage() {
                 Reportes aceptados por revisión independiente
               </p>
             </article>
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
               <Vote aria-hidden="true" className="text-blue-700" size={24} />
-              <p className="mt-5 text-xs font-black uppercase tracking-wider text-slate-400">
+              <p className="mt-5 text-xs font-semibold text-slate-400">
                 Votos del candidato
               </p>
               <p
                 data-testid="candidate-votes-metric"
-                className="mt-2 text-4xl font-black tracking-tight text-slate-950"
+                className="mt-2 text-2xl font-semibold tracking-tight text-slate-950"
               >
                 {formatNumber(metrics.candidateVotes)}
               </p>
@@ -1220,18 +1175,18 @@ export default function WarRoomPage() {
                 Sólo actas aceptadas
               </p>
             </article>
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
               <BarChart3
                 aria-hidden="true"
                 className="text-emerald-700"
                 size={24}
               />
-              <p className="mt-5 text-xs font-black uppercase tracking-wider text-slate-400">
+              <p className="mt-5 text-xs font-semibold text-slate-400">
                 Votos totales
               </p>
               <p
                 data-testid="total-votes-metric"
-                className="mt-2 text-4xl font-black tracking-tight text-slate-950"
+                className="mt-2 text-2xl font-semibold tracking-tight text-slate-950"
               >
                 {formatNumber(metrics.totalVotes)}
               </p>
@@ -1239,18 +1194,18 @@ export default function WarRoomPage() {
                 Sólo actas aceptadas
               </p>
             </article>
-            <article className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <article className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm min-w-0">
               <AlertTriangle
                 aria-hidden="true"
                 className="text-amber-700"
                 size={24}
               />
-              <p className="mt-5 text-xs font-black uppercase tracking-wider text-amber-700">
+              <p className="mt-5 text-xs font-semibold text-amber-700">
                 Divergencias pendientes
               </p>
               <p
                 data-testid="divergences-metric"
-                className="mt-2 text-4xl font-black tracking-tight text-slate-950"
+                className="mt-2 text-2xl font-semibold tracking-tight text-slate-950"
               >
                 {formatNumber(summary.pendingDivergences)}
               </p>
@@ -1303,12 +1258,15 @@ export default function WarRoomPage() {
             </p>
           </div>
 
-          <section aria-labelledby="places-heading" className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <section
+            aria-labelledby="places-heading"
+            className="space-y-4 min-w-0"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between min-w-0">
               <div>
                 <h2
                   id="places-heading"
-                  className="text-xl font-black text-slate-950"
+                  className="text-xl font-semibold text-slate-950"
                 >
                   Puestos de votación
                 </h2>
@@ -1322,9 +1280,9 @@ export default function WarRoomPage() {
                 role="search"
                 aria-label="Buscar puesto de votación"
                 onSubmit={searchPlaces}
-                className="flex w-full max-w-xl gap-2"
+                className="flex w-full max-w-xl gap-2 min-w-0 flex-wrap"
               >
-                <label className="sr-only" htmlFor="place-search">
+                <label className="sr-only min-w-0" htmlFor="place-search">
                   Código o nombre del puesto
                 </label>
                 <input
@@ -1334,11 +1292,11 @@ export default function WarRoomPage() {
                   onChange={(event) => setPlaceSearchDraft(event.target.value)}
                   placeholder="Código o nombre del puesto"
                   maxLength={100}
-                  className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 max-w-full"
                 />
                 <button
                   type="submit"
-                  className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-black text-white hover:bg-blue-800"
+                  className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
                 >
                   Buscar
                 </button>
@@ -1346,7 +1304,7 @@ export default function WarRoomPage() {
                   <button
                     type="button"
                     onClick={clearPlaceSearch}
-                    className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 hover:bg-slate-50"
+                    className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
                   >
                     Limpiar
                   </button>
@@ -1355,13 +1313,13 @@ export default function WarRoomPage() {
             </div>
 
             {places.length === 0 ? (
-              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center">
+              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center min-w-0">
                 <MapPin
                   aria-hidden="true"
                   className="mx-auto text-amber-600"
                   size={40}
                 />
-                <h3 className="mt-4 text-xl font-black text-slate-950">
+                <h3 className="mt-4 text-xl font-semibold text-slate-950">
                   {placeSearch
                     ? "No encontramos puestos con esa búsqueda"
                     : "No hay puestos de votación configurados"}
@@ -1373,22 +1331,22 @@ export default function WarRoomPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                 {places.map((place) => (
                   <article
                     key={place.id}
                     data-testid={`place-card-${place.id}`}
-                    className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                    className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3 min-w-0 flex-wrap">
                       <span className="rounded-xl bg-blue-50 p-2 text-blue-700">
                         <MapPin aria-hidden="true" size={20} />
                       </span>
-                      <span className="font-mono text-xs font-black text-slate-400">
+                      <span className="font-mono text-xs font-semibold text-slate-400">
                         {place.code}
                       </span>
                     </div>
-                    <h3 className="mt-4 font-black text-slate-950">
+                    <h3 className="mt-4 font-semibold text-slate-950">
                       {place.name}
                     </h3>
                     {place.parent && (
@@ -1396,7 +1354,7 @@ export default function WarRoomPage() {
                         {place.parent.name}
                       </p>
                     )}
-                    <div className="mt-3 space-y-1 text-xs leading-5 text-slate-600">
+                    <div className="mt-3 space-y-1 text-xs leading-5 text-slate-600 min-w-0">
                       <p>
                         Código fuente:{" "}
                         {place.sourceLocationCode ?? "No trazable"}
@@ -1415,8 +1373,8 @@ export default function WarRoomPage() {
                         <p
                           className={
                             place.operationalStatus.operationalNow
-                              ? "font-black text-emerald-700"
-                              : "font-black text-amber-700"
+                              ? "font-semibold text-emerald-700"
+                              : "font-semibold text-amber-700"
                           }
                         >
                           {place.operationalStatus.operationalNow
@@ -1428,12 +1386,12 @@ export default function WarRoomPage() {
                         </p>
                       )}
                     </div>
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4 min-w-0 flex-wrap">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        <p className="text-xs font-semibold text-slate-400">
                           Mesas esperadas
                         </p>
-                        <p className="mt-1 text-sm font-black text-slate-900">
+                        <p className="mt-1 text-sm font-semibold text-slate-900">
                           {place.expectedTables === null
                             ? "Sin parametrizar"
                             : formatNumber(place.expectedTables)}
@@ -1444,7 +1402,7 @@ export default function WarRoomPage() {
                           type="button"
                           onClick={() => openProfileDialog(place)}
                           aria-label={`Configurar mesas esperadas de ${place.name}`}
-                          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-black text-slate-700 hover:border-blue-300 hover:text-blue-800"
+                          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-800 max-w-full whitespace-normal"
                         >
                           <Settings2 aria-hidden="true" size={15} /> Configurar
                         </button>
@@ -1458,7 +1416,7 @@ export default function WarRoomPage() {
                           !isSimulationMode &&
                           !place.operationalStatus.operationalNow
                         }
-                        className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
+                        className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45 max-w-full whitespace-normal"
                       >
                         Reportar mesa
                       </button>
@@ -1471,13 +1429,13 @@ export default function WarRoomPage() {
             {placesPage.pagination.totalPages > 1 && (
               <nav
                 aria-label="Paginación de puestos"
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 min-w-0 flex-wrap gap-3"
               >
                 <button
                   type="button"
                   disabled={placePage <= 1}
                   onClick={() => setPlacePage((current) => current - 1)}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 max-w-full whitespace-normal"
                 >
                   <ChevronLeft aria-hidden="true" size={16} /> Anterior
                 </button>
@@ -1489,7 +1447,7 @@ export default function WarRoomPage() {
                   type="button"
                   disabled={placePage >= placesPage.pagination.totalPages}
                   onClick={() => setPlacePage((current) => current + 1)}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 max-w-full whitespace-normal"
                 >
                   Siguiente <ChevronRight aria-hidden="true" size={16} />
                 </button>
@@ -1499,11 +1457,14 @@ export default function WarRoomPage() {
 
           <section
             aria-labelledby="reports-heading"
-            className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+            className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm min-w-0"
           >
-            <header className="space-y-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+            <header className="space-y-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5 min-w-0">
               <div>
-                <h2 id="reports-heading" className="font-black text-slate-950">
+                <h2
+                  id="reports-heading"
+                  className="font-semibold text-slate-950"
+                >
                   {captureContextPresentation
                     ? `${captureContextPresentation.short} · Reportes registrados`
                     : "Reportes E-14 no habilitados"}
@@ -1517,13 +1478,13 @@ export default function WarRoomPage() {
               {reportFiltersForm}
             </header>
             {reports.length === 0 ? (
-              <div className="px-6 py-16 text-center">
+              <div className="px-6 py-16 text-center min-w-0">
                 <ClipboardList
                   aria-hidden="true"
                   className="mx-auto text-slate-300"
                   size={42}
                 />
-                <h3 className="mt-4 font-black text-slate-950">
+                <h3 className="mt-4 font-semibold text-slate-950">
                   Aún no hay reportes E-14
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
@@ -1532,9 +1493,14 @@ export default function WarRoomPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div
+                className="overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                role="region"
+                aria-label="Operación electoral: tabla con desplazamiento horizontal"
+                tabIndex={0}
+              >
                 <table className="w-full min-w-[1480px] text-left text-sm">
-                  <thead className="bg-white text-xs font-black uppercase tracking-wider text-slate-400">
+                  <thead className="bg-white text-xs font-semibold text-slate-400">
                     <tr>
                       <th className="px-6 py-4">Puesto / mesa</th>
                       <th className="px-6 py-4">Testigo</th>
@@ -1557,14 +1523,14 @@ export default function WarRoomPage() {
                         <td className="px-6 py-5">
                           <span
                             data-testid={`report-context-${report.id}`}
-                            className={`mb-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black tracking-wide ${CAPTURE_CONTEXT_LABELS[report.captureContext].className}`}
+                            className={`mb-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${CAPTURE_CONTEXT_LABELS[report.captureContext].className}`}
                           >
                             {
                               CAPTURE_CONTEXT_LABELS[report.captureContext]
                                 .short
                             }
                           </span>
-                          <p className="font-black text-slate-900">
+                          <p className="font-semibold text-slate-900">
                             {placeName(report, placesById)}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
@@ -1579,8 +1545,8 @@ export default function WarRoomPage() {
                           report.credentialReference &&
                           report.checkedInAt &&
                           report.e14FormType ? (
-                            <div className="max-w-xs space-y-1 text-xs leading-5 text-slate-600">
-                              <p className="font-black text-slate-900">
+                            <div className="max-w-xs space-y-1 text-xs leading-5 text-slate-600 min-w-0">
+                              <p className="font-semibold text-slate-900">
                                 {
                                   WITNESS_CREDENTIAL_LABELS[
                                     report.credentialType
@@ -1597,15 +1563,15 @@ export default function WarRoomPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-5 text-right font-black text-blue-800">
+                        <td className="px-6 py-5 text-right font-semibold text-blue-800">
                           {formatNumber(report.candidateVotes)}
                         </td>
-                        <td className="px-6 py-5 text-right font-black text-slate-900">
+                        <td className="px-6 py-5 text-right font-semibold text-slate-900">
                           {formatNumber(report.totalTableVotes)}
                           {report.blankVotes !== null &&
                             report.nullVotes !== null &&
                             report.unmarkedVotes !== null && (
-                              <span className="mt-1 block text-[10px] font-semibold leading-4 text-slate-500">
+                              <span className="mt-1 block text-xs font-semibold leading-4 text-slate-500">
                                 Blanco {formatNumber(report.blankVotes)} · Nulos{" "}
                                 {formatNumber(report.nullVotes)} · No marcados{" "}
                                 {formatNumber(report.unmarkedVotes)}
@@ -1613,21 +1579,21 @@ export default function WarRoomPage() {
                             )}
                         </td>
                         <td className="px-6 py-5">
-                          <div className="flex max-w-xs flex-col items-start gap-2">
+                          <div className="flex max-w-xs flex-col items-start gap-2 min-w-0">
                             <span
                               data-testid={`report-status-${report.id}`}
-                              className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${STATUS_LABELS[report.status].className}`}
+                              className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_LABELS[report.status].className}`}
                             >
                               {STATUS_LABELS[report.status].label}
                             </span>
                             {report.divergent && (
-                              <span className="inline-flex items-center gap-1 text-xs font-black text-amber-700">
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
                                 <AlertTriangle aria-hidden="true" size={14} />
                                 Lecturas divergentes
                               </span>
                             )}
                             {report.hasWrittenClaim && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
                                 <Scale aria-hidden="true" size={13} />
                                 Reclamación escrita
                               </span>
@@ -1649,8 +1615,8 @@ export default function WarRoomPage() {
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <div className="flex flex-col items-start gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+                          <div className="flex flex-col items-start gap-2 min-w-0">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                               <FileCheck2 aria-hidden="true" size={14} />{" "}
                               Privado confirmado
                             </span>
@@ -1659,7 +1625,7 @@ export default function WarRoomPage() {
                                 type="button"
                                 disabled={openingReportId === report.id}
                                 onClick={() => void handleOpenReport(report.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-800 hover:bg-blue-100 disabled:opacity-60"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:opacity-60 max-w-full whitespace-normal"
                               >
                                 {openingReportId === report.id ? (
                                   <Loader2
@@ -1688,7 +1654,7 @@ export default function WarRoomPage() {
                               <button
                                 type="button"
                                 onClick={() => openReviewDialog(report)}
-                                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-700 px-4 text-xs font-black text-white hover:bg-blue-800"
+                                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
                               >
                                 <Scale aria-hidden="true" size={15} /> Revisar
                               </button>
@@ -1706,13 +1672,13 @@ export default function WarRoomPage() {
             {reportPage.pagination.totalPages > 1 && (
               <nav
                 aria-label="Paginación de reportes E-14"
-                className="flex items-center justify-between border-t border-slate-100 px-4 py-3 sm:px-6"
+                className="flex items-center justify-between border-t border-slate-100 px-4 py-3 sm:px-6 min-w-0 flex-wrap gap-3"
               >
                 <button
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((current) => current - 1)}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 max-w-full whitespace-normal"
                 >
                   <ChevronLeft aria-hidden="true" size={16} /> Anterior
                 </button>
@@ -1724,7 +1690,7 @@ export default function WarRoomPage() {
                   type="button"
                   disabled={page >= reportPage.pagination.totalPages}
                   onClick={() => setPage((current) => current + 1)}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 max-w-full whitespace-normal"
                 >
                   Siguiente <ChevronRight aria-hidden="true" size={16} />
                 </button>
@@ -1735,20 +1701,20 @@ export default function WarRoomPage() {
       )}
 
       {dialogOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="e14-dialog-title"
-            className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
+            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap">
               <div>
                 <h2
                   id="e14-dialog-title"
                   ref={dialogTitleRef}
                   tabIndex={-1}
-                  className="text-xl font-black text-slate-950 outline-none"
+                  className="text-xl font-semibold text-slate-950 outline-none"
                 >
                   {isSimulationMode
                     ? "Registrar reporte de simulacro"
@@ -1765,22 +1731,22 @@ export default function WarRoomPage() {
                 onClick={closeReportDialog}
                 disabled={Boolean(savingStep)}
                 aria-label="Cerrar formulario"
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" size={21} />
               </button>
             </header>
-            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+            <form onSubmit={handleSubmit} className="space-y-5 p-6 min-w-0">
               {formError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 min-w-0"
                 >
                   {formError}
                 </div>
               )}
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="text-sm font-black text-slate-800 sm:col-span-2">
+              <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                <label className="text-sm font-semibold text-slate-800 sm:col-span-2 min-w-0">
                   Puesto de votación
                   <select
                     required
@@ -1791,7 +1757,7 @@ export default function WarRoomPage() {
                         puestoId: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     <option value="" disabled>
                       Seleccionar puesto
@@ -1803,7 +1769,7 @@ export default function WarRoomPage() {
                     ))}
                   </select>
                 </label>
-                <label className="text-sm font-black text-slate-800">
+                <label className="text-sm font-semibold text-slate-800 min-w-0">
                   Tipo de credencial
                   <select
                     required
@@ -1815,7 +1781,7 @@ export default function WarRoomPage() {
                           .value as WitnessCredentialType,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     {(["E15", "E16"] as const).map((credentialType) => (
                       <option key={credentialType} value={credentialType}>
@@ -1824,7 +1790,7 @@ export default function WarRoomPage() {
                     ))}
                   </select>
                 </label>
-                <label className="text-sm font-black text-slate-800">
+                <label className="text-sm font-semibold text-slate-800 min-w-0">
                   Referencia de credencial
                   <input
                     required
@@ -1838,10 +1804,10 @@ export default function WarRoomPage() {
                       }))
                     }
                     placeholder="Ej. E15-BOG-001-00012"
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="text-sm font-black text-slate-800">
+                <label className="text-sm font-semibold text-slate-800 min-w-0">
                   Hora de presencia
                   <input
                     required
@@ -1853,10 +1819,10 @@ export default function WarRoomPage() {
                         checkedInAt: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="text-sm font-black text-slate-800">
+                <label className="text-sm font-semibold text-slate-800 min-w-0">
                   Ejemplar del formulario E-14
                   <select
                     required
@@ -1867,7 +1833,7 @@ export default function WarRoomPage() {
                         e14FormType: event.target.value as E14FormType,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     {(["DELEGADOS", "CLAVEROS", "TRANSMISION"] as const).map(
                       (formType) => (
@@ -1878,7 +1844,7 @@ export default function WarRoomPage() {
                     )}
                   </select>
                 </label>
-                <label className="text-sm font-black text-slate-800">
+                <label className="text-sm font-semibold text-slate-800 min-w-0">
                   Número de mesa
                   <input
                     required
@@ -1894,21 +1860,21 @@ export default function WarRoomPage() {
                         mesa: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
-                <div aria-hidden="true" className="hidden sm:block" />
+                <div aria-hidden="true" className="hidden sm:block min-w-0" />
               </div>
               <fieldset className="rounded-2xl border border-slate-200 p-4">
-                <legend className="px-2 text-sm font-black text-slate-800">
+                <legend className="px-2 text-sm font-semibold text-slate-800">
                   Lectura numérica del acta
                 </legend>
                 <p className="mb-4 text-xs leading-5 text-slate-500">
                   Registra por separado las categorías visibles. La suma
                   clasificada no puede superar el total de la mesa.
                 </p>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="text-sm font-black text-slate-800">
+                <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                  <label className="text-sm font-semibold text-slate-800 min-w-0">
                     Votos del candidato
                     <input
                       required
@@ -1924,10 +1890,10 @@ export default function WarRoomPage() {
                           candidateVotes: event.target.value,
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-blue-200 px-4 font-normal text-blue-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-blue-200 px-4 font-normal text-blue-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-black text-slate-800">
+                  <label className="text-sm font-semibold text-slate-800 min-w-0">
                     Votos en blanco
                     <input
                       required
@@ -1943,10 +1909,10 @@ export default function WarRoomPage() {
                           blankVotes: event.target.value,
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-black text-slate-800">
+                  <label className="text-sm font-semibold text-slate-800 min-w-0">
                     Votos nulos
                     <input
                       required
@@ -1962,10 +1928,10 @@ export default function WarRoomPage() {
                           nullVotes: event.target.value,
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-black text-slate-800">
+                  <label className="text-sm font-semibold text-slate-800 min-w-0">
                     Votos no marcados
                     <input
                       required
@@ -1981,10 +1947,10 @@ export default function WarRoomPage() {
                           unmarkedVotes: event.target.value,
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-black text-slate-800 sm:col-span-2">
+                  <label className="text-sm font-semibold text-slate-800 sm:col-span-2 min-w-0">
                     Votos totales de la mesa
                     <input
                       required
@@ -2000,13 +1966,13 @@ export default function WarRoomPage() {
                           totalTableVotes: event.target.value,
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
                 </div>
               </fieldset>
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                <label className="flex cursor-pointer items-start gap-3 text-sm font-black text-slate-800">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 min-w-0">
+                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800 min-w-0">
                   <input
                     type="checkbox"
                     checked={form.hasWrittenClaim}
@@ -2022,7 +1988,7 @@ export default function WarRoomPage() {
                           : {}),
                       }))
                     }
-                    className="mt-0.5 size-5 rounded border-amber-300 text-blue-700 focus:ring-blue-500"
+                    className="mt-0.5 size-5 rounded border-amber-300 text-blue-700 focus:ring-blue-500 min-w-0 max-w-full"
                   />
                   <span>
                     Se presentó reclamación escrita
@@ -2034,8 +2000,8 @@ export default function WarRoomPage() {
                   </span>
                 </label>
                 {form.hasWrittenClaim && (
-                  <div className="mt-4 grid gap-4">
-                    <label className="text-sm font-black text-slate-800">
+                  <div className="mt-4 grid gap-4 min-w-0">
+                    <label className="text-sm font-semibold text-slate-800 min-w-0">
                       Causal de reclamación
                       <select
                         required
@@ -2047,7 +2013,7 @@ export default function WarRoomPage() {
                               .value as WitnessReclamationGround,
                           }))
                         }
-                        className="mt-2 min-h-12 w-full rounded-2xl border border-amber-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        className="mt-2 min-h-12 w-full rounded-2xl border border-amber-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                       >
                         <option value="" disabled>
                           Seleccionar causal legal
@@ -2061,7 +2027,7 @@ export default function WarRoomPage() {
                         )}
                       </select>
                     </label>
-                    <label className="text-sm font-black text-slate-800">
+                    <label className="text-sm font-semibold text-slate-800 min-w-0">
                       Descripción de la reclamación
                       <textarea
                         required
@@ -2076,13 +2042,13 @@ export default function WarRoomPage() {
                           }))
                         }
                         placeholder="Describe hechos, modo, tiempo y lugar de la reclamación presentada."
-                        className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                       />
                     </label>
                   </div>
                 )}
               </div>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Observaciones{" "}
                 <span className="font-normal text-slate-400">(opcional)</span>
                 <textarea
@@ -2095,10 +2061,10 @@ export default function WarRoomPage() {
                       observations: event.target.value,
                     }))
                   }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Acta E-14 privada
                 <span className="mt-2 flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-blue-300 bg-blue-50/60 px-4 py-4 font-normal text-slate-700 transition hover:bg-blue-50">
                   <UploadCloud
@@ -2118,14 +2084,14 @@ export default function WarRoomPage() {
                     required
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-                    className="sr-only"
+                    className="sr-only min-w-0 max-w-full"
                     onChange={(event) =>
                       setE14File(event.target.files?.[0] ?? null)
                     }
                   />
                 </span>
               </label>
-              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-600">
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-600 min-w-0">
                 <FileText
                   aria-hidden="true"
                   className="mt-0.5 shrink-0 text-slate-500"
@@ -2135,19 +2101,19 @@ export default function WarRoomPage() {
                 registro sirve para conciliación interna: no transmite
                 resultados ni radica reclamaciones ante la Registraduría.
               </div>
-              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={closeReportDialog}
                   disabled={Boolean(savingStep)}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={Boolean(savingStep)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60 max-w-full whitespace-normal"
                 >
                   {savingStep ? (
                     <Loader2
@@ -2171,20 +2137,20 @@ export default function WarRoomPage() {
       )}
 
       {reviewTarget && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="e14-review-title"
-            className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
+            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap">
               <div>
                 <h2
                   id="e14-review-title"
                   ref={reviewTitleRef}
                   tabIndex={-1}
-                  className="text-xl font-black text-slate-950 outline-none"
+                  className="text-xl font-semibold text-slate-950 outline-none"
                 >
                   {reviewTarget.captureContext === "SIMULATION"
                     ? "Revisar E-14 de simulacro"
@@ -2200,34 +2166,34 @@ export default function WarRoomPage() {
                 onClick={closeReviewDialog}
                 disabled={reviewSaving}
                 aria-label="Cerrar revisión"
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" size={21} />
               </button>
             </header>
-            <form onSubmit={handleReview} className="space-y-5 p-6">
-              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+            <form onSubmit={handleReview} className="space-y-5 p-6 min-w-0">
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3 min-w-0">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <p className="text-xs font-semibold text-slate-400">
                     Reportante
                   </p>
-                  <p className="mt-1 text-sm font-black text-slate-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {reviewTarget.witness.name}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <p className="text-xs font-semibold text-slate-400">
                     Votos candidato
                   </p>
-                  <p className="mt-1 text-sm font-black text-blue-800">
+                  <p className="mt-1 text-sm font-semibold text-blue-800">
                     {formatNumber(reviewTarget.candidateVotes)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <p className="text-xs font-semibold text-slate-400">
                     Votos totales
                   </p>
-                  <p className="mt-1 text-sm font-black text-slate-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {formatNumber(reviewTarget.totalTableVotes)}
                   </p>
                 </div>
@@ -2236,14 +2202,14 @@ export default function WarRoomPage() {
               {reviewHasCompleteTraceability ? (
                 <section
                   aria-label="Trazabilidad electoral del reporte"
-                  className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4"
+                  className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 min-w-0"
                 >
-                  <h3 className="text-sm font-black text-slate-950">
+                  <h3 className="text-sm font-semibold text-slate-950">
                     Trazabilidad que debe verificarse
                   </h3>
-                  <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
+                  <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2 min-w-0">
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-slate-500">
+                      <dt className="font-semibold text-slate-500">
                         Credencial
                       </dt>
                       <dd className="mt-1 font-semibold text-slate-800">
@@ -2257,7 +2223,7 @@ export default function WarRoomPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-slate-500">
+                      <dt className="font-semibold text-slate-500">
                         Presencia
                       </dt>
                       <dd className="mt-1 font-semibold text-slate-800">
@@ -2265,17 +2231,13 @@ export default function WarRoomPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-slate-500">
-                        Ejemplar
-                      </dt>
+                      <dt className="font-semibold text-slate-500">Ejemplar</dt>
                       <dd className="mt-1 font-semibold text-slate-800">
                         {E14_FORM_LABELS[reviewTarget.e14FormType!]}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-slate-500">
-                        Desglose
-                      </dt>
+                      <dt className="font-semibold text-slate-500">Desglose</dt>
                       <dd className="mt-1 font-semibold text-slate-800">
                         Blanco {formatNumber(reviewTarget.blankVotes!)} · Nulos{" "}
                         {formatNumber(reviewTarget.nullVotes!)} · No marcados{" "}
@@ -2285,7 +2247,7 @@ export default function WarRoomPage() {
                   </dl>
                 </section>
               ) : (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-600 min-w-0">
                   Reporte histórico sin trazabilidad completa: el backend no
                   permite aceptarlo. Contrasta el soporte disponible y registra
                   un rechazo motivado para sacarlo de la cola pendiente.
@@ -2295,12 +2257,12 @@ export default function WarRoomPage() {
               {reviewTarget.hasWrittenClaim && (
                 <section
                   aria-label="Reclamación escrita reportada"
-                  className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
+                  className="rounded-2xl border border-amber-200 bg-amber-50 p-4 min-w-0"
                 >
-                  <h3 className="text-sm font-black text-amber-950">
+                  <h3 className="text-sm font-semibold text-amber-950">
                     Reclamación escrita reportada
                   </h3>
-                  <p className="mt-2 text-xs font-black text-amber-900">
+                  <p className="mt-2 text-xs font-semibold text-amber-900">
                     {reviewTarget.reclamationGround
                       ? WITNESS_RECLAMATION_GROUND_LABELS[
                           reviewTarget.reclamationGround
@@ -2319,7 +2281,7 @@ export default function WarRoomPage() {
               )}
 
               {reviewTarget.divergent && (
-                <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900 min-w-0">
                   <AlertTriangle
                     aria-hidden="true"
                     className="mt-0.5 shrink-0"
@@ -2333,13 +2295,13 @@ export default function WarRoomPage() {
               {actionError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 min-w-0"
                 >
                   {actionError}
                 </div>
               )}
 
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Decisión de conciliación
                 <select
                   value={reviewDecision}
@@ -2348,7 +2310,7 @@ export default function WarRoomPage() {
                       event.target.value as "ACCEPTED" | "REJECTED",
                     )
                   }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 >
                   <option
                     value="ACCEPTED"
@@ -2360,7 +2322,7 @@ export default function WarRoomPage() {
                 </select>
               </label>
 
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Motivo de la decisión
                 <textarea
                   required
@@ -2370,23 +2332,23 @@ export default function WarRoomPage() {
                   value={reviewReason}
                   onChange={(event) => setReviewReason(event.target.value)}
                   placeholder="Describe la verificación realizada y la razón de la decisión."
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
 
-              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={closeReviewDialog}
                   disabled={reviewSaving}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={reviewSaving}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60 max-w-full whitespace-normal"
                 >
                   {reviewSaving ? (
                     <Loader2
@@ -2406,20 +2368,20 @@ export default function WarRoomPage() {
       )}
 
       {profileTarget && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="e14-profile-title"
-            className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+            className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 min-w-0 flex-wrap">
               <div>
                 <h2
                   id="e14-profile-title"
                   ref={profileTitleRef}
                   tabIndex={-1}
-                  className="text-xl font-black text-slate-950 outline-none"
+                  className="text-xl font-semibold text-slate-950 outline-none"
                 >
                   Configurar mesas esperadas
                 </h2>
@@ -2432,16 +2394,16 @@ export default function WarRoomPage() {
                 onClick={closeProfileDialog}
                 disabled={profileSaving}
                 aria-label="Cerrar configuración"
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" size={21} />
               </button>
             </header>
-            <form onSubmit={handleProfile} className="space-y-5 p-6">
+            <form onSubmit={handleProfile} className="space-y-5 p-6 min-w-0">
               {actionError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 min-w-0"
                 >
                   {actionError}
                 </div>
@@ -2450,7 +2412,7 @@ export default function WarRoomPage() {
                 Este valor define el denominador de cobertura. Debe corresponder
                 al número real de mesas habilitadas en el puesto.
               </p>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Mesas esperadas
                 <input
                   required
@@ -2461,22 +2423,22 @@ export default function WarRoomPage() {
                   inputMode="numeric"
                   value={expectedTables}
                   onChange={(event) => setExpectedTables(event.target.value)}
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={closeProfileDialog}
                   disabled={profileSaving}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={profileSaving}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60 max-w-full whitespace-normal"
                 >
                   {profileSaving ? (
                     <Loader2

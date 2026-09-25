@@ -17,11 +17,7 @@ import {
   resolveDatabaseSchema,
   resolveDatabaseSearchPathOptions,
 } from '../prisma/prisma.service';
-import type {
-  CreateSignatureBatchDto,
-  CreateSignatureCollectionPlanDto,
-  IssueSignatureBatchDto,
-} from './dto/signature-collection.dto';
+
 import {
   computeSignatureCommandSha256,
   type SignatureCommandName,
@@ -168,7 +164,7 @@ physicalDescribe(
           contingencyPlan:
             'Aislar el lote, preservar sus folios, documentar el incidente y detener todo traslado hasta resolverlo.',
           submissionDueAt: '2099-04-01',
-        }) as CreateSignatureCollectionPlanDto,
+        }),
       );
       const createdBatch = await service.createBatch(
         context.user,
@@ -178,7 +174,7 @@ physicalDescribe(
           territoryReference: 'Zona operativa de integracion',
           plannedForms: 20,
           expectedReturnAt: '2099-02-20T18:00:00.000Z',
-        }) as CreateSignatureBatchDto,
+        }),
       );
       return { plan, createdBatch };
     }
@@ -205,7 +201,7 @@ physicalDescribe(
             'BATCH_ISSUE',
             { ...mutation, clientRequestId: randomUUID() },
             { batchId },
-          ) as IssueSignatureBatchDto,
+          ),
         );
 
       const outcomes = await Promise.allSettled([attempt(), attempt()]);

@@ -1,7 +1,6 @@
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import type {
   CreatePqrsdDossierDto,
-  PqrsdDetailQueryDto,
   ReviewPqrsdRulePackageDto,
 } from './dto/pqrsd.dto';
 import { PqrsdController } from './pqrsd.controller';
@@ -32,7 +31,7 @@ describe('PqrsdController', () => {
   it('requires an explicit purpose when opening sensitive detail', async () => {
     const query = {
       purpose: 'Gestionar la solicitud asignada',
-    } as PqrsdDetailQueryDto;
+    };
     await controller.detail(user, { id: 'dossier-a' }, query);
     expect(service.detail).toHaveBeenCalledWith(
       user,

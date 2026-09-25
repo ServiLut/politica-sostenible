@@ -4,6 +4,7 @@ import { validate } from 'class-validator';
 import { CampaignEventStatus } from '../../../prisma/generated/prisma';
 import { CreateCampaignEventDto } from './create-campaign-event.dto';
 import { ListCampaignEventsQueryDto } from './list-campaign-events-query.dto';
+import { ListResponsiblesQueryDto } from './list-responsibles-query.dto';
 import { TransitionCampaignEventDto } from './transition-campaign-event.dto';
 import { UpdateCampaignEventDto } from './update-campaign-event.dto';
 
@@ -73,4 +74,31 @@ describe('Campaign event DTO validation', () => {
     );
     await expect(validate(transition)).resolves.toHaveLength(0);
   });
+
+  it('accepts whole pagination values for the responsible directory', async () => {
+    const query = plainToInstance(ListResponsiblesQueryDto, {
+      page: '2',
+      limit: '25',
+    });
+
+    await expect(validate(query)).resolves.toHaveLength(0);
+    expect(query).toMatchObject({ page: 2, limit: 25 });
+    await expect(
+      validate(new ListResponsiblesQueryDto()),
+    ).resolves.toHaveLength(0);
+  });
+
+  it.each(['1abc', '1.5', '', '0', true, ['1'], {}])(
+    'rejects malformed responsible pagination instead of partially parsing %j',
+    async (value) => {
+      const query = plainToInstance(ListResponsiblesQueryDto, {
+        page: value,
+        limit: value,
+      });
+
+      expect((await validate(query)).map(({ property }) => property)).toEqual(
+        expect.arrayContaining(['page', 'limit']),
+      );
+    },
+  );
 });

@@ -9,27 +9,26 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error: Error | null;
 }
 
 export class DashboardErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false });
   };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-[60vh] items-center justify-center p-8">
+        <div role="alert" className="flex min-h-[60vh] items-center justify-center p-8">
           <div className="flex max-w-lg flex-col items-center gap-6 rounded-2xl border border-red-100 bg-red-50 p-8 text-center shadow-xl shadow-red-900/5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-red-600">
               <AlertCircle size={36} />
@@ -39,14 +38,10 @@ export class DashboardErrorBoundary extends Component<Props, State> {
                 Algo salió mal
               </h2>
               <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600">
-                Esta sección encontró un error inesperado. Puedes intentar
-                recargarla o volver al inicio.
+                No pudimos cargar esta sección. Puedes reintentar o abrir otra
+                desde el menú. Si estabas guardando un registro, consulta su
+                estado antes de repetir el envío para evitar duplicados.
               </p>
-              {this.state.error && (
-                <p className="mt-3 rounded-xl bg-red-100 px-4 py-2 text-xs font-mono text-red-700">
-                  {this.state.error.message}
-                </p>
-              )}
             </div>
             <div className="flex gap-3">
               <button

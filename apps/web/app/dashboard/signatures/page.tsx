@@ -1,16 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ClipboardCheck,
-  FileCheck2,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { SignatureCountCorrectionPanel } from "@/components/signatures/SignatureCountCorrectionPanel";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -26,11 +18,20 @@ import {
   reviewSignatureAuthorityResult,
   reviewSignatureBatch,
   type SignatureCollectionBatch,
-  type SignatureCollectionOverview,
   type SignatureCommandResponse,
 } from "@/lib/signature-collection-api";
 import type { BackendUserRole } from "@/types/saas-schema";
-import { SignatureCountCorrectionPanel } from "@/components/signatures/SignatureCountCorrectionPanel";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
+  FileCheck2,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
+import Link from "next/link";
+import { FormEvent, useMemo, useState } from "react";
 
 const MANAGEMENT_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -109,12 +110,10 @@ function SummaryCard({
   warning?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
       <p
-        className={`mt-2 text-3xl font-black ${warning && (value ?? 0) > 0 ? "text-amber-700" : "text-slate-950"}`}
+        className={`mt-2 text-3xl font-semibold ${warning && (value ?? 0) > 0 ? "text-amber-700" : "text-slate-950"}`}
       >
         {value === null ? "—" : value.toLocaleString("es-CO")}
       </p>
@@ -124,19 +123,19 @@ function SummaryCard({
 
 function EvidenceFields({ prefix }: { prefix: string }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <label className="grid gap-1 text-sm font-medium text-slate-800">
+    <div className="grid gap-3 md:grid-cols-2 min-w-0">
+      <label className="grid gap-1 text-sm font-medium text-slate-800 min-w-0">
         Referencia HTTPS de evidencia
         <input
           name="evidenceReference"
           type="url"
           required
           placeholder="https://autoridad.example/constancia.pdf"
-          className="rounded-xl border border-slate-300 px-3 py-2"
+          className="rounded-xl border border-slate-300 px-3 py-2 min-w-0 max-w-full"
           aria-describedby={`${prefix}-evidence-help`}
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium text-slate-800">
+      <label className="grid gap-1 text-sm font-medium text-slate-800 min-w-0">
         SHA-256 de la evidencia
         <input
           name="evidenceSha256"
@@ -145,10 +144,13 @@ function EvidenceFields({ prefix }: { prefix: string }) {
           maxLength={64}
           pattern={HASH_PATTERN}
           spellCheck={false}
-          className="rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs"
+          className="rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs min-w-0 max-w-full"
         />
       </label>
-      <p id={`${prefix}-evidence-help`} className="text-xs text-slate-500 md:col-span-2">
+      <p
+        id={`${prefix}-evidence-help`}
+        className="text-xs text-slate-500 md:col-span-2"
+      >
         La referencia debe ser durable. No cargues fotografías, firmas ni datos
         individuales de quienes apoyaron la candidatura.
       </p>
@@ -159,7 +161,7 @@ function EvidenceFields({ prefix }: { prefix: string }) {
 function MutationFields({ prefix }: { prefix: string }) {
   return (
     <>
-      <label className="grid gap-1 text-sm font-medium text-slate-800">
+      <label className="grid gap-1 text-sm font-medium text-slate-800 min-w-0">
         Declaración de custodia
         <textarea
           name="observation"
@@ -167,7 +169,7 @@ function MutationFields({ prefix }: { prefix: string }) {
           minLength={20}
           maxLength={2000}
           rows={3}
-          className="rounded-xl border border-slate-300 px-3 py-2"
+          className="rounded-xl border border-slate-300 px-3 py-2 min-w-0 max-w-full"
         />
       </label>
       <EvidenceFields prefix={prefix} />
@@ -177,46 +179,26 @@ function MutationFields({ prefix }: { prefix: string }) {
 
 export default function SignatureCollectionPage() {
   const { user } = useAuth();
-  const [overview, setOverview] = useState<SignatureCollectionOverview | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [mutationKey, setMutationKey] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoadError(null);
-    const result = await getSignatureCollectionOverview(signal);
-    if (signal?.aborted) return;
-    setOverview(result);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    void load(controller.signal)
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setOverview(null);
-          setLoadError(readableError(error));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [load, reloadVersion]);
+  const {
+    data: overview,
+    loading,
+    error: requestError,
+    refresh: load,
+  } = usePageRequest(getSignatureCollectionOverview, {
+    reloadKey: reloadVersion,
+  });
+  const loadError = requestError ? readableError(requestError) : null;
 
   const role = user?.backendRole;
   const canManage = Boolean(role && MANAGEMENT_ROLES.has(role));
   const canField = Boolean(role && FIELD_ROLES.has(role));
   const canInternalReview = Boolean(role && INTERNAL_REVIEW_ROLES.has(role));
-  const canAuthorityReview = Boolean(
-    role && AUTHORITY_REVIEW_ROLES.has(role),
-  );
+  const canAuthorityReview = Boolean(role && AUTHORITY_REVIEW_ROLES.has(role));
   const stage = overview?.operation.stage;
   const collecting = stage === "SIGNATURE_COLLECTION";
   const canCreatePlan =
@@ -389,18 +371,9 @@ export default function SignatureCollectionPage() {
         reviewSignatureBatch(batch.id, {
           ...commonMutation(data, batch),
           reportedSupports: number(data, "reportedSupports"),
-          internalAcceptedSupports: number(
-            data,
-            "internalAcceptedSupports",
-          ),
-          internalRejectedSupports: number(
-            data,
-            "internalRejectedSupports",
-          ),
-          possibleDuplicateSupports: number(
-            data,
-            "possibleDuplicateSupports",
-          ),
+          internalAcceptedSupports: number(data, "internalAcceptedSupports"),
+          internalRejectedSupports: number(data, "internalRejectedSupports"),
+          possibleDuplicateSupports: number(data, "possibleDuplicateSupports"),
         }),
       form,
     );
@@ -513,23 +486,33 @@ export default function SignatureCollectionPage() {
 
   if (loading && !overview) {
     return (
-      <main className="flex min-h-[50vh] items-center justify-center" aria-live="polite">
+      <main
+        className="flex min-h-[50vh] items-center justify-center min-w-0"
+        aria-live="polite"
+      >
         <Loader2 className="animate-spin text-blue-700" aria-hidden="true" />
-        <span className="ml-3 font-medium text-slate-700">Cargando expediente de firmas…</span>
+        <span className="ml-3 font-medium text-slate-700">
+          Cargando expediente de firmas…
+        </span>
       </main>
     );
   }
 
   if (loadError || !overview) {
     return (
-      <main className="mx-auto max-w-3xl p-6">
-        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900">
-          <h1 className="text-xl font-bold">No fue posible abrir el expediente</h1>
+      <main className="mx-auto max-w-3xl min-w-0">
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 min-w-0"
+        >
+          <h1 className="font-bold text-2xl sm:text-3xl break-words">
+            No fue posible abrir el expediente
+          </h1>
           <p className="mt-2">{loadError}</p>
           <button
             type="button"
             onClick={() => setReloadVersion((value) => value + 1)}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-800 px-4 py-2 font-semibold text-white"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-800 px-4 py-2 font-semibold text-white max-w-full whitespace-normal"
           >
             <RefreshCw size={16} aria-hidden="true" /> Reintentar
           </button>
@@ -541,14 +524,14 @@ export default function SignatureCollectionPage() {
   const { plan, summary } = overview;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <main className="mx-auto max-w-7xl space-y-6 min-w-0">
+      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-300">
+            <p className="text-sm font-bold text-blue-300">
               Antes de campaña · cadena de custodia
             </p>
-            <h1 className="mt-2 text-3xl font-black md:text-4xl">
+            <h1 className="mt-2 font-semibold text-2xl sm:text-3xl break-words">
               Recolección de firmas y apoyos
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
@@ -560,19 +543,22 @@ export default function SignatureCollectionPage() {
             type="button"
             onClick={() => setReloadVersion((value) => value + 1)}
             disabled={loading || mutationKey !== null}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 font-semibold hover:bg-slate-800 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 font-semibold hover:bg-slate-800 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw size={16} aria-hidden="true" /> Actualizar
           </button>
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2" aria-label="Límites del expediente">
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+      <section
+        className="grid gap-3 md:grid-cols-2 min-w-0"
+        aria-label="Límites del expediente"
+      >
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 min-w-0">
           <ShieldCheck className="mb-2" aria-hidden="true" />
           <strong>Límite de privacidad.</strong> {overview.privacyBoundary}
         </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 min-w-0">
           <AlertTriangle className="mb-2" aria-hidden="true" />
           <strong>Límite electoral.</strong> {overview.authorityDisclaimer}
         </div>
@@ -597,11 +583,13 @@ export default function SignatureCollectionPage() {
       ) : null}
 
       {stage === "CLOSED" ? (
-        <section className="rounded-2xl border border-slate-300 bg-slate-100 p-5">
-          <h2 className="font-bold text-slate-950">Expediente en solo lectura</h2>
+        <section className="rounded-2xl border border-slate-300 bg-slate-100 p-5 min-w-0">
+          <h2 className="font-bold text-slate-950">
+            Expediente en solo lectura
+          </h2>
           <p className="mt-1 text-sm text-slate-700">
-            El cierre impide nuevas entregas, cambios de conteo y revisiones;
-            la trazabilidad permanece disponible.
+            El cierre impide nuevas entregas, cambios de conteo y revisiones; la
+            trazabilidad permanece disponible.
           </p>
         </section>
       ) : null}
@@ -614,89 +602,204 @@ export default function SignatureCollectionPage() {
           <form
             onSubmit={submitPlan}
             data-testid="signature-plan-form"
-            className="mt-5 grid gap-4"
+            className="mt-5 grid gap-4 min-w-0"
           >
             <p className="rounded-xl bg-slate-100 p-3 text-sm text-slate-700">
               Comité acreditado: <strong>exactamente 3 integrantes</strong>. La
-              plataforma conserva la constancia, no duplica sus datos personales.
+              plataforma conserva la constancia, no duplica sus datos
+              personales.
             </p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-1 text-sm font-medium">
+            <div className="grid gap-3 md:grid-cols-2 min-w-0">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Constancia HTTPS del comité
-                <input name="committeeEvidenceReference" type="url" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="committeeEvidenceReference"
+                  type="url"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 SHA-256 de constancia del comité
-                <input name="committeeEvidenceSha256" required pattern={HASH_PATTERN} minLength={64} maxLength={64} className="rounded-xl border px-3 py-2 font-mono text-xs" />
+                <input
+                  name="committeeEvidenceSha256"
+                  required
+                  pattern={HASH_PATTERN}
+                  minLength={64}
+                  maxLength={64}
+                  className="rounded-xl border px-3 py-2 font-mono text-xs min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Registro del comité
-                <input name="committeeRegisteredAt" type="date" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="committeeRegisteredAt"
+                  type="date"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Inicio de recolección
-                <input name="collectionStartsAt" type="date" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="collectionStartsAt"
+                  type="date"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Cierre de recolección
-                <input name="collectionClosesAt" type="date" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="collectionClosesAt"
+                  type="date"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Cierre de inscripción aplicable
-                <input name="candidateRegistrationClosesAt" type="date" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="candidateRegistrationClosesAt"
+                  type="date"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Fecha límite de entrega
-                <input name="submissionDueAt" type="date" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="submissionDueAt"
+                  type="date"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Umbral requerido
-                <input name="requiredThreshold" type="number" min={1} required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="requiredThreshold"
+                  type="number"
+                  min={1}
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Meta interna
-                <input name="internalTarget" type="number" min={1} required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="internalTarget"
+                  type="number"
+                  min={1}
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Fuente HTTPS del umbral
-                <input name="thresholdSourceUrl" type="url" required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="thresholdSourceUrl"
+                  type="url"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Referencia del acto y vigencia
-                <input name="thresholdSourceReference" minLength={5} maxLength={500} required className="rounded-xl border px-3 py-2" />
+                <input
+                  name="thresholdSourceReference"
+                  minLength={5}
+                  maxLength={500}
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 SHA-256 de la fuente del umbral
-                <input name="thresholdSourceSha256" required pattern={HASH_PATTERN} minLength={64} maxLength={64} className="rounded-xl border px-3 py-2 font-mono text-xs" />
+                <input
+                  name="thresholdSourceSha256"
+                  required
+                  pattern={HASH_PATTERN}
+                  minLength={64}
+                  maxLength={64}
+                  className="rounded-xl border px-3 py-2 font-mono text-xs min-w-0 max-w-full"
+                />
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Responsable del expediente
-                <select name="fileOwnerUserId" required className="rounded-xl border px-3 py-2" defaultValue="">
-                  <option value="" disabled>Selecciona una persona activa</option>
-                  {overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name} · {operator.role}</option>)}
+                <select
+                  name="fileOwnerUserId"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Selecciona una persona activa
+                  </option>
+                  {overview.operators.map((operator) => (
+                    <option key={operator.id} value={operator.id}>
+                      {operator.name} · {operator.role}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-sm font-medium">
+              <label className="grid gap-1 text-sm font-medium min-w-0">
                 Responsable de custodia
-                <select name="custodyOwnerUserId" required className="rounded-xl border px-3 py-2" defaultValue="">
-                  <option value="" disabled>Debe ser una persona distinta</option>
-                  {overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name} · {operator.role}</option>)}
+                <select
+                  name="custodyOwnerUserId"
+                  required
+                  className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Debe ser una persona distinta
+                  </option>
+                  {overview.operators.map((operator) => (
+                    <option key={operator.id} value={operator.id}>
+                      {operator.name} · {operator.role}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
-            <label className="grid gap-1 text-sm font-medium">
+            <label className="grid gap-1 text-sm font-medium min-w-0">
               Reglas para anulados, incompletos, duplicados e intervenidos
-              <textarea name="formHandlingRules" minLength={100} maxLength={6000} rows={4} required className="rounded-xl border px-3 py-2" />
+              <textarea
+                name="formHandlingRules"
+                minLength={100}
+                maxLength={6000}
+                rows={4}
+                required
+                className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+              />
             </label>
-            <label className="grid gap-1 text-sm font-medium">
+            <label className="grid gap-1 text-sm font-medium min-w-0">
               Plan físico de entrega y radicación
-              <textarea name="deliveryPlan" minLength={50} maxLength={4000} rows={3} required className="rounded-xl border px-3 py-2" />
+              <textarea
+                name="deliveryPlan"
+                minLength={50}
+                maxLength={4000}
+                rows={3}
+                required
+                className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+              />
             </label>
-            <label className="grid gap-1 text-sm font-medium">
+            <label className="grid gap-1 text-sm font-medium min-w-0">
               Contingencia física
-              <textarea name="contingencyPlan" minLength={50} maxLength={4000} rows={3} required className="rounded-xl border px-3 py-2" />
+              <textarea
+                name="contingencyPlan"
+                minLength={50}
+                maxLength={4000}
+                rows={3}
+                required
+                className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+              />
             </label>
-            <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-blue-700 px-5 py-3 font-bold text-white disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={mutationKey !== null}
+              className="min-h-11 rounded-xl bg-blue-700 px-5 py-3 font-bold text-white disabled:opacity-50 max-w-full whitespace-normal"
+            >
               {mutationKey === "plan" ? "Confirmando…" : "Crear expediente"}
             </button>
           </form>
@@ -704,53 +807,132 @@ export default function SignatureCollectionPage() {
       ) : null}
 
       {!plan ? (
-        <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <ClipboardCheck className="mx-auto text-slate-400" aria-hidden="true" />
-          <h2 className="mt-3 text-xl font-bold">No existe un expediente mínimo</h2>
+        <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
+          <ClipboardCheck
+            className="mx-auto text-slate-400"
+            aria-hidden="true"
+          />
+          <h2 className="mt-3 text-xl font-bold">
+            No existe un expediente mínimo
+          </h2>
           <p className="mt-2 text-sm text-slate-600">
             La puerta a recolección debe permanecer bloqueada hasta acreditar
             comité, calendario, umbral, responsables y contingencia.
           </p>
           {!canCreatePlan ? (
-            <Link href="/dashboard/operation-profile" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">
+            <Link
+              href="/dashboard/operation-profile"
+              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white max-w-full whitespace-normal"
+            >
               Revisar perfil y etapa
             </Link>
           ) : null}
         </section>
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="Indicadores agregados">
-            <SummaryCard label="Umbral aplicable" value={plan.requiredThreshold} />
+          <section
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 min-w-0"
+            aria-label="Indicadores agregados"
+          >
+            <SummaryCard
+              label="Umbral aplicable"
+              value={plan.requiredThreshold}
+            />
             <SummaryCard label="Meta interna" value={plan.internalTarget} />
-            <SummaryCard label="Apoyos revisados internos" value={summary.internalAcceptedSupports} />
-            <SummaryCard label="Válidos certificados" value={overview.readiness.certifiedValidSupports} />
-            <SummaryCard label="Ritmo diario requerido" value={summary.requiredDailyPace} warning />
-            <SummaryCard label="Formularios en custodia" value={summary.inCustodyForms} warning />
-            <SummaryCard label="Formularios faltantes" value={summary.missingForms} warning />
-            <SummaryCard label="Lotes vencidos" value={summary.overdueBatches} warning />
-            <SummaryCard label="Cuarentenas" value={summary.quarantinedBatches} warning />
-            <SummaryCard label="Margen certificado" value={overview.readiness.certifiedValidSupports === null ? null : overview.readiness.certifiedValidSupports - plan.requiredThreshold} warning />
+            <SummaryCard
+              label="Apoyos revisados internos"
+              value={summary.internalAcceptedSupports}
+            />
+            <SummaryCard
+              label="Válidos certificados"
+              value={overview.readiness.certifiedValidSupports}
+            />
+            <SummaryCard
+              label="Ritmo diario requerido"
+              value={summary.requiredDailyPace}
+              warning
+            />
+            <SummaryCard
+              label="Formularios en custodia"
+              value={summary.inCustodyForms}
+              warning
+            />
+            <SummaryCard
+              label="Formularios faltantes"
+              value={summary.missingForms}
+              warning
+            />
+            <SummaryCard
+              label="Lotes vencidos"
+              value={summary.overdueBatches}
+              warning
+            />
+            <SummaryCard
+              label="Cuarentenas"
+              value={summary.quarantinedBatches}
+              warning
+            />
+            <SummaryCard
+              label="Margen certificado"
+              value={
+                overview.readiness.certifiedValidSupports === null
+                  ? null
+                  : overview.readiness.certifiedValidSupports -
+                    plan.requiredThreshold
+              }
+              warning
+            />
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
+            <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
               <div>
                 <h2 className="text-xl font-bold">Expediente base</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  {plan.thresholdSourceReference} · recolección {formatDate(plan.collectionStartsAt)} a {formatDate(plan.collectionClosesAt)}
+                  {plan.thresholdSourceReference} · recolección{" "}
+                  {formatDate(plan.collectionStartsAt)} a{" "}
+                  {formatDate(plan.collectionClosesAt)}
                 </p>
               </div>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-900">{plan.status}</span>
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-900">
+                {plan.status}
+              </span>
             </div>
-            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-              <div><dt className="font-semibold">Expediente</dt><dd>{plan.fileOwner.name}</dd></div>
-              <div><dt className="font-semibold">Custodia</dt><dd>{plan.custodyOwner.name}</dd></div>
-              <div><dt className="font-semibold">Entrega</dt><dd>{formatDate(plan.submissionDueAt)}</dd></div>
-              <div><dt className="font-semibold">Comité</dt><dd>{plan.committeeMemberCount} integrantes acreditados</dd></div>
+            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2 min-w-0">
+              <div>
+                <dt className="font-semibold">Expediente</dt>
+                <dd>{plan.fileOwner.name}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Custodia</dt>
+                <dd>{plan.custodyOwner.name}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Entrega</dt>
+                <dd>{formatDate(plan.submissionDueAt)}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Comité</dt>
+                <dd>{plan.committeeMemberCount} integrantes acreditados</dd>
+              </div>
             </dl>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm">
-              <a href={plan.committeeEvidenceReference} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">Abrir constancia del comité</a>
-              <a href={plan.thresholdSourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">Abrir fuente del umbral</a>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm min-w-0">
+              <a
+                href={plan.committeeEvidenceReference}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-blue-700 underline"
+              >
+                Abrir constancia del comité
+              </a>
+              <a
+                href={plan.thresholdSourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-blue-700 underline"
+              >
+                Abrir fuente del umbral
+              </a>
             </div>
           </section>
 
@@ -763,149 +945,764 @@ export default function SignatureCollectionPage() {
 
           {collecting && canManage ? (
             <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <summary className="cursor-pointer text-lg font-bold">Planificar lote físico</summary>
-              <form onSubmit={submitBatch} data-testid="signature-batch-form" className="mt-4 grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-sm font-medium">Código interno<input name="code" required pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,63}" className="rounded-xl border px-3 py-2" /></label>
-                <label className="grid gap-1 text-sm font-medium">Sello físico opaco (opcional)<input name="physicalSealReference" minLength={2} maxLength={160} className="rounded-xl border px-3 py-2" /></label>
-                <label className="grid gap-1 text-sm font-medium">Territorio operativo<input name="territoryReference" required minLength={2} maxLength={300} className="rounded-xl border px-3 py-2" /></label>
-                <label className="grid gap-1 text-sm font-medium">Formularios planificados<input name="plannedForms" type="number" required min={1} className="rounded-xl border px-3 py-2" /></label>
-                <label className="grid gap-1 text-sm font-medium">Retorno esperado<input name="expectedReturnAt" type="datetime-local" required className="rounded-xl border px-3 py-2" /></label>
-                <button type="submit" disabled={mutationKey !== null} className="min-h-11 self-end rounded-xl bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50">Planificar lote</button>
+              <summary className="cursor-pointer text-lg font-bold">
+                Planificar lote físico
+              </summary>
+              <form
+                onSubmit={submitBatch}
+                data-testid="signature-batch-form"
+                className="mt-4 grid gap-3 md:grid-cols-2 min-w-0"
+              >
+                <label className="grid gap-1 text-sm font-medium min-w-0">
+                  Código interno
+                  <input
+                    name="code"
+                    required
+                    pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,63}"
+                    className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm font-medium min-w-0">
+                  Sello físico opaco (opcional)
+                  <input
+                    name="physicalSealReference"
+                    minLength={2}
+                    maxLength={160}
+                    className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm font-medium min-w-0">
+                  Territorio operativo
+                  <input
+                    name="territoryReference"
+                    required
+                    minLength={2}
+                    maxLength={300}
+                    className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm font-medium min-w-0">
+                  Formularios planificados
+                  <input
+                    name="plannedForms"
+                    type="number"
+                    required
+                    min={1}
+                    className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm font-medium min-w-0">
+                  Retorno esperado
+                  <input
+                    name="expectedReturnAt"
+                    type="datetime-local"
+                    required
+                    className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={mutationKey !== null}
+                  className="min-h-11 self-end rounded-xl bg-slate-900 px-4 py-2 font-bold text-white disabled:opacity-50 max-w-full whitespace-normal"
+                >
+                  Planificar lote
+                </button>
               </form>
             </details>
           ) : null}
 
-          <section className="space-y-4" aria-labelledby="signature-batches-title">
-            <h2 id="signature-batches-title" className="text-2xl font-black">Lotes y cadena de custodia</h2>
+          <section
+            className="space-y-4 min-w-0"
+            aria-labelledby="signature-batches-title"
+          >
+            <h2 id="signature-batches-title" className="text-2xl font-semibold">
+              Lotes y cadena de custodia
+            </h2>
             {overview.batches.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-slate-600">No hay lotes. Un total de cero no se interpreta como recolección terminada.</div>
-            ) : overview.batches.map((batch) => (
-              <article key={batch.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><h3 className="text-lg font-bold">{batch.code}</h3><p className="text-sm text-slate-600">{batch.territoryReference} · retorno {formatDate(batch.expectedReturnAt, true)}</p></div>
-                  <span className={`rounded-full px-3 py-1 text-sm font-bold ${batch.status === "QUARANTINED" ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-800"}`}>{STATUS_LABEL[batch.status]}</span>
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
-                  <div><dt className="text-slate-500">Entregados</dt><dd className="font-bold">{batch.issuedForms}</dd></div>
-                  <div><dt className="text-slate-500">Devueltos</dt><dd className="font-bold">{batch.returnedForms}</dd></div>
-                  <div><dt className="text-slate-500">Anulados</dt><dd className="font-bold">{batch.annulledForms}</dd></div>
-                  <div><dt className="text-slate-500">Faltantes</dt><dd className="font-bold">{batch.missingForms}</dd></div>
-                  <div><dt className="text-slate-500">En custodia</dt><dd className="font-bold">{batch.inCustodyForms}</dd></div>
-                </dl>
-                {batch.currentCustodian ? <p className="mt-3 text-sm"><strong>Responsable actual:</strong> {batch.currentCustodian.name}</p> : null}
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-slate-600 min-w-0">
+                No hay lotes. Un total de cero no se interpreta como recolección
+                terminada.
+              </div>
+            ) : (
+              overview.batches.map((batch) => (
+                <article
+                  key={batch.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm min-w-0"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3 min-w-0">
+                    <div>
+                      <h3 className="text-lg font-bold">{batch.code}</h3>
+                      <p className="text-sm text-slate-600">
+                        {batch.territoryReference} · retorno{" "}
+                        {formatDate(batch.expectedReturnAt, true)}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-bold ${batch.status === "QUARANTINED" ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-800"}`}
+                    >
+                      {STATUS_LABEL[batch.status]}
+                    </span>
+                  </div>
+                  <dl className="mt-4 grid gap-2 text-sm md:grid-cols-5 min-w-0 grid-cols-1 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-slate-500">Entregados</dt>
+                      <dd className="font-bold">{batch.issuedForms}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">Devueltos</dt>
+                      <dd className="font-bold">{batch.returnedForms}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">Anulados</dt>
+                      <dd className="font-bold">{batch.annulledForms}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">Faltantes</dt>
+                      <dd className="font-bold">{batch.missingForms}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">En custodia</dt>
+                      <dd className="font-bold">{batch.inCustodyForms}</dd>
+                    </div>
+                  </dl>
+                  {batch.currentCustodian ? (
+                    <p className="mt-3 text-sm">
+                      <strong>Responsable actual:</strong>{" "}
+                      {batch.currentCustodian.name}
+                    </p>
+                  ) : null}
 
-                {collecting && canField && batch.status === "PLANNED" ? (
-                  <details className="mt-4 rounded-xl border p-4"><summary className="cursor-pointer font-semibold">Confirmar entrega a custodia</summary>
-                    <form onSubmit={(event) => submitIssue(event, batch)} data-testid={`issue-${batch.id}`} className="mt-3 grid gap-3">
-                      <label className="grid gap-1 text-sm font-medium">Formularios entregados<input name="issuedForms" type="number" min={1} max={batch.plannedForms} defaultValue={batch.plannedForms} required className="rounded-xl border px-3 py-2" /></label>
-                      <label className="grid gap-1 text-sm font-medium">Persona receptora<select name="receiverUserId" required defaultValue="" className="rounded-xl border px-3 py-2"><option value="" disabled>Selecciona</option>{overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name}</option>)}</select></label>
-                      <label className="grid gap-1 text-sm font-medium">Sello verificado<input name="physicalSealReference" defaultValue={batch.physicalSealReference ?? ""} className="rounded-xl border px-3 py-2" /></label>
-                      <MutationFields prefix={`issue-${batch.id}`} />
-                      <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white">Registrar entrega</button>
-                    </form>
+                  {collecting && canField && batch.status === "PLANNED" ? (
+                    <details className="mt-4 rounded-xl border p-4">
+                      <summary className="cursor-pointer font-semibold">
+                        Confirmar entrega a custodia
+                      </summary>
+                      <form
+                        onSubmit={(event) => submitIssue(event, batch)}
+                        data-testid={`issue-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Formularios entregados
+                          <input
+                            name="issuedForms"
+                            type="number"
+                            min={1}
+                            max={batch.plannedForms}
+                            defaultValue={batch.plannedForms}
+                            required
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          />
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Persona receptora
+                          <select
+                            name="receiverUserId"
+                            required
+                            defaultValue=""
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          >
+                            <option value="" disabled>
+                              Selecciona
+                            </option>
+                            {overview.operators.map((operator) => (
+                              <option key={operator.id} value={operator.id}>
+                                {operator.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Sello verificado
+                          <input
+                            name="physicalSealReference"
+                            defaultValue={batch.physicalSealReference ?? ""}
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          />
+                        </label>
+                        <MutationFields prefix={`issue-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Registrar entrega
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {collecting &&
+                  canField &&
+                  ["ISSUED", "PARTIALLY_RETURNED"].includes(batch.status) ? (
+                    <details className="mt-4 rounded-xl border p-4">
+                      <summary className="cursor-pointer font-semibold">
+                        Registrar retorno acumulado
+                      </summary>
+                      <form
+                        onSubmit={(event) => submitReturn(event, batch)}
+                        data-testid={`return-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <div className="grid gap-3 md:grid-cols-3 min-w-0">
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Devueltos acumulados
+                            <input
+                              name="returnedForms"
+                              type="number"
+                              min={batch.returnedForms}
+                              defaultValue={batch.returnedForms}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Anulados acumulados
+                            <input
+                              name="annulledForms"
+                              type="number"
+                              min={batch.annulledForms}
+                              defaultValue={batch.annulledForms}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Faltantes acumulados
+                            <input
+                              name="missingForms"
+                              type="number"
+                              min={batch.missingForms}
+                              defaultValue={batch.missingForms}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                        </div>
+                        <label className="flex min-h-11 items-center gap-2 text-sm font-medium min-w-0">
+                          <input name="finalReturn" type="checkbox" /> Confirmo
+                          que no queda ningún formulario en custodia
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Persona que recibe
+                          <select
+                            name="receiverUserId"
+                            required
+                            defaultValue=""
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          >
+                            <option value="" disabled>
+                              Selecciona
+                            </option>
+                            {overview.operators.map((operator) => (
+                              <option key={operator.id} value={operator.id}>
+                                {operator.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <MutationFields prefix={`return-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Registrar retorno
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {collecting &&
+                  canInternalReview &&
+                  batch.status === "RETURNED" ? (
+                    <details className="mt-4 rounded-xl border p-4">
+                      <summary className="cursor-pointer font-semibold">
+                        Cerrar revisión interna agregada
+                      </summary>
+                      <form
+                        onSubmit={(event) => submitInternalReview(event, batch)}
+                        data-testid={`review-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <p className="text-xs text-amber-800">
+                          Estos conteos son revisión interna; no son apoyos
+                          válidos certificados.
+                        </p>
+                        <div className="grid gap-3 md:grid-cols-4 min-w-0">
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Apoyos revisados
+                            <input
+                              name="reportedSupports"
+                              type="number"
+                              min={0}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Aceptados internos
+                            <input
+                              name="internalAcceptedSupports"
+                              type="number"
+                              min={0}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Rechazados internos
+                            <input
+                              name="internalRejectedSupports"
+                              type="number"
+                              min={0}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-medium min-w-0">
+                            Posibles duplicados
+                            <input
+                              name="possibleDuplicateSupports"
+                              type="number"
+                              min={0}
+                              required
+                              className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                            />
+                          </label>
+                        </div>
+                        <MutationFields prefix={`review-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Registrar revisión interna
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {collecting &&
+                  canManage &&
+                  ["INTERNAL_REVIEWED", "DELIVERED_TO_COMMITTEE"].includes(
+                    batch.status,
+                  ) ? (
+                    <details className="mt-4 rounded-xl border p-4">
+                      <summary className="cursor-pointer font-semibold">
+                        {batch.status === "INTERNAL_REVIEWED"
+                          ? "Entregar al comité"
+                          : "Radicar ante la autoridad"}
+                      </summary>
+                      <form
+                        onSubmit={(event) =>
+                          submitAdvance(
+                            event,
+                            batch,
+                            batch.status === "INTERNAL_REVIEWED"
+                              ? "DELIVER_TO_COMMITTEE"
+                              : "SUBMIT_TO_AUTHORITY",
+                          )
+                        }
+                        data-testid={`advance-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Receptor interno (opcional)
+                          <select
+                            name="receiverUserId"
+                            defaultValue=""
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          >
+                            <option value="">Sin receptor interno</option>
+                            {overview.operators.map((operator) => (
+                              <option key={operator.id} value={operator.id}>
+                                {operator.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <MutationFields prefix={`advance-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Confirmar hito físico
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {collecting &&
+                  canField &&
+                  !["QUARANTINED", "AUTHORITY_RESULT_RECORDED"].includes(
+                    batch.status,
+                  ) ? (
+                    <details className="mt-4 rounded-xl border border-amber-200 p-4">
+                      <summary className="cursor-pointer font-semibold text-amber-900">
+                        Abrir cuarentena por riesgo
+                      </summary>
+                      <form
+                        onSubmit={(event) => submitQuarantine(event, batch)}
+                        data-testid={`quarantine-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <MutationFields prefix={`quarantine-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-amber-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Registrar cuarentena
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {collecting &&
+                  canInternalReview &&
+                  batch.status === "QUARANTINED" ? (
+                    <details className="mt-4 rounded-xl border border-emerald-200 p-4">
+                      <summary className="cursor-pointer font-semibold text-emerald-900">
+                        Decidir cierre de cuarentena
+                      </summary>
+                      <form
+                        onSubmit={(event) => submitRelease(event, batch)}
+                        data-testid={`release-${batch.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Nuevo custodio interno (opcional)
+                          <select
+                            name="receiverUserId"
+                            defaultValue=""
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          >
+                            <option value="">Conservar responsable</option>
+                            {overview.operators.map((operator) => (
+                              <option key={operator.id} value={operator.id}>
+                                {operator.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <MutationFields prefix={`release-${batch.id}`} />
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Cerrar cuarentena con evidencia
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  <details className="mt-4 rounded-xl bg-slate-50 p-4">
+                    <summary className="cursor-pointer font-semibold">
+                      Ver trazabilidad inmutable ({batch.custodyEvents.length})
+                    </summary>
+                    <ol className="mt-3 space-y-3">
+                      {batch.custodyEvents.map((event) => (
+                        <li
+                          key={event.id}
+                          className="border-l-2 border-slate-300 pl-3 text-sm min-w-0"
+                        >
+                          <strong>{event.type}</strong> ·{" "}
+                          {formatDate(event.createdAt, true)}
+                          <p>{event.observation}</p>
+                          <p className="text-xs text-slate-500">
+                            {event.actor.name}
+                            {event.receiver ? ` → ${event.receiver.name}` : ""}
+                          </p>
+                          {event.evidenceReference ? (
+                            <a
+                              href={event.evidenceReference}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-700 underline"
+                            >
+                              Abrir evidencia
+                            </a>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ol>
                   </details>
-                ) : null}
-
-                {collecting && canField && ["ISSUED", "PARTIALLY_RETURNED"].includes(batch.status) ? (
-                  <details className="mt-4 rounded-xl border p-4"><summary className="cursor-pointer font-semibold">Registrar retorno acumulado</summary>
-                    <form onSubmit={(event) => submitReturn(event, batch)} data-testid={`return-${batch.id}`} className="mt-3 grid gap-3">
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <label className="grid gap-1 text-sm font-medium">Devueltos acumulados<input name="returnedForms" type="number" min={batch.returnedForms} defaultValue={batch.returnedForms} required className="rounded-xl border px-3 py-2" /></label>
-                        <label className="grid gap-1 text-sm font-medium">Anulados acumulados<input name="annulledForms" type="number" min={batch.annulledForms} defaultValue={batch.annulledForms} required className="rounded-xl border px-3 py-2" /></label>
-                        <label className="grid gap-1 text-sm font-medium">Faltantes acumulados<input name="missingForms" type="number" min={batch.missingForms} defaultValue={batch.missingForms} required className="rounded-xl border px-3 py-2" /></label>
-                      </div>
-                      <label className="flex min-h-11 items-center gap-2 text-sm font-medium"><input name="finalReturn" type="checkbox" /> Confirmo que no queda ningún formulario en custodia</label>
-                      <label className="grid gap-1 text-sm font-medium">Persona que recibe<select name="receiverUserId" required defaultValue="" className="rounded-xl border px-3 py-2"><option value="" disabled>Selecciona</option>{overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name}</option>)}</select></label>
-                      <MutationFields prefix={`return-${batch.id}`} />
-                      <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white">Registrar retorno</button>
-                    </form>
-                  </details>
-                ) : null}
-
-                {collecting && canInternalReview && batch.status === "RETURNED" ? (
-                  <details className="mt-4 rounded-xl border p-4"><summary className="cursor-pointer font-semibold">Cerrar revisión interna agregada</summary>
-                    <form onSubmit={(event) => submitInternalReview(event, batch)} data-testid={`review-${batch.id}`} className="mt-3 grid gap-3">
-                      <p className="text-xs text-amber-800">Estos conteos son revisión interna; no son apoyos válidos certificados.</p>
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <label className="grid gap-1 text-sm font-medium">Apoyos revisados<input name="reportedSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
-                        <label className="grid gap-1 text-sm font-medium">Aceptados internos<input name="internalAcceptedSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
-                        <label className="grid gap-1 text-sm font-medium">Rechazados internos<input name="internalRejectedSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
-                        <label className="grid gap-1 text-sm font-medium">Posibles duplicados<input name="possibleDuplicateSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
-                      </div>
-                      <MutationFields prefix={`review-${batch.id}`} />
-                      <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white">Registrar revisión interna</button>
-                    </form>
-                  </details>
-                ) : null}
-
-                {collecting && canManage && ["INTERNAL_REVIEWED", "DELIVERED_TO_COMMITTEE"].includes(batch.status) ? (
-                  <details className="mt-4 rounded-xl border p-4"><summary className="cursor-pointer font-semibold">{batch.status === "INTERNAL_REVIEWED" ? "Entregar al comité" : "Radicar ante la autoridad"}</summary>
-                    <form onSubmit={(event) => submitAdvance(event, batch, batch.status === "INTERNAL_REVIEWED" ? "DELIVER_TO_COMMITTEE" : "SUBMIT_TO_AUTHORITY")} data-testid={`advance-${batch.id}`} className="mt-3 grid gap-3">
-                      <label className="grid gap-1 text-sm font-medium">Receptor interno (opcional)<select name="receiverUserId" defaultValue="" className="rounded-xl border px-3 py-2"><option value="">Sin receptor interno</option>{overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name}</option>)}</select></label>
-                      <MutationFields prefix={`advance-${batch.id}`} />
-                      <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white">Confirmar hito físico</button>
-                    </form>
-                  </details>
-                ) : null}
-
-                {collecting && canField && !["QUARANTINED", "AUTHORITY_RESULT_RECORDED"].includes(batch.status) ? (
-                  <details className="mt-4 rounded-xl border border-amber-200 p-4"><summary className="cursor-pointer font-semibold text-amber-900">Abrir cuarentena por riesgo</summary>
-                    <form onSubmit={(event) => submitQuarantine(event, batch)} data-testid={`quarantine-${batch.id}`} className="mt-3 grid gap-3"><MutationFields prefix={`quarantine-${batch.id}`} /><button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-amber-700 px-4 py-2 font-bold text-white">Registrar cuarentena</button></form>
-                  </details>
-                ) : null}
-
-                {collecting && canInternalReview && batch.status === "QUARANTINED" ? (
-                  <details className="mt-4 rounded-xl border border-emerald-200 p-4"><summary className="cursor-pointer font-semibold text-emerald-900">Decidir cierre de cuarentena</summary>
-                    <form onSubmit={(event) => submitRelease(event, batch)} data-testid={`release-${batch.id}`} className="mt-3 grid gap-3"><label className="grid gap-1 text-sm font-medium">Nuevo custodio interno (opcional)<select name="receiverUserId" defaultValue="" className="rounded-xl border px-3 py-2"><option value="">Conservar responsable</option>{overview.operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name}</option>)}</select></label><MutationFields prefix={`release-${batch.id}`} /><button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 font-bold text-white">Cerrar cuarentena con evidencia</button></form>
-                  </details>
-                ) : null}
-
-                <details className="mt-4 rounded-xl bg-slate-50 p-4"><summary className="cursor-pointer font-semibold">Ver trazabilidad inmutable ({batch.custodyEvents.length})</summary>
-                  <ol className="mt-3 space-y-3">{batch.custodyEvents.map((event) => <li key={event.id} className="border-l-2 border-slate-300 pl-3 text-sm"><strong>{event.type}</strong> · {formatDate(event.createdAt, true)}<p>{event.observation}</p><p className="text-xs text-slate-500">{event.actor.name}{event.receiver ? ` → ${event.receiver.name}` : ""}</p>{event.evidenceReference ? <a href={event.evidenceReference} target="_blank" rel="noreferrer" className="text-blue-700 underline">Abrir evidencia</a> : null}</li>)}</ol>
-                </details>
-              </article>
-            ))}
+                </article>
+              ))
+            )}
           </section>
 
           {collecting && canManage && allSubmitted ? (
             <details className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
-              <summary className="cursor-pointer text-lg font-bold">Registrar constancia recibida de la autoridad</summary>
-              <form onSubmit={submitAuthorityResult} data-testid="signature-authority-result-form" className="mt-4 grid gap-3">
-                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Registrar no significa aprobar: otra persona de cumplimiento o auditoría debe verificarla.</p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="grid gap-1 text-sm font-medium">Autoridad emisora<input name="authorityName" required minLength={3} className="rounded-xl border px-3 py-2" /></label>
-                  <label className="grid gap-1 text-sm font-medium">Referencia del acto<input name="authorityActReference" required minLength={3} className="rounded-xl border px-3 py-2" /></label>
-                  <label className="grid gap-1 text-sm font-medium">Fecha del acto<input name="authorityActIssuedAt" type="date" required className="rounded-xl border px-3 py-2" /></label>
-                  <label className="grid gap-1 text-sm font-medium">Resultado declarado<select name="outcome" required defaultValue="THRESHOLD_MET" className="rounded-xl border px-3 py-2"><option value="THRESHOLD_MET">Umbral cumplido según autoridad</option><option value="THRESHOLD_NOT_MET">Umbral no cumplido</option><option value="REGISTRATION_DENIED">Inscripción denegada</option><option value="WITHDRAWN">Retiro</option></select></label>
-                  <label className="grid gap-1 text-sm font-medium">Apoyos evaluados<input name="submittedSupports" type="number" min={0} defaultValue={summary.reportedSupports} required className="rounded-xl border px-3 py-2" /></label>
-                  <label className="grid gap-1 text-sm font-medium">Apoyos válidos certificados<input name="validSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
-                  <label className="grid gap-1 text-sm font-medium">Apoyos inválidos certificados<input name="invalidSupports" type="number" min={0} required className="rounded-xl border px-3 py-2" /></label>
+              <summary className="cursor-pointer text-lg font-bold">
+                Registrar constancia recibida de la autoridad
+              </summary>
+              <form
+                onSubmit={submitAuthorityResult}
+                data-testid="signature-authority-result-form"
+                className="mt-4 grid gap-3 min-w-0"
+              >
+                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                  Registrar no significa aprobar: otra persona de cumplimiento o
+                  auditoría debe verificarla.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2 min-w-0">
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Autoridad emisora
+                    <input
+                      name="authorityName"
+                      required
+                      minLength={3}
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Referencia del acto
+                    <input
+                      name="authorityActReference"
+                      required
+                      minLength={3}
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Fecha del acto
+                    <input
+                      name="authorityActIssuedAt"
+                      type="date"
+                      required
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Resultado declarado
+                    <select
+                      name="outcome"
+                      required
+                      defaultValue="THRESHOLD_MET"
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    >
+                      <option value="THRESHOLD_MET">
+                        Umbral cumplido según autoridad
+                      </option>
+                      <option value="THRESHOLD_NOT_MET">
+                        Umbral no cumplido
+                      </option>
+                      <option value="REGISTRATION_DENIED">
+                        Inscripción denegada
+                      </option>
+                      <option value="WITHDRAWN">Retiro</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Apoyos evaluados
+                    <input
+                      name="submittedSupports"
+                      type="number"
+                      min={0}
+                      defaultValue={summary.reportedSupports}
+                      required
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Apoyos válidos certificados
+                    <input
+                      name="validSupports"
+                      type="number"
+                      min={0}
+                      required
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium min-w-0">
+                    Apoyos inválidos certificados
+                    <input
+                      name="invalidSupports"
+                      type="number"
+                      min={0}
+                      required
+                      className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                    />
+                  </label>
                 </div>
                 <EvidenceFields prefix="authority-result" />
-                <button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-indigo-700 px-4 py-2 font-bold text-white">Registrar para revisión</button>
+                <button
+                  type="submit"
+                  disabled={mutationKey !== null}
+                  className="min-h-11 rounded-xl bg-indigo-700 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                >
+                  Registrar para revisión
+                </button>
               </form>
             </details>
           ) : null}
 
-          <section className="space-y-3" aria-labelledby="authority-results-title">
-            <h2 id="authority-results-title" className="text-2xl font-black">Constancias de autoridad y cuatro ojos</h2>
-            {overview.authorityResults.length === 0 ? <p className="rounded-2xl border border-dashed bg-white p-6 text-slate-600">No hay constancias. Ningún conteo interno se presenta como resultado certificado.</p> : overview.authorityResults.map((result) => (
-              <article key={result.id} className="rounded-2xl border bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">{result.authorityActReference}</h3><p className="text-sm text-slate-600">{result.authorityName} · {formatDate(result.authorityActIssuedAt)}</p></div><span className={`rounded-full px-3 py-1 text-sm font-bold ${result.review?.decision === "APPROVE" ? "bg-emerald-100 text-emerald-900" : result.review?.decision === "REJECT" ? "bg-red-100 text-red-900" : "bg-amber-100 text-amber-900"}`}>{result.review?.decision === "APPROVE" ? "Aprobada por segunda persona" : result.review?.decision === "REJECT" ? "Rechazada en revisión" : "Pendiente de segunda persona"}</span></div>
-                <dl className="mt-4 grid grid-cols-3 gap-3 text-sm"><div><dt>Evaluados</dt><dd className="text-xl font-black">{result.submittedSupports}</dd></div><div><dt>Válidos certificados</dt><dd className="text-xl font-black">{result.validSupports}</dd></div><div><dt>Inválidos certificados</dt><dd className="text-xl font-black">{result.invalidSupports}</dd></div></dl>
-                <p className="mt-3 text-sm"><strong>Registró:</strong> {result.recordedBy.name}. <a href={result.evidenceReference} target="_blank" rel="noreferrer" className="text-blue-700 underline">Abrir constancia</a></p>
-                {result.review ? <p className="mt-2 text-sm"><strong>Revisó:</strong> {result.review.reviewedBy.name}{result.review.reason ? ` · ${result.review.reason}` : ""}</p> : null}
-                {collecting && canAuthorityReview && !result.review ? (
-                  <details className="mt-4 rounded-xl border p-4"><summary className="cursor-pointer font-semibold">Revisar constancia</summary>
-                    <form onSubmit={(event) => submitAuthorityReview(event, result.id)} data-testid={`authority-review-${result.id}`} className="mt-3 grid gap-3"><label className="grid gap-1 text-sm font-medium">Decisión<select name="decision" required defaultValue="" className="rounded-xl border px-3 py-2"><option value="" disabled>Selecciona después de verificar</option><option value="APPROVE">Aprobar constancia verificada</option><option value="REJECT">Rechazar por inconsistencia</option></select></label><label className="grid gap-1 text-sm font-medium">Razón del rechazo (obligatoria al rechazar)<textarea name="reason" minLength={20} maxLength={2000} rows={3} className="rounded-xl border px-3 py-2" /></label><button type="submit" disabled={mutationKey !== null} className="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Registrar revisión inmutable</button></form>
-                  </details>
-                ) : null}
-              </article>
-            ))}
+          <section
+            className="space-y-3 min-w-0"
+            aria-labelledby="authority-results-title"
+          >
+            <h2 id="authority-results-title" className="text-2xl font-semibold">
+              Constancias de autoridad y cuatro ojos
+            </h2>
+            {overview.authorityResults.length === 0 ? (
+              <p className="rounded-2xl border border-dashed bg-white p-6 text-slate-600">
+                No hay constancias. Ningún conteo interno se presenta como
+                resultado certificado.
+              </p>
+            ) : (
+              overview.authorityResults.map((result) => (
+                <article
+                  key={result.id}
+                  className="rounded-2xl border bg-white p-5 shadow-sm min-w-0"
+                >
+                  <div className="flex flex-wrap justify-between gap-3 min-w-0">
+                    <div>
+                      <h3 className="font-bold">
+                        {result.authorityActReference}
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        {result.authorityName} ·{" "}
+                        {formatDate(result.authorityActIssuedAt)}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-bold ${result.review?.decision === "APPROVE" ? "bg-emerald-100 text-emerald-900" : result.review?.decision === "REJECT" ? "bg-red-100 text-red-900" : "bg-amber-100 text-amber-900"}`}
+                    >
+                      {result.review?.decision === "APPROVE"
+                        ? "Aprobada por segunda persona"
+                        : result.review?.decision === "REJECT"
+                          ? "Rechazada en revisión"
+                          : "Pendiente de segunda persona"}
+                    </span>
+                  </div>
+                  <dl className="mt-4 grid gap-3 text-sm min-w-0 grid-cols-1 sm:grid-cols-3">
+                    <div>
+                      <dt>Evaluados</dt>
+                      <dd className="text-xl font-semibold">
+                        {result.submittedSupports}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Válidos certificados</dt>
+                      <dd className="text-xl font-semibold">
+                        {result.validSupports}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Inválidos certificados</dt>
+                      <dd className="text-xl font-semibold">
+                        {result.invalidSupports}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3 text-sm">
+                    <strong>Registró:</strong> {result.recordedBy.name}.{" "}
+                    <a
+                      href={result.evidenceReference}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-700 underline"
+                    >
+                      Abrir constancia
+                    </a>
+                  </p>
+                  {result.review ? (
+                    <p className="mt-2 text-sm">
+                      <strong>Revisó:</strong> {result.review.reviewedBy.name}
+                      {result.review.reason ? ` · ${result.review.reason}` : ""}
+                    </p>
+                  ) : null}
+                  {collecting && canAuthorityReview && !result.review ? (
+                    <details className="mt-4 rounded-xl border p-4">
+                      <summary className="cursor-pointer font-semibold">
+                        Revisar constancia
+                      </summary>
+                      <form
+                        onSubmit={(event) =>
+                          submitAuthorityReview(event, result.id)
+                        }
+                        data-testid={`authority-review-${result.id}`}
+                        className="mt-3 grid gap-3 min-w-0"
+                      >
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Decisión
+                          <select
+                            name="decision"
+                            required
+                            defaultValue=""
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          >
+                            <option value="" disabled>
+                              Selecciona después de verificar
+                            </option>
+                            <option value="APPROVE">
+                              Aprobar constancia verificada
+                            </option>
+                            <option value="REJECT">
+                              Rechazar por inconsistencia
+                            </option>
+                          </select>
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium min-w-0">
+                          Razón del rechazo (obligatoria al rechazar)
+                          <textarea
+                            name="reason"
+                            minLength={20}
+                            maxLength={2000}
+                            rows={3}
+                            className="rounded-xl border px-3 py-2 min-w-0 max-w-full"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={mutationKey !== null}
+                          className="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white max-w-full whitespace-normal"
+                        >
+                          Registrar revisión inmutable
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+                </article>
+              ))
+            )}
           </section>
 
-          <section className={`rounded-2xl border p-5 ${overview.readiness.exitReady ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-            <div className="flex items-start gap-3">{overview.readiness.exitReady ? <CheckCircle2 className="text-emerald-700" aria-hidden="true" /> : <FileCheck2 className="text-amber-700" aria-hidden="true" />}<div><h2 className="font-bold">Puerta hacia campaña</h2><p className="mt-1 text-sm">{overview.readiness.exitReady ? "Custodia conciliada y constancia aprobada con apoyos válidos certificados iguales o superiores al umbral." : "La transición sigue bloqueada. Corrige cada pendiente o utiliza el cierre excepcional con cuatro ojos; nunca avances una etapa ficticia."}</p>{overview.readiness.exitBlockers.length ? <ul className="mt-2 list-disc pl-5 text-sm">{overview.readiness.exitBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}<Link href="/dashboard/operation-profile" className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 py-2 font-semibold text-white">Abrir perfil de operación</Link></div></div>
+          <section
+            className={`rounded-2xl border p-5 ${overview.readiness.exitReady ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              {overview.readiness.exitReady ? (
+                <CheckCircle2 className="text-emerald-700" aria-hidden="true" />
+              ) : (
+                <FileCheck2 className="text-amber-700" aria-hidden="true" />
+              )}
+              <div>
+                <h2 className="font-bold">Puerta hacia campaña</h2>
+                <p className="mt-1 text-sm">
+                  {overview.readiness.exitReady
+                    ? "Custodia conciliada y constancia aprobada con apoyos válidos certificados iguales o superiores al umbral."
+                    : "La transición sigue bloqueada. Corrige cada pendiente o utiliza el cierre excepcional con cuatro ojos; nunca avances una etapa ficticia."}
+                </p>
+                {overview.readiness.exitBlockers.length ? (
+                  <ul className="mt-2 list-disc pl-5 text-sm min-w-0">
+                    {overview.readiness.exitBlockers.map((blocker) => (
+                      <li key={blocker}>{blocker}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Link
+                  href="/dashboard/operation-profile"
+                  className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 py-2 font-semibold text-white max-w-full whitespace-normal"
+                >
+                  Abrir perfil de operación
+                </Link>
+              </div>
+            </div>
           </section>
         </>
       )}

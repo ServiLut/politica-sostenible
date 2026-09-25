@@ -7,18 +7,18 @@ export default function ForgotPasswordPage() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none"
+      className="flex min-h-dvh items-center justify-center bg-slate-50 p-4 sm:p-6 outline-none min-w-0"
     >
-      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5 sm:p-12">
-        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-4 sm:p-8 shadow-xl shadow-slate-900/5 min-w-0">
+        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 min-w-0">
           <ShieldAlert className="h-8 w-8" aria-hidden="true" />
         </div>
 
-        <div className="space-y-4">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-700">
+        <div className="space-y-4 min-w-0">
+          <p className="text-xs font-semibold text-blue-700">
             Protección de la cuenta
           </p>
-          <h1 className="text-4xl font-black tracking-tight text-slate-950">
+          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Recupera el acceso con tu administrador
           </h1>
           <p className="text-lg leading-relaxed text-slate-600">
@@ -28,8 +28,8 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <div className="my-8 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm leading-relaxed text-blue-950">
-          <div className="mb-2 flex items-center gap-2 font-bold">
+        <div className="my-8 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm leading-relaxed text-blue-950 min-w-0">
+          <div className="mb-2 flex items-center gap-2 font-bold min-w-0">
             <LifeBuoy className="h-5 w-5" aria-hidden="true" />
             Solicita ayuda al administrador de tu campaña
           </div>

@@ -5,10 +5,7 @@ import {
 
 export type PqrsdDayMethod = 'CALENDAR_DAYS' | 'WORKING_DAYS';
 export type PqrsdStartRule =
-  | 'RECEIPT_DATE'
-  | 'NEXT_CALENDAR_DATE'
-  | 'NEXT_WORKING_DATE'
-  | 'MANUAL_REVIEW';
+  'RECEIPT_DATE' | 'NEXT_CALENDAR_DATE' | 'NEXT_WORKING_DATE' | 'MANUAL_REVIEW';
 export type PqrsdCalendarException = Readonly<{
   localDate: string;
   type: 'NON_WORKING' | 'WORKING_OVERRIDE';

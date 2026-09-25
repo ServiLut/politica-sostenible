@@ -12,10 +12,12 @@ describe('offline synchronization database invariants', () => {
 
   it('stores one payload-free receipt per tenant operation UUID', () => {
     expect(schema).toContain('model OfflineSyncReceipt');
-    expect(schema).toContain('clientOperationId String');
+    expect(schema).toMatch(/clientOperationId\s+String/);
     expect(schema).toContain('payloadHmac');
     expect(schema).toContain('@@unique([tenantId, clientOperationId])');
-    expect(schema).not.toMatch(/OfflineSyncReceipt[\s\S]*?payload\s+Json/);
+    const receipt = schema.match(/model OfflineSyncReceipt\s*\{([^}]+)\}/)?.[1];
+    expect(receipt).toBeDefined();
+    expect(receipt).not.toMatch(/payload\s+Json/);
   });
 
   it('enforces tenant and actor ownership in PostgreSQL', () => {

@@ -10,6 +10,7 @@ import {
   Role,
   StoredObjectStatus,
   StorageObjectModule,
+  StorageIntegrityStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -17,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageModuleName } from './storage.constants';
 import { StorageService } from './storage.service';
 import type { SupabaseStorageGateway } from './supabase-storage.gateway';
-import type { StorageIntegrityQueuePort } from './storage-integrity-queue.constants';
+
 import {
   assertPlanQuotaInTransaction,
   ensureTenantSubscription,
@@ -107,6 +108,7 @@ describe('StorageService durable private-file authorization', () => {
         size: 100,
         contentType: 'application/pdf',
         etag: 'etag-value',
+        metadata: { contentSha256: 'a'.repeat(64) },
       }),
       removeObject: jest.fn().mockResolvedValue(undefined),
     };
@@ -117,6 +119,7 @@ describe('StorageService durable private-file authorization', () => {
         id: 'stored-a',
         contentType: 'application/pdf',
         expectedSize: 100,
+        expectedSha256: 'a'.repeat(64),
         expiresAt: new Date(Date.now() + 60_000),
         status: StoredObjectStatus.ISSUED,
       }),
@@ -169,7 +172,7 @@ describe('StorageService durable private-file authorization', () => {
     service = new StorageService(
       gateway as unknown as SupabaseStorageGateway,
       prisma as unknown as PrismaService,
-      integrityQueue as unknown as StorageIntegrityQueuePort,
+      integrityQueue,
     );
   });
 
@@ -181,6 +184,7 @@ describe('StorageService durable private-file authorization', () => {
   ])('rejects traversal before creating an authorization: %s', async (name) => {
     await expect(
       service.createUploadUrl(user, {
+        contentSha256: 'a'.repeat(64),
         module: StorageModuleName.FINANCE,
         fileName: name,
         contentType: 'application/pdf',
@@ -193,6 +197,7 @@ describe('StorageService durable private-file authorization', () => {
 
   it('reserves a canonical, expiring authorization before signing upload', async () => {
     const result = await service.createUploadUrl(user, {
+      contentSha256: 'a'.repeat(64),
       module: StorageModuleName.E14,
       fileName: 'Acta Mesa 42.JPG',
       contentType: 'image/jpeg',
@@ -329,6 +334,7 @@ describe('StorageService durable private-file authorization', () => {
 
       await expect(
         service.createUploadUrl(user, {
+          contentSha256: 'a'.repeat(64),
           module: StorageModuleName.E14,
           fileName: 'Acta Mesa 42.JPG',
           contentType: 'image/jpeg',
@@ -557,6 +563,7 @@ describe('StorageService durable private-file authorization', () => {
     prisma.storedObject.updateMany.mockResolvedValueOnce({ count: 1 });
 
     await service.createUploadUrl(user, {
+      contentSha256: 'a'.repeat(64),
       module: StorageModuleName.E14,
       fileName: 'acta.pdf',
       contentType: 'application/pdf',
@@ -582,9 +589,19 @@ describe('StorageService durable private-file authorization', () => {
         }) as object,
         data: {
           status: StoredObjectStatus.EXPIRED,
+          integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
           actualSize: null,
           etag: null,
           confirmedAt: null,
+          calculatedSha256: null,
+          observedSize: null,
+          observedContentType: null,
+          integrityCheckedAt: null,
+          integrityVerifiedAt: null,
+          integrityFailureCode: null,
+          integrityVerificationAttempts: 0,
+          integrityVerificationStartedAt: null,
+          integrityVerificationLeaseId: null,
         },
       }),
     );
@@ -603,6 +620,7 @@ describe('StorageService durable private-file authorization', () => {
     currentRole = Role.AUDITOR;
     await expect(
       service.createUploadUrl(user, {
+        contentSha256: 'a'.repeat(64),
         module: StorageModuleName.FINANCE,
         fileName: 'soporte.pdf',
         contentType: 'application/pdf',
@@ -618,6 +636,7 @@ describe('StorageService durable private-file authorization', () => {
       .mockResolvedValueOnce(30);
     await expect(
       service.createUploadUrl(user, {
+        contentSha256: 'a'.repeat(64),
         module: StorageModuleName.FINANCE,
         fileName: 'soporte.pdf',
         contentType: 'application/pdf',
@@ -631,6 +650,7 @@ describe('StorageService durable private-file authorization', () => {
     prisma.$transaction.mockRejectedValueOnce({ code: 'P2034' });
 
     await service.createUploadUrl(user, {
+      contentSha256: 'a'.repeat(64),
       module: StorageModuleName.FINANCE,
       fileName: 'soporte.pdf',
       contentType: 'application/pdf',
@@ -647,6 +667,7 @@ describe('StorageService durable private-file authorization', () => {
         module: StorageModuleName.FINANCE,
         path: financePath.replace('tenant-a', 'tenant-b'),
         metadata: {
+          contentSha256: 'a'.repeat(64),
           fileName: 'prueba.pdf',
           contentType: 'application/pdf',
           size: 100,
@@ -664,6 +685,7 @@ describe('StorageService durable private-file authorization', () => {
         module: StorageModuleName.FINANCE,
         path: financePath,
         metadata: {
+          contentSha256: 'a'.repeat(64),
           fileName: 'prueba.pdf',
           contentType: 'application/pdf',
           size: 100,
@@ -678,6 +700,7 @@ describe('StorageService durable private-file authorization', () => {
       module: StorageModuleName.FINANCE,
       path: financePath,
       metadata: {
+        contentSha256: 'a'.repeat(64),
         fileName: 'prueba.pdf',
         contentType: 'application/pdf',
         size: 100,
@@ -686,9 +709,14 @@ describe('StorageService durable private-file authorization', () => {
 
     expect(result).toEqual({
       confirmed: true,
+      objectId: 'stored-a',
       path: financePath,
       module: StorageModuleName.FINANCE,
-      contentIntegrity: 'NOT_PROVIDED',
+      contentIntegrity: 'PENDING',
+    });
+    expect(integrityQueue.enqueue).toHaveBeenCalledWith({
+      tenantId: user.tenantId,
+      storedObjectId: 'stored-a',
     });
     expect(transaction.storedObject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -744,9 +772,10 @@ describe('StorageService durable private-file authorization', () => {
       }),
     ).resolves.toEqual({
       confirmed: true,
+      objectId: 'stored-a',
       path: e14Path,
       module: StorageModuleName.E14,
-      contentIntegrity: 'CLIENT_DECLARED_UNVERIFIED',
+      contentIntegrity: 'PENDING',
     });
     expect(transaction.storedObject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -792,6 +821,14 @@ describe('StorageService durable private-file authorization', () => {
   });
 
   it('completes only a tenant-owned consent path using the CONSENT mapping', async () => {
+    prisma.storedObject.findFirst.mockResolvedValue({
+      id: 'stored-a',
+      contentType: 'application/pdf',
+      expectedSize: 100,
+      expectedSha256: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      status: StoredObjectStatus.ISSUED,
+    });
     const result = await service.completeUpload(user, {
       module: StorageModuleName.CONSENT,
       path: consentPath,
@@ -804,6 +841,7 @@ describe('StorageService durable private-file authorization', () => {
 
     expect(result).toEqual({
       confirmed: true,
+      objectId: 'stored-a',
       path: consentPath,
       module: StorageModuleName.CONSENT,
       contentIntegrity: 'NOT_PROVIDED',
@@ -825,6 +863,7 @@ describe('StorageService durable private-file authorization', () => {
       id: 'stored-a',
       contentType: 'application/pdf',
       expectedSize: 100,
+      expectedSha256: 'a'.repeat(64),
       expiresAt: new Date(Date.now() - 1_000),
       status: StoredObjectStatus.ISSUED,
     });
@@ -833,6 +872,7 @@ describe('StorageService durable private-file authorization', () => {
         module: StorageModuleName.FINANCE,
         path: financePath,
         metadata: {
+          contentSha256: 'a'.repeat(64),
           fileName: 'prueba.pdf',
           contentType: 'application/pdf',
           size: 100,
@@ -872,6 +912,11 @@ describe('StorageService durable private-file authorization', () => {
         status: StoredObjectStatus.CONSUMED,
         consumedByType: 'FinancialEntry',
         consumedById: 'entry-a',
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        integrityVerifiedAt: { not: null },
       },
       select: { id: true },
     });
@@ -900,6 +945,11 @@ describe('StorageService durable private-file authorization', () => {
         status: StoredObjectStatus.CONSUMED,
         consumedByType: 'ScrutinyDocument',
         consumedById: 'scrutiny-document-a',
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        integrityVerifiedAt: { not: null },
       },
       select: { id: true },
     });
@@ -932,6 +982,7 @@ describe('StorageService durable private-file authorization', () => {
     tenantType = TenantType.PUBLIC_OFFICE;
     await expect(
       service.createUploadUrl(user, {
+        contentSha256: 'a'.repeat(64),
         module: StorageModuleName.FINANCE,
         fileName: 'soporte.pdf',
         contentType: 'application/pdf',

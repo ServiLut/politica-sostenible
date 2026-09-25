@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
-const source = readFileSync(resolve(__dirname, "VoterImportDialog.tsx"), "utf8");
+const source = readFileSync(
+  resolve(__dirname, "VoterImportDialog.tsx"),
+  "utf8",
+).replace(/\r\n/g, "\n");
 
 test("no sondea la plantilla de importación antes de confirmar el plan", () => {
   expect(source).toContain('usePlanCapability("import")');
@@ -11,10 +14,14 @@ test("no sondea la plantilla de importación antes de confirmar el plan", () => 
   )?.[0];
 
   expect(accessFunction).toBeTruthy();
-  expect(accessFunction?.indexOf("if (!importCapability.enabled) return;")).toBeLessThan(
+  expect(
+    accessFunction?.indexOf("if (!importCapability.enabled) return;"),
+  ).toBeLessThan(
     accessFunction?.indexOf("getVoterImportTemplate(signal)") ?? -1,
   );
-  expect(source).toContain("if (!enabled || !importCapability.enabled) return;");
+  expect(source).toContain(
+    "if (!enabled || !importCapability.enabled) return;",
+  );
 });
 
 test("distingue plan no incluido de error reintentable", () => {

@@ -1,5 +1,9 @@
 "use client";
 
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useSearchParams } from "next/navigation";
+
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -118,8 +122,6 @@ export default function ProposalsPage() {
   const { user } = useAuth();
   const canMutate =
     user !== null && PROPOSAL_MANAGER_ROLES.has(user.backendRole);
-  const [proposals, setProposals] = useState<PoliticalProposal[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">(
     "ALL",
   );
@@ -141,10 +143,8 @@ export default function ProposalsPage() {
   const [form, setForm] = useState<ProposalForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [deepLinkProposalId, setDeepLinkProposalId] = useState<string | null>(
-    null,
-  );
+  const searchParams = useSearchParams();
+  const deepLinkProposalId = readEntityDeepLink(searchParams.toString());
   const [deleteTarget, setDeleteTarget] = useState<PoliticalProposal | null>(
     null,
   );
@@ -170,35 +170,24 @@ export default function ProposalsPage() {
     closeOnEscape: false,
   });
 
-  const loadProposals = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const response = await listProposals(signal);
-      setProposals(response.items);
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setFetchError(
-        errorMessage(
-          error,
-          "No se pudieron cargar las propuestas. Intente de nuevo.",
-        ),
-      );
-      setProposals([]);
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    setDeepLinkProposalId(readEntityDeepLink(window.location.search));
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadProposals(controller.signal);
-    return () => controller.abort();
-  }, [loadProposals]);
+  const request = useCallback(
+    async (signal: AbortSignal) => (await listProposals(signal)).items,
+    [],
+  );
+  const {
+    data: proposalsData,
+    loading,
+    error: requestError,
+    refresh: loadProposals,
+    setData: setProposals,
+  } = usePageRequest(request);
+  const proposals = useMemo(() => proposalsData ?? [], [proposalsData]);
+  const fetchError = requestError
+    ? errorMessage(
+        requestError,
+        "No se pudieron cargar las propuestas. Intente de nuevo.",
+      )
+    : null;
 
   useEffect(() => {
     if (!deepLinkProposalId || loading || fetchError) return;
@@ -252,7 +241,9 @@ export default function ProposalsPage() {
       setDeleteTarget(null);
       await loadProposals();
     } catch (error: unknown) {
-      setFetchError(errorMessage(error, "No se pudo eliminar la propuesta."));
+      setMutationError(
+        errorMessage(error, "No se pudo eliminar la propuesta."),
+      );
       setDeleteTarget(null);
     }
   };
@@ -302,7 +293,11 @@ export default function ProposalsPage() {
   const filteredProposals = useMemo(
     () =>
       proposals.filter((proposal) => {
-        if (debouncedSearch && !proposal.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+        if (
+          debouncedSearch &&
+          !proposal.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+        )
+          return false;
         if (statusFilter !== "ALL" && proposal.status !== statusFilter) {
           return false;
         }
@@ -344,10 +339,10 @@ export default function ProposalsPage() {
     editedProposal?.status === "WITHDRAWN";
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7 p-6">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mx-auto max-w-7xl space-y-7 min-w-0">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
             Programa político
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -359,18 +354,18 @@ export default function ProposalsPage() {
             </p>
           )}
           {fetchError && (
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900">
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900 min-w-0">
               <AlertCircle size={20} />
               {fetchError}
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row min-w-0">
           <button
             type="button"
             onClick={() => void loadProposals()}
             disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
             Actualizar
@@ -379,7 +374,7 @@ export default function ProposalsPage() {
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
             >
               <Plus size={16} /> Nueva propuesta
             </button>
@@ -397,19 +392,18 @@ export default function ProposalsPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
-
-        <div className="flex-1 max-w-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
+        <div className="flex-1 max-w-sm min-w-0">
           <input
             type="search"
             placeholder="Buscar propuestas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
           />
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-1">
+        <div className="flex gap-4 overflow-x-auto pb-1 min-w-0 max-w-full">
           {(["ALL", ...PROPOSAL_STATUSES] as const).map((status) => (
             <button
               type="button"
@@ -434,7 +428,7 @@ export default function ProposalsPage() {
           onChange={(event) =>
             setCategoryFilter(event.target.value as ProposalCategory | "ALL")
           }
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
         >
           <option value="ALL">Todas las categorías</option>
           {PROPOSAL_CATEGORIES.map((category) => (
@@ -446,12 +440,12 @@ export default function ProposalsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 min-w-0">
           <Loader2 className="animate-spin text-slate-400" size={24} />
           Cargando propuestas...
         </div>
       ) : filteredProposals.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center min-w-0">
           <FileText className="text-slate-400" size={48} />
           <p className="text-sm font-medium text-slate-500">
             {proposals.length === 0
@@ -462,7 +456,7 @@ export default function ProposalsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 min-w-0">
           {filteredProposals.map((proposal) => (
             <article
               key={proposal.id}
@@ -487,17 +481,17 @@ export default function ProposalsPage() {
                 canMutate
                   ? "cursor-pointer hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100"
                   : ""
-              } ${
+              }  ${
                 proposal.id === deepLinkProposalId
                   ? "ring-2 ring-blue-500 ring-offset-2"
                   : ""
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-3 min-w-0 flex-wrap">
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                   {proposal.referenceCode}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span
                     title={
                       proposal.isPublic
@@ -527,7 +521,7 @@ export default function ProposalsPage() {
                             event.stopPropagation();
                             setDeleteTarget(proposal);
                           }}
-                          className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 max-w-full whitespace-normal"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -551,8 +545,8 @@ export default function ProposalsPage() {
                 )}
               </div>
 
-              <div className="mt-auto space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="mt-auto space-y-3 min-w-0">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs min-w-0">
                   <span
                     className={`rounded-full px-2.5 py-1 font-bold ${statusTone(proposal.status)}`}
                   >
@@ -572,14 +566,14 @@ export default function ProposalsPage() {
                   </p>
                 )}
 
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium text-slate-600">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex justify-between text-xs font-medium text-slate-600 min-w-0 flex-wrap gap-3">
                     <span>Progreso</span>
                     <span>{proposal.progressPercent}%</span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 min-w-0">
                     <div
-                      className="h-full rounded-full bg-blue-600"
+                      className="h-full rounded-full bg-blue-600 min-w-0"
                       style={{
                         width: `${Math.min(
                           100,
@@ -590,8 +584,8 @@ export default function ProposalsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-slate-100 pt-3">
-                  <label className="block text-xs font-black text-slate-700 mb-1">
+                <div className="mt-4 border-t border-slate-100 pt-3 min-w-0">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1 min-w-0">
                     Cambiar estado rápido
                   </label>
                   <select
@@ -600,22 +594,31 @@ export default function ProposalsPage() {
                       const newStatus = e.target.value as ProposalStatus;
                       if (!newStatus) return;
                       // Optimistic update
-                      setProposals(prev => prev.map(p => p.id === proposal.id ? { ...p, status: newStatus } : p));
-                      updateProposal(proposal.id, { status: newStatus }).catch(() => {
-                         // Revert
-                         void loadProposals();
-                      });
+                      setProposals((prev) =>
+                        (prev ?? []).map((p) =>
+                          p.id === proposal.id
+                            ? { ...p, status: newStatus }
+                            : p,
+                        ),
+                      );
+                      updateProposal(proposal.id, { status: newStatus }).catch(
+                        () => {
+                          // Revert
+                          void loadProposals();
+                        },
+                      );
                     }}
                     disabled={!canMutate}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold outline-none focus:border-blue-500 disabled:opacity-50"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold outline-none focus:border-blue-500 disabled:opacity-50 min-w-0 max-w-full"
                   >
                     <option value="">Seleccionar transición...</option>
                     {allowedProposalStatuses(proposal.status).map((st) => (
-                      <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+                      <option key={st} value={st}>
+                        {STATUS_LABELS[st]}
+                      </option>
                     ))}
                   </select>
                 </div>
-
               </div>
             </article>
           ))}
@@ -623,42 +626,45 @@ export default function ProposalsPage() {
       )}
 
       {dialogProposal && canMutate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
             ref={proposalDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="proposal-dialog-title"
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
+            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap gap-3">
               <div>
                 <h2
                   ref={proposalDialogTitleRef}
                   tabIndex={-1}
                   id="proposal-dialog-title"
-                  className="text-xl font-black text-slate-950"
+                  className="text-xl font-semibold text-slate-950"
                 >
                   {dialogProposal === "new"
                     ? "Nueva propuesta"
                     : "Editar propuesta"}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Creador: {dialogProposal === "new" ? user.name : dialogProposal.owner.name}
+                  Creador:{" "}
+                  {dialogProposal === "new"
+                    ? user.name
+                    : dialogProposal.owner.name}
                 </p>
               </div>
               <button
                 type="button"
                 aria-label="Cerrar"
                 onClick={() => setDialogProposal(null)}
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 <X size={21} />
               </button>
             </header>
-            <form onSubmit={submitForm} className="space-y-5 p-6">
+            <form onSubmit={submitForm} className="space-y-5 p-6 min-w-0">
               {mutationError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900">
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900 min-w-0">
                   {mutationError}
                 </div>
               )}
@@ -669,7 +675,7 @@ export default function ProposalsPage() {
                   propuesta y registre una nueva versión trazable.
                 </p>
               )}
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Título
                 <input
                   required
@@ -679,10 +685,10 @@ export default function ProposalsPage() {
                   onChange={(event) =>
                     setForm({ ...form, title: event.target.value })
                   }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 min-w-0 max-w-full"
                 />
               </label>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Descripción (opcional)
                 <textarea
                   rows={3}
@@ -692,23 +698,24 @@ export default function ProposalsPage() {
                   onChange={(event) =>
                     setForm({ ...form, description: event.target.value })
                   }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 min-w-0 max-w-full"
                 />
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-
-                <label className="block text-sm font-black text-slate-800">
+              <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Responsable
-                  <div className="mt-2">
+                  <div className="mt-2 min-w-0">
                     <UserCombobox
                       value={form.ownerId}
                       onChange={(val) => setForm({ ...form, ownerId: val })}
-                      fetchItems={(search, signal) => listProposalResponsibles({ search, limit: 10 }, signal)}
+                      fetchItems={(search, signal) =>
+                        listProposalResponsibles({ search, limit: 10 }, signal)
+                      }
                     />
                   </div>
                 </label>
 
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Categoría
                   <select
                     value={form.category}
@@ -719,7 +726,7 @@ export default function ProposalsPage() {
                         category: event.target.value as ProposalCategory,
                       })
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 min-w-0 max-w-full"
                   >
                     {PROPOSAL_CATEGORIES.map((category) => (
                       <option key={category} value={category}>
@@ -728,7 +735,7 @@ export default function ProposalsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Estado
                   <select
                     value={form.status}
@@ -745,7 +752,7 @@ export default function ProposalsPage() {
                               : form.progressPercent,
                       });
                     }}
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     {(dialogProposal === "new"
                       ? (["DRAFT"] as const)
@@ -757,7 +764,7 @@ export default function ProposalsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Progreso (%)
                   <input
                     required
@@ -773,10 +780,10 @@ export default function ProposalsPage() {
                         progressPercent: event.target.value,
                       })
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Costo estimado (opcional)
                   <input
                     type="number"
@@ -787,11 +794,11 @@ export default function ProposalsPage() {
                     onChange={(event) =>
                       setForm({ ...form, estimatedCost: event.target.value })
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 min-w-0 max-w-full"
                   />
                 </label>
               </div>
-              <label className="flex cursor-pointer items-start gap-3 text-sm font-black text-slate-800">
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800 min-w-0">
                 <input
                   type="checkbox"
                   checked={form.internalDistributionFlag}
@@ -801,7 +808,7 @@ export default function ProposalsPage() {
                       internalDistributionFlag: event.target.checked,
                     })
                   }
-                  className="mt-0.5 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                  className="mt-0.5 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 min-w-0 max-w-full"
                 />
                 <span>
                   Marcar para evaluación interna de difusión
@@ -812,18 +819,18 @@ export default function ProposalsPage() {
                 </span>
               </label>
 
-              <footer className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4">
+              <footer className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4 min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setDialogProposal(null)}
-                  className="rounded-xl px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                  className="rounded-xl px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-50"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   {submitting && <Loader2 className="animate-spin" size={18} />}
                   Guardar
@@ -835,20 +842,20 @@ export default function ProposalsPage() {
       )}
 
       {deleteTarget && canMutate && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={deleteDialogRef}
             tabIndex={-1}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="delete-proposal-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl min-w-0"
           >
             <h2
               ref={deleteDialogTitleRef}
               tabIndex={-1}
               id="delete-proposal-title"
-              className="text-lg font-black text-slate-900"
+              className="text-lg font-semibold text-slate-900"
             >
               ¿Eliminar propuesta?
             </h2>
@@ -856,18 +863,18 @@ export default function ProposalsPage() {
               Se eliminará “{deleteTarget.title}”. Esta acción no se puede
               deshacer.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex justify-end gap-3 min-w-0 flex-wrap">
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => void confirmDelete()}
-                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 max-w-full whitespace-normal"
               >
                 Eliminar
               </button>

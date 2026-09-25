@@ -94,6 +94,7 @@ export default function ApplicationLauncherPage() {
             Ver información pública
           </Link>
         </div>
+        <div id="pwa-workspace-controls" className="mt-6 rounded-xl bg-white p-3 text-slate-900" />
       </section>
     </main>
   );

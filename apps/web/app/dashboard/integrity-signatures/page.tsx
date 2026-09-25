@@ -1,14 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  FileSignature,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
+
 import { Button, Input, Label } from "@/components/ui";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
@@ -20,6 +13,15 @@ import {
   type ElectronicSignatureModule,
   type ElectronicSignatureVerification,
 } from "@/lib/electronic-signature-api";
+import {
+  CheckCircle2,
+  FileSignature,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 const FINANCE_SIGN_ROLES = new Set([
   "ADMIN",
@@ -65,15 +67,14 @@ function formatBytes(value: number) {
 
 export default function IntegritySignaturesPage() {
   const { tenant, user } = useAuth();
-  const [module, setModule] = useState<ElectronicSignatureModule>("finance");
-  const [candidates, setCandidates] = useState<ElectronicSignatureCandidate[]>(
-    [],
-  );
+  const [selectedModule, setModule] =
+    useState<ElectronicSignatureModule>("finance");
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [loading, setLoading] = useState(false);
   const [signing, setSigning] = useState(false);
-  const [candidateError, setCandidateError] = useState<string | null>(null);
+  const [candidateMutationError, setCandidateError] = useState<string | null>(
+    null,
+  );
   const [signNotice, setSignNotice] = useState<string | null>(null);
   const [verificationInput, setVerificationInput] = useState({
     id: "",
@@ -96,9 +97,6 @@ export default function IntegritySignaturesPage() {
     tenant?.type === "CANDIDACY" &&
     E14_SIGN_ROLES.has(user.backendRole),
   );
-  const canSignSelectedModule =
-    !isClosed && (module === "finance" ? canSignFinance : canSignE14);
-
   const availableModules = useMemo(() => {
     const values: ElectronicSignatureModule[] = [];
     if (canSignFinance) values.push("finance");
@@ -106,52 +104,29 @@ export default function IntegritySignaturesPage() {
     return values;
   }, [canSignE14, canSignFinance]);
 
-  useEffect(() => {
-    if (availableModules.length > 0 && !availableModules.includes(module)) {
-      setModule(availableModules[0]);
-    }
-  }, [availableModules, module]);
-
-  const loadCandidates = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!canSignSelectedModule) {
-        setCandidates([]);
-        setSelectedDocumentId("");
-        return;
-      }
-      setLoading(true);
-      setCandidateError(null);
-      try {
-        const result = await listSigningCandidates(module, signal);
-        setCandidates(result.items);
-        setSelectedDocumentId((current) =>
-          result.items.some(({ documentId }) => documentId === current)
-            ? current
-            : "",
-        );
-        if (result.truncated) {
-          setCandidateError(
-            `Se muestran los ${result.limit} documentos más recientes. Firma o archiva pendientes para consultar los anteriores.`,
-          );
-        }
-      } catch (error: unknown) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setCandidates([]);
-        setSelectedDocumentId("");
-        setCandidateError(errorMessage(error));
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [canSignSelectedModule, module],
+  const documentModule = availableModules.includes(selectedModule)
+    ? selectedModule
+    : (availableModules[0] ?? "finance");
+  const canSignSelectedModule =
+    !isClosed && (documentModule === "finance" ? canSignFinance : canSignE14);
+  const request = useCallback(
+    (signal: AbortSignal) => listSigningCandidates(documentModule, signal),
+    [documentModule],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadCandidates(controller.signal);
-    return () => controller.abort();
-  }, [loadCandidates]);
+  const {
+    data: candidateResult,
+    loading,
+    error: requestError,
+    refresh: loadCandidates,
+  } = usePageRequest(request, { enabled: canSignSelectedModule });
+  const candidates = candidateResult?.items ?? [];
+  const candidateError =
+    candidateMutationError ??
+    (requestError
+      ? errorMessage(requestError)
+      : candidateResult?.truncated
+        ? `Se muestran los ${candidateResult.limit} documentos más recientes. Firma o archiva pendientes para consultar los anteriores.`
+        : null);
 
   const selectedCandidate = candidates.find(
     ({ documentId }) => documentId === selectedDocumentId,
@@ -172,7 +147,7 @@ export default function IntegritySignaturesPage() {
       const result = await signElectronicDocument({
         documentId: selectedCandidate.documentId,
         resourceId: selectedCandidate.resourceId,
-        module,
+        module: documentModule,
         otpCode,
       });
       setOtpCode("");
@@ -182,7 +157,7 @@ export default function IntegritySignaturesPage() {
       setVerificationInput({
         id: result.id,
         resourceId: selectedCandidate.resourceId,
-        module,
+        module: documentModule,
       });
       await loadCandidates();
     } catch (error: unknown) {
@@ -222,16 +197,16 @@ export default function IntegritySignaturesPage() {
     <main
       id="dashboard-content"
       tabIndex={-1}
-      className="space-y-8 outline-none"
+      className="space-y-8 outline-none min-w-0"
     >
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-3">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
+          <div className="max-w-3xl space-y-3 min-w-0">
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300 min-w-0">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               Integridad documental
             </div>
-            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+            <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               Sellos de vínculo y metadatos con MFA
             </h1>
             <p className="leading-7 text-slate-300">
@@ -239,7 +214,7 @@ export default function IntegritySignaturesPage() {
               cargaste y comprueba después su vínculo y metadatos de Storage.
             </p>
           </div>
-          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100 lg:max-w-md">
+          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100 lg:max-w-md min-w-0">
             No es la recolección de apoyos ciudadanos ni sustituye un reporte,
             radicación o firma exigidos por la autoridad electoral. El servidor
             recalcula el SHA-256 de los bytes mediante un worker independiente
@@ -249,17 +224,17 @@ export default function IntegritySignaturesPage() {
       </header>
 
       {isClosed && (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950 min-w-0">
           La operación está cerrada: los sellos existentes se pueden consultar,
           pero no se crean sellos nuevos.
         </div>
       )}
 
       {availableModules.length > 0 && !isClosed && (
-        <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 min-w-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
             <div>
-              <h2 className="text-xl font-black text-slate-950">
+              <h2 className="text-xl font-semibold text-slate-950">
                 Mis documentos elegibles
               </h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -283,7 +258,7 @@ export default function IntegritySignaturesPage() {
 
           {availableModules.length > 1 && (
             <div
-              className="flex gap-2"
+              className="flex gap-2 min-w-0 flex-wrap"
               role="group"
               aria-label="Tipo de documento"
             >
@@ -291,8 +266,8 @@ export default function IntegritySignaturesPage() {
                 <Button
                   key={value}
                   type="button"
-                  variant={module === value ? "default" : "outline"}
-                  aria-pressed={module === value}
+                  variant={documentModule === value ? "default" : "outline"}
+                  aria-pressed={documentModule === value}
                   onClick={() => {
                     setModule(value);
                     setSelectedDocumentId("");
@@ -325,27 +300,27 @@ export default function IntegritySignaturesPage() {
 
           {loading ? (
             <div
-              className="flex items-center gap-3 py-8 text-sm text-slate-500"
+              className="flex items-center gap-3 py-8 text-sm text-slate-500 min-w-0"
               role="status"
             >
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
               Consultando candidatos autorizados…
             </div>
           ) : candidates.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm leading-6 text-slate-600">
+            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm leading-6 text-slate-600 min-w-0">
               No hay documentos propios pendientes o firmados en este módulo.
               Primero carga y vincula la evidencia desde Finanzas o War Room.
             </div>
           ) : (
-            <form onSubmit={handleSign} className="space-y-5">
+            <form onSubmit={handleSign} className="space-y-5 min-w-0">
               <fieldset className="space-y-3">
-                <legend className="text-sm font-black text-slate-800">
+                <legend className="text-sm font-semibold text-slate-800">
                   Selecciona un documento
                 </legend>
                 {candidates.map((candidate) => (
                   <label
                     key={candidate.documentId}
-                    className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-blue-300 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50"
+                    className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-blue-300 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 min-w-0"
                   >
                     <input
                       type="radio"
@@ -356,7 +331,7 @@ export default function IntegritySignaturesPage() {
                         setSelectedDocumentId(candidate.documentId)
                       }
                       disabled={Boolean(candidate.signature)}
-                      className="mt-1 h-4 w-4"
+                      className="mt-1 h-4 w-4 min-w-0 max-w-full"
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold text-slate-950">
@@ -377,8 +352,8 @@ export default function IntegritySignaturesPage() {
                 ))}
               </fieldset>
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-                <div className="space-y-2">
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end min-w-0">
+                <div className="space-y-2 min-w-0">
                   <Label htmlFor="signatureOtp">
                     Código MFA de seis dígitos
                   </Label>
@@ -419,9 +394,9 @@ export default function IntegritySignaturesPage() {
         </section>
       )}
 
-      <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 min-w-0">
         <div>
-          <h2 className="text-xl font-black text-slate-950">
+          <h2 className="text-xl font-semibold text-slate-950">
             Comprobar un sello
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -433,9 +408,9 @@ export default function IntegritySignaturesPage() {
 
         <form
           onSubmit={handleVerify}
-          className="grid gap-4 lg:grid-cols-4 lg:items-end"
+          className="grid gap-4 lg:grid-cols-4 lg:items-end min-w-0"
         >
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <Label htmlFor="verifyModule">Módulo</Label>
             <select
               id="verifyModule"
@@ -446,7 +421,7 @@ export default function IntegritySignaturesPage() {
                   module: event.target.value as ElectronicSignatureModule,
                 }))
               }
-              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm min-w-0 max-w-full"
             >
               <option value="finance">Finanzas</option>
               {tenant?.type === "CANDIDACY" && (
@@ -454,7 +429,7 @@ export default function IntegritySignaturesPage() {
               )}
             </select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <Label htmlFor="verifySignatureId">ID del sello</Label>
             <Input
               id="verifySignatureId"
@@ -469,7 +444,7 @@ export default function IntegritySignaturesPage() {
               required
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <Label htmlFor="verifyResourceId">ID del recurso</Label>
             <Input
               id="verifyResourceId"
@@ -518,7 +493,7 @@ export default function IntegritySignaturesPage() {
               <XCircle className="mt-0.5 h-6 w-6 shrink-0" aria-hidden="true" />
             )}
             <div>
-              <p className="font-black">
+              <p className="font-semibold">
                 {verification.valid
                   ? "Vínculo y metadatos coinciden"
                   : "El vínculo o los metadatos no coinciden"}
@@ -527,8 +502,9 @@ export default function IntegritySignaturesPage() {
                 {verification.id} · {formatDate(verification.signedAt)}
               </p>
               <p className="mt-2 text-xs font-semibold">
-                Integridad de contenido: verificada independientemente antes
-                del consumo del archivo.
+                {verification.contentIntegrity === "VERIFIED"
+                  ? "Integridad de contenido: verificada independientemente antes del consumo del archivo."
+                  : "El servidor no confirmó la verificación independiente del contenido del archivo."}
               </p>
             </div>
           </div>

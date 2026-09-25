@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';

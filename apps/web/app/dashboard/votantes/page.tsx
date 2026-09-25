@@ -1,7 +1,30 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useSearchParams } from "next/navigation";
+
+import { VoterDetailPanel } from "@/components/voters/VoterDetailPanel";
+import { VoterImportDialog } from "@/components/voters/VoterImportDialog";
+import { useAuth } from "@/context/auth";
+import { ApiError } from "@/lib/api-client";
+import {
+  getConsentNoticePresentationKey,
+  getCurrentConsentNotice,
+} from "@/lib/consent-notices-api";
+import { readEntityDeepLink } from "@/lib/entity-deep-links";
+import { canExportData } from "@/lib/export-policy";
+import type { CapturableConsentCollectionChannel } from "@/lib/interactions-api";
+import { canAccessVoterImport } from "@/lib/voter-import";
+import {
+  createVoter,
+  CreateVoterInput,
+  grantVoterConsent,
+  listVoters,
+  revokeVoterConsent,
+  VoterListItem,
+} from "@/lib/voters-api";
+import { BackendUserRole } from "@/types/saas-schema";
 import {
   AlertCircle,
   CheckCircle2,
@@ -17,29 +40,8 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { VoterDetailPanel } from "@/components/voters/VoterDetailPanel";
-import { VoterImportDialog } from "@/components/voters/VoterImportDialog";
-import { useAuth } from "@/context/auth";
-import { ApiError } from "@/lib/api-client";
-import {
-  getConsentNoticePresentationKey,
-  getCurrentConsentNotice,
-  type ConsentNoticeContext,
-} from "@/lib/consent-notices-api";
-import type { CapturableConsentCollectionChannel } from "@/lib/interactions-api";
-import {
-  createVoter,
-  CreateVoterInput,
-  grantVoterConsent,
-  listVoters,
-  revokeVoterConsent,
-  VoterListItem,
-  VoterPage,
-} from "@/lib/voters-api";
-import { canExportData } from "@/lib/export-policy";
-import { readEntityDeepLink } from "@/lib/entity-deep-links";
-import { canAccessVoterImport } from "@/lib/voter-import";
-import { BackendUserRole } from "@/types/saas-schema";
+import Link from "next/link";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { ExportButton } from "@/components/ui/ExportButton";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
@@ -105,13 +107,10 @@ export default function VotantesPage() {
     user !== null && SENSITIVE_DETAIL_ROLES.has(user.backendRole);
   const canExport = canExportData(user?.backendRole);
   const canImport = canAccessVoterImport(user?.backendRole, tenant?.type);
-  const [result, setResult] = useState<VoterPage | null>(null);
   const [page, setPage] = useState(1);
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [reload, setReload] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -133,16 +132,38 @@ export default function VotantesPage() {
     string | null
   >(null);
   const [granting, setGranting] = useState(false);
-  const [detailVoterId, setDetailVoterId] = useState<string | null>(null);
-  const [deepLinkVoterId, setDeepLinkVoterId] = useState<string | null>(null);
-  const [consentContext, setConsentContext] =
-    useState<ConsentNoticeContext | null>(null);
-  const [consentConfigError, setConsentConfigError] = useState<string | null>(
-    null,
-  );
-  const currentConsentNoticeKey = getConsentNoticePresentationKey(
+  const searchParams = useSearchParams();
+  const deepLinkVoterId = readEntityDeepLink(searchParams.toString());
+  const detailQuery = searchParams.toString();
+  const [detailSelection, setDetailSelection] = useState<{
+    query: string;
+    id: string | null;
+  } | null>(null);
+  const detailVoterId =
+    detailSelection?.query === detailQuery
+      ? detailSelection.id
+      : canManageSensitiveDetail
+        ? deepLinkVoterId
+        : null;
+  function setDetailVoterId(id: string | null) {
+    setDetailSelection({ query: detailQuery, id });
+  }
+  const consentQuery = usePageRequest(getCurrentConsentNotice, {
+    reloadKey: reload,
+  });
+  const consentContext = consentQuery.data;
+  const consentConfigError = consentQuery.error
+    ? readableError(
+        consentQuery.error,
+        "No fue posible verificar el aviso de privacidad vigente.",
+      )
+    : null;
+  const noticePresentationKey = getConsentNoticePresentationKey(
     consentContext?.notice,
   );
+  const currentConsentNoticeKey = noticePresentationKey
+    ? `${reload}:${noticePresentationKey}`
+    : null;
   const canImportInCurrentMode =
     canImport && consentContext?.mode === "CAMPAIGN";
   const createConsentAcceptedForCurrentNotice =
@@ -194,39 +215,18 @@ export default function VotantesPage() {
     [deepLinkVoterId, page, search],
   );
 
-  useEffect(() => {
-    const entityId = readEntityDeepLink(window.location.search);
-    setDeepLinkVoterId(entityId);
-    if (entityId && canManageSensitiveDetail) {
-      setDetailVoterId(entityId);
-    }
-  }, [canManageSensitiveDetail]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setListError(null);
-
-    void loadVoters(controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setResult(response);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) {
-          setListError(
-            readableError(
-              requestError,
-              "No fue posible cargar las personas autorizadas.",
-            ),
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [loadVoters, reload]);
+  const {
+    data: result,
+    loading,
+    error: requestError,
+    setData: setResult,
+  } = usePageRequest(loadVoters, { reloadKey: reload });
+  const listError = requestError
+    ? readableError(
+        requestError,
+        "No fue posible cargar las personas autorizadas.",
+      )
+    : null;
 
   useEffect(() => {
     if (!deepLinkVoterId || loading || !result?.items.length) return;
@@ -236,47 +236,8 @@ export default function VotantesPage() {
     target.focus({ preventScroll: true });
   }, [deepLinkVoterId, loading, result]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setConsentConfigError(null);
-    void getCurrentConsentNotice(controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setConsentContext(response);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) {
-          setConsentContext(null);
-          setConsentConfigError(
-            readableError(
-              requestError,
-              "No fue posible verificar el aviso de privacidad vigente.",
-            ),
-          );
-        }
-      });
-    return () => controller.abort();
-  }, [reload]);
-
-  useEffect(() => {
-    setForm((current) => {
-      if (!current.consentAccepted && !current.collectionChannel) {
-        return current;
-      }
-      return {
-        ...current,
-        collectionChannel: "",
-        consentAccepted: false,
-      };
-    });
-    setCreateAcceptedNoticeKey(null);
-    setGrantConfirmed(false);
-    setGrantChannel("");
-    setGrantAcceptedNoticeKey(null);
-  }, [currentConsentNoticeKey, reload]);
-
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setDeepLinkVoterId(null);
     setDetailVoterId(null);
     const url = new URL(window.location.href);
     url.searchParams.delete("view");
@@ -324,7 +285,7 @@ export default function VotantesPage() {
     if (
       !form.consentAccepted ||
       !submittedNoticeKey ||
-      createAcceptedNoticeKey !== submittedNoticeKey
+      createAcceptedNoticeKey !== `${reload}:${submittedNoticeKey}`
     ) {
       setMutationError(
         "Debes registrar la autorizacion explicita para el aviso de privacidad mostrado antes de guardar datos sensibles.",
@@ -473,7 +434,7 @@ export default function VotantesPage() {
     if (
       !grantConfirmed ||
       !submittedNoticeKey ||
-      grantAcceptedNoticeKey !== submittedNoticeKey
+      grantAcceptedNoticeKey !== `${reload}:${submittedNoticeKey}`
     ) {
       setMutationError(
         "Confirma que la persona otorgo una nueva autorizacion expresa para el aviso mostrado.",
@@ -536,11 +497,11 @@ export default function VotantesPage() {
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
-    <main id="main-content" className="space-y-8">
+    <main id="main-content" className="space-y-8 min-w-0">
       {notice && (
         <div
           role="status"
-          className="fixed right-6 top-6 z-[90] flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl"
+          className="fixed right-6 top-6 z-[90] flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl min-w-0 flex-wrap"
         >
           <CheckCircle2 size={18} /> {notice}
           <button
@@ -553,12 +514,12 @@ export default function VotantesPage() {
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
+        <div className="space-y-2 min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 min-w-0">
             <ShieldCheck size={13} /> Relacionamiento autorizado
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
             Personas
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
@@ -567,13 +528,11 @@ export default function VotantesPage() {
             características sensibles.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 min-w-0">
           {canImportInCurrentMode && (
             <VoterImportDialog
               enabled={Boolean(consentContext?.notice)}
-              noticeActivatedAt={
-                consentContext?.notice?.activatedAt ?? null
-              }
+              noticeActivatedAt={consentContext?.notice?.activatedAt ?? null}
               noticeVersion={consentContext?.notice?.version ?? null}
               onCompleted={(importResult) => {
                 setNotice(
@@ -587,7 +546,7 @@ export default function VotantesPage() {
           <button
             type="button"
             onClick={() => setReload((value) => value + 1)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-wider text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 max-w-full whitespace-normal"
           >
             <RefreshCw size={15} /> Actualizar
           </button>
@@ -596,7 +555,7 @@ export default function VotantesPage() {
               type="button"
               disabled={!consentContext?.notice}
               onClick={openCreate}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
             >
               <UserPlus size={16} /> Registrar persona
             </button>
@@ -604,7 +563,7 @@ export default function VotantesPage() {
           {usesTerritorialCapture && (
             <Link
               href="/dashboard/captura-territorial"
-              className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-800"
+              className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 text-xs font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
             >
               <UserPlus size={16} /> Jornada territorial
             </Link>
@@ -615,9 +574,9 @@ export default function VotantesPage() {
       {!consentContext?.notice && (
         <div
           role="alert"
-          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950 sm:flex-row sm:items-center sm:justify-between min-w-0"
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 min-w-0">
             <AlertCircle
               aria-hidden="true"
               className="mt-0.5 shrink-0"
@@ -631,7 +590,7 @@ export default function VotantesPage() {
           {user?.backendRole === "ADMIN" && (
             <Link
               href="/dashboard/settings"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-black uppercase tracking-wider text-white"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-semibold text-white max-w-full whitespace-normal"
             >
               Configurar aviso
             </Link>
@@ -652,14 +611,14 @@ export default function VotantesPage() {
       <section
         aria-busy={loading}
         aria-live="polite"
-        className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm min-w-0"
       >
-        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 p-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 p-5 md:flex-row md:items-center md:justify-between min-w-0">
           <form
             onSubmit={submitSearch}
-            className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row"
+            className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row min-w-0"
           >
-            <label className="relative flex-1">
+            <label className="relative flex-1 min-w-0">
               <span className="sr-only">Buscar personas</span>
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -670,12 +629,12 @@ export default function VotantesPage() {
                 maxLength={100}
                 onChange={(event) => setSearchDraft(event.target.value)}
                 placeholder="Buscar por nombre, documento o celular"
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50"
+                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 min-w-0 max-w-full"
               />
             </label>
             <button
               type="submit"
-              className="rounded-2xl bg-slate-900 px-5 py-3 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700"
+              className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 max-w-full whitespace-normal"
             >
               Buscar
             </button>
@@ -689,10 +648,10 @@ export default function VotantesPage() {
         {listError && (
           <div
             role="alert"
-            className="m-5 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900"
+            className="m-5 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900 min-w-0 flex-wrap"
           >
             <AlertCircle className="mt-0.5 shrink-0" size={18} />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p>{listError}</p>
               <p className="mt-1 text-xs">
                 {result
@@ -704,7 +663,7 @@ export default function VotantesPage() {
               type="button"
               onClick={() => setReload((value) => value + 1)}
               disabled={loading}
-              className="min-h-10 shrink-0 rounded-xl bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+              className="min-h-10 shrink-0 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
             >
               Reintentar
             </button>
@@ -712,18 +671,18 @@ export default function VotantesPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center gap-3 p-20 text-sm font-semibold text-slate-600">
+          <div className="flex items-center justify-center gap-3 p-20 text-sm font-semibold text-slate-600 min-w-0">
             <Loader2 className="animate-spin text-slate-400" size={24} />
             Consultando la API segura...
           </div>
         ) : listError && !result ? (
-          <div className="px-6 py-20 text-center text-sm font-semibold text-slate-500">
+          <div className="px-6 py-20 text-center text-sm font-semibold text-slate-500 min-w-0">
             Consulta no disponible. Usa Reintentar para recuperar el listado.
           </div>
         ) : !result?.items.length ? (
-          <div className="m-5 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
+          <div className="m-5 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center min-w-0">
             <ShieldCheck className="mx-auto mb-4 text-slate-300" size={42} />
-            <h2 className="font-black text-slate-900">
+            <h2 className="font-semibold text-slate-900">
               No hay registros para mostrar
             </h2>
             <p className="mt-2 text-sm text-slate-500">
@@ -732,9 +691,14 @@ export default function VotantesPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            role="region"
+            aria-label="Personas registradas: tabla con desplazamiento horizontal"
+            tabIndex={0}
+          >
             <table className="w-full min-w-[900px] text-left">
-              <thead className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              <thead className="text-xs font-semibold text-slate-400">
                 <tr>
                   <th className="px-6 py-4">Persona</th>
                   <th className="px-6 py-4">Documento</th>
@@ -764,7 +728,7 @@ export default function VotantesPage() {
                     }`}
                   >
                     <td className="px-6 py-5">
-                      <p className="text-sm font-black text-slate-900">
+                      <p className="text-sm font-semibold text-slate-900">
                         {voter.firstName} {voter.lastName}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
@@ -784,19 +748,19 @@ export default function VotantesPage() {
                     </td>
                     <td className="px-6 py-5">
                       {voter.consentCurrent ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                           <CheckCircle2 size={13} /> Vigente
                         </span>
                       ) : voter.consentRequiresReconsent ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
                           <UserCheck size={13} /> Requiere nueva autorización
                         </span>
                       ) : voter.consentState === "REVOKED" ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
                           <UserMinus size={13} /> Revocado
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
                           <UserMinus size={13} /> No vigente
                         </span>
                       )}
@@ -805,13 +769,13 @@ export default function VotantesPage() {
                       canReauthorize ||
                       canManageSensitiveDetail) && (
                       <td className="px-6 py-5">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 min-w-0">
                           {canManageSensitiveDetail && (
                             <button
                               type="button"
                               aria-label={`Ver datos protegidos de ${voter.firstName} ${voter.lastName}`}
                               onClick={() => setDetailVoterId(voter.id)}
-                              className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 transition hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                              className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 max-w-full whitespace-normal"
                             >
                               <Eye aria-hidden="true" size={14} /> Ver datos
                             </button>
@@ -821,7 +785,7 @@ export default function VotantesPage() {
                               <button
                                 type="button"
                                 onClick={() => openRevocation(voter)}
-                                className="rounded-xl border border-red-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-red-700 hover:bg-red-50"
+                                className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 max-w-full whitespace-normal"
                               >
                                 Revocar
                               </button>
@@ -833,7 +797,7 @@ export default function VotantesPage() {
                               <button
                                 type="button"
                                 onClick={() => openGrant(voter)}
-                                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 max-w-full whitespace-normal"
                               >
                                 <UserCheck aria-hidden="true" size={14} />
                                 {voter.consentRequiresReconsent
@@ -854,7 +818,7 @@ export default function VotantesPage() {
         {!loading && result && result.pagination.total > 0 && (
           <nav
             aria-label="Paginacion de personas"
-            className="flex items-center justify-end gap-3 border-t border-slate-100 p-5"
+            className="flex items-center justify-end gap-3 border-t border-slate-100 p-5 min-w-0 flex-wrap"
           >
             <span className="mr-auto text-xs font-bold text-slate-500">
               Pagina {page} de {totalPages}
@@ -863,7 +827,7 @@ export default function VotantesPage() {
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((value) => value - 1)}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-40"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 disabled:opacity-40 max-w-full whitespace-normal"
             >
               <ChevronLeft size={15} /> Anterior
             </button>
@@ -871,7 +835,7 @@ export default function VotantesPage() {
               type="button"
               disabled={page >= totalPages}
               onClick={() => setPage((value) => value + 1)}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-40"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 disabled:opacity-40 max-w-full whitespace-normal"
             >
               Siguiente <ChevronRight size={15} />
             </button>
@@ -880,21 +844,21 @@ export default function VotantesPage() {
       </section>
 
       {isCreateOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-voter-title"
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
               <div>
                 <h2
                   ref={createTitleRef}
                   tabIndex={-1}
                   id="new-voter-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-2xl font-semibold text-slate-950"
                 >
                   Registrar persona autorizada
                 </h2>
@@ -907,28 +871,28 @@ export default function VotantesPage() {
                 aria-label="Cerrar"
                 disabled={saving}
                 onClick={closeCreate}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 <X />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-6 p-7">
+            <form onSubmit={handleCreate} className="space-y-6 p-7 min-w-0">
               {mutationError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700 min-w-0"
                 >
                   {mutationError}
                 </div>
               )}
 
               {consentContext?.notice && (
-                <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">
+                <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950 min-w-0">
+                  <p className="text-xs font-semibold text-blue-700">
                     Aviso {consentContext.notice.version}
                   </p>
-                  <h3 className="mt-1 font-black">
+                  <h3 className="mt-1 font-semibold">
                     {consentContext.notice.title}
                   </h3>
                   <p className="mt-2 whitespace-pre-line">
@@ -941,8 +905,8 @@ export default function VotantesPage() {
                 </section>
               )}
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <div className="grid gap-5 md:grid-cols-2 min-w-0">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Nombres
                   <input
                     required
@@ -950,10 +914,10 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, firstName: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Apellidos
                   <input
                     required
@@ -961,10 +925,10 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, lastName: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Documento
                   <input
                     required
@@ -974,10 +938,10 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, documentId: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Celular
                   <input
                     inputMode="tel"
@@ -985,10 +949,10 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, phone: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Correo opcional
                   <input
                     type="email"
@@ -996,10 +960,10 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, email: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Mesa opcional
                   <input
                     type="number"
@@ -1008,12 +972,12 @@ export default function VotantesPage() {
                     onChange={(event) =>
                       setForm({ ...form, mesa: event.target.value })
                     }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
               </div>
 
-              <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <label className="block space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Canal real de la autorizacion
                 <select
                   required
@@ -1022,7 +986,7 @@ export default function VotantesPage() {
                   onChange={(event) =>
                     setForm({ ...form, collectionChannel: event.target.value })
                   }
-                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                 >
                   <option value="">Selecciona cómo autorizó la persona</option>
                   {CONSENT_CHANNEL_OPTIONS.map((option) => (
@@ -1033,7 +997,7 @@ export default function VotantesPage() {
                 </select>
               </label>
 
-              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 min-w-0">
                 <input
                   type="checkbox"
                   disabled={!consentContext?.notice || saving}
@@ -1050,7 +1014,7 @@ export default function VotantesPage() {
                         : null,
                     );
                   }}
-                  className="mt-1 h-5 w-5 accent-emerald-600"
+                  className="mt-1 h-5 w-5 accent-emerald-600 min-w-0 max-w-full"
                 />
                 <span className="text-sm leading-6 text-slate-700">
                   Confirmo que comuniqué el aviso{" "}
@@ -1059,13 +1023,13 @@ export default function VotantesPage() {
                 </span>
               </label>
 
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   aria-label="Cerrar registro de persona"
                   disabled={saving}
                   onClick={closeCreate}
-                  className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600"
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
@@ -1077,7 +1041,7 @@ export default function VotantesPage() {
                     !createConsentAcceptedForCurrentNotice
                   }
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-sm font-semibold text-white disabled:opacity-60 max-w-full whitespace-normal"
                 >
                   {saving ? (
                     <Loader2
@@ -1098,24 +1062,24 @@ export default function VotantesPage() {
       )}
 
       {grantTarget && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={grantDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="grant-consent-title"
-            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
               <div>
-                <div className="mb-3 inline-flex rounded-xl bg-emerald-50 p-2 text-emerald-700">
+                <div className="mb-3 inline-flex rounded-xl bg-emerald-50 p-2 text-emerald-700 min-w-0">
                   <UserCheck aria-hidden="true" size={20} />
                 </div>
                 <h2
                   ref={grantTitleRef}
                   tabIndex={-1}
                   id="grant-consent-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-2xl font-semibold text-slate-950"
                 >
                   Reautorizar consentimiento
                 </h2>
@@ -1129,13 +1093,13 @@ export default function VotantesPage() {
                 aria-label="Cerrar"
                 disabled={granting}
                 onClick={closeGrant}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleGrant} className="space-y-5 p-7">
+            <form onSubmit={handleGrant} className="space-y-5 p-7 min-w-0">
               <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
                 Esta operacion crea una nueva evidencia con fecha, responsable y
                 versión {consentContext?.notice?.version ?? "no disponible"}. La
@@ -1144,13 +1108,13 @@ export default function VotantesPage() {
               {mutationError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
                 >
                   {mutationError}
                 </div>
               )}
               {consentContext?.notice && (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 min-w-0">
                   <strong className="block">
                     {consentContext.notice.title}
                   </strong>
@@ -1163,7 +1127,7 @@ export default function VotantesPage() {
                   </p>
                 </div>
               )}
-              <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <label className="block space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Canal real de la nueva autorizacion
                 <select
                   required
@@ -1174,7 +1138,7 @@ export default function VotantesPage() {
                       event.target.value as CapturableConsentCollectionChannel,
                     )
                   }
-                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                 >
                   <option value="">Selecciona el canal</option>
                   {CONSENT_CHANNEL_OPTIONS.map((option) => (
@@ -1184,7 +1148,7 @@ export default function VotantesPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 min-w-0">
                 <input
                   type="checkbox"
                   disabled={!consentContext?.notice || granting}
@@ -1198,19 +1162,19 @@ export default function VotantesPage() {
                         : null,
                     );
                   }}
-                  className="mt-1 h-5 w-5 accent-emerald-700"
+                  className="mt-1 h-5 w-5 accent-emerald-700 min-w-0 max-w-full"
                 />
                 <span className="text-sm font-semibold leading-6 text-slate-700">
                   Confirmo que comuniqué nuevamente el aviso vigente completo y
                   que la persona otorgó una nueva autorización expresa.
                 </span>
               </label>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   disabled={granting}
                   onClick={closeGrant}
-                  className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-50"
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
@@ -1222,7 +1186,7 @@ export default function VotantesPage() {
                     !grantChannel ||
                     !consentContext?.notice
                   }
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-7 py-3 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   {granting ? (
                     <Loader2
@@ -1243,24 +1207,24 @@ export default function VotantesPage() {
       )}
 
       {revokeTarget && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={revokeDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="revoke-consent-title"
-            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-7">
+            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
               <div>
-                <div className="mb-3 inline-flex rounded-xl bg-red-50 p-2 text-red-700">
+                <div className="mb-3 inline-flex rounded-xl bg-red-50 p-2 text-red-700 min-w-0">
                   <UserMinus size={20} />
                 </div>
                 <h2
                   ref={revokeTitleRef}
                   tabIndex={-1}
                   id="revoke-consent-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-2xl font-semibold text-slate-950"
                 >
                   Revocar consentimiento
                 </h2>
@@ -1274,13 +1238,13 @@ export default function VotantesPage() {
                 aria-label="Cerrar"
                 disabled={revoking}
                 onClick={closeRevocation}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleRevocation} className="space-y-5 p-7">
+            <form onSubmit={handleRevocation} className="space-y-5 p-7 min-w-0">
               <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
                 Esta accion detiene el consentimiento vigente. No elimina al
                 ciudadano ni sobrescribe la evidencia historica.
@@ -1288,12 +1252,12 @@ export default function VotantesPage() {
               {mutationError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
                 >
                   {mutationError}
                 </div>
               )}
-              <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <label className="block space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Motivo verificado
                 <textarea
                   required
@@ -1303,39 +1267,39 @@ export default function VotantesPage() {
                   value={revocationReason}
                   onChange={(event) => setRevocationReason(event.target.value)}
                   placeholder="Describe como se recibio y verifico la solicitud"
-                  className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                  className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                 />
-                <span className="block text-right text-[10px] text-slate-400">
+                <span className="block text-right text-xs text-slate-400">
                   {revocationReason.length}/500
                 </span>
               </label>
-              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-red-200 bg-red-50/60 p-5">
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-red-200 bg-red-50/60 p-5 min-w-0">
                 <input
                   type="checkbox"
                   checked={revocationConfirmed}
                   onChange={(event) =>
                     setRevocationConfirmed(event.target.checked)
                   }
-                  className="mt-1 h-5 w-5 accent-red-600"
+                  className="mt-1 h-5 w-5 accent-red-600 min-w-0 max-w-full"
                 />
                 <span className="text-sm font-semibold leading-6 text-slate-700">
                   Confirmo que verifique una solicitud expresa del titular y
                   comprendo que esta operacion quedara auditada.
                 </span>
               </label>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   disabled={revoking}
                   onClick={closeRevocation}
-                  className="rounded-2xl border border-slate-200 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-50"
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={revoking || !revocationConfirmed}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-7 py-3 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-7 py-3 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   {revoking ? (
                     <Loader2

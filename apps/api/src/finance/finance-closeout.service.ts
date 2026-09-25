@@ -44,10 +44,7 @@ import {
   SettleFinancePayableDto,
   type FinanceCloseoutCommandDto,
 } from './dto/finance-closeout.dto';
-import {
-  computeFinanceCloseoutCommandSha256,
-  type FinanceCloseoutCommandName,
-} from './finance-closeout.hash';
+import { computeFinanceCloseoutCommandSha256 } from './finance-closeout.hash';
 import { getFinanceCloseoutReadiness } from './finance-closeout-readiness';
 
 type Tx = Prisma.TransactionClient;
@@ -1142,10 +1139,7 @@ export class FinanceCloseoutService {
       context: MutationContext,
     ) => Promise<CommandResult<T>>,
   ): Promise<T> {
-    const expectedHash = computeFinanceCloseoutCommandSha256(
-      type as FinanceCloseoutCommandName,
-      input,
-    );
+    const expectedHash = computeFinanceCloseoutCommandSha256(type, input);
     if (input.payloadSha256 !== expectedHash)
       throw new BadRequestException({
         code: 'FINANCE_CLOSEOUT_PAYLOAD_HASH_MISMATCH',
@@ -1378,12 +1372,10 @@ export class FinanceCloseoutService {
   ) {
     const debit = decimal(line.debit);
     const credit = decimal(line.credit);
-    if (
-      !(
-        (debit.greaterThan(0) && credit.isZero()) ||
-        (credit.greaterThan(0) && debit.isZero())
-      )
-    )
+    if (!(
+      (debit.greaterThan(0) && credit.isZero()) ||
+      (credit.greaterThan(0) && debit.isZero())
+    ))
       throw new BadRequestException(
         `La linea ${line.lineNumber} debe tener debito o credito, pero no ambos`,
       );

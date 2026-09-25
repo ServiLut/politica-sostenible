@@ -328,6 +328,10 @@ describe('FinanceService tenant-safe exports', () => {
         uploaderId: 'user-a',
         status: 'CONFIRMED',
         consumedAt: null,
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: 'VERIFIED',
       },
       data: expect.objectContaining({
         status: 'CONSUMED',

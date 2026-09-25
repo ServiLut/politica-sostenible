@@ -20,6 +20,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePageRequest } from "@/lib/use-page-request";
+import { useKeyedState } from "@/hooks/use-keyed-state";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import { catalogErrorMessage } from "@/lib/electoral-catalog-api";
@@ -118,28 +120,20 @@ export function ElectoralCatalogImportPanel({
 }: ElectoralCatalogImportPanelProps) {
   const { user } = useAuth();
   const canImport = user?.backendRole === "ADMIN";
-  const [jobs, setJobs] = useState<ElectoralCatalogImportJob[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedJob, setSelectedJob] =
-    useState<ElectoralCatalogImportJob | null>(null);
   const [statusFilter, setStatusFilter] = useState<
     ElectoralCatalogImportStatus | ""
   >("");
-  const [loadingJobs, setLoadingJobs] = useState(true);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pageVisible, setPageVisible] = useState(true);
   const [pollCycles, setPollCycles] = useState(0);
-  const [retryConfirmed, setRetryConfirmed] = useState(false);
   const [legalConfirmed, setLegalConfirmed] = useState(false);
   const [confirmationPhrase, setConfirmationPhrase] = useState("");
-  const [artifactMode, setArtifactMode] = useState<"CANONICAL" | "RNEC_PACKAGE">(
-    "CANONICAL",
-  );
+  const [artifactMode, setArtifactMode] = useState<
+    "CANONICAL" | "RNEC_PACKAGE"
+  >("CANONICAL");
   const [file, setFile] = useState<File | null>(null);
   const [departmentsTreeFile, setDepartmentsTreeFile] = useState<File | null>(
     null,
@@ -162,71 +156,50 @@ export function ElectoralCatalogImportPanel({
   const [licenseDeclaration, setLicenseDeclaration] = useState("");
   const notifiedReleaseIds = useRef(new Set<string>());
 
-  const loadJobs = useCallback(
-    async (signal?: AbortSignal, background = false) => {
-      if (!background) setLoadingJobs(true);
-      setLoadError(null);
-      try {
-        const loaded = await listElectoralCatalogImports(
-          {
-            status: statusFilter || undefined,
-            limit: 50,
-          },
-          signal,
-        );
-        setJobs(loaded);
-        setSelectedId((current) =>
-          current && loaded.some((job) => job.id === current)
-            ? current
-            : (loaded.at(0)?.id ?? null),
-        );
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setLoadError(catalogErrorMessage(error));
-      } finally {
-        if (!signal?.aborted && !background) setLoadingJobs(false);
-      }
-    },
+  const requestJobs = useCallback(
+    (signal: AbortSignal) =>
+      listElectoralCatalogImports(
+        {
+          status: statusFilter || undefined,
+          limit: 50,
+        },
+        signal,
+      ),
     [statusFilter],
   );
-
-  const loadJobDetail = useCallback(
-    async (jobId: string, signal?: AbortSignal, background = false) => {
-      if (!background) setLoadingDetail(true);
-      try {
-        const loaded = await getElectoralCatalogImport(jobId, signal);
-        setSelectedJob(loaded);
-        setJobs((current) =>
-          current.map((job) => (job.id === loaded.id ? loaded : job)),
-        );
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        if (!background) setLoadError(catalogErrorMessage(error));
-      } finally {
-        if (!signal?.aborted && !background) setLoadingDetail(false);
-      }
-    },
-    [],
+  const {
+    data: jobList,
+    setData: setJobs,
+    loading: loadingJobs,
+    error: jobsError,
+    refresh: loadJobs,
+  } = usePageRequest<ElectoralCatalogImportJob[]>(requestJobs);
+  const jobs = useMemo(() => jobList ?? [], [jobList]);
+  const [selection, setSelectedId] = useState<string | null>(null);
+  const selectedId = jobs.some((job) => job.id === selection)
+    ? selection
+    : (jobs[0]?.id ?? null);
+  const requestJob = useCallback(
+    (signal: AbortSignal) => getElectoralCatalogImport(selectedId!, signal),
+    [selectedId],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadJobs(controller.signal);
-    return () => controller.abort();
-  }, [loadJobs]);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedJob(null);
-      return;
-    }
-    setRetryConfirmed(false);
-    const controller = new AbortController();
-    void loadJobDetail(selectedId, controller.signal);
-    return () => controller.abort();
-  }, [loadJobDetail, selectedId]);
+  const {
+    data: selectedJob,
+    setData: setSelectedJob,
+    loading: loadingDetail,
+    error: jobError,
+    refresh: loadJobDetail,
+  } = usePageRequest<ElectoralCatalogImportJob>(requestJob, {
+    enabled: selectedId !== null,
+  });
+  const [pollError, setPollError] = useKeyedState<string | null>(
+    statusFilter,
+    null,
+  );
+  const [retryConfirmed, setRetryConfirmed] = useKeyedState(selectedId, false);
+  const loadError =
+    pollError ??
+    (jobsError || jobError ? catalogErrorMessage(jobsError ?? jobError) : null);
 
   useEffect(() => {
     const updateVisibility = () =>
@@ -243,21 +216,34 @@ export function ElectoralCatalogImportPanel({
   );
 
   useEffect(() => {
-    if (!pageVisible || !hasPendingJob || pollCycles >= MAX_POLL_CYCLES) {
+    if (
+      !pageVisible ||
+      !hasPendingJob ||
+      pollCycles >= MAX_POLL_CYCLES ||
+      submitting ||
+      retrying
+    )
       return;
-    }
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       void Promise.all([
-        loadJobs(controller.signal, true),
-        selectedId
-          ? loadJobDetail(selectedId, controller.signal, true)
-          : Promise.resolve(),
-      ]).finally(() => {
-        if (!controller.signal.aborted) {
-          setPollCycles((current) => current + 1);
-        }
-      });
+        requestJobs(controller.signal),
+        selectedId ? requestJob(controller.signal) : Promise.resolve(null),
+      ])
+        .then(([loadedJobs, loadedJob]) => {
+          if (controller.signal.aborted) return;
+          setJobs(loadedJobs);
+          if (loadedJob) setSelectedJob(loadedJob);
+          setPollError(null);
+        })
+        .catch((error: unknown) => {
+          if (!controller.signal.aborted)
+            setPollError(catalogErrorMessage(error));
+        })
+        .finally(() => {
+          if (!controller.signal.aborted)
+            setPollCycles((current) => current + 1);
+        });
     }, POLL_INTERVAL_MS);
     return () => {
       window.clearTimeout(timer);
@@ -265,11 +251,16 @@ export function ElectoralCatalogImportPanel({
     };
   }, [
     hasPendingJob,
-    loadJobDetail,
-    loadJobs,
+    requestJobs,
+    requestJob,
     pageVisible,
     pollCycles,
     selectedId,
+    setJobs,
+    setSelectedJob,
+    setPollError,
+    submitting,
+    retrying,
   ]);
 
   useEffect(() => {
@@ -337,10 +328,9 @@ export function ElectoralCatalogImportPanel({
       setPendingPayload(null);
       setJobs((current) => [
         result.job,
-        ...current.filter((job) => job.id !== result.job.id),
+        ...(current ?? []).filter((job) => job.id !== result.job.id),
       ]);
       setSelectedId(result.job.id);
-      setSelectedJob(result.job);
       setPollCycles(0);
       setNotice(
         result.created
@@ -376,7 +366,9 @@ export function ElectoralCatalogImportPanel({
       const result = await retryElectoralCatalogImport(selectedJob.id);
       setSelectedJob(result.job);
       setJobs((current) =>
-        current.map((job) => (job.id === result.job.id ? result.job : job)),
+        (current ?? []).map((job) =>
+          job.id === result.job.id ? result.job : job,
+        ),
       );
       setRetryConfirmed(false);
       setPollCycles(0);
@@ -421,7 +413,7 @@ export function ElectoralCatalogImportPanel({
           onClick={() => {
             setPollCycles(0);
             void loadJobs();
-            if (selectedId) void loadJobDetail(selectedId);
+            if (selectedId) void loadJobDetail();
           }}
           disabled={loadingJobs}
           className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white hover:bg-white/15 disabled:opacity-50"
@@ -451,9 +443,12 @@ export function ElectoralCatalogImportPanel({
                   className="mt-1 accent-indigo-400"
                 />
                 <span>
-                  <strong className="block text-white">Paquete público RNEC</strong>
+                  <strong className="block text-white">
+                    Paquete público RNEC
+                  </strong>
                   Construye localmente un envelope versionado con jerarquía y
-                  geolocalización; no consulta fuentes por CORS ni incorpora datos.
+                  geolocalización; no consulta fuentes por CORS ni incorpora
+                  datos.
                 </span>
               </label>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm font-semibold leading-6 text-slate-200">
@@ -469,7 +464,9 @@ export function ElectoralCatalogImportPanel({
                   className="mt-1 accent-indigo-400"
                 />
                 <span>
-                  <strong className="block text-white">Árbol canónico preparado</strong>
+                  <strong className="block text-white">
+                    Árbol canónico preparado
+                  </strong>
                   Para un JSON ya transformado y verificable contra el contrato.
                 </span>
               </label>
@@ -481,12 +478,13 @@ export function ElectoralCatalogImportPanel({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <p className="max-w-3xl text-sm font-semibold leading-6 text-cyan-50">
                   Selecciona las dos descargas oficiales conservadas localmente.
-                  El navegador arma un paquete nuevo y lo envía por Storage firmado;
-                  nunca descarga desde RNEC. Conserva como evidencia declarada la huella
-                  SHA-256 de los bytes locales y el backend recalcula otra huella sobre
-                  cada payload canónico. Una coincidencia ausente, ambigua o con coordenadas
-                  fuera de rango hace fallar toda la ingesta. Una omisión de ambas
-                  coordenadas exige código, valores originales exactos, justificación y
+                  El navegador arma un paquete nuevo y lo envía por Storage
+                  firmado; nunca descarga desde RNEC. Conserva como evidencia
+                  declarada la huella SHA-256 de los bytes locales y el backend
+                  recalcula otra huella sobre cada payload canónico. Una
+                  coincidencia ausente, ambigua o con coordenadas fuera de rango
+                  hace fallar toda la ingesta. Una omisión de ambas coordenadas
+                  exige código, valores originales exactos, justificación y
                   evidencia; nunca permite inventar coordenadas corregidas.
                 </p>
                 <button
@@ -534,12 +532,16 @@ export function ElectoralCatalogImportPanel({
                     }}
                     className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
                   >
-                    <option value="FIRST_ROUND">Primera vuelta — 31 mayo 2026</option>
-                    <option value="SECOND_ROUND">Segunda vuelta — 21 junio 2026</option>
+                    <option value="FIRST_ROUND">
+                      Primera vuelta — 31 mayo 2026
+                    </option>
+                    <option value="SECOND_ROUND">
+                      Segunda vuelta — 21 junio 2026
+                    </option>
                   </select>
                   <span className="mt-2 block normal-case tracking-normal text-amber-200">
-                    La selección fija la fecha y la URL exacta del árbol. El backend
-                    rechaza mezclas entre vueltas.
+                    La selección fija la fecha y la URL exacta del árbol. El
+                    backend rechaza mezclas entre vueltas.
                   </span>
                 </label>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-300">
@@ -587,7 +589,9 @@ export function ElectoralCatalogImportPanel({
                     type="url"
                     maxLength={2048}
                     value={departmentsTreeSourceUrl}
-                    onChange={(event) => setDepartmentsTreeSourceUrl(event.target.value)}
+                    onChange={(event) =>
+                      setDepartmentsTreeSourceUrl(event.target.value)
+                    }
                     placeholder="https://…registraduria.gov.co/…/departmentsTree.json"
                     className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
                   />
@@ -599,16 +603,18 @@ export function ElectoralCatalogImportPanel({
                     type="url"
                     maxLength={2048}
                     value={geolocationSourceUrl}
-                    onChange={(event) => setGeolocationSourceUrl(event.target.value)}
+                    onChange={(event) =>
+                      setGeolocationSourceUrl(event.target.value)
+                    }
                     placeholder="https://…registraduria.gov.co/…/data.json"
                     className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white"
                   />
                 </label>
               </div>
               <p className="text-xs font-bold leading-5 text-amber-200">
-                El paquete sigue bloqueado para uso operativo: exige autorización
-                escrita, declaración de licencia, validación y aprobación por una
-                segunda persona antes de quedar Activo.
+                El paquete sigue bloqueado para uso operativo: exige
+                autorización escrita, declaración de licencia, validación y
+                aprobación por una segunda persona antes de quedar Activo.
               </p>
             </div>
           )}
@@ -919,15 +925,18 @@ export function ElectoralCatalogImportPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-5" aria-live="polite">
+            <div
+              className="min-w-0 space-y-5 [overflow-wrap:anywhere]"
+              aria-live="polite"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div className="min-w-0">
                   <span
                     className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${STATUS_STYLES[selectedJob.status]}`}
                   >
                     {STATUS_LABELS[selectedJob.status]}
                   </span>
-                  <h3 className="mt-3 text-xl font-black">
+                  <h3 className="mt-3 break-words text-xl font-semibold">
                     {selectedJob.sourceDataset}
                   </h3>
                   <p className="mt-1 text-xs font-bold text-slate-500">

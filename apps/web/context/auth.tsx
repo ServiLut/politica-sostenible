@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +15,8 @@ import {
   LoginDto,
   logoutAllSessions,
 } from "@/lib/auth-api";
+import { createSessionStore } from "./session-store";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import {
   getBillingCapabilities,
@@ -52,117 +55,54 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const sessionStore = createSessionStore<AuthSession>(readAuthSession, (onChange) => {
+  window.addEventListener(AUTH_SESSION_CHANGED_EVENT, onChange);
+  return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, onChange);
+});
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [planCapabilities, setPlanCapabilities] =
-    useState<BillingCapabilities | null>(null);
-  const [planCapabilitiesLoading, setPlanCapabilitiesLoading] = useState(false);
-  const [planCapabilitiesError, setPlanCapabilitiesError] = useState<
-    string | null
-  >(null);
+  const session = useSyncExternalStore(sessionStore.subscribe, sessionStore.getSnapshot, sessionStore.getServerSnapshot);
+  const [validatedToken, setValidatedToken] = useState<string | null>(null);
+  const [loginLoading, setLoading] = useState(false);
   const [planCapabilitiesRevision, setPlanCapabilitiesRevision] = useState(0);
   const router = useRouter();
+  const accessToken = session?.accessToken;
+  const loading = session === undefined || loginLoading || Boolean(accessToken && validatedToken !== accessToken);
 
   useEffect(() => {
-    const syncSession = () => {
-      setSession(readAuthSession());
-    };
-
-    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, syncSession);
-    const controller = new AbortController();
     const storedSession = readAuthSession();
-    setSession(storedSession);
-
-    if (!storedSession) {
-      setLoading(false);
-    } else {
-      void getCurrentAuthUser(controller.signal)
-        .then((currentUser) => {
-          const latestSession = readAuthSession();
-          if (
-            !latestSession ||
-            latestSession.accessToken !== storedSession.accessToken
-          ) {
-            return;
-          }
-
-          const refreshedSession = createAuthSession(
-            storedSession.accessToken,
-            currentUser,
-          );
-          saveAuthSession(refreshedSession);
-          setSession(refreshedSession);
-        })
-        .catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-
-          if (error instanceof ApiError && error.status === 401) {
-            clearAuthSession();
-            setSession(null);
-          }
-          // Ante una falla transitoria conservamos la sesion local. La API
-          // sigue validando estado y rol en PostgreSQL para cada operacion.
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }
-
-    return () => {
-      controller.abort();
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, syncSession);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!session?.accessToken || session.user.mustChangePassword === true) {
-      setPlanCapabilities(null);
-      setPlanCapabilitiesError(null);
-      setPlanCapabilitiesLoading(false);
-      return;
-    }
-
+    if (!accessToken || storedSession?.accessToken !== accessToken) return;
     const controller = new AbortController();
-    setPlanCapabilities(null);
-    setPlanCapabilitiesError(null);
-    setPlanCapabilitiesLoading(true);
-
-    void getBillingCapabilities(controller.signal)
-      .then((capabilities) => {
-        if (!controller.signal.aborted) {
-          setPlanCapabilities(capabilities);
-        }
+    void getCurrentAuthUser(controller.signal)
+      .then((currentUser) => {
+        if (controller.signal.aborted || readAuthSession()?.accessToken !== storedSession.accessToken) return;
+        saveAuthSession(createAuthSession(storedSession.accessToken, currentUser));
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        if (error instanceof ApiError && error.status === 401) {
-          return;
-        }
-        if (!controller.signal.aborted) {
-          setPlanCapabilitiesError(
-            error instanceof ApiError
-              ? error.message
-              : "No fue posible validar las funciones incluidas en tu plan.",
-          );
-        }
+        if (controller.signal.aborted || readAuthSession()?.accessToken !== storedSession.accessToken) return;
+        if (error instanceof ApiError && error.status === 401) clearAuthSession();
+        // Every API operation still verifies the current role and account state.
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
-          setPlanCapabilitiesLoading(false);
-        }
+        if (!controller.signal.aborted) setValidatedToken(storedSession.accessToken);
       });
-
     return () => controller.abort();
-  }, [
-    session?.accessToken,
-    session?.user.mustChangePassword,
-    planCapabilitiesRevision,
-  ]);
+  }, [accessToken]);
+
+  const capabilitiesEnabled = Boolean(session?.accessToken && session.user.mustChangePassword !== true);
+  const {
+    data: planCapabilities,
+    loading: planCapabilitiesLoading,
+    error: capabilitiesError,
+  } = usePageRequest<BillingCapabilities>(getBillingCapabilities, {
+    enabled: capabilitiesEnabled,
+    reloadKey: `${accessToken}:${session?.user.mustChangePassword}:${planCapabilitiesRevision}`,
+  });
+  const planCapabilitiesError = capabilitiesError
+    ? capabilitiesError instanceof ApiError
+      ? capabilitiesError.message
+      : "No fue posible validar las funciones incluidas en tu plan."
+    : null;
 
   useEffect(() => {
     if (!session?.expiresAt) return;
@@ -189,7 +129,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return response;
       }
       saveAuthSession(response);
-      setSession(response);
       return response;
     } finally {
       setLoading(false);
@@ -203,10 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // expiración y cualquier revocación de seguridad ya aplicada.
       });
       clearAuthSession();
-      setSession(null);
-      setPlanCapabilities(null);
-      setPlanCapabilitiesError(null);
-      setPlanCapabilitiesLoading(false);
       if (redirectTo) {
         window.location.replace(redirectTo);
         return;
@@ -227,7 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       tenant: { ...currentSession.tenant, ...updatedTenant },
     };
     saveAuthSession(nextSession);
-    setSession(nextSession);
     return true;
   }, []);
 

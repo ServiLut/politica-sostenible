@@ -17,15 +17,7 @@ import {
   resolveDatabaseSchema,
   resolveDatabaseSearchPathOptions,
 } from '../prisma/prisma.service';
-import type {
-  CreateInventoryWarehouseDto,
-  DispatchInventoryDto,
-  ImportInventoryItemsDto,
-  ReceiveInventoryStockDto,
-  ReceiveInventoryTransferDto,
-  ReconcileInventoryTransferDto,
-  ReturnInventoryTransferDto,
-} from './dto/inventory-operations.dto';
+import type { DispatchInventoryDto } from './dto/inventory-operations.dto';
 import {
   computeInventoryCommandSha256,
   type InventoryCommandName,
@@ -140,7 +132,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
         code: `SRC_${normalizedSuffix}`.slice(0, 32),
         name: `Bodega origen ${codeSuffix}`,
         responsibleUserId: user.userId,
-      }) as CreateInventoryWarehouseDto,
+      }),
     );
     const destination = await service.createWarehouse(
       user,
@@ -149,7 +141,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
         code: `DST_${normalizedSuffix}`.slice(0, 32),
         name: `Bodega destino ${codeSuffix}`,
         responsibleUserId: user.userId,
-      }) as CreateInventoryWarehouseDto,
+      }),
     );
     const imported = await service.importItems(
       user,
@@ -164,7 +156,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
             minimumStock: 0,
           },
         ],
-      }) as ImportInventoryItemsDto,
+      }),
     );
     const stock = await service.receiveStock(
       user,
@@ -177,7 +169,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
         custodyDeclaration:
           'El administrador recibe y cuenta físicamente todas las unidades indicadas.',
         occurredAt: new Date(Date.now() - 120_000).toISOString(),
-      }) as ReceiveInventoryStockDto,
+      }),
     );
     return { source, destination, imported, stock };
   }
@@ -290,7 +282,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
             missingQuantity: 0,
           },
         ],
-      }) as ReceiveInventoryTransferDto,
+      }),
     );
     expect(received.transfer.status).toBe(
       InventoryTransferStatus.RECEIVED_WITH_INCIDENT,
@@ -306,7 +298,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
           'Se devuelve una unidad utilizable y se verifica su ingreso a origen.',
         occurredAt: new Date(Date.now() - 30_000).toISOString(),
         lines: [{ lineId, quantity: 1 }],
-      }) as ReturnInventoryTransferDto,
+      }),
     );
     expect(returned.transfer.status).toBe(
       InventoryTransferStatus.PARTIALLY_RETURNED,
@@ -329,7 +321,7 @@ physicalDescribe('InventoryOperationsService on physical PostgreSQL', () => {
             damagedQuantity: 0,
           },
         ],
-      }) as ReconcileInventoryTransferDto,
+      }),
     );
     expect(reconciled.transfer.status).toBe(InventoryTransferStatus.RECONCILED);
     expect(reconciled.transfer.custodyEvents.map(({ type }) => type)).toEqual([

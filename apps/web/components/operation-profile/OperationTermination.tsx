@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { Select } from "@/components/ui/select";
+import { useKeyedState } from "@/hooks/use-keyed-state";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import {
   cancelOperationTermination,
@@ -224,13 +226,9 @@ export function OperationTerminationPanel({
   onApproved,
 }: Props) {
   const confirm = useConfirmation();
-  const [context, setContext] = useState<OperationTerminationContext | null>(
-    null,
-  );
   const [draft, setDraft] = useState<TerminationDraft>(EMPTY_DRAFT);
-  const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [decision, setDecision] =
     useState<OperationTerminationDecision>("APPROVE");
@@ -239,7 +237,7 @@ export function OperationTerminationPanel({
   const [reviewConfirmation, setReviewConfirmation] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelConfirmation, setCancelConfirmation] = useState("");
-  const [newRequestMode, setNewRequestMode] = useState(false);
+  const [newRequestMode, setNewRequestMode] = useKeyedState(`${role}:${profile?.stage}:${profile?.updatedAt}`, false);
   const requestAttempt = useRef<{ fingerprint: string; id: string } | null>(
     null,
   );
@@ -250,38 +248,15 @@ export function OperationTerminationPanel({
     null,
   );
 
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!READ_ROLES.has(role)) return;
-      setLoading(true);
-      setContext(null);
-      setNewRequestMode(false);
-      setError(null);
-      setNotice(null);
-      try {
-        setContext(await getOperationTermination(signal));
-      } catch (loadError: unknown) {
-        if (!signal?.aborted) {
-          setError(
-            readableError(
-              loadError,
-              "No fue posible consultar el expediente de terminación.",
-            ),
-          );
-        }
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [role],
-  );
-
-  useEffect(() => {
-    if (!READ_ROLES.has(role)) return;
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load, role, profile?.stage, profile?.updatedAt]);
+  const { data: context, loading, error: loadError, refresh: refreshData, setData: setContext } =
+    usePageRequest<OperationTerminationContext>(getOperationTermination, { enabled: READ_ROLES.has(role), reloadKey: `${role}:${profile?.stage}:${profile?.updatedAt}` });
+  const error = mutationError ?? (loadError ? readableError(loadError, "No fue posible consultar el expediente de terminación.") : null);
+  const load = () => {
+    setError(null);
+    setNewRequestMode(false);
+    setNotice(null);
+    return refreshData();
+  };
 
   if (!READ_ROLES.has(role)) return null;
   const storedRequest = context?.request ?? null;

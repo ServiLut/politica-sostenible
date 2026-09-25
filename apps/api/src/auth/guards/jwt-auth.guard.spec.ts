@@ -1,6 +1,7 @@
 import {
   ExecutionContext,
   ForbiddenException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -121,6 +122,34 @@ describe('JwtAuthGuard', () => {
         where: expect.objectContaining({ isActive: true }),
       }),
     );
+  });
+
+  it('returns a retryable server error when the current account cannot be verified', async () => {
+    verifyAsync.mockResolvedValue({
+      sub: 'user-from-token',
+      tenantId: 'tenant-from-token',
+      sessionVersion: createSessionVersion(
+        'user-from-token',
+        STORED_PASSWORD_HASH,
+      ),
+    });
+    findFirst.mockRejectedValue(
+      new Error('private-database-connection-detail'),
+    );
+    const request = {
+      headers: { authorization: 'Bearer signed-token' },
+    } as unknown as AuthenticatedRequest;
+
+    await expect(
+      guard.canActivate(buildContext(request)),
+    ).rejects.toMatchObject({
+      constructor: ServiceUnavailableException,
+      response: {
+        code: 'AUTH_SERVICE_UNAVAILABLE',
+        message: 'No fue posible verificar la sesión. Intenta nuevamente.',
+      },
+    });
+    expect(request.user).toBeUndefined();
   });
 
   it('rejects legacy tokens without a password-bound session version', async () => {

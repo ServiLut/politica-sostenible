@@ -542,8 +542,25 @@ function validatePublicRegistrationConfiguration(issues, environment) {
   }
 }
 
-function validateStorageConfiguration(issues, values) {
-  validateUrl(issues, "SUPABASE_URL", values.SUPABASE_URL, ["https:"]);
+function validateRuntimeOrigin(issues, environment, name, value) {
+  if (environment.ALLOW_LOCAL_STAGING_BUILD !== "true") {
+    validateUrl(issues, name, value, ["https:"]);
+    return;
+  }
+  let valid = false;
+  try {
+    const url = new URL(value);
+    valid = environment.DEPLOYMENT_PROFILE === "evaluation" &&
+      ["http:", "https:"].includes(url.protocol) &&
+      ["127.0.0.1", "[::1]"].includes(url.hostname) &&
+      url.pathname === "/" && !url.username && !url.password &&
+      !url.search && !url.hash;
+  } catch { /* The diagnostic below does not echo credentials. */ }
+  if (!valid) issues.push(`${name} requiere evaluation y un origen loopback exclusivo para pruebas locales`);
+}
+
+function validateStorageConfiguration(issues, values, environment) {
+  validateRuntimeOrigin(issues, environment, "SUPABASE_URL", values.SUPABASE_URL);
 
   const serviceKey = values.SUPABASE_SERVICE_ROLE_KEY;
   if (
@@ -636,19 +653,19 @@ export function runtimeEnvironmentIssues(environment = process.env) {
   validateProductionDatabaseFlags(issues, environment);
 
   validateRedisConfiguration(issues, environment, values.REDIS_URL);
-  validateStorageConfiguration(issues, values);
-  validateUrl(
+  validateStorageConfiguration(issues, values, environment);
+  validateRuntimeOrigin(
     issues,
+    environment,
     "NEXT_PUBLIC_APP_URL",
     environment.NEXT_PUBLIC_APP_URL?.trim(),
-    ["https:"],
   );
 
   const corsOrigins = environment.CORS_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
   for (const origin of corsOrigins ?? []) {
-    validateUrl(issues, "CORS_ORIGINS", origin, ["https:"]);
+    validateRuntimeOrigin(issues, environment, "CORS_ORIGINS", origin);
   }
 
   return issues;
@@ -691,7 +708,7 @@ export function catalogWorkerEnvironmentIssues(environment = process.env) {
   );
   validateProductionDatabaseFlags(issues, environment);
   validateRedisConfiguration(issues, environment, values.REDIS_URL);
-  validateStorageConfiguration(issues, values);
+  validateStorageConfiguration(issues, values, environment);
 
   return issues;
 }

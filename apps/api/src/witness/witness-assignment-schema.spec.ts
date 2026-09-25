@@ -93,7 +93,7 @@ describe('witness assignment persistence contract', () => {
 
   it('readiness queries exact assignments instead of User.divisionId ancestry', () => {
     const electionFence = readinessService.match(
-      /private async assertElectionDayReadiness[\s\S]*?\n {2}}/,
+      /private async readTerritorialReadiness[\s\S]*?\n {2}}/,
     )?.[0];
     expect(electionFence).toBeDefined();
     expect(electionFence).toContain('transaction.witnessAssignment.findMany');
@@ -102,5 +102,6 @@ describe('witness assignment persistence contract', () => {
     );
     expect(electionFence).not.toContain('transaction.user.groupBy');
     expect(electionFence).not.toContain("by: ['divisionId']");
+    expect(readinessService).toContain('await this.readTerritorialReadiness(');
   });
 });

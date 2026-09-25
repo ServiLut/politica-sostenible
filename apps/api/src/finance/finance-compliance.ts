@@ -48,8 +48,7 @@ export type FinanceComplianceField =
   keyof typeof FINANCE_COMPLIANCE_FIELD_LABELS;
 
 export type FinanceComplianceIssue =
-  | 'REPORT_DEADLINE_NOT_AFTER_ELECTION'
-  | 'OFFICIAL_LIMITS_URL_NOT_HTTPS';
+  'REPORT_DEADLINE_NOT_AFTER_ELECTION' | 'OFFICIAL_LIMITS_URL_NOT_HTTPS';
 
 export interface FinanceComplianceReadiness {
   ready: boolean;

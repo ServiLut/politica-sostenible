@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api-client";
+import { ApiError, apiRequest } from "@/lib/api-client";
 import type {
   BackendUserRole,
   PoliticalOperationStage,
@@ -29,12 +29,7 @@ export type ElectoralContestType =
   | "OTHER";
 
 export type ElectoralCircumscriptionType =
-  | "NATIONAL"
-  | "DEPARTMENTAL"
-  | "MUNICIPAL"
-  | "LOCAL"
-  | "SPECIAL"
-  | "INTERNAL";
+  "NATIONAL" | "DEPARTMENTAL" | "MUNICIPAL" | "LOCAL" | "SPECIAL" | "INTERNAL";
 
 export type CandidateListType = "CLOSED" | "OPEN_PREFERENTIAL";
 
@@ -106,10 +101,7 @@ export type ConfiguredOperationProfileContext = Extract<
 export type OperationReadinessOverall = "READY" | "ATTENTION" | "BLOCKED";
 export type OperationReadinessCheckStatus = "PASS" | "WARN" | "BLOCK";
 export type OperationReadinessSectionKey =
-  | "BEFORE_CAMPAIGN"
-  | "CAMPAIGN"
-  | "ELECTION_DAY"
-  | "POST_ELECTION";
+  "BEFORE_CAMPAIGN" | "CAMPAIGN" | "ELECTION_DAY" | "POST_ELECTION";
 
 export interface OperationReadinessCheck {
   code: string;
@@ -174,10 +166,7 @@ export const ADOPTABLE_OPERATION_STAGES = [
 export type AdoptableOperationStage =
   (typeof ADOPTABLE_OPERATION_STAGES)[number];
 export type OperationAdoptionStatus =
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED"
-  | "EXPIRED";
+  "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
 export type OperationAdoptionDecision = "APPROVE" | "REJECT";
 
 export interface OperationAdoptionActor {
@@ -298,14 +287,14 @@ function canonicalIsoDate(value: string): string {
 
 function canonicalCivilDate(value: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
-    throw new Error('La solicitud contiene una fecha civil invalida.');
+    throw new Error("La solicitud contiene una fecha civil invalida.");
   }
   const parsed = new Date(`${value}T00:00:00.000Z`);
   if (
     !Number.isFinite(parsed.getTime()) ||
     parsed.toISOString().slice(0, 10) !== value
   ) {
-    throw new Error('La solicitud contiene una fecha civil inexistente.');
+    throw new Error("La solicitud contiene una fecha civil inexistente.");
   }
   return value;
 }
@@ -376,10 +365,53 @@ export function getOperationProfile(
   return apiRequest("operation-profile", { signal });
 }
 
-export function getOperationReadiness(
+export function isOperationReadiness(
+  value: unknown,
+): value is OperationReadiness {
+  if (typeof value !== "object" || value === null) return false;
+  const readiness = value as Partial<OperationReadiness>;
+  if (
+    !["READY", "ATTENTION", "BLOCKED"].includes(readiness.overall ?? "") ||
+    typeof readiness.generatedAt !== "string" ||
+    !Number.isFinite(Date.parse(readiness.generatedAt)) ||
+    typeof readiness.sections !== "object" ||
+    readiness.sections === null
+  )
+    return false;
+
+  return (
+    ["BEFORE_CAMPAIGN", "CAMPAIGN", "ELECTION_DAY", "POST_ELECTION"] as const
+  ).every((section) => {
+    const checks = readiness.sections?.[section];
+    return (
+      Array.isArray(checks) &&
+      checks.every((check: unknown) => {
+        if (typeof check !== "object" || check === null) return false;
+        const item = check as Partial<OperationReadinessCheck>;
+        return (
+          ["PASS", "WARN", "BLOCK"].includes(item.status ?? "") &&
+          [item.code, item.label, item.detail, item.href].every(
+            (field) => typeof field === "string",
+          )
+        );
+      })
+    );
+  });
+}
+
+export async function getOperationReadiness(
   signal?: AbortSignal,
 ): Promise<OperationReadiness> {
-  return apiRequest("operation-profile/readiness", { signal });
+  const readiness = await apiRequest<unknown>("operation-profile/readiness", {
+    signal,
+  });
+  if (!isOperationReadiness(readiness)) {
+    throw new ApiError(
+      "El servidor devolvió un alistamiento incompleto o incompatible. No se puede verificar el estado de la operación; reintenta la consulta.",
+      502,
+    );
+  }
+  return readiness;
 }
 
 export function saveOperationProfile(

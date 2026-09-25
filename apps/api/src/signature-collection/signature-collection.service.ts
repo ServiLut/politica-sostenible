@@ -1311,7 +1311,7 @@ export class SignatureCollectionService {
             tenantId: input.user.tenantId,
             clientRequestId: input.dto.clientRequestId,
             payloadSha256: calculatedHash,
-            type: input.type as SignatureCollectionCommandType,
+            type: input.type,
             actorUserId: context.actor.id,
             resourceType: input.resourceType,
             resourceId,

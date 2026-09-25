@@ -90,7 +90,7 @@ function reviewDto(
     decision: OperationTerminationDecision.APPROVE,
     reviewPayloadSha256: '',
     ...overrides,
-  } as ReviewOperationTerminationDto;
+  };
   dto.reviewPayloadSha256 =
     suppliedHash ?? computeOperationTerminationReviewSha256(requestId, dto);
   return dto;
@@ -108,7 +108,7 @@ function cancelDto(
     reason:
       'El acto aportado fue sustituido y debe crearse un expediente nuevo.',
     ...overrides,
-  } as CancelOperationTerminationDto;
+  };
   dto.cancellationPayloadSha256 =
     suppliedHash ??
     computeOperationTerminationCancellationSha256(requestId, dto);
@@ -350,7 +350,7 @@ describe('OperationTerminationService', () => {
   });
 
   it('rejects inactive/wrong-role actors and never trusts a DTO tenant', async () => {
-    const transaction = buildTransaction(undefined as never);
+    const transaction = buildTransaction(undefined);
     transaction.$queryRaw.mockResolvedValue([]);
     const { service } = buildService(transaction);
     await expect(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import {
   computeOperationAdoptionReviewSha256,
@@ -421,9 +422,7 @@ export function OperationAdoptionStatusPanel({
   onApproved,
 }: AdoptionStatusPanelProps) {
   const confirm = useConfirmation();
-  const [context, setContext] = useState<OperationAdoptionContext | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [decision, setDecision] =
     useState<OperationAdoptionDecision>("APPROVE");
@@ -435,34 +434,13 @@ export function OperationAdoptionStatusPanel({
     null,
   );
 
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!READ_ROLES.has(role)) return;
-      setLoading(true);
-      setError(null);
-      try {
-        setContext(await getOperationAdoption(signal));
-      } catch (loadError: unknown) {
-        if (signal?.aborted) return;
-        setError(
-          readableError(
-            loadError,
-            "No fue posible consultar la adopción excepcional.",
-          ),
-        );
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [role],
-  );
-
-  useEffect(() => {
-    if (!READ_ROLES.has(role)) return;
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load, reloadKey, role]);
+  const { data: context, loading, error: loadError, refresh: refreshData, setData: setContext } =
+    usePageRequest<OperationAdoptionContext>(getOperationAdoption, { enabled: READ_ROLES.has(role), reloadKey });
+  const error = mutationError ?? (loadError ? readableError(loadError, "No fue posible consultar la adopción excepcional.") : null);
+  const load = () => {
+    setError(null);
+    return refreshData();
+  };
 
   if (!READ_ROLES.has(role)) return null;
   const request = context?.request ?? null;

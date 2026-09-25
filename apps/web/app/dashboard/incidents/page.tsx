@@ -1,13 +1,27 @@
 "use client";
 
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useSearchParams } from "next/navigation";
+
+import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
+import { useAuth } from "@/context/auth";
+import { ApiError } from "@/lib/api-client";
 import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  CaseUserSummary,
+  CommunicationChannel,
+  createIssueCase,
+  getIssueCase,
+  IssueCase,
+  IssueCaseStatus,
+  listCaseAssignees,
+  listIssueCases,
+  updateIssueCase,
+  UpdateIssueCaseInput,
+  WorkPriority,
+} from "@/lib/cases-api";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { BackendUserRole } from "@/types/saas-schema";
 import {
   AlertCircle,
   AlertTriangle,
@@ -26,25 +40,14 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
-import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
-import { useAuth } from "@/context/auth";
-import { ApiError } from "@/lib/api-client";
 import {
-  CaseUserSummary,
-  CommunicationChannel,
-  createIssueCase,
-  getIssueCase,
-  IssueCase,
-  IssueCasePage,
-  IssueCaseStatus,
-  listCaseAssignees,
-  listIssueCases,
-  updateIssueCase,
-  UpdateIssueCaseInput,
-  WorkPriority,
-} from "@/lib/cases-api";
-import { BackendUserRole } from "@/types/saas-schema";
-import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const PAGE_SIZE = 12;
 
@@ -248,12 +251,12 @@ function IncidentCard({
           : "border-slate-200"
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 min-w-0 flex-wrap">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-xs font-semibold text-blue-700">
             {incident.reference}
           </p>
-          <h2 className="mt-2 text-lg font-black leading-tight text-slate-950">
+          <h2 className="mt-2 text-lg font-semibold leading-tight text-slate-950">
             {incident.title}
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500">
@@ -264,7 +267,7 @@ function IncidentCard({
         {incident.confidential && (
           <span
             title="Clasificación operativa; el acceso sigue los permisos generales del rol y la asignación del incidente"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-violet-700"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-xs font-semibold text-violet-700"
           >
             <FileLock2 aria-hidden="true" size={17} />
             Manejo especial
@@ -276,7 +279,7 @@ function IncidentCard({
         {incident.description}
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider">
+      <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold min-w-0">
         <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-800">
           {optionLabel(incident.status, STATUS_OPTIONS)}
         </span>
@@ -292,21 +295,21 @@ function IncidentCard({
         )}
       </div>
 
-      <dl className="mt-5 grid gap-3 text-xs sm:grid-cols-2">
-        <div className="rounded-2xl bg-slate-50 p-3">
+      <dl className="mt-5 grid gap-3 text-xs sm:grid-cols-2 min-w-0">
+        <div className="rounded-2xl bg-slate-50 p-3 min-w-0">
           <dt className="flex items-center gap-1 font-bold text-slate-400">
             <UserRoundCheck aria-hidden="true" size={14} /> Responsable
           </dt>
-          <dd className="mt-1 font-black text-slate-700">
+          <dd className="mt-1 font-semibold text-slate-700">
             {incident.assignee?.name ?? "Sin asignar"}
           </dd>
         </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
+        <div className="rounded-2xl bg-slate-50 p-3 min-w-0">
           <dt className="flex items-center gap-1 font-bold text-slate-400">
             <CalendarClock aria-hidden="true" size={14} /> Vencimiento
           </dt>
           <dd
-            className={`mt-1 font-black ${overdue ? "text-red-700" : "text-slate-700"}`}
+            className={`mt-1 font-semibold ${overdue ? "text-red-700" : "text-slate-700"}`}
           >
             {formatDate(incident.dueAt)}
           </dd>
@@ -317,16 +320,16 @@ function IncidentCard({
         type="button"
         aria-label={`Abrir bitácora de ${incident.reference}`}
         onClick={() => onOpenInteractions(incident)}
-        className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-xs font-black uppercase tracking-wider text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+        className="mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 transition hover:border-blue-700 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 max-w-full whitespace-normal"
       >
         <History aria-hidden="true" size={16} />
         Ver bitácora · {incident._count.interactions}
       </button>
 
       {canMutate && (
-        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 min-w-0">
+          <div className="grid gap-3 sm:grid-cols-2 min-w-0">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Estado operativo
               <select
                 aria-label={`Estado operativo de ${incident.reference}`}
@@ -334,7 +337,7 @@ function IncidentCard({
                 onChange={(event) =>
                   setStatus(event.target.value as IssueCaseStatus)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               >
                 {STATUS_OPTIONS.filter(({ value }) =>
                   nextStatuses.includes(value),
@@ -356,7 +359,7 @@ function IncidentCard({
                 ))}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Severidad / prioridad
               <select
                 aria-label={`Severidad de ${incident.reference}`}
@@ -364,7 +367,7 @@ function IncidentCard({
                 onChange={(event) =>
                   setPriority(event.target.value as WorkPriority)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               >
                 {PRIORITY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -373,13 +376,13 @@ function IncidentCard({
                 ))}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Responsable
               <select
                 aria-label={`Responsable de ${incident.reference}`}
                 value={assigneeId}
                 onChange={(event) => setAssigneeId(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               >
                 <option value="">Sin asignar</option>
                 {assignees.map((assignee) => (
@@ -389,14 +392,14 @@ function IncidentCard({
                 ))}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            <label className="text-sm font-semibold text-slate-500 min-w-0">
               Vencimiento
               <input
                 aria-label={`Vencimiento de ${incident.reference}`}
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               />
             </label>
           </div>
@@ -411,7 +414,7 @@ function IncidentCard({
             type="button"
             disabled={!hasChanges || saving}
             onClick={save}
-            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 max-w-full whitespace-normal"
           >
             {saving ? (
               <Loader2 className="animate-spin" size={15} />
@@ -431,14 +434,21 @@ export default function IncidentsPage() {
   const canMutate = user !== null && INCIDENT_WRITE_ROLES.has(user.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
-  const [result, setResult] = useState<IssueCasePage | null>(null);
   const [assignees, setAssignees] = useState<CaseUserSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [actionError, setMutationError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const entityId =
+    searchParams.get("view") === "detail"
+      ? (searchParams.get("entityId")?.trim() ?? "")
+      : "";
+  const mutationError =
+    actionError ??
+    (entityId.length > 128
+      ? "El vínculo recibido no tiene un identificador de incidente válido."
+      : null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<IssueCase | null>(
     null,
@@ -468,16 +478,7 @@ export default function IncidentsPage() {
   });
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const entityId = searchParams.get("entityId")?.trim() ?? "";
-    if (searchParams.get("view") !== "detail" || !entityId) return;
-    if (entityId.length > 128) {
-      setMutationError(
-        "El vínculo recibido no tiene un identificador de incidente válido.",
-      );
-      return;
-    }
-
+    if (!entityId || entityId.length > 128) return;
     const controller = new AbortController();
     void getIssueCase(entityId, controller.signal)
       .then((issueCase) => {
@@ -492,7 +493,7 @@ export default function IncidentsPage() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [entityId]);
 
   const loadIncidents = useCallback(
     (signal: AbortSignal) =>
@@ -509,24 +510,13 @@ export default function IncidentsPage() {
     [filters],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-
-    void loadIncidents(controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setResult(response);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) setError(readableError(requestError));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [loadIncidents, reload]);
+  const {
+    data: result,
+    loading,
+    error: requestError,
+    setData: setResult,
+  } = usePageRequest(loadIncidents, { reloadKey: reload });
+  const error = requestError ? readableError(requestError) : null;
 
   useEffect(() => {
     if (!canMutate) return;
@@ -623,11 +613,11 @@ export default function IncidentsPage() {
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 min-w-0">
       {notice && (
         <div
           role="status"
-          className="fixed right-4 top-4 z-[90] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl sm:right-6 sm:top-6"
+          className="fixed right-4 top-4 z-[90] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl sm:right-6 sm:top-6 min-w-0 flex-wrap"
         >
           <CheckCircle2 size={18} /> {notice}
           <button
@@ -640,12 +630,12 @@ export default function IncidentsPage() {
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
+          <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 min-w-0">
             <ShieldCheck size={13} /> Operación de campaña
           </div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-3 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Incidentes y respuesta de crisis
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
@@ -660,7 +650,7 @@ export default function IncidentsPage() {
               setMutationError(null);
               setIsCreateOpen(true);
             }}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 text-xs font-black uppercase tracking-wider text-white transition hover:bg-slate-950"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 text-sm font-semibold text-white transition hover:bg-slate-950 max-w-full whitespace-normal"
           >
             <Plus size={17} /> Reportar incidente
           </button>
@@ -669,7 +659,7 @@ export default function IncidentsPage() {
 
       <section
         aria-label="Alcance del módulo"
-        className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950"
+        className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 min-w-0"
       >
         <AlertTriangle className="mt-0.5 shrink-0 text-blue-700" size={19} />
         <p>
@@ -681,18 +671,18 @@ export default function IncidentsPage() {
       </section>
 
       {!canMutate && (
-        <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-900">
+        <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-900 min-w-0">
           Acceso de cumplimiento en modo consulta: puedes revisar la
           trazabilidad, pero no crear, asignar ni transicionar incidentes.
         </section>
       )}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
         <form
           onSubmit={submitSearch}
-          className="grid gap-3 lg:grid-cols-[1fr_210px_180px_auto]"
+          className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_210px_180px_auto] min-w-0"
         >
-          <label className="relative">
+          <label className="relative min-w-0">
             <span className="sr-only">Buscar incidentes</span>
             <Search
               className="absolute left-4 top-3.5 text-slate-400"
@@ -702,7 +692,7 @@ export default function IncidentsPage() {
               value={searchDraft}
               onChange={(event) => setSearchDraft(event.target.value)}
               placeholder="Referencia, hecho, categoría o descripción"
-              className="min-h-11 w-full rounded-xl border border-slate-200 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500"
+              className="min-h-11 w-full rounded-xl border border-slate-200 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 min-w-0 max-w-full"
             />
           </label>
           <select
@@ -715,7 +705,7 @@ export default function IncidentsPage() {
                 status: event.target.value as Filters["status"],
               }))
             }
-            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700"
+            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 min-w-0 max-w-full"
           >
             <option value="">Todos los estados</option>
             {STATUS_OPTIONS.map((option) => (
@@ -734,7 +724,7 @@ export default function IncidentsPage() {
                 priority: event.target.value as Filters["priority"],
               }))
             }
-            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700"
+            className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 min-w-0 max-w-full"
           >
             <option value="">Toda severidad</option>
             {PRIORITY_OPTIONS.map((option) => (
@@ -745,7 +735,7 @@ export default function IncidentsPage() {
           </select>
           <button
             type="submit"
-            className="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black uppercase tracking-wider text-white hover:bg-blue-700"
+            className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-blue-700 max-w-full whitespace-normal"
           >
             Buscar
           </button>
@@ -755,7 +745,7 @@ export default function IncidentsPage() {
       {mutationError && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
         >
           <AlertCircle className="mt-0.5 shrink-0" size={18} /> {mutationError}
         </div>
@@ -764,7 +754,7 @@ export default function IncidentsPage() {
       {loading ? (
         <div
           role="status"
-          className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500"
+          className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500 min-w-0"
         >
           <Loader2 className="animate-spin text-blue-700" size={30} />
           <span className="font-bold">Consultando incidentes de campaña…</span>
@@ -772,11 +762,11 @@ export default function IncidentsPage() {
       ) : error ? (
         <div
           role="alert"
-          className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
+          className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center min-w-0"
         >
           <AlertCircle className="text-red-600" size={34} />
           <div>
-            <h2 className="font-black text-slate-950">
+            <h2 className="font-semibold text-slate-950">
               No fue posible cargar los incidentes
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-600">{error}</p>
@@ -784,15 +774,15 @@ export default function IncidentsPage() {
           <button
             type="button"
             onClick={() => setReload((value) => value + 1)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-xs font-black uppercase tracking-wider text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white max-w-full whitespace-normal"
           >
             <RefreshCw size={16} /> Reintentar
           </button>
         </div>
       ) : !result?.items.length ? (
-        <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+        <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
           <Inbox className="mb-4 text-slate-300" size={48} />
-          <h2 className="font-black text-slate-950">
+          <h2 className="font-semibold text-slate-950">
             No hay incidentes para estos filtros
           </h2>
           <p className="mt-2 max-w-xl text-sm text-slate-500">
@@ -802,7 +792,7 @@ export default function IncidentsPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-1 text-xs font-bold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1 text-xs font-bold text-slate-500 sm:flex-row sm:items-center sm:justify-between min-w-0">
             <span>{result.pagination.total} incidentes encontrados</span>
             <span>
               Página {filters.page} de {totalPages}
@@ -810,7 +800,7 @@ export default function IncidentsPage() {
           </div>
           <section
             aria-label="Listado de incidentes"
-            className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"
+            className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-3 min-w-0"
           >
             {result.items.map((incident) => (
               <IncidentCard
@@ -826,7 +816,7 @@ export default function IncidentsPage() {
           </section>
           <nav
             aria-label="Paginación de incidentes"
-            className="flex justify-end gap-3"
+            className="flex justify-end gap-3 min-w-0 flex-wrap"
           >
             <button
               type="button"
@@ -837,7 +827,7 @@ export default function IncidentsPage() {
                   page: current.page - 1,
                 }))
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               <ChevronLeft size={16} /> Anterior
             </button>
@@ -850,7 +840,7 @@ export default function IncidentsPage() {
                   page: current.page + 1,
                 }))
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               Siguiente <ChevronRight size={16} />
             </button>
@@ -859,21 +849,21 @@ export default function IncidentsPage() {
       )}
 
       {isCreateOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
             ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-incident-title"
-            className="max-h-[94vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-5 sm:p-7">
+            <div className="flex items-start justify-between border-b border-slate-100 p-5 sm:p-7 min-w-0 flex-wrap gap-3">
               <div>
                 <h2
                   ref={createDialogTitleRef}
                   tabIndex={-1}
                   id="new-incident-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-2xl font-semibold text-slate-950"
                 >
                   Reportar incidente
                 </h2>
@@ -885,22 +875,25 @@ export default function IncidentsPage() {
                 type="button"
                 aria-label="Cerrar"
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 <X />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-5 p-5 sm:p-7">
+            <form
+              onSubmit={handleCreate}
+              className="space-y-5 p-5 sm:p-7 min-w-0"
+            >
               {mutationError && (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
                 >
                   {mutationError}
                 </div>
               )}
-              <div className="grid gap-5 md:grid-cols-2">
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+              <div className="grid gap-5 md:grid-cols-2 min-w-0">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Hecho reportado
                   <input
                     required
@@ -909,10 +902,10 @@ export default function IncidentsPage() {
                     onChange={(event) =>
                       setForm({ ...form, title: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Descripción verificable
                   <textarea
                     required
@@ -923,17 +916,17 @@ export default function IncidentsPage() {
                       setForm({ ...form, description: event.target.value })
                     }
                     placeholder="Qué ocurrió, dónde, cuándo y qué evidencia conoce el equipo. Evita datos personales innecesarios."
-                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Categoría
                   <select
                     value={form.category}
                     onChange={(event) =>
                       setForm({ ...form, category: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     {INCIDENT_CATEGORIES.map((category) => (
                       <option key={category} value={category}>
@@ -942,7 +935,7 @@ export default function IncidentsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Canal del reporte
                   <select
                     value={form.sourceChannel}
@@ -953,7 +946,7 @@ export default function IncidentsPage() {
                           .value as CommunicationChannel,
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     {CHANNEL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -962,7 +955,7 @@ export default function IncidentsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Severidad / prioridad
                   <select
                     value={form.priority}
@@ -972,7 +965,7 @@ export default function IncidentsPage() {
                         priority: event.target.value as WorkPriority,
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     {PRIORITY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -981,14 +974,14 @@ export default function IncidentsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Responsable
                   <select
                     value={form.assigneeId}
                     onChange={(event) =>
                       setForm({ ...form, assigneeId: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   >
                     <option value="">Sin asignar</option>
                     {assignees.map((assignee) => (
@@ -998,7 +991,7 @@ export default function IncidentsPage() {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                   Vencimiento
                   <input
                     type="date"
@@ -1006,10 +999,10 @@ export default function IncidentsPage() {
                     onChange={(event) =>
                       setForm({ ...form, dueDate: event.target.value })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                   Fuente o folio mínimo (opcional)
                   <input
                     maxLength={200}
@@ -1021,17 +1014,17 @@ export default function IncidentsPage() {
                       })
                     }
                     placeholder="Código de reporte; no copies datos sensibles innecesarios"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2">
+                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2 min-w-0">
                   <input
                     type="checkbox"
                     checked={form.confidential}
                     onChange={(event) =>
                       setForm({ ...form, confidential: event.target.checked })
                     }
-                    className="mt-0.5 h-4 w-4 shrink-0"
+                    className="mt-0.5 h-4 w-4 shrink-0 min-w-0 max-w-full"
                   />
                   <FileLock2
                     aria-hidden="true"
@@ -1050,18 +1043,18 @@ export default function IncidentsPage() {
                   </span>
                 </label>
               </div>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-xs font-black uppercase tracking-wider text-slate-600"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   disabled={saving === "create"}
                   type="submit"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-700 px-6 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-700 px-6 text-sm font-semibold text-white disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   {saving === "create" ? (
                     <Loader2 className="animate-spin" size={16} />

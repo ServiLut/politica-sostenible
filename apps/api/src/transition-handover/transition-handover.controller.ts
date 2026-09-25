@@ -4,7 +4,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -20,6 +19,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ListTransitionHandoverReportsQueryDto } from './dto/list-transition-handover-reports-query.dto';
 import { TransitionHandoverService } from './transition-handover.service';
+import { TransitionHandoverReportParamsDto } from './dto/transition-handover-report-params.dto';
 
 @ApiTags('Post-election closeout')
 @ApiBearerAuth()
@@ -64,8 +64,11 @@ export class TransitionHandoverController {
   })
   getStoredHandoverReport(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('reportId', new ParseUUIDPipe({ version: '4' })) reportId: string,
+    @Param() params: TransitionHandoverReportParamsDto,
   ) {
-    return this.transitionHandoverService.getHandoverReport(user, reportId);
+    return this.transitionHandoverService.getHandoverReport(
+      user,
+      params.reportId,
+    );
   }
 }

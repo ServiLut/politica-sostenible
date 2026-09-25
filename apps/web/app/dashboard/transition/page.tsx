@@ -101,11 +101,9 @@ function isAbortError(error: unknown) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-2 break-words text-lg font-black text-slate-950">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 min-w-0">
+      <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+      <dd className="mt-2 break-words text-lg font-semibold text-slate-950">
         {value}
       </dd>
     </div>
@@ -209,14 +207,14 @@ export default function TransitionPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+    <div className="mx-auto w-full max-w-7xl space-y-6 pb-28 lg:pb-8 min-w-0">
+      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between min-w-0">
+          <div className="max-w-3xl min-w-0">
+            <p className="text-xs font-semibold text-blue-300">
               Cierre documentado de la operación
             </p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+            <h1 className="mt-3 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               Cierre y transición responsable
             </h1>
             <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-slate-300">
@@ -230,7 +228,7 @@ export default function TransitionPage() {
               type="button"
               onClick={() => void generate()}
               disabled={loading || !isPostElection}
-              className="min-h-12 gap-2 bg-blue-600 text-white hover:bg-blue-500"
+              className="min-h-12 gap-2 bg-blue-600 text-white hover:bg-blue-500 max-w-full whitespace-normal"
             >
               {loading ? (
                 <Loader2
@@ -256,10 +254,12 @@ export default function TransitionPage() {
       {!isPostElection && (
         <section
           role="status"
-          className="rounded-3xl border border-blue-200 bg-blue-50 p-6 text-blue-950"
+          className="rounded-3xl border border-blue-200 bg-blue-50 p-6 text-blue-950 min-w-0"
         >
           <ShieldCheck aria-hidden="true" size={28} />
-          <h2 className="mt-4 text-xl font-black">Aún no corresponde cerrar</h2>
+          <h2 className="mt-4 text-xl font-semibold">
+            Aún no corresponde cerrar
+          </h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6">
             El expediente se habilita únicamente en Poselectoral o Cerrada. Usa
             el perfil de operación para avanzar por el ciclo con trazabilidad;
@@ -267,7 +267,7 @@ export default function TransitionPage() {
           </p>
           <Link
             href="/dashboard/operation-profile"
-            className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-xs font-black uppercase tracking-wider text-white"
+            className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-xs font-semibold text-white max-w-full whitespace-normal"
           >
             Revisar perfil de operación
           </Link>
@@ -275,8 +275,8 @@ export default function TransitionPage() {
       )}
 
       {!canGenerate && (
-        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
-          <h2 className="text-lg font-black">Consulta especializada</h2>
+        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 min-w-0">
+          <h2 className="text-lg font-semibold">Consulta especializada</h2>
           <p className="mt-2 text-sm font-semibold leading-6">
             Solo Administración, Cumplimiento o Auditoría pueden generar este
             corte sensible. El servidor vuelve a validar el rol vigente.
@@ -287,7 +287,7 @@ export default function TransitionPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-950"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-950 min-w-0"
         >
           <AlertCircle
             aria-hidden="true"
@@ -301,16 +301,16 @@ export default function TransitionPage() {
       {canGenerate && (
         <section
           aria-labelledby="handover-history-title"
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0"
         >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between min-w-0">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-xs font-semibold text-slate-500">
                 Archivo inmutable
               </p>
               <h2
                 id="handover-history-title"
-                className="mt-1 text-xl font-black text-slate-950"
+                className="mt-1 text-xl font-semibold text-slate-950"
               >
                 Expedientes conservados
               </h2>
@@ -324,7 +324,7 @@ export default function TransitionPage() {
           {historyError && (
             <div
               role="alert"
-              className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950"
+              className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 min-w-0"
             >
               No fue posible actualizar el archivo conservado: {historyError}
             </div>
@@ -333,7 +333,7 @@ export default function TransitionPage() {
           {historyLoading ? (
             <div
               role="status"
-              className="mt-5 flex items-center gap-2 text-sm font-semibold text-slate-600"
+              className="mt-5 flex items-center gap-2 text-sm font-semibold text-slate-600 min-w-0"
             >
               <Loader2 aria-hidden="true" className="animate-spin" size={18} />
               Consultando expedientes conservados…
@@ -344,7 +344,7 @@ export default function TransitionPage() {
               guardará aquí con ID y huella propios.
             </p>
           ) : (
-            <ul className="mt-5 space-y-3">
+            <ul className="mt-5 space-y-3 min-w-0">
               {history.map((item) => {
                 const selected = report?.reportId === item.reportId;
                 return (
@@ -356,21 +356,21 @@ export default function TransitionPage() {
                         : "border-slate-200 bg-slate-50"
                     }`}
                   >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
                             {STATUS_STYLE[item.status].label}
                           </span>
                           <span className="text-xs font-bold text-slate-500">
                             {formatDate(item.generatedAt, true)}
                           </span>
                         </div>
-                        <p className="mt-2 text-sm font-black text-slate-950">
+                        <p className="mt-2 text-sm font-semibold text-slate-950">
                           Generado por {item.generatedBy.name} ·{" "}
                           {item.generatedBy.role}
                         </p>
-                        <code className="mt-1 block break-all text-[11px] font-semibold text-slate-500">
+                        <code className="mt-1 block break-all text-xs font-semibold text-slate-500">
                           ID {item.reportId} · SHA-256 {item.sha256}
                         </code>
                       </div>
@@ -380,7 +380,7 @@ export default function TransitionPage() {
                         aria-pressed={selected}
                         disabled={openingReportId !== null}
                         onClick={() => void openStoredReport(item.reportId)}
-                        className="shrink-0"
+                        className="shrink-0 max-w-full whitespace-normal"
                       >
                         {openingReportId === item.reportId ? (
                           <Loader2
@@ -405,12 +405,12 @@ export default function TransitionPage() {
       )}
 
       {report && (
-        <div className="space-y-6" aria-live="polite">
+        <div className="space-y-6 min-w-0" aria-live="polite">
           <section
             className={`rounded-3xl border p-6 ${STATUS_STYLE[report.status].className}`}
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
+              <div className="flex items-start gap-3 min-w-0">
                 {(() => {
                   const StatusIcon = STATUS_STYLE[report.status].Icon;
                   return (
@@ -422,7 +422,7 @@ export default function TransitionPage() {
                   );
                 })()}
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider">
+                  <p className="text-xs font-semibold">
                     {STATUS_STYLE[report.status].label}
                   </p>
                   <p className="mt-1 text-sm font-semibold">
@@ -432,12 +432,12 @@ export default function TransitionPage() {
                     {" · "}
                     {formatDate(report.generatedAt, true)}
                   </p>
-                  <code className="mt-1 block break-all text-[11px] font-bold opacity-80">
+                  <code className="mt-1 block break-all text-xs font-bold opacity-80">
                     ID {report.reportId}
                   </code>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 print:hidden">
+              <div className="flex flex-wrap gap-2 print:hidden min-w-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -456,15 +456,15 @@ export default function TransitionPage() {
             </div>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+          <section className="grid gap-6 lg:grid-cols-2 min-w-0">
+            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
+              <p className="text-xs font-semibold text-slate-500">
                 Elección y alcance
               </p>
-              <h2 className="mt-2 text-xl font-black text-slate-950">
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
                 {report.election.name ?? report.organization.name}
               </h2>
-              <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <dl className="mt-5 grid gap-3 sm:grid-cols-2 min-w-0">
                 <Metric
                   label="Fecha electoral"
                   value={formatDate(report.election.date)}
@@ -490,8 +490,8 @@ export default function TransitionPage() {
                 />
               </dl>
               {report.termination && (
-                <div className="mt-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-950">
-                  <p className="font-black">
+                <div className="mt-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-950 min-w-0">
+                  <p className="font-semibold">
                     Terminación excepcional irreversible
                   </p>
                   <p>
@@ -509,7 +509,7 @@ export default function TransitionPage() {
                   </p>
                   <Link
                     href="/dashboard/operation-profile"
-                    className="mt-2 inline-block font-black underline"
+                    className="mt-2 inline-block font-semibold underline"
                   >
                     Abrir expediente causal y obligaciones
                   </Link>
@@ -517,11 +517,11 @@ export default function TransitionPage() {
               )}
             </article>
 
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
+              <p className="text-xs font-semibold text-slate-500">
                 Cierre financiero interno
               </p>
-              <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <dl className="mt-5 grid gap-3 sm:grid-cols-2 min-w-0">
                 <Metric
                   label="Ingresos"
                   value={formatMoney(report.finance.income)}
@@ -565,19 +565,19 @@ export default function TransitionPage() {
             </article>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <Archive aria-hidden="true" className="text-blue-800" size={24} />
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <p className="text-xs font-semibold text-slate-500">
                   Operación y evidencia
                 </p>
-                <h2 className="mt-1 text-xl font-black text-slate-950">
+                <h2 className="mt-1 text-xl font-semibold text-slate-950">
                   Pendientes del corte
                 </h2>
               </div>
             </div>
-            <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 min-w-0">
               <Metric
                 label="Tareas abiertas"
                 value={formatNumber(report.operation.openTasks)}
@@ -597,13 +597,13 @@ export default function TransitionPage() {
             </dl>
 
             {report.actions.length === 0 ? (
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-950 min-w-0">
                 No hay pendientes detectados por este corte. Aún se requiere
                 revisión humana, contable, jurídica y electoral antes del
                 cierre.
               </div>
             ) : (
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-6 space-y-3 min-w-0">
                 {report.actions.map((action) => {
                   const guidance = getHandoverActionGuidance(
                     action.code,
@@ -618,9 +618,9 @@ export default function TransitionPage() {
                           : "border-amber-200 bg-amber-50"
                       }`}
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between min-w-0">
                         <div>
-                          <p className="text-sm font-black text-slate-950">
+                          <p className="text-sm font-semibold text-slate-950">
                             {action.severity === "BLOCK"
                               ? "Bloqueante · "
                               : "Atención · "}
@@ -633,7 +633,7 @@ export default function TransitionPage() {
                         {guidance.linkLabel ? (
                           <Link
                             href={action.href}
-                            className="shrink-0 text-xs font-black uppercase tracking-wider text-blue-800 underline underline-offset-4"
+                            className="shrink-0 text-xs font-semibold text-blue-800 underline underline-offset-4"
                           >
                             {guidance.linkLabel}
                           </Link>
@@ -650,10 +650,10 @@ export default function TransitionPage() {
             )}
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <article className="rounded-3xl border border-blue-200 bg-blue-50 p-6 text-blue-950">
+          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] min-w-0">
+            <article className="rounded-3xl border border-blue-200 bg-blue-50 p-6 text-blue-950 min-w-0">
               <ShieldCheck aria-hidden="true" size={26} />
-              <h2 className="mt-4 text-xl font-black">
+              <h2 className="mt-4 text-xl font-semibold">
                 Campaña y gestión pública no se mezclan
               </h2>
               <p className="mt-2 text-sm font-semibold leading-6">
@@ -677,8 +677,8 @@ export default function TransitionPage() {
               </ol>
             </article>
 
-            <article className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+            <article className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white min-w-0">
+              <p className="text-xs font-semibold text-slate-400">
                 Integridad del corte
               </p>
               <p className="mt-3 text-sm font-bold">

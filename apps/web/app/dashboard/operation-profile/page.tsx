@@ -1,37 +1,15 @@
 "use client";
 
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import Link from "next/link";
-import {
-  AlertCircle,
-  CheckCircle2,
-  ExternalLink,
-  Gauge,
-  ListChecks,
-  Loader2,
-  RefreshCw,
-  Save,
-  Settings2,
-  ShieldCheck,
-  TriangleAlert,
-  UsersRound,
-  XCircle,
-} from "lucide-react";
-import { Button, Input, Label } from "@/components/ui";
-import { Select } from "@/components/ui/select";
+import { usePageRequest } from "@/lib/use-page-request";
+
 import {
   OperationAdoptionFields,
   OperationAdoptionStatusPanel,
   type OperationAdoptionDraft,
 } from "@/components/operation-profile/OperationStageAdoption";
 import { OperationTerminationPanel } from "@/components/operation-profile/OperationTermination";
+import { Button, Input, Label } from "@/components/ui";
+import { Select } from "@/components/ui/select";
 import {
   canAccessNavigationItem,
   dashboardConfig,
@@ -44,8 +22,9 @@ import { ApiError } from "@/lib/api-client";
 import {
   ADOPTABLE_OPERATION_STAGES,
   computeOperationAdoptionPayloadSha256,
-  getOperationReadiness,
   getOperationProfile,
+  getOperationReadiness,
+  isOperationReadiness,
   requestOperationAdoption,
   saveOperationProfile,
   type AdoptableOperationStage,
@@ -69,6 +48,23 @@ import type {
   Tenant,
   User,
 } from "@/types/saas-schema";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Gauge,
+  ListChecks,
+  Loader2,
+  RefreshCw,
+  Save,
+  Settings2,
+  ShieldCheck,
+  TriangleAlert,
+  UsersRound,
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -315,8 +311,7 @@ function formFromProfile(
 }
 
 type NumericResult =
-  | { ok: true; value: number }
-  | { ok: false; message: string };
+  { ok: true; value: number } | { ok: false; message: string };
 
 function parseNumericField(
   rawValue: string,
@@ -625,9 +620,7 @@ function formatMoney(value: number): string {
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </dt>
+      <dt className="text-xs font-semibold text-slate-400">{label}</dt>
       <dd className="mt-1 break-words text-sm font-semibold leading-6 text-slate-800">
         {value}
       </dd>
@@ -764,11 +757,11 @@ function ReadinessPanel({
       <section
         aria-labelledby="operation-readiness-title"
         aria-busy="true"
-        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0"
       >
         <h2
           id="operation-readiness-title"
-          className="flex items-center gap-3 text-xl font-black text-slate-950"
+          className="flex items-center gap-3 text-xl font-semibold text-slate-950"
         >
           <ListChecks aria-hidden="true" className="text-blue-700" />
           Alistamiento por ciclo
@@ -776,7 +769,7 @@ function ReadinessPanel({
         <div
           role="status"
           aria-live="polite"
-          className="mt-5 flex items-center gap-3 text-sm font-semibold text-slate-600"
+          className="mt-5 flex items-center gap-3 text-sm font-semibold text-slate-600 min-w-0"
         >
           <Loader2 aria-hidden="true" className="animate-spin text-blue-700" />
           Verificando controles operativos...
@@ -789,11 +782,11 @@ function ReadinessPanel({
     return (
       <section
         aria-labelledby="operation-readiness-title"
-        className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm"
+        className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm min-w-0"
       >
         <h2
           id="operation-readiness-title"
-          className="flex items-center gap-3 text-xl font-black text-red-950"
+          className="flex items-center gap-3 text-xl font-semibold text-red-950"
         >
           <AlertCircle aria-hidden="true" className="text-red-700" />
           No pudimos verificar el alistamiento
@@ -801,7 +794,11 @@ function ReadinessPanel({
         <p role="alert" className="mt-3 text-sm leading-6 text-red-900">
           {error ?? "No se recibió un estado de alistamiento verificable."}
         </p>
-        <Button type="button" className="mt-5 gap-2" onClick={onReload}>
+        <Button
+          type="button"
+          className="mt-5 gap-2 max-w-full whitespace-normal"
+          onClick={onReload}
+        >
           <RefreshCw aria-hidden="true" size={16} />
           Reintentar alistamiento
         </Button>
@@ -809,26 +806,28 @@ function ReadinessPanel({
     );
   }
 
-  if (!readiness.sections || !readiness.overall) {
+  if (!isOperationReadiness(readiness)) {
     return (
       <section
         aria-labelledby="operation-readiness-title"
-        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 min-w-0"
       >
         <h2
           id="operation-readiness-title"
-          className="flex items-center gap-3 text-xl font-black text-slate-950 sm:text-2xl"
+          className="flex items-center gap-3 text-xl font-semibold text-slate-950 sm:text-2xl"
         >
           <ListChecks aria-hidden="true" className="text-blue-700" />
           Alistamiento por ciclo
         </h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          El servidor indicó que la organización está activa pero aún no
-          entregó el detalle de alistamiento por sección. Esto puede
-          ocurrir mientras se completa la configuración del perfil
-          operativo.
+        <p role="alert" className="mt-3 text-sm leading-6 text-slate-600">
+          El servidor devolvió un alistamiento incompleto o incompatible. No se
+          puede verificar el estado de la operación con esta respuesta.
         </p>
-        <Button type="button" className="mt-5 gap-2" onClick={onReload}>
+        <Button
+          type="button"
+          className="mt-5 gap-2 max-w-full whitespace-normal"
+          onClick={onReload}
+        >
           <RefreshCw aria-hidden="true" size={16} />
           Reintentar alistamiento
         </Button>
@@ -848,13 +847,13 @@ function ReadinessPanel({
     <section
       aria-labelledby="operation-readiness-title"
       aria-busy={loading}
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 min-w-0"
     >
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-3xl">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between min-w-0">
+        <div className="max-w-3xl min-w-0">
           <h2
             id="operation-readiness-title"
-            className="flex items-center gap-3 text-xl font-black text-slate-950 sm:text-2xl"
+            className="flex items-center gap-3 text-xl font-semibold text-slate-950 sm:text-2xl"
           >
             <ListChecks aria-hidden="true" className="text-blue-700" />
             Alistamiento por ciclo
@@ -875,15 +874,13 @@ function ReadinessPanel({
               : ""}
           </p>
         </div>
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center min-w-0">
           <div
             role="status"
             aria-label={`Estado general: ${overall.label}`}
             className={`rounded-2xl border px-4 py-3 ${overall.className}`}
           >
-            <p className="text-xs font-black uppercase tracking-[0.14em]">
-              {overall.label}
-            </p>
+            <p className="text-xs font-semibold">{overall.label}</p>
             <p className="mt-1 max-w-xs text-xs font-semibold leading-5">
               {overall.detail}
             </p>
@@ -892,7 +889,7 @@ function ReadinessPanel({
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 max-w-full whitespace-normal"
             onClick={onReload}
             disabled={loading}
             aria-label="Actualizar alistamiento por ciclo"
@@ -907,7 +904,7 @@ function ReadinessPanel({
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
+      <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold min-w-0">
         <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-900">
           {blocked} {blocked === 1 ? "bloqueo" : "bloqueos"}
         </span>
@@ -928,14 +925,14 @@ function ReadinessPanel({
       {error && (
         <div
           role="alert"
-          className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+          className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between min-w-0"
         >
           <span>
             No se pudo actualizar. Se conserva la última verificación: {error}
           </span>
           <button
             type="button"
-            className="shrink-0 underline"
+            className="shrink-0 underline max-w-full whitespace-normal"
             onClick={onReload}
           >
             Reintentar
@@ -943,19 +940,19 @@ function ReadinessPanel({
         </div>
       )}
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-2">
+      <div className="mt-6 grid gap-5 xl:grid-cols-2 min-w-0">
         {READINESS_SECTIONS.map((section) => {
           const headingId = `readiness-${section.key.toLowerCase()}`;
           return (
             <section
               key={section.key}
               aria-labelledby={headingId}
-              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5"
+              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 min-w-0"
             >
-              <div className="border-b border-slate-200 pb-3">
+              <div className="border-b border-slate-200 pb-3 min-w-0">
                 <h3
                   id={headingId}
-                  className="text-lg font-black text-slate-950"
+                  className="text-lg font-semibold text-slate-950"
                 >
                   {section.name}
                 </h3>
@@ -963,7 +960,7 @@ function ReadinessPanel({
                   {section.description}
                 </p>
               </div>
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-4 space-y-3 min-w-0">
                 {readiness.sections[section.key].map((item) => {
                   const status = READINESS_STATUS[item.status];
                   const StatusIcon = status.icon;
@@ -976,19 +973,19 @@ function ReadinessPanel({
                       key={item.code}
                       className={`rounded-xl border p-4 ${status.containerClass}`}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
                         <StatusIcon
                           aria-hidden="true"
                           size={20}
                           className={`mt-0.5 shrink-0 ${status.iconClass}`}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <h4 className="text-sm font-black leading-5 text-slate-950">
+                          <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
+                            <h4 className="text-sm font-semibold leading-5 text-slate-950">
                               {item.label}
                             </h4>
                             <span
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${status.badgeClass}`}
+                              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.badgeClass}`}
                             >
                               {status.label}
                             </span>
@@ -999,14 +996,14 @@ function ReadinessPanel({
                           {actionHref ? (
                             <Link
                               href={actionHref}
-                              className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-1 text-xs font-black text-blue-800 underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+                              className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-1 text-xs font-semibold text-blue-800 underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 max-w-full whitespace-normal"
                               aria-label={`Revisar: ${item.label}`}
                             >
                               Revisar acción
                               <ExternalLink aria-hidden="true" size={14} />
                             </Link>
                           ) : item.status !== "PASS" ? (
-                            <p className="mt-3 text-[11px] font-bold text-slate-600">
+                            <p className="mt-3 text-xs font-bold text-slate-600">
                               La corrección requiere un rol autorizado.
                             </p>
                           ) : null}
@@ -1059,12 +1056,12 @@ function ElectionLifecycle({ profile }: { profile: OperationProfile }) {
   return (
     <section
       aria-labelledby="election-lifecycle-title"
-      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 min-w-0"
     >
       <div>
         <p
           id="election-lifecycle-title"
-          className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500"
+          className="text-xs font-semibold text-slate-500"
         >
           Ciclo electoral controlado
         </p>
@@ -1085,7 +1082,7 @@ function ElectionLifecycle({ profile }: { profile: OperationProfile }) {
                   : "border-slate-200 bg-white text-slate-700"
               }`}
             >
-              <p className="text-xs font-black uppercase tracking-wider">
+              <p className="text-xs font-semibold">
                 {phase.name}
                 {active ? " · etapa vigente" : ""}
               </p>
@@ -1096,12 +1093,12 @@ function ElectionLifecycle({ profile }: { profile: OperationProfile }) {
               >
                 {phase.purpose}
               </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-1.5 min-w-0">
                 {phase.stages.map((stage) => (
                   <span
                     key={stage}
                     aria-current={stage === profile.stage ? "step" : undefined}
-                    className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       stage === profile.stage
                         ? "bg-white text-blue-800"
                         : permittedAdvances.has(stage)
@@ -1127,7 +1124,7 @@ function ElectionLifecycle({ profile }: { profile: OperationProfile }) {
 function OperationSummary({ context }: { context: OperationProfileContext }) {
   if (!context.configured) {
     return (
-      <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-6 text-sm font-semibold leading-6 text-amber-950">
+      <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-6 text-sm font-semibold leading-6 text-amber-950 min-w-0">
         Aún no existe un perfil operativo. La administración debe definirlo para
         que los módulos se adapten a la etapa y escala reales.
       </div>
@@ -1145,9 +1142,9 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
   ].filter((value): value is string => Boolean(value));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <ElectionLifecycle profile={profile} />
-      <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+      <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1 min-w-0">
         <SummaryItem
           label="Tipo de operación"
           value={OPERATION_TYPE_LABELS[profile.operationType]}
@@ -1177,7 +1174,7 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
         />
         {profile.votingWindowSourceUrl && profile.votingWindowReference && (
           <div>
-            <dt className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            <dt className="text-xs font-semibold text-slate-400">
               Fuente de la ventana
             </dt>
             <dd className="mt-1 text-sm font-semibold leading-6 text-slate-800">
@@ -1186,7 +1183,7 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
                 href={profile.votingWindowSourceUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-blue-800 underline decoration-2 underline-offset-4"
+                className="inline-flex items-center gap-1 text-blue-800 underline decoration-2 underline-offset-4 max-w-full whitespace-normal"
               >
                 Abrir fuente
                 <ExternalLink aria-hidden="true" size={14} />
@@ -1227,15 +1224,15 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
       </dl>
 
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+        <p className="text-xs font-semibold text-slate-400">
           Capacidades activas
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2 min-w-0">
           {capabilities.length > 0 ? (
             capabilities.map((capability) => (
               <span
                 key={capability}
-                className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-800"
+                className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800"
               >
                 {capability}
               </span>
@@ -1250,7 +1247,7 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
       {profile.derived.signatureCollectionEnabled && (
         <div
           role="note"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950 min-w-0"
         >
           Este perfil identifica una operación de firmas, pero la plataforma no
           reemplaza los formularios, validaciones, radicación ni certificación
@@ -1266,16 +1263,8 @@ export default function OperationProfilePage() {
   const confirm = useConfirmation();
   const { synchronizeTenant, tenant, user } = useAuth();
   const canEdit = user?.backendRole === "ADMIN";
-  const [context, setContext] = useState<OperationProfileContext | null>(null);
-  const [readiness, setReadiness] = useState<OperationReadiness | null>(null);
-  const [eligibleMembers, setEligibleMembers] = useState<TeamMember[]>([]);
   const [form, setForm] = useState<OperationProfileForm | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [readinessLoading, setReadinessLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [membersError, setMembersError] = useState<string | null>(null);
-  const [readinessError, setReadinessError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
@@ -1288,81 +1277,86 @@ export default function OperationProfilePage() {
     null,
   );
 
-  const load = useCallback(
+  const request = useCallback(
     async (signal: AbortSignal) => {
-      if (!tenant || !user) {
-        setLoading(false);
-        setReadinessLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setReadinessLoading(true);
-      setError(null);
-      setMembersError(null);
-      setReadinessError(null);
+      if (!tenant || !user) return null;
       const [profileResult, readinessResult, membersResult] =
         await Promise.allSettled([
           getOperationProfile(signal),
           getOperationReadiness(signal),
           canEdit ? listTeamMembers(signal) : Promise.resolve([]),
         ]);
-      if (signal.aborted) return;
-
-      let members: TeamMember[] = [];
-      if (membersResult.status === "fulfilled") {
-        members = membersResult.value
-          .filter(
-            (member) => member.isActive && ELIGIBLE_DATA_ROLES.has(member.role),
-          )
-          .sort((left, right) => left.name.localeCompare(right.name, "es"));
-        setEligibleMembers(members);
-      } else if (canEdit) {
-        setEligibleMembers([]);
-        setMembersError(
-          readableError(
-            membersResult.reason,
-            "No fue posible consultar las personas responsables elegibles.",
-          ),
-        );
-      }
-
+      if (signal.aborted) return null;
+      const members =
+        membersResult.status === "fulfilled"
+          ? membersResult.value
+              .filter(
+                (member) =>
+                  member.isActive && ELIGIBLE_DATA_ROLES.has(member.role),
+              )
+              .sort((left, right) => left.name.localeCompare(right.name, "es"))
+          : [];
       if (profileResult.status === "fulfilled") {
-        setContext(profileResult.value);
         setForm(
           profileResult.value.configured
             ? formFromProfile(profileResult.value.profile, members)
             : defaultForm(tenant, user.id, members),
         );
-      } else {
-        setError(
-          readableError(
-            profileResult.reason,
-            "No fue posible consultar el perfil de operación.",
-          ),
-        );
       }
-      if (readinessResult.status === "fulfilled") {
-        setReadiness(readinessResult.value);
-      } else {
-        setReadinessError(
-          readableError(
-            readinessResult.reason,
-            "No fue posible verificar el alistamiento por ciclo.",
-          ),
-        );
-      }
-      setLoading(false);
-      setReadinessLoading(false);
+      return {
+        context:
+          profileResult.status === "fulfilled" ? profileResult.value : null,
+        readiness:
+          readinessResult.status === "fulfilled" ? readinessResult.value : null,
+        members,
+        error:
+          profileResult.status === "rejected"
+            ? readableError(
+                profileResult.reason,
+                "No fue posible consultar el perfil de operación.",
+              )
+            : null,
+        membersError:
+          membersResult.status === "rejected" && canEdit
+            ? readableError(
+                membersResult.reason,
+                "No fue posible consultar las personas responsables elegibles.",
+              )
+            : null,
+        readinessError:
+          readinessResult.status === "rejected"
+            ? readableError(
+                readinessResult.reason,
+                "No fue posible verificar el alistamiento por ciclo.",
+              )
+            : null,
+      };
     },
     [canEdit, tenant, user],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load, reload]);
+  const {
+    data,
+    loading,
+    error: requestError,
+    setData: setProfileData,
+  } = usePageRequest(request, {
+    enabled: Boolean(tenant && user),
+    reloadKey: reload,
+  });
+  const context = data?.context ?? null;
+  const readiness = data?.readiness ?? null;
+  const eligibleMembers = data?.members ?? [];
+  const error =
+    data?.error ??
+    (requestError
+      ? readableError(
+          requestError,
+          "No fue posible consultar el perfil de operación.",
+        )
+      : null);
+  const membersError = data?.membersError ?? null;
+  const readinessError = data?.readinessError ?? null;
+  const readinessLoading = loading;
 
   const supportsCandidateList =
     form?.operationType === "CORPORATION_CANDIDACY" ||
@@ -1551,7 +1545,9 @@ export default function OperationProfilePage() {
     setSaving(true);
     try {
       const response = await saveOperationProfile(result.input);
-      setContext(response);
+      setProfileData((current) =>
+        current ? { ...current, context: response } : current,
+      );
       setForm(formFromProfile(response.profile, eligibleMembers));
       const synchronized = synchronizeTenant({
         ...tenant,
@@ -1577,13 +1573,13 @@ export default function OperationProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-3xl">
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-600/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-800">
+    <div className="mx-auto max-w-6xl space-y-7 min-w-0">
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0">
+        <div className="max-w-3xl min-w-0">
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-800">
             <Settings2 aria-hidden="true" size={14} /> Configuración estratégica
           </span>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-4 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Perfil de operación
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
@@ -1591,6 +1587,14 @@ export default function OperationProfilePage() {
             presupuesto y gobierno de datos. El sistema usa este perfil para
             habilitar el espacio de trabajo adecuado.
           </p>
+          {canEdit && context && form && (
+            <a
+              href="#operation-profile-form"
+              className="mt-4 inline-flex min-h-11 max-w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              Configurar perfil
+            </a>
+          )}
         </div>
         <Button
           type="button"
@@ -1598,7 +1602,7 @@ export default function OperationProfilePage() {
           size="sm"
           onClick={() => setReload((value) => value + 1)}
           disabled={loading || readinessLoading || saving}
-          className="w-full gap-2 sm:w-auto"
+          className="w-full gap-2 sm:w-auto max-w-full whitespace-normal"
         >
           <RefreshCw
             aria-hidden="true"
@@ -1624,7 +1628,7 @@ export default function OperationProfilePage() {
         <div
           role="status"
           aria-live="polite"
-          className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950"
+          className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950 min-w-0"
         >
           <CheckCircle2 aria-hidden="true" size={20} className="shrink-0" />
           {notice}
@@ -1678,7 +1682,7 @@ export default function OperationProfilePage() {
       {error && context && (
         <div
           role="alert"
-          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between min-w-0"
         >
           <span className="flex items-start gap-3">
             <AlertCircle aria-hidden="true" size={20} className="shrink-0" />
@@ -1687,7 +1691,7 @@ export default function OperationProfilePage() {
           </span>
           <button
             type="button"
-            className="shrink-0 font-black text-amber-950 underline"
+            className="shrink-0 font-semibold text-amber-950 underline max-w-full whitespace-normal"
             onClick={() => setReload((value) => value + 1)}
           >
             Reintentar
@@ -1698,19 +1702,19 @@ export default function OperationProfilePage() {
       {loading && !context ? (
         <div
           role="status"
-          className="flex items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-10 text-sm font-semibold text-slate-600 shadow-sm"
+          className="flex items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-10 text-sm font-semibold text-slate-600 shadow-sm min-w-0"
         >
           <Loader2 aria-hidden="true" className="animate-spin text-blue-700" />
           Consultando la configuración operativa…
         </div>
       ) : error && !context ? (
-        <section className="rounded-3xl border border-red-200 bg-red-50 p-7 text-center shadow-sm">
+        <section className="rounded-3xl border border-red-200 bg-red-50 p-7 text-center shadow-sm min-w-0">
           <AlertCircle
             aria-hidden="true"
             className="mx-auto text-red-700"
             size={34}
           />
-          <h2 className="mt-4 text-xl font-black text-red-950">
+          <h2 className="mt-4 text-xl font-semibold text-red-950">
             No pudimos abrir el perfil
           </h2>
           <p
@@ -1721,7 +1725,7 @@ export default function OperationProfilePage() {
           </p>
           <Button
             type="button"
-            className="mt-6"
+            className="mt-6 max-w-full whitespace-normal"
             onClick={() => setReload((value) => value + 1)}
           >
             Reintentar
@@ -1737,11 +1741,14 @@ export default function OperationProfilePage() {
         >
           {canEdit && form ? (
             <form
+              id="operation-profile-form"
+              tabIndex={-1}
+              aria-label="Parámetros de la operación"
               onSubmit={handleSubmit}
-              className="space-y-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
+              className="min-w-0 scroll-mt-4 space-y-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:p-8"
             >
               <div>
-                <h2 className="flex items-center gap-3 text-xl font-black text-slate-950">
+                <h2 className="flex items-center gap-3 text-xl font-semibold text-slate-950">
                   <Gauge aria-hidden="true" className="text-blue-700" />
                   Parámetros de la operación
                 </h2>
@@ -1750,12 +1757,12 @@ export default function OperationProfilePage() {
                   exclusivamente a esta organización.
                 </p>
                 {!currentProfile && (
-                  <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-2 sm:grid-cols-2">
+                  <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-2 sm:grid-cols-2 min-w-0">
                     <button
                       type="button"
                       aria-pressed={!adoptionMode}
                       onClick={() => selectCreationMode(false)}
-                      className={`rounded-xl px-4 py-3 text-left text-sm font-black ${!adoptionMode ? "bg-white text-blue-900 shadow-sm ring-2 ring-blue-700" : "text-slate-600"}`}
+                      className={`rounded-xl px-4 py-3 text-left text-sm font-semibold ${!adoptionMode ? "bg-white text-blue-900 shadow-sm ring-2 ring-blue-700" : "text-slate-600"}`}
                     >
                       Alta segura
                       <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
@@ -1766,7 +1773,7 @@ export default function OperationProfilePage() {
                       type="button"
                       aria-pressed={adoptionMode}
                       onClick={() => selectCreationMode(true)}
-                      className={`rounded-xl px-4 py-3 text-left text-sm font-black ${adoptionMode ? "bg-amber-50 text-amber-950 shadow-sm ring-2 ring-amber-600" : "text-slate-600"}`}
+                      className={`rounded-xl px-4 py-3 text-left text-sm font-semibold ${adoptionMode ? "bg-amber-50 text-amber-950 shadow-sm ring-2 ring-amber-600" : "text-slate-600"}`}
                     >
                       Adopción excepcional
                       <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
@@ -1778,11 +1785,11 @@ export default function OperationProfilePage() {
               </div>
 
               <fieldset className="space-y-5">
-                <legend className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <legend className="text-xs font-semibold text-slate-500">
                   Estrategia electoral
                 </legend>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="operation-type">Tipo de operación</Label>
                     <Select
                       id="operation-type"
@@ -1801,7 +1808,7 @@ export default function OperationProfilePage() {
                       ))}
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="operation-stage">Etapa operativa</Label>
                     <Select
                       id="operation-stage"
@@ -1835,7 +1842,7 @@ export default function OperationProfilePage() {
                           : "Un perfil nuevo inicia en exploración o precampaña; después avanza con trazabilidad."}
                     </p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="election-type">Tipo de elección</Label>
                     <Select
                       id="election-type"
@@ -1855,7 +1862,7 @@ export default function OperationProfilePage() {
                       ))}
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="election-date">Fecha electoral</Label>
                     <Input
                       id="election-date"
@@ -1880,9 +1887,9 @@ export default function OperationProfilePage() {
                       }}
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-950">
+                  <div className="space-y-2 sm:col-span-2 min-w-0">
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 min-w-0">
+                      <p className="text-xs font-semibold text-blue-950">
                         Ventana operativa electoral
                       </p>
                       <p
@@ -1897,7 +1904,7 @@ export default function OperationProfilePage() {
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="voting-start-date">
                       Primera fecha incluida
                     </Label>
@@ -1912,7 +1919,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="voting-end-date">
                       Última fecha incluida
                     </Label>
@@ -1927,7 +1934,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
+                  <div className="space-y-2 sm:col-span-2 min-w-0">
                     <Label htmlFor="voting-window-source-url">
                       Fuente documental HTTPS (si aplica)
                     </Label>
@@ -1947,7 +1954,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
+                  <div className="space-y-2 sm:col-span-2 min-w-0">
                     <Label htmlFor="voting-window-reference">
                       Referencia documental (si aplica)
                     </Label>
@@ -1966,7 +1973,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="candidate-count">
                       Cantidad de candidaturas
                     </Label>
@@ -1989,7 +1996,7 @@ export default function OperationProfilePage() {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="list-type">Tipo de lista</Label>
                     <Select
                       id="list-type"
@@ -2026,11 +2033,11 @@ export default function OperationProfilePage() {
               )}
 
               <fieldset className="space-y-5 border-t border-slate-100 pt-7">
-                <legend className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <legend className="text-xs font-semibold text-slate-500">
                   Alcance y escala
                 </legend>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="circumscription-type">
                       Tipo de circunscripción
                     </Label>
@@ -2052,7 +2059,7 @@ export default function OperationProfilePage() {
                       ))}
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="circumscription-name">
                       Nombre de la circunscripción
                     </Label>
@@ -2067,7 +2074,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="circumscription-code">
                       Código de circunscripción (opcional)
                     </Label>
@@ -2082,7 +2089,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="expected-team-size">
                       Tamaño esperado del equipo
                     </Label>
@@ -2103,11 +2110,11 @@ export default function OperationProfilePage() {
               </fieldset>
 
               <fieldset className="space-y-5 border-t border-slate-100 pt-7">
-                <legend className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <legend className="text-xs font-semibold text-slate-500">
                   Topes financieros
                 </legend>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="max-total-budget">
                       Presupuesto total máximo (COP)
                     </Label>
@@ -2125,7 +2132,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="max-publicity-limit">
                       Límite máximo de publicidad (COP)
                     </Label>
@@ -2147,11 +2154,11 @@ export default function OperationProfilePage() {
               </fieldset>
 
               <fieldset className="space-y-5 border-t border-slate-100 pt-7">
-                <legend className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <legend className="text-xs font-semibold text-slate-500">
                   Gobierno de datos
                 </legend>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
+                <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+                  <div className="space-y-2 sm:col-span-2 min-w-0">
                     <Label htmlFor="data-controller-name">
                       Responsable del tratamiento
                     </Label>
@@ -2166,7 +2173,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="responsible-data-user">
                       Persona responsable
                     </Label>
@@ -2200,7 +2207,7 @@ export default function OperationProfilePage() {
                       {responsibleHelp}
                     </p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="retention-period-days">
                       Conservación de datos (días)
                     </Label>
@@ -2217,7 +2224,7 @@ export default function OperationProfilePage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
+                  <div className="space-y-2 sm:col-span-2 min-w-0">
                     <Label htmlFor="revocation-procedure">
                       Procedimiento de revocación, supresión o corrección
                     </Label>
@@ -2243,13 +2250,13 @@ export default function OperationProfilePage() {
               {membersError && (
                 <div
                   role="alert"
-                  className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950 sm:flex-row sm:items-center sm:justify-between min-w-0"
                 >
                   <span>{membersError}</span>
                   <button
                     type="button"
                     onClick={() => setReload((value) => value + 1)}
-                    className="shrink-0 font-black underline"
+                    className="shrink-0 font-semibold underline max-w-full whitespace-normal"
                   >
                     Reintentar equipo
                   </button>
@@ -2258,7 +2265,7 @@ export default function OperationProfilePage() {
               {saveError && (
                 <div
                   role="alert"
-                  className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900"
+                  className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900 min-w-0"
                 >
                   <AlertCircle
                     aria-hidden="true"
@@ -2269,7 +2276,7 @@ export default function OperationProfilePage() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-3 border-t border-slate-100 pt-7 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-slate-100 pt-7 sm:flex-row sm:items-center sm:justify-between min-w-0">
                 <p className="max-w-md text-xs font-semibold leading-5 text-slate-500">
                   {adoptionMode && !currentProfile
                     ? "La solicitud no activa la etapa: una persona de cumplimiento o auditoría debe revisar la evidencia y decidir."
@@ -2278,7 +2285,7 @@ export default function OperationProfilePage() {
                 <Button
                   type="submit"
                   disabled={!canSave}
-                  className="w-full gap-2 sm:w-auto"
+                  className="w-full gap-2 sm:w-auto max-w-full whitespace-normal"
                 >
                   {saving ? (
                     <Loader2
@@ -2298,13 +2305,13 @@ export default function OperationProfilePage() {
               </div>
             </form>
           ) : (
-            <section className="rounded-3xl border border-blue-100 bg-blue-50 p-6 sm:p-8">
+            <section className="rounded-3xl border border-blue-100 bg-blue-50 p-6 sm:p-8 min-w-0">
               <ShieldCheck
                 aria-hidden="true"
                 className="text-blue-800"
                 size={30}
               />
-              <h2 className="mt-4 text-xl font-black text-blue-950">
+              <h2 className="mt-4 text-xl font-semibold text-blue-950">
                 Consulta de configuración
               </h2>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-blue-950/75">
@@ -2315,7 +2322,7 @@ export default function OperationProfilePage() {
           )}
 
           <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-            <div className="mb-6 flex items-start gap-4 border-b border-slate-100 pb-5">
+            <div className="mb-6 flex items-start gap-4 border-b border-slate-100 pb-5 min-w-0">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
                 {context.configured ? (
                   <CheckCircle2 aria-hidden="true" size={22} />
@@ -2324,10 +2331,10 @@ export default function OperationProfilePage() {
                 )}
               </span>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                <p className="text-xs font-semibold text-slate-400">
                   Estado actual
                 </p>
-                <h2 className="mt-1 text-lg font-black text-slate-950">
+                <h2 className="mt-1 text-lg font-semibold text-slate-950">
                   {context.configured ? "Perfil configurado" : "Sin configurar"}
                 </h2>
               </div>

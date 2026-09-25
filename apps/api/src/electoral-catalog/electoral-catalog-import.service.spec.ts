@@ -19,7 +19,7 @@ import type { PrismaService } from '../prisma/prisma.service';
 import { OperationClosedForMutationException } from '../common/utils/operation-lifecycle-fence.util';
 import { ElectoralCatalogArtifactService } from './electoral-catalog-artifact.service';
 import { ElectoralCatalogImportService } from './electoral-catalog-import.service';
-import type { ElectoralCatalogQueuePort } from './electoral-catalog-queue.constants';
+
 import { ElectoralCatalogService } from './electoral-catalog.service';
 import type { CreateElectoralCatalogImportDto } from './dto/electoral-catalog-import.dto';
 
@@ -171,7 +171,7 @@ describe('ElectoralCatalogImportService', () => {
       prisma as unknown as PrismaService,
       catalogs as unknown as ElectoralCatalogService,
       artifacts as unknown as ElectoralCatalogArtifactService,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
     );
   });
 

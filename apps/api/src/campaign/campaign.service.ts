@@ -37,8 +37,14 @@ import {
   type DaneMunicipality,
 } from './dane-divipola.client';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
-import { CreatePoliticalDivisionDto, CreatableDivisionType } from './dto/create-political-division.dto';
-import { CreateTerritoryLeaderDto, UpdateTerritoryLeaderDto } from './dto/territory-leader.dto';
+import {
+  CreatePoliticalDivisionDto,
+  CreatableDivisionType,
+} from './dto/create-political-division.dto';
+import {
+  CreateTerritoryLeaderDto,
+  UpdateTerritoryLeaderDto,
+} from './dto/territory-leader.dto';
 import { resolveTerritorialAccess } from '../common/utils/territorial-access.util';
 import { findActiveConsentNotice } from '../common/utils/consent-notice.util';
 import { pollingPlaceOperationalStatus } from '../common/utils/polling-place-operating-time';
@@ -866,23 +872,6 @@ export class CampaignService {
           coordinateEntriesPromise,
         ]);
 
-        const allTerritoryLeaders = await transaction.territoryLeader.findMany({
-          where: { tenantId: user.tenantId, divisionId: { in: divisionIds } },
-          select: { id: true, name: true, phone: true, socialNetworkUrl: true, roleDescription: true, divisionId: true },
-        });
-        const leadersByDivisionId = new Map<string, Array<{id: string; name: string; phone: string | null; socialNetworkUrl: string | null; roleDescription: string}>>();
-        for (const leader of allTerritoryLeaders) {
-          const list = leadersByDivisionId.get(leader.divisionId) ?? [];
-          list.push({
-            id: leader.id,
-            name: leader.name,
-            phone: leader.phone,
-            socialNetworkUrl: leader.socialNetworkUrl,
-            roleDescription: leader.roleDescription,
-          });
-          leadersByDivisionId.set(leader.divisionId, list);
-        }
-
         // Prisma's groupBy conditional return type is not preserved through a
         // heterogeneous Promise.all tuple. The selected shape is fixed above;
         // naming it here keeps downstream aggregation type-safe and lintable.
@@ -1041,7 +1030,6 @@ export class CampaignService {
                     locatedPollingPlaces: 0,
                     totalPollingPlaces,
                   },
-            leaders: leadersByDivisionId.get(item.id) ?? [],
           };
         });
         const threshold = HEATMAP_PRIVACY_THRESHOLDS[query.metric];
@@ -1092,7 +1080,6 @@ export class CampaignService {
               acceptedTableCount,
               hasChildren,
               geo,
-              leaders,
             }) => {
               const suppressed =
                 rawValue !== null &&
@@ -1135,7 +1122,6 @@ export class CampaignService {
                   acceptedTables: acceptedTableCount,
                 },
                 geo,
-                leaders,
               };
             },
           ),
@@ -1386,6 +1372,7 @@ export class CampaignService {
   }
 
   async listTerritoryLeaders(user: AuthenticatedUser, divisionId: string) {
+    await this.assertLeaderDivisionAccess(this.prisma, user, divisionId, false);
     return this.prisma.territoryLeader.findMany({
       where: { tenantId: user.tenantId, divisionId },
       orderBy: { name: 'asc' },
@@ -1397,50 +1384,142 @@ export class CampaignService {
     divisionId: string,
     dto: CreateTerritoryLeaderDto,
   ) {
-    // Verify division belongs to tenant
-    const division = await this.prisma.politicalDivision.findFirst({
-      where: { id: divisionId, tenantId: user.tenantId },
-    });
-    if (!division) {
-      throw new NotFoundException('División territorial no encontrada');
-    }
-
-    return this.prisma.territoryLeader.create({
-      data: {
-        tenantId: user.tenantId,
-        divisionId,
-        ...dto,
+    return this.prisma.$transaction(
+      async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, user.tenantId);
+        await this.assertLeaderDivisionAccess(
+          transaction,
+          user,
+          divisionId,
+          true,
+        );
+        const leader = await transaction.territoryLeader.create({
+          data: { ...dto, tenantId: user.tenantId, divisionId },
+        });
+        await this.auditLeaderChange(
+          transaction,
+          user,
+          leader.id,
+          'TERRITORY_LEADER_CREATED',
+        );
+        return leader;
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   async updateTerritoryLeader(
     user: AuthenticatedUser,
+    divisionId: string,
     leaderId: string,
     dto: UpdateTerritoryLeaderDto,
   ) {
-    const leader = await this.prisma.territoryLeader.findFirst({
-      where: { id: leaderId, tenantId: user.tenantId },
-    });
-    if (!leader) {
-      throw new NotFoundException('Líder territorial no encontrado');
-    }
-
-    return this.prisma.territoryLeader.update({
-      where: { id: leaderId },
-      data: dto,
-    });
+    return this.prisma.$transaction(
+      async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, user.tenantId);
+        await this.assertLeaderDivisionAccess(
+          transaction,
+          user,
+          divisionId,
+          true,
+        );
+        const changed = await transaction.territoryLeader.updateMany({
+          where: { id: leaderId, tenantId: user.tenantId, divisionId },
+          data: dto,
+        });
+        if (changed.count !== 1)
+          throw new NotFoundException('Líder territorial no encontrado');
+        await this.auditLeaderChange(
+          transaction,
+          user,
+          leaderId,
+          'TERRITORY_LEADER_UPDATED',
+        );
+        return transaction.territoryLeader.findFirstOrThrow({
+          where: { id: leaderId, tenantId: user.tenantId, divisionId },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
-  async deleteTerritoryLeader(user: AuthenticatedUser, leaderId: string) {
-    const leader = await this.prisma.territoryLeader.findFirst({
-      where: { id: leaderId, tenantId: user.tenantId },
-    });
-    if (!leader) {
-      throw new NotFoundException('Líder territorial no encontrado');
-    }
+  async deleteTerritoryLeader(
+    user: AuthenticatedUser,
+    divisionId: string,
+    leaderId: string,
+  ) {
+    return this.prisma.$transaction(
+      async (transaction) => {
+        await lockAndAssertOperationOpen(transaction, user.tenantId);
+        await this.assertLeaderDivisionAccess(
+          transaction,
+          user,
+          divisionId,
+          true,
+        );
+        const changed = await transaction.territoryLeader.deleteMany({
+          where: { id: leaderId, tenantId: user.tenantId, divisionId },
+        });
+        if (changed.count !== 1)
+          throw new NotFoundException('Líder territorial no encontrado');
+        await this.auditLeaderChange(
+          transaction,
+          user,
+          leaderId,
+          'TERRITORY_LEADER_DELETED',
+        );
+        return { deleted: true };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
 
-    await this.prisma.territoryLeader.delete({ where: { id: leaderId } });
-    return { deleted: true };
+  private async assertLeaderDivisionAccess(
+    client: Prisma.TransactionClient,
+    user: AuthenticatedUser,
+    divisionId: string,
+    write: boolean,
+  ) {
+    const tenant = await client.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: CAMPAIGN_TENANT_SELECT,
+    });
+    assertCampaignTenant(tenant);
+    const access = await resolveTerritorialAccess({
+      client,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: write
+        ? [Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR]
+        : [...CAMPAIGN_DIVISION_READ_ROLES],
+      territoriallyScopedRoles: [...TERRITORIALLY_SCOPED_DIVISION_ROLES],
+    });
+    if (access.divisionIds && !access.divisionIds.includes(divisionId))
+      throw new NotFoundException('División territorial no encontrada');
+    const division = await client.politicalDivision.findFirst({
+      where: { id: divisionId, tenantId: user.tenantId, isActive: true },
+      select: { id: true },
+    });
+    if (!division)
+      throw new NotFoundException('División territorial no encontrada');
+  }
+
+  private async auditLeaderChange(
+    transaction: Prisma.TransactionClient,
+    user: AuthenticatedUser,
+    leaderId: string,
+    action: string,
+  ) {
+    await transaction.auditEvent.create({
+      data: {
+        tenantId: user.tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        actorType: AuditActorType.USER,
+        actorUserId: user.userId,
+        resourceType: 'TerritoryLeader',
+        resourceId: leaderId,
+        action,
+      },
+    });
   }
 }

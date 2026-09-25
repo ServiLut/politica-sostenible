@@ -7,6 +7,9 @@ import {
   useSyncExternalStore,
 } from "react";
 import { PwaControls } from "./PwaControls";
+import { usePathname } from "next/navigation";
+import { showsPwaWorkspaceControls } from "./pwa-control-routes";
+import { createPortal } from "react-dom";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -72,7 +75,19 @@ function subscribeToInstalledMode(onChange: () => void) {
 
 const subscribeToStaticClientValue = () => () => undefined;
 
+function subscribeToWorkspaceSlot(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.body, { childList: true, subtree: true });
+  return () => observer.disconnect();
+}
+
+function workspaceSlot() {
+  return document.getElementById("pwa-workspace-controls");
+}
+
 export function ServiceWorkerRegistration() {
+  const pathname = usePathname();
+  const controlsSlot = useSyncExternalStore(subscribeToWorkspaceSlot, workspaceSlot, () => null);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(
@@ -266,7 +281,7 @@ export function ServiceWorkerRegistration() {
     }
   }, [waitingWorker]);
 
-  return (
+  return showsPwaWorkspaceControls(pathname) && controlsSlot ? createPortal(
     <PwaControls
       canInstall={installPrompt !== null}
       installGuideAvailable={isIos}
@@ -277,6 +292,7 @@ export function ServiceWorkerRegistration() {
       registrationError={registrationError}
       onInstall={requestInstall}
       onApplyUpdate={applyUpdate}
-    />
-  );
+    />,
+    controlsSlot,
+  ) : null;
 }

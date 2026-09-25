@@ -14,6 +14,7 @@ import {
   Role,
   StoredObjectStatus,
   StorageObjectModule,
+  StorageIntegrityStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -57,6 +58,8 @@ function createHarness() {
     contentType: 'application/pdf',
     etag: 'storage-etag-a',
     actualSize: 4_096,
+    calculatedSha256: 'a'.repeat(64),
+    integrityVerifiedAt: new Date('2026-09-06T12:01:00.000Z'),
     confirmedAt: new Date('2026-09-06T12:00:00.000Z'),
     consumedAt: new Date('2026-09-06T12:05:00.000Z'),
     consumedByType: 'FinancialEntry',
@@ -159,6 +162,8 @@ describe('ElectronicSignatureService', () => {
         confirmedAt: harness.document.confirmedAt,
         consumedAt: harness.document.consumedAt,
         consumedById: 'finance-a',
+        calculatedSha256: harness.document.calculatedSha256,
+        integrityVerifiedAt: harness.document.integrityVerifiedAt,
         signatures: [{ id: 'signature-a', signedAt }],
       },
       {
@@ -300,7 +305,7 @@ describe('ElectronicSignatureService', () => {
       module: StorageModuleName.FINANCE,
       resourceType: 'FinancialEntry',
       integrityScope: 'LINK_AND_STORAGE_METADATA',
-      contentIntegrity: 'UNVERIFIED',
+      contentIntegrity: 'VERIFIED',
     });
 
     expect(harness.prisma.storedObject.findFirst).toHaveBeenCalledWith({
@@ -313,6 +318,11 @@ describe('ElectronicSignatureService', () => {
         consumedAt: { not: null },
         consumedByType: 'FinancialEntry',
         consumedById: 'finance-a',
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        integrityVerifiedAt: { not: null },
       },
       select: expect.any(Object),
     });
@@ -642,7 +652,7 @@ describe('ElectronicSignatureService', () => {
       module: StorageModuleName.FINANCE,
       resourceType: 'FinancialEntry',
       integrityScope: 'LINK_AND_STORAGE_METADATA',
-      contentIntegrity: 'UNVERIFIED',
+      contentIntegrity: 'VERIFIED',
     });
     expect(result).not.toHaveProperty('documentHash');
     expect(result).not.toHaveProperty('documentId');

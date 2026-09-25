@@ -31,6 +31,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 import {
   getNavigationGroupsForRole,
   getRoleLabel,
@@ -142,7 +143,7 @@ function NavigationLink({
         className={item.isActive ? "text-white" : "text-slate-500"}
         size={18}
       />
-      <span>{item.title}</span>
+      <span className="min-w-0 flex-1 break-words">{item.title}</span>
     </Link>
   );
 }
@@ -154,6 +155,7 @@ export function Sidebar() {
   const drawerRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreDrawerFocusRef = useRef(true);
 
   const stage = tenant?.operationStage;
   const navigation: ActiveNavItem[] = (
@@ -190,63 +192,37 @@ export function Sidebar() {
   const userInitial = user?.name?.[0]?.toUpperCase() ?? "U";
 
   function closeMobileMenu(restoreFocus = true) {
+    restoreDrawerFocusRef.current = restoreFocus;
     setMobileMenuOpen(false);
-    if (restoreFocus) {
-      window.requestAnimationFrame(() => moreButtonRef.current?.focus());
-    }
   }
 
   function handleSignOut() {
-    setMobileMenuOpen(false);
+    closeMobileMenu(false);
     signOut();
   }
 
+  useAccessibleDialog({
+    open: mobileMenuOpen,
+    containerRef: drawerRef,
+    initialFocusRef: closeButtonRef,
+    returnFocusRef: moreButtonRef,
+    restoreFocusRef: restoreDrawerFocusRef,
+    onClose: () => closeMobileMenu(),
+  });
+
   useEffect(() => {
     if (!mobileMenuOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() =>
-      closeButtonRef.current?.focus(),
-    );
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeMobileMenu();
-        return;
-      }
-
-      if (event.key !== "Tab" || !drawerRef.current) return;
-      const focusableElements = Array.from(
-        drawerRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements.at(-1);
-      if (!firstElement || !lastElement) return;
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    function closeHiddenDrawer(event: MediaQueryListEvent) {
+      if (event.matches) closeMobileMenu(false);
     }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    desktop.addEventListener("change", closeHiddenDrawer);
+    return () => desktop.removeEventListener("change", closeHiddenDrawer);
   }, [mobileMenuOpen]);
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-slate-950 text-white lg:flex">
+      <aside className="hidden h-full min-h-0 w-64 shrink-0 flex-col bg-slate-950 text-white lg:flex xl:w-[17rem]">
         <div className="border-b border-slate-800 p-5">
           <Link
             href="/dashboard"
@@ -257,10 +233,10 @@ export function Sidebar() {
               <ShieldCheck aria-hidden="true" size={21} />
             </span>
             <span>
-              <span className="block text-base font-black tracking-tight text-white">
+              <span className="block text-base font-semibold tracking-tight text-white">
                 Política Sostenible
               </span>
-              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+              <span className="block text-xs font-medium text-slate-400">
                 Operación verificable
               </span>
             </span>
@@ -268,7 +244,7 @@ export function Sidebar() {
 
           {tenant && (
             <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+              <p className="text-xs font-medium text-slate-400">
                 Organización activa
               </p>
               <p className="mt-1 truncate text-sm font-bold text-slate-100">
@@ -278,7 +254,7 @@ export function Sidebar() {
                 {getTenantTypeLabel(tenant.type)}
               </p>
               {roleNavigationGroups[0] && (
-                <p className="mt-3 border-t border-slate-800 pt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                <p className="mt-3 border-t border-slate-800 pt-3 text-xs font-medium text-slate-400">
                   Tu espacio · {roleNavigationGroups[0].title}
                 </p>
               )}
@@ -288,7 +264,7 @@ export function Sidebar() {
 
         <nav
           aria-label="Navegación principal"
-          className="flex-1 space-y-6 overflow-y-auto px-4 py-5"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4"
         >
           <button
             type="button"
@@ -301,7 +277,7 @@ export function Sidebar() {
           >
             <Search size={18} />
             <span className="flex-1 text-left">Buscar...</span>
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] uppercase tracking-widest font-semibold opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">
               Cmd+K
             </span>
           </button>
@@ -312,7 +288,7 @@ export function Sidebar() {
               <section key={group.id} aria-labelledby={headingId}>
                 <h2
                   id={headingId}
-                  className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.22em] text-slate-600"
+                  className="mb-2 px-3 text-xs font-medium text-slate-400"
                 >
                   {group.title}
                 </h2>
@@ -328,7 +304,7 @@ export function Sidebar() {
 
         {user && (
           <div className="border-t border-slate-800 p-4">
-            <p className="px-3 text-[9px] font-black uppercase tracking-[0.18em] text-slate-600">
+            <p className="px-3 text-xs font-medium text-slate-400">
               Acceso según rol
             </p>
             <p className="mt-1 px-3 text-xs font-semibold text-slate-300">
@@ -340,7 +316,7 @@ export function Sidebar() {
 
       <nav
         aria-label="Navegación principal móvil"
-        className="fixed inset-x-0 bottom-0 z-[80] grid auto-cols-fr grid-flow-col border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_32px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-[80] grid auto-cols-fr grid-flow-col border-t border-slate-200 bg-white/95 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(15,23,42,0.04)] backdrop-blur lg:hidden"
       >
         {mobilePrimary.map((item) => {
           const Icon = NAV_ICONS[item.icon];
@@ -350,8 +326,8 @@ export function Sidebar() {
               href={item.href}
               aria-label={item.title}
               aria-current={item.isActive ? "page" : undefined}
-              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[9px] font-black uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
-                item.isActive ? "bg-blue-700 text-white" : "text-slate-500"
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                item.isActive ? "bg-blue-50 text-blue-800" : "text-slate-500"
               }`}
             >
               <Icon aria-hidden="true" size={18} />
@@ -368,10 +344,13 @@ export function Sidebar() {
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-navigation-drawer"
           aria-label="Abrir más opciones"
-          onClick={() => setMobileMenuOpen(true)}
-          className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[9px] font-black uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+          onClick={() => {
+            restoreDrawerFocusRef.current = true;
+            setMobileMenuOpen(true);
+          }}
+          className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
             secondaryRouteIsActive || mobileMenuOpen
-              ? "bg-blue-700 text-white"
+              ? "bg-blue-50 text-blue-800"
               : "text-slate-500"
           }`}
         >
@@ -395,16 +374,17 @@ export function Sidebar() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-navigation-title"
-            className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl"
+            tabIndex={-1}
+            className="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-var(--app-banner-height)-1rem)] overflow-y-auto overscroll-contain rounded-t-2xl bg-white shadow-2xl"
           >
             <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white/95 px-5 py-5 backdrop-blur">
               <div className="min-w-0 pr-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-700">
+                <p className="text-xs font-semibold text-blue-700">
                   Navegación
                 </p>
                 <h2
                   id="mobile-navigation-title"
-                  className="mt-1 text-xl font-black text-slate-950"
+                  className="mt-1 text-xl font-semibold text-slate-950"
                 >
                   Más opciones
                 </h2>
@@ -414,7 +394,7 @@ export function Sidebar() {
                       {tenant.name} · {getTenantTypeLabel(tenant.type)}
                     </p>
                     {roleNavigationGroups[0] && (
-                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-blue-700">
+                      <p className="mt-1 text-xs font-semibold text-blue-700">
                         Tu espacio · {roleNavigationGroups[0].title}
                       </p>
                     )}
@@ -440,7 +420,7 @@ export function Sidebar() {
                     <section key={group.id} aria-labelledby={headingId}>
                       <h3
                         id={headingId}
-                        className="mb-2 px-1 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400"
+                        className="mb-2 px-1 text-xs font-semibold text-slate-500"
                       >
                         {group.title}
                       </h3>
@@ -455,7 +435,7 @@ export function Sidebar() {
                               onClick={() => closeMobileMenu(false)}
                               className={`flex min-h-14 items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                                 item.isActive
-                                  ? "border-blue-700 bg-blue-700 text-white"
+                                  ? "border-blue-700 bg-blue-50 text-blue-800"
                                   : "border-slate-200 bg-white text-slate-700"
                               }`}
                             >
@@ -481,16 +461,16 @@ export function Sidebar() {
                 >
                   <h3
                     id="mobile-profile-title"
-                    className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400"
+                    className="text-xs font-semibold text-slate-500"
                   >
                     Perfil
                   </h3>
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
                       {userInitial}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-900">
+                      <p className="truncate text-sm font-semibold text-slate-900">
                         {user.name}
                       </p>
                       <p className="truncate text-xs font-medium text-slate-500">
@@ -501,7 +481,7 @@ export function Sidebar() {
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-xs font-semibold uppercase tracking-wider text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
                     <LogOut aria-hidden="true" size={17} />
                     Cerrar sesión

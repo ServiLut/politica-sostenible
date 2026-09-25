@@ -13,6 +13,7 @@ import {
   SignatureCountCorrectionDecisionType,
   SignatureCountCorrectionReviewControl,
   StorageObjectModule,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -22,14 +23,7 @@ import {
   resolveDatabaseSchema,
   resolveDatabaseSearchPathOptions,
 } from '../prisma/prisma.service';
-import type {
-  CreateSignatureBatchDto,
-  CreateSignatureCollectionPlanDto,
-  IssueSignatureBatchDto,
-  QuarantineSignatureBatchDto,
-  ReleaseSignatureBatchDto,
-  ReturnSignatureBatchDto,
-} from './dto/signature-collection.dto';
+import type { ReleaseSignatureBatchDto } from './dto/signature-collection.dto';
 import {
   DecideSignatureCountCorrectionDto,
   ProposeSignatureCountCorrectionDto,
@@ -206,7 +200,7 @@ physicalDescribe(
           contingencyPlan:
             'Aislar el lote, preservar folios, documentar el incidente y detener traslados hasta resolverlo.',
           submissionDueAt: '2099-04-01',
-        }) as CreateSignatureCollectionPlanDto,
+        }),
       );
       return {
         tenantId,
@@ -230,7 +224,7 @@ physicalDescribe(
           territoryReference: 'Zona fisica de integracion',
           plannedForms: 20,
           expectedReturnAt: '2099-02-20T18:00:00.000Z',
-        }) as CreateSignatureBatchDto,
+        }),
       );
       const batchId = created.resource.id;
       await signatures.issueBatch(
@@ -250,7 +244,7 @@ physicalDescribe(
             evidenceSha256: '3'.repeat(64),
           },
           { batchId },
-        ) as IssueSignatureBatchDto,
+        ),
       );
       await signatures.returnBatch(
         context.manager,
@@ -272,7 +266,7 @@ physicalDescribe(
             evidenceSha256: '4'.repeat(64),
           },
           { batchId },
-        ) as ReturnSignatureBatchDto,
+        ),
       );
       await signatures.quarantineBatch(
         context.manager,
@@ -289,7 +283,7 @@ physicalDescribe(
             evidenceSha256: '5'.repeat(64),
           },
           { batchId },
-        ) as QuarantineSignatureBatchDto,
+        ),
       );
       return prisma.signatureCollectionBatch.findUniqueOrThrow({
         where: { id_tenantId: { id: batchId, tenantId: context.tenantId } },
@@ -298,6 +292,7 @@ physicalDescribe(
 
     async function evidence(user: AuthenticatedUser, digest = 'a'.repeat(64)) {
       const path = `${user.tenantId}/signature-collection/${randomUUID()}.pdf`;
+      const verifiedAt = new Date();
       const stored = await prisma.storedObject.create({
         data: {
           tenantId: user.tenantId,
@@ -310,6 +305,12 @@ physicalDescribe(
           etag: `etag-${randomUUID()}`,
           expectedSha256: digest,
           reportedSha256: digest,
+          integrityStatus: StorageIntegrityStatus.VERIFIED,
+          calculatedSha256: digest,
+          observedSize: 256,
+          observedContentType: 'application/pdf',
+          integrityCheckedAt: verifiedAt,
+          integrityVerifiedAt: verifiedAt,
           status: StoredObjectStatus.CONFIRMED,
           expiresAt: new Date(Date.now() + 3_600_000),
           confirmedAt: new Date(),

@@ -35,6 +35,7 @@ ARG APP_SOURCE
 LABEL org.opencontainers.image.revision="${APP_REVISION}" \
       org.opencontainers.image.source="${APP_SOURCE}"
 COPY --chown=node:node deploy/migrate.mjs ./deploy/migrate.mjs
+COPY --chown=node:node deploy/legacy-migration-atomicity.mjs ./deploy/legacy-migration-atomicity.mjs
 COPY --chown=node:node deploy/migrate-entrypoint.mjs ./deploy/migrate-entrypoint.mjs
 COPY --chown=node:node deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
 USER node

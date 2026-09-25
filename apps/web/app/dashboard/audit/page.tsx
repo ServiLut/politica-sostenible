@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { getRoleLabel } from "@/config/navigation";
+import { ApiError } from "@/lib/api-client";
+import {
+  AuditEvent,
+  AuditOutcome,
+  listAuditEvents,
+} from "@/lib/audit-events-api";
 import {
   AlertCircle,
   ChevronLeft,
@@ -12,14 +20,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import {
-  AuditEvent,
-  AuditEventPage,
-  AuditOutcome,
-  listAuditEvents,
-} from "@/lib/audit-events-api";
-import { ApiError } from "@/lib/api-client";
-import { getRoleLabel } from "@/config/navigation";
+import { FormEvent, useCallback, useState } from "react";
 
 const PAGE_SIZE = 20;
 
@@ -159,10 +160,10 @@ function AuditRow({ event }: { event: AuditEvent }) {
         {formatTimestamp(event.occurredAt)}
       </td>
       <td className="px-4 py-4">
-        <p className="text-sm font-black text-slate-950">
+        <p className="text-sm font-semibold text-slate-950">
           {actionLabel(event.action)}
         </p>
-        <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-400">
+        <p className="mt-1 font-mono text-xs font-bold text-slate-400">
           {event.action}
         </p>
         <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -172,7 +173,7 @@ function AuditRow({ event }: { event: AuditEvent }) {
       </td>
       <td className="px-4 py-4">
         {event.actor ? (
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 min-w-0">
             <UserRound
               aria-hidden="true"
               className="mt-0.5 shrink-0 text-slate-400"
@@ -195,7 +196,7 @@ function AuditRow({ event }: { event: AuditEvent }) {
       </td>
       <td className="px-4 py-4">
         <span
-          className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ${OUTCOME_STYLES[event.outcome]}`}
+          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${OUTCOME_STYLES[event.outcome]}`}
         >
           {OUTCOME_LABELS[event.outcome]}
         </span>
@@ -209,29 +210,27 @@ function AuditCard({ event }: { event: AuditEvent }) {
     RESOURCE_LABELS[event.resourceType] ?? event.resourceType;
 
   return (
-    <li data-testid={`audit-card-${event.id}`} className="px-4 py-5">
+    <li data-testid={`audit-card-${event.id}`} className="px-4 py-5 min-w-0">
       <article aria-label={`${actionLabel(event.action)}: ${resourceLabel}`}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 min-w-0 flex-wrap">
           <div className="min-w-0">
-            <h3 className="text-sm font-black leading-5 text-slate-950">
+            <h3 className="text-sm font-semibold leading-5 text-slate-950">
               {actionLabel(event.action)}
             </h3>
-            <p className="mt-1 break-all font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">
+            <p className="mt-1 break-all font-mono text-xs font-bold text-slate-500">
               {event.action}
             </p>
           </div>
           <span
-            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ${OUTCOME_STYLES[event.outcome]}`}
+            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${OUTCOME_STYLES[event.outcome]}`}
           >
             {OUTCOME_LABELS[event.outcome]}
           </span>
         </div>
 
-        <dl className="mt-4 grid gap-3 text-sm">
+        <dl className="mt-4 grid gap-3 text-sm min-w-0">
           <div>
-            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Fecha
-            </dt>
+            <dt className="text-xs font-semibold text-slate-500">Fecha</dt>
             <dd className="mt-0.5 font-semibold text-slate-700">
               <time dateTime={event.occurredAt}>
                 {formatTimestamp(event.occurredAt)}
@@ -239,9 +238,7 @@ function AuditCard({ event }: { event: AuditEvent }) {
             </dd>
           </div>
           <div>
-            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Recurso
-            </dt>
+            <dt className="text-xs font-semibold text-slate-500">Recurso</dt>
             <dd className="mt-0.5 font-semibold text-slate-700">
               {resourceLabel}
               {event.resourceId ? (
@@ -252,9 +249,7 @@ function AuditCard({ event }: { event: AuditEvent }) {
             </dd>
           </div>
           <div>
-            <dt className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Actor
-            </dt>
+            <dt className="text-xs font-semibold text-slate-500">Actor</dt>
             <dd className="mt-1 flex items-start gap-2 text-slate-700">
               <UserRound
                 aria-hidden="true"
@@ -285,45 +280,31 @@ export default function AuditPage() {
   const [draftFilters, setDraftFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<AuditEventPage | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadEvents = useCallback(
-    async (signal?: AbortSignal) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await listAuditEvents(
-          {
-            page,
-            limit: PAGE_SIZE,
-            action: filters.action.trim() || undefined,
-            resourceType: filters.resourceType.trim() || undefined,
-            outcome: filters.outcome || undefined,
-            occurredFrom: startOfBogotaDay(filters.occurredFrom),
-            occurredTo: endOfBogotaDay(filters.occurredTo),
-          },
-          signal,
-        );
-        setResult(data);
-      } catch (caught) {
-        if (caught instanceof DOMException && caught.name === "AbortError") {
-          return;
-        }
-        setError(readableError(caught));
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
+  const [filterError, setError] = useState<string | null>(null);
+  const request = useCallback(
+    (signal: AbortSignal) =>
+      listAuditEvents(
+        {
+          page,
+          limit: PAGE_SIZE,
+          action: filters.action.trim() || undefined,
+          resourceType: filters.resourceType.trim() || undefined,
+          outcome: filters.outcome || undefined,
+          occurredFrom: startOfBogotaDay(filters.occurredFrom),
+          occurredTo: endOfBogotaDay(filters.occurredTo),
+        },
+        signal,
+      ),
     [filters, page],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadEvents(controller.signal);
-    return () => controller.abort();
-  }, [loadEvents]);
+  const {
+    data: result,
+    loading,
+    error: requestError,
+    refresh: loadEvents,
+  } = usePageRequest(request);
+  const error =
+    filterError ?? (requestError ? readableError(requestError) : null);
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -349,14 +330,14 @@ export default function AuditPage() {
   const items = result?.items ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+    <div className="mx-auto w-full max-w-7xl space-y-6 min-w-0">
+      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8 min-w-0">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-blue-300">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-blue-300 min-w-0">
               <ShieldCheck aria-hidden="true" size={18} /> Control interno
             </div>
-            <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+            <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               Bitácora de auditoría
             </h1>
             <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300">
@@ -369,7 +350,7 @@ export default function AuditPage() {
             type="button"
             onClick={() => void loadEvents()}
             disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-950 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-950 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw
               aria-hidden="true"
@@ -383,16 +364,14 @@ export default function AuditPage() {
 
       <form
         onSubmit={applyFilters}
-        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0"
       >
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2 min-w-0">
           <Filter aria-hidden="true" className="text-blue-700" size={18} />
-          <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-            Filtros
-          </h2>
+          <h2 className="text-sm font-semibold text-slate-800">Filtros</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <label className="space-y-1 text-xs font-black text-slate-600">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 min-w-0">
+          <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Acción
             <input
               value={draftFilters.action}
@@ -404,10 +383,10 @@ export default function AuditPage() {
               }
               maxLength={120}
               placeholder="Ej. CASE_UPDATED"
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900"
+              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
             />
           </label>
-          <label className="space-y-1 text-xs font-black text-slate-600">
+          <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Tipo de recurso
             <input
               value={draftFilters.resourceType}
@@ -419,10 +398,10 @@ export default function AuditPage() {
               }
               maxLength={120}
               placeholder="Ej. IssueCase"
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900"
+              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
             />
           </label>
-          <label className="space-y-1 text-xs font-black text-slate-600">
+          <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Resultado
             <select
               value={draftFilters.outcome}
@@ -432,7 +411,7 @@ export default function AuditPage() {
                   outcome: event.target.value as "" | AuditOutcome,
                 }))
               }
-              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900"
+              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
             >
               <option value="">Todos</option>
               <option value="SUCCESS">Exitosa</option>
@@ -440,7 +419,7 @@ export default function AuditPage() {
               <option value="FAILURE">Fallida</option>
             </select>
           </label>
-          <label className="space-y-1 text-xs font-black text-slate-600">
+          <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Desde
             <input
               type="date"
@@ -451,10 +430,10 @@ export default function AuditPage() {
                   occurredFrom: event.target.value,
                 }))
               }
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900"
+              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
             />
           </label>
-          <label className="space-y-1 text-xs font-black text-slate-600">
+          <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Hasta
             <input
               type="date"
@@ -465,21 +444,21 @@ export default function AuditPage() {
                   occurredTo: event.target.value,
                 }))
               }
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900"
+              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
             />
           </label>
         </div>
-        <div className="mt-4 flex flex-wrap justify-end gap-3">
+        <div className="mt-4 flex flex-wrap justify-end gap-3 min-w-0">
           <button
             type="button"
             onClick={clearFilters}
-            className="min-h-11 rounded-xl border border-slate-200 px-4 text-xs font-black uppercase tracking-wider text-slate-600"
+            className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 max-w-full whitespace-normal"
           >
             Limpiar
           </button>
           <button
             type="submit"
-            className="min-h-11 rounded-xl bg-blue-700 px-5 text-xs font-black uppercase tracking-wider text-white"
+            className="min-h-11 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white max-w-full whitespace-normal"
           >
             Aplicar filtros
           </button>
@@ -489,7 +468,7 @@ export default function AuditPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800 min-w-0"
         >
           <AlertCircle aria-hidden="true" className="shrink-0" size={20} />
           {error}
@@ -498,13 +477,13 @@ export default function AuditPage() {
 
       <section
         aria-labelledby="audit-results-title"
-        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm min-w-0"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 min-w-0 flex-wrap">
           <div>
             <h2
               id="audit-results-title"
-              className="text-lg font-black text-slate-950"
+              className="text-lg font-semibold text-slate-950"
             >
               Eventos registrados
             </h2>
@@ -522,13 +501,13 @@ export default function AuditPage() {
         </div>
 
         {!loading && !error && items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center min-w-0">
             <ClipboardList
               aria-hidden="true"
               className="text-slate-300"
               size={42}
             />
-            <p className="font-black text-slate-800">
+            <p className="font-semibold text-slate-800">
               No hay eventos para estos filtros
             </p>
             <p className="max-w-md text-sm font-medium text-slate-500">
@@ -537,14 +516,19 @@ export default function AuditPage() {
           </div>
         ) : (
           <>
-            <ul className="divide-y divide-slate-100 md:hidden">
+            <ul className="divide-y divide-slate-100 md:hidden min-w-0">
               {items.map((event) => (
                 <AuditCard key={event.id} event={event} />
               ))}
             </ul>
-            <div className="hidden overflow-x-auto md:block">
+            <div
+              className="hidden overflow-x-auto md:block min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              role="region"
+              aria-label="Registro de auditoría: tabla con desplazamiento horizontal"
+              tabIndex={0}
+            >
               <table className="min-w-full text-left">
-                <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
                   <tr>
                     <th scope="col" className="px-4 py-3">
                       Fecha
@@ -573,24 +557,24 @@ export default function AuditPage() {
         {pagination && pagination.totalPages > 1 && (
           <nav
             aria-label="Paginación de auditoría"
-            className="flex items-center justify-between gap-4 border-t border-slate-100 px-5 py-4"
+            className="flex items-center justify-between gap-4 border-t border-slate-100 px-5 py-4 min-w-0 flex-wrap"
           >
             <button
               type="button"
               disabled={loading || page <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               <ChevronLeft aria-hidden="true" size={16} /> Anterior
             </button>
-            <span className="text-xs font-black text-slate-500">
+            <span className="text-xs font-semibold text-slate-500">
               Página {pagination.page} de {pagination.totalPages}
             </span>
             <button
               type="button"
               disabled={loading || page >= pagination.totalPages}
               onClick={() => setPage((current) => current + 1)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               Siguiente <ChevronRight aria-hidden="true" size={16} />
             </button>

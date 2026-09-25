@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -54,22 +55,32 @@ export class JwtAuthGuard implements CanActivate {
         { algorithms: ['HS256'] },
       );
       const identity = this.toTokenIdentity(payload);
-      const currentUser = await this.prisma.user.findFirst({
-        where: {
-          id: identity.userId,
-          tenantId: identity.tenantId,
-          isActive: true,
-        },
-        select: {
-          email: true,
-          role: true,
-          password: true,
-          totpEnabledAt: true,
-          authVersion: true,
-          mustChangePassword: true,
-          temporaryPasswordExpiresAt: true,
-        },
-      });
+      const currentUser = await this.prisma.user
+        .findFirst({
+          where: {
+            id: identity.userId,
+            tenantId: identity.tenantId,
+            isActive: true,
+          },
+          select: {
+            email: true,
+            role: true,
+            password: true,
+            totpEnabledAt: true,
+            authVersion: true,
+            mustChangePassword: true,
+            temporaryPasswordExpiresAt: true,
+          },
+        })
+        .catch(() => {
+          // A database outage does not invalidate a signed session. Return a
+          // retryable server error so clients retain the token, while still
+          // denying access until the current account can be verified.
+          throw new ServiceUnavailableException({
+            code: 'AUTH_SERVICE_UNAVAILABLE',
+            message: 'No fue posible verificar la sesión. Intenta nuevamente.',
+          });
+        });
 
       if (!currentUser) {
         throw new UnauthorizedException('Token invalido o expirado');
@@ -117,7 +128,11 @@ export class JwtAuthGuard implements CanActivate {
       }
       return true;
     } catch (error: unknown) {
-      if (error instanceof ForbiddenException) throw error;
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof ServiceUnavailableException
+      )
+        throw error;
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }

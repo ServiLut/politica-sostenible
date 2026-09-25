@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import {
   StoredObjectStatus,
   StorageObjectModule,
+  StorageIntegrityStatus,
 } from '../../../prisma/generated/prisma';
 import {
   assertConfirmedStorageUpload,
@@ -35,6 +36,10 @@ describe('confirmed storage upload authorization', () => {
         module: StorageObjectModule.E14,
         status: StoredObjectStatus.CONFIRMED,
         consumedAt: null,
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
       },
       select: { id: true },
     });
@@ -60,6 +65,10 @@ describe('confirmed storage upload authorization', () => {
         module: StorageObjectModule.E14,
         status: StoredObjectStatus.CONFIRMED,
         consumedAt: null,
+        expectedSha256: { not: null },
+        reportedSha256: { not: null },
+        calculatedSha256: { not: null },
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
       },
       data: {
         status: StoredObjectStatus.CONSUMED,

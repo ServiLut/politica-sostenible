@@ -61,6 +61,11 @@ services:
       DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CONSENT_IP_SALT: ${CONSENT_IP_SALT:?CONSENT_IP_SALT is required}
+      OFFLINE_SYNC_HMAC_SECRET: ${OFFLINE_SYNC_HMAC_SECRET:?OFFLINE_SYNC_HMAC_SECRET is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      REDIS_ALLOW_PLAINTEXT_INTERNAL: ${REDIS_ALLOW_PLAINTEXT_INTERNAL:-false}
+      PUBLIC_REGISTRATION_ENABLED: ${PUBLIC_REGISTRATION_ENABLED:-false}
+      TEAM_INVITATION_ACCEPTANCE_ENABLED: ${TEAM_INVITATION_ACCEPTANCE_ENABLED:-true}
       SAAS_ADMIN_USER_IDS: ${SAAS_ADMIN_USER_IDS:?SAAS_ADMIN_USER_IDS is required}
       SAAS_ADMIN_EMAILS: ${SAAS_ADMIN_EMAILS:-}
       MFA_TOTP_ACTIVE_KEY_ID: ${MFA_TOTP_ACTIVE_KEY_ID:?MFA_TOTP_ACTIVE_KEY_ID is required}
@@ -111,6 +116,54 @@ services:
         max-size: ${LOG_MAX_SIZE:-10m}
         max-file: ${LOG_MAX_FILES:-3}
 
+  catalog-worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:-unknown}
+        DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
+    command: ["node", "../../deploy/catalog-worker-entrypoint.mjs"]
+    environment:
+      NODE_ENV: production
+      DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-production}
+      ALLOW_INSECURE_DATABASE_CONNECTION: ${ALLOW_INSECURE_DATABASE_CONNECTION:-false}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA:-}
+      DATABASE_SSL: ${DATABASE_SSL:-true}
+      DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      REDIS_ALLOW_PLAINTEXT_INTERNAL: ${REDIS_ALLOW_PLAINTEXT_INTERNAL:-false}
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY is required}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:?SUPABASE_STORAGE_BUCKET is required}
+    restart: unless-stopped
+    stop_grace_period: 40s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "../../deploy/catalog-worker-healthcheck.mjs"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: ${CATALOG_WORKER_CPUS_LIMIT:-1.0}
+    mem_limit: ${CATALOG_WORKER_MEMORY_LIMIT:-768m}
+    pids_limit: ${CATALOG_WORKER_PIDS_LIMIT:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-3}
+
   web:
     build:
       context: .
@@ -133,6 +186,8 @@ services:
     stop_grace_period: 40s
     depends_on:
       api:
+        condition: service_healthy
+      catalog-worker:
         condition: service_healthy
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"

@@ -35,6 +35,18 @@ function validHttpsOrigin(value) {
   }
 }
 
+function validLoopbackOrigin(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) &&
+      ["127.0.0.1", "[::1]"].includes(url.hostname) &&
+      url.pathname === "/" && !url.username && !url.password &&
+      !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
 function validAnonKey(value) {
   if (hasPlaceholder(value)) return false;
   if (/^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(value)) return true;
@@ -55,11 +67,18 @@ export function publicBuildEnvironmentIssues(environment = process.env) {
   const anonKey = environment.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
   const issues = [];
 
-  if (!validHttpsOrigin(appUrl)) {
-    issues.push("NEXT_PUBLIC_APP_URL debe ser un origen HTTPS real");
+  const localBuild = environment.ALLOW_LOCAL_STAGING_BUILD === "true";
+  const evaluation = environment.DEPLOYMENT_PROFILE === "evaluation";
+  if (localBuild && !evaluation) {
+    issues.push("ALLOW_LOCAL_STAGING_BUILD requiere el perfil evaluation; no se puede promover este build a producción");
   }
-  if (!validHttpsOrigin(storageUrl)) {
-    issues.push("NEXT_PUBLIC_SUPABASE_URL debe ser un origen HTTPS real");
+  const validOrigin = localBuild && evaluation ? validLoopbackOrigin : validHttpsOrigin;
+
+  if (!validOrigin(appUrl)) {
+    issues.push(localBuild && evaluation ? "NEXT_PUBLIC_APP_URL debe apuntar exclusivamente a loopback" : "NEXT_PUBLIC_APP_URL debe ser un origen HTTPS real");
+  }
+  if (!validOrigin(storageUrl)) {
+    issues.push(localBuild && evaluation ? "NEXT_PUBLIC_SUPABASE_URL debe apuntar exclusivamente a loopback" : "NEXT_PUBLIC_SUPABASE_URL debe ser un origen HTTPS real");
   }
   if (!validAnonKey(anonKey)) {
     issues.push(

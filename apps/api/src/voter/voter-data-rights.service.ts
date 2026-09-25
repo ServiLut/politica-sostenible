@@ -362,7 +362,7 @@ export class VoterDataRightsService {
       Object.entries(requested).filter(
         ([field, value]) => currentValues[field] !== value,
       ),
-    ) as Prisma.VoterUncheckedUpdateInput;
+    );
   }
 
   private async createAuditEvent(

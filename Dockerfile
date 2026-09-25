@@ -13,6 +13,7 @@ WORKDIR /app
 ARG APP_REVISION
 ARG APP_SOURCE
 ARG DEPLOYMENT_PROFILE
+ARG ALLOW_LOCAL_STAGING_BUILD=false
 RUN apk add --no-cache openssl libc6-compat
 RUN corepack enable && corepack prepare pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264 --activate
 COPY --from=pruner /app/out/json/ .
@@ -50,6 +51,7 @@ ARG APP_SOURCE
 LABEL org.opencontainers.image.revision="${APP_REVISION}" \
       org.opencontainers.image.source="${APP_SOURCE}"
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NESTJS_API_URL=http://127.0.0.1:4000
+ENV APP_REVISION=${APP_REVISION}
 ENV API_PROCESS_UID=1001 API_PROCESS_GID=1001 WEB_PROCESS_UID=1002 WEB_PROCESS_GID=1002 SUPERVISOR_SHUTDOWN_GRACE_MS=30000
 ENV CATALOG_WORKER_PROCESS_UID=1003 CATALOG_WORKER_PROCESS_GID=1003
 RUN apk add --no-cache openssl \
@@ -78,6 +80,7 @@ COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY deploy/start.mjs ./deploy/start.mjs
 COPY deploy/migrate.mjs ./deploy/migrate.mjs
+COPY deploy/legacy-migration-atomicity.mjs ./deploy/legacy-migration-atomicity.mjs
 COPY deploy/runtime-environment.mjs ./deploy/runtime-environment.mjs
 COPY deploy/catalog-worker-entrypoint.mjs ./deploy/catalog-worker-entrypoint.mjs
 COPY deploy/catalog-worker-healthcheck.mjs ./deploy/catalog-worker-healthcheck.mjs

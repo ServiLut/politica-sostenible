@@ -261,9 +261,9 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
       type: TenantType.PUBLIC_OFFICE,
     });
 
-    await expect(service.openExport('personas', currentUser)).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.openExport('personas', currentUser),
+    ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
     expect(prisma.voter.findMany).not.toHaveBeenCalled();

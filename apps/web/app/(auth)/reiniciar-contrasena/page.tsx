@@ -7,14 +7,14 @@ export default function ResetPasswordPage() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex min-h-screen items-center justify-center bg-slate-50 p-6 outline-none"
+      className="flex min-h-dvh items-center justify-center bg-slate-50 p-4 sm:p-6 outline-none min-w-0"
     >
-      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 sm:p-12">
-        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-950 text-white">
+      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-4 sm:p-8 text-center shadow-xl shadow-slate-900/5 min-w-0">
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-950 text-white min-w-0">
           <LockKeyhole className="h-10 w-10" aria-hidden="true" />
         </div>
 
-        <h1 className="text-4xl font-black tracking-tight text-slate-950">
+        <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
           El acceso se restablece de forma administrada
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-slate-600">

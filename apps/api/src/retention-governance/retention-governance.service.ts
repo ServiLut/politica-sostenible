@@ -1233,7 +1233,7 @@ export class RetentionGovernanceService {
         code: blocker.code,
       })),
       previewSha256: preview.previewSha256,
-    } as Prisma.InputJsonObject;
+    };
   }
 
   private dispositionAuditSnapshot(

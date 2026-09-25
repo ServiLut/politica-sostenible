@@ -470,6 +470,8 @@ describe('ImportService privacy and tenant isolation', () => {
         module: StorageObjectModule.CONSENT,
         status: StoredObjectStatus.CONFIRMED,
         consumedAt: null,
+        expectedSha256: null,
+        reportedSha256: null,
       },
       data: {
         status: StoredObjectStatus.CONSUMED,

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   LockKeyhole,
   X,
 } from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import { listVotingPlaces, type VotingPlacePage } from "@/lib/election-api";
 import {
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
 interface DetailForm {
   firstName: string;
@@ -124,100 +126,37 @@ export function VoterDetailPanel({
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const closeRef = useRef(onClose);
-  const busyRef = useRef(false);
-  const [voter, setVoter] = useState<VoterDetail | null>(null);
   const [form, setForm] = useState<DetailForm>(EMPTY_FORM);
   const [selectedPlace, setSelectedPlace] = useState<{
     id: string;
     name: string;
     code?: string;
   } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [placesPage, setPlacesPage] =
-    useState<VotingPlacePage>(EMPTY_PLACES_PAGE);
   const [placePage, setPlacePage] = useState(1);
   const [placeSearchDraft, setPlaceSearchDraft] = useState("");
   const [placeSearch, setPlaceSearch] = useState("");
-  const [placesLoading, setPlacesLoading] = useState(false);
-  const [placesError, setPlacesError] = useState<string | null>(null);
   const [placesReload, setPlacesReload] = useState(0);
   const busy = saving || exporting;
 
-  useEffect(() => {
-    closeRef.current = onClose;
-  }, [onClose]);
+  useAccessibleDialog({ open: true, containerRef: dialogRef, initialFocusRef: closeButtonRef, onClose, closeOnEscape: !busy });
 
-  useEffect(() => {
-    busyRef.current = busy;
-  }, [busy]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setLoadError(null);
-    setVoter(null);
-
-    const requestTimer = window.setTimeout(() => {
-      void getVoter(voterId, controller.signal)
-        .then((response) => {
-          if (controller.signal.aborted) return;
-          setVoter(response);
-          setForm(detailToForm(response));
-          setSelectedPlace(response.puesto);
-        })
-        .catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === "AbortError")
-            return;
-          if (!controller.signal.aborted) setLoadError(readableError(error));
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, 0);
-
-    return () => {
-      window.clearTimeout(requestTimer);
-      controller.abort();
-    };
-  }, [reload, voterId]);
-
-  useEffect(() => {
-    if (!editing) return;
-
-    const controller = new AbortController();
-    setPlacesLoading(true);
-    setPlacesError(null);
-
-    void listVotingPlaces(
-      {
-        page: placePage,
-        limit: 25,
-        ...(placeSearch ? { search: placeSearch } : {}),
-      },
-      controller.signal,
-    )
-      .then((response) => {
-        if (!controller.signal.aborted) setPlacesPage(response);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        if (!controller.signal.aborted) setPlacesError(readableError(error));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setPlacesLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [editing, placePage, placeSearch, placesReload]);
+  const loadVoter = useCallback((signal: AbortSignal) => getVoter(voterId, signal), [voterId]);
+  const { data: voter, setData: setVoter, loading, error: voterError } =
+    usePageRequest<VoterDetail>(loadVoter, { reloadKey: reload });
+  const loadError = voterError ? readableError(voterError) : null;
+  const loadPlaces = useCallback((signal: AbortSignal) => listVotingPlaces({
+    page: placePage, limit: 25, ...(placeSearch ? { search: placeSearch } : {}),
+  }, signal), [placePage, placeSearch]);
+  const { data: placeResult, loading: placesLoading, error: placeError } =
+    usePageRequest<VotingPlacePage>(loadPlaces, { enabled: editing, reloadKey: placesReload });
+  const placesPage = placeResult ?? EMPTY_PLACES_PAGE;
+  const placesError = placeError ? readableError(placeError) : null;
 
   const places = placesPage.items;
   const selectedPlaceOutsidePage =
@@ -235,44 +174,6 @@ export function VoterDetailPanel({
     setPlaceSearch("");
     setPlacePage(1);
   }
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busyRef.current) closeRef.current();
-      if (event.key !== "Tab" || !dialogRef.current) return;
-
-      const focusable = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-        ),
-      );
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-      if (previousFocus?.isConnected) previousFocus.focus();
-    };
-  }, []);
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -354,23 +255,24 @@ export function VoterDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm sm:p-5">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5">
       <section
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="voter-detail-title"
         aria-busy={loading || busy}
-        className="flex max-h-[95vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-slate-50 shadow-2xl"
+        tabIndex={-1}
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[calc(100dvh-2.5rem)]"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white p-5 sm:p-7">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white p-4 sm:p-6">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-800">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
               <LockKeyhole aria-hidden="true" size={13} /> Acceso restringido
             </div>
             <h2
               id="voter-detail-title"
-              className="mt-3 text-2xl font-black tracking-tight text-slate-950"
+              className="mt-3 text-xl font-semibold sm:text-2xl tracking-tight text-slate-950"
             >
               Datos personales autorizados
             </h2>
@@ -393,7 +295,7 @@ export function VoterDetailPanel({
           </Button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-7">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {loading ? (
             <div
               role="status"
@@ -409,7 +311,7 @@ export function VoterDetailPanel({
             >
               <AlertCircle aria-hidden="true" size={30} />
               <div>
-                <p className="font-black">No se pudo abrir el registro</p>
+                <p className="font-semibold">No se pudo abrir el registro</p>
                 <p className="mt-1 text-sm font-semibold">{loadError}</p>
               </div>
               <Button
@@ -460,7 +362,7 @@ export function VoterDetailPanel({
               {editing ? (
                 <form onSubmit={handleSave} className="space-y-5">
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Nombres
                       <Input
                         required
@@ -472,7 +374,7 @@ export function VoterDetailPanel({
                         className="normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Apellidos
                       <Input
                         required
@@ -484,7 +386,7 @@ export function VoterDetailPanel({
                         className="normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Documento
                       <Input
                         required
@@ -496,7 +398,7 @@ export function VoterDetailPanel({
                         className="font-mono normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Celular
                       <Input
                         type="tel"
@@ -508,7 +410,7 @@ export function VoterDetailPanel({
                         className="font-mono normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Correo electrónico
                       <Input
                         type="email"
@@ -520,7 +422,7 @@ export function VoterDetailPanel({
                         className="normal-case tracking-normal"
                       />
                     </Label>
-                    <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                    <Label className="space-y-2 text-sm font-semibold text-slate-600">
                       Mesa
                       <Input
                         type="number"
@@ -536,7 +438,7 @@ export function VoterDetailPanel({
                     <div className="space-y-3 sm:col-span-2">
                       <Label
                         htmlFor="voter-place-search"
-                        className="text-xs font-black uppercase tracking-wider text-slate-600"
+                        className="text-sm font-semibold text-slate-600"
                       >
                         Buscar puesto autorizado
                       </Label>
@@ -578,7 +480,7 @@ export function VoterDetailPanel({
                         )}
                       </div>
 
-                      <Label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                      <Label className="space-y-2 text-sm font-semibold text-slate-600">
                         Puesto de votación
                         <select
                           value={form.puestoId}
@@ -755,7 +657,7 @@ export function VoterDetailPanel({
                         key={label}
                         className="rounded-2xl border border-slate-200 bg-white p-4"
                       >
-                        <dt className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        <dt className="text-xs font-semibold text-slate-400">
                           {label}
                         </dt>
                         <dd className="mt-1 break-words text-sm font-bold text-slate-900">
@@ -783,6 +685,8 @@ export function VoterDetailPanel({
                       onClick={() => {
                         setMutationError(null);
                         setNotice(null);
+                        setForm(detailToForm(voter));
+                        setSelectedPlace(voter.puesto);
                         setEditing(true);
                       }}
                     >

@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import type { CommunicationChannel, IssueCase } from "@/lib/cases-api";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import { getConsentNoticePresentationKey } from "@/lib/consent-notices-api";
 import {
@@ -245,17 +246,11 @@ export function CaseInteractionsPanel({
   const closePanelRef = useRef(onClose);
   const savingRef = useRef(false);
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<InteractionPage | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [form, setForm] = useState<InteractionFormState>(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [consent, setConsent] = useState<CaseConsentStatus | null>(null);
-  const [consentLoading, setConsentLoading] = useState(true);
-  const [consentLoadError, setConsentLoadError] = useState<string | null>(null);
   const [consentMutation, setConsentMutation] = useState<
     "grant" | "revoke" | null
   >(null);
@@ -273,9 +268,25 @@ export function CaseInteractionsPanel({
   const [revocationReason, setRevocationReason] = useState("");
   const canCaptureSentiment =
     allowSentiment ?? issueCase.mode === "PUBLIC_OFFICE";
-  const currentConsentNoticeKey = getConsentNoticePresentationKey(
-    consent?.currentNotice,
+  const loadInteractions = useCallback(
+    (signal: AbortSignal) => listInteractions({ issueCaseId: issueCase.id, page, limit: PAGE_SIZE }, signal),
+    [issueCase.id, page],
   );
+  const { data: result, loading, error: interactionsError } =
+    usePageRequest<InteractionPage>(loadInteractions, { reloadKey: reloadVersion });
+  const loadError = interactionsError ? readableError(interactionsError) : null;
+  const loadConsent = useCallback(
+    (signal: AbortSignal) => getCaseConsentStatus(issueCase.id, signal),
+    [issueCase.id],
+  );
+  const { data: consent, setData: setConsent, loading: consentLoading, error: consentError } =
+    usePageRequest<CaseConsentStatus>(loadConsent, { reloadKey: reloadVersion });
+  const consentLoadError = consentError ? readableError(consentError) : null;
+  const presentedNoticeKey = getConsentNoticePresentationKey(consent?.currentNotice);
+  // An acceptance belongs to this case, this load and the exact notice presented.
+  const currentConsentNoticeKey = presentedNoticeKey
+    ? `${issueCase.id}:${reloadVersion}:${presentedNoticeKey}`
+    : null;
   const consentAcceptedForCurrentNotice =
     currentConsentNoticeKey !== null &&
     consentAccepted &&
@@ -296,70 +307,6 @@ export function CaseInteractionsPanel({
   useEffect(() => {
     savingRef.current = saving || consentMutation !== null;
   }, [consentMutation, saving]);
-
-  useEffect(() => {
-    setConsentAccepted(false);
-    setAcceptedConsentNoticeKey(null);
-    setConsentChannel("");
-  }, [currentConsentNoticeKey, issueCase.id, reloadVersion]);
-
-  const loadInteractions = useCallback(
-    (signal: AbortSignal) =>
-      listInteractions(
-        {
-          issueCaseId: issueCase.id,
-          page,
-          limit: PAGE_SIZE,
-        },
-        signal,
-      ),
-    [issueCase.id, page],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setLoadError(null);
-
-    void loadInteractions(controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setResult(response);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        if (!controller.signal.aborted) setLoadError(readableError(error));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [loadInteractions, reloadVersion]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setConsentLoading(true);
-    setConsentLoadError(null);
-
-    void getCaseConsentStatus(issueCase.id, controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setConsent(response);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        if (!controller.signal.aborted) {
-          setConsent(null);
-          setConsentLoadError(readableError(error));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setConsentLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [issueCase.id, reloadVersion]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;

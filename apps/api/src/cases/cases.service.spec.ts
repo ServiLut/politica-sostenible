@@ -24,7 +24,7 @@ describe('CasesService tenant and mode isolation', () => {
   let prisma: {
     $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
-    user: { findFirst: jest.Mock; findMany: jest.Mock };
+    user: { findFirst: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     voter: { findFirst: jest.Mock };
     politicalDivision: { findFirst: jest.Mock };
     interaction: { findFirst: jest.Mock };
@@ -51,6 +51,7 @@ describe('CasesService tenant and mode isolation', () => {
       user: {
         findFirst: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       voter: { findFirst: jest.fn() },
       politicalDivision: { findFirst: jest.fn() },
@@ -93,8 +94,7 @@ describe('CasesService tenant and mode isolation', () => {
         }
       | undefined;
     const countArgs = capturedCount as
-      | { where: { tenantId: string; mode: PoliticalOperationMode } }
-      | undefined;
+      { where: { tenantId: string; mode: PoliticalOperationMode } } | undefined;
 
     expect(findManyArgs?.where.tenantId).toBe('tenant-a');
     expect(findManyArgs?.where.mode).toBe(PoliticalOperationMode.CAMPAIGN);
@@ -447,8 +447,7 @@ describe('CasesService tenant and mode isolation', () => {
     });
 
     const updateArgs = prisma.issueCase.update.mock.calls[0]?.[0] as
-      | { data: Record<string, unknown> }
-      | undefined;
+      { data: Record<string, unknown> } | undefined;
     expect(updateArgs?.data).toMatchObject({
       status: IssueCaseStatus.TRIAGED,
       resolvedAt: null,
@@ -755,6 +754,8 @@ describe('CasesService tenant and mode isolation', () => {
       where: { id: 'agent-a', tenantId: 'tenant-a' },
       select: { id: true, name: true, role: true },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip: 0,
+      take: 20,
     });
   });
 
@@ -805,6 +806,8 @@ describe('CasesService tenant and mode isolation', () => {
         },
         select: { id: true, name: true, role: true },
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: 0,
+        take: 20,
       });
     },
   );

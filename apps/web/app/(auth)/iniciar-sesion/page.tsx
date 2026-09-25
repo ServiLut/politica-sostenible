@@ -16,8 +16,6 @@ import { useAuth } from "@/context/auth";
 import type { LoginDto } from "@/lib/auth-api";
 import { resolvePostLoginDestination } from "@/lib/post-login-navigation";
 
-
-
 export default function LoginPage() {
   const { login, tenant, user, loading: sessionLoading } = useAuth();
   const router = useRouter();
@@ -30,20 +28,14 @@ export default function LoginPage() {
   const [requiresMfa, setRequiresMfa] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [passwordChanged, setPasswordChanged] = useState(false);
-  const [securityChanged, setSecurityChanged] = useState<
-    "mfa-enabled" | "mfa-disabled" | null
-  >(null);
+  const passwordChanged = searchParams.get("passwordChanged") === "1";
+  const securityChange = searchParams.get("securityChanged");
+  const securityChanged =
+    securityChange === "mfa-enabled" || securityChange === "mfa-disabled"
+      ? securityChange
+      : null;
 
   const requestedPostLoginPath = searchParams.get("next");
-
-  useEffect(() => {
-    setPasswordChanged(searchParams.get("passwordChanged") === "1");
-    const change = searchParams.get("securityChanged");
-    setSecurityChanged(
-      change === "mfa-enabled" || change === "mfa-disabled" ? change : null,
-    );
-  }, [searchParams]);
 
   useEffect(() => {
     if (!sessionLoading && user && tenant) {
@@ -51,7 +43,7 @@ export default function LoginPage() {
         resolvePostLoginDestination(requestedPostLoginPath, user, tenant),
       );
     }
-  }, [router, sessionLoading, tenant, user]);
+  }, [router, sessionLoading, tenant, user, requestedPostLoginPath]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -103,37 +95,37 @@ export default function LoginPage() {
     <div
       id="main-content"
       tabIndex={-1}
-      className="flex min-h-screen overflow-hidden bg-white outline-none dark:bg-slate-950"
+      className="flex min-h-dvh overflow-hidden bg-white outline-none dark:bg-slate-950 min-w-0"
     >
       {/* Left side: Brand/Marketing */}
-      <div className="relative hidden w-1/2 flex-col justify-between bg-slate-900 p-16 text-white lg:flex dark:bg-slate-900">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(39,39,42,0.8)_0%,rgba(9,9,11,1)_100%)]" />
+      <div className="relative hidden w-1/2 flex-col justify-between bg-slate-900 p-8 xl:p-12 text-white lg:flex dark:bg-slate-900 min-w-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(39,39,42,0.8)_0%,rgba(9,9,11,1)_100%)] min-w-0" />
 
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white text-black shadow-2xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white text-black shadow-2xl min-w-0">
               <Sparkles className="h-8 w-8" />
             </div>
-            <span className="text-4xl font-black tracking-tighter">
+            <span className="text-2xl font-semibold tracking-tighter">
               Politica Sostenible
             </span>
           </Link>
         </div>
 
-        <div className="relative z-10 space-y-8">
-          <h2 className="text-6xl font-black leading-[1] tracking-tighter">
+        <div className="relative z-10 space-y-8 min-w-0">
+          <h2 className="text-3xl xl:text-4xl font-semibold leading-[1] tracking-tighter">
             Una operación <br />
             <span className="text-slate-500">que deja evidencia.</span>
           </h2>
-          <p className="max-w-md text-2xl leading-relaxed text-slate-400 font-medium">
+          <p className="max-w-md text-base sm:text-lg leading-relaxed text-slate-400 font-medium">
             Coordina territorio, equipo, finanzas y cumplimiento sin mezclar
             datos ni finalidades.
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-600">
+        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-600 min-w-0">
           <span>© {new Date().getFullYear()} POLITICA SOSTENIBLE</span>
-          <div className="flex gap-6">
+          <div className="flex gap-6 min-w-0">
             <Link
               href="/privacidad"
               className="hover:text-white transition-colors"
@@ -151,13 +143,13 @@ export default function LoginPage() {
       </div>
 
       {/* Right side: Login Form */}
-      <div className="flex w-full flex-col justify-center p-8 lg:w-1/2 xl:p-24 bg-slate-50/50 dark:bg-transparent">
-        <div className="mx-auto w-full max-w-md space-y-12">
-          <div className="space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-slate-50">
+      <div className="flex w-full flex-col justify-center p-4 sm:p-8 lg:w-1/2 xl:p-12 bg-slate-50/50 dark:bg-transparent min-w-0">
+        <div className="mx-auto w-full max-w-md space-y-12 min-w-0">
+          <div className="space-y-4 min-w-0">
+            <h1 className="font-semibold tracking-tighter text-slate-900 dark:text-slate-50 text-2xl sm:text-3xl break-words">
               Hola de nuevo
             </h1>
-            <p className="text-xl text-slate-500 dark:text-slate-400 font-medium italic">
+            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-medium italic">
               Continúa con la operación de tu organización.
             </p>
           </div>
@@ -166,10 +158,10 @@ export default function LoginPage() {
             <div
               id="login-error"
               role="alert"
-              className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95"
+              className="rounded-[2rem] border-2 border-red-100 bg-red-50 p-4 sm:p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400 shadow-sm animate-in zoom-in-95 min-w-0"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse min-w-0" />
                 <span className="font-bold">{error}</span>
               </div>
             </div>
@@ -178,7 +170,7 @@ export default function LoginPage() {
           {passwordChanged && !error && (
             <div
               role="status"
-              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-6 text-sm font-bold text-emerald-800 shadow-sm"
+              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-4 sm:p-6 text-sm font-bold text-emerald-800 shadow-sm min-w-0"
             >
               Contraseña actualizada y sesiones anteriores cerradas. Inicia
               sesión nuevamente con tu nueva contraseña.
@@ -188,7 +180,7 @@ export default function LoginPage() {
           {securityChanged && !error && (
             <div
               role="status"
-              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-6 text-sm font-bold text-emerald-800 shadow-sm"
+              className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-4 sm:p-6 text-sm font-bold text-emerald-800 shadow-sm min-w-0"
             >
               {securityChanged === "mfa-enabled"
                 ? "2FA quedó activado y las sesiones anteriores se cerraron. Espera el siguiente código de tu autenticador: el usado para activar 2FA ya fue consumido."
@@ -196,17 +188,17 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-10">
+          <form onSubmit={handleSubmit} className="space-y-10 min-w-0">
             {requiresMfa ? (
-              <div className="space-y-6">
-                <div className="space-y-3">
+              <div className="space-y-6 min-w-0">
+                <div className="space-y-3 min-w-0">
                   <Label
                     htmlFor="mfaCode"
-                    className="ml-2 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
+                    className="ml-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
                   >
                     Código de autenticación
                   </Label>
-                  <div className="relative group">
+                  <div className="relative group min-w-0">
                     <ShieldCheck className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="mfaCode"
@@ -238,22 +230,22 @@ export default function LoginPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="space-y-3">
+              <div className="space-y-6 min-w-0">
+                <div className="space-y-3 min-w-0">
                   <Label
                     htmlFor="email"
-                    className="ml-2 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
+                    className="ml-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
                   >
                     Correo electrónico
                   </Label>
-                  <div className="relative group">
+                  <div className="relative group min-w-0">
                     <Mail className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="tu@correo.com"
-                      className="pl-14 h-15 rounded-[1.5rem]"
+                      className="pl-14 h-15 rounded-[1.5rem] placeholder:text-slate-500 dark:placeholder:text-slate-400"
                       value={formData.email}
                       onChange={handleChange}
                       required
@@ -263,30 +255,30 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between px-2">
+                <div className="space-y-3 min-w-0">
+                  <div className="flex items-center justify-between px-2 min-w-0 flex-wrap gap-3">
                     <Label
                       htmlFor="password"
-                      className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200"
+                      className="text-sm font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Contraseña
                     </Label>
                     <Link
                       href="/olvide-mi-contrasena"
                       title="Recuperar acceso"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                      className="text-xs font-bold text-slate-700 underline underline-offset-4 hover:text-slate-950 dark:text-slate-300 dark:hover:text-slate-100 transition-colors"
                     >
                       ¿Perdiste el acceso?
                     </Link>
                   </div>
-                  <div className="relative group">
+                  <div className="relative group min-w-0">
                     <Lock className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 dark:group-focus-within:text-slate-100 transition-colors" />
                     <Input
                       id="password"
                       name="password"
                       type="password"
                       placeholder="••••••••"
-                      className="pl-14 h-15 rounded-[1.5rem]"
+                      className="pl-14 h-15 rounded-[1.5rem] placeholder:text-slate-500 dark:placeholder:text-slate-400"
                       value={formData.password}
                       onChange={handleChange}
                       required
@@ -309,12 +301,12 @@ export default function LoginPage() {
               className="w-full rounded-[1.5rem] bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-white shadow-2xl shadow-slate-300 dark:shadow-none"
             >
               {isSubmitting ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <Loader2 className="h-5 w-5 ml-1 animate-spin" />
                   <span>Cargando...</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <LogIn className="h-5 w-5 ml-5" />
                   <span>{requiresMfa ? "Verificar" : "Entrar ahora"}</span>
                 </div>
@@ -322,13 +314,13 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="pt-6 text-center">
+          <div className="pt-6 text-center min-w-0">
             <p className="text-slate-400 font-bold text-lg">
               ¿No tienes cuenta?{" "}
               <Button
                 asChild
                 variant="link"
-                className="p-0 h-auto font-black text-slate-900 dark:text-slate-50 hover:no-underline underline underline-offset-8 decoration-2"
+                className="p-0 h-auto font-semibold text-slate-900 dark:text-slate-50 hover:no-underline underline underline-offset-8 decoration-2"
               >
                 <Link href="/registro">Ver opciones de acceso</Link>
               </Button>

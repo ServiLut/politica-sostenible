@@ -13,8 +13,10 @@ import {
   ConsentSubjectType,
   DivisionType,
   PoliticalOperationMode,
+  PoliticalOperationStage,
   Prisma,
   Role,
+  VotingStatus,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ConsentEvidenceService } from '../common/services/consent-evidence.service';
@@ -85,6 +87,11 @@ export const VOTER_CAPTURE_ROLES = [
   Role.VOLUNTEER,
 ] as const;
 const VOTER_CAPTURE_RECEIPT = { received: true } as const;
+const ELECTION_DAY_ROLES = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.ZONE_COORDINATOR,
+] as const;
 
 const VOTER_LIST_BASE_SELECT = {
   id: true,
@@ -796,31 +803,72 @@ export class VoterService {
   }
 
   async getElectionDaySummary(user: AuthenticatedUser) {
-    const tenantId = user.tenantId;
-    
-    const [voters, statusCounts] = await Promise.all([
-      this.prisma.voter.findMany({
-        where: { tenantId, consentAccepted: true },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          votingStatus: true,
-          votedAt: true,
-          puestoId: true,
-          mesa: true,
-          registrar: { select: { id: true, name: true } },
-          puesto: { select: { id: true, name: true } },
-        },
-        orderBy: [{ votingStatus: 'asc' }, { lastName: 'asc' }],
-      }),
-      this.prisma.voter.groupBy({
-        by: ['votingStatus'],
-        where: { tenantId, consentAccepted: true },
-        _count: true,
-      }),
-    ]);
+    await this.assertCampaignMode(user.tenantId);
+    const profile = await this.prisma.operationProfile.findUnique({
+      where: { tenantId: user.tenantId },
+      select: { stage: true },
+    });
+    this.assertElectionDayStage(profile?.stage ?? null);
+    const { divisionIds } = await resolveTerritorialAccess({
+      client: this.prisma,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      allowedRoles: ELECTION_DAY_ROLES,
+      territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
+    });
+    const notice = await findActiveConsentNotice(
+      this.prisma,
+      user.tenantId,
+      PoliticalOperationMode.CAMPAIGN,
+    );
+    if (!notice) {
+      throw new ForbiddenException(
+        'Se requiere un aviso de privacidad vigente para consultar la jornada',
+      );
+    }
+    const checkedAt = new Date();
+    const candidates = await this.prisma.voter.findMany({
+      where: {
+        tenantId: user.tenantId,
+        ...(divisionIds !== null ? { puestoId: { in: divisionIds } } : {}),
+        consentAccepted: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        votingStatus: true,
+        votedAt: true,
+        puestoId: true,
+        mesa: true,
+        registrar: { select: { id: true, name: true } },
+        puesto: { select: { id: true, name: true } },
+        consentRecords: voterListSelect(user.tenantId).consentRecords,
+      },
+      orderBy: [{ votingStatus: 'asc' }, { lastName: 'asc' }],
+    });
+    const voters = candidates
+      .filter(
+        (voter) =>
+          evaluateConsentEffectiveness(
+            voter.consentRecords[0],
+            notice.version,
+            checkedAt,
+          ).active,
+      )
+      .map((voter) => ({
+        id: voter.id,
+        firstName: voter.firstName,
+        lastName: voter.lastName,
+        votingStatus: voter.votingStatus,
+        votedAt: voter.votedAt,
+        puestoId: voter.puestoId,
+        mesa: voter.mesa,
+        registrar: voter.registrar,
+        puesto: voter.puesto,
+        phoneMasked: voter.phone ? this.maskSensitiveValue(voter.phone) : null,
+      }));
 
     const summary = {
       total: voters.length,
@@ -829,43 +877,119 @@ export class VoterService {
       needsTransport: 0,
       noShow: 0,
     };
-    
-    for (const group of statusCounts) {
-      if (group.votingStatus === 'VOTED') summary.voted = group._count;
-      else if (group.votingStatus === 'PENDING') summary.pending = group._count;
-      else if (group.votingStatus === 'NEEDS_TRANSPORT') summary.needsTransport = group._count;
-      else if (group.votingStatus === 'NO_SHOW') summary.noShow = group._count;
+
+    for (const voter of voters) {
+      if (voter.votingStatus === VotingStatus.VOTED) summary.voted += 1;
+      else if (voter.votingStatus === VotingStatus.PENDING)
+        summary.pending += 1;
+      else if (voter.votingStatus === VotingStatus.NEEDS_TRANSPORT)
+        summary.needsTransport += 1;
+      else if (voter.votingStatus === VotingStatus.NO_SHOW) summary.noShow += 1;
     }
 
     return { summary, voters };
   }
 
-  async updateVotingStatus(user: AuthenticatedUser, voterId: string, status: string) {
-    const voter = await this.prisma.voter.findFirst({
-      where: { id: voterId, tenantId: user.tenantId },
-    });
-    if (!voter) throw new NotFoundException('Votante no encontrado');
-
-    const data: any = { votingStatus: status };
-    if (status === 'VOTED') {
-      data.votedAt = new Date();
-      data.votedConfirmedBy = user.userId;
-    } else {
-      data.votedAt = null;
-      data.votedConfirmedBy = null;
+  async updateVotingStatus(
+    user: AuthenticatedUser,
+    voterId: string,
+    status: VotingStatus,
+  ) {
+    if (!Object.values(VotingStatus).includes(status)) {
+      throw new BadRequestException('Estado de jornada inválido');
     }
-
-    return this.prisma.voter.update({
-      where: { id: voterId },
-      data,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        votingStatus: true,
-        votedAt: true,
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const stage = await lockAndAssertOperationOpen(
+          transaction,
+          user.tenantId,
+        );
+        this.assertElectionDayStage(stage);
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
+        const { divisionIds } = await resolveTerritorialAccess({
+          client: transaction,
+          tenantId: user.tenantId,
+          userId: user.userId,
+          allowedRoles: ELECTION_DAY_ROLES,
+          territoriallyScopedRoles: VOTER_TERRITORIALLY_SCOPED_ROLES,
+        });
+        const voter = await transaction.voter.findFirst({
+          where: {
+            id: voterId,
+            tenantId: user.tenantId,
+            ...(divisionIds !== null ? { puestoId: { in: divisionIds } } : {}),
+          },
+          select: {
+            id: true,
+            consentAccepted: true,
+            votingStatus: true,
+            consentRecords: voterListSelect(user.tenantId).consentRecords,
+          },
+        });
+        if (!voter) throw new NotFoundException('Votante no encontrado');
+        const notice = await findActiveConsentNotice(
+          transaction,
+          user.tenantId,
+          PoliticalOperationMode.CAMPAIGN,
+        );
+        const checkedAt = new Date();
+        if (
+          !voter.consentAccepted ||
+          !evaluateConsentEffectiveness(
+            voter.consentRecords[0],
+            notice?.version,
+            checkedAt,
+          ).active
+        ) {
+          throw new ForbiddenException(
+            'La persona no tiene una autorización vigente para esta operación',
+          );
+        }
+        const result = await transaction.voter.update({
+          where: { id: voterId, tenantId: user.tenantId },
+          data: {
+            votingStatus: status,
+            votedAt: status === VotingStatus.VOTED ? checkedAt : null,
+            votedConfirmedBy:
+              status === VotingStatus.VOTED ? user.userId : null,
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            votingStatus: true,
+            votedAt: true,
+          },
+        });
+        await transaction.auditEvent.create({
+          data: {
+            tenantId: user.tenantId,
+            mode: PoliticalOperationMode.CAMPAIGN,
+            actorType: AuditActorType.USER,
+            actorUserId: user.userId,
+            action: 'VOTER_VOTING_STATUS_UPDATED',
+            resourceType: 'Voter',
+            resourceId: voterId,
+            before: { votingStatus: voter.votingStatus },
+            after: { votingStatus: status },
+          },
+        });
+        return result;
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  private assertElectionDayStage(stage: PoliticalOperationStage | null): void {
+    if (stage !== PoliticalOperationStage.ELECTION_DAY) {
+      throw new ConflictException(
+        'El seguimiento de votación sólo está habilitado durante la jornada electoral',
+      );
+    }
   }
 
   private async assertCampaignMode(tenantId: string): Promise<void> {

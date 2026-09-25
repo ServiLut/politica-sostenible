@@ -620,9 +620,7 @@ export class WitnessService {
           }),
         ]);
 
-        const divergences = this.collectDivergentTables(
-          fingerprints as TableFingerprint[],
-        );
+        const divergences = this.collectDivergentTables(fingerprints);
         const statusCounts = new Map(
           statusGroups.map((group) => [group.status, group._count._all]),
         );

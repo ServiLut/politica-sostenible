@@ -40,8 +40,7 @@ export function ActivationChecklist({
     return (
       <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex items-center gap-3 py-8 text-sm text-slate-500">
-          <LoaderCircle className="animate-spin" size={18} /> Cargando
-          ruta…
+          <LoaderCircle className="animate-spin" size={18} /> Cargando ruta…
         </div>
       </article>
     );
@@ -63,16 +62,16 @@ export function ActivationChecklist({
     totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
   return (
-    <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-6">
         <p
-          className={`text-[11px] font-black uppercase tracking-[0.18em] ${
+          className={`text-xs font-semibold ${
             isCampaign ? "text-emerald-700" : "text-blue-700"
           }`}
         >
           Ruta de activación
         </p>
-        <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
           {isCampaign
             ? "De cero a una operación útil"
             : "Del primer caso a la rendición"}
@@ -117,7 +116,7 @@ export function ActivationChecklist({
                 {completedSteps} de {totalSteps} pasos
               </span>
             </div>
-            <div 
+            <div
               className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
               role="progressbar"
               aria-label="Progreso de activación"
@@ -134,7 +133,7 @@ export function ActivationChecklist({
             </div>
           </div>
 
-          <div className="space-y-1" role="list">
+          <ul className="space-y-1">
             {steps.map((step, index) => {
               const guidance = getActivationStepGuidance(
                 step.code,
@@ -144,7 +143,7 @@ export function ActivationChecklist({
               const content = (
                 <>
                   <span
-                    className={`grid h-8 w-8 place-items-center text-xs font-black ${
+                    className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-semibold ${
                       step.complete
                         ? isCampaign
                           ? "bg-emerald-600 text-white"
@@ -154,16 +153,16 @@ export function ActivationChecklist({
                   >
                     {step.complete ? <Check size={15} /> : index + 1}
                   </span>
-                  <span>
-                    <span className="block text-sm font-black text-slate-900">
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <span className="block text-sm font-semibold text-slate-900">
                       {step.title}
                     </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    <span className="mt-1 block text-sm leading-6 text-slate-500">
                       {step.detail}
                     </span>
                   </span>
                   {guidance.linkLabel ? (
-                    <div className="flex items-center gap-2">
+                    <div className="col-start-2 flex min-w-0 items-center gap-2">
                       <span className="text-xs font-semibold text-slate-500 transition-colors group-hover:text-slate-900">
                         {step.complete ? "Completado · " : ""}
                         {guidance.linkLabel}
@@ -175,33 +174,34 @@ export function ActivationChecklist({
                       />
                     </div>
                   ) : (
-                    <span className="max-w-56 text-right text-xs font-semibold leading-5 text-amber-800">
+                    <span className="col-start-2 text-xs font-medium leading-5 text-amber-800">
                       {guidance.advice}
                     </span>
                   )}
                 </>
               );
 
-              return guidance.linkLabel ? (
-                <Link
+              return (
+                <li
                   key={step.code}
-                  href={step.href}
-                  role="listitem"
-                  className="group grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0 focus-ring"
+                  className="border-b border-slate-100 last:border-0"
                 >
-                  {content}
-                </Link>
-              ) : (
-                <div
-                  key={step.code}
-                  role="listitem"
-                  className="grid grid-cols-[34px_1fr_auto] gap-3 border-b border-slate-100 py-4 last:border-0"
-                >
-                  {content}
-                </div>
+                  {guidance.linkLabel ? (
+                    <Link
+                      href={step.href}
+                      className="group grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg py-4 focus-ring"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 py-4">
+                      {content}
+                    </div>
+                  )}
+                </li>
               );
             })}
-          </div>
+          </ul>
         </>
       )}
     </article>

@@ -70,7 +70,10 @@ function contentSignatureMatches(
     case 'image/jpeg':
       return hasPrefix(prefix, [0xff, 0xd8, 0xff]);
     case 'image/png':
-      return hasPrefix(prefix, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      return hasPrefix(
+        prefix,
+        [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+      );
     case 'image/webp':
       return (
         hasPrefix(prefix, [0x52, 0x49, 0x46, 0x46]) &&
@@ -106,7 +109,9 @@ export async function readAndHashStorageObject({
   maximumBytes,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   fetcher = globalThis.fetch,
-}: ReadAndHashStorageObjectInput): Promise<Required<StorageIntegrityObservation>> {
+}: ReadAndHashStorageObjectInput): Promise<
+  Required<StorageIntegrityObservation>
+> {
   if (
     !Number.isSafeInteger(expectedSize) ||
     expectedSize <= 0 ||
@@ -142,10 +147,7 @@ export async function readAndHashStorageObject({
   const contentEncoding = response.headers.get('content-encoding');
   if (contentEncoding && contentEncoding.trim().toLowerCase() !== 'identity') {
     await response.body.cancel().catch(() => undefined);
-    throw new StorageIntegrityReadError(
-      'CONTENT_ENCODING_UNSUPPORTED',
-      false,
-    );
+    throw new StorageIntegrityReadError('CONTENT_ENCODING_UNSUPPORTED', false);
   }
 
   const observedContentType = normalizedContentType(
@@ -248,11 +250,7 @@ export async function readAndHashStorageObject({
     );
   }
   if (calculatedSha256 !== expectedSha256) {
-    throw new StorageIntegrityReadError(
-      'SHA256_MISMATCH',
-      false,
-      observation,
-    );
+    throw new StorageIntegrityReadError('SHA256_MISMATCH', false, observation);
   }
 
   return observation;

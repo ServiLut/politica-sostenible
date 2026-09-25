@@ -1,9 +1,8 @@
 import { rm, writeFile } from 'node:fs/promises';
 import { ElectoralCatalogImportProcessor } from './electoral-catalog-import.processor';
-import type { ElectoralCatalogQueuePort } from './electoral-catalog-queue.constants';
+
 import { ElectoralCatalogWorkerHeartbeatService } from './electoral-catalog-worker-heartbeat.service';
 import { StorageIntegrityProcessor } from '../storage/storage-integrity.processor';
-import type { StorageIntegrityQueuePort } from '../storage/storage-integrity-queue.constants';
 
 jest.mock('node:fs/promises', () => ({
   rm: jest.fn().mockResolvedValue(undefined),
@@ -39,9 +38,9 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
   it('writes a restrictive heartbeat only after both worker and Redis answer', async () => {
     const service = new ElectoralCatalogWorkerHeartbeatService(
       processor as unknown as ElectoralCatalogImportProcessor,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
-      integrityQueue as unknown as StorageIntegrityQueuePort,
+      integrityQueue,
     );
 
     await service.onApplicationBootstrap();
@@ -66,9 +65,9 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
     queue.checkReady.mockRejectedValueOnce(new Error('redis secret'));
     const service = new ElectoralCatalogWorkerHeartbeatService(
       processor as unknown as ElectoralCatalogImportProcessor,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
-      integrityQueue as unknown as StorageIntegrityQueuePort,
+      integrityQueue,
     );
 
     await service.onApplicationBootstrap();
@@ -82,9 +81,9 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
     integrityQueue.checkReady.mockRejectedValueOnce(new Error('redis secret'));
     const service = new ElectoralCatalogWorkerHeartbeatService(
       processor as unknown as ElectoralCatalogImportProcessor,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
-      integrityQueue as unknown as StorageIntegrityQueuePort,
+      integrityQueue,
     );
 
     await service.onApplicationBootstrap();

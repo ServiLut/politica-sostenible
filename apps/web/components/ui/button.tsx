@@ -32,29 +32,29 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       default:
-        "bg-zinc-900 text-zinc-50 hover:bg-zinc-950 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-xl shadow-zinc-200/50 dark:shadow-none",
+        "bg-blue-700 text-white shadow-sm hover:bg-blue-800 active:bg-blue-900 dark:bg-blue-600 dark:hover:bg-blue-500",
       destructive:
-        "bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:text-red-50 dark:hover:bg-red-800 shadow-xl shadow-red-200/50 dark:shadow-none",
+        "bg-red-700 text-white shadow-sm hover:bg-red-800 active:bg-red-900 dark:bg-red-600 dark:hover:bg-red-500",
       outline:
-        "border-2 border-zinc-200 bg-transparent hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-zinc-50",
+        "border border-slate-300 bg-white text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
       secondary:
-        "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700",
+        "bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
       ghost:
-        "hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
-      link: "text-zinc-900 underline-offset-8 hover:underline dark:text-zinc-50 font-black uppercase tracking-widest text-[10px]",
+        "text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
+      link: "text-blue-700 underline-offset-4 hover:underline dark:text-blue-300",
     };
 
     const sizes = {
-      default: "h-14 px-8 py-4 text-sm",
-      sm: "h-10 rounded-xl px-4 text-xs",
-      lg: "h-16 rounded-[1.5rem] px-10 text-base",
-      icon: "h-14 w-14",
+      default: "min-h-11 px-5 py-2.5 text-sm",
+      sm: "min-h-11 px-3.5 py-2 text-sm",
+      lg: "min-h-12 rounded-2xl px-6 py-3 text-base",
+      icon: "h-11 w-11 shrink-0 p-2.5",
     };
 
     return (
       <Comp
         className={cn(
-          "inline-flex items-center justify-center rounded-[1.25rem] font-black uppercase tracking-[0.1em] ring-offset-white transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300 active:scale-[0.95] hover:translate-y-[-2px] hover:shadow-2xl",
+          "inline-flex items-center justify-center gap-2 rounded-xl font-semibold leading-5 tracking-normal ring-offset-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress dark:ring-offset-slate-950 dark:focus-visible:ring-blue-400 motion-reduce:transition-none [&_svg]:shrink-0",
           variants[variant],
           sizes[size],
           className,

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -11,11 +13,14 @@ import {
   findMigrationChecksumMismatches,
   normalizeDirectUrl,
   planCatalogMatches,
+  pendingPlanSeedCatalogMatches,
   proveSameDatabase,
   resolveDirectUrl,
   resolveMigrationTimeouts,
   resolvedBaselinePreflight,
   resolveTargetSchema,
+  SUBSCRIPTION_PLAN_SEED_MIGRATION,
+  SUBSCRIPTION_PLAN_SEED_SHA256,
 } from "./migrate.mjs";
 
 const direct =
@@ -47,6 +52,41 @@ function rolledBack(migrationName) {
     applied_steps_count: 0,
   };
 }
+
+test("el seed publicado conserva su hash y exige barrera y PostgreSQL real en CI", async () => {
+  const seed = await readFile(
+    new URL(
+      `../apps/api/prisma/migrations/${SUBSCRIPTION_PLAN_SEED_MIGRATION}/migration.sql`,
+      import.meta.url,
+    ),
+  );
+  assert.equal(
+    createHash("sha256").update(seed).digest("hex"),
+    SUBSCRIPTION_PLAN_SEED_SHA256,
+  );
+  const source = await readFile(
+    new URL("migrate.mjs", import.meta.url),
+    "utf8",
+  );
+  const runner = source.slice(
+    source.indexOf("export async function runSafeMigrations"),
+  );
+  const guardIndex = runner.indexOf("await prepareSubscriptionPlanSeed(");
+  assert.ok(guardIndex >= 0);
+  assert.ok(guardIndex < runner.indexOf("await applyGuardedLegacyMigrations("));
+  assert.ok(
+    guardIndex < runner.indexOf('await runPrisma(["migrate", "deploy"]'),
+  );
+  const ci = await readFile(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    ci,
+    /node --test [^\n]*deploy\/subscription-plan-seed-postgres\.test\.mjs/,
+  );
+  assert.match(ci, /TEST_DATABASE_URL: postgresql:/);
+});
 
 test("las migraciones tienen timeouts fail-fast acotados", () => {
   assert.deepEqual(resolveMigrationTimeouts({}), {
@@ -233,26 +273,20 @@ test("DIRECT_URL y DATABASE_URL deben seleccionar la misma base y schema", () =>
 test("las conexiones de migración y ejecución deben observar el mismo historial", () => {
   const directInspection = {
     applicationObjectCount: 30,
-    rows: [
-      completedWithChecksum(BASELINE_MIGRATION, "a".repeat(64)),
-    ],
+    rows: [completedWithChecksum(BASELINE_MIGRATION, "a".repeat(64))],
   };
 
   assert.equal(
     databaseInspectionsMatch(directInspection, {
       applicationObjectCount: 30,
-      rows: [
-        completedWithChecksum(BASELINE_MIGRATION, "a".repeat(64)),
-      ],
+      rows: [completedWithChecksum(BASELINE_MIGRATION, "a".repeat(64))],
     }),
     true,
   );
   assert.equal(
     databaseInspectionsMatch(directInspection, {
       applicationObjectCount: 30,
-      rows: [
-        completedWithChecksum(BASELINE_MIGRATION, "b".repeat(64)),
-      ],
+      rows: [completedWithChecksum(BASELINE_MIGRATION, "b".repeat(64))],
     }),
     false,
   );
@@ -381,6 +415,27 @@ test("el catálogo de planes permite bootstrap parcial pero exige cierre exacto"
     }),
     false,
   );
+  const canonicalFree = {
+    ...free,
+    id: "seed-subscription-plan-free-v1",
+    name: "Piloto",
+    description: "Ediles, Concejos municipios 6ta cat.",
+  };
+  assert.equal(pendingPlanSeedCatalogMatches([]), true);
+  assert.equal(pendingPlanSeedCatalogMatches([canonicalFree]), true);
+  for (const changed of [
+    { id: "seed-subscription-plan-starter-v1" },
+    { id: "custom-plan-id" },
+    { name: "Acuerdo particular" },
+    { description: "Terminos acordados" },
+    { monthlyPriceCop: "1.00" },
+    { maxUsers: 4 },
+  ]) {
+    assert.equal(
+      pendingPlanSeedCatalogMatches([{ ...canonicalFree, ...changed }]),
+      false,
+    );
+  }
 });
 
 test("las invariantes PostgreSQL fallan cerradas si falta o cambia una protección", () => {
@@ -513,10 +568,7 @@ test("classifyDatabaseState bloquea historia desconocida o duplicada", () => {
   );
   assert.equal(
     classifyDatabaseState({
-      rows: [
-        completed(BASELINE_MIGRATION),
-        completed(BASELINE_MIGRATION),
-      ],
+      rows: [completed(BASELINE_MIGRATION), completed(BASELINE_MIGRATION)],
       applicationObjectCount: 30,
     }),
     "UNSUPPORTED_HISTORY",
@@ -672,9 +724,7 @@ test("los checksums fallan cerrados si la fila aplicada no contiene checksum", (
   assert.deepEqual(
     findMigrationChecksumMismatches({
       rows: [completed(BASELINE_MIGRATION)],
-      localMigrations: [
-        { name: BASELINE_MIGRATION, checksum: "a".repeat(64) },
-      ],
+      localMigrations: [{ name: BASELINE_MIGRATION, checksum: "a".repeat(64) }],
     }).map(({ migrationName, observedChecksum }) => ({
       migrationName,
       observedChecksum,
@@ -689,9 +739,7 @@ test("los checksums ignoran solo las cinco filas historicas sin archivo local", 
       rows: HISTORICAL_MIGRATIONS.map((name) =>
         completedWithChecksum(name, "0".repeat(64)),
       ),
-      localMigrations: [
-        { name: BASELINE_MIGRATION, checksum: "a".repeat(64) },
-      ],
+      localMigrations: [{ name: BASELINE_MIGRATION, checksum: "a".repeat(64) }],
     }),
     [],
   );

@@ -23,12 +23,17 @@ test("el visor se alimenta solo de snapshots validados de la bóveda", () => {
 test("el diálogo de bóveda contiene foco, restaura el disparador y no cierra ocupado", () => {
   expect(panel).toContain("useAccessibleDialog({");
   expect(panel).toContain("initialFocusRef: closeButtonRef");
-  expect(panel).toContain("returnFocusRef: openButtonRef");
+  const controls = readFileSync(resolve(__dirname, "PwaControls.tsx"), "utf8");
+  const dialogBehavior = readFileSync(resolve(__dirname, "../../lib/use-accessible-dialog.ts"), "utf8");
+  expect(controls).toContain("window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))");
+  expect(controls).toContain('aria-haspopup="dialog"');
+  expect(dialogBehavior).toContain("document.activeElement instanceof HTMLElement");
+  expect(dialogBehavior).toContain("previousFocus?.isConnected");
   expect(panel).toContain("closeOnEscape: !vault.busy");
   expect(panel).toContain("if (vault.busy) return;");
   expect(panel).toContain("disabled={vault.busy}");
-  expect(panel).toContain("hidden={open}");
-  expect(panel).toContain('aria-controls="offline-vault-dialog"');
+  expect(panel).toContain("if (!open) return null;");
+  expect(controls).toContain('aria-controls="offline-vault-dialog"');
 });
 
 test("la bóveda solicita persistencia y advierte cuando no fue concedida", () => {

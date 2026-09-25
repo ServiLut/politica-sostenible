@@ -66,7 +66,7 @@ export function ConfirmationProvider({ children }: { children: ReactNode }) {
     <ConfirmationContext.Provider value={confirm}>
       {children}
       {request && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5">
           <div
             ref={dialogRef}
             role={request.destructive ? "alertdialog" : "dialog"}
@@ -74,7 +74,7 @@ export function ConfirmationProvider({ children }: { children: ReactNode }) {
             aria-labelledby="global-confirmation-title"
             aria-describedby="global-confirmation-description"
             tabIndex={-1}
-            className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 shadow-xl sm:max-h-[calc(100dvh-2.5rem)] sm:p-6"
           >
             <div
               className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${
@@ -91,7 +91,7 @@ export function ConfirmationProvider({ children }: { children: ReactNode }) {
             </div>
             <h2
               id="global-confirmation-title"
-              className="text-2xl font-black tracking-tight text-slate-950"
+              className="text-xl font-semibold leading-7 tracking-tight text-slate-950"
             >
               {request.title}
             </h2>

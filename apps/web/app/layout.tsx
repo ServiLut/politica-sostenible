@@ -8,6 +8,7 @@ import { OfflineVaultPanel } from "@/components/pwa/OfflineVaultPanel";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { SkipNavLink } from "@/components/a11y/SkipNavLink";
 import { ConfirmationProvider } from "@/context/confirmation";
+import { allowsLocalEvaluationHttp } from "@/lib/local-evaluation-http";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,9 +62,19 @@ export default async function RootLayout({
   return (
     <html lang="es">
       <body
+        data-local-evaluation={allowsLocalEvaluationHttp() ? "true" : undefined}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SkipNavLink />
+        {allowsLocalEvaluationHttp() && (
+          <div
+            role="note"
+            aria-label="Identificación del entorno de pruebas"
+            className="relative z-[120] flex h-7 items-center justify-center border-b border-amber-300 bg-amber-100 px-2 text-center text-xs font-semibold text-amber-950"
+          >
+            Entorno local de pruebas · datos sintéticos
+          </div>
+        )}
         <ConfirmationProvider>
           <AuthProvider>
             <OfflineVaultProvider>

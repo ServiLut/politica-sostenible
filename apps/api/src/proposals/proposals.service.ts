@@ -118,7 +118,7 @@ export class ProposalsService {
     query: ListResponsiblesQueryDto,
   ) {
     await this.assertProposalDomain(user.tenantId);
-    
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 

@@ -1,7 +1,6 @@
 import { ElectoralCatalogImportStatus } from '../../prisma/generated/prisma';
 import type { PrismaService } from '../prisma/prisma.service';
 import { ElectoralCatalogImportRecoveryService } from './electoral-catalog-import-recovery.service';
-import type { ElectoralCatalogQueuePort } from './electoral-catalog-queue.constants';
 
 describe('ElectoralCatalogImportRecoveryService', () => {
   let prisma: {
@@ -36,7 +35,7 @@ describe('ElectoralCatalogImportRecoveryService', () => {
   it('discovers tenants but reads and enqueues operational jobs tenant by tenant', async () => {
     const service = new ElectoralCatalogImportRecoveryService(
       prisma as unknown as PrismaService,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
     );
 
     await service.onApplicationBootstrap();
@@ -84,7 +83,7 @@ describe('ElectoralCatalogImportRecoveryService', () => {
     );
     const service = new ElectoralCatalogImportRecoveryService(
       prisma as unknown as PrismaService,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
     );
 
     await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
@@ -103,7 +102,7 @@ describe('ElectoralCatalogImportRecoveryService', () => {
     prisma.electoralCatalogImportJob.findMany.mockReset().mockResolvedValue([]);
     const service = new ElectoralCatalogImportRecoveryService(
       prisma as unknown as PrismaService,
-      queue as unknown as ElectoralCatalogQueuePort,
+      queue,
     );
 
     await service.onApplicationBootstrap();

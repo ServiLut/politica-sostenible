@@ -90,7 +90,7 @@ function reviewDto(
     decision: OperationAdoptionDecision.APPROVE,
     reviewPayloadSha256: '',
     ...overrides,
-  } as ReviewOperationStageAdoptionDto;
+  };
   dto.reviewPayloadSha256 =
     suppliedHash ?? computeOperationAdoptionReviewSha256(requestId, dto);
   return dto;
@@ -315,8 +315,7 @@ describe('OperationStageAdoptionService', () => {
       }),
     );
     const auditCall = transaction.auditEvent.create.mock.calls[0]?.[0] as
-      | { data: { after?: unknown } }
-      | undefined;
+      { data: { after?: unknown } } | undefined;
     const auditJson = JSON.stringify(auditCall?.data.after);
     expect(auditJson).toContain(dto.evidenceSha256);
     expect(auditJson).not.toContain(dto.justification);

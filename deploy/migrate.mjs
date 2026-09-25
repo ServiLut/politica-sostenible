@@ -1,13 +1,31 @@
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { requireMigrationEnvironment } from "./runtime-environment.mjs";
+import { applyGuardedLegacyMigrations } from "./legacy-migration-atomicity.mjs";
 
 export const BASELINE_MIGRATION = "20260827000000_baseline";
+export const SUBSCRIPTION_PLAN_SEED_MIGRATION =
+  "20260907150000_seed_subscription_plans";
+export const SUBSCRIPTION_PLAN_SEED_SHA256 =
+  "fea2e90b884bd574834ed456b980f041371b2dc79590964297233e76cabfada8";
+const SUBSCRIPTION_PLAN_TABLE_MIGRATION = "20260905130000_subscription_plans";
+const PLAN_SEED_GUARD_FUNCTION = "protect_pending_subscription_plan_seed";
+const PLAN_SEED_GUARD_TRIGGER = "SubscriptionPlan_pending_seed_guard";
+const PLAN_SEED_TRUNCATE_TRIGGER = "SubscriptionPlan_pending_seed_no_truncate";
 export const EXPECTED_SCHEMA_VERSION = "20260921182000_schema_contract_marker";
 const FIRST_SCHEMA_CONTRACT_MARKER = "20260909310000_schema_contract_marker";
 const SUPPORTED_SCHEMA_CONTRACT_MARKERS = new Set([
@@ -132,6 +150,28 @@ const REQUIRED_PLAN_CATALOG = Object.freeze([
     sortOrder: 4,
   },
 ]);
+const PLAN_SEED_IDENTITY = Object.freeze({
+  FREE: {
+    id: "seed-subscription-plan-free-v1",
+    name: "Piloto",
+    description: "Ediles, Concejos municipios 6ta cat.",
+  },
+  STARTER: {
+    id: "seed-subscription-plan-starter-v1",
+    name: "Starter",
+    description: "Concejales capitales, Alcaldías cat. 4-6",
+  },
+  PROFESSIONAL: {
+    id: "seed-subscription-plan-professional-v1",
+    name: "Profesional",
+    description: "Alcaldías cat. 3-Especial, Asambleas, Cámara",
+  },
+  ENTERPRISE: {
+    id: "seed-subscription-plan-enterprise-v1",
+    name: "Enterprise",
+    description: "Gobernaciones, grandes capitales, Senado",
+  },
+});
 const REQUIRED_CHECK_CONSTRAINTS = Object.freeze({
   CampaignSettings_report_deadline_check: [
     '"electiondate" is null',
@@ -271,7 +311,8 @@ const INVARIANT_INTRODUCING_MIGRATIONS = Object.freeze({
   enforce_political_proposal_status_transition:
     "20260907200000_proposal_status_lifecycle",
   SystemDatabaseIdentity_fingerprint_format_check: FIRST_SCHEMA_CONTRACT_MARKER,
-  SystemDatabaseIdentity_schema_version_format_check: FIRST_SCHEMA_CONTRACT_MARKER,
+  SystemDatabaseIdentity_schema_version_format_check:
+    FIRST_SCHEMA_CONTRACT_MARKER,
   ApplicationFunctions_search_path: FIRST_SCHEMA_CONTRACT_MARKER,
   WitnessReport_one_accepted_per_context_table_key:
     "20260909160000_witness_capture_context_isolation",
@@ -656,7 +697,10 @@ async function inspectDatabaseIdentity(
   return validateDatabaseIdentity(identity.rows, { requireCurrent });
 }
 
-export function validateDatabaseIdentity(rows, { requireCurrent = false } = {}) {
+export function validateDatabaseIdentity(
+  rows,
+  { requireCurrent = false } = {},
+) {
   const fingerprint = rows[0]?.fingerprint;
   const schemaVersion = rows[0]?.schemaVersion ?? null;
   const legacyIdentity =
@@ -667,7 +711,8 @@ export function validateDatabaseIdentity(rows, { requireCurrent = false } = {}) 
     typeof fingerprint === "string" &&
     /^[a-f0-9]{64}$/.test(fingerprint) &&
     SUPPORTED_SCHEMA_CONTRACT_MARKERS.has(schemaVersion);
-  const currentIdentity = recognizedIdentity && schemaVersion === EXPECTED_SCHEMA_VERSION;
+  const currentIdentity =
+    recognizedIdentity && schemaVersion === EXPECTED_SCHEMA_VERSION;
   if (
     rows.length !== 1 ||
     (!legacyIdentity && !recognizedIdentity) ||
@@ -729,6 +774,20 @@ export function planCatalogMatches(rows, { requireAll = true } = {}) {
   return !requireAll || observedCodes.size === REQUIRED_PLAN_CATALOG.length;
 }
 
+export function pendingPlanSeedCatalogMatches(rows) {
+  return (
+    planCatalogMatches(rows, { requireAll: false }) &&
+    rows.every((row) => {
+      const expected = PLAN_SEED_IDENTITY[row.code];
+      return (
+        row.id === expected.id &&
+        row.name === expected.name &&
+        row.description === expected.description
+      );
+    })
+  );
+}
+
 async function inspectPlanCatalog(client, schema) {
   const qualifiedPlans = `${quotedIdentifier(schema)}."SubscriptionPlan"`;
   const lookup = await client.query("SELECT to_regclass($1) AS name", [
@@ -738,6 +797,7 @@ async function inspectPlanCatalog(client, schema) {
 
   const plans = await client.query(
     `SELECT
+       id, name, description,
        code::text AS code,
        "maxUsers",
        "maxVoters",
@@ -754,6 +814,184 @@ async function inspectPlanCatalog(client, schema) {
      ORDER BY code::text ASC`,
   );
   return plans.rows;
+}
+
+// This barrier is installed before the published seed, not after it. Its SQL
+// remains byte-for-byte historical; a conflicting upsert may never rewrite an
+// existing plan, even if another session writes after the preflight SELECT.
+export async function installPendingPlanSeedGuard(client, schema) {
+  const qualifiedPlans = `${quotedIdentifier(schema)}."SubscriptionPlan"`;
+  const qualifiedFunction = `${quotedIdentifier(schema)}.${quotedIdentifier(PLAN_SEED_GUARD_FUNCTION)}`;
+  await client.query("BEGIN");
+  try {
+    await client.query(
+      `LOCK TABLE ${qualifiedPlans} IN SHARE ROW EXCLUSIVE MODE`,
+    );
+    if (
+      !pendingPlanSeedCatalogMatches(await inspectPlanCatalog(client, schema))
+    ) {
+      throw new Error(
+        "el seed pendiente requiere identidad y terminos canonicos; conserva el catalogo y reconcilia sus contratos antes de migrar",
+      );
+    }
+    await client.query(`
+      CREATE OR REPLACE FUNCTION ${qualifiedFunction}() RETURNS trigger
+      LANGUAGE plpgsql SET search_path TO ${quotedIdentifier(schema)}, pg_catalog AS $guard$
+      BEGIN
+        IF TG_OP <> 'UPDATE' THEN
+          RAISE EXCEPTION 'SubscriptionPlan protected while historical seed is pending' USING ERRCODE = '55000';
+        END IF;
+        IF (pg_catalog.to_jsonb(NEW) - 'updatedAt') IS DISTINCT FROM
+           (pg_catalog.to_jsonb(OLD) - 'updatedAt') THEN
+          RAISE EXCEPTION 'SubscriptionPlan historical seed cannot overwrite existing terms' USING ERRCODE = '55000';
+        END IF;
+        RETURN OLD;
+      END;
+      $guard$;
+      CREATE OR REPLACE TRIGGER ${quotedIdentifier(PLAN_SEED_GUARD_TRIGGER)}
+        BEFORE UPDATE OR DELETE ON ${qualifiedPlans}
+        FOR EACH ROW EXECUTE FUNCTION ${qualifiedFunction}();
+      CREATE OR REPLACE TRIGGER ${quotedIdentifier(PLAN_SEED_TRUNCATE_TRIGGER)}
+        BEFORE TRUNCATE ON ${qualifiedPlans}
+        FOR EACH STATEMENT EXECUTE FUNCTION ${qualifiedFunction}();
+      ALTER TABLE ${qualifiedPlans} ENABLE ALWAYS TRIGGER ${quotedIdentifier(PLAN_SEED_GUARD_TRIGGER)};
+      ALTER TABLE ${qualifiedPlans} ENABLE ALWAYS TRIGGER ${quotedIdentifier(PLAN_SEED_TRUNCATE_TRIGGER)};
+    `);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+}
+
+async function removePendingPlanSeedGuard(client, schema) {
+  const qualifiedPlans = `${quotedIdentifier(schema)}."SubscriptionPlan"`;
+  await client.query("BEGIN");
+  try {
+    await client.query(
+      `LOCK TABLE ${qualifiedPlans} IN SHARE ROW EXCLUSIVE MODE`,
+    );
+    await client.query(`
+      DROP TRIGGER IF EXISTS ${quotedIdentifier(PLAN_SEED_GUARD_TRIGGER)} ON ${qualifiedPlans};
+      DROP TRIGGER IF EXISTS ${quotedIdentifier(PLAN_SEED_TRUNCATE_TRIGGER)} ON ${qualifiedPlans};
+      DROP FUNCTION IF EXISTS ${quotedIdentifier(schema)}.${quotedIdentifier(PLAN_SEED_GUARD_FUNCTION)}();
+    `);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+}
+
+export async function deployMigrationPrefix(beforeMigration, environment) {
+  const migrationsDirectory = join(
+    APPLICATION_DIRECTORY,
+    "prisma",
+    "migrations",
+  );
+  const entries = await readdir(migrationsDirectory, { withFileTypes: true });
+  if (
+    !entries.some(
+      (entry) => entry.isDirectory() && entry.name === beforeMigration,
+    )
+  ) {
+    throw new Error("el limite del prefijo no es una migracion local conocida");
+  }
+  // Prisma 7 has no deploy --to. The temporary config uses an exact-byte
+  // prefix and Prisma records its own history. No secret is written to disk.
+  const prefixRoot = await mkdtemp(
+    join(tmpdir(), "politica-migration-prefix-"),
+  );
+  try {
+    const prefixMigrations = join(prefixRoot, "migrations");
+    await mkdir(prefixMigrations);
+    await copyFile(
+      join(migrationsDirectory, "migration_lock.toml"),
+      join(prefixMigrations, "migration_lock.toml"),
+    );
+    for (const entry of entries.filter(
+      (item) => item.isDirectory() && item.name < beforeMigration,
+    )) {
+      await mkdir(join(prefixMigrations, entry.name));
+      await copyFile(
+        join(migrationsDirectory, entry.name, "migration.sql"),
+        join(prefixMigrations, entry.name, "migration.sql"),
+      );
+    }
+    const configPath = join(prefixRoot, "prisma.config.mjs");
+    await writeFile(
+      configPath,
+      `export default { schema: ${JSON.stringify(join(APPLICATION_DIRECTORY, "prisma", "schema.prisma"))}, migrations: { path: ${JSON.stringify(prefixMigrations)} }, datasource: { url: process.env.DIRECT_URL } };\n`,
+    );
+    await runPrisma(["migrate", "deploy", "--config", configPath], environment);
+  } finally {
+    const resolvedPrefix = resolve(prefixRoot);
+    if (
+      dirname(resolvedPrefix) !== resolve(tmpdir()) ||
+      !resolvedPrefix.startsWith(
+        join(resolve(tmpdir()), "politica-migration-prefix-"),
+      )
+    ) {
+      throw new Error("ruta temporal de migraciones inesperada; no se elimino");
+    }
+    await rm(resolvedPrefix, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 200,
+    });
+  }
+}
+
+export async function prepareSubscriptionPlanSeed({
+  client,
+  schema,
+  rows,
+  environment,
+}) {
+  if (
+    (rows ?? []).some(
+      (row) =>
+        row.migration_name === SUBSCRIPTION_PLAN_SEED_MIGRATION &&
+        migrationCompleted(row),
+    )
+  )
+    return;
+  const migrationsDirectory = join(
+    APPLICATION_DIRECTORY,
+    "prisma",
+    "migrations",
+  );
+  const seedBytes = await readFile(
+    join(
+      migrationsDirectory,
+      SUBSCRIPTION_PLAN_SEED_MIGRATION,
+      "migration.sql",
+    ),
+  );
+  if (
+    createHash("sha256").update(seedBytes).digest("hex") !==
+    SUBSCRIPTION_PLAN_SEED_SHA256
+  ) {
+    throw new Error(
+      "el seed historico no coincide con su checksum canonico; no se aplicaron migraciones",
+    );
+  }
+  if ((await inspectPlanCatalog(client, schema)) === null) {
+    if (
+      (rows ?? []).some(
+        (row) =>
+          row.migration_name === SUBSCRIPTION_PLAN_TABLE_MIGRATION &&
+          migrationCompleted(row),
+      )
+    ) {
+      throw new Error(
+        "SubscriptionPlan falta aunque su migracion esta aplicada; restaura y reconcilia el esquema antes de migrar",
+      );
+    }
+    await deployMigrationPrefix(SUBSCRIPTION_PLAN_SEED_MIGRATION, environment);
+  }
+  await installPendingPlanSeedGuard(client, schema);
 }
 
 function normalizedSqlDefinition(value) {
@@ -1208,6 +1446,18 @@ export async function runSafeMigrations(environment = process.env) {
       console.log("Historial de migraciones valido; aplicando pendientes...");
     }
 
+    await prepareSubscriptionPlanSeed({
+      client,
+      schema,
+      rows: inspection.rows,
+      environment: prismaEnvironment,
+    });
+    await applyGuardedLegacyMigrations({
+      client,
+      schema,
+      deployPrefix: (beforeMigration) =>
+        deployMigrationPrefix(beforeMigration, prismaEnvironment),
+    });
     await runPrisma(["migrate", "deploy"], prismaEnvironment);
     await runPrisma(["migrate", "status"], prismaEnvironment);
     const driftExitCode = await runPrisma(
@@ -1270,6 +1520,9 @@ export async function runSafeMigrations(environment = process.env) {
         `la base no conserva todas las restricciones y protecciones críticas: ${finalInvariantIssues.join(", ")}`,
       );
     }
+    // A failed migration deliberately leaves the guard in place. A later
+    // verified deployment also cleans up a guard left by an interrupted run.
+    await removePendingPlanSeedGuard(client, schema);
     console.log("Migraciones verificadas. La API puede iniciar.");
   } finally {
     if (lockAcquired) {

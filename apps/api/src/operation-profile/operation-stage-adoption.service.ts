@@ -40,7 +40,6 @@ import {
   getElectionDayReadinessBlockers,
   hasExactActiveElectoralProjection,
   toBogotaDateKey,
-  type ReadinessDivision,
 } from './operation-readiness';
 
 const ADOPTION_TTL_MS = 72 * 60 * 60 * 1_000;
@@ -781,7 +780,7 @@ export class OperationStageAdoptionService {
         }),
       ]);
     const blockers = getElectionDayReadinessBlockers(
-      divisions as ReadinessDivision[],
+      divisions,
       coverageWindows,
       assignments.map((assignment) => ({
         coverageWindowId: assignment.coverageWindowId,
@@ -800,7 +799,7 @@ export class OperationStageAdoptionService {
       votingEndDate,
       evaluatedAt,
       hasExactActiveElectoralProjection(
-        divisions as ReadinessDivision[],
+        divisions,
         activeCatalogReleases.map((release) => release.id),
       ),
     );

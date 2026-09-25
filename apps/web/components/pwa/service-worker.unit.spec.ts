@@ -9,7 +9,10 @@ import {
 
 const webDirectory = resolve(process.cwd(), "apps/web");
 const publicDirectory = resolve(webDirectory, "public");
-const serviceWorker = readFileSync(resolve(publicDirectory, "sw.js"), "utf8");
+const serviceWorker = readFileSync(
+  resolve(publicDirectory, "sw.js"),
+  "utf8",
+).replace(/\r\n/g, "\n");
 const registration = readFileSync(
   resolve(webDirectory, "components/pwa/ServiceWorkerRegistration.tsx"),
   "utf8",
@@ -154,11 +157,14 @@ test("publica el launcher solo después de guardar todas sus dependencias", () =
   );
   const cacheShellFunction = serviceWorker.slice(functionStart, functionEnd);
 
-  expect(
-    cacheShellFunction.indexOf("Promise.all(dependencies.map"),
-  ).toBeLessThan(cacheShellFunction.indexOf("cache.put(key"));
-  expect(cacheShellFunction).toContain(
-    "dependencies.map((dependency) =>\n      cacheOfflineStaticResource(dependency)",
+  const dependenciesStart = cacheShellFunction.search(
+    /await Promise\.all\(\s*dependencies\.map/,
+  );
+  const cacheWriteStart = cacheShellFunction.indexOf("cache.put(key");
+  expect(dependenciesStart).toBeGreaterThan(-1);
+  expect(cacheWriteStart).toBeGreaterThan(dependenciesStart);
+  expect(cacheShellFunction).toMatch(
+    /dependencies\.map\(\(dependency\) =>\s*cacheOfflineStaticResource\(dependency\)/,
   );
   expect(cacheShellFunction).not.toContain(
     "dependencies.map(cacheOfflineStaticResource)",

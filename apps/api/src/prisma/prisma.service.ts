@@ -108,7 +108,12 @@ export class PrismaService
       options: resolveDatabaseSearchPathOptions(schema),
     });
 
-    const adapter = new PrismaPg(pool, schema ? { schema } : undefined);
+    // Nest owns this pool. Prisma otherwise preserves externally supplied pools
+    // after $disconnect(), leaving sockets alive until idleTimeoutMillis.
+    const adapter = new PrismaPg(pool, {
+      ...(schema ? { schema } : {}),
+      disposeExternalPool: true,
+    });
     super({ adapter });
   }
 

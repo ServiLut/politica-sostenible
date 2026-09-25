@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { usePathname } from "next/navigation";
 import {
   AlertCircle,
   ArchiveX,
@@ -28,6 +29,7 @@ import { OfflineCalendarSnapshot } from "./OfflineCalendarSnapshot";
 import { OfflineHeatmapSnapshots } from "./OfflineHeatmapSnapshots";
 import { OfflineIncidentCaptureForm } from "./OfflineIncidentCaptureForm";
 import { OfflineVoterCaptureForm } from "./OfflineVoterCaptureForm";
+import { showsPwaWorkspaceControls } from "./pwa-control-routes";
 
 const STATE_LABELS: Record<OfflineQueueRecordState, string> = {
   PENDING: "Pendiente",
@@ -56,6 +58,11 @@ function shortPartition(partitionHash: string) {
 }
 
 export function OfflineVaultPanel() {
+  const pathname = usePathname();
+  return showsPwaWorkspaceControls(pathname) ? <OfflineVaultWorkspace /> : null;
+}
+
+function OfflineVaultWorkspace() {
   const { user, tenant } = useAuth();
   const confirm = useConfirmation();
   const vault = useOfflineVault();
@@ -64,7 +71,6 @@ export function OfflineVaultPanel() {
   const [confirmation, setConfirmation] = useState("");
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const openButtonRef = useRef<HTMLButtonElement>(null);
   const canCreate = vault.phase === "EMPTY" && Boolean(user && tenant);
   const pendingCount = vault.entries.filter(
     (entry) => entry.state === "PENDING",
@@ -81,7 +87,6 @@ export function OfflineVaultPanel() {
     open,
     containerRef: dialogRef,
     initialFocusRef: closeButtonRef,
-    returnFocusRef: openButtonRef,
     onClose: closePanel,
     closeOnEscape: !vault.busy,
   });
@@ -156,10 +161,12 @@ export function OfflineVaultPanel() {
     }
   }
 
+  if (!open) return null;
+
   return (
     <aside
       aria-label="Bóveda offline"
-      className="pointer-events-none fixed bottom-20 left-3 z-[90] flex max-w-[calc(100vw-1.5rem)] flex-col items-start gap-2 lg:bottom-4 lg:left-4"
+      className="fixed inset-0 z-[150] flex items-center justify-end overflow-y-auto overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5"
     >
       {open && (
         <section
@@ -170,16 +177,16 @@ export function OfflineVaultPanel() {
           aria-labelledby="offline-vault-title"
           aria-busy={vault.busy}
           tabIndex={-1}
-          className="pointer-events-auto fixed inset-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-white p-5 text-slate-950 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[36rem] sm:max-w-[calc(100vw-2rem)] sm:p-6"
+          className="max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 text-slate-950 shadow-xl sm:max-h-[calc(100dvh-2.5rem)] sm:max-w-xl sm:p-6"
         >
           <header className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+              <p className="text-xs font-semibold text-emerald-700">
                 Custodia local cifrada
               </p>
               <h2
                 id="offline-vault-title"
-                className="mt-1 text-xl font-black text-slate-950"
+                className="mt-1 text-xl font-semibold text-slate-950"
               >
                 Bóveda offline
               </h2>
@@ -505,19 +512,6 @@ export function OfflineVaultPanel() {
         </section>
       )}
 
-      <button
-        ref={openButtonRef}
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-expanded={open}
-        aria-controls="offline-vault-dialog"
-        hidden={open}
-        className="pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-      >
-        <LockKeyhole aria-hidden="true" size={16} />
-        Bóveda offline
-        {vault.phase === "UNLOCKED" ? ` · ${vault.entries.length}` : ""}
-      </button>
     </aside>
   );
 }

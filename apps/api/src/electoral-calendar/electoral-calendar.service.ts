@@ -1023,7 +1023,7 @@ export class ElectoralCalendarService {
             operationProfileId: context.profile.id,
             clientRequestId: input.dto.clientRequestId,
             payloadSha256: expectedHash,
-            type: input.type as ElectoralCalendarCommandType,
+            type: input.type,
             actorUserId: context.actor.id,
             resourceType: input.resourceType,
             resourceId,

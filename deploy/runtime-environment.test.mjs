@@ -38,6 +38,28 @@ function validEnvironment() {
   };
 }
 
+test("evaluación local sólo permite orígenes loopback con opt-in explícito", () => {
+  const environment = {
+    ...validEnvironment(),
+    DEPLOYMENT_PROFILE: "evaluation",
+    ALLOW_LOCAL_STAGING_BUILD: "true",
+    NEXT_PUBLIC_APP_URL: "http://127.0.0.1:5310",
+    CORS_ORIGINS: "http://127.0.0.1:5310",
+    SUPABASE_URL: "http://127.0.0.1:5800",
+  };
+  assert.deepEqual(runtimeEnvironmentIssues(environment), []);
+  assert.deepEqual(catalogWorkerEnvironmentIssues(environment), []);
+  for (const overrides of [
+    { DEPLOYMENT_PROFILE: "production" },
+    { ALLOW_LOCAL_STAGING_BUILD: "false" },
+    { SUPABASE_URL: "https://production.supabase.co" },
+    { NEXT_PUBLIC_APP_URL: "http://127.0.0.1.evil.invalid" },
+    { CORS_ORIGINS: "http://127.0.0.1:5310/path" },
+  ]) {
+    assert.ok(runtimeEnvironmentIssues({ ...environment, ...overrides }).length > 0);
+  }
+});
+
 test("acepta una configuracion de produccion completa", () => {
   const environment = {
     ...validEnvironment(),

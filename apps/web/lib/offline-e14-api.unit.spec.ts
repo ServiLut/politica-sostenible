@@ -109,7 +109,13 @@ test("confirms only the durable path and metadata, never the signed URL or uploa
   };
   globalThis.fetch = async (input, init) => {
     requests.push({ url: new URL(String(input), "http://localhost"), init });
-    return apiResponse({ confirmed: true, path, module: "e14" });
+    return apiResponse({
+      confirmed: true,
+      objectId: "storage-e14-a",
+      path,
+      module: "e14",
+      contentIntegrity: "VERIFIED",
+    });
   };
 
   try {

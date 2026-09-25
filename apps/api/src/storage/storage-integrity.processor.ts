@@ -20,7 +20,9 @@ const SAFE_ID = /^[A-Za-z0-9_-]{1,128}$/u;
   maxStalledCount: 2,
 })
 export class StorageIntegrityProcessor extends WorkerHost {
-  constructor(private readonly verification: StorageIntegrityVerificationService) {
+  constructor(
+    private readonly verification: StorageIntegrityVerificationService,
+  ) {
     super();
   }
 

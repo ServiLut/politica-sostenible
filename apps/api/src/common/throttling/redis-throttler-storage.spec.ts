@@ -44,7 +44,7 @@ describe('RedisThrottlerStorage', () => {
     const redis = redisClient([3, 42, 0, 0]);
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid'),
-      redis as never,
+      redis,
     );
 
     await expect(
@@ -73,7 +73,7 @@ describe('RedisThrottlerStorage', () => {
     const redis = redisClient(null, new Error('private redis detail'));
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid'),
-      redis as never,
+      redis,
     );
 
     const first = await storage.increment('key', 60_000, 1, 60_000, 'default');
@@ -90,7 +90,7 @@ describe('RedisThrottlerStorage', () => {
     const redis = redisClient(null, new Error('private redis detail'));
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid', 'production'),
-      redis as never,
+      redis,
     );
 
     await expect(
@@ -113,7 +113,7 @@ describe('RedisThrottlerStorage', () => {
     const redis = redisClient([1, 60, 0, 0]);
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid', 'production'),
-      redis as never,
+      redis,
     );
 
     await expect(storage.assertAvailable()).resolves.toBeUndefined();
@@ -127,7 +127,7 @@ describe('RedisThrottlerStorage', () => {
     redis.ping.mockRejectedValueOnce(new Error('private redis detail'));
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid', 'production'),
-      redis as never,
+      redis,
     );
 
     await expect(storage.assertAvailable()).rejects.toBeInstanceOf(
@@ -146,7 +146,7 @@ describe('RedisThrottlerStorage', () => {
     const redis = redisClient([1, 1, 0, 0]);
     const storage = new RedisThrottlerStorage(
       config('rediss://unused.invalid'),
-      redis as never,
+      redis,
     );
 
     await expect(storage.increment('key', 0, 1, 1, 'default')).rejects.toThrow(

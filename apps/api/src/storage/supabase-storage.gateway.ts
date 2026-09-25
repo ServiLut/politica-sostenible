@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
+import { isLocalEvaluationOrigin } from '../common/config/local-evaluation-origin';
 
 export interface SignedUploadData {
   readonly signedUrl: string;
@@ -209,7 +210,18 @@ export class SupabaseStorageGateway {
       throw new Error('SUPABASE_URL debe usar HTTP o HTTPS');
     }
 
-    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+    if (
+      process.env.ALLOW_LOCAL_STAGING_BUILD === 'true' &&
+      !isLocalEvaluationOrigin(url)
+    ) {
+      throw new Error('Storage de evaluación local debe apuntar a loopback');
+    }
+
+    if (
+      process.env.NODE_ENV === 'production' &&
+      url.protocol !== 'https:' &&
+      !isLocalEvaluationOrigin(url)
+    ) {
       throw new Error('SUPABASE_URL debe usar HTTPS en producción');
     }
   }

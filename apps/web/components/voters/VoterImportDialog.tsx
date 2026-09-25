@@ -23,6 +23,7 @@ import {
   type VoterImportPreviewStatus,
 } from "@/lib/import-api";
 import { usePlanCapability } from "@/context/auth";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 import {
   adaptVoterImportTemplate,
   applyVoterImportEvidencePaths,
@@ -44,14 +45,6 @@ const STATUS_LABELS: Record<VoterImportPreviewStatus, string> = {
   duplicate_file: "Duplicada en archivo",
   duplicate_db: "Ya existe",
 };
-const FOCUSABLE_SELECTOR = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(",");
 
 function readableError(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -71,9 +64,21 @@ export function VoterImportDialog({
   onCompleted,
 }: VoterImportDialogProps) {
   const importCapability = usePlanCapability("import");
-  const [accessState, setAccessState] = useState<AccessState>("checking");
-  const [accessError, setAccessError] = useState<string | null>(null);
-  const [template, setTemplate] = useState<Blob | null>(null);
+  const [accessResponse, setAccessResponse] = useState<{
+    noticeVersion: string | null;
+    noticeActivatedAt: string | null;
+    state: AccessState;
+    error: string | null;
+    template: Blob | null;
+  } | null>(null);
+  const currentAccess =
+    accessResponse?.noticeVersion === noticeVersion &&
+    accessResponse?.noticeActivatedAt === noticeActivatedAt
+      ? accessResponse
+      : null;
+  const accessState = currentAccess?.state ?? "checking";
+  const accessError = currentAccess?.error ?? null;
+  const template = currentAccess?.template ?? null;
   const [open, setOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
@@ -94,49 +99,57 @@ export function VoterImportDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const busyRef = useRef(false);
-  const closeDialogActionRef = useRef<() => void>(() => undefined);
   const uploadedPathsRef = useRef(new Map<string, string>());
-  busyRef.current = preparing || executing;
 
   const checkAccess = useCallback(
     async (signal?: AbortSignal) => {
       if (!importCapability.enabled) return;
-      setAccessState("checking");
-      setAccessError(null);
-      try {
-        const downloadedTemplate = await getVoterImportTemplate(signal);
-        if (signal?.aborted) return;
-        if (!noticeVersion) {
-          throw new Error("No hay una versión activa del aviso de privacidad.");
-        }
-        const compatibleTemplate = adaptVoterImportTemplate(
-          await downloadedTemplate.text(),
-          noticeVersion,
-          noticeActivatedAt ?? undefined,
-        );
-        setTemplate(
-          new Blob([compatibleTemplate], { type: "text/csv;charset=utf-8" }),
-        );
-        setAccessState("available");
-      } catch (requestError: unknown) {
-        if (
-          requestError instanceof DOMException &&
-          requestError.name === "AbortError"
-        ) {
-          return;
-        }
-        if (requestError instanceof ApiError && requestError.status === 403) {
-          setAccessState("unavailable");
-        } else {
-          setAccessState("error");
-        }
-        setAccessError(
-          readableError(
-            requestError,
-            "No fue posible validar el acceso a la importación.",
-          ),
-        );
-      }
+      await getVoterImportTemplate(signal)
+        .then(async (downloadedTemplate) => {
+          if (signal?.aborted) return;
+          if (!noticeVersion) {
+            throw new Error(
+              "No hay una versión activa del aviso de privacidad.",
+            );
+          }
+          const compatibleTemplate = adaptVoterImportTemplate(
+            await downloadedTemplate.text(),
+            noticeVersion,
+            noticeActivatedAt ?? undefined,
+          );
+          if (signal?.aborted) return;
+          setAccessResponse({
+            noticeVersion,
+            noticeActivatedAt,
+            state: "available",
+            error: null,
+            template: new Blob([compatibleTemplate], {
+              type: "text/csv;charset=utf-8",
+            }),
+          });
+        })
+        .catch((requestError: unknown) => {
+          if (
+            signal?.aborted ||
+            (requestError instanceof DOMException &&
+              requestError.name === "AbortError")
+          ) {
+            return;
+          }
+          setAccessResponse({
+            noticeVersion,
+            noticeActivatedAt,
+            state:
+              requestError instanceof ApiError && requestError.status === 403
+                ? "unavailable"
+                : "error",
+            template: null,
+            error: readableError(
+              requestError,
+              "No fue posible validar el acceso a la importación.",
+            ),
+          });
+        });
     },
     [importCapability.enabled, noticeActivatedAt, noticeVersion],
   );
@@ -148,60 +161,14 @@ export function VoterImportDialog({
     return () => controller.abort();
   }, [checkAccess, enabled, importCapability.enabled]);
 
-  useEffect(() => {
-    if (!open) return;
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : triggerRef.current;
-    const animationFrame = window.requestAnimationFrame(() => {
-      closeButtonRef.current?.focus();
-    });
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (!busyRef.current) {
-          event.preventDefault();
-          closeDialogActionRef.current();
-        }
-        return;
-      }
-      if (event.key !== "Tab") return;
-
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      ).filter(
-        (element) =>
-          element.getAttribute("aria-hidden") !== "true" &&
-          !element.hasAttribute("hidden"),
-      );
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-      if (event.shiftKey && (active === first || !dialog.contains(active))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      document.removeEventListener("keydown", handleKeyDown);
-      previousFocus?.focus();
-    };
-  }, [open]);
+  useAccessibleDialog({
+    open,
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+    returnFocusRef: triggerRef,
+    closeOnEscape: !preparing && !executing,
+    onClose: closeDialog,
+  });
 
   function clearWorkflow(clearInputs = true) {
     setPreview(null);
@@ -221,11 +188,10 @@ export function VoterImportDialog({
   }
 
   function closeDialog() {
-    if (preparing || executing) return;
+    if (busyRef.current) return;
     setOpen(false);
     clearWorkflow();
   }
-  closeDialogActionRef.current = closeDialog;
 
   function handleCsvChange(file: File | null) {
     clearWorkflow(false);
@@ -250,6 +216,7 @@ export function VoterImportDialog({
   }
 
   async function generatePreview() {
+    if (busyRef.current) return;
     if (!csvFile) {
       setError("Selecciona primero el archivo CSV diligenciado.");
       return;
@@ -259,6 +226,7 @@ export function VoterImportDialog({
       return;
     }
 
+    busyRef.current = true;
     setPreparing(true);
     setError(null);
     setWarning(null);
@@ -308,12 +276,14 @@ export function VoterImportDialog({
       );
     } finally {
       setProgress(null);
+      busyRef.current = false;
       setPreparing(false);
     }
   }
 
   async function executeImport() {
     if (
+      busyRef.current ||
       !preparedCsv ||
       !preview ||
       preview.errorRows.length > 0 ||
@@ -321,6 +291,7 @@ export function VoterImportDialog({
     ) {
       return;
     }
+    busyRef.current = true;
     setExecuting(true);
     setError(null);
     try {
@@ -339,6 +310,7 @@ export function VoterImportDialog({
         ),
       );
     } finally {
+      busyRef.current = false;
       setExecuting(false);
     }
   }
@@ -362,20 +334,21 @@ export function VoterImportDialog({
           type="button"
           onClick={importCapability.refresh}
           title={importCapability.reason ?? undefined}
-          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-xs font-black uppercase tracking-wider text-amber-900"
+          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900"
         >
           <RotateCcw aria-hidden="true" size={15} /> Reintentar validación del
           plan
         </button>
-      ) : accessState === "error" &&
-        enabled &&
-        importCapability.enabled ? (
+      ) : accessState === "error" && enabled && importCapability.enabled ? (
         <button
           ref={triggerRef}
           type="button"
-          onClick={() => void checkAccess()}
+          onClick={() => {
+            setAccessResponse(null);
+            void checkAccess();
+          }}
           title={accessError ?? undefined}
-          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-xs font-black uppercase tracking-wider text-amber-900"
+          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900"
         >
           <RotateCcw aria-hidden="true" size={15} /> Reintentar importación
         </button>
@@ -395,7 +368,7 @@ export function VoterImportDialog({
               : (importCapability.reason ?? accessError ?? undefined)
           }
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-xs font-black uppercase tracking-wider text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {(importCapability.status === "checking" ||
             (accessState === "checking" && importCapability.enabled)) &&
@@ -415,15 +388,16 @@ export function VoterImportDialog({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm sm:p-5">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5">
           <div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="voter-import-title"
             aria-describedby="voter-import-description"
+            aria-busy={busy}
             tabIndex={-1}
-            className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[calc(100dvh-2.5rem)]"
           >
             <header className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white px-5 py-5 sm:px-7">
               <div>
@@ -432,7 +406,7 @@ export function VoterImportDialog({
                 </div>
                 <h2
                   id="voter-import-title"
-                  className="text-2xl font-black text-slate-950"
+                  className="text-xl font-semibold sm:text-2xl text-slate-950"
                 >
                   Importar personas autorizadas
                 </h2>
@@ -440,9 +414,8 @@ export function VoterImportDialog({
                   id="voter-import-description"
                   className="mt-2 max-w-2xl text-sm leading-6 text-slate-500"
                 >
-                  La evidencia viaja directamente al almacenamiento privado. El
-                  API recibe únicamente el CSV con las rutas confirmadas por el
-                  servidor.
+                  Carga la plantilla y las evidencias de autorización. Revisa
+                  los resultados antes de confirmar la importación.
                 </p>
               </div>
               <button
@@ -451,7 +424,7 @@ export function VoterImportDialog({
                 aria-label="Cerrar importación"
                 disabled={busy}
                 onClick={closeDialog}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
               >
                 <X aria-hidden="true" />
               </button>
@@ -460,7 +433,7 @@ export function VoterImportDialog({
             <div className="space-y-6 p-5 sm:p-7">
               <section className="grid gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <p className="font-black">
+                  <p className="font-semibold">
                     1. Descarga y completa la plantilla
                   </p>
                   <p className="mt-1">
@@ -478,7 +451,7 @@ export function VoterImportDialog({
                   type="button"
                   onClick={downloadTemplate}
                   disabled={!template || busy}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-4 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   <Download aria-hidden="true" size={16} /> Descargar plantilla
                 </button>
@@ -486,7 +459,7 @@ export function VoterImportDialog({
 
               {!completed && (
                 <section className="grid gap-5 md:grid-cols-2">
-                  <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                  <label className="space-y-2 text-sm font-semibold text-slate-500">
                     2. Archivo CSV
                     <input
                       ref={csvInputRef}
@@ -496,7 +469,7 @@ export function VoterImportDialog({
                       onChange={(event) =>
                         handleCsvChange(event.target.files?.[0] ?? null)
                       }
-                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-black"
+                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
                     />
                     <span className="block text-[11px] font-semibold normal-case tracking-normal text-slate-500">
                       {csvFile?.name ??
@@ -504,7 +477,7 @@ export function VoterImportDialog({
                     </span>
                   </label>
 
-                  <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                  <label className="space-y-2 text-sm font-semibold text-slate-500">
                     3. Evidencias de consentimiento
                     <input
                       ref={evidenceInputRef}
@@ -517,7 +490,7 @@ export function VoterImportDialog({
                           Array.from(event.target.files ?? []),
                         )
                       }
-                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-black"
+                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
                     />
                     <span className="block text-[11px] font-semibold normal-case tracking-normal text-slate-500">
                       {evidenceFiles.length > 0
@@ -567,7 +540,7 @@ export function VoterImportDialog({
               {completed && (
                 <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950">
                   <CheckCircle2 aria-hidden="true" size={28} />
-                  <h3 className="mt-3 text-xl font-black">
+                  <h3 className="mt-3 text-xl font-semibold">
                     Importación completada
                   </h3>
                   <p className="mt-2 text-sm font-semibold">
@@ -594,10 +567,10 @@ export function VoterImportDialog({
                         key={String(label)}
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        <p className="text-xs font-semibold text-slate-500">
                           {label}
                         </p>
-                        <p className="mt-1 text-2xl font-black text-slate-900">
+                        <p className="mt-1 text-xl font-semibold sm:text-2xl text-slate-900">
                           {value}
                         </p>
                       </div>
@@ -606,7 +579,7 @@ export function VoterImportDialog({
 
                   {preview.errorRows.length > 0 && (
                     <div className="overflow-hidden rounded-2xl border border-red-200">
-                      <div className="bg-red-50 px-5 py-3 text-sm font-black text-red-900">
+                      <div className="bg-red-50 px-5 py-3 text-sm font-semibold text-red-900">
                         Corrige estos errores y genera otra vista previa
                       </div>
                       <ul className="max-h-52 divide-y divide-red-100 overflow-y-auto bg-white">
@@ -627,7 +600,7 @@ export function VoterImportDialog({
 
                   <div className="overflow-x-auto rounded-2xl border border-slate-200">
                     <table className="min-w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
                         <tr>
                           <th className="px-4 py-3">Persona</th>
                           <th className="px-4 py-3">Documento</th>
@@ -683,7 +656,7 @@ export function VoterImportDialog({
                     type="button"
                     disabled={busy}
                     onClick={() => clearWorkflow()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-xs font-black uppercase tracking-wider text-slate-700 disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 disabled:opacity-50"
                   >
                     <RotateCcw aria-hidden="true" size={15} /> Cambiar archivos
                   </button>
@@ -692,7 +665,7 @@ export function VoterImportDialog({
                   type="button"
                   disabled={busy}
                   onClick={closeDialog}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-xs font-black uppercase tracking-wider text-slate-600 disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 disabled:opacity-50"
                 >
                   {completed ? "Cerrar" : "Cancelar"}
                 </button>
@@ -701,7 +674,7 @@ export function VoterImportDialog({
                     type="button"
                     disabled={busy || !csvFile || evidenceFiles.length === 0}
                     onClick={() => void generatePreview()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-6 text-xs font-black uppercase tracking-wider text-white disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-6 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     {preparing ? (
                       <Loader2
@@ -720,7 +693,7 @@ export function VoterImportDialog({
                     type="button"
                     disabled={!canExecute}
                     onClick={() => void executeImport()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-xs font-black uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {executing ? (
                       <Loader2

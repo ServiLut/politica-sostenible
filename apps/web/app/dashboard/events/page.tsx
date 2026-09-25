@@ -1,13 +1,24 @@
 "use client";
 
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { ExportButton } from "@/components/ui/ExportButton";
+import { UserCombobox } from "@/components/ui/UserCombobox";
+import { useAuth } from "@/context/auth";
+import { useConfirmation } from "@/context/confirmation";
+import { ApiError } from "@/lib/api-client";
 import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  CampaignEvent,
+  CampaignEventStatus,
+  createEvent,
+  deleteEvent,
+  listEventResponsibles,
+  listEvents,
+  transitionEvent,
+  updateEvent,
+} from "@/lib/events-api";
+import { canExportData } from "@/lib/export-policy";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 import {
   AlertCircle,
   CalendarDays,
@@ -24,24 +35,14 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useAuth } from "@/context/auth";
-import { ApiError } from "@/lib/api-client";
 import {
-  CampaignEvent,
-  CampaignEventStatus,
-  createEvent,
-  deleteEvent,
-  EventPage,
-  listEvents,
-  listEventResponsibles,
-  transitionEvent,
-  updateEvent,
-} from "@/lib/events-api";
-import { canExportData } from "@/lib/export-policy";
-import { ExportButton } from "@/components/ui/ExportButton";
-import { UserCombobox } from "@/components/ui/UserCombobox";
-import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
-import { useConfirmation } from "@/context/confirmation";
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const PAGE_SIZE = 9;
 
@@ -175,10 +176,6 @@ export default function EventsPage() {
     status: "",
   });
   const [searchDraft, setSearchDraft] = useState("");
-  const [result, setResult] = useState<EventPage | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogEvent, setDialogEvent] = useState<CampaignEvent | "new" | null>(
     null,
   );
@@ -203,37 +200,27 @@ export default function EventsPage() {
   );
   const canExport = canExportData(user?.backendRole);
 
-  const loadEvents = useCallback(
-    async (signal?: AbortSignal) => {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const data = await listEvents(
-          {
-            page: filters.page,
-            limit: PAGE_SIZE,
-            search: filters.search || undefined,
-            status: filters.status || undefined,
-          },
-          signal,
-        );
-        setResult(data);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setLoadError(readableError(error));
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
+  const request = useCallback(
+    (signal: AbortSignal) =>
+      listEvents(
+        {
+          page: filters.page,
+          limit: PAGE_SIZE,
+          search: filters.search || undefined,
+          status: filters.status || undefined,
+        },
+        signal,
+      ),
     [filters],
   );
+  const {
+    data: result,
+    loading,
+    error: requestError,
+    setData: setResult,
+  } = usePageRequest(request, { reloadKey });
+  const loadError = requestError ? readableError(requestError) : null;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadEvents(controller.signal);
-    return () => controller.abort();
-  }, [loadEvents, reloadKey]);
   useEffect(() => {
     const timeout = setTimeout(() => {
       setFilters((current) => {
@@ -387,16 +374,16 @@ export default function EventsPage() {
   const isEmpty = !loading && !loadError && (result?.items.length ?? 0) === 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <header className="flex flex-col gap-5 rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:flex-row sm:items-end sm:justify-between md:p-8">
+    <div className="mx-auto max-w-7xl space-y-6 min-w-0">
+      <header className="flex flex-col gap-5 rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:flex-row sm:items-end sm:justify-between md:p-8 min-w-0">
         <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-blue-300 min-w-0">
             <CalendarDays aria-hidden="true" size={17} /> Agenda operativa
             <span className="rounded-full bg-white/10 px-3 py-1 text-white">
               {modeLabel}
             </span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+          <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
             Eventos y territorio
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
@@ -405,13 +392,13 @@ export default function EventsPage() {
           </p>
         </div>
         {(canExport || canManage) && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-wrap">
             {canExport && <ExportButton moduleName="eventos" />}
             {canManage && (
               <button
                 type="button"
                 onClick={openCreate}
-                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-500"
+                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-500 max-w-full whitespace-normal"
               >
                 <Plus aria-hidden="true" size={18} /> Nuevo evento
               </button>
@@ -422,19 +409,19 @@ export default function EventsPage() {
 
       <section
         aria-label="Filtros de agenda"
-        className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem]"
+        className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem] min-w-0"
       >
-        <label className="text-sm font-black text-slate-800">
+        <label className="text-sm font-semibold text-slate-800 min-w-0">
           Buscar
           <input
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
             placeholder="Nombre, lugar o descripción"
-            className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
           />
         </label>
-        <label className="text-sm font-black text-slate-800">
+        <label className="text-sm font-semibold text-slate-800 min-w-0">
           Estado
           <select
             value={filters.status}
@@ -445,7 +432,7 @@ export default function EventsPage() {
                 status: event.target.value as "" | CampaignEventStatus,
               }))
             }
-            className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
           >
             <option value="">Todos</option>
             {STATUSES.filter(
@@ -479,7 +466,7 @@ export default function EventsPage() {
       {loading && (
         <div
           role="status"
-          className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500"
+          className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-slate-500 min-w-0"
         >
           <Loader2 className="animate-spin text-blue-600" size={30} />
           <span className="font-semibold">Cargando agenda…</span>
@@ -489,11 +476,11 @@ export default function EventsPage() {
       {!loading && loadError && (
         <div
           role="alert"
-          className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
+          className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-3xl border border-red-200 bg-red-50 p-8 text-center min-w-0"
         >
           <AlertCircle className="text-red-600" size={34} />
           <div>
-            <h2 className="font-black text-slate-950">
+            <h2 className="font-semibold text-slate-950">
               No pudimos cargar la agenda
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-600">{loadError}</p>
@@ -501,7 +488,7 @@ export default function EventsPage() {
           <button
             type="button"
             onClick={() => setReloadKey((current) => current + 1)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-blue-700"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-blue-700 max-w-full whitespace-normal"
           >
             <RefreshCw size={17} aria-hidden="true" /> Reintentar agenda
           </button>
@@ -509,9 +496,9 @@ export default function EventsPage() {
       )}
 
       {isEmpty && (
-        <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+        <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
           <CalendarDays className="mb-4 text-slate-300" size={48} />
-          <h2 className="text-lg font-black text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950">
             No hay eventos para estos filtros
           </h2>
           <p className="mt-1 max-w-lg text-sm text-slate-500">
@@ -526,7 +513,7 @@ export default function EventsPage() {
         <>
           <section
             aria-label="Eventos"
-            className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+            className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 min-w-0"
           >
             {result.items.map((event) => {
               const transitions = TRANSITIONS[event.status];
@@ -535,22 +522,22 @@ export default function EventsPage() {
                 <article
                   key={event.id}
                   data-testid={`event-card-${event.id}`}
-                  className="flex min-h-80 flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  className="flex min-h-80 flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md min-w-0"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 min-w-0 flex-wrap">
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs font-black ${statusStyle(event.status)}`}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle(event.status)}`}
                     >
                       {statusLabel(event.status)}
                     </span>
                     {canManage && !terminal && (
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 min-w-0 flex-wrap">
                         <button
                           type="button"
                           onClick={() => openEdit(event)}
                           disabled={Boolean(mutation)}
                           aria-label={`Editar ${event.name}`}
-                          className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+                          className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50 max-w-full whitespace-normal"
                         >
                           <Pencil size={17} />
                         </button>
@@ -560,7 +547,7 @@ export default function EventsPage() {
                             onClick={() => void removeDraft(event)}
                             disabled={Boolean(mutation)}
                             aria-label={`Eliminar ${event.name}`}
-                            className="rounded-xl p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                            className="rounded-xl p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 max-w-full whitespace-normal"
                           >
                             {mutation === `delete-${event.id}` ? (
                               <Loader2 className="animate-spin" size={17} />
@@ -572,7 +559,7 @@ export default function EventsPage() {
                       </div>
                     )}
                   </div>
-                  <h2 className="mt-4 text-xl font-black leading-tight text-slate-950">
+                  <h2 className="mt-4 text-xl font-semibold leading-tight text-slate-950">
                     {event.name}
                   </h2>
                   {event.description && (
@@ -580,8 +567,8 @@ export default function EventsPage() {
                       {event.description}
                     </p>
                   )}
-                  <dl className="mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm text-slate-700">
-                    <div className="flex gap-3">
+                  <dl className="mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm text-slate-700 min-w-0">
+                    <div className="flex gap-3 min-w-0">
                       <Clock3
                         className="mt-0.5 shrink-0 text-blue-600"
                         size={17}
@@ -593,7 +580,7 @@ export default function EventsPage() {
                         </dd>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 min-w-0">
                       <MapPin
                         className="mt-0.5 shrink-0 text-blue-600"
                         size={17}
@@ -603,7 +590,7 @@ export default function EventsPage() {
                         <dd>{event.location || "Lugar por confirmar"}</dd>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 min-w-0">
                       <UserRound
                         className="mt-0.5 shrink-0 text-blue-600"
                         size={17}
@@ -615,7 +602,7 @@ export default function EventsPage() {
                         </dd>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 min-w-0">
                       <UsersRound
                         className="mt-0.5 shrink-0 text-blue-600"
                         size={17}
@@ -631,7 +618,7 @@ export default function EventsPage() {
                     </div>
                   </dl>
                   {canManage && transitions.length > 0 && (
-                    <label className="mt-auto block pt-5 text-xs font-black text-slate-700">
+                    <label className="mt-auto block pt-5 text-sm font-semibold text-slate-700 min-w-0">
                       Siguiente estado de {event.name}
                       <span className="relative mt-1 block">
                         <select
@@ -644,7 +631,7 @@ export default function EventsPage() {
                             if (status) void changeStatus(event, status);
                             change.target.value = "";
                           }}
-                          className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
+                          className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60 min-w-0 max-w-full"
                         >
                           <option value="">Seleccionar transición</option>
                           {transitions.map((status) => (
@@ -670,7 +657,7 @@ export default function EventsPage() {
 
           <nav
             aria-label="Paginación"
-            className="flex items-center justify-end gap-3"
+            className="flex items-center justify-end gap-3 min-w-0 flex-wrap"
           >
             <button
               type="button"
@@ -681,7 +668,7 @@ export default function EventsPage() {
                   page: current.page - 1,
                 }))
               }
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               <ChevronLeft size={16} /> Anterior
             </button>
@@ -697,7 +684,7 @@ export default function EventsPage() {
                   page: current.page + 1,
                 }))
               }
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-40"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-40 max-w-full whitespace-normal"
             >
               Siguiente <ChevronRight size={16} />
             </button>
@@ -706,21 +693,21 @@ export default function EventsPage() {
       )}
 
       {dialogEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="event-dialog-title"
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
+            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap gap-3">
               <div>
                 <h2
                   id="event-dialog-title"
                   ref={dialogTitleRef}
                   tabIndex={-1}
-                  className="text-xl font-black text-slate-950 outline-none"
+                  className="text-xl font-semibold text-slate-950 outline-none"
                 >
                   {dialogEvent === "new" ? "Crear evento" : "Editar evento"}
                 </h2>
@@ -734,13 +721,13 @@ export default function EventsPage() {
                 onClick={() => setDialogEvent(null)}
                 disabled={Boolean(mutation)}
                 aria-label="Cerrar formulario"
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X size={21} />
               </button>
             </header>
-            <form onSubmit={submitEvent} className="space-y-5 p-6">
-              <label className="block text-sm font-black text-slate-800">
+            <form onSubmit={submitEvent} className="space-y-5 p-6 min-w-0">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Nombre
                 <input
                   required
@@ -754,10 +741,10 @@ export default function EventsPage() {
                       name: event.target.value,
                     }))
                   }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Descripción{" "}
                 <span className="font-normal text-slate-400">(opcional)</span>
                 <textarea
@@ -770,11 +757,11 @@ export default function EventsPage() {
                       description: event.target.value,
                     }))
                   }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-black text-slate-800">
+              <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Inicio
                   <input
                     required
@@ -786,10 +773,10 @@ export default function EventsPage() {
                         startsAt: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Fin
                   <input
                     required
@@ -801,11 +788,11 @@ export default function EventsPage() {
                         endsAt: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
               </div>
-              <label className="block text-sm font-black text-slate-800">
+              <label className="block text-sm font-semibold text-slate-800 min-w-0">
                 Lugar{" "}
                 <span className="font-normal text-slate-400">(opcional)</span>
                 <input
@@ -818,24 +805,29 @@ export default function EventsPage() {
                       location: event.target.value,
                     }))
                   }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-black text-slate-800">
+              <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Responsable{" "}
                   <span className="font-normal text-slate-400">(opcional)</span>
-                  <div className="mt-2">
+                  <div className="mt-2 min-w-0">
                     <UserCombobox
                       value={form.responsibleId}
                       onChange={(val) =>
-                        setForm((current) => ({ ...current, responsibleId: val }))
+                        setForm((current) => ({
+                          ...current,
+                          responsibleId: val,
+                        }))
                       }
-                      fetchItems={(search, signal) => listEventResponsibles({ search, limit: 10 }, signal)}
+                      fetchItems={(search, signal) =>
+                        listEventResponsibles({ search, limit: 10 }, signal)
+                      }
                     />
                   </div>
                 </label>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 min-w-0">
                   Capacidad{" "}
                   <span className="font-normal text-slate-400">(opcional)</span>
                   <input
@@ -850,7 +842,7 @@ export default function EventsPage() {
                         capacity: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
               </div>
@@ -862,19 +854,19 @@ export default function EventsPage() {
                   {mutationError}
                 </p>
               )}
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 min-w-0 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setDialogEvent(null)}
                   disabled={Boolean(mutation)}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={Boolean(mutation)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 max-w-full whitespace-normal"
                 >
                   {mutation && <Loader2 className="animate-spin" size={17} />}
                   {dialogEvent === "new" ? "Crear borrador" : "Guardar cambios"}

@@ -4,13 +4,11 @@ import { resolveAppRevision } from './common/http/app-revision';
 
 describe('runtime revision evidence', () => {
   it('publishes only a full immutable Git SHA', () => {
-    expect(
-      resolveAppRevision({ APP_REVISION: 'A'.repeat(40) } as NodeJS.ProcessEnv),
-    ).toBe('a'.repeat(40));
-    expect(
-      resolveAppRevision({ APP_REVISION: 'main' } as NodeJS.ProcessEnv),
-    ).toBe('unknown');
-    expect(resolveAppRevision({} as NodeJS.ProcessEnv)).toBe('unknown');
+    expect(resolveAppRevision({ APP_REVISION: 'A'.repeat(40) })).toBe(
+      'a'.repeat(40),
+    );
+    expect(resolveAppRevision({ APP_REVISION: 'main' })).toBe('unknown');
+    expect(resolveAppRevision({})).toBe('unknown');
   });
 
   it('exposes the same revision header through API responses and CORS', () => {

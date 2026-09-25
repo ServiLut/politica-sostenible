@@ -9,7 +9,7 @@ export function SkipNavLink() {
   return (
     <a
       href={getSkipNavigationTarget(pathname)}
-      className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"
+      className="sr-only focus:not-sr-only focus:fixed focus:top-[calc(var(--app-banner-height)+0.5rem)] focus:left-2 focus:z-[130] focus:rounded-lg focus:bg-emerald-700 focus:px-4 focus:py-3 focus:text-white focus:shadow-lg"
     >
       Saltar al contenido principal
     </a>

@@ -248,7 +248,10 @@ export class EventsService {
     return event;
   }
 
-  async listResponsibles(user: AuthenticatedUser, query: { search?: string; page?: number; limit?: number } = {}) {
+  async listResponsibles(
+    user: AuthenticatedUser,
+    query: { search?: string; page?: number; limit?: number } = {},
+  ) {
     const [mode, currentRole] = await Promise.all([
       this.getActiveMode(user.tenantId),
       this.getCurrentRole(user.tenantId, user.userId),
@@ -702,10 +705,7 @@ export class EventsService {
     capacity: number | null;
   }): Prisma.InputJsonObject {
     return {
-      name: value.name,
-      description: value.description,
-      location: value.location,
-      responsibleId: value.responsibleId,
+      hasResponsible: value.responsibleId !== null,
       status: value.status,
       startsAt: value.startsAt.toISOString(),
       endsAt: value.endsAt.toISOString(),

@@ -49,13 +49,6 @@ export interface TerritoryHeatmapItem {
     locatedPollingPlaces: number;
     totalPollingPlaces: number;
   };
-  leaders?: {
-    id: string;
-    name: string;
-    phone: string | null;
-    socialNetworkUrl: string | null;
-    roleDescription: string;
-  }[];
 }
 
 export interface TerritoryHeatmapProjectionPoint {
@@ -361,32 +354,9 @@ function validateHeatmapItem(
 
   const geo = validateHeatmapGeo(value.geo, value.type);
 
-  const leaders: TerritoryHeatmapItem["leaders"] = Array.isArray(value.leaders)
-    ? (value.leaders as unknown[]).flatMap((leader) => {
-        if (
-          !isRecord(leader) ||
-          typeof leader.id !== "string" ||
-          typeof leader.name !== "string" ||
-          typeof leader.roleDescription !== "string"
-        ) {
-          return [];
-        }
-        return [
-          {
-            id: leader.id,
-            name: leader.name,
-            phone:
-              typeof leader.phone === "string" ? leader.phone : null,
-            socialNetworkUrl:
-              typeof leader.socialNetworkUrl === "string"
-                ? leader.socialNetworkUrl
-                : null,
-            roleDescription: leader.roleDescription,
-          },
-        ];
-      })
-    : [];
-
+  // Older responses and encrypted snapshots included a leader directory.
+  // Accept that legacy key only to discard it: maps persist aggregates, never
+  // names, phone numbers or profiles. The authorized directory has its own API.
   return {
     id: value.id,
     code: value.code,
@@ -405,7 +375,6 @@ function validateHeatmapItem(
       acceptedTables: value.operationalContext.acceptedTables,
     },
     geo,
-    leaders,
   };
 }
 
@@ -574,8 +543,7 @@ export function validateTerritoryHeatmapResponse(
     breadcrumbs,
     privacy: {
       minimumReportableCount: value.privacy.minimumReportableCount as
-        | number
-        | null,
+        number | null,
       rule: value.privacy.rule,
     },
     items,

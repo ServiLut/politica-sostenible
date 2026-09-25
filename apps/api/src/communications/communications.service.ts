@@ -646,7 +646,7 @@ export class CommunicationsService {
     );
 
     return {
-      content: content as Prisma.InputJsonObject,
+      content: content,
       recipientBasis: recipientBasis as CommunicationRecipientBasis,
       ...(rightsMechanismUrl ? { rightsMechanismUrl } : {}),
       ...(consentEvidenceReference ? { consentEvidenceReference } : {}),
@@ -761,8 +761,6 @@ export class CommunicationsService {
     },
   ): Prisma.InputJsonObject {
     return {
-      title: value.title,
-      purpose: value.purpose,
       status: value.status,
       channel: value.channel,
       containsSensitiveData: value.containsSensitiveData,

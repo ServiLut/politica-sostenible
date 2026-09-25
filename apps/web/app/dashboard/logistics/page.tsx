@@ -1,21 +1,11 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Boxes,
-  CheckCircle2,
-  ClipboardCheck,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-  Truck,
-  Warehouse,
-} from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
+
 import { useAuth } from "@/context/auth";
 import { useConfirmation } from "@/context/confirmation";
 import { ApiError } from "@/lib/api-client";
-import { listVotingPlaces, type VotingPlace } from "@/lib/election-api";
+import { listVotingPlaces } from "@/lib/election-api";
 import {
   createInventoryWarehouse,
   dispatchInventory,
@@ -28,7 +18,6 @@ import {
   returnInventoryTransfer,
   type InventoryCommandResponse,
   type InventoryIncidentType,
-  type InventoryOverview,
   type InventoryTrackingMode,
   type InventoryTransfer,
 } from "@/lib/inventory-logistics-api";
@@ -36,6 +25,18 @@ import type {
   BackendUserRole,
   PoliticalOperationStage,
 } from "@/types/saas-schema";
+import {
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  ClipboardCheck,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  Truck,
+  Warehouse,
+} from "lucide-react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 
 const ADMIN_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
 const FIELD_ROLES = new Set<BackendUserRole>([
@@ -154,12 +155,10 @@ function SummaryCard({
   warning?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
       <p
-        className={`mt-2 text-3xl font-black ${warning && value > 0 ? "text-amber-700" : "text-slate-950"}`}
+        className={`mt-2 text-3xl font-semibold ${warning && value > 0 ? "text-amber-700" : "text-slate-950"}`}
       >
         {value.toLocaleString("es-CO")}
       </p>
@@ -170,11 +169,6 @@ function SummaryCard({
 export default function LogisticsPage() {
   const confirm = useConfirmation();
   const { user } = useAuth();
-  const [overview, setOverview] = useState<InventoryOverview | null>(null);
-  const [places, setPlaces] = useState<VotingPlace[]>([]);
-  const [placesLimited, setPlacesLimited] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [mutationKey, setMutationKey] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -183,34 +177,23 @@ export default function LogisticsPage() {
     "WAREHOUSE" | "POLLING_PLACE"
   >("POLLING_PLACE");
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoadError(null);
-    const [inventory, votingPlaces] = await Promise.all([
+  const request = useCallback(async (signal: AbortSignal) => {
+    const [overview, votingPlaces] = await Promise.all([
       getInventoryOverview(signal),
       listVotingPlaces({ page: 1, limit: 100 }, signal),
     ]);
-    if (signal?.aborted) return;
-    setOverview(inventory);
-    setPlaces(votingPlaces.items);
-    setPlacesLimited(votingPlaces.pagination.totalPages > 1);
+    return { overview, votingPlaces };
   }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    void load(controller.signal)
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setLoadError(readableError(error));
-          setOverview(null);
-          setPlaces([]);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [load, reloadVersion]);
+  const {
+    data,
+    loading,
+    error: requestError,
+    refresh: load,
+  } = usePageRequest(request, { reloadKey: reloadVersion });
+  const overview = data?.overview ?? null;
+  const places = data?.votingPlaces.items ?? [];
+  const placesLimited = (data?.votingPlaces.pagination.totalPages ?? 0) > 1;
+  const loadError = requestError ? readableError(requestError) : null;
 
   const role = user?.backendRole;
   const canAdmin = Boolean(role && ADMIN_ROLES.has(role));
@@ -497,7 +480,7 @@ export default function LogisticsPage() {
   if (loading && !overview) {
     return (
       <div
-        className="flex min-h-[50vh] items-center justify-center"
+        className="flex min-h-[50vh] items-center justify-center min-w-0"
         aria-busy="true"
       >
         <Loader2 className="animate-spin text-blue-600" aria-hidden="true" />
@@ -510,19 +493,22 @@ export default function LogisticsPage() {
 
   if (loadError && !overview) {
     return (
-      <div className="mx-auto max-w-3xl p-6" data-testid="inventory-load-error">
+      <div
+        className="mx-auto max-w-3xl min-w-0"
+        data-testid="inventory-load-error"
+      >
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 p-5"
+          className="rounded-2xl border border-red-200 bg-red-50 p-5 min-w-0"
         >
-          <h1 className="text-xl font-black text-red-950">
+          <h1 className="font-semibold text-red-950 text-2xl sm:text-3xl break-words">
             No se pudo abrir logística
           </h1>
           <p className="mt-2 text-sm text-red-800">{loadError}</p>
           <button
             type="button"
             onClick={() => setReloadVersion((version) => version + 1)}
-            className="mt-4 min-h-11 rounded-xl bg-red-700 px-4 font-bold text-white"
+            className="mt-4 min-h-11 rounded-xl bg-red-700 px-4 font-bold text-white max-w-full whitespace-normal"
           >
             Reintentar
           </button>
@@ -535,15 +521,15 @@ export default function LogisticsPage() {
 
   return (
     <div
-      className="mx-auto max-w-7xl space-y-6 p-4 pb-24 md:p-8"
+      className="mx-auto max-w-7xl space-y-6 pb-24 min-w-0"
       data-testid="inventory-page"
     >
-      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between min-w-0">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-xs font-bold text-blue-700">
             Operación electoral · {stage.replaceAll("_", " ")}
           </p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+          <h1 className="mt-1 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Inventario, despacho y custodia
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
@@ -557,7 +543,7 @@ export default function LogisticsPage() {
           data-testid="inventory-refresh"
           disabled={loading}
           onClick={() => setReloadVersion((version) => version + 1)}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 disabled:opacity-50 max-w-full whitespace-normal"
         >
           <RefreshCw
             className={loading ? "animate-spin" : ""}
@@ -571,15 +557,15 @@ export default function LogisticsPage() {
       {overview.readOnly ? (
         <section
           role="status"
-          className="rounded-2xl border border-slate-300 bg-slate-100 p-4"
+          className="rounded-2xl border border-slate-300 bg-slate-100 p-4 min-w-0"
         >
-          <div className="flex gap-3">
+          <div className="flex gap-3 min-w-0">
             <ShieldCheck
               className="mt-0.5 shrink-0 text-slate-700"
               aria-hidden="true"
             />
             <div>
-              <h2 className="font-black text-slate-950">
+              <h2 className="font-semibold text-slate-950">
                 Expediente en solo lectura
               </h2>
               <p className="mt-1 text-sm text-slate-700">
@@ -599,7 +585,7 @@ export default function LogisticsPage() {
         <div
           key={warning}
           role="alert"
-          className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 min-w-0"
         >
           <AlertTriangle className="shrink-0" size={20} aria-hidden="true" />
           <p>{warning}</p>
@@ -608,7 +594,7 @@ export default function LogisticsPage() {
       {placesLimited ? (
         <div
           role="note"
-          className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950"
+          className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950 min-w-0"
         >
           El selector muestra los primeros 100 puestos oficiales. Use el código
           de puesto como filtro en Territorio antes de preparar despachos
@@ -619,7 +605,7 @@ export default function LogisticsPage() {
         <div
           role="alert"
           data-testid="inventory-mutation-error"
-          className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-900"
+          className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-900 min-w-0"
         >
           {mutationError}
         </div>
@@ -628,7 +614,7 @@ export default function LogisticsPage() {
         <div
           role="status"
           data-testid="inventory-mutation-success"
-          className="flex gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900"
+          className="flex gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900 min-w-0"
         >
           <CheckCircle2 size={19} aria-hidden="true" /> {notice}
         </div>
@@ -636,7 +622,7 @@ export default function LogisticsPage() {
 
       <section
         aria-label="Resumen de inventario"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 min-w-0"
       >
         <SummaryCard
           label="Unidades disponibles"
@@ -662,14 +648,14 @@ export default function LogisticsPage() {
       {canAdmin && !overview.readOnly ? (
         <section
           aria-labelledby="inventory-actions-title"
-          className="rounded-3xl border border-slate-200 bg-slate-50 p-4 md:p-6"
+          className="rounded-3xl border border-slate-200 bg-slate-50 p-4 md:p-6 min-w-0"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Boxes className="text-blue-700" aria-hidden="true" />
             <div>
               <h2
                 id="inventory-actions-title"
-                className="text-xl font-black text-slate-950"
+                className="text-xl font-semibold text-slate-950"
               >
                 Preparar y despachar
               </h2>
@@ -679,50 +665,50 @@ export default function LogisticsPage() {
               </p>
             </div>
           </div>
-          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <div className="mt-5 grid gap-4 xl:grid-cols-2 min-w-0">
             {SETUP_STAGES.has(stage) ? (
               <details className="rounded-2xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-black text-slate-900">
+                <summary className="cursor-pointer font-semibold text-slate-900">
                   Nueva bodega responsable
                 </summary>
                 <form
                   data-testid="create-warehouse-form"
                   onSubmit={submitWarehouse}
-                  className="mt-4 grid gap-3"
+                  className="mt-4 grid gap-3 min-w-0"
                 >
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Código
                     <input
                       required
                       name="code"
                       minLength={2}
                       maxLength={32}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Nombre
                     <input
                       required
                       name="name"
                       minLength={3}
                       maxLength={160}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Dirección verificada (opcional)
                     <input
                       name="address"
                       maxLength={500}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Responsable
                     <select
                       name="responsibleUserId"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     >
                       <option value="">Sin asignar todavía</option>
                       {overview.operators.map((operator) => (
@@ -735,7 +721,7 @@ export default function LogisticsPage() {
                   <button
                     type="submit"
                     disabled={Boolean(mutationKey)}
-                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50"
+                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 max-w-full whitespace-normal"
                   >
                     {mutationKey === "warehouse"
                       ? "Guardando…"
@@ -747,56 +733,56 @@ export default function LogisticsPage() {
 
             {SETUP_STAGES.has(stage) ? (
               <details className="rounded-2xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-black text-slate-900">
+                <summary className="cursor-pointer font-semibold text-slate-900">
                   Importar artículo validado
                 </summary>
                 <form
                   data-testid="item-import-form"
                   onSubmit={submitItem}
-                  className="mt-4 grid gap-3 sm:grid-cols-2"
+                  className="mt-4 grid gap-3 sm:grid-cols-2 min-w-0"
                 >
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     SKU
                     <input
                       required
                       name="sku"
                       minLength={2}
                       maxLength={64}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Nombre
                     <input
                       required
                       name="name"
                       minLength={2}
                       maxLength={160}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Unidad
                     <input
                       required
                       name="unit"
                       defaultValue="UNIDAD"
                       maxLength={40}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Trazabilidad
                     <select
                       name="trackingMode"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     >
                       <option value="NONE">Sin lote/serial</option>
                       <option value="LOT">Por lote</option>
                       <option value="SERIAL">Por serial</option>
                     </select>
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Stock mínimo
                     <input
                       required
@@ -805,21 +791,21 @@ export default function LogisticsPage() {
                       min={0}
                       max={1000000}
                       defaultValue={0}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold sm:col-span-2">
+                  <label className="text-sm font-semibold sm:col-span-2 min-w-0">
                     Descripción (opcional)
                     <textarea
                       name="description"
                       maxLength={1000}
-                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3"
+                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3 min-w-0 max-w-full"
                     />
                   </label>
                   <button
                     type="submit"
                     disabled={Boolean(mutationKey)}
-                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2"
+                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2 max-w-full whitespace-normal"
                   >
                     {mutationKey === "item"
                       ? "Importando…"
@@ -831,20 +817,20 @@ export default function LogisticsPage() {
 
             {STOCK_STAGES.has(stage) ? (
               <details className="rounded-2xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-black text-slate-900">
+                <summary className="cursor-pointer font-semibold text-slate-900">
                   Ingresar existencias
                 </summary>
                 <form
                   data-testid="stock-receive-form"
                   onSubmit={submitStock}
-                  className="mt-4 grid gap-3 sm:grid-cols-2"
+                  className="mt-4 grid gap-3 sm:grid-cols-2 min-w-0"
                 >
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Bodega
                     <select
                       required
                       name="warehouseId"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     >
                       <option value="">Seleccione</option>
                       {overview.warehouses
@@ -856,12 +842,12 @@ export default function LogisticsPage() {
                         ))}
                     </select>
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Artículo
                     <select
                       required
                       name="itemId"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     >
                       <option value="">Seleccione</option>
                       {overview.items
@@ -873,7 +859,7 @@ export default function LogisticsPage() {
                         ))}
                     </select>
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Cantidad
                     <input
                       required
@@ -881,14 +867,14 @@ export default function LogisticsPage() {
                       name="quantity"
                       min={1}
                       max={1000000}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Responsable
                     <select
                       name="responsibleUserId"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     >
                       <option value="">Responsable de bodega</option>
                       {overview.operators.map((operator) => (
@@ -898,54 +884,54 @@ export default function LogisticsPage() {
                       ))}
                     </select>
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Lote (sólo artículos por lote)
                     <input
                       name="lotNumber"
                       maxLength={120}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Serial (sólo artículos serializados)
                     <input
                       name="serialNumber"
                       maxLength={160}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Vencimiento verificable
                     <input
                       type="datetime-local"
                       name="expiresAt"
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold sm:col-span-2">
+                  <label className="text-sm font-semibold sm:col-span-2 min-w-0">
                     Motivo
                     <input
                       required
                       name="reason"
                       minLength={10}
                       maxLength={1000}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold sm:col-span-2">
+                  <label className="text-sm font-semibold sm:col-span-2 min-w-0">
                     Declaración de custodia
                     <textarea
                       required
                       name="custodyDeclaration"
                       minLength={20}
                       maxLength={1000}
-                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3"
+                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3 min-w-0 max-w-full"
                     />
                   </label>
                   <button
                     type="submit"
                     disabled={Boolean(mutationKey)}
-                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2"
+                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2 max-w-full whitespace-normal"
                   >
                     {mutationKey === "stock"
                       ? "Confirmando…"
@@ -957,31 +943,31 @@ export default function LogisticsPage() {
 
             {DISPATCH_STAGES.has(stage) ? (
               <details className="rounded-2xl border border-slate-200 bg-white p-4 xl:col-span-2">
-                <summary className="cursor-pointer font-black text-slate-900">
+                <summary className="cursor-pointer font-semibold text-slate-900">
                   Despachar kit o materiales
                 </summary>
                 <form
                   data-testid="dispatch-form"
                   onSubmit={submitDispatch}
-                  className="mt-4 grid gap-4"
+                  className="mt-4 grid gap-4 min-w-0"
                 >
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <label className="text-sm font-semibold">
+                  <div className="grid gap-3 md:grid-cols-3 min-w-0">
+                    <label className="text-sm font-semibold min-w-0">
                       Código de despacho
                       <input
                         required
                         name="code"
                         minLength={3}
                         maxLength={64}
-                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 uppercase"
+                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                       />
                     </label>
-                    <label className="text-sm font-semibold">
+                    <label className="text-sm font-semibold min-w-0">
                       Bodega origen
                       <select
                         required
                         name="sourceWarehouseId"
-                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                       >
                         <option value="">Seleccione</option>
                         {overview.warehouses
@@ -993,12 +979,12 @@ export default function LogisticsPage() {
                           ))}
                       </select>
                     </label>
-                    <label className="text-sm font-semibold">
+                    <label className="text-sm font-semibold min-w-0">
                       Custodio
                       <select
                         required
                         name="custodianUserId"
-                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                       >
                         <option value="">Seleccione</option>
                         {overview.operators.map((operator) => (
@@ -1010,11 +996,11 @@ export default function LogisticsPage() {
                     </label>
                   </div>
                   <fieldset className="rounded-xl border border-slate-200 p-3">
-                    <legend className="px-1 text-sm font-black">
+                    <legend className="px-1 text-sm font-semibold">
                       Tipo de destino
                     </legend>
-                    <div className="flex flex-wrap gap-4">
-                      <label className="flex min-h-11 items-center gap-2">
+                    <div className="flex flex-wrap gap-4 min-w-0">
+                      <label className="flex min-h-11 items-center gap-2 min-w-0">
                         <input
                           type="radio"
                           checked={dispatchDestination === "POLLING_PLACE"}
@@ -1024,7 +1010,7 @@ export default function LogisticsPage() {
                         />
                         Puesto / mesa oficial
                       </label>
-                      <label className="flex min-h-11 items-center gap-2">
+                      <label className="flex min-h-11 items-center gap-2 min-w-0">
                         <input
                           type="radio"
                           checked={dispatchDestination === "WAREHOUSE"}
@@ -1035,13 +1021,13 @@ export default function LogisticsPage() {
                     </div>
                   </fieldset>
                   {dispatchDestination === "POLLING_PLACE" ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="text-sm font-semibold">
+                    <div className="grid gap-3 md:grid-cols-2 min-w-0">
+                      <label className="text-sm font-semibold min-w-0">
                         Puesto electoral
                         <select
                           required
                           name="destinationId"
-                          className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                          className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                         >
                           <option value="">Seleccione puesto activo</option>
                           {places.map((place) => (
@@ -1055,24 +1041,24 @@ export default function LogisticsPage() {
                           nombre oficiales disponibles.
                         </span>
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Mesa específica (opcional)
                         <input
                           type="number"
                           name="destinationTableNumber"
                           min={1}
                           max={10000}
-                          className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                          className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                         />
                       </label>
                     </div>
                   ) : (
-                    <label className="text-sm font-semibold">
+                    <label className="text-sm font-semibold min-w-0">
                       Bodega destino
                       <select
                         required
                         name="destinationId"
-                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"
+                        className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                       >
                         <option value="">Seleccione</option>
                         {overview.warehouses
@@ -1086,10 +1072,10 @@ export default function LogisticsPage() {
                     </label>
                   )}
                   <fieldset className="rounded-xl border border-slate-200 p-3">
-                    <legend className="px-1 text-sm font-black">
+                    <legend className="px-1 text-sm font-semibold">
                       Existencias del kit
                     </legend>
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 min-w-0">
                       {availableBalances.length === 0 ? (
                         <p className="text-sm text-amber-800">
                           No hay saldos disponibles.
@@ -1098,7 +1084,7 @@ export default function LogisticsPage() {
                         availableBalances.map((balance) => (
                           <div
                             key={balance.id}
-                            className="grid items-center gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[auto_1fr_8rem]"
+                            className="grid items-center gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[auto_minmax(0,1fr)_8rem] min-w-0"
                           >
                             <input
                               aria-label={`Incluir ${balance.item.name}`}
@@ -1116,7 +1102,7 @@ export default function LogisticsPage() {
                                 ? ` · serial ${balance.serialNumber}`
                                 : ""}
                             </span>
-                            <label className="text-xs font-semibold">
+                            <label className="text-sm font-semibold min-w-0">
                               Cantidad
                               <input
                                 aria-label={`Cantidad ${balance.item.name}`}
@@ -1125,7 +1111,7 @@ export default function LogisticsPage() {
                                 min={1}
                                 max={balance.quantity}
                                 defaultValue={1}
-                                className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-2"
+                                className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-2 min-w-0 max-w-full"
                               />
                             </label>
                           </div>
@@ -1133,32 +1119,32 @@ export default function LogisticsPage() {
                       )}
                     </div>
                   </fieldset>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Propósito operativo
                     <textarea
                       required
                       name="purpose"
                       minLength={20}
                       maxLength={1000}
-                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3"
+                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Declaración de entrega y custodia
                     <textarea
                       required
                       name="custodyDeclaration"
                       minLength={20}
                       maxLength={1000}
-                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3"
+                      className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 p-3 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold min-w-0">
                     Retorno esperado (opcional)
                     <input
                       type="datetime-local"
                       name="expectedReturnAt"
-                      className="mt-1 min-h-11 rounded-xl border border-slate-300 px-3"
+                      className="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
                     />
                   </label>
                   <button
@@ -1166,7 +1152,7 @@ export default function LogisticsPage() {
                     disabled={
                       Boolean(mutationKey) || availableBalances.length === 0
                     }
-                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50"
+                    className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 max-w-full whitespace-normal"
                   >
                     {mutationKey === "dispatch"
                       ? "Despachando…"
@@ -1181,11 +1167,11 @@ export default function LogisticsPage() {
 
       <section
         aria-labelledby="stock-title"
-        className="rounded-3xl border border-slate-200 bg-white p-4 md:p-6"
+        className="rounded-3xl border border-slate-200 bg-white p-4 md:p-6 min-w-0"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Warehouse className="text-blue-700" aria-hidden="true" />
-          <h2 id="stock-title" className="text-xl font-black">
+          <h2 id="stock-title" className="text-xl font-semibold">
             Existencias verificables
           </h2>
         </div>
@@ -1195,10 +1181,15 @@ export default function LogisticsPage() {
             físico.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div
+            className="mt-4 overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            role="region"
+            aria-label="Inventario logístico: tabla con desplazamiento horizontal"
+            tabIndex={0}
+          >
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
-                <tr className="border-b text-xs uppercase text-slate-500">
+                <tr className="border-b text-xs text-slate-500">
                   <th className="p-2">Artículo</th>
                   <th className="p-2">Bodega</th>
                   <th className="p-2">Trazabilidad</th>
@@ -1235,7 +1226,7 @@ export default function LogisticsPage() {
                       </span>
                     </td>
                     <td className="p-2">{balance.condition}</td>
-                    <td className="p-2 text-right text-lg font-black">
+                    <td className="p-2 text-right text-lg font-semibold">
                       {balance.quantity}
                     </td>
                     <td className="p-2">
@@ -1249,15 +1240,15 @@ export default function LogisticsPage() {
         )}
       </section>
 
-      <section aria-labelledby="transfers-title" className="space-y-4">
-        <div className="flex items-center gap-3">
+      <section aria-labelledby="transfers-title" className="space-y-4 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <Truck className="text-blue-700" aria-hidden="true" />
-          <h2 id="transfers-title" className="text-xl font-black">
+          <h2 id="transfers-title" className="text-xl font-semibold">
             Despachos y cadena de custodia
           </h2>
         </div>
         {overview.transfers.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600 min-w-0">
             No hay despachos registrados.
           </div>
         ) : (
@@ -1265,14 +1256,14 @@ export default function LogisticsPage() {
             <article
               key={transfer.id}
               data-testid={`transfer-${transfer.id}`}
-              className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-6"
+              className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-6 min-w-0"
             >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between min-w-0">
                 <div>
-                  <p className="text-xs font-bold uppercase text-blue-700">
+                  <p className="text-xs font-bold text-blue-700">
                     {transfer.code}
                   </p>
-                  <h3 className="text-lg font-black text-slate-950">
+                  <h3 className="text-lg font-semibold text-slate-950">
                     {transfer.destinationLabel}
                     {transfer.destinationTableNumber
                       ? ` · Mesa ${transfer.destinationTableNumber}`
@@ -1283,15 +1274,15 @@ export default function LogisticsPage() {
                     {formatDate(transfer.dispatchedAt)}
                   </p>
                 </div>
-                <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-800">
+                <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
                   {STATUS_LABELS[transfer.status]}
                 </span>
               </div>
-              <div className="mt-4 grid gap-2 md:grid-cols-2">
+              <div className="mt-4 grid gap-2 md:grid-cols-2 min-w-0">
                 {transfer.lines.map((line) => (
                   <div
                     key={line.id}
-                    className="rounded-xl bg-slate-50 p-3 text-sm"
+                    className="rounded-xl bg-slate-50 p-3 text-sm min-w-0"
                   >
                     <strong>{line.item.name}</strong>
                     <p className="mt-1 text-slate-600">
@@ -1310,7 +1301,7 @@ export default function LogisticsPage() {
                 </summary>
                 <ol className="mt-3 space-y-2 border-l-2 border-blue-200 pl-4">
                   {transfer.custodyEvents.map((event) => (
-                    <li key={event.id} className="text-sm">
+                    <li key={event.id} className="text-sm min-w-0">
                       <strong>{event.type}</strong> ·{" "}
                       {formatDate(event.occurredAt)}
                       <span className="block text-slate-600">
@@ -1320,12 +1311,14 @@ export default function LogisticsPage() {
                   ))}
                 </ol>
                 {transfer.incidents.length > 0 ? (
-                  <div className="mt-4 space-y-2">
-                    <h4 className="font-black text-amber-900">Incidencias</h4>
+                  <div className="mt-4 space-y-2 min-w-0">
+                    <h4 className="font-semibold text-amber-900">
+                      Incidencias
+                    </h4>
                     {transfer.incidents.map((incident) => (
                       <div
                         key={incident.id}
-                        className="rounded-lg bg-amber-50 p-3 text-sm"
+                        className="rounded-lg bg-amber-50 p-3 text-sm min-w-0"
                       >
                         <strong>
                           {incident.type}
@@ -1348,18 +1341,18 @@ export default function LogisticsPage() {
                 ) : null}
               </details>
               {canField && !overview.readOnly ? (
-                <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                <div className="mt-4 grid gap-3 xl:grid-cols-2 min-w-0">
                   {RECEIVE_STAGES.has(stage) &&
                   (transfer.status === "DISPATCHED" ||
                     transfer.status === "PARTIALLY_RECEIVED") ? (
                     <details className="rounded-xl border border-slate-200 p-3">
-                      <summary className="cursor-pointer font-black">
+                      <summary className="cursor-pointer font-semibold">
                         Confirmar recepción
                       </summary>
                       <form
                         data-testid={`receive-${transfer.id}`}
                         onSubmit={(event) => submitReceive(event, transfer)}
-                        className="mt-3 grid gap-3"
+                        className="mt-3 grid gap-3 min-w-0"
                       >
                         {transfer.lines.map((line) => {
                           const remaining =
@@ -1375,8 +1368,8 @@ export default function LogisticsPage() {
                               <legend className="px-1 text-sm font-bold">
                                 {line.item.name} · faltan {remaining}
                               </legend>
-                              <div className="grid grid-cols-3 gap-2">
-                                <label className="text-xs">
+                              <div className="grid gap-2 min-w-0 grid-cols-1 sm:grid-cols-3">
+                                <label className="text-sm min-w-0">
                                   Útil
                                   <input
                                     aria-label={`Útil ${line.item.name}`}
@@ -1385,10 +1378,10 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={remaining}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
-                                <label className="text-xs">
+                                <label className="text-sm min-w-0">
                                   Dañado
                                   <input
                                     aria-label={`Dañado ${line.item.name}`}
@@ -1397,10 +1390,10 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={remaining}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
-                                <label className="text-xs">
+                                <label className="text-sm min-w-0">
                                   Faltante
                                   <input
                                     aria-label={`Faltante ${line.item.name}`}
@@ -1409,27 +1402,27 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={remaining}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
                               </div>
                             </fieldset>
                           );
                         })}
-                        <label className="text-sm font-semibold">
+                        <label className="text-sm font-semibold min-w-0">
                           Declaración
                           <textarea
                             required
                             name="custodyDeclaration"
                             minLength={20}
                             maxLength={2000}
-                            className="mt-1 min-h-20 w-full rounded-lg border p-2"
+                            className="mt-1 min-h-20 w-full rounded-lg border p-2 min-w-0 max-w-full"
                           />
                         </label>
                         <button
                           type="submit"
                           disabled={Boolean(mutationKey)}
-                          className="min-h-11 rounded-lg bg-blue-700 px-3 font-bold text-white"
+                          className="min-h-11 rounded-lg bg-blue-700 px-3 font-bold text-white max-w-full whitespace-normal"
                         >
                           {mutationKey === `receive-${transfer.id}`
                             ? "Confirmando…"
@@ -1445,13 +1438,13 @@ export default function LogisticsPage() {
                     "PARTIALLY_RETURNED",
                   ].includes(transfer.status) ? (
                     <details className="rounded-xl border border-slate-200 p-3">
-                      <summary className="cursor-pointer font-black">
+                      <summary className="cursor-pointer font-semibold">
                         Registrar devolución
                       </summary>
                       <form
                         data-testid={`return-${transfer.id}`}
                         onSubmit={(event) => submitReturn(event, transfer)}
-                        className="mt-3 grid gap-3"
+                        className="mt-3 grid gap-3 min-w-0"
                       >
                         {transfer.lines.map((line) => {
                           const maximum =
@@ -1459,7 +1452,7 @@ export default function LogisticsPage() {
                           return (
                             <label
                               key={line.id}
-                              className="text-sm font-semibold"
+                              className="text-sm font-semibold min-w-0"
                             >
                               {line.item.name} · máximo {maximum}
                               <input
@@ -1469,25 +1462,25 @@ export default function LogisticsPage() {
                                 min={0}
                                 max={maximum}
                                 defaultValue={0}
-                                className="mt-1 min-h-10 w-full rounded border px-2"
+                                className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                               />
                             </label>
                           );
                         })}
-                        <label className="text-sm font-semibold">
+                        <label className="text-sm font-semibold min-w-0">
                           Declaración
                           <textarea
                             required
                             name="custodyDeclaration"
                             minLength={20}
                             maxLength={2000}
-                            className="mt-1 min-h-20 w-full rounded-lg border p-2"
+                            className="mt-1 min-h-20 w-full rounded-lg border p-2 min-w-0 max-w-full"
                           />
                         </label>
                         <button
                           type="submit"
                           disabled={Boolean(mutationKey)}
-                          className="min-h-11 rounded-lg bg-blue-700 px-3 font-bold text-white"
+                          className="min-h-11 rounded-lg bg-blue-700 px-3 font-bold text-white max-w-full whitespace-normal"
                         >
                           {mutationKey === `return-${transfer.id}`
                             ? "Confirmando…"
@@ -1505,13 +1498,13 @@ export default function LogisticsPage() {
                     "RETURNED",
                   ].includes(transfer.status) ? (
                     <details className="rounded-xl border border-red-200 bg-red-50/40 p-3">
-                      <summary className="cursor-pointer font-black text-red-950">
+                      <summary className="cursor-pointer font-semibold text-red-950">
                         Conciliación definitiva
                       </summary>
                       <form
                         data-testid={`reconcile-${transfer.id}`}
                         onSubmit={(event) => submitReconcile(event, transfer)}
-                        className="mt-3 grid gap-3"
+                        className="mt-3 grid gap-3 min-w-0"
                       >
                         {transfer.lines.map((line) => {
                           const pending =
@@ -1528,8 +1521,8 @@ export default function LogisticsPage() {
                               <legend className="px-1 text-sm font-bold">
                                 {line.item.name} · por explicar {pending}
                               </legend>
-                              <div className="grid grid-cols-3 gap-2">
-                                <label className="text-xs">
+                              <div className="grid gap-2 min-w-0 grid-cols-1 sm:grid-cols-3">
+                                <label className="text-sm min-w-0">
                                   Consumido
                                   <input
                                     type="number"
@@ -1537,10 +1530,10 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={pending}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
-                                <label className="text-xs">
+                                <label className="text-sm min-w-0">
                                   Faltante
                                   <input
                                     type="number"
@@ -1548,10 +1541,10 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={pending}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
-                                <label className="text-xs">
+                                <label className="text-sm min-w-0">
                                   Dañado
                                   <input
                                     type="number"
@@ -1559,27 +1552,27 @@ export default function LogisticsPage() {
                                     min={0}
                                     max={pending}
                                     defaultValue={0}
-                                    className="mt-1 min-h-10 w-full rounded border px-2"
+                                    className="mt-1 min-h-10 w-full rounded border px-2 min-w-0 max-w-full"
                                   />
                                 </label>
                               </div>
                             </fieldset>
                           );
                         })}
-                        <label className="text-sm font-semibold">
+                        <label className="text-sm font-semibold min-w-0">
                           Explicación final
                           <textarea
                             required
                             name="reconciliationNote"
                             minLength={20}
                             maxLength={2000}
-                            className="mt-1 min-h-20 w-full rounded-lg border p-2"
+                            className="mt-1 min-h-20 w-full rounded-lg border p-2 min-w-0 max-w-full"
                           />
                         </label>
                         <button
                           type="submit"
                           disabled={Boolean(mutationKey)}
-                          className="min-h-11 rounded-lg bg-red-700 px-3 font-bold text-white"
+                          className="min-h-11 rounded-lg bg-red-700 px-3 font-bold text-white max-w-full whitespace-normal"
                         >
                           {mutationKey === `reconcile-${transfer.id}`
                             ? "Conciliando…"
@@ -1589,19 +1582,19 @@ export default function LogisticsPage() {
                     </details>
                   ) : null}
                   <details className="rounded-xl border border-amber-200 p-3">
-                    <summary className="cursor-pointer font-black text-amber-950">
+                    <summary className="cursor-pointer font-semibold text-amber-950">
                       Reportar incidencia
                     </summary>
                     <form
                       data-testid={`incident-${transfer.id}`}
                       onSubmit={(event) => submitIncident(event, transfer)}
-                      className="mt-3 grid gap-3"
+                      className="mt-3 grid gap-3 min-w-0"
                     >
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Tipo
                         <select
                           name="type"
-                          className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                          className="mt-1 min-h-11 w-full rounded-lg border px-2 min-w-0 max-w-full"
                         >
                           {INCIDENT_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -1610,11 +1603,11 @@ export default function LogisticsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Línea (opcional)
                         <select
                           name="lineId"
-                          className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                          className="mt-1 min-h-11 w-full rounded-lg border px-2 min-w-0 max-w-full"
                         >
                           <option value="">Despacho completo</option>
                           {transfer.lines.map((line) => (
@@ -1624,47 +1617,47 @@ export default function LogisticsPage() {
                           ))}
                         </select>
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Cantidad (opcional)
                         <input
                           type="number"
                           name="quantity"
                           min={1}
                           max={1000000}
-                          className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                          className="mt-1 min-h-11 w-full rounded-lg border px-2 min-w-0 max-w-full"
                         />
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Descripción
                         <textarea
                           required
                           name="description"
                           minLength={20}
                           maxLength={2000}
-                          className="mt-1 min-h-20 w-full rounded-lg border p-2"
+                          className="mt-1 min-h-20 w-full rounded-lg border p-2 min-w-0 max-w-full"
                         />
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         Referencia HTTPS de evidencia (opcional)
                         <input
                           type="url"
                           name="evidenceReference"
                           maxLength={2048}
-                          className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                          className="mt-1 min-h-11 w-full rounded-lg border px-2 min-w-0 max-w-full"
                         />
                       </label>
-                      <label className="text-sm font-semibold">
+                      <label className="text-sm font-semibold min-w-0">
                         SHA-256 de evidencia (obligatorio con referencia)
                         <input
                           name="evidenceSha256"
                           pattern="[a-fA-F0-9]{64}"
-                          className="mt-1 min-h-11 w-full rounded-lg border px-2 font-mono text-xs"
+                          className="mt-1 min-h-11 w-full rounded-lg border px-2 font-mono text-xs min-w-0 max-w-full"
                         />
                       </label>
                       <button
                         type="submit"
                         disabled={Boolean(mutationKey)}
-                        className="min-h-11 rounded-lg bg-amber-700 px-3 font-bold text-white"
+                        className="min-h-11 rounded-lg bg-amber-700 px-3 font-bold text-white max-w-full whitespace-normal"
                       >
                         {mutationKey === `incident-${transfer.id}`
                           ? "Registrando…"
@@ -1679,11 +1672,11 @@ export default function LogisticsPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
-        <div className="flex gap-3">
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 min-w-0">
+        <div className="flex gap-3 min-w-0">
           <ClipboardCheck className="shrink-0" aria-hidden="true" />
           <div>
-            <h2 className="font-black">Límites deliberados</h2>
+            <h2 className="font-semibold">Límites deliberados</h2>
             <p className="mt-1">
               La importación viaja como JSON validado (máximo 100 filas), nunca
               como archivo binario. La evidencia de incidencias usa referencia

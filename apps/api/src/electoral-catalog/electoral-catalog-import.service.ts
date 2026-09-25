@@ -373,7 +373,7 @@ export class ElectoralCatalogImportService {
       });
     }
     return {
-      job: this.present(job as ProcessImport),
+      job: this.present(job),
       queued: job.status !== ElectoralCatalogImportStatus.SUCCEEDED,
       noOp: job.status === ElectoralCatalogImportStatus.SUCCEEDED,
     };

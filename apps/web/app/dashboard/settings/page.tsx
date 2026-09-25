@@ -1,14 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import {
-  AlertCircle,
-  CheckCircle2,
-  ExternalLink,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
+
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -17,6 +10,15 @@ import {
   type ActivateConsentNoticeInput,
   type ConsentNoticeContext,
 } from "@/lib/consent-notices-api";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
+import { FormEvent, useState } from "react";
 
 const EMPTY_FORM: ActivateConsentNoticeInput = {
   version: "",
@@ -42,54 +44,39 @@ function purposeLabel(purpose: ConsentNoticeContext["purpose"]): string {
 export default function ConsentSettingsPage() {
   const { user, tenant } = useAuth();
   const canEdit = user?.backendRole === "ADMIN";
-  const [context, setContext] = useState<ConsentNoticeContext | null>(null);
-  const [form, setForm] = useState<ActivateConsentNoticeInput>(EMPTY_FORM);
-  const [loading, setLoading] = useState(true);
+  const [formDraft, setFormDraft] = useState<{
+    source: ConsentNoticeContext | null;
+    value: ActivateConsentNoticeInput;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
 
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await getCurrentConsentNotice(signal);
-        if (signal.aborted) return;
-        setContext(response);
-        if (response.notice) {
-          setForm({
-            version: response.notice.version,
-            title: response.notice.title,
-            content: response.notice.content,
-            controllerName: response.notice.controllerName,
-            contactEmail: response.notice.contactEmail,
-            privacyPolicyUrl: response.notice.privacyPolicyUrl ?? "",
-          });
-        } else {
-          setForm((current) => ({
-            ...EMPTY_FORM,
-            controllerName: current.controllerName || tenant?.name || "",
-          }));
-        }
-      } catch (requestError: unknown) {
-        if (!signal.aborted) {
-          setContext(null);
-          setError(readableError(requestError));
-        }
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
-    },
-    [tenant?.name],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load, reload]);
+  const {
+    data: context,
+    loading,
+    error: requestError,
+    setData: setContext,
+  } = usePageRequest(getCurrentConsentNotice, { reloadKey: reload });
+  const error =
+    actionError ?? (requestError ? readableError(requestError) : null);
+  const form =
+    formDraft?.source === context
+      ? formDraft.value
+      : context?.notice
+        ? {
+            version: context.notice.version,
+            title: context.notice.title,
+            content: context.notice.content,
+            controllerName: context.notice.controllerName,
+            contactEmail: context.notice.contactEmail,
+            privacyPolicyUrl: context.notice.privacyPolicyUrl ?? "",
+          }
+        : { ...EMPTY_FORM, controllerName: tenant?.name ?? "" };
+  function setForm(value: ActivateConsentNoticeInput) {
+    setFormDraft({ source: context, value });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,13 +110,13 @@ export default function ConsentSettingsPage() {
   const current = context?.notice;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-7">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+    <div className="mx-auto max-w-5xl space-y-7 min-w-0">
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0">
+        <div className="max-w-2xl min-w-0">
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-700">
             <ShieldCheck aria-hidden="true" size={14} /> Gobierno de datos
           </span>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="mt-4 font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
             Aviso de privacidad de la organización
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
@@ -142,7 +129,7 @@ export default function ConsentSettingsPage() {
           type="button"
           onClick={() => setReload((value) => value + 1)}
           disabled={loading}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
         >
           <RefreshCw
             aria-hidden="true"
@@ -156,7 +143,7 @@ export default function ConsentSettingsPage() {
       {notice && (
         <div
           role="status"
-          className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950"
+          className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950 min-w-0"
         >
           <CheckCircle2 aria-hidden="true" size={20} /> {notice}
         </div>
@@ -164,26 +151,26 @@ export default function ConsentSettingsPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900"
+          className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900 min-w-0"
         >
           <AlertCircle aria-hidden="true" size={20} /> {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600">
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 min-w-0">
           <Loader2 className="animate-spin text-slate-400" size={24} />
           Consultando el aviso vigente…
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] min-w-0">
           <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              <p className="text-xs font-semibold text-slate-400">
                 Estado actual
               </p>
               <p
-                className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                   current
                     ? "bg-emerald-50 text-emerald-800"
                     : "bg-amber-50 text-amber-900"
@@ -192,9 +179,9 @@ export default function ConsentSettingsPage() {
                 {current ? `Activo · ${current.version}` : "Sin configurar"}
               </p>
             </div>
-            <dl className="space-y-4 text-sm">
+            <dl className="space-y-4 text-sm min-w-0">
               <div>
-                <dt className="text-xs font-black uppercase tracking-wider text-slate-400">
+                <dt className="text-xs font-semibold text-slate-400">
                   Finalidad
                 </dt>
                 <dd className="mt-1 font-semibold text-slate-800">
@@ -204,7 +191,7 @@ export default function ConsentSettingsPage() {
               {current && (
                 <>
                   <div>
-                    <dt className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    <dt className="text-xs font-semibold text-slate-400">
                       Responsable
                     </dt>
                     <dd className="mt-1 font-semibold text-slate-800">
@@ -212,7 +199,7 @@ export default function ConsentSettingsPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    <dt className="text-xs font-semibold text-slate-400">
                       Canal de derechos
                     </dt>
                     <dd className="mt-1 break-all font-semibold text-slate-800">
@@ -224,7 +211,7 @@ export default function ConsentSettingsPage() {
                       href={current.privacyPolicyUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-black text-blue-700 underline"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 underline max-w-full whitespace-normal"
                     >
                       Ver política publicada
                       <ExternalLink aria-hidden="true" size={14} />
@@ -249,10 +236,10 @@ export default function ConsentSettingsPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+            className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 min-w-0"
           >
             <div>
-              <h2 className="text-xl font-black text-slate-950">
+              <h2 className="text-xl font-semibold text-slate-950">
                 {current ? "Activar una versión nueva" : "Configurar el aviso"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -261,8 +248,8 @@ export default function ConsentSettingsPage() {
               </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+            <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+              <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Versión
                 <input
                   required
@@ -273,10 +260,10 @@ export default function ConsentSettingsPage() {
                     setForm({ ...form, version: event.target.value })
                   }
                   placeholder="Ej. 2026-09-v1"
-                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
                 />
               </label>
-              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Responsable del tratamiento
                 <input
                   required
@@ -287,12 +274,12 @@ export default function ConsentSettingsPage() {
                   onChange={(event) =>
                     setForm({ ...form, controllerName: event.target.value })
                   }
-                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
                 />
               </label>
             </div>
 
-            <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+            <label className="block space-y-2 text-sm font-semibold text-slate-500 min-w-0">
               Título
               <input
                 required
@@ -303,11 +290,11 @@ export default function ConsentSettingsPage() {
                 onChange={(event) =>
                   setForm({ ...form, title: event.target.value })
                 }
-                className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
               />
             </label>
 
-            <label className="block space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+            <label className="block space-y-2 text-sm font-semibold text-slate-500 min-w-0">
               Texto comunicado antes de autorizar
               <textarea
                 required
@@ -320,15 +307,15 @@ export default function ConsentSettingsPage() {
                   setForm({ ...form, content: event.target.value })
                 }
                 placeholder="Explica responsable, finalidad, datos tratados, derechos y cómo retirar la autorización."
-                className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
               />
-              <span className="block text-[11px] font-medium normal-case tracking-normal text-slate-400">
+              <span className="block text-xs font-medium normal-case tracking-normal text-slate-400">
                 {form.content.length}/4.000 caracteres
               </span>
             </label>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+            <div className="grid gap-5 sm:grid-cols-2 min-w-0">
+              <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 Correo para ejercer derechos
                 <input
                   required
@@ -339,10 +326,10 @@ export default function ConsentSettingsPage() {
                   onChange={(event) =>
                     setForm({ ...form, contactEmail: event.target.value })
                   }
-                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
                 />
               </label>
-              <label className="space-y-2 text-xs font-black uppercase tracking-wider text-slate-500">
+              <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                 URL de política (opcional)
                 <input
                   type="url"
@@ -355,7 +342,7 @@ export default function ConsentSettingsPage() {
                     setForm({ ...form, privacyPolicyUrl: event.target.value })
                   }
                   placeholder="https://..."
-                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100"
+                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold normal-case tracking-normal text-slate-900 disabled:bg-slate-100 min-w-0 max-w-full"
                 />
               </label>
             </div>
@@ -364,7 +351,7 @@ export default function ConsentSettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-emerald-900/10 disabled:opacity-50"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-900/10 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 {saving ? (
                   <Loader2

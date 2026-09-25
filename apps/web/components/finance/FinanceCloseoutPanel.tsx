@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   Scale,
   ShieldCheck,
 } from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
 import {
   approveFinanceReportVersion,
@@ -120,10 +121,8 @@ export function FinanceCloseoutPanel({
   const canRecordEvidence =
     role === "FINANCE_MANAGER" || role === "COMPLIANCE_OFFICER";
   const canAuditEvidence = role === "AUDITOR";
-  const [overview, setOverview] = useState<FinanceCloseoutOverview | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [openForm, setOpenForm] = useState<string | null>(null);
 
@@ -197,26 +196,13 @@ export function FinanceCloseoutPanel({
     reviewNote: "",
   });
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const { data: overview, loading, error: loadError, refresh: refreshData } =
+    usePageRequest<FinanceCloseoutOverview>(getFinanceCloseoutOverview);
+  const error = mutationError ?? (loadError ? errorMessage(loadError, "No fue posible consultar el cierre financiero.") : null);
+  const load = () => {
     setError(null);
-    try {
-      setOverview(await getFinanceCloseoutOverview());
-    } catch (requestError) {
-      setError(
-        errorMessage(
-          requestError,
-          "No fue posible consultar el cierre financiero.",
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    return refreshData();
+  };
 
   const approvedEntries = useMemo(
     () =>

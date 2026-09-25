@@ -23,10 +23,12 @@ describe('RolesGuard', () => {
     guard = new RolesGuard({ getAllAndOverride } as unknown as Reflector);
   });
 
-  it('allows authenticated routes without role metadata', () => {
+  it('denies routes without an explicit access policy', () => {
     getAllAndOverride.mockReturnValue(undefined);
 
-    expect(guard.canActivate(buildContext(Role.VOLUNTEER))).toBe(true);
+    expect(() => guard.canActivate(buildContext(Role.VOLUNTEER))).toThrow(
+      ForbiddenException,
+    );
   });
 
   it('allows a role included in the endpoint metadata', () => {

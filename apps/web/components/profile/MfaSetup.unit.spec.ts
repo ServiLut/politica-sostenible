@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
-const source = readFileSync(resolve(__dirname, "MfaSetup.tsx"), "utf8");
+const source = readFileSync(resolve(__dirname, "MfaSetup.tsx"), "utf8").replace(
+  /\r\n/g,
+  "\n",
+);
 
 test("un fallo al consultar MFA tiene estado y reintento propios", () => {
   const fetchStatus = source.match(
@@ -49,9 +52,7 @@ test("exige contraseña actual y cierra toda sesión después de cambiar MFA", (
 test("solo permite iniciar MFA cuando el snapshot del plan lo confirma", () => {
   expect(source).toContain('usePlanCapability("mfa")');
   expect(source).toContain("!mfaCapability.enabled");
-  expect(source).toContain(
-    'state === "not_enabled" && mfaCapability.enabled',
-  );
+  expect(source).toContain('state === "not_enabled" && mfaCapability.enabled');
   expect(source).toContain("2FA no está incluido en tu plan");
   expect(source).toContain("No pudimos validar tu plan");
   expect(source).toContain("onClick={mfaCapability.refresh}");

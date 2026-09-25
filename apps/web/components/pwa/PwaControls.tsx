@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, RefreshCw, Share2, Wifi, WifiOff } from "lucide-react";
+import { Download, LockKeyhole, RefreshCw, Share2, Wifi, WifiOff } from "lucide-react";
+import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
 
 interface PwaControlsProps {
   canInstall: boolean;
@@ -28,12 +29,32 @@ export function PwaControls({
   return (
     <aside
       aria-label="Estado de la aplicación"
-      className="pointer-events-none fixed right-3 bottom-20 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 lg:right-4 lg:bottom-4"
+      className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm"
     >
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="Estado de conectividad"
+        data-testid="pwa-connectivity-status"
+        className={`inline-flex items-center gap-1.5 text-xs font-medium ${isOnline ? "text-emerald-800" : "text-amber-900"}`}
+      >
+        {isOnline ? <Wifi aria-hidden="true" size={14} /> : <WifiOff aria-hidden="true" size={14} />}
+        {isOnline ? "En línea" : "Sin conexión"}
+      </div>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))}
+        aria-haspopup="dialog"
+        aria-controls="offline-vault-dialog"
+        aria-label="Bóveda offline"
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+      >
+        <LockKeyhole aria-hidden="true" size={16} /> Bóveda<span className="hidden sm:inline"> offline</span>
+      </button>
       {registrationError && (
         <p
           role="alert"
-          className="max-w-sm rounded-xl border border-red-200 bg-white px-4 py-3 text-xs font-semibold text-red-800 shadow-xl"
+          className="basis-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
         >
           {registrationError}
         </p>
@@ -44,14 +65,17 @@ export function PwaControls({
           type="button"
           onClick={onApplyUpdate}
           disabled={applyingUpdate}
-          className="pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-700 px-4 text-xs font-black text-white shadow-xl transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
+          aria-label={applyingUpdate ? "Aplicando actualización" : "Actualizar aplicación"}
+          title={applyingUpdate ? "Aplicando actualización" : "Actualizar aplicación"}
+          aria-busy={applyingUpdate}
+          className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
         >
           <RefreshCw
             aria-hidden="true"
             className={applyingUpdate ? "animate-spin" : undefined}
             size={15}
           />
-          {applyingUpdate ? "Aplicando actualización" : "Actualizar aplicación"}
+          <span className="hidden sm:inline">{applyingUpdate ? "Aplicando actualización" : "Actualizar aplicación"}</span>
         </button>
       )}
 
@@ -59,16 +83,18 @@ export function PwaControls({
         <button
           type="button"
           onClick={onInstall}
-          className="pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-xs font-black text-white shadow-xl transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          aria-label="Instalar aplicación"
+          title="Instalar aplicación"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >
           <Download aria-hidden="true" size={15} />
-          Instalar aplicación
+          <span className="hidden sm:inline">Instalar aplicación</span>
         </button>
       )}
 
       {!installed && installGuideAvailable && !canInstall && (
-        <details className="pointer-events-auto max-w-sm rounded-xl border border-slate-200 bg-white text-slate-800 shadow-xl">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-xs font-black marker:content-none">
+        <details className="max-w-sm rounded-xl border border-slate-200 bg-white text-slate-800">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-sm font-medium marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
             <Share2 aria-hidden="true" size={15} />
             Cómo instalar en iPhone o iPad
           </summary>
@@ -80,24 +106,6 @@ export function PwaControls({
         </details>
       )}
 
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        aria-label="Estado de conectividad"
-        data-testid="pwa-connectivity-status"
-        className={`inline-flex min-h-9 items-center gap-2 rounded-full border bg-white px-3 text-[11px] font-black shadow-lg ${
-          isOnline
-            ? "border-emerald-200 text-emerald-800"
-            : "border-amber-300 text-amber-900"
-        }`}
-      >
-        {isOnline ? (
-          <Wifi aria-hidden="true" size={14} />
-        ) : (
-          <WifiOff aria-hidden="true" size={14} />
-        )}
-        {isOnline ? "En línea" : "Sin conexión"}
-      </div>
     </aside>
   );
 }

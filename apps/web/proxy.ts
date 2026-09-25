@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { allowsLocalEvaluationHttp } from "./lib/local-evaluation-http";
 
 /**
  * Historical UI prototypes must never render in a deployed application. Some of
@@ -38,6 +39,7 @@ function storageOrigin() {
 export function buildContentSecurityPolicy(
   nonce: string,
   isDevelopment = process.env.NODE_ENV !== "production",
+  localEvaluationHttp = allowsLocalEvaluationHttp(),
 ) {
   const allowedStorageOrigin = storageOrigin();
 
@@ -59,7 +61,9 @@ export function buildContentSecurityPolicy(
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
+    ...(isDevelopment || localEvaluationHttp
+      ? []
+      : ["upgrade-insecure-requests"]),
   ].join("; ");
 }
 
@@ -114,8 +118,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source:
-        "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+      source: "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

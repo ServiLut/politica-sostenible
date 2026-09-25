@@ -137,12 +137,6 @@ interface CaseAuditSource {
   assigneeId: string | null;
   dueAt: Date | null;
   confidential: boolean;
-  title: string;
-  description: string;
-  externalContactRef: string | null;
-  voterId: string | null;
-  divisionId: string | null;
-  occurredOn?: Date | null;
 }
 
 @Injectable()
@@ -271,7 +265,7 @@ export class CasesService {
 
   async listAssignees(
     user: AuthenticatedUser,
-    query: { page?: number; limit?: number; search?: string }
+    query: { page?: number; limit?: number; search?: string } = {},
   ) {
     this.assertCaseWriteAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
@@ -500,10 +494,6 @@ export class CasesService {
               confidential: true,
               voterId: true,
               externalContactRef: true,
-              title: true,
-              description: true,
-              divisionId: true,
-              occurredOn: true,
               firstResponseAt: true,
               resolvedAt: true,
             },
@@ -822,12 +812,6 @@ export class CasesService {
       assigneeId: value.assigneeId,
       dueAt: value.dueAt?.toISOString() ?? null,
       confidential: value.confidential,
-      title: value.title,
-      description: value.description,
-      externalContactRef: value.externalContactRef,
-      voterId: value.voterId,
-      divisionId: value.divisionId,
-      occurredOn: value.occurredOn?.toISOString() ?? null,
     };
   }
 

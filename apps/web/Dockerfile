@@ -13,6 +13,7 @@ WORKDIR /app
 ARG APP_REVISION
 ARG APP_SOURCE
 ARG DEPLOYMENT_PROFILE
+ARG ALLOW_LOCAL_STAGING_BUILD=false
 RUN corepack enable && corepack prepare pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264 --activate
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml

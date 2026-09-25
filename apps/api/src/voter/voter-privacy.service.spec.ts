@@ -878,8 +878,7 @@ describe('VoterService privacy controls', () => {
     const listWhere = findManyCalls[0]?.[0].where;
     const countWhere = countCalls[0]?.[0].where;
     const territorialFilter = listWhere?.puestoId as
-      | { in?: string[] }
-      | undefined;
+      { in?: string[] } | undefined;
 
     expect(listWhere).toMatchObject({ tenantId: 'tenant-a' });
     expect(territorialFilter?.in).toEqual(

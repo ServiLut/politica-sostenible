@@ -1,30 +1,12 @@
 "use client";
 
-import {
-  type FormEvent,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Download,
-  Loader2,
-  RefreshCw,
-  Scale,
-  ShieldCheck,
-} from "lucide-react";
+import { usePageRequest } from "@/lib/use-page-request";
+
 import { UserCombobox } from "@/components/ui/UserCombobox";
-import { listScrutinyParticipants } from "@/lib/scrutiny-api";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import { uploadFileDirectly } from "@/lib/direct-storage-upload";
 import {
-  SCRUTINY_DOCUMENT_TYPES,
-  SCRUTINY_EVIDENCE_LABELS,
   addScrutinyActionVersion,
   approveScrutinyAction,
   configureScrutinyRequirement,
@@ -37,6 +19,7 @@ import {
   fileScrutinyAction,
   getScrutinyDocumentDownload,
   getScrutinyOverview,
+  listScrutinyParticipants,
   recordScrutinyCustody,
   recordScrutinyDecision,
   recordScrutinySessionEvent,
@@ -44,6 +27,8 @@ import {
   reviewScrutinyDecision,
   reviewScrutinyDeclaration,
   reviewScrutinyDocument,
+  SCRUTINY_DOCUMENT_TYPES,
+  SCRUTINY_EVIDENCE_LABELS,
   sha256File,
   type ScrutinyAction,
   type ScrutinyDocument,
@@ -51,6 +36,16 @@ import {
   type ScrutinyOverview,
 } from "@/lib/scrutiny-api";
 import type { BackendUserRole } from "@/types/saas-schema";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Loader2,
+  RefreshCw,
+  Scale,
+  ShieldCheck,
+} from "lucide-react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 const LEGAL_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -149,7 +144,7 @@ function Field({
   hint?: string;
 }) {
   return (
-    <label className="block text-sm font-semibold text-slate-800">
+    <label className="block text-sm font-semibold text-slate-800 min-w-0">
       {label}
       {children}
       {hint ? (
@@ -180,20 +175,22 @@ function Workflow({
       <summary className="cursor-pointer list-none px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 md:px-5">
         <span className="flex items-start justify-between gap-3">
           <span>
-            <span className="block font-black text-slate-950">{title}</span>
+            <span className="block font-semibold text-slate-950">{title}</span>
             <span className="mt-1 block text-sm font-normal text-slate-600">
               {description}
             </span>
           </span>
           <span
             aria-hidden="true"
-            className="text-xl font-black text-blue-700 group-open:rotate-45"
+            className="text-xl font-semibold text-blue-700 group-open:rotate-45"
           >
             +
           </span>
         </span>
       </summary>
-      <div className="border-t border-slate-200 p-4 md:p-5">{children}</div>
+      <div className="border-t border-slate-200 p-4 md:p-5 min-w-0">
+        {children}
+      </div>
     </details>
   );
 }
@@ -225,15 +222,22 @@ function SubmitButton({ busy, label }: { busy: boolean; label: string }) {
   );
 }
 
-
-function UserSelect({ name, initialValue = "" }: { name: string; initialValue?: string }) {
+function UserSelect({
+  name,
+  initialValue = "",
+}: {
+  name: string;
+  initialValue?: string;
+}) {
   const [value, setValue] = useState(initialValue);
   return (
     <UserCombobox
       name={name}
       value={value}
       onChange={setValue}
-      fetchItems={(search, signal) => listScrutinyParticipants({ search, limit: 10 }, signal)}
+      fetchItems={(search, signal) =>
+        listScrutinyParticipants({ search, limit: 10 }, signal)
+      }
     />
   );
 }
@@ -241,11 +245,9 @@ function UserSelect({ name, initialValue = "" }: { name: string; initialValue?: 
 export default function ScrutinyPage() {
   const { user } = useAuth();
   const role = user?.backendRole;
-  const [overview, setOverview] = useState<ScrutinyOverview | null>(null);
-  const [selectedCommissionId, setSelectedCommissionId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [commissionDraft, setSelectedCommissionId] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<{
     documentId: string;
@@ -254,6 +256,19 @@ export default function ScrutinyPage() {
   } | null>(null);
   const [revision, setRevision] = useState(0);
 
+  const {
+    data: overview,
+    loading,
+    error: requestError,
+    setData: setOverview,
+  } = usePageRequest(getScrutinyOverview, { reloadKey: revision });
+  const error =
+    actionError ?? (requestError ? readableError(requestError) : null);
+  const selectedCommissionId = overview?.commissions.some(
+    ({ id }) => id === commissionDraft,
+  )
+    ? commissionDraft
+    : (overview?.commissions[0]?.id ?? "");
   const canLegal = Boolean(
     role && LEGAL_ROLES.has(role) && !overview?.readOnly,
   );
@@ -261,37 +276,6 @@ export default function ScrutinyPage() {
     role && FIELD_ROLES.has(role) && !overview?.readOnly,
   );
   const canDownload = Boolean(role && DOWNLOAD_ROLES.has(role));
-
-  const load = useCallback(async (signal?: AbortSignal) => {
-    const data = await getScrutinyOverview(signal);
-    if (!signal?.aborted) setOverview(data);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    void load(controller.signal)
-      .catch((cause: unknown) => {
-        if (!(cause instanceof DOMException && cause.name === "AbortError")) {
-          setError(readableError(cause));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [load, revision]);
-
-  useEffect(() => {
-    if (!overview?.commissions.length) {
-      setSelectedCommissionId("");
-      return;
-    }
-    if (!overview.commissions.some(({ id }) => id === selectedCommissionId)) {
-      setSelectedCommissionId(overview.commissions[0].id);
-    }
-  }, [overview, selectedCommissionId]);
 
   const selectedCommission = useMemo(
     () =>
@@ -329,7 +313,9 @@ export default function ScrutinyPage() {
       const result = await operation();
       setNotice(success);
       if (updater) {
-        setOverview((current) => current ? updater(current, result) : current);
+        setOverview((current) =>
+          current ? updater(current, result) : current,
+        );
       } else {
         setRevision((current) => current + 1);
       }
@@ -419,7 +405,7 @@ export default function ScrutinyPage() {
   if (loading && !overview) {
     return (
       <div
-        className="flex min-h-[50vh] items-center justify-center gap-3"
+        className="flex min-h-[50vh] items-center justify-center gap-3 min-w-0"
         role="status"
       >
         <Loader2
@@ -432,13 +418,13 @@ export default function ScrutinyPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <main className="mx-auto max-w-7xl space-y-6 min-w-0">
+      <header className="flex flex-wrap items-start justify-between gap-4 min-w-0">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-sm font-bold text-blue-700">
             Control poselectoral
           </p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+          <h1 className="mt-1 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Escrutinios, reclamaciones y declaración
           </h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
@@ -464,7 +450,7 @@ export default function ScrutinyPage() {
       {error ? (
         <section
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900 min-w-0"
         >
           <span>
             <strong>No se completó la operación.</strong> {error}
@@ -489,10 +475,10 @@ export default function ScrutinyPage() {
 
       {overview?.readOnly ? (
         <section
-          className="rounded-xl border border-slate-300 bg-slate-100 p-4"
+          className="rounded-xl border border-slate-300 bg-slate-100 p-4 min-w-0"
           role="status"
         >
-          <p className="font-black text-slate-950">
+          <p className="font-semibold text-slate-950">
             Operación cerrada: expediente en solo lectura
           </p>
           <p className="mt-1 text-sm text-slate-700">
@@ -506,16 +492,22 @@ export default function ScrutinyPage() {
         <>
           <section
             aria-labelledby="state-contract-title"
-            className="rounded-xl border border-blue-200 bg-blue-50 p-4 md:p-5"
+            className="rounded-xl border border-blue-200 bg-blue-50 p-4 md:p-5 min-w-0"
           >
-            <h2 id="state-contract-title" className="font-black text-blue-950">
+            <h2
+              id="state-contract-title"
+              className="font-semibold text-blue-950"
+            >
               Contrato de evidencia: cuatro estados que no se confunden
             </h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 min-w-0">
               {(
                 Object.keys(SCRUTINY_EVIDENCE_LABELS) as ScrutinyEvidenceState[]
               ).map((state) => (
-                <div key={state} className="rounded-lg bg-white p-3 shadow-sm">
+                <div
+                  key={state}
+                  className="rounded-lg bg-white p-3 shadow-sm min-w-0"
+                >
                   <EvidenceBadge state={state} />
                   <p className="mt-2 text-xs leading-5 text-slate-600">
                     {overview.stateContract[state]}
@@ -529,7 +521,7 @@ export default function ScrutinyPage() {
             aria-labelledby="readiness-title"
             className={`rounded-xl border p-4 md:p-5 ${overview.readiness.ready ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               {overview.readiness.ready ? (
                 <CheckCircle2
                   className="mt-0.5 h-6 w-6 text-emerald-700"
@@ -542,7 +534,10 @@ export default function ScrutinyPage() {
                 />
               )}
               <div className="min-w-0 flex-1">
-                <h2 id="readiness-title" className="font-black text-slate-950">
+                <h2
+                  id="readiness-title"
+                  className="font-semibold text-slate-950"
+                >
                   {overview.readiness.ready
                     ? "Expediente sin bloqueos detectados"
                     : `${overview.readiness.summary.blockerCount} controles pendientes antes del cierre ordinario`}
@@ -553,11 +548,11 @@ export default function ScrutinyPage() {
                   justificación.
                 </p>
                 {overview.readiness.blockers.length ? (
-                  <ul className="mt-3 space-y-2">
+                  <ul className="mt-3 space-y-2 min-w-0">
                     {overview.readiness.blockers.map((blocker) => (
                       <li
                         key={blocker.code}
-                        className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800"
+                        className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 min-w-0"
                       >
                         <strong>{blocker.count}:</strong> {blocker.detail}
                       </li>
@@ -570,7 +565,7 @@ export default function ScrutinyPage() {
 
           <section
             aria-label="Resumen del expediente"
-            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 min-w-0"
           >
             {[
               ["Comisiones", overview.readiness.summary.commissionCount],
@@ -589,12 +584,10 @@ export default function ScrutinyPage() {
             ].map(([label, count]) => (
               <div
                 key={String(label)}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-w-0"
               >
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  {label}
-                </p>
-                <p className="mt-2 text-3xl font-black text-slate-950">
+                <p className="text-xs font-bold text-slate-500">{label}</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">
                   {count}
                 </p>
               </div>
@@ -618,12 +611,12 @@ export default function ScrutinyPage() {
               </select>
             </Field>
           ) : (
-            <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
               <Scale
                 className="mx-auto h-9 w-9 text-slate-400"
                 aria-hidden="true"
               />
-              <h2 className="mt-3 font-black text-slate-950">
+              <h2 className="mt-3 font-semibold text-slate-950">
                 Aún no hay comisiones documentadas
               </h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -640,7 +633,7 @@ export default function ScrutinyPage() {
               open={!overview.commissions.length}
             >
               <form
-                className="grid gap-4 md:grid-cols-2"
+                className="grid gap-4 md:grid-cols-2 min-w-0"
                 onSubmit={submitCommission}
               >
                 <Field label="Código oficial">
@@ -728,7 +721,10 @@ export default function ScrutinyPage() {
                   />
                 </Field>
                 <Field label="Responsable jurídico">
-                  <UserSelect name="legalLeadUserId" initialValue={user?.id ?? ""} />
+                  <UserSelect
+                    name="legalLeadUserId"
+                    initialValue={user?.id ?? ""}
+                  />
                 </Field>
                 <Field label="URL HTTPS del calendario">
                   <input
@@ -782,7 +778,7 @@ export default function ScrutinyPage() {
                     type="datetime-local"
                   />
                 </Field>
-                <div className="flex items-end">
+                <div className="flex items-end min-w-0">
                   <SubmitButton
                     busy={busy === "commission"}
                     label="Crear comisión trazable"
@@ -798,15 +794,20 @@ export default function ScrutinyPage() {
                 title="2. Alistamiento documental y audiencia"
                 description="Decide aplicabilidad documento por documento y registra la secuencia real de apertura, suspensión, reanudación o cierre."
               >
-                <div className="grid gap-6 xl:grid-cols-2">
+                <div className="grid gap-6 xl:grid-cols-2 min-w-0">
                   <section>
-                    <h3 className="font-black text-slate-950">
+                    <h3 className="font-semibold text-slate-950">
                       Matriz de documentos esenciales
                     </h3>
-                    <div className="mt-3 overflow-x-auto">
+                    <div
+                      className="mt-3 overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      role="region"
+                      aria-label="Resultados de escrutinio: tabla con desplazamiento horizontal"
+                      tabIndex={0}
+                    >
                       <table className="w-full min-w-[520px] text-left text-sm">
                         <thead>
-                          <tr className="border-b text-xs uppercase text-slate-500">
+                          <tr className="border-b text-xs text-slate-500">
                             <th className="p-2">Documento</th>
                             <th className="p-2">Decisión</th>
                             <th className="p-2">Versión</th>
@@ -838,7 +839,7 @@ export default function ScrutinyPage() {
                     </div>
                     {canLegal ? (
                       <form
-                        className="mt-4 grid gap-3"
+                        className="mt-4 grid gap-3 min-w-0"
                         onSubmit={(event) => {
                           event.preventDefault();
                           const data = new FormData(event.currentTarget);
@@ -909,7 +910,7 @@ export default function ScrutinyPage() {
                     ) : null}
                   </section>
                   <section>
-                    <h3 className="font-black text-slate-950">
+                    <h3 className="font-semibold text-slate-950">
                       Bitácora de audiencia
                     </h3>
                     <p className="mt-1 text-sm text-slate-600">
@@ -922,7 +923,7 @@ export default function ScrutinyPage() {
                         {selectedCommission.events.map((item) => (
                           <li
                             key={item.id}
-                            className="rounded-lg bg-slate-50 p-3 text-sm"
+                            className="rounded-lg bg-slate-50 p-3 text-sm min-w-0"
                           >
                             <strong>{item.type}</strong> ·{" "}
                             {formatInstant(
@@ -940,7 +941,7 @@ export default function ScrutinyPage() {
                     )}
                     {canField ? (
                       <form
-                        className="mt-4 grid gap-3"
+                        className="mt-4 grid gap-3 min-w-0"
                         onSubmit={(event) => {
                           event.preventDefault();
                           const data = new FormData(event.currentTarget);
@@ -960,23 +961,34 @@ export default function ScrutinyPage() {
                               ),
                             "Evento agregado a la bitácora inmutable.",
                             (current, result) => {
-                              const newCommissions = current.commissions.map((c) => {
-                                if (c.id !== selectedCommission.id) return c;
-                                // Basic optimistic state update logic depending on the event
-                                const eventType = value(data, "type");
-                                let newStatus = c.status;
-                                if (eventType === "OPENED" || eventType === "RESUMED") newStatus = "ACTIVE";
-                                if (eventType === "SUSPENDED") newStatus = "SUSPENDED";
-                                if (eventType === "CLOSED") newStatus = "CLOSED";
-                                return {
-                                  ...c,
-                                  status: newStatus,
-                                  version: c.version + 1,
-                                  events: [...c.events, result]
-                                };
-                              });
-                              return { ...current, commissions: newCommissions };
-                            }
+                              const newCommissions = current.commissions.map(
+                                (c) => {
+                                  if (c.id !== selectedCommission.id) return c;
+                                  // Basic optimistic state update logic depending on the event
+                                  const eventType = value(data, "type");
+                                  let newStatus = c.status;
+                                  if (
+                                    eventType === "OPENED" ||
+                                    eventType === "RESUMED"
+                                  )
+                                    newStatus = "ACTIVE";
+                                  if (eventType === "SUSPENDED")
+                                    newStatus = "SUSPENDED";
+                                  if (eventType === "CLOSED")
+                                    newStatus = "CLOSED";
+                                  return {
+                                    ...c,
+                                    status: newStatus,
+                                    version: c.version + 1,
+                                    events: [...c.events, result],
+                                  };
+                                },
+                              );
+                              return {
+                                ...current,
+                                commissions: newCommissions,
+                              };
+                            },
                           );
                         }}
                       >
@@ -1021,8 +1033,8 @@ export default function ScrutinyPage() {
                 title="3. Cobertura temporal E-16"
                 description="Sólo cuenta un testigo WITNESS activo, con credencial E-16 aprobada y turno íntegro dentro de la audiencia."
               >
-                <div className="rounded-lg border p-4">
-                  <p className="font-black text-slate-950">
+                <div className="rounded-lg border p-4 min-w-0">
+                  <p className="font-semibold text-slate-950">
                     {selectedCommission.temporalCoverage?.complete
                       ? "Cobertura completa"
                       : "Cobertura incompleta"}
@@ -1033,7 +1045,7 @@ export default function ScrutinyPage() {
                     el tiempo cubierto.
                   </p>
                   {selectedCommission.temporalCoverage?.gaps.length ? (
-                    <ul className="mt-2 space-y-1 text-sm text-amber-900">
+                    <ul className="mt-2 space-y-1 text-sm text-amber-900 min-w-0">
                       {selectedCommission.temporalCoverage.gaps.map((gap) => (
                         <li key={`${gap.startsAt}-${gap.endsAt}`}>
                           {formatInstant(
@@ -1052,7 +1064,7 @@ export default function ScrutinyPage() {
                 </div>
                 {canLegal ? (
                   <form
-                    className="mt-4 grid gap-4 md:grid-cols-2"
+                    className="mt-4 grid gap-4 md:grid-cols-2 min-w-0"
                     onSubmit={(event) => {
                       event.preventDefault();
                       const data = new FormData(event.currentTarget);
@@ -1157,7 +1169,7 @@ export default function ScrutinyPage() {
                   description="Calcula SHA-256 local, sube el binario directo a Supabase y notifica a Nest sólo con ruta y metadatos."
                 >
                   <form
-                    className="grid gap-4 md:grid-cols-2"
+                    className="grid gap-4 md:grid-cols-2 min-w-0"
                     onSubmit={submitDocument}
                   >
                     <input
@@ -1261,7 +1273,7 @@ export default function ScrutinyPage() {
                         maxLength={300}
                       />
                     </Field>
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 min-w-0">
                       <SubmitButton
                         busy={busy === "document"}
                         label="Subir e incorporar evidencia"
@@ -1276,15 +1288,15 @@ export default function ScrutinyPage() {
                 description="La revisión exige una persona distinta. La custodia es append-only y conserva tiempo ocurrido y tiempo recibido."
               >
                 {commissionDocuments.length ? (
-                  <div className="grid gap-3">
+                  <div className="grid gap-3 min-w-0">
                     {commissionDocuments.map((document) => (
                       <article
                         key={document.id}
-                        className="rounded-lg border border-slate-200 p-4"
+                        className="rounded-lg border border-slate-200 p-4 min-w-0"
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3 min-w-0">
                           <div>
-                            <p className="font-black text-slate-950">
+                            <p className="font-semibold text-slate-950">
                               {DOCUMENT_LABELS[document.type]}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
@@ -1348,10 +1360,10 @@ export default function ScrutinyPage() {
                     Esta comisión todavía no tiene documentos.
                   </p>
                 )}
-                <div className="mt-5 grid gap-6 xl:grid-cols-2">
+                <div className="mt-5 grid gap-6 xl:grid-cols-2 min-w-0">
                   {canLegal ? (
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -1371,7 +1383,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">
+                      <h3 className="font-semibold">
                         Segunda revisión documental
                       </h3>
                       <Field label="Documento pendiente">
@@ -1419,7 +1431,7 @@ export default function ScrutinyPage() {
                   ) : null}
                   {canField ? (
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -1442,7 +1454,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">Evento de custodia</h3>
+                      <h3 className="font-semibold">Evento de custodia</h3>
                       <Field label="Documento">
                         <select
                           className={inputClass}
@@ -1521,7 +1533,7 @@ export default function ScrutinyPage() {
                 {overview.discrepancies.filter(
                   ({ commissionId }) => commissionId === selectedCommission.id,
                 ).length ? (
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 min-w-0">
                     {overview.discrepancies
                       .filter(
                         ({ commissionId }) =>
@@ -1530,9 +1542,9 @@ export default function ScrutinyPage() {
                       .map((item) => (
                         <li
                           key={item.id}
-                          className="rounded-lg border p-3 text-sm"
+                          className="rounded-lg border p-3 text-sm min-w-0"
                         >
-                          <div className="flex flex-wrap justify-between gap-2">
+                          <div className="flex flex-wrap justify-between gap-2 min-w-0">
                             <strong>
                               {item.scopeReference} · {item.candidacyReference}
                             </strong>
@@ -1560,9 +1572,9 @@ export default function ScrutinyPage() {
                   </p>
                 )}
                 {canLegal ? (
-                  <div className="mt-5 grid gap-6 xl:grid-cols-2">
+                  <div className="mt-5 grid gap-6 xl:grid-cols-2 min-w-0">
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -1597,7 +1609,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">Registrar diferencia</h3>
+                      <h3 className="font-semibold">Registrar diferencia</h3>
                       <Field label="Fuente A aprobada">
                         <select
                           className={inputClass}
@@ -1694,7 +1706,7 @@ export default function ScrutinyPage() {
                       />
                     </form>
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -1718,7 +1730,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">Resolver diferencia</h3>
+                      <h3 className="font-semibold">Resolver diferencia</h3>
                       <Field label="Diferencia abierta">
                         <select
                           className={inputClass}
@@ -1798,7 +1810,7 @@ export default function ScrutinyPage() {
                 {overview.actions.filter(
                   ({ commissionId }) => commissionId === selectedCommission.id,
                 ).length ? (
-                  <div className="grid gap-3">
+                  <div className="grid gap-3 min-w-0">
                     {overview.actions
                       .filter(
                         ({ commissionId }) =>
@@ -1807,11 +1819,11 @@ export default function ScrutinyPage() {
                       .map((action) => (
                         <article
                           key={action.id}
-                          className="rounded-lg border p-4"
+                          className="rounded-lg border p-4 min-w-0"
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
                             <div>
-                              <p className="font-black">
+                              <p className="font-semibold">
                                 {ACTION_LABELS[action.type]} ·{" "}
                                 {action.legalGroundCode}
                               </p>
@@ -1846,9 +1858,9 @@ export default function ScrutinyPage() {
                   </p>
                 )}
                 {canLegal ? (
-                  <div className="mt-5 grid gap-6 xl:grid-cols-2">
+                  <div className="mt-5 grid gap-6 xl:grid-cols-2 min-w-0">
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -1908,7 +1920,9 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">Redactar actuación interna</h3>
+                      <h3 className="font-semibold">
+                        Redactar actuación interna
+                      </h3>
                       <Field label="Tipo">
                         <select className={inputClass} name="type">
                           <option value="REQUEST">Solicitud</option>
@@ -2096,14 +2110,14 @@ export default function ScrutinyPage() {
                 description="Sólo una fuente OFFICIAL aprobada puede sustentar la declaración; una segunda persona debe confirmarla antes de mostrarla como oficial."
               >
                 {overview.declarations.length ? (
-                  <div className="grid gap-3">
+                  <div className="grid gap-3 min-w-0">
                     {overview.declarations.map((declaration) => (
                       <article
                         key={declaration.id}
                         className={`rounded-lg border p-4 ${declaration.status === "OFFICIAL" ? "border-emerald-300 bg-emerald-50" : "border-slate-200"}`}
                       >
-                        <div className="flex flex-wrap justify-between gap-2">
-                          <p className="font-black">
+                        <div className="flex flex-wrap justify-between gap-2 min-w-0">
+                          <p className="font-semibold">
                             {declaration.scopeReference}
                           </p>
                           <span className="text-xs font-bold">
@@ -2118,11 +2132,11 @@ export default function ScrutinyPage() {
                           {declaration.authority} ·{" "}
                           {declaration.authorityReference}
                         </p>
-                        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <ul className="mt-3 grid gap-2 sm:grid-cols-2 min-w-0">
                           {declaration.lines.map((line) => (
                             <li
                               key={line.id}
-                              className="rounded bg-white p-2 text-sm"
+                              className="rounded bg-white p-2 text-sm min-w-0"
                             >
                               <strong>{line.optionLabel}</strong>
                               <br />
@@ -2142,9 +2156,9 @@ export default function ScrutinyPage() {
                   </p>
                 )}
                 {canLegal ? (
-                  <div className="mt-5 grid gap-6 xl:grid-cols-2">
+                  <div className="mt-5 grid gap-6 xl:grid-cols-2 min-w-0">
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -2189,7 +2203,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">
+                      <h3 className="font-semibold">
                         Incorporar borrador desde fuente oficial
                       </h3>
                       <Field label="Documento OFFICIAL aprobado">
@@ -2261,7 +2275,7 @@ export default function ScrutinyPage() {
                       />
                     </form>
                     <form
-                      className="grid content-start gap-3"
+                      className="grid content-start gap-3 min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const data = new FormData(event.currentTarget);
@@ -2281,7 +2295,7 @@ export default function ScrutinyPage() {
                         );
                       }}
                     >
-                      <h3 className="font-black">
+                      <h3 className="font-semibold">
                         Segunda revisión de declaración
                       </h3>
                       <Field label="Borrador ajeno pendiente">
@@ -2338,7 +2352,7 @@ export default function ScrutinyPage() {
           ) : null}
 
           {!canLegal && !canField ? (
-            <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+            <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 min-w-0">
               <ShieldCheck
                 className="mb-2 h-6 w-6 text-blue-700"
                 aria-hidden="true"
@@ -2377,9 +2391,9 @@ function ActionProgressForms({
   );
   const filed = actions.filter(({ status }) => status === "FILED_EXTERNAL");
   return (
-    <div className="grid content-start gap-5">
+    <div className="grid content-start gap-5 min-w-0">
       <form
-        className="grid gap-3 rounded-lg border p-4"
+        className="grid gap-3 rounded-lg border p-4 min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -2398,7 +2412,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-black">Nueva versión de borrador</h3>
+        <h3 className="font-semibold">Nueva versión de borrador</h3>
         <ActionSelect name="actionId" actions={drafts} />
         <Field label="Texto íntegro revisado">
           <textarea
@@ -2416,7 +2430,7 @@ function ActionProgressForms({
         />
       </form>
       <form
-        className="grid gap-3 rounded-lg border p-4"
+        className="grid gap-3 rounded-lg border p-4 min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -2435,7 +2449,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-black">Aprobar borrador por cuatro ojos</h3>
+        <h3 className="font-semibold">Aprobar borrador por cuatro ojos</h3>
         <ActionSelect name="actionId" actions={drafts} />
         <Field label="Nota jurídica">
           <textarea
@@ -2453,7 +2467,7 @@ function ActionProgressForms({
         />
       </form>
       <form
-        className="grid gap-3 rounded-lg border p-4"
+        className="grid gap-3 rounded-lg border p-4 min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -2475,7 +2489,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-black">Registrar radicación externa</h3>
+        <h3 className="font-semibold">Registrar radicación externa</h3>
         <ActionSelect name="actionId" actions={approved} />
         <Field label="Soporte FILED aprobado">
           <DocumentSelect
@@ -2517,7 +2531,7 @@ function ActionProgressForms({
         />
       </form>
       <form
-        className="grid gap-3 rounded-lg border p-4"
+        className="grid gap-3 rounded-lg border p-4 min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -2546,7 +2560,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-black">Incorporar decisión externa</h3>
+        <h3 className="font-semibold">Incorporar decisión externa</h3>
         <ActionSelect name="actionId" actions={filed} />
         <Field label="Resultado">
           <select className={inputClass} name="outcome">
@@ -2610,7 +2624,7 @@ function ActionProgressForms({
         <SubmitButton busy={busy === "decision"} label="Incorporar decisión" />
       </form>
       <form
-        className="grid gap-3 rounded-lg border p-4"
+        className="grid gap-3 rounded-lg border p-4 min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -2630,7 +2644,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-black">Segunda revisión de decisión</h3>
+        <h3 className="font-semibold">Segunda revisión de decisión</h3>
         <Field label="Decisión pendiente">
           <select className={inputClass} name="decisionId" required>
             <option value="">Selecciona…</option>

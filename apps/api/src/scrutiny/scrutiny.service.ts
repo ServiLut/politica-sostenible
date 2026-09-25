@@ -65,10 +65,7 @@ import {
   buildScrutinyTemporalCoverage,
   type ScrutinyCommissionCoverageResult,
 } from './scrutiny-coverage';
-import {
-  computeScrutinyCommandSha256,
-  type ScrutinyCommandName,
-} from './scrutiny.hash';
+import { computeScrutinyCommandSha256 } from './scrutiny.hash';
 
 const READ_ROLES: readonly Role[] = [
   Role.ADMIN,
@@ -348,7 +345,9 @@ export class ScrutinyService {
       ...(query.search
         ? {
             OR: [
-              { name: { contains: query.search, mode: 'insensitive' as const } },
+              {
+                name: { contains: query.search, mode: 'insensitive' as const },
+              },
             ],
           }
         : {}),
@@ -2067,10 +2066,7 @@ export class ScrutinyService {
       context: MutationContext,
     ) => Promise<CommandResult<T>>,
   ): Promise<T> {
-    const expectedHash = computeScrutinyCommandSha256(
-      type as ScrutinyCommandName,
-      input,
-    );
+    const expectedHash = computeScrutinyCommandSha256(type, input);
     if (expectedHash !== input.payloadSha256) {
       throw new BadRequestException({
         code: 'SCRUTINY_PAYLOAD_HASH_MISMATCH',

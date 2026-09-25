@@ -14,6 +14,7 @@ import {
   PrismaClient,
   Role,
   StorageObjectModule,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -26,7 +27,6 @@ import {
 import type {
   ActivateElectoralCalendarReleaseDto,
   CreateElectoralCalendarReleaseDto,
-  RecordElectoralCalendarResultDto,
   ReviewElectoralCalendarResultDto,
   ValidateElectoralCalendarReleaseDto,
 } from './dto/electoral-calendar.dto';
@@ -209,7 +209,7 @@ physicalDescribe(
           },
         ],
       };
-      return command('RELEASE_STAGE', raw) as CreateElectoralCalendarReleaseDto;
+      return command('RELEASE_STAGE', raw);
     }
 
     function validation(
@@ -226,7 +226,7 @@ physicalDescribe(
             'Fuente, alcance, ronda, corte y huella revisados independientemente.',
         },
         { releaseId },
-      ) as ValidateElectoralCalendarReleaseDto;
+      );
     }
 
     function activation(
@@ -245,7 +245,7 @@ physicalDescribe(
             'Fuente y diff revisados; tareas y eventos afectados fueron conciliados.',
         },
         { releaseId },
-      ) as ActivateElectoralCalendarReleaseDto;
+      );
     }
 
     it('serializes two competing activations, preserves history and exposes a visible diff', async () => {
@@ -365,6 +365,7 @@ physicalDescribe(
       const milestoneId = activated.resource.milestones[0].id;
       const digest = 'b'.repeat(64);
       const evidencePath = `${context.tenantId}/electoral-calendar/${randomUUID()}.pdf`;
+      const verifiedAt = new Date();
       const evidence = await prisma.storedObject.create({
         data: {
           tenantId: context.tenantId,
@@ -376,6 +377,12 @@ physicalDescribe(
           actualSize: 128,
           expectedSha256: digest,
           reportedSha256: digest,
+          integrityStatus: StorageIntegrityStatus.VERIFIED,
+          calculatedSha256: digest,
+          observedSize: 128,
+          observedContentType: 'application/pdf',
+          integrityCheckedAt: verifiedAt,
+          integrityVerifiedAt: verifiedAt,
           status: StoredObjectStatus.CONFIRMED,
           expiresAt: new Date('2099-12-31T00:00:00.000Z'),
           confirmedAt: new Date(),
@@ -394,7 +401,7 @@ physicalDescribe(
         milestoneId,
         command('MILESTONE_RESULT_RECORD', rawResult, {
           milestoneId,
-        }) as RecordElectoralCalendarResultDto,
+        }),
       );
       await expect(
         service.reviewResult(
@@ -423,7 +430,7 @@ physicalDescribe(
               'Evidencia, resultado y alcance contrastados por segunda persona.',
           },
           { resultId: recorded.resource.id },
-        ) as ReviewElectoralCalendarResultDto,
+        ),
       );
       expect(reviewed.resource.review?.decision).toBe(
         ElectoralCalendarResultReviewDecision.APPROVE,

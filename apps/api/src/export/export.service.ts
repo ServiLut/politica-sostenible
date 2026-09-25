@@ -16,10 +16,7 @@ import {
   evaluateConsentEffectiveness,
 } from '../common/utils/consent-effectiveness.util';
 import { findActiveConsentNotice } from '../common/utils/consent-notice.util';
-import {
-  buildCsvRow,
-  type CsvCellValue,
-} from '../common/utils/csv.util';
+import { buildCsvRow, type CsvCellValue } from '../common/utils/csv.util';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ExportModule } from './dto/export-module-params.dto';
 
@@ -346,9 +343,7 @@ export class ExportService {
           task.priority,
           task.assignee?.name ?? 'Sin asignar',
           task.dueAt ? task.dueAt.toISOString().split('T')[0] : '',
-          task.completedAt
-            ? task.completedAt.toISOString().split('T')[0]
-            : '',
+          task.completedAt ? task.completedAt.toISOString().split('T')[0] : '',
           task.createdAt.toISOString().split('T')[0],
         ];
       }
@@ -397,9 +392,7 @@ export class ExportService {
           issueCase.voter
             ? `${issueCase.voter.firstName} ${issueCase.voter.lastName}`
             : (issueCase.externalContactRef ?? ''),
-          issueCase.dueAt
-            ? issueCase.dueAt.toISOString().split('T')[0]
-            : '',
+          issueCase.dueAt ? issueCase.dueAt.toISOString().split('T')[0] : '',
           issueCase.createdAt.toISOString().split('T')[0],
         ];
       }

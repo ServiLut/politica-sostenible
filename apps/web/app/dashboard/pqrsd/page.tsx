@@ -1,11 +1,16 @@
 "use client";
 
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { useSearchParams } from "next/navigation";
+
 import {
   type FormEvent,
   type ReactNode,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -17,9 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
-import {
-  uploadFileDirectlyWithClientDeclaredHash,
-} from "@/lib/direct-storage-upload";
+import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
 import { readEntityDeepLink } from "@/lib/entity-deep-links";
 import {
   PQRSD_DOCUMENT_TYPES,
@@ -170,7 +173,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="block text-sm font-semibold text-slate-800">
+    <label className="block text-sm font-semibold text-slate-800 min-w-0">
       {label}
       {children}
       {hint ? (
@@ -194,12 +197,15 @@ function Workflow({
   open?: boolean;
 }) {
   return (
-    <details open={open} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <details
+      open={open}
+      className="rounded-xl border border-slate-200 bg-white shadow-sm"
+    >
       <summary className="cursor-pointer list-none px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600">
-        <span className="block font-black text-slate-950">{title}</span>
+        <span className="block font-semibold text-slate-950">{title}</span>
         <span className="mt-1 block text-sm text-slate-600">{description}</span>
       </summary>
-      <div className="border-t border-slate-200 p-4">{children}</div>
+      <div className="border-t border-slate-200 p-4 min-w-0">{children}</div>
     </details>
   );
 }
@@ -207,7 +213,9 @@ function Workflow({
 function SubmitButton({ busy, label }: { busy: boolean; label: string }) {
   return (
     <button type="submit" className={buttonClass} disabled={busy}>
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+      {busy ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : null}
       {label}
     </button>
   );
@@ -235,7 +243,8 @@ function DocumentSelect({
         {optional ? <option value="">Sin documento</option> : null}
         {options.map((item) => (
           <option key={item.id} value={item.id}>
-            {DOCUMENT_LABELS[String(item.type)] ?? String(item.type)} · {item.id.slice(0, 8)}
+            {DOCUMENT_LABELS[String(item.type)] ?? String(item.type)} ·{" "}
+            {item.id.slice(0, 8)}
           </option>
         ))}
       </select>
@@ -250,66 +259,83 @@ export default function PqrsdPage() {
   const canIntake = Boolean(role && INTAKE_ROLES.has(role));
   const canReview = Boolean(role && REVIEW_ROLES.has(role));
   const canAuthorize = Boolean(role && AUTH_ROLES.has(role));
-  const [overview, setOverview] = useState<PqrsdOverview | null>(null);
   const [detail, setDetail] = useState<PqrsdDetail | null>(null);
   const [purpose, setPurpose] = useState(
     "Gestion del expediente solicitada por el usuario autorizado",
   );
   const [action, setAction] = useState<WorkflowAction>("DOCUMENT");
-  const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-  const [download, setDownload] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [download, setDownload] = useState<{
+    url: string;
+    expiresAt: string;
+  } | null>(null);
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    const data = await getPqrsdOverview(signal);
-    if (!signal?.aborted) setOverview(data);
-    return data;
-  }, []);
-
+  const searchParams = useSearchParams();
+  const linked = readEntityDeepLink(searchParams.toString());
+  const detailRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => detailRequest.current?.abort(), [linked, canRead]);
   const openDetail = useCallback(
-    async (dossierId: string, accessPurpose: string) => {
+    async (
+      dossierId: string,
+      accessPurpose: string,
+      parentSignal?: AbortSignal,
+    ) => {
+      if (parentSignal?.aborted) return;
+      detailRequest.current?.abort();
+      const controller = new AbortController();
+      detailRequest.current = controller;
+      const abort = () => controller.abort();
+      parentSignal?.addEventListener("abort", abort, { once: true });
       setDetailLoading(true);
+      setDetail(null);
       setError(null);
       try {
-        const result = await getPqrsdDetail(dossierId, accessPurpose);
+        const result = await getPqrsdDetail(
+          dossierId,
+          accessPurpose,
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
         setDetail(result);
       } catch (cause: unknown) {
-        setError(readableError(cause));
+        if (!controller.signal.aborted) setError(readableError(cause));
       } finally {
-        setDetailLoading(false);
+        parentSignal?.removeEventListener("abort", abort);
+        if (!controller.signal.aborted) setDetailLoading(false);
       }
     },
     [],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    void load(controller.signal)
-      .then((data) => {
-        const linked = readEntityDeepLink(window.location.search);
-        if (linked && data.dossiers.some(({ id }) => id === linked)) {
-          return openDetail(
+  const request = useCallback(
+    (signal: AbortSignal) =>
+      getPqrsdOverview(signal).then(async (data) => {
+        if (
+          !signal.aborted &&
+          linked &&
+          data.dossiers.some(({ id }) => id === linked)
+        ) {
+          await openDetail(
             linked,
             "Revision operativa iniciada desde una alerta exacta del centro de gestion publica",
+            signal,
           );
         }
-      })
-      .catch((cause: unknown) => {
-        if (!(cause instanceof DOMException && cause.name === "AbortError")) {
-          setError(readableError(cause));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [load, openDetail, revision]);
+        return data;
+      }),
+    [linked, openDetail],
+  );
+  const {
+    data: overview,
+    loading,
+    error: requestError,
+  } = usePageRequest(request, { enabled: canRead, reloadKey: revision });
+  const error =
+    actionError ?? (requestError ? readableError(requestError) : null);
 
   async function run(
     key: string,
@@ -346,8 +372,11 @@ export default function PqrsdPage() {
   );
   if (!canRead) {
     return (
-      <main className="p-6" aria-labelledby="pqrsd-title">
-        <h1 id="pqrsd-title" className="text-2xl font-black text-slate-950">
+      <main className="p-6 min-w-0" aria-labelledby="pqrsd-title">
+        <h1
+          id="pqrsd-title"
+          className="font-semibold text-slate-950 text-2xl sm:text-3xl break-words"
+        >
           Expedientes formales PQRSD
         </h1>
         <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
@@ -358,19 +387,23 @@ export default function PqrsdPage() {
   }
 
   return (
-    <main className="space-y-6 p-4 md:p-6" aria-labelledby="pqrsd-title">
-      <header className="rounded-2xl bg-slate-950 p-5 text-white md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <main className="space-y-6 min-w-0" aria-labelledby="pqrsd-title">
+      <header className="rounded-2xl bg-slate-950 p-5 text-white md:p-7 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">
+            <p className="text-xs font-bold text-blue-200">
               Gestion publica · separado de CAS-GP y de campana
             </p>
-            <h1 id="pqrsd-title" className="mt-2 text-2xl font-black md:text-3xl">
+            <h1
+              id="pqrsd-title"
+              className="mt-2 font-semibold text-2xl sm:text-3xl break-words"
+            >
               Expediente PQRSD con control probatorio
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-200">
-              Plazos desde paquetes aprobados, cuatro ojos y entrega externa solo con constancia.
-              Los listados ocultan identidad y todo acceso al detalle queda auditado.
+              Plazos desde paquetes aprobados, cuatro ojos y entrega externa
+              solo con constancia. Los listados ocultan identidad y todo acceso
+              al detalle queda auditado.
             </p>
           </div>
           <button
@@ -386,27 +419,47 @@ export default function PqrsdPage() {
       </header>
 
       {error ? (
-        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-950">
+        <div
+          role="alert"
+          className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-950 min-w-0"
+        >
           <p className="font-bold">No se completo la operacion</p>
           <p className="mt-1 text-sm">{error}</p>
         </div>
       ) : null}
       {notice ? (
-        <div role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 min-w-0"
+        >
           {notice}
         </div>
       ) : null}
       {download ? (
-        <div role="status" className="rounded-xl border border-blue-300 bg-blue-50 p-4 text-blue-950">
-          <a className="font-bold underline" href={download.url} target="_blank" rel="noreferrer">
+        <div
+          role="status"
+          className="rounded-xl border border-blue-300 bg-blue-50 p-4 text-blue-950 min-w-0"
+        >
+          <a
+            className="font-bold underline"
+            href={download.url}
+            target="_blank"
+            rel="noreferrer"
+          >
             Abrir archivo privado
           </a>{" "}
-          <span className="text-sm">(enlace temporal hasta {new Date(download.expiresAt).toLocaleTimeString("es-CO")})</span>
+          <span className="text-sm">
+            (enlace temporal hasta{" "}
+            {new Date(download.expiresAt).toLocaleTimeString("es-CO")})
+          </span>
         </div>
       ) : null}
 
       {loading ? (
-        <div role="status" className="flex min-h-40 items-center justify-center gap-3 text-slate-600">
+        <div
+          role="status"
+          className="flex min-h-40 items-center justify-center gap-3 text-slate-600 min-w-0"
+        >
           <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
           Cargando configuracion y expedientes…
         </div>
@@ -416,35 +469,52 @@ export default function PqrsdPage() {
             className={`rounded-xl border p-4 ${overview.configurationReady ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}
             aria-label="Estado institucional PQRSD"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               {overview.configurationReady ? (
-                <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-800" aria-hidden="true" />
+                <ShieldCheck
+                  className="mt-0.5 h-5 w-5 text-emerald-800"
+                  aria-hidden="true"
+                />
               ) : (
-                <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-800" aria-hidden="true" />
+                <AlertTriangle
+                  className="mt-0.5 h-5 w-5 text-amber-800"
+                  aria-hidden="true"
+                />
               )}
               <div>
-                <h2 className="font-black text-slate-950">
+                <h2 className="font-semibold text-slate-950">
                   {overview.configurationReady
                     ? "Sistema interno configurado · entrega externa no automatizada"
                     : "Configuracion aprobada pendiente · recepcion formal bloqueada"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-700">{overview.institutionalMessage}</p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {overview.institutionalMessage}
+                </p>
               </div>
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-3" aria-label="Resumen PQRSD">
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section
+            className="grid gap-4 md:grid-cols-3 min-w-0"
+            aria-label="Resumen PQRSD"
+          >
+            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
               <p className="text-sm text-slate-600">Expedientes visibles</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">{overview.dossiers.length}</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-950">
+                {overview.dossiers.length}
+              </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
               <p className="text-sm text-slate-600">Alertas exactas</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">{overview.alerts.length}</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-950">
+                {overview.alerts.length}
+              </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
               <p className="text-sm text-slate-600">Paquetes activos</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">{activePackages.length}</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-950">
+                {activePackages.length}
+              </p>
             </article>
           </section>
 
@@ -465,12 +535,14 @@ export default function PqrsdPage() {
                 }
               />
               {draftPackages.length > 0 ? (
-                <div className="mt-5 space-y-3 border-t border-slate-200 pt-5">
-                  <h3 className="font-black text-slate-950">Borradores pendientes de cuatro ojos</h3>
+                <div className="mt-5 space-y-3 border-t border-slate-200 pt-5 min-w-0">
+                  <h3 className="font-semibold text-slate-950">
+                    Borradores pendientes de cuatro ojos
+                  </h3>
                   {draftPackages.map((item) => (
                     <form
                       key={item.id}
-                      className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-[1fr_2fr_auto]"
+                      className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] min-w-0"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const form = new FormData(event.currentTarget);
@@ -487,17 +559,38 @@ export default function PqrsdPage() {
                       }}
                     >
                       <div>
-                        <p className="font-bold">{item.scopeKey} · {item.versionLabel}</p>
-                        <p className="text-xs text-slate-600">Preparado por {item.createdById}</p>
+                        <p className="font-bold">
+                          {item.scopeKey} · {item.versionLabel}
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          Preparado por {item.createdById}
+                        </p>
                       </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <select name="decision" className={inputClass} aria-label={`Decision para ${item.versionLabel}`}>
-                          <option value="APPROVE_ACTIVATE">Aprobar y activar</option>
+                      <div className="grid gap-2 sm:grid-cols-2 min-w-0">
+                        <select
+                          name="decision"
+                          className={inputClass}
+                          aria-label={`Decision para ${item.versionLabel}`}
+                        >
+                          <option value="APPROVE_ACTIVATE">
+                            Aprobar y activar
+                          </option>
                           <option value="REJECT">Rechazar</option>
                         </select>
-                        <input name="rationale" required minLength={10} maxLength={2000} className={inputClass} aria-label={`Fundamento para ${item.versionLabel}`} placeholder="Fundamento independiente verificable" />
+                        <input
+                          name="rationale"
+                          required
+                          minLength={10}
+                          maxLength={2000}
+                          className={inputClass}
+                          aria-label={`Fundamento para ${item.versionLabel}`}
+                          placeholder="Fundamento independiente verificable"
+                        />
                       </div>
-                      <SubmitButton busy={busy === `package-review-${item.id}`} label="Registrar decision" />
+                      <SubmitButton
+                        busy={busy === `package-review-${item.id}`}
+                        label="Registrar decision"
+                      />
                     </form>
                   ))}
                 </div>
@@ -509,7 +602,9 @@ export default function PqrsdPage() {
             <Workflow
               title="2. Recepcion interna"
               description="Crea expediente e identidad privada solo si existe paquete activo y vigente. La referencia PQRSD-INT no finge radicado externo."
-              open={overview.configurationReady && overview.dossiers.length === 0}
+              open={
+                overview.configurationReady && overview.dossiers.length === 0
+              }
             >
               <DossierForm
                 packages={activePackages}
@@ -526,24 +621,48 @@ export default function PqrsdPage() {
             </Workflow>
           ) : null}
 
-          <section className="space-y-3" aria-labelledby="dossiers-title">
-            <div className="flex flex-wrap items-end justify-between gap-3">
+          <section
+            className="space-y-3 min-w-0"
+            aria-labelledby="dossiers-title"
+          >
+            <div className="flex flex-wrap items-end justify-between gap-3 min-w-0">
               <div>
-                <h2 id="dossiers-title" className="text-xl font-black text-slate-950">
+                <h2
+                  id="dossiers-title"
+                  className="text-xl font-semibold text-slate-950"
+                >
                   Expedientes · identidad enmascarada
                 </h2>
-                <p className="text-sm text-slate-600">CAS-GP simple permanece en Casos y no se mezcla con este registro.</p>
+                <p className="text-sm text-slate-600">
+                  CAS-GP simple permanece en Casos y no se mezcla con este
+                  registro.
+                </p>
               </div>
-              <Field label="Proposito para abrir detalle" hint="Se registra en auditoria.">
-                <input className={inputClass} value={purpose} minLength={10} maxLength={1000} onChange={(event) => setPurpose(event.target.value)} />
+              <Field
+                label="Proposito para abrir detalle"
+                hint="Se registra en auditoria."
+              >
+                <input
+                  className={inputClass}
+                  value={purpose}
+                  minLength={10}
+                  maxLength={1000}
+                  onChange={(event) => setPurpose(event.target.value)}
+                />
               </Field>
             </div>
             {overview.dossiers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
-                No hay expedientes PQRSD. La ausencia no equivale a cero vencimientos ni certifica cumplimiento.
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600 min-w-0">
+                No hay expedientes PQRSD. La ausencia no equivale a cero
+                vencimientos ni certifica cumplimiento.
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div
+                className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                role="region"
+                aria-label="Peticiones y solicitudes: tabla con desplazamiento horizontal"
+                tabIndex={0}
+              >
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-slate-100 text-slate-700">
                     <tr>
@@ -557,26 +676,60 @@ export default function PqrsdPage() {
                   </thead>
                   <tbody>
                     {overview.dossiers.map((item) => (
-                      <tr key={item.id} className="border-t border-slate-200 align-top">
-                        <td className="px-4 py-3 font-bold">{item.reference}</td>
-                        <td className="px-4 py-3">
-                          <p>{item.petitioner?.maskedFullName ?? "Identidad no disponible"}</p>
-                          <p className="text-xs text-slate-500">{item.petitioner?.maskedEmail ?? item.petitioner?.maskedPhone ?? "Contacto protegido"}</p>
+                      <tr
+                        key={item.id}
+                        className="border-t border-slate-200 align-top"
+                      >
+                        <td className="px-4 py-3 font-bold">
+                          {item.reference}
                         </td>
-                        <td className="px-4 py-3">{STATUS_LABELS[item.status] ?? item.status}</td>
                         <td className="px-4 py-3">
-                          {item.deadlines[0]?.calculationStatus === "CALCULATION_REQUIRES_REVIEW"
+                          <p>
+                            {item.petitioner?.maskedFullName ??
+                              "Identidad no disponible"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {item.petitioner?.maskedEmail ??
+                              item.petitioner?.maskedPhone ??
+                              "Contacto protegido"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {STATUS_LABELS[item.status] ?? item.status}
+                        </td>
+                        <td className="px-4 py-3">
+                          {item.deadlines[0]?.calculationStatus ===
+                          "CALCULATION_REQUIRES_REVIEW"
                             ? "Requiere revision · no es cero"
                             : item.deadlines[0]?.currentDueLocalDate
-                              ? new Date(item.deadlines[0].currentDueLocalDate).toLocaleDateString("es-CO", { timeZone: "UTC" })
+                              ? new Date(
+                                  item.deadlines[0].currentDueLocalDate,
+                                ).toLocaleDateString("es-CO", {
+                                  timeZone: "UTC",
+                                })
                               : "Aun no calculado"}
                         </td>
                         <td className="px-4 py-3 text-xs">
-                          <p>Principal: {item.currentPrimaryAssignee?.name ?? "Falta"}</p>
-                          <p>Suplente: {item.currentBackupAssignee?.name ?? "Falta"}</p>
+                          <p>
+                            Principal:{" "}
+                            {item.currentPrimaryAssignee?.name ?? "Falta"}
+                          </p>
+                          <p>
+                            Suplente:{" "}
+                            {item.currentBackupAssignee?.name ?? "Falta"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <button type="button" className={secondaryButtonClass} disabled={detailLoading || purpose.trim().length < 10} onClick={() => void openDetail(item.id, purpose.trim())}>
+                          <button
+                            type="button"
+                            className={secondaryButtonClass}
+                            disabled={
+                              detailLoading || purpose.trim().length < 10
+                            }
+                            onClick={() =>
+                              void openDetail(item.id, purpose.trim())
+                            }
+                          >
                             <FileLock2 className="h-4 w-4" aria-hidden="true" />
                             Abrir y auditar
                           </button>
@@ -591,17 +744,31 @@ export default function PqrsdPage() {
 
           {overview.alerts.length > 0 ? (
             <section aria-labelledby="alerts-title">
-              <h2 id="alerts-title" className="text-xl font-black text-slate-950">Alertas reproducibles</h2>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <h2
+                id="alerts-title"
+                className="text-xl font-semibold text-slate-950"
+              >
+                Alertas reproducibles
+              </h2>
+              <div className="mt-3 grid gap-3 md:grid-cols-2 min-w-0">
                 {overview.alerts.map((alert) => (
                   <button
                     key={`${alert.code}-${alert.dossierId}`}
                     type="button"
-                    className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-left focus:outline-none focus:ring-2 focus:ring-amber-600"
-                    onClick={() => void openDetail(alert.dossierId, `Revision de alerta ${alert.code} en centro PQRSD`)}
+                    className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-left focus:outline-none focus:ring-2 focus:ring-amber-600 max-w-full whitespace-normal"
+                    onClick={() =>
+                      void openDetail(
+                        alert.dossierId,
+                        `Revision de alerta ${alert.code} en centro PQRSD`,
+                      )
+                    }
                   >
-                    <span className="font-black text-amber-950">{alert.reference}</span>
-                    <span className="mt-1 block text-sm text-amber-900">{alert.message}</span>
+                    <span className="font-semibold text-amber-950">
+                      {alert.reference}
+                    </span>
+                    <span className="mt-1 block text-sm text-amber-900">
+                      {alert.message}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -609,8 +776,12 @@ export default function PqrsdPage() {
           ) : null}
 
           {detailLoading ? (
-            <div role="status" className="flex items-center gap-2 text-slate-600">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Abriendo detalle protegido…
+            <div
+              role="status"
+              className="flex items-center gap-2 text-slate-600 min-w-0"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{" "}
+              Abriendo detalle protegido…
             </div>
           ) : null}
           {detail ? (
@@ -707,48 +878,130 @@ function RulePackageForm({
   }
 
   return (
-    <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+    <form className="grid gap-4 md:grid-cols-2 min-w-0" onSubmit={submit}>
       <Field label="Ambito normativo">
-        <input name="scopeKey" required defaultValue="GENERAL" minLength={2} maxLength={120} className={inputClass} />
+        <input
+          name="scopeKey"
+          required
+          defaultValue="GENERAL"
+          minLength={2}
+          maxLength={120}
+          className={inputClass}
+        />
       </Field>
       <Field label="Version del paquete">
-        <input name="versionLabel" required placeholder="2026.1" maxLength={80} className={inputClass} />
+        <input
+          name="versionLabel"
+          required
+          placeholder="2026.1"
+          maxLength={80}
+          className={inputClass}
+        />
       </Field>
       <Field label="Fuente HTTPS">
-        <input name="sourceUrl" type="url" required pattern="https://.*" placeholder="https://entidad.gov.co/norma" className={inputClass} />
+        <input
+          name="sourceUrl"
+          type="url"
+          required
+          pattern="https://.*"
+          placeholder="https://entidad.gov.co/norma"
+          className={inputClass}
+        />
       </Field>
       <Field label="Referencia normativa exacta">
-        <input name="sourceReference" required minLength={5} maxLength={500} placeholder="Norma, articulo, acto y fecha" className={inputClass} />
+        <input
+          name="sourceReference"
+          required
+          minLength={5}
+          maxLength={500}
+          placeholder="Norma, articulo, acto y fecha"
+          className={inputClass}
+        />
       </Field>
-      <Field label="SHA-256 de la fuente" hint="64 caracteres hexadecimales; no se calcula desde una URL remota.">
-        <input name="sourceSha256" required pattern="[a-fA-F0-9]{64}" className={inputClass} />
+      <Field
+        label="SHA-256 de la fuente"
+        hint="64 caracteres hexadecimales; no se calcula desde una URL remota."
+      >
+        <input
+          name="sourceSha256"
+          required
+          pattern="[a-fA-F0-9]{64}"
+          className={inputClass}
+        />
       </Field>
       <Field label="Zona IANA">
-        <input name="timeZone" required placeholder="Ej. America/Bogota, según la fuente" className={inputClass} />
+        <input
+          name="timeZone"
+          required
+          placeholder="Ej. America/Bogota, según la fuente"
+          className={inputClass}
+        />
       </Field>
       <Field label="Vigente desde">
-        <input name="effectiveFrom" type="date" required className={inputClass} />
+        <input
+          name="effectiveFrom"
+          type="date"
+          required
+          className={inputClass}
+        />
       </Field>
       <Field label="Vigente hasta (opcional)">
         <input name="effectiveTo" type="date" className={inputClass} />
       </Field>
-      <Field label="Dias semanales no laborables" hint="0=domingo … 6=sabado. Lista explicita; por ejemplo 0,6.">
-        <input name="weekdays" required placeholder="Ej. 0,6, según la fuente" pattern="[0-6](,[0-6])*" className={inputClass} />
+      <Field
+        label="Dias semanales no laborables"
+        hint="0=domingo … 6=sabado. Lista explicita; por ejemplo 0,6."
+      >
+        <input
+          name="weekdays"
+          required
+          placeholder="Ej. 0,6, según la fuente"
+          pattern="[0-6](,[0-6])*"
+          className={inputClass}
+        />
       </Field>
       <Field label="Metodo de computo documentado">
-        <input name="computationMethodNote" required minLength={10} maxLength={1000} placeholder="Como se incluyen y excluyen dias" className={inputClass} />
+        <input
+          name="computationMethodNote"
+          required
+          minLength={10}
+          maxLength={1000}
+          placeholder="Como se incluyen y excluyen dias"
+          className={inputClass}
+        />
       </Field>
-      <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <h3 className="font-black text-slate-950">Primera regla explicita</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4 min-w-0">
+        <h3 className="font-semibold text-slate-950">
+          Primera regla explicita
+        </h3>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 min-w-0">
           <Field label="Clave de clasificacion">
-            <input name="classificationKey" required placeholder="PETICION_GENERAL" className={inputClass} />
+            <input
+              name="classificationKey"
+              required
+              placeholder="PETICION_GENERAL"
+              className={inputClass}
+            />
           </Field>
           <Field label="Nombre legible">
-            <input name="ruleLabel" required minLength={3} maxLength={240} placeholder="Peticion general" className={inputClass} />
+            <input
+              name="ruleLabel"
+              required
+              minLength={3}
+              maxLength={240}
+              placeholder="Peticion general"
+              className={inputClass}
+            />
           </Field>
           <Field label="Duracion configurada">
-            <input name="durationDays" type="number" min={1} max={365} required className={inputClass} />
+            <input
+              name="durationDays"
+              type="number"
+              min={1}
+              max={365}
+              required
+              className={inputClass}
+            />
           </Field>
           <Field label="Unidad de dias">
             <select name="dayMethod" className={inputClass}>
@@ -759,24 +1012,48 @@ function RulePackageForm({
           <Field label="Regla de inicio">
             <select name="startRule" className={inputClass}>
               <option value="NEXT_WORKING_DATE">Siguiente dia habil</option>
-              <option value="NEXT_CALENDAR_DATE">Siguiente dia calendario</option>
+              <option value="NEXT_CALENDAR_DATE">
+                Siguiente dia calendario
+              </option>
               <option value="RECEIPT_DATE">Fecha de recepcion</option>
-              <option value="MANUAL_REVIEW">Requiere determinacion humana</option>
+              <option value="MANUAL_REVIEW">
+                Requiere determinacion humana
+              </option>
             </select>
           </Field>
           <Field label="Fundamento juridico de la regla">
-            <textarea name="legalBasis" required minLength={10} maxLength={2000} rows={3} className={inputClass} />
+            <textarea
+              name="legalBasis"
+              required
+              minLength={10}
+              maxLength={2000}
+              rows={3}
+              className={inputClass}
+            />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input name="highRisk" type="checkbox" className="h-5 w-5" />
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 min-w-0">
+            <input
+              name="highRisk"
+              type="checkbox"
+              className="h-5 w-5 min-w-0 max-w-full"
+            />
             Clasificacion de alto riesgo
           </label>
         </div>
       </div>
-      <Field label="Festivos/excepciones" hint="Una linea: AAAA-MM-DD|NON_WORKING o WORKING_OVERRIDE|nombre|fuente. Puede quedar vacio.">
-        <textarea name="exceptions" rows={4} className={inputClass} placeholder="2026-12-08|NON_WORKING|Festivo|Acto oficial 123" onInput={(event) => event.currentTarget.setCustomValidity("")} />
+      <Field
+        label="Festivos/excepciones"
+        hint="Una linea: AAAA-MM-DD|NON_WORKING o WORKING_OVERRIDE|nombre|fuente. Puede quedar vacio."
+      >
+        <textarea
+          name="exceptions"
+          rows={4}
+          className={inputClass}
+          placeholder="2026-12-08|NON_WORKING|Festivo|Acto oficial 123"
+          onInput={(event) => event.currentTarget.setCustomValidity("")}
+        />
       </Field>
-      <div className="flex items-end">
+      <div className="flex items-end min-w-0">
         <SubmitButton busy={busy} label="Crear borrador versionado" />
       </div>
     </form>
@@ -819,25 +1096,61 @@ function DossierForm({
     });
   }
   return (
-    <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+    <form className="grid gap-4 md:grid-cols-2 min-w-0" onSubmit={submit}>
       <Field label="Ambito aprobado">
-        <select name="scopeKey" required disabled={disabled} className={inputClass}>
+        <select
+          name="scopeKey"
+          required
+          disabled={disabled}
+          className={inputClass}
+        >
           {packages.map((item) => (
-            <option key={item.id} value={item.scopeKey}>{item.scopeKey} · {item.versionLabel}</option>
+            <option key={item.id} value={item.scopeKey}>
+              {item.scopeKey} · {item.versionLabel}
+            </option>
           ))}
         </select>
       </Field>
       <Field label="Fecha/hora de recepcion">
-        <input name="receivedAt" type="datetime-local" required defaultValue={localNow(0)} disabled={disabled} className={inputClass} />
+        <input
+          name="receivedAt"
+          type="datetime-local"
+          required
+          defaultValue={localNow(0)}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Zona IANA del paquete">
-        <input name="receivedTimeZone" required defaultValue={packages[0]?.timeZone ?? ""} disabled={disabled} className={inputClass} />
+        <input
+          name="receivedTimeZone"
+          required
+          defaultValue={packages[0]?.timeZone ?? ""}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Canal de recepcion">
-        <input name="receivedChannel" required minLength={2} maxLength={120} placeholder="Ventanilla, correo institucional…" disabled={disabled} className={inputClass} />
+        <input
+          name="receivedChannel"
+          required
+          minLength={2}
+          maxLength={120}
+          placeholder="Ventanilla, correo institucional…"
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
-      <Field label="Radicado externo existente (opcional)" hint="No se genera ni inventa desde esta pantalla.">
-        <input name="externalReceiptNumber" maxLength={160} disabled={disabled} className={inputClass} />
+      <Field
+        label="Radicado externo existente (opcional)"
+        hint="No se genera ni inventa desde esta pantalla."
+      >
+        <input
+          name="externalReceiptNumber"
+          maxLength={160}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Riesgo">
         <select name="riskLevel" disabled={disabled} className={inputClass}>
@@ -846,37 +1159,101 @@ function DossierForm({
         </select>
       </Field>
       <Field label="Asunto sensible">
-        <input name="subject" required minLength={3} maxLength={500} disabled={disabled} className={inputClass} />
+        <input
+          name="subject"
+          required
+          minLength={3}
+          maxLength={500}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Hechos/descripcion">
-        <textarea name="description" required minLength={10} maxLength={20000} rows={4} disabled={disabled} className={inputClass} />
+        <textarea
+          name="description"
+          required
+          minLength={10}
+          maxLength={20000}
+          rows={4}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Nombre completo">
-        <input name="fullName" required minLength={2} maxLength={240} disabled={disabled} className={inputClass} />
+        <input
+          name="fullName"
+          required
+          minLength={2}
+          maxLength={240}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Documento">
-        <span className="grid grid-cols-[1fr_2fr] gap-2">
-          <input name="documentType" placeholder="CC" maxLength={40} disabled={disabled} className={inputClass} aria-label="Tipo de documento" />
-          <input name="documentNumber" maxLength={80} disabled={disabled} className={inputClass} aria-label="Numero de documento" />
+        <span className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2">
+          <input
+            name="documentType"
+            placeholder="CC"
+            maxLength={40}
+            disabled={disabled}
+            className={inputClass}
+            aria-label="Tipo de documento"
+          />
+          <input
+            name="documentNumber"
+            maxLength={80}
+            disabled={disabled}
+            className={inputClass}
+            aria-label="Numero de documento"
+          />
         </span>
       </Field>
       <Field label="Correo">
-        <input name="email" type="email" maxLength={320} disabled={disabled} className={inputClass} />
+        <input
+          name="email"
+          type="email"
+          maxLength={320}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Telefono">
-        <input name="phone" minLength={7} maxLength={60} disabled={disabled} className={inputClass} />
+        <input
+          name="phone"
+          minLength={7}
+          maxLength={60}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Direccion postal">
-        <input name="postalAddress" maxLength={500} disabled={disabled} className={inputClass} />
+        <input
+          name="postalAddress"
+          maxLength={500}
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
       <Field label="Canal preferido">
-        <input name="preferredChannel" required defaultValue="Correo electronico" disabled={disabled} className={inputClass} />
+        <input
+          name="preferredChannel"
+          required
+          defaultValue="Correo electronico"
+          disabled={disabled}
+          className={inputClass}
+        />
       </Field>
-      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-        <input name="acknowledgementRequired" type="checkbox" defaultChecked disabled={disabled} className="h-5 w-5" />
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 min-w-0">
+        <input
+          name="acknowledgementRequired"
+          type="checkbox"
+          defaultChecked
+          disabled={disabled}
+          className="h-5 w-5 min-w-0 max-w-full"
+        />
         Acuse documental requerido antes de clasificar
       </label>
-      <div className="flex items-end">
+      <div className="flex items-end min-w-0">
         <SubmitButton busy={busy} label="Registrar recepcion interna" />
       </div>
     </form>
@@ -956,11 +1333,21 @@ function DetailWorkspace({
   }, [action, permittedActions, setAction]);
 
   return (
-    <section className="space-y-4 rounded-2xl border-2 border-blue-200 bg-blue-50/30 p-4 md:p-6" aria-labelledby="detail-title">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section
+      className="space-y-4 rounded-2xl border-2 border-blue-200 bg-blue-50/30 p-4 md:p-6 min-w-0"
+      aria-labelledby="detail-title"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 min-w-0">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-blue-800">Detalle sensible · acceso auditado</p>
-          <h2 id="detail-title" className="mt-1 text-xl font-black text-slate-950">{detail.reference}</h2>
+          <p className="text-xs font-bold text-blue-800">
+            Detalle sensible · acceso auditado
+          </p>
+          <h2
+            id="detail-title"
+            className="mt-1 text-xl font-semibold text-slate-950"
+          >
+            {detail.reference}
+          </h2>
           <p className="mt-1 text-sm text-slate-700">{detail.privacyNotice}</p>
         </div>
         <span className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-bold text-white">
@@ -968,35 +1355,61 @@ function DetailWorkspace({
         </span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="font-black text-slate-950">Solicitud</h3>
+      <div className="grid gap-4 md:grid-cols-2 min-w-0">
+        <article className="rounded-xl border border-slate-200 bg-white p-4 min-w-0">
+          <h3 className="font-semibold text-slate-950">Solicitud</h3>
           <p className="mt-2 font-semibold">{detail.subject}</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{detail.description}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+            {detail.description}
+          </p>
         </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="font-black text-slate-950">Identidad protegida</h3>
-          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-            <dt className="font-semibold">Nombre</dt><dd>{detail.petitioner?.fullName ?? "No disponible"}</dd>
-            <dt className="font-semibold">Documento</dt><dd>{detail.petitioner?.documentType ?? "—"} {detail.petitioner?.documentNumber ?? "—"}</dd>
-            <dt className="font-semibold">Correo</dt><dd>{detail.petitioner?.email ?? "—"}</dd>
-            <dt className="font-semibold">Telefono</dt><dd>{detail.petitioner?.phone ?? "—"}</dd>
-            <dt className="font-semibold">Canal</dt><dd>{detail.petitioner?.preferredChannel ?? "—"}</dd>
+        <article className="rounded-xl border border-slate-200 bg-white p-4 min-w-0">
+          <h3 className="font-semibold text-slate-950">Identidad protegida</h3>
+          <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm min-w-0">
+            <dt className="font-semibold">Nombre</dt>
+            <dd>{detail.petitioner?.fullName ?? "No disponible"}</dd>
+            <dt className="font-semibold">Documento</dt>
+            <dd>
+              {detail.petitioner?.documentType ?? "—"}{" "}
+              {detail.petitioner?.documentNumber ?? "—"}
+            </dd>
+            <dt className="font-semibold">Correo</dt>
+            <dd>{detail.petitioner?.email ?? "—"}</dd>
+            <dt className="font-semibold">Telefono</dt>
+            <dd>{detail.petitioner?.phone ?? "—"}</dd>
+            <dt className="font-semibold">Canal</dt>
+            <dd>{detail.petitioner?.preferredChannel ?? "—"}</dd>
           </dl>
         </article>
       </div>
 
-      <article className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="font-black text-slate-950">Documentos y revisiones</h3>
+      <article className="rounded-xl border border-slate-200 bg-white p-4 min-w-0">
+        <h3 className="font-semibold text-slate-950">
+          Documentos y revisiones
+        </h3>
         {detail.documents.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Sin documentos. No se presume acuse, autorizacion ni entrega.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            Sin documentos. No se presume acuse, autorizacion ni entrega.
+          </p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-200">
+          <ul className="mt-3 divide-y divide-slate-200 min-w-0">
             {detail.documents.map((document) => (
-              <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li
+                key={document.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-3 min-w-0"
+              >
                 <div>
-                  <p className="font-bold">{DOCUMENT_LABELS[String(document.type)] ?? String(document.type)}</p>
-                  <p className="text-xs text-slate-600">{document.reviews[0]?.decision === "APPROVE" ? "Revisado y aprobado" : document.reviews[0]?.decision === "REJECT" ? "Rechazado" : "Pendiente de segunda persona"}</p>
+                  <p className="font-bold">
+                    {DOCUMENT_LABELS[String(document.type)] ??
+                      String(document.type)}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {document.reviews[0]?.decision === "APPROVE"
+                      ? "Revisado y aprobado"
+                      : document.reviews[0]?.decision === "REJECT"
+                        ? "Rechazado"
+                        : "Pendiente de segunda persona"}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -1004,7 +1417,10 @@ function DetailWorkspace({
                   onClick={() =>
                     void run(
                       `download-${document.id}`,
-                      async () => setDownload(await getPqrsdDocumentDownload(document.id)),
+                      async () =>
+                        setDownload(
+                          await getPqrsdDocumentDownload(document.id),
+                        ),
                       "Enlace privado temporal autorizado.",
                     )
                   }
@@ -1018,44 +1434,66 @@ function DetailWorkspace({
         )}
       </article>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="font-black text-slate-950">Linea probatoria</h3>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] min-w-0">
+        <article className="rounded-xl border border-slate-200 bg-white p-4 min-w-0">
+          <h3 className="font-semibold text-slate-950">Linea probatoria</h3>
           <ol className="mt-3 space-y-2 text-sm">
             {detail.statusEvents.map((event) => (
-              <li key={event.id} className="border-l-2 border-blue-300 pl-3">
-                <span className="font-bold">{STATUS_LABELS[event.toStatus] ?? event.toStatus}</span>
-                {typeof event.reason === "string" ? <span className="block text-slate-600">{event.reason}</span> : null}
+              <li
+                key={event.id}
+                className="border-l-2 border-blue-300 pl-3 min-w-0"
+              >
+                <span className="font-bold">
+                  {STATUS_LABELS[event.toStatus] ?? event.toStatus}
+                </span>
+                {typeof event.reason === "string" ? (
+                  <span className="block text-slate-600">{event.reason}</span>
+                ) : null}
               </li>
             ))}
           </ol>
         </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="font-black text-slate-950">Controles del expediente</h3>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+        <article className="rounded-xl border border-slate-200 bg-white p-4 min-w-0">
+          <h3 className="font-semibold text-slate-950">
+            Controles del expediente
+          </h3>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700 min-w-0">
             <li>Clasificaciones: {detail.classifications.length}</li>
             <li>Snapshots de plazo: {detail.deadlines.length}</li>
             <li>Asignaciones: {detail.assignments.length}</li>
             <li>Traslados: {detail.transfers.length}</li>
             <li>Prorrogas: {detail.extensions.length}</li>
             <li>Versiones de respuesta: {detail.responses.length}</li>
-            <li>Cierres / reaperturas: {detail.closures.length} / {detail.reopenings.length}</li>
+            <li>
+              Cierres / reaperturas: {detail.closures.length} /{" "}
+              {detail.reopenings.length}
+            </li>
           </ul>
         </article>
       </div>
 
       {permittedActions.length > 0 ? (
-        <article className="rounded-xl border border-slate-300 bg-white p-4 md:p-5">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_2fr] md:items-end">
+        <article className="rounded-xl border border-slate-300 bg-white p-4 md:p-5 min-w-0">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-end min-w-0">
             <Field label="Operacion controlada">
-              <select className={inputClass} value={action} onChange={(event) => setAction(event.target.value as WorkflowAction)}>
+              <select
+                className={inputClass}
+                value={action}
+                onChange={(event) =>
+                  setAction(event.target.value as WorkflowAction)
+                }
+              >
                 {permittedActions.map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </Field>
             <p className="text-sm text-slate-600">
-              Cada envio usa UUID idempotente, SHA canonico y la version {detail.version}. Si otra persona cambia el expediente, debe recargar.
+              Cada envio usa UUID idempotente, SHA canonico y la version{" "}
+              {detail.version}. Si otra persona cambia el expediente, debe
+              recargar.
             </p>
           </div>
           <ActionForm
@@ -1064,7 +1502,9 @@ function DetailWorkspace({
             detail={detail}
             overview={overview}
             busy={busy === `action-${action}`}
-            run={(operation, success) => run(`action-${action}`, operation, success)}
+            run={(operation, success) =>
+              run(`action-${action}`, operation, success)
+            }
           />
         </article>
       ) : null}
@@ -1099,14 +1539,18 @@ function ActionForm({
     (item) => item.review?.decision === "APPROVE",
   );
   const pendingExtensions = detail.extensions.filter((item) => !item.review);
-  const pendingResponseReviews = detail.responses.filter((item) => !item.review);
+  const pendingResponseReviews = detail.responses.filter(
+    (item) => !item.review,
+  );
   const approvedResponses = detail.responses.filter(
     (item) => item.review?.decision === "APPROVE" && !item.authorization,
   );
   const authorizedResponses = detail.responses.filter(
     (item) => item.authorization?.decision === "AUTHORIZE",
   );
-  const rules = detail.rulePackage?.rules ?? overview.packages.flatMap((item) => item.rules);
+  const rules =
+    detail.rulePackage?.rules ??
+    overview.packages.flatMap((item) => item.rules);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1184,7 +1628,10 @@ function ActionForm({
               rationale: value(form, "rationale"),
               manualDueLocalDate: optionalValue(form, "manualDueLocalDate"),
               manualDeadlineReason: optionalValue(form, "manualDeadlineReason"),
-              manualDeadlineAuthority: optionalValue(form, "manualDeadlineAuthority"),
+              manualDeadlineAuthority: optionalValue(
+                form,
+                "manualDeadlineAuthority",
+              ),
               expectedVersion,
             }),
           "Revision registrada. El plazo quedo calculado o marcado expresamente para revision.",
@@ -1296,8 +1743,14 @@ function ActionForm({
             authorizePqrsdResponse(value(form, "responseId"), {
               decision: value(form, "decision"),
               rationale: value(form, "rationale"),
-              authorizationReference: optionalValue(form, "authorizationReference"),
-              authorizationDocumentId: optionalValue(form, "authorizationDocumentId"),
+              authorizationReference: optionalValue(
+                form,
+                "authorizationReference",
+              ),
+              authorizationDocumentId: optionalValue(
+                form,
+                "authorizationDocumentId",
+              ),
               expectedVersion,
             }),
           "Decision de autorizacion registrada; esto no acredita entrega externa.",
@@ -1358,15 +1811,30 @@ function ActionForm({
           <Field label="Tipo de documento">
             <select name="documentType" className={inputClass}>
               {PQRSD_DOCUMENT_TYPES.map((type) => (
-                <option key={type} value={type}>{DOCUMENT_LABELS[type]}</option>
+                <option key={type} value={type}>
+                  {DOCUMENT_LABELS[type]}
+                </option>
               ))}
             </select>
           </Field>
-          <Field label="Archivo" hint="Viaja navegador → Supabase Storage; nunca atraviesa Nest.">
-            <input name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required className={inputClass} />
+          <Field
+            label="Archivo"
+            hint="Viaja navegador → Supabase Storage; nunca atraviesa Nest."
+          >
+            <input
+              name="file"
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              required
+              className={inputClass}
+            />
           </Field>
           <Field label="Referencia de origen (opcional)">
-            <input name="sourceReference" maxLength={1000} className={inputClass} />
+            <input
+              name="sourceReference"
+              maxLength={1000}
+              className={inputClass}
+            />
           </Field>
         </>
       );
@@ -1377,7 +1845,12 @@ function ActionForm({
         <>
           <Field label="Documento pendiente">
             <select name="documentId" required className={inputClass}>
-              {pendingDocuments.map((item) => <option key={item.id} value={item.id}>{DOCUMENT_LABELS[String(item.type)] ?? String(item.type)} · {item.id.slice(0, 8)}</option>)}
+              {pendingDocuments.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {DOCUMENT_LABELS[String(item.type)] ?? String(item.type)} ·{" "}
+                  {item.id.slice(0, 8)}
+                </option>
+              ))}
             </select>
           </Field>
           <DecisionSelect />
@@ -1389,10 +1862,38 @@ function ActionForm({
       label = "Registrar acuse documentado";
       fields = (
         <>
-          <DocumentSelect documents={approvedDocuments} name="documentId" types={["RECEIPT_ACKNOWLEDGEMENT"]} label="Acuse aprobado" />
-          <Field label="Numero de acuse/radicado constatado"><input name="acknowledgementNumber" required minLength={2} maxLength={160} className={inputClass} /></Field>
-          <Field label="Canal"><input name="channel" required defaultValue="Correo institucional" className={inputClass} /></Field>
-          <Field label="Fecha/hora emitida"><input name="issuedAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="documentId"
+            types={["RECEIPT_ACKNOWLEDGEMENT"]}
+            label="Acuse aprobado"
+          />
+          <Field label="Numero de acuse/radicado constatado">
+            <input
+              name="acknowledgementNumber"
+              required
+              minLength={2}
+              maxLength={160}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Canal">
+            <input
+              name="channel"
+              required
+              defaultValue="Correo institucional"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Fecha/hora emitida">
+            <input
+              name="issuedAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1402,16 +1903,59 @@ function ActionForm({
         <>
           <Field label="Regla del paquete congelado">
             <select name="ruleDefinitionId" required className={inputClass}>
-              {rules.map((rule) => <option key={rule.id} value={rule.id}>{rule.label} · {rule.durationDays} {rule.dayMethod === "WORKING_DAYS" ? "habiles" : "calendario"}</option>)}
+              {rules.map((rule) => (
+                <option key={rule.id} value={rule.id}>
+                  {rule.label} · {rule.durationDays}{" "}
+                  {rule.dayMethod === "WORKING_DAYS" ? "habiles" : "calendario"}
+                </option>
+              ))}
             </select>
           </Field>
-          <Field label="Clave de categoria"><input name="categoryKey" required defaultValue={rules[0]?.classificationKey} className={inputClass} /></Field>
-          <Field label="Nombre de categoria"><input name="categoryLabel" required minLength={3} maxLength={240} defaultValue={rules[0]?.label} className={inputClass} /></Field>
-          <Field label="Competencia">
-            <select name="competence" className={inputClass}><option value="COMPETENT">Competente</option><option value="TRANSFER_REQUIRED">Requiere traslado</option><option value="REQUIRES_REVIEW">Competencia por determinar</option></select>
+          <Field label="Clave de categoria">
+            <input
+              name="categoryKey"
+              required
+              defaultValue={rules[0]?.classificationKey}
+              className={inputClass}
+            />
           </Field>
-          <Field label="Dependencia"><input name="department" required minLength={2} maxLength={240} className={inputClass} /></Field>
-          <Field label="Autoridad competente"><input name="competentAuthority" required minLength={3} maxLength={500} className={inputClass} /></Field>
+          <Field label="Nombre de categoria">
+            <input
+              name="categoryLabel"
+              required
+              minLength={3}
+              maxLength={240}
+              defaultValue={rules[0]?.label}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Competencia">
+            <select name="competence" className={inputClass}>
+              <option value="COMPETENT">Competente</option>
+              <option value="TRANSFER_REQUIRED">Requiere traslado</option>
+              <option value="REQUIRES_REVIEW">
+                Competencia por determinar
+              </option>
+            </select>
+          </Field>
+          <Field label="Dependencia">
+            <input
+              name="department"
+              required
+              minLength={2}
+              maxLength={240}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Autoridad competente">
+            <input
+              name="competentAuthority"
+              required
+              minLength={3}
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
           <Rationale />
         </>
       );
@@ -1420,12 +1964,40 @@ function ActionForm({
       label = "Revisar y calcular plazo";
       fields = (
         <>
-          <Field label="Clasificacion pendiente"><select name="classificationId" required className={inputClass}>{pendingClassifications.map((item) => <option key={item.id} value={item.id}>Version {item.versionNumber} · {item.id.slice(0, 8)}</option>)}</select></Field>
+          <Field label="Clasificacion pendiente">
+            <select name="classificationId" required className={inputClass}>
+              {pendingClassifications.map((item) => (
+                <option key={item.id} value={item.id}>
+                  Version {item.versionNumber} · {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
           <DecisionSelect />
           <Rationale />
-          <Field label="Fecha manual (solo si la regla falla cerrada)"><input name="manualDueLocalDate" type="date" className={inputClass} /></Field>
-          <Field label="Motivo de determinacion manual"><input name="manualDeadlineReason" minLength={10} maxLength={1500} className={inputClass} /></Field>
-          <Field label="Autoridad para determinacion manual"><input name="manualDeadlineAuthority" minLength={5} maxLength={1000} className={inputClass} /></Field>
+          <Field label="Fecha manual (solo si la regla falla cerrada)">
+            <input
+              name="manualDueLocalDate"
+              type="date"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Motivo de determinacion manual">
+            <input
+              name="manualDeadlineReason"
+              minLength={10}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Autoridad para determinacion manual">
+            <input
+              name="manualDeadlineAuthority"
+              minLength={5}
+              maxLength={1000}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1433,10 +2005,42 @@ function ActionForm({
       label = "Asignar con suplencia";
       fields = (
         <>
-          <Field label="Responsable principal"><select name="primaryAssigneeId" required className={inputClass}>{overview.team.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}</select></Field>
-          <Field label="Suplente distinto"><select name="backupAssigneeId" required className={inputClass}>{overview.team.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}</select></Field>
-          <Field label="Motivo"><input name="reason" required minLength={5} maxLength={1500} className={inputClass} /></Field>
-          <Field label="Vigente desde"><input name="effectiveAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
+          <Field label="Responsable principal">
+            <select name="primaryAssigneeId" required className={inputClass}>
+              {overview.team.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} · {item.role}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Suplente distinto">
+            <select name="backupAssigneeId" required className={inputClass}>
+              {overview.team.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} · {item.role}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Motivo">
+            <input
+              name="reason"
+              required
+              minLength={5}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Vigente desde">
+            <input
+              name="effectiveAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1444,32 +2048,121 @@ function ActionForm({
       label = "Proponer traslado";
       fields = (
         <>
-          <Field label="Entidad destino"><input name="destination" required minLength={3} maxLength={500} className={inputClass} /></Field>
-          <Field label="Referencia de destino"><input name="destinationReference" maxLength={500} className={inputClass} /></Field>
+          <Field label="Entidad destino">
+            <input
+              name="destination"
+              required
+              minLength={3}
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Referencia de destino">
+            <input
+              name="destinationReference"
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
           <Rationale name="reason" label="Hechos y razon del traslado" />
-          <Field label="Fundamento juridico"><textarea name="legalAuthority" required minLength={5} maxLength={1500} className={inputClass} /></Field>
-          <Field label="Fecha limite documentada"><input name="dueLocalDate" type="date" required className={inputClass} /></Field>
-          <Field label="Zona IANA"><input name="timeZone" required defaultValue={detail.rulePackage?.timeZone ?? "America/Bogota"} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="supportDocumentId" types={["TRANSFER_SUPPORT"]} label="Soporte aprobado" />
+          <Field label="Fundamento juridico">
+            <textarea
+              name="legalAuthority"
+              required
+              minLength={5}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Fecha limite documentada">
+            <input
+              name="dueLocalDate"
+              type="date"
+              required
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Zona IANA">
+            <input
+              name="timeZone"
+              required
+              defaultValue={detail.rulePackage?.timeZone ?? "America/Bogota"}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="supportDocumentId"
+            types={["TRANSFER_SUPPORT"]}
+            label="Soporte aprobado"
+          />
         </>
       );
       break;
     case "TRANSFER_REVIEW":
       label = "Revisar traslado";
       fields = (
-        <><Field label="Traslado pendiente"><select name="transferId" required className={inputClass}>{pendingTransfers.map((item) => <option key={item.id} value={item.id}>{String(item.destination ?? "Destino")} · {item.id.slice(0, 8)}</option>)}</select></Field><DecisionSelect /><Rationale /></>
+        <>
+          <Field label="Traslado pendiente">
+            <select name="transferId" required className={inputClass}>
+              {pendingTransfers.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {String(item.destination ?? "Destino")} ·{" "}
+                  {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <DecisionSelect />
+          <Rationale />
+        </>
       );
       break;
     case "TRANSFER_ATTEMPT":
       label = "Registrar resultado real del traslado";
       fields = (
         <>
-          <Field label="Traslado aprobado"><select name="transferId" required className={inputClass}>{approvedTransfers.map((item) => <option key={item.id} value={item.id}>{String(item.destination ?? "Destino")} · {item.id.slice(0, 8)}</option>)}</select></Field>
+          <Field label="Traslado aprobado">
+            <select name="transferId" required className={inputClass}>
+              {approvedTransfers.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {String(item.destination ?? "Destino")} ·{" "}
+                  {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
           <DeliveryOutcome />
-          <Field label="Fecha/hora del intento"><input name="attemptedAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
-          <Field label="Referencia externa (obligatoria si entregado)"><input name="externalReference" maxLength={500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="evidenceDocumentId" types={["TRANSFER_PROOF"]} optional label="Constancia aprobada (solo si entregado)" />
-          <Field label="Causal de falla/rebote"><input name="failureReason" maxLength={1500} className={inputClass} /></Field>
+          <Field label="Fecha/hora del intento">
+            <input
+              name="attemptedAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Referencia externa (obligatoria si entregado)">
+            <input
+              name="externalReference"
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="evidenceDocumentId"
+            types={["TRANSFER_PROOF"]}
+            optional
+            label="Constancia aprobada (solo si entregado)"
+          />
+          <Field label="Causal de falla/rebote">
+            <input
+              name="failureReason"
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1477,43 +2170,133 @@ function ActionForm({
       label = "Proponer prorroga";
       fields = (
         <>
-          <Field label="Nueva fecha solicitada"><input name="requestedDueLocalDate" type="date" required className={inputClass} /></Field>
+          <Field label="Nueva fecha solicitada">
+            <input
+              name="requestedDueLocalDate"
+              type="date"
+              required
+              className={inputClass}
+            />
+          </Field>
           <Rationale name="reason" label="Necesidad excepcional" />
-          <Field label="Fundamento juridico"><textarea name="legalAuthority" required minLength={5} maxLength={1500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="supportDocumentId" types={["EXTENSION_SUPPORT"]} label="Soporte aprobado" />
+          <Field label="Fundamento juridico">
+            <textarea
+              name="legalAuthority"
+              required
+              minLength={5}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="supportDocumentId"
+            types={["EXTENSION_SUPPORT"]}
+            label="Soporte aprobado"
+          />
         </>
       );
       break;
     case "EXTENSION_REVIEW":
       label = "Decidir prorroga";
       fields = (
-        <><Field label="Prorroga pendiente"><select name="extensionId" required className={inputClass}>{pendingExtensions.map((item) => <option key={item.id} value={item.id}>{String(item.requestedDueLocalDate ?? "Nueva fecha")} · {item.id.slice(0, 8)}</option>)}</select></Field><DecisionSelect /><Rationale /></>
+        <>
+          <Field label="Prorroga pendiente">
+            <select name="extensionId" required className={inputClass}>
+              {pendingExtensions.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {String(item.requestedDueLocalDate ?? "Nueva fecha")} ·{" "}
+                  {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <DecisionSelect />
+          <Rationale />
+        </>
       );
       break;
     case "RESPONSE":
       label = "Crear version de respuesta";
       fields = (
         <>
-          <Field label="Contenido de la respuesta"><textarea name="body" required minLength={20} maxLength={50000} rows={8} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="attachmentDocumentId" types={["RESPONSE_ATTACHMENT"]} optional label="Anexo aprobado (opcional)" />
+          <Field label="Contenido de la respuesta">
+            <textarea
+              name="body"
+              required
+              minLength={20}
+              maxLength={50000}
+              rows={8}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="attachmentDocumentId"
+            types={["RESPONSE_ATTACHMENT"]}
+            optional
+            label="Anexo aprobado (opcional)"
+          />
         </>
       );
       break;
     case "RESPONSE_REVIEW":
       label = "Revisar respuesta";
       fields = (
-        <><Field label="Version pendiente"><select name="responseId" required className={inputClass}>{pendingResponseReviews.map((item) => <option key={item.id} value={item.id}>Version {item.versionNumber} · {item.id.slice(0, 8)}</option>)}</select></Field><Field label="Decision"><select name="decision" className={inputClass}><option value="APPROVE">Aprobar revision</option><option value="RETURN_FOR_CHANGES">Devolver para cambios</option></select></Field><Rationale /></>
+        <>
+          <Field label="Version pendiente">
+            <select name="responseId" required className={inputClass}>
+              {pendingResponseReviews.map((item) => (
+                <option key={item.id} value={item.id}>
+                  Version {item.versionNumber} · {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Decision">
+            <select name="decision" className={inputClass}>
+              <option value="APPROVE">Aprobar revision</option>
+              <option value="RETURN_FOR_CHANGES">Devolver para cambios</option>
+            </select>
+          </Field>
+          <Rationale />
+        </>
       );
       break;
     case "AUTHORIZE":
       label = "Registrar decision de autorizacion";
       fields = (
         <>
-          <Field label="Respuesta revisada"><select name="responseId" required className={inputClass}>{approvedResponses.map((item) => <option key={item.id} value={item.id}>Version {item.versionNumber} · {item.id.slice(0, 8)}</option>)}</select></Field>
-          <Field label="Decision"><select name="decision" className={inputClass}><option value="AUTHORIZE">Autorizar</option><option value="RETURN_FOR_CHANGES">Devolver para cambios</option></select></Field>
+          <Field label="Respuesta revisada">
+            <select name="responseId" required className={inputClass}>
+              {approvedResponses.map((item) => (
+                <option key={item.id} value={item.id}>
+                  Version {item.versionNumber} · {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Decision">
+            <select name="decision" className={inputClass}>
+              <option value="AUTHORIZE">Autorizar</option>
+              <option value="RETURN_FOR_CHANGES">Devolver para cambios</option>
+            </select>
+          </Field>
           <Rationale />
-          <Field label="Referencia de autorizacion"><input name="authorizationReference" maxLength={500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="authorizationDocumentId" types={["AUTHORIZATION_ARTIFACT"]} optional label="Artefacto aprobado (obligatorio para autorizar)" />
+          <Field label="Referencia de autorizacion">
+            <input
+              name="authorizationReference"
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="authorizationDocumentId"
+            types={["AUTHORIZATION_ARTIFACT"]}
+            optional
+            label="Artefacto aprobado (obligatorio para autorizar)"
+          />
         </>
       );
       break;
@@ -1521,13 +2304,54 @@ function ActionForm({
       label = "Registrar intento o entrega verificada";
       fields = (
         <>
-          <Field label="Respuesta autorizada"><select name="responseId" required className={inputClass}>{authorizedResponses.map((item) => <option key={item.id} value={item.id}>Version {item.versionNumber} · {item.id.slice(0, 8)}</option>)}</select></Field>
-          <Field label="Canal"><input name="channel" required defaultValue="Correo institucional" className={inputClass} /></Field>
+          <Field label="Respuesta autorizada">
+            <select name="responseId" required className={inputClass}>
+              {authorizedResponses.map((item) => (
+                <option key={item.id} value={item.id}>
+                  Version {item.versionNumber} · {item.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Canal">
+            <input
+              name="channel"
+              required
+              defaultValue="Correo institucional"
+              className={inputClass}
+            />
+          </Field>
           <DeliveryOutcome />
-          <Field label="Fecha/hora"><input name="attemptedAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
-          <Field label="Referencia externa"><input name="externalReference" maxLength={500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="evidenceDocumentId" types={["DELIVERY_PROOF"]} optional label="Constancia aprobada (obligatoria si entregado)" />
-          <Field label="Causal de falla/rebote"><input name="failureReason" maxLength={1500} className={inputClass} /></Field>
+          <Field label="Fecha/hora">
+            <input
+              name="attemptedAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Referencia externa">
+            <input
+              name="externalReference"
+              maxLength={500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="evidenceDocumentId"
+            types={["DELIVERY_PROOF"]}
+            optional
+            label="Constancia aprobada (obligatoria si entregado)"
+          />
+          <Field label="Causal de falla/rebote">
+            <input
+              name="failureReason"
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1535,11 +2359,44 @@ function ActionForm({
       label = "Cerrar expediente";
       fields = (
         <>
-          <Field label="Causal"><select name="cause" className={inputClass}><option value="RESPONSE_DELIVERED">Respuesta entregada</option><option value="TRANSFER_COMPLETED">Traslado completado</option><option value="WITHDRAWN">Desistimiento documentado</option><option value="DUPLICATE">Duplicado documentado</option><option value="NO_ACTION_LEGAL_BASIS">Sin accion por fundamento legal</option><option value="OTHER">Otra causal documentada</option></select></Field>
+          <Field label="Causal">
+            <select name="cause" className={inputClass}>
+              <option value="RESPONSE_DELIVERED">Respuesta entregada</option>
+              <option value="TRANSFER_COMPLETED">Traslado completado</option>
+              <option value="WITHDRAWN">Desistimiento documentado</option>
+              <option value="DUPLICATE">Duplicado documentado</option>
+              <option value="NO_ACTION_LEGAL_BASIS">
+                Sin accion por fundamento legal
+              </option>
+              <option value="OTHER">Otra causal documentada</option>
+            </select>
+          </Field>
           <Rationale />
-          <Field label="Fundamento juridico"><textarea name="legalAuthority" required minLength={5} maxLength={1500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="supportDocumentId" types={["CLOSURE_SUPPORT"]} optional label="Soporte aprobado para causal alternativa" />
-          <Field label="Fecha/hora de cierre"><input name="closedAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
+          <Field label="Fundamento juridico">
+            <textarea
+              name="legalAuthority"
+              required
+              minLength={5}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="supportDocumentId"
+            types={["CLOSURE_SUPPORT"]}
+            optional
+            label="Soporte aprobado para causal alternativa"
+          />
+          <Field label="Fecha/hora de cierre">
+            <input
+              name="closedAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
@@ -1548,18 +2405,42 @@ function ActionForm({
       fields = (
         <>
           <Rationale name="reason" label="Hecho nuevo o causal" />
-          <Field label="Fundamento juridico"><textarea name="legalAuthority" required minLength={5} maxLength={1500} className={inputClass} /></Field>
-          <DocumentSelect documents={approvedDocuments} name="supportDocumentId" types={["REOPENING_SUPPORT"]} label="Soporte de reapertura aprobado" />
-          <Field label="Fecha/hora de reapertura"><input name="reopenedAt" type="datetime-local" required defaultValue={localNow(0)} className={inputClass} /></Field>
+          <Field label="Fundamento juridico">
+            <textarea
+              name="legalAuthority"
+              required
+              minLength={5}
+              maxLength={1500}
+              className={inputClass}
+            />
+          </Field>
+          <DocumentSelect
+            documents={approvedDocuments}
+            name="supportDocumentId"
+            types={["REOPENING_SUPPORT"]}
+            label="Soporte de reapertura aprobado"
+          />
+          <Field label="Fecha/hora de reapertura">
+            <input
+              name="reopenedAt"
+              type="datetime-local"
+              required
+              defaultValue={localNow(0)}
+              className={inputClass}
+            />
+          </Field>
         </>
       );
       break;
   }
 
   return (
-    <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={(event) => void submit(event)}>
+    <form
+      className="mt-5 grid gap-4 md:grid-cols-2 min-w-0"
+      onSubmit={(event) => void submit(event)}
+    >
       {fields}
-      <div className="flex items-end md:col-span-2">
+      <div className="flex items-end md:col-span-2 min-w-0">
         <SubmitButton busy={busy} label={label} />
       </div>
     </form>
@@ -1599,7 +2480,14 @@ function Rationale({
 }) {
   return (
     <Field label={label}>
-      <textarea name={name} required minLength={10} maxLength={2000} rows={3} className={inputClass} />
+      <textarea
+        name={name}
+        required
+        minLength={10}
+        maxLength={2000}
+        rows={3}
+        className={inputClass}
+      />
     </Field>
   );
 }

@@ -1,12 +1,7 @@
 const SPREADSHEET_FORMULA_PREFIX = /^\s*"*[=+\-@]/;
 
 export type CsvCellValue =
-  | string
-  | number
-  | bigint
-  | boolean
-  | null
-  | undefined;
+  string | number | bigint | boolean | null | undefined;
 
 export function sanitizeSpreadsheetCell(value: CsvCellValue): string {
   const normalized = String(value ?? '')

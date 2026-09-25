@@ -274,6 +274,14 @@ describe('OperationProfileService.getReadiness', () => {
       );
     }
     expect(transaction.politicalDivision.findMany).toHaveBeenCalledTimes(1);
+    expect(transaction.consentNotice.count).toHaveBeenCalledWith({
+      where: {
+        tenantId: jwtUser.tenantId,
+        mode: PoliticalOperationMode.CAMPAIGN,
+        purpose: 'POLITICAL_COMMUNICATION',
+        isActive: true,
+      },
+    });
     expect(transaction.witnessAssignment.findMany).toHaveBeenCalledTimes(1);
   });
 

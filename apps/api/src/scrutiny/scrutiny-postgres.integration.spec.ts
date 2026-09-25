@@ -18,6 +18,7 @@ import {
   ScrutinyEvidenceState,
   ScrutinySessionEventType,
   StorageObjectModule,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -29,16 +30,9 @@ import {
 } from '../prisma/prisma.service';
 import type {
   ApproveScrutinyActionDto,
-  CreateScrutinyActionDto,
-  CreateScrutinyCommissionDto,
   CreateScrutinyDeclarationDto,
-  CreateScrutinyDocumentDto,
   FileScrutinyActionDto,
-  RecordScrutinyCustodyEventDto,
-  RecordScrutinyDecisionDto,
-  RecordScrutinySessionEventDto,
   ReviewScrutinyDecisionDto,
-  ReviewScrutinyDeclarationDto,
   ReviewScrutinyDocumentDto,
 } from './dto/scrutiny.dto';
 import {
@@ -106,7 +100,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
         contingencyPlan:
           'Se usan formatos foliados sin conexión, custodia con sello y reconciliación por dos personas antes de digitalizar.',
         offlineDrillAt: '2099-06-01T15:00:00.000Z',
-      }) as CreateScrutinyCommissionDto,
+      }),
     );
   });
 
@@ -241,6 +235,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
   ) {
     const sha256 = randomUUID().replaceAll('-', '').padEnd(64, '0');
     const path = `${context.tenantId}/scrutiny/${randomUUID()}.pdf`;
+    const verifiedAt = new Date();
     await prisma.storedObject.create({
       data: {
         id: `stored-${randomUUID()}`,
@@ -260,6 +255,12 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
         status: StoredObjectStatus.CONFIRMED,
         actualSize: 512,
         reportedSha256: sha256,
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        calculatedSha256: sha256,
+        observedSize: 512,
+        observedContentType: 'application/pdf',
+        integrityCheckedAt: verifiedAt,
+        integrityVerifiedAt: verifiedAt,
         confirmedAt: new Date(),
       },
     });
@@ -286,7 +287,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
     };
     const document = await service.createDocument(
       context.users.author,
-      command('DOCUMENT_CREATE', input) as CreateScrutinyDocumentDto,
+      command('DOCUMENT_CREATE', input),
     );
     const reviewInput = {
       clientRequestId: randomUUID(),
@@ -300,7 +301,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       document.id,
       command('DOCUMENT_REVIEW', reviewInput, {
         documentId: document.id,
-      }) as ReviewScrutinyDocumentDto,
+      }),
     );
     return reviewed;
   }
@@ -319,7 +320,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
         commission.id,
         command('SESSION_EVENT_RECORD', input, {
           commissionId: commission.id,
-        }) as RecordScrutinySessionEventDto,
+        }),
       );
     };
     const outcomes = await Promise.allSettled([attempt('A'), attempt('B')]);
@@ -381,7 +382,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       document.id,
       command('CUSTODY_EVENT_RECORD', custodyInput, {
         documentId: document.id,
-      }) as RecordScrutinyCustodyEventDto,
+      }),
     );
     await expect(
       prisma.scrutinyCustodyEvent.update({
@@ -437,7 +438,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
     };
     const action = await service.createAction(
       context.users.author,
-      command('ACTION_CREATE', actionInput) as CreateScrutinyActionDto,
+      command('ACTION_CREATE', actionInput),
     );
     const approvalInput = {
       clientRequestId: randomUUID(),
@@ -459,7 +460,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       action.id,
       command('ACTION_APPROVE', approvalInput, {
         actionId: action.id,
-      }) as ApproveScrutinyActionDto,
+      }),
     );
     const filingInput = {
       clientRequestId: randomUUID(),
@@ -483,7 +484,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       action.id,
       command('ACTION_FILE', filingInput, {
         actionId: action.id,
-      }) as FileScrutinyActionDto,
+      }),
     );
     const decisionInput = {
       clientRequestId: randomUUID(),
@@ -500,7 +501,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       action.id,
       command('DECISION_RECORD', decisionInput, {
         actionId: action.id,
-      }) as RecordScrutinyDecisionDto,
+      }),
     );
     const reviewInput = {
       clientRequestId: randomUUID(),
@@ -523,7 +524,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       decision.id,
       command('DECISION_REVIEW', reviewInput, {
         decisionId: decision.id,
-      }) as ReviewScrutinyDecisionDto,
+      }),
     );
     await expect(
       prisma.scrutinyAction.findUniqueOrThrow({ where: { id: action.id } }),
@@ -605,7 +606,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
       };
       return service.createDeclaration(
         context.users.author,
-        command('DECLARATION_CREATE', input) as CreateScrutinyDeclarationDto,
+        command('DECLARATION_CREATE', input),
       );
     };
     const draftA = await createDraft(sourceA.id, 'A');
@@ -623,7 +624,7 @@ physicalDescribe('ScrutinyService on migrated PostgreSQL 16', () => {
         draft.id,
         command('DECLARATION_REVIEW', input, {
           declarationId: draft.id,
-        }) as ReviewScrutinyDeclarationDto,
+        }),
       );
     };
     const outcomes = await Promise.allSettled([

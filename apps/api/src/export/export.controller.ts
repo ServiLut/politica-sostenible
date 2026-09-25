@@ -2,7 +2,7 @@ import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import { once } from 'node:events';
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../../prisma/generated/prisma';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

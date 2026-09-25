@@ -170,7 +170,7 @@ describe('PqrsdService security and privacy boundaries', () => {
         subject: 'Solicitud de informacion',
         description: 'Hechos suficientes para registrar la solicitud.',
         acknowledgementRequired: true,
-        riskLevel: 'NORMAL' as never,
+        riskLevel: 'NORMAL',
         petitioner: {
           fullName: 'Persona solicitante',
           preferredChannel: 'Correo electronico',

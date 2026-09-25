@@ -43,8 +43,8 @@ export default function Error({
           </h1>
           <p className="text-zinc-500 font-medium italic leading-relaxed">
             Esta pantalla no puede confirmar si la última operación terminó ni
-            si produjo cambios. Intenta cargarla de nuevo y, antes de repetir
-            un envío, verifica su estado para evitar duplicados.
+            si produjo cambios. Intenta cargarla de nuevo y, antes de repetir un
+            envío, verifica su estado para evitar duplicados.
           </p>
         </div>
 

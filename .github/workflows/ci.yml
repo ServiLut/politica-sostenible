@@ -16,6 +16,15 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       TURBO_TELEMETRY_DISABLED: "1"
     services:
+      redis:
+        image: redis:7.4-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
       postgres:
         image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
@@ -43,6 +52,8 @@ jobs:
         run: pnpm audit --audit-level low
       - name: Probar guard de migraciones del contenedor Dokploy
         run: pnpm test:deploy
+      - name: Probar aislamiento y contrato Storage del entorno local
+        run: node --test deploy/staging/staging.test.mjs
       - name: Bloquear deepmerge-ts vulnerable en la resolución de Prisma
         shell: bash
         run: |
@@ -52,14 +63,14 @@ jobs:
       - name: Aplicar migraciones con el mismo guard de producción
         run: node deploy/migrate-entrypoint.mjs
         env:
-          DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
-          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
+          DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
       - name: Verificar historial y deriva del esquema
         run: |
           pnpm --filter api exec prisma migrate status
           pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
         env:
-          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
+          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
       - name: Ensayar adopción de baseline con las cinco migraciones históricas
         shell: bash
         env:
@@ -149,9 +160,26 @@ jobs:
       - name: Probar Prisma contra PostgreSQL real
         run: pnpm --filter api test:integration
         env:
-          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
-          TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=public
+          DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+          TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+      - name: Probar rollback histórico y protección de planes con PostgreSQL real
+        run: node --test deploy/migration-atomicity.integration.test.mjs deploy/subscription-plan-seed-postgres.test.mjs
+        env:
+          MIGRATION_TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+          TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+      - name: Probar límites distribuidos con Redis real
+        run: pnpm --filter api test --runInBand --testPathPatterns=redis-throttler-storage.integration.spec.ts
+        env:
+          THROTTLE_REDIS_TEST_URL: redis://127.0.0.1:6379/0
+      - name: Probar HTTP con módulos Nest, PostgreSQL y Redis reales
+        run: node apps/api/test/run-http-integration.mjs
+        env:
+          HTTP_INTEGRATION_DATABASE_URL: postgresql://politica_test:local_ci_only@127.0.0.1:5432/politica_sostenible_test?schema=politica-sostenible
+          HTTP_INTEGRATION_REDIS_URL: redis://127.0.0.1:6379/14
       - run: pnpm --filter api test --runInBand
+      - run: pnpm --filter api test:e2e --runInBand
+      - run: pnpm --filter api exec eslint "{src,apps,libs,test}/**/*.ts"
+      - run: pnpm --filter web exec eslint .
       - run: pnpm --filter api exec tsc -p tsconfig.build.json --noEmit --incremental false
       - run: pnpm test:web-unit
       - run: pnpm build
@@ -196,6 +224,9 @@ jobs:
             --env DATABASE_SSL_REJECT_UNAUTHORIZED=false \
             --env JWT_SECRET=ci-jwt-secret-with-more-than-thirty-two-bytes \
             --env CONSENT_IP_SALT=ci-consent-salt-with-more-than-thirty-two-bytes \
+            --env OFFLINE_SYNC_HMAC_SECRET=ci-offline-sync-hmac-with-more-than-thirty-two-bytes \
+            --env REDIS_URL=redis://127.0.0.1:6379/0 \
+            --env REDIS_ALLOW_PLAINTEXT_INTERNAL=true \
             --env SAAS_ADMIN_USER_IDS=11111111-1111-4111-8111-111111111111 \
             --env MFA_TOTP_ACTIVE_KEY_ID=ci-current \
             --env MFA_TOTP_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc= \
@@ -229,6 +260,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
+      redis:
+        image: redis:7.4-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
       postgres:
         image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
@@ -256,6 +296,9 @@ jobs:
       DATABASE_SSL_REJECT_UNAUTHORIZED: "false"
       JWT_SECRET: ci-jwt-secret-with-more-than-thirty-two-bytes
       CONSENT_IP_SALT: ci-consent-salt-with-more-than-thirty-two-bytes
+      OFFLINE_SYNC_HMAC_SECRET: ci-offline-sync-hmac-with-more-than-thirty-two-bytes
+      REDIS_URL: redis://host.docker.internal:6379/0
+      REDIS_ALLOW_PLAINTEXT_INTERNAL: "true"
       SAAS_ADMIN_USER_IDS: 11111111-1111-4111-8111-111111111111
       MFA_TOTP_ACTIVE_KEY_ID: ci-current
       MFA_TOTP_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
@@ -284,9 +327,10 @@ jobs:
 
           migrate_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps --all --quiet migrate)"
           api_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps -q api)"
+          worker_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps -q catalog-worker)"
           web_id="$(docker compose -f compose.production.yml -f deploy/compose.ci.yml ps -q web)"
-          test -n "$migrate_id" && test -n "$api_id" && test -n "$web_id"
-          for container_id in "$migrate_id" "$api_id" "$web_id"; do
+          test -n "$migrate_id" && test -n "$api_id" && test -n "$worker_id" && test -n "$web_id"
+          for container_id in "$migrate_id" "$api_id" "$worker_id" "$web_id"; do
             test "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$container_id")" = "$APP_REVISION"
             test "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' "$container_id")" = "https://github.com/ServiLut/politica-sostenible"
           done
@@ -308,19 +352,24 @@ jobs:
           fi
 
           test "$(docker exec "$api_id" id -u)" = "1001"
+          test "$(docker exec "$worker_id" id -u)" = "1001"
           test "$(docker exec "$web_id" id -u)" = "1001"
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$worker_id")" = "healthy"
+          docker exec "$worker_id" node ../../deploy/catalog-worker-healthcheck.mjs
           docker exec "$api_id" sh -c '! touch /app/api-write-probe 2>/dev/null'
           docker exec "$web_id" sh -c '! touch /app/web-write-probe 2>/dev/null'
           if docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$web_id" \
-            | grep -Eq '^(DATABASE_URL|DIRECT_URL|JWT_SECRET|SUPABASE_SERVICE_ROLE_KEY)='; then
+            | grep -Eq '^(DATABASE_URL|DIRECT_URL|JWT_SECRET|OFFLINE_SYNC_HMAC_SECRET|REDIS_URL|SUPABASE_SERVICE_ROLE_KEY)='; then
             echo "La web recibió un secreto reservado para la API" >&2
             exit 1
           fi
           test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$api_id")" = "true"
+          test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$worker_id")" = "true"
           test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$web_id")" = "true"
 
-          docker compose -f compose.production.yml -f deploy/compose.ci.yml stop --timeout 40 api web
+          docker compose -f compose.production.yml -f deploy/compose.ci.yml stop --timeout 40 catalog-worker api web
           test "$(docker inspect --format '{{.State.ExitCode}}' "$api_id")" = "0"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$worker_id")" = "0"
           test "$(docker inspect --format '{{.State.ExitCode}}' "$web_id")" = "143"
       - name: Limpiar topología primaria
         if: always()

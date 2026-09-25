@@ -103,9 +103,9 @@ function SummaryButton({
           : "border-slate-200 bg-white text-slate-950 hover:border-blue-300"
       }`}
     >
-      <span className="block text-3xl font-black tabular-nums">{value}</span>
+      <span className="block text-2xl font-semibold tabular-nums">{value}</span>
       <span
-        className={`mt-1 block text-[10px] font-black uppercase tracking-[0.15em] ${
+        className={`mt-1 block text-xs font-semibold ${
           active ? "text-blue-100" : "text-slate-500"
         }`}
       >
@@ -123,29 +123,29 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
         item.overdue ? "border-red-200" : "border-slate-200"
       }`}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[9px] font-semibold text-white">
           {item.kindLabel}
         </span>
         <span
-          className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.15em] ${priorityStyle(item.priority, item.overdue)}`}
+          className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${priorityStyle(item.priority, item.overdue)}`}
         >
           {PRIORITY_LABELS[item.priority]}
         </span>
         {item.overdue && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-1 text-[9px] font-semibold text-white">
             <AlertTriangle aria-hidden="true" size={12} /> Vencido
           </span>
         )}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 min-w-0">
         {item.reference && (
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+          <p className="text-xs font-semibold text-slate-400">
             {item.reference}
           </p>
         )}
-        <h2 className="mt-1 text-lg font-black leading-snug text-slate-950">
+        <h2 className="mt-1 text-lg font-semibold leading-snug text-slate-950">
           {item.title}
         </h2>
         <p className="mt-1 text-xs font-bold text-slate-500">
@@ -153,9 +153,9 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
         </p>
       </div>
 
-      <dl className="mt-4 grid gap-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-2">
+      <dl className="mt-4 grid gap-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-2 min-w-0">
         <div>
-          <dt className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
             <CircleUserRound aria-hidden="true" size={14} /> Responsable
           </dt>
           <dd
@@ -172,7 +172,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
           </dd>
         </div>
         <div>
-          <dt className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
             <CalendarClock aria-hidden="true" size={14} /> Plazo
           </dt>
           <dd
@@ -205,7 +205,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
 
       <Link
         href={item.cta.href}
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto"
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto max-w-full whitespace-normal"
       >
         {item.cta.label} <ArrowRight aria-hidden="true" size={16} />
       </Link>
@@ -270,18 +270,18 @@ export default function OperationalInboxPage() {
   return (
     <div
       data-testid="operational-inbox"
-      className="mx-auto max-w-7xl space-y-6"
+      className="mx-auto max-w-7xl space-y-6 min-w-0"
     >
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600">
+      <header className="overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-8 min-w-0">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between min-w-0">
+          <div className="max-w-3xl min-w-0">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 min-w-0">
               <Inbox aria-hidden="true" size={22} />
             </div>
-            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-blue-300">
+            <p className="mt-5 text-xs font-semibold text-blue-300">
               Coordinación diaria
             </p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
+            <h1 className="mt-1 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               Bandeja operativa
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
@@ -293,7 +293,7 @@ export default function OperationalInboxPage() {
             type="button"
             onClick={requestReload}
             disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-black text-white transition hover:border-blue-400 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:border-blue-400 disabled:opacity-60 max-w-full whitespace-normal"
           >
             <RefreshCw
               aria-hidden="true"
@@ -308,7 +308,7 @@ export default function OperationalInboxPage() {
       {loading && !result ? (
         <div
           role="status"
-          className="flex min-h-80 items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-bold text-slate-500"
+          className="flex min-h-80 items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white text-sm font-bold text-slate-500 min-w-0"
         >
           <LoaderCircle
             aria-hidden="true"
@@ -320,10 +320,10 @@ export default function OperationalInboxPage() {
       ) : error ? (
         <div
           role="alert"
-          className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
+          className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-8 text-center min-w-0"
         >
           <AlertCircle aria-hidden="true" className="text-red-700" size={34} />
-          <h2 className="mt-4 text-xl font-black text-slate-950">
+          <h2 className="mt-4 text-xl font-semibold text-slate-950">
             No fue posible consolidar la bandeja
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
@@ -332,7 +332,7 @@ export default function OperationalInboxPage() {
           <button
             type="button"
             onClick={requestReload}
-            className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-black text-white"
+            className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white max-w-full whitespace-normal"
           >
             Reintentar
           </button>
@@ -341,7 +341,7 @@ export default function OperationalInboxPage() {
         <>
           <section
             aria-label="Resumen de trabajo"
-            className="grid grid-cols-2 gap-3 lg:grid-cols-5"
+            className="grid gap-3 lg:grid-cols-5 min-w-0 grid-cols-1 sm:grid-cols-2"
           >
             <SummaryButton
               label="Todo abierto"
@@ -380,10 +380,10 @@ export default function OperationalInboxPage() {
             />
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 min-w-0">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
               <div
-                className="flex flex-wrap gap-2"
+                className="flex flex-wrap gap-2 min-w-0"
                 aria-label="Filtros de bandeja"
               >
                 {FILTERS.map((option) => (
@@ -392,7 +392,7 @@ export default function OperationalInboxPage() {
                     type="button"
                     aria-pressed={filter === option.value}
                     onClick={() => setFilter(option.value)}
-                    className={`min-h-10 rounded-full px-4 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                    className={`min-h-10 rounded-full px-4 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                       filter === option.value
                         ? "bg-slate-950 text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -402,7 +402,7 @@ export default function OperationalInboxPage() {
                   </button>
                 ))}
               </div>
-              <label className="relative block w-full lg:max-w-sm">
+              <label className="relative block w-full lg:max-w-sm min-w-0">
                 <span className="sr-only">Buscar en la bandeja</span>
                 <Search
                   aria-hidden="true"
@@ -414,11 +414,11 @@ export default function OperationalInboxPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar título o referencia"
-                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500 min-w-0">
               <span aria-live="polite">
                 {visibleItems.length}{" "}
                 {visibleItems.length === 1 ? "resultado" : "resultados"}
@@ -440,20 +440,20 @@ export default function OperationalInboxPage() {
           {visibleItems.length > 0 ? (
             <section
               aria-label="Trabajo pendiente"
-              className="grid gap-4 lg:grid-cols-2"
+              className="grid gap-4 lg:grid-cols-2 min-w-0"
             >
               {visibleItems.map((item) => (
                 <WorkItemCard key={item.id} item={item} />
               ))}
             </section>
           ) : (
-            <section className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <section className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center min-w-0">
               <CheckCircle2
                 aria-hidden="true"
                 className="text-emerald-600"
                 size={42}
               />
-              <h2 className="mt-4 text-xl font-black text-slate-950">
+              <h2 className="mt-4 text-xl font-semibold text-slate-950">
                 {result.summary.total === 0
                   ? "La operación está al día"
                   : "No hay resultados para este filtro"}
@@ -467,13 +467,13 @@ export default function OperationalInboxPage() {
                 <nav
                   aria-label="Flujos operativos disponibles"
                   data-testid="inbox-empty-actions"
-                  className="mt-6 flex flex-wrap justify-center gap-3"
+                  className="mt-6 flex flex-wrap justify-center gap-3 min-w-0"
                 >
                   {emptyStateFlows.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-800 transition hover:border-blue-400 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:border-blue-400 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 max-w-full whitespace-normal"
                     >
                       Abrir {item.title}
                       <ArrowRight aria-hidden="true" size={16} />
@@ -488,7 +488,7 @@ export default function OperationalInboxPage() {
                     setFilter("ALL");
                     setSearch("");
                   }}
-                  className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-black text-white"
+                  className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white max-w-full whitespace-normal"
                 >
                   Limpiar filtros
                 </button>

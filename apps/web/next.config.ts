@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { allowsLocalEvaluationHttp } from "./lib/local-evaluation-http";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 const configuredRevision = process.env.APP_REVISION?.trim() ?? "";
@@ -43,7 +44,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), geolocation=(), microphone=()",
           },
-          ...(isDevelopment
+          ...(isDevelopment || allowsLocalEvaluationHttp()
             ? []
             : [
                 {

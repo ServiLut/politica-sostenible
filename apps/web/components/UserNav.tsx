@@ -58,20 +58,19 @@ export function UserNav() {
         ref={triggerRef}
         type="button"
         aria-label="Abrir opciones de usuario"
-        aria-haspopup="true"
         aria-expanded={isOpen}
         aria-controls="user-navigation-menu"
         onClick={() => setIsOpen((open) => !open)}
         className="flex min-h-11 items-center gap-2 rounded-full border border-transparent p-1 pr-2 transition-colors hover:border-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:gap-3 sm:pr-3"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white shadow-md">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white shadow-md">
           {userInitial}
         </span>
         <span className="hidden max-w-40 text-left md:block">
-          <span className="block truncate text-xs font-black text-slate-900">
+          <span className="block truncate text-xs font-semibold text-slate-900">
             {user?.name ?? "Usuario"}
           </span>
-          <span className="mt-0.5 block truncate text-[10px] font-bold text-blue-700">
+          <span className="mt-0.5 block truncate text-xs font-bold text-blue-700">
             {roleLabel}
           </span>
         </span>
@@ -87,17 +86,18 @@ export function UserNav() {
       {isOpen && (
         <div
           id="user-navigation-menu"
+          role="navigation"
           aria-label="Opciones de usuario"
-          className="absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15"
+          className="absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100dvh-var(--app-banner-height)-10rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-950/10"
         >
           <div className="border-b border-slate-100 p-5">
-            <p className="truncate text-sm font-black text-slate-950">
+            <p className="truncate text-sm font-semibold text-slate-950">
               {user?.name ?? "Usuario"}
             </p>
             <p className="mt-1 truncate text-xs font-medium text-slate-500">
               {user?.email ?? ""}
             </p>
-            <span className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black text-blue-700">
+            <span className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
               {roleLabel}
             </span>
           </div>
@@ -108,10 +108,10 @@ export function UserNav() {
                 <Building2 aria-hidden="true" size={17} />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-xs font-black text-slate-900">
+                <p className="truncate text-xs font-semibold text-slate-900">
                   {tenant.name}
                 </p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">
                   {getTenantTypeLabel(tenant.type)}
                 </p>
               </div>
@@ -122,7 +122,7 @@ export function UserNav() {
             <Link
               href="/dashboard/profile"
               onClick={() => setIsOpen(false)}
-              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <ShieldCheck aria-hidden="true" size={17} />
               Mi cuenta y seguridad
@@ -131,7 +131,7 @@ export function UserNav() {
               <Link
                 href="/dashboard/team"
                 onClick={() => setIsOpen(false)}
-                className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               >
                 <UsersRound aria-hidden="true" size={17} />
                 Equipo y accesos
@@ -140,7 +140,7 @@ export function UserNav() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-xs font-black uppercase tracking-wider text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
               <LogOut aria-hidden="true" size={17} />
               Cerrar sesión

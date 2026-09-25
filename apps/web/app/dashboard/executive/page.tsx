@@ -1,13 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { usePageRequest } from "@/lib/use-page-request";
+
+import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
+import { getVisibleNavigationItems } from "@/config/navigation";
+import { useAuth } from "@/context/auth";
+import { apiRequest } from "@/lib/api-client";
+import type { PoliticalOperationStage } from "@/types/saas-schema";
 import {
   Activity,
   AlertTriangle,
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
   ListChecks,
   LoaderCircle,
@@ -17,11 +23,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { ApiError, apiRequest } from "@/lib/api-client";
-import { useAuth } from "@/context/auth";
-import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
-import { getVisibleNavigationItems } from "@/config/navigation";
-import type { PoliticalOperationStage } from "@/types/saas-schema";
+import Link from "next/link";
+import { useCallback } from "react";
 
 const OPERATION_STAGES: ReadonlyArray<{
   value: PoliticalOperationStage;
@@ -423,52 +426,28 @@ function teamMetric(value: number): TrafficMetric {
 
 export default function ExecutivePage() {
   const { tenant, user } = useAuth();
-  const [briefing, setBriefing] = useState<CommandCenterBriefing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const activeRequest = useRef<AbortController | null>(null);
-
-  const loadBriefing = useCallback(async () => {
-    activeRequest.current?.abort();
-    const controller = new AbortController();
-    activeRequest.current = controller;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await apiRequest<unknown>("command-center/briefing", {
-        signal: controller.signal,
-      });
-      if (!isCommandCenterBriefing(result)) {
-        throw new Error(
-          "El centro de mando devolvió una respuesta incompleta. Reintenta en unos minutos.",
-        );
-      }
-      if (!controller.signal.aborted) setBriefing(result);
-    } catch (requestError) {
-      if (controller.signal.aborted) return;
-      setError(
-        requestError instanceof ApiError
-          ? requestError.message
-          : requestError instanceof Error
-            ? requestError.message
-            : "No fue posible consolidar el centro de mando.",
+  const request = useCallback(async (signal: AbortSignal) => {
+    const result = await apiRequest<unknown>("command-center/briefing", {
+      signal,
+    });
+    if (!isCommandCenterBriefing(result))
+      throw new Error(
+        "El centro de mando devolvió una respuesta incompleta. Reintenta en unos minutos.",
       );
-    } finally {
-      if (activeRequest.current === controller) {
-        activeRequest.current = null;
-        setLoading(false);
-      }
-    }
+    return result;
   }, []);
-
-  useEffect(() => {
-    void loadBriefing();
-    return () => {
-      activeRequest.current?.abort();
-      activeRequest.current = null;
-    };
-  }, [loadBriefing]);
+  const {
+    data: briefing,
+    loading,
+    error: requestError,
+    refresh: loadBriefing,
+  } = usePageRequest(request);
+  const error =
+    requestError instanceof Error
+      ? requestError.message
+      : requestError
+        ? "No fue posible consolidar el centro de mando."
+        : null;
 
   if (loading && !briefing) {
     return (
@@ -490,13 +469,13 @@ export default function ExecutivePage() {
     return (
       <main
         id="main-content"
-        className="mx-auto max-w-[1500px] space-y-8 p-4 sm:p-8"
+        className="mx-auto min-w-0 max-w-[1440px] space-y-6"
       >
         <header>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Cuadro de Mando
           </h1>
-          <p className="mt-2 text-xl font-medium text-slate-500">
+          <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
             {tenant?.name ?? "Operación Política"}
           </p>
         </header>
@@ -550,18 +529,19 @@ export default function ExecutivePage() {
   return (
     <main
       id="main-content"
-      className="mx-auto max-w-[1500px] space-y-8 p-4 sm:p-8"
+      className="mx-auto min-w-0 max-w-[1440px] space-y-6"
     >
-      <header className="flex items-start justify-between gap-5">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+      <header className="flex min-w-0 items-start justify-between gap-3 sm:gap-5">
+        <div className="min-w-0">
+          <p className="mb-2 text-xs font-semibold text-blue-700">Vista general de la operación</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Cuadro de Mando
           </h1>
-          <p className="mt-2 text-xl font-medium text-slate-500">
+          <p className="mt-2 break-words text-sm leading-6 text-slate-600 sm:text-base">
             {briefing.tenant.name}
           </p>
           {generatedAt && (
-            <p className="mt-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <p className="mt-1 text-xs leading-5 text-slate-500">
               Corte del {generatedAt}
             </p>
           )}
@@ -572,13 +552,14 @@ export default function ExecutivePage() {
           title="Actualizar cuadro de mando"
           onClick={() => void loadBriefing()}
           disabled={loading}
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 disabled:opacity-50 sm:h-16 sm:w-16"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-wait disabled:opacity-60 sm:px-4"
         >
           <RefreshCw
             aria-hidden="true"
-            size={28}
+            size={18}
             className={loading ? "animate-spin" : undefined}
           />
+          <span className="hidden sm:inline">{loading ? "Actualizando…" : "Actualizar"}</span>
         </button>
       </header>
 
@@ -599,9 +580,9 @@ export default function ExecutivePage() {
 
       <OperationLifecycle currentStage={tenant?.operationStage ?? null} />
 
-      <section className="grid gap-6 md:grid-cols-2">
+      <section aria-label="Resumen de la operación" className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TrafficCard
-          title="Ejecución Presupuestal"
+          title="Ejecución presupuestal"
           value={budget.value}
           subtitle={budget.subtitle}
           status={budget.status}
@@ -609,7 +590,7 @@ export default function ExecutivePage() {
           href="/dashboard/finance"
         />
         <TrafficCard
-          title="Cumplimiento de Metas"
+          title="Cobertura de metas"
           value={territoryCoverage.value}
           subtitle={territoryCoverage.subtitle}
           status={territoryCoverage.status}
@@ -617,7 +598,7 @@ export default function ExecutivePage() {
           href="/dashboard/territory"
         />
         <TrafficCard
-          title="Procesos Críticos"
+          title="Pendientes vencidos"
           value={overdue.value}
           subtitle={overdue.subtitle}
           status={overdue.status}
@@ -625,7 +606,7 @@ export default function ExecutivePage() {
           href="/dashboard/tasks"
         />
         <TrafficCard
-          title="Termómetro del Equipo"
+          title="Equipo activo"
           value={team.value}
           subtitle={
             canManageTeam
@@ -640,7 +621,7 @@ export default function ExecutivePage() {
 
       <section
         aria-label="Indicadores operativos de campaña"
-        className="grid gap-px overflow-hidden rounded-3xl bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid min-w-0 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
       >
         <OperationalMetric
           label="Vínculos autorizados"
@@ -677,12 +658,12 @@ export default function ExecutivePage() {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+      <section className="grid min-w-0 gap-5 xl:grid-cols-2">
+        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-xs font-semibold text-slate-500">
             Decisiones del corte
           </p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
             Riesgos que necesitan responsable
           </h2>
           <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
@@ -690,7 +671,7 @@ export default function ExecutivePage() {
               <Link
                 key={alert.code}
                 href={alert.href}
-                className="group grid grid-cols-[40px_1fr_auto] gap-3 py-5"
+                className="group grid min-w-0 grid-cols-[36px_minmax(0,1fr)_16px] gap-3 rounded-lg py-4 focus-ring"
               >
                 <span
                   className={`grid h-10 w-10 place-items-center rounded-xl ${
@@ -787,7 +768,7 @@ export default function ExecutivePage() {
         </CampaignAgendaPanel>
       </section>
 
-      <p className="text-right text-[11px] font-semibold text-slate-400">
+      <p className="text-xs leading-5 text-slate-500">
         Este corte es operativo e interno; no equivale a una certificación de
         autoridad electoral, contable o de protección de datos.
       </p>
@@ -807,31 +788,37 @@ function OperationLifecycle({
   return (
     <section
       aria-label="Ciclo de la operación política"
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+      className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
-            Ciclo electoral controlado
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-blue-700">
+            Etapas de la operación
           </p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">
             {currentIndex >= 0
               ? `Etapa actual: ${OPERATION_STAGES[currentIndex].label}`
               : "Perfil operativo pendiente"}
           </h2>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Cada avance requiere alistamiento y queda registrado; una etapa no
-            se presume por el calendario ni por una decisión de la interfaz.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            {currentIndex < 0
+              ? "Completa el perfil para organizar las etapas y consultar los requisitos de la operación."
+              : "Consulta los requisitos y el historial antes de avanzar de etapa."}
           </p>
         </div>
         <Link
           href="/dashboard/operation-profile"
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 focus-ring"
         >
           Revisar alistamiento <ArrowRight aria-hidden="true" size={16} />
         </Link>
       </div>
-      <ol className="mt-6 grid gap-2 sm:grid-cols-3 xl:grid-cols-9">
+      <details className="group/steps mt-4 rounded-xl bg-slate-50 px-3 py-1">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-sm font-medium text-slate-700 focus-ring [&::-webkit-details-marker]:hidden">
+          Ver etapas del ciclo
+          <ChevronDown aria-hidden="true" size={17} className="shrink-0 transition-transform group-open/steps:rotate-180" />
+        </summary>
+      <ol className="grid min-w-0 grid-cols-3 gap-2 pb-3 pt-2 xl:grid-cols-9">
         {OPERATION_STAGES.map((stage, index) => {
           const status =
             currentIndex < 0
@@ -845,7 +832,7 @@ function OperationLifecycle({
             <li
               key={stage.value}
               aria-current={status === "current" ? "step" : undefined}
-              className={`rounded-xl border px-3 py-3 text-center text-[11px] font-black uppercase tracking-wide ${
+              className={`min-w-0 rounded-lg border px-1 py-2.5 text-center text-[11px] leading-4 font-semibold [overflow-wrap:anywhere] sm:text-xs ${
                 status === "current"
                   ? "border-blue-700 bg-blue-700 text-white"
                   : status === "previous"
@@ -853,12 +840,13 @@ function OperationLifecycle({
                     : "border-slate-200 bg-slate-50 text-slate-500"
               }`}
             >
-              <span className="block text-[10px] opacity-70">{index + 1}</span>
+              <span className="mb-1 block text-xs opacity-70">{index + 1}</span>
               {stage.label}
             </li>
           );
         })}
       </ol>
+      </details>
     </section>
   );
 }
@@ -879,28 +867,27 @@ function OperationalMetric({
   icon: typeof ShieldCheck;
 }) {
   return (
-    <article className="bg-white p-6">
+    <article className="min-w-0 bg-white p-5">
       <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700">
         <Icon aria-hidden="true" size={20} />
       </div>
-      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+      <p className="mt-4 text-sm font-medium text-slate-600">
         {label}
       </p>
-      <p className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 tabular-nums">
         {value}
       </p>
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <p className="text-xs font-medium text-slate-500">{detail}</p>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 text-xs leading-5 text-slate-500">{detail}</p>
         {href ? (
-          <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`}>
+          <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-blue-700 transition-colors hover:bg-blue-50 focus-ring">
             <ArrowRight
               aria-hidden="true"
-              className="text-slate-300"
-              size={15}
+              size={18}
             />
           </Link>
         ) : (
-          <span className="max-w-48 text-right text-[11px] font-bold leading-4 text-amber-800">
+          <span className="basis-full text-xs leading-5 text-amber-800">
             {unavailableReason ?? "Modulo no habilitado para este contexto."}
           </span>
         )}
@@ -923,10 +910,10 @@ function CampaignAgendaPanel({
   const items = Array.isArray(children) ? children : children ? [children] : [];
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-center gap-3">
         <Icon aria-hidden="true" className="text-blue-700" size={20} />
-        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
       </div>
       <div className="mt-4">
         {items.length > 0 ? (
@@ -957,44 +944,43 @@ function TrafficCard({
   href?: string;
 }) {
   const statusColors: Record<TrafficStatus, string> = {
-    red: "border-red-600 bg-red-500 text-white",
-    yellow: "border-amber-500 bg-amber-400 text-slate-900",
-    green: "border-emerald-600 bg-emerald-500 text-white",
-    neutral: "border-slate-400 bg-slate-200 text-slate-900",
+    red: "border-red-200 bg-red-50 text-red-800",
+    yellow: "border-amber-200 bg-amber-50 text-amber-800",
+    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    neutral: "border-slate-200 bg-slate-50 text-slate-600",
   };
 
-  const statusIcons: Record<TrafficStatus, React.ReactNode> = {
-    red: <AlertTriangle aria-hidden="true" size={48} className="opacity-80" />,
-    yellow: (
-      <AlertTriangle aria-hidden="true" size={48} className="opacity-80" />
-    ),
-    green: <CheckCircle2 aria-hidden="true" size={48} className="opacity-80" />,
-    neutral: <Activity aria-hidden="true" size={48} className="opacity-60" />,
+  const statusLabels: Record<TrafficStatus, string> = {
+    red: "Requiere atención",
+    yellow: "Por revisar",
+    green: "Dentro del rango",
+    neutral: "Sin base de cálculo",
   };
 
   const card = (
     <article
-      className={`relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border-b-8 p-8 shadow-lg ${statusColors[status]}`}
+      className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors group-hover:border-blue-300"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider opacity-90">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+          <h2 className="min-w-0 text-sm leading-5 font-medium text-slate-600">
             {title}
           </h2>
-          <p className="mt-6 break-words text-5xl font-black tracking-tighter sm:text-7xl">
-            {value}
-          </p>
-        </div>
-        <div className="shrink-0 rounded-2xl bg-white/20 p-4 backdrop-blur-md">
-          <Icon aria-hidden="true" size={48} />
+        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${statusColors[status]}`}>
+          <Icon aria-hidden="true" size={20} />
         </div>
       </div>
-
-      <div className="mt-8 flex items-center gap-4">
-        {statusIcons[status]}
-        <p className="text-xl font-medium leading-tight opacity-90">
+      <p className={`mt-4 break-words font-semibold leading-tight tracking-tight text-slate-950 tabular-nums ${value.length > 9 ? "text-2xl" : "text-3xl sm:text-4xl"}`}>
+        {value}
+      </p>
+      <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
           {subtitle}
-        </p>
+      </p>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusColors[status]}`}>
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+          {statusLabels[status]}
+        </span>
+        {href && <ArrowRight aria-hidden="true" size={17} className="text-slate-400 group-hover:text-blue-700" />}
       </div>
     </article>
   );
@@ -1005,7 +991,7 @@ function TrafficCard({
     <Link
       href={href}
       aria-label={`Abrir ${title.toLowerCase()}`}
-      className="block transition-transform hover:scale-[1.02]"
+      className="group block min-w-0 rounded-2xl focus-ring"
     >
       {card}
     </Link>

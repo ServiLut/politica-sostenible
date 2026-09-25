@@ -21,9 +21,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import {
   AllowWhenOperationClosed,
   BlockWhenOperationClosed,
+  RequireOperationStages,
 } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
-import { Role } from '../../prisma/generated/prisma';
+import { PoliticalOperationStage, Role } from '../../prisma/generated/prisma';
 import { ListVotersQueryDto } from './dto/list-voters-query.dto';
 import { SearchVotersDto } from './dto/search-voters.dto';
 import { RevokeVoterConsentDto } from './dto/revoke-voter-consent.dto';
@@ -111,14 +112,19 @@ export class VoterController {
 
   @Get('election-day')
   @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
-  @ApiOperation({ summary: 'Resumen del Día D con todos los votantes y su estado' })
+  @ApiOperation({
+    summary: 'Resumen del Día D con todos los votantes y su estado',
+  })
   async getElectionDaySummary(@CurrentUser() user: AuthenticatedUser) {
     return this.voterService.getElectionDaySummary(user);
   }
 
   @Patch(':id/voting-status')
+  @RequireOperationStages(PoliticalOperationStage.ELECTION_DAY)
   @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER, Role.ZONE_COORDINATOR)
-  @ApiOperation({ summary: 'Actualiza el estado de votación de un simpatizante el Día D' })
+  @ApiOperation({
+    summary: 'Actualiza el estado de votación de un simpatizante el Día D',
+  })
   async updateVotingStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param() params: VoterDataRightsParamsDto,

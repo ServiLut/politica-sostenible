@@ -124,6 +124,38 @@ test("consulta el alistamiento y propaga la cancelación de la vista", async () 
   }
 });
 
+test("rechaza alistamientos incompletos y estados desconocidos antes de dibujar controles", async () => {
+  const originalFetch = globalThis.fetch;
+  const invalidResponses = [
+    { active: true },
+    { ...readiness, sections: undefined },
+    { ...readiness, sections: { BEFORE_CAMPAIGN: [] } },
+    { ...readiness, overall: "UNKNOWN" },
+    { ...readiness, generatedAt: "no-es-una-fecha" },
+    { ...readiness, sections: { ...readiness.sections, ELECTION_DAY: null } },
+    {
+      ...readiness,
+      sections: {
+        ...readiness.sections,
+        ELECTION_DAY: [
+          { ...readiness.sections.ELECTION_DAY[0], status: "UNKNOWN" },
+        ],
+      },
+    },
+    { ...readiness, sections: { ...readiness.sections, CAMPAIGN: [null] } },
+  ];
+  try {
+    for (const response of invalidResponses) {
+      globalThis.fetch = async () => successful(response);
+      await expect(getOperationReadiness()).rejects.toThrow(
+        "alistamiento incompleto o incompatible",
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("guarda el DTO sin permitir que el cliente envíe el tenant", async () => {
   const originalFetch = globalThis.fetch;
   let requestedUrl = "";

@@ -184,7 +184,7 @@ describe('OfflineE14CaptureGrantService', () => {
   beforeEach(() => {
     jest
       .spyOn(planLimits, 'ensureTenantSubscription')
-      .mockResolvedValue(undefined as never);
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {

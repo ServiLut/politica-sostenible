@@ -19,6 +19,7 @@ import {
   PrismaClient,
   Role,
   StorageObjectModule,
+  StorageIntegrityStatus,
   StoredObjectStatus,
   TenantType,
 } from '../../prisma/generated/prisma';
@@ -28,17 +29,7 @@ import {
   resolveDatabaseSchema,
   resolveDatabaseSearchPathOptions,
 } from '../prisma/prisma.service';
-import type {
-  ApproveFinanceReportVersionDto,
-  CreateFinanceBankStatementDto,
-  CreateFinanceDossierDto,
-  CreateFinanceInKindDto,
-  CreateFinancePayableDto,
-  CreateFinanceReportVersionDto,
-  RecordFinanceExternalEvidenceDto,
-  ReviewFinanceExternalEvidenceDto,
-  SettleFinancePayableDto,
-} from './dto/finance-closeout.dto';
+import type { CreateFinanceDossierDto } from './dto/finance-closeout.dto';
 import {
   computeFinanceCloseoutCommandSha256,
   type FinanceCloseoutCommandName,
@@ -208,6 +199,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
     digest = 'a'.repeat(64),
   ) {
     const path = `${user.tenantId}/finance/${randomUUID()}.pdf`;
+    const verifiedAt = new Date();
     const stored = await prisma.storedObject.create({
       data: {
         tenantId: user.tenantId,
@@ -220,6 +212,12 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
         etag: `etag-${label}-${randomUUID()}`,
         expectedSha256: digest,
         reportedSha256: digest,
+        integrityStatus: StorageIntegrityStatus.VERIFIED,
+        calculatedSha256: digest,
+        observedSize: 128,
+        observedContentType: 'application/pdf',
+        integrityCheckedAt: verifiedAt,
+        integrityVerifiedAt: verifiedAt,
         status: StoredObjectStatus.CONFIRMED,
         expiresAt: new Date(Date.now() + 3_600_000),
         confirmedAt: new Date(),
@@ -349,7 +347,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             matchedEntryId: payableExpense.id,
           },
         ],
-      }) as CreateFinanceBankStatementDto,
+      }),
     );
     expect(statement).toMatchObject({ lineCount: 3, unmatchedLineCount: 0 });
 
@@ -374,7 +372,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
           'Tres cotizaciones comparables conservadas como soporte.',
         valuationSourceReference: 'COTIZACIONES-2026-001',
         valuationSha256: valuationFile.digest,
-      }) as CreateFinanceInKindDto,
+      }),
     );
 
     const payableFile = await confirmedStorage(
@@ -395,7 +393,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
         incurredAt: '2026-01-20',
         dueAt: '2026-01-30',
         originalAmount: 300,
-      }) as CreateFinancePayableDto,
+      }),
     );
     const paymentLine = await prisma.financeBankStatementLine.findFirstOrThrow({
       where: {
@@ -424,7 +422,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
           paymentReference: 'EGR-002',
         },
         { payableId: payable.id },
-      ) as SettleFinancePayableDto,
+      ),
     );
     expect(settlement).toMatchObject({ status: 'PAID' });
 
@@ -441,7 +439,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Primer corte completo para revision interna, sin transmision oficial.',
         },
         { dossierId: dossier.id },
-      ) as CreateFinanceReportVersionDto,
+      ),
     );
     expect(firstVersion).toMatchObject({
       versionNumber: 1,
@@ -465,7 +463,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Se requiere documentar expresamente que esta version fue reemplazada.',
         },
         { versionId: firstVersion.id },
-      ) as ApproveFinanceReportVersionDto,
+      ),
     );
 
     const secondVersion = await service.createReportVersion(
@@ -484,7 +482,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Version corregida lista para tres controles incompatibles e independientes.',
         },
         { dossierId: dossier.id },
-      ) as CreateFinanceReportVersionDto,
+      ),
     );
     expect(secondVersion).toMatchObject({
       versionNumber: 2,
@@ -504,7 +502,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
               'Gerencia valida integridad operativa, conciliacion y responsabilidad.',
           },
           { versionId: secondVersion.id },
-        ) as ApproveFinanceReportVersionDto,
+        ),
       );
     const competing = await Promise.allSettled([
       managerApproval(context.manager),
@@ -528,7 +526,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Contabilidad certifica cifras, soportes, causacion y conciliacion bancaria.',
         },
         { versionId: secondVersion.id },
-      ) as ApproveFinanceReportVersionDto,
+      ),
     );
     await service.approveReportVersion(
       context.compliance,
@@ -542,7 +540,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Cumplimiento verifica segregacion, trazabilidad y expediente probatorio.',
         },
         { versionId: secondVersion.id },
-      ) as ApproveFinanceReportVersionDto,
+      ),
     );
 
     const externalFile = await confirmedStorage(
@@ -565,7 +563,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
           evidenceSha256: externalFile.digest,
         },
         { versionId: secondVersion.id },
-      ) as RecordFinanceExternalEvidenceDto,
+      ),
     );
     expect(evidence).toMatchObject({
       reviewStatus: 'PENDING',
@@ -583,7 +581,7 @@ physicalDescribe('FinanceCloseoutService on physical PostgreSQL', () => {
             'Auditor independiente coteja referencia, fecha y SHA del archivo aportado.',
         },
         { evidenceId: evidence.id },
-      ) as ReviewFinanceExternalEvidenceDto,
+      ),
     );
     expect(review).toMatchObject({
       coveredEntryCount: 5,

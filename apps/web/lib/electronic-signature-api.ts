@@ -31,8 +31,7 @@ export interface E14SignatureCandidate extends CandidateDocument {
 }
 
 export type ElectronicSignatureCandidate =
-  | FinanceSignatureCandidate
-  | E14SignatureCandidate;
+  FinanceSignatureCandidate | E14SignatureCandidate;
 
 export interface SigningCandidatePage {
   items: ElectronicSignatureCandidate[];
@@ -46,7 +45,7 @@ export interface ElectronicSignatureResult {
   module: ElectronicSignatureModule;
   resourceType: "FinancialEntry" | "WitnessReport";
   integrityScope: "LINK_AND_STORAGE_METADATA";
-  contentIntegrity: "UNVERIFIED";
+  contentIntegrity: "VERIFIED" | "UNVERIFIED";
 }
 
 export interface ElectronicSignatureVerification extends ElectronicSignatureResult {

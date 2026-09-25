@@ -69,7 +69,7 @@ describe('TransitionHandoverController', () => {
     );
 
     await expect(
-      controller.getStoredHandoverReport(user, 'report-a'),
+      controller.getStoredHandoverReport(user, { reportId: 'report-a' }),
     ).resolves.toEqual({ reportId: 'report-a' });
     expect(service.getHandoverReport).toHaveBeenCalledWith(user, 'report-a');
     expect(

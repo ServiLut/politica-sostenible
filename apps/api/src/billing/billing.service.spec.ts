@@ -7,6 +7,7 @@ import {
   SubscriptionStatus,
 } from '../../prisma/generated/prisma';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { BillingService } from './billing.service';
@@ -216,7 +217,7 @@ describe('BillingService', () => {
     expect(findMany).toHaveBeenCalledTimes(1);
   });
 
-  it('incluye todos los planes en una migración de datos idempotente', () => {
+  it('conserva el seed histórico cuyo upsert requiere la barrera física del migrador', () => {
     const migration = readFileSync(
       join(
         __dirname,
@@ -229,8 +230,13 @@ describe('BillingService', () => {
     for (const code of ['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']) {
       expect(migration).toContain(`'${code}'`);
     }
-    expect(migration).toContain('ON CONFLICT DO NOTHING');
-    expect(migration).not.toContain('DO UPDATE');
+    // Never rewrite an already published migration to satisfy a textual gate.
+    // The PostgreSQL deployment suite proves the real barrier preserves terms,
+    // including concurrent writes; the legacy SQL alone is not non-destructive.
+    expect(createHash('sha256').update(migration).digest('hex')).toBe(
+      'fea2e90b884bd574834ed456b980f041371b2dc79590964297233e76cabfada8',
+    );
+    expect(migration).toContain('ON CONFLICT ("id") DO UPDATE');
     expect(migration).not.toContain('INSERT INTO "TenantSubscription"');
     expect(migration).not.toContain("'Sin límites'");
   });

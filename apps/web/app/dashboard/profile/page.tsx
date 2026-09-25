@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -34,7 +34,18 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [organizationName, setOrganizationName] = useState("");
+  const [organizationDraft, setOrganizationDraft] = useState<{
+    source: string;
+    value: string;
+  } | null>(null);
+  const organizationSource = `${tenant?.id ?? ""}:${tenant?.name ?? ""}`;
+  const organizationName =
+    organizationDraft?.source === organizationSource
+      ? organizationDraft.value
+      : (tenant?.name ?? "");
+  function setOrganizationName(value: string) {
+    setOrganizationDraft({ source: organizationSource, value });
+  }
   const [organizationMessage, setOrganizationMessage] = useState<string | null>(
     null,
   );
@@ -47,10 +58,6 @@ export default function ProfilePage() {
   const temporaryPasswordExpiry = formatTemporaryPasswordExpiry(
     user?.temporaryPasswordExpiresAt,
   );
-
-  useEffect(() => {
-    setOrganizationName(tenant?.name ?? "");
-  }, [tenant?.id, tenant?.name]);
 
   async function handleOrganizationSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,18 +131,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 min-w-0">
       {requiresPasswordChange && (
         <section
           role="alert"
-          className="rounded-[2rem] border border-amber-300 bg-amber-50 p-6 text-amber-950 shadow-sm sm:p-7"
+          className="rounded-[2rem] border border-amber-300 bg-amber-50 p-6 text-amber-950 shadow-sm sm:p-7 min-w-0"
         >
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 min-w-0">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-200 text-amber-900">
               <AlertTriangle aria-hidden="true" size={25} />
             </span>
             <div>
-              <h1 className="text-xl font-black">
+              <h1 className="font-semibold text-2xl sm:text-3xl break-words">
                 Debes crear tu contraseña personal ahora
               </h1>
               <p className="mt-2 text-sm font-medium leading-6">
@@ -143,7 +150,7 @@ export default function ProfilePage() {
                 demás módulos permanecerán bloqueados hasta que la cambies.
               </p>
               {temporaryPasswordExpiry && (
-                <p className="mt-3 text-sm font-black">
+                <p className="mt-3 text-sm font-semibold">
                   La credencial temporal vence el {temporaryPasswordExpiry}
                   (hora de Colombia).
                 </p>
@@ -153,16 +160,16 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl sm:p-9">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600">
+      <section className="overflow-hidden rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl sm:p-9 min-w-0">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center min-w-0">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600 min-w-0">
             <UserRound aria-hidden="true" size={30} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-300">
+            <p className="text-xs font-semibold text-blue-300">
               Identidad operativa
             </p>
-            <h1 className="mt-2 truncate text-3xl font-black tracking-tight">
+            <h1 className="mt-2 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
               {user?.name}
             </h1>
             <p className="mt-2 text-sm text-slate-300">
@@ -180,16 +187,16 @@ export default function ProfilePage() {
       {canEditOrganization && tenant && (
         <section
           aria-labelledby="organization-profile-title"
-          className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+          className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 min-w-0"
         >
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 min-w-0">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
               <Building2 aria-hidden="true" size={23} />
             </span>
             <div>
               <h2
                 id="organization-profile-title"
-                className="text-xl font-black text-slate-950"
+                className="text-xl font-semibold text-slate-950"
               >
                 Nombre de la organización
               </h2>
@@ -205,7 +212,7 @@ export default function ProfilePage() {
           </div>
 
           <form
-            className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-end"
+            className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-end min-w-0"
             onSubmit={handleOrganizationSubmit}
           >
             <div className="min-w-0 flex-1 space-y-2">
@@ -229,7 +236,7 @@ export default function ProfilePage() {
                 !organizationName.trim() ||
                 organizationName.trim() === tenant.name
               }
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto max-w-full whitespace-normal"
             >
               {savingOrganization ? "Guardando..." : "Guardar nombre"}
             </Button>
@@ -260,14 +267,14 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-start gap-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 min-w-0">
+          <div className="flex items-start gap-4 min-w-0">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <KeyRound aria-hidden="true" size={23} />
             </span>
             <div>
-              <h2 className="text-xl font-black text-slate-950">
+              <h2 className="text-xl font-semibold text-slate-950">
                 Cambiar contraseña
               </h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -278,8 +285,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <form className="mt-7 space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
+          <form className="mt-7 space-y-5 min-w-0" onSubmit={handleSubmit}>
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="current-password">Contraseña actual</Label>
               <Input
                 id="current-password"
@@ -291,7 +298,7 @@ export default function ProfilePage() {
                 onChange={(event) => setCurrentPassword(event.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="new-password">Nueva contraseña</Label>
               <Input
                 id="new-password"
@@ -306,7 +313,7 @@ export default function ProfilePage() {
                 Mínimo 12 caracteres.
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="password-confirmation">
                 Confirmar nueva contraseña
               </Label>
@@ -341,7 +348,7 @@ export default function ProfilePage() {
             <Button
               type="submit"
               disabled={saving}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto max-w-full whitespace-normal"
             >
               {saving ? "Actualizando..." : "Actualizar contraseña"}
             </Button>
@@ -354,10 +361,10 @@ export default function ProfilePage() {
             aria-hidden="true"
             size={30}
           />
-          <h2 className="mt-5 text-lg font-black text-emerald-950">
+          <h2 className="mt-5 text-lg font-semibold text-emerald-950">
             Cambio protegido
           </h2>
-          <ul className="mt-4 space-y-3 text-sm font-medium leading-6 text-emerald-950/75">
+          <ul className="mt-4 space-y-3 text-sm font-medium leading-6 text-emerald-950/75 min-w-0">
             <li>Se verifica tu contraseña vigente.</li>
             <li>La nueva clave se almacena con bcrypt.</li>
             <li>El evento queda registrado para auditoría.</li>
