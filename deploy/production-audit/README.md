@@ -97,6 +97,23 @@ Para reanudar **solo la limpieza**, con el mismo manifiesto y credenciales:
 node deploy/production-audit/controlled-http-smoke.mjs --cleanup <UUID-v4>
 ```
 
+Si el diario original registra una única creación de evento con HTTP 201, pero
+la validación impidió conservar su ID y la tarea ya quedó cancelada, existe una
+continuación acotada:
+
+```powershell
+node deploy/production-audit/controlled-http-smoke.mjs --resume-event <UUID-v4>
+```
+
+Este modo conserva `journal.json` y escribe `event-reconciliation.json` por
+separado. No permite crear eventos ni acceder a tareas. Exige una coincidencia
+unívoca del marcador, consulta el detalle y verifica el responsable sintético,
+modo y estado. El contrato público de eventos omite `tenantId`: el aislamiento
+se comprueba mediante la identidad autenticada A y los rechazos de lectura y
+escritura de B. Después verifica la modificación de A, elimina solo el borrador
+comprobado y confirma su ausencia. Tiene un máximo de 20 peticiones, 19 en el
+recorrido esperado; no repite una conciliación ya registrada.
+
 Después de revisar el diario, el operador debe desactivar las dos cuentas por el
 backend de la aplicación y verificar su estado; el runner no dispone de una
 ruta de desactivación permitida. Conservar organizaciones sintéticas, tarea

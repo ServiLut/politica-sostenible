@@ -36,9 +36,10 @@ export function assertIdentity(user, expected) {
   requireValue(tenant.type === 'CANDIDACY' && tenant.defaultMode === 'CAMPAIGN' && tenant.operationStage === null, 'La prueba requiere organización sintética sin perfil operativo.');
 }
 
-export function allowedRequest(method, path, owned = {}) {
+export function allowedRequest(method, path, owned = {}, mode = '--execute') {
   const url = new URL(path, ORIGIN);
   if (url.origin !== ORIGIN || path !== `${url.pathname}${url.search}` || url.hash) return false;
+  if (mode === '--resume-event' && !(method === 'GET' && path === '/auth/me') && !(method === 'POST' && ['/auth/login', '/auth/logout'].includes(path)) && !(url.pathname === '/events' && method === 'GET') && !(owned.event && path === `/events/${owned.event}` && ['GET', 'PATCH', 'DELETE'].includes(method))) return false;
   if (method === 'GET' && ['/auth/me', '/operation-profile/readiness', '/command-center/briefing'].includes(path)) return true;
   if (method === 'POST' && ['/auth/login', '/auth/logout', '/tasks', '/events'].includes(path)) return true;
   if (method === 'GET' && ['/tasks', '/events'].includes(url.pathname)) {
@@ -53,8 +54,41 @@ export function allowedRequest(method, path, owned = {}) {
 }
 
 export function assertOwnedRecord(record, kind, account, marker) {
-  requireValue(CUID.test(record?.id ?? '') && record.tenantId === account.tenantId, 'Registro fuera de la organización sintética esperada.');
+  requireValue(['task', 'event'].includes(kind), 'Tipo de registro fuera de la prueba.');
+  requireValue(CUID.test(record?.id ?? ''), 'Identificador del registro sintético inválido.');
   requireValue(record[kind === 'task' ? 'title' : 'name'] === `${marker} ${kind}`, 'El registro no tiene el marcador exacto de esta ejecución.');
+  if (kind === 'task') {
+    requireValue(record.tenantId === account.tenantId, 'Registro fuera de la organización sintética esperada.');
+    return;
+  }
+  // EventsService.EVENT_SELECT deliberately omits tenantId. Ownership is checked
+  // through verified A's authenticated requests and B's denied lookup, not a
+  // fabricated response field. Keep the fixture's public contract strict.
+  requireValue(!('tenantId' in record) || record.tenantId === account.tenantId, 'Evento declara una organización distinta.');
+  requireValue(record.mode === 'CAMPAIGN' && record.status === 'DRAFT', 'El evento sintético dejó de ser un borrador de campaña.');
+  requireValue(record.responsibleId === account.userId && record.responsible?.id === account.userId && record.responsible.role === 'ADMIN', 'El responsable del evento no es la cuenta sintética A.');
+  requireValue([DESCRIPTION, `${DESCRIPTION} Lectura posterior verificada.`].includes(record.description), 'La descripción del evento ya no corresponde a la prueba.');
+}
+
+export function selectOwnedRecord(records, kind, account, marker, expectedId, requirePresent = false) {
+  requireValue(Array.isArray(records?.items) && records.items.length <= 1 && Number.isInteger(records.pagination?.total) && records.pagination.total === records.items.length, 'Búsqueda de recurso no unívoca.');
+  const item = records.items[0];
+  if (!item) {
+    requireValue(!requirePresent, 'No se encontró el único evento pendiente; detener sin repetir el alta.');
+    return null;
+  }
+  assertOwnedRecord(item, kind, account, marker);
+  requireValue(!expectedId || item.id === expectedId, 'Registro encontrado distinto del diario.');
+  return item;
+}
+
+export function validateResumeJournal(journal) {
+  requireValue(journal?.intents?.event === true && journal.created?.event === undefined, 'La conciliación requiere intención pendiente de evento sin ID registrado.');
+  const creates = journal.calls?.filter((call) => call.method === 'POST' && call.path === '/events');
+  requireValue(creates?.length === 1 && creates[0].status === 201, 'Se requiere exactamente un alta de evento con respuesta 201.');
+  requireValue(journal.lastRun?.mode === '--execute' && journal.lastRun.passed === false && typeof journal.failure === 'string', 'Se requiere el diario original de ejecución fallida.');
+  requireValue(CUID.test(journal.created.task ?? '') && journal.checks?.some((check) => check.label === 'Tarea sintética conservada CANCELLED'), 'La tarea debe estar identificada y ya cancelada antes de conciliar el evento.');
+  return journal;
 }
 
 export function plan() {
@@ -78,12 +112,21 @@ async function execute(mode, runId) {
     requireValue(typeof passwords[side] === 'string' && passwords[side].length >= 12 && passwords[side].length <= 128, 'Faltan credenciales sintéticas en el entorno efímero.');
   }
   const marker = `PS_AUDIT_${runId}`;
-  const journalPath = resolve(folder, 'journal.json');
+  const originalJournalPath = resolve(folder, 'journal.json');
+  const journalPath = mode === '--resume-event' ? resolve(folder, 'event-reconciliation.json') : originalJournalPath;
   const lockPath = resolve(folder, 'runner.lock');
   if (mode === '--execute') requireValue(!existsSync(journalPath), 'La ejecución ya tiene diario: revisa y usa --cleanup; no se repiten altas.');
-  const journal = mode === '--cleanup'
-    ? JSON.parse(readFileSync(journalPath, 'utf8'))
-    : { kind: manifest.kind, runId, tenantId: manifest.accounts.a.tenantId, marker, created: {}, intents: {}, checks: [], calls: [] };
+  let journal;
+  if (mode === '--resume-event') {
+    requireValue(!existsSync(journalPath), 'Ya existe una conciliación; revisar su diario sin repetirla.');
+    const original = validateResumeJournal(JSON.parse(readFileSync(originalJournalPath, 'utf8')));
+    requireValue(original.kind === manifest.kind && original.runId === runId && original.tenantId === manifest.accounts.a.tenantId && original.marker === marker, 'El diario original no corresponde al manifiesto.');
+    journal = { kind: original.kind, runId, tenantId: original.tenantId, marker, created: {}, intents: { event: true }, checks: [], calls: [], sourceJournal: 'journal.json', originalFailure: original.failure };
+  } else {
+    journal = mode === '--cleanup'
+      ? JSON.parse(readFileSync(journalPath, 'utf8'))
+      : { kind: manifest.kind, runId, tenantId: manifest.accounts.a.tenantId, marker, created: {}, intents: {}, checks: [], calls: [] };
+  }
   requireValue(journal.kind === manifest.kind && journal.runId === runId && journal.tenantId === manifest.accounts.a.tenantId && journal.marker === marker, 'Diario no corresponde al manifiesto.');
   for (const kind of ['task', 'event']) requireValue(!journal.created[kind] || CUID.test(journal.created[kind]), 'ID en diario inválido.');
   mkdirSync(folder, { recursive: true });
@@ -92,6 +135,7 @@ async function execute(mode, runId) {
   const verified = new Set();
   let calls = 0;
   let failed = false;
+  let cleanupEligible = mode !== '--resume-event';
   function save() {
     const tmp = `${journalPath}.tmp`;
     writeFileSync(tmp, `${JSON.stringify(journal, null, 2)}\n`, { mode: 0o600 });
@@ -99,8 +143,8 @@ async function execute(mode, runId) {
   }
   function pass(label) { journal.checks.push({ label, at: new Date().toISOString() }); save(); console.log(`PASS ${label}`); }
   async function request(method, path, side, body, expected = 200) {
-    requireValue(allowedRequest(method, path, { ...journal.created, marker }), 'Petición fuera de la lista permitida.');
-    requireValue(++calls <= 40, 'Límite de 40 peticiones alcanzado. Revisa el diario antes de continuar.');
+    requireValue(allowedRequest(method, path, { ...journal.created, marker }, mode), 'Petición fuera de la lista permitida.');
+    requireValue(++calls <= (mode === '--resume-event' ? 20 : 40), 'Límite de peticiones alcanzado. Revisa el diario antes de continuar.');
     const row = { method, path, at: new Date().toISOString(), status: null };
     journal.calls.push(row);
     save();
@@ -133,13 +177,18 @@ async function execute(mode, runId) {
       return item;
     }
     const records = await request('GET', `/${kind === 'task' ? 'tasks' : 'events'}?${id ? `entityId=${id}` : `search=${marker}`}&limit=2`, 'a');
-    requireValue(Array.isArray(records?.items) && records.items.length <= 1 && records.pagination?.total <= 1, 'Búsqueda de recurso no unívoca.');
-    const item = records.items[0];
+    const item = selectOwnedRecord(records, kind, manifest.accounts.a, marker, id, mode === '--resume-event' && kind === 'event');
     if (!item) return null;
-    assertOwnedRecord(item, kind, manifest.accounts.a, marker);
-    requireValue(!id || item.id === id, 'Registro encontrado distinto del diario.');
     journal.created[kind] = item.id;
     save();
+    if (kind === 'event') {
+      // Reconcile a successful POST whose response was not recorded locally.
+      // The recovered ID only grants access to this exact detail route.
+      const detail = await request('GET', `/events/${item.id}`, 'a');
+      requireValue(detail?.id === item.id, 'Evento reconciliado distinto del listado.');
+      assertOwnedRecord(detail, kind, manifest.accounts.a, marker);
+      return detail;
+    }
     return item;
   }
   async function cleanup() {
@@ -155,6 +204,8 @@ async function execute(mode, runId) {
         pass('Tarea sintética conservada CANCELLED');
       } else {
         requireValue(item.status === 'DRAFT', 'No se elimina un evento que dejó de ser borrador.');
+        requireValue(verified.has('b'), 'No se elimina sin verificar la identidad B y el aislamiento del evento.');
+        await request('GET', `/events/${item.id}`, 'b', undefined, 404);
         await request('DELETE', `/events/${item.id}`, 'a');
         await request('GET', `/events/${item.id}`, 'a', undefined, 404);
         pass('Borrador sintético eliminado y ausencia confirmada');
@@ -204,13 +255,24 @@ async function execute(mode, runId) {
         requireValue(readback?.description === updatedDescription && readback.status === (kind === 'task' ? 'IN_PROGRESS' : 'DRAFT'), 'Actualización no persistida o estado no permitido.');
         pass(`${kind}: creación, lectura, actualización y aislamiento A/B`);
       }
+    } else if (mode === '--resume-event') {
+      const event = await findOwned('event');
+      requireValue(event !== null, 'No se encontró el evento pendiente; no se repetirá el alta.');
+      await request('GET', `/events/${event.id}`, 'b', undefined, 404);
+      await request('PATCH', `/events/${event.id}`, 'b', { description: `${DESCRIPTION} Escritura que debe rechazarse.` }, 404);
+      cleanupEligible = true;
+      const updatedDescription = `${DESCRIPTION} Lectura posterior verificada.`;
+      await request('PATCH', `/events/${event.id}`, 'a', { description: updatedDescription });
+      const readback = await findOwned('event');
+      requireValue(readback?.description === updatedDescription && readback.status === 'DRAFT', 'Actualización del evento conciliado no persistida.');
+      pass('event: alta 201 previa conciliada, lectura, actualización y aislamiento A/B');
     }
   } catch (error) {
     failed = true;
     journal.failure = error.message;
     console.error(`FAIL ${error.message}`);
   } finally {
-    try { if (verified.has('a')) await cleanup(); }
+    try { if (verified.has('a') && cleanupEligible) await cleanup(); }
     catch (error) { failed = true; journal.cleanupFailure = error.message; console.error(`CLEANUP PENDIENTE ${error.message}`); }
     for (const side of ['a', 'b']) {
       if (!tokens[side] || !verified.has(side)) continue;
@@ -228,7 +290,7 @@ async function execute(mode, runId) {
 
 export async function main(args = process.argv.slice(2)) {
   if (args.length === 0 || (args.length === 1 && args[0] === '--plan')) { console.log(JSON.stringify(plan(), null, 2)); return; }
-  requireValue(args.length === 2 && ['--execute', '--cleanup'].includes(args[0]), 'Uso: --plan | --execute UUID | --cleanup UUID');
+  requireValue(args.length === 2 && ['--execute', '--cleanup', '--resume-event'].includes(args[0]), 'Uso: --plan | --execute UUID | --cleanup UUID | --resume-event UUID');
   await execute(args[0], args[1]);
 }
 
