@@ -1607,7 +1607,6 @@ export default function CommunicationsPage() {
               <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
                 Motivo de la decisión
                 <textarea
-                  autoFocus
                   required
                   minLength={3}
                   maxLength={1000}
