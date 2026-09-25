@@ -701,8 +701,8 @@ export default function EventsPage() {
             aria-labelledby="event-dialog-title"
             className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap gap-3">
-              <div>
+            <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-white px-6 py-5 min-w-0">
+              <div className="min-w-0 flex-1 break-words">
                 <h2
                   id="event-dialog-title"
                   ref={dialogTitleRef}
