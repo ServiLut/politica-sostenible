@@ -552,9 +552,9 @@ export default function ExecutivePage() {
       id="main-content"
       className="mx-auto max-w-[1500px] space-y-8 p-4 sm:p-8"
     >
-      <header className="flex items-start justify-between gap-5">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
             Cuadro de Mando
           </h1>
           <p className="mt-2 text-xl font-medium text-slate-500">
@@ -640,7 +640,7 @@ export default function ExecutivePage() {
 
       <section
         aria-label="Indicadores operativos de campaña"
-        className="grid gap-px overflow-hidden rounded-3xl bg-slate-200 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-px overflow-hidden rounded-3xl bg-slate-200 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
       >
         <OperationalMetric
           label="Vínculos autorizados"
@@ -810,7 +810,7 @@ function OperationLifecycle({
       className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
             Ciclo electoral controlado
           </p>
@@ -826,39 +826,41 @@ function OperationLifecycle({
         </div>
         <Link
           href="/dashboard/operation-profile"
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:w-auto"
         >
           Revisar alistamiento <ArrowRight aria-hidden="true" size={16} />
         </Link>
       </div>
-      <ol className="mt-6 grid gap-2 sm:grid-cols-3 xl:grid-cols-9">
-        {OPERATION_STAGES.map((stage, index) => {
-          const status =
-            currentIndex < 0
-              ? "pending"
-              : index < currentIndex
-                ? "previous"
-                : index === currentIndex
-                  ? "current"
-                  : "pending";
-          return (
-            <li
-              key={stage.value}
-              aria-current={status === "current" ? "step" : undefined}
-              className={`rounded-xl border px-3 py-3 text-center text-[11px] font-black uppercase tracking-wide ${
-                status === "current"
-                  ? "border-blue-700 bg-blue-700 text-white"
-                  : status === "previous"
-                    ? "border-slate-300 bg-slate-100 text-slate-700"
-                    : "border-slate-200 bg-slate-50 text-slate-500"
-              }`}
-            >
-              <span className="block text-[10px] opacity-70">{index + 1}</span>
-              {stage.label}
-            </li>
-          );
-        })}
-      </ol>
+      <div className="-mx-5 mt-6 overflow-x-auto px-5 sm:-mx-7 sm:px-7">
+        <ol className="flex gap-2 sm:grid sm:grid-cols-3 xl:grid-cols-9">
+          {OPERATION_STAGES.map((stage, index) => {
+            const status =
+              currentIndex < 0
+                ? "pending"
+                : index < currentIndex
+                  ? "previous"
+                  : index === currentIndex
+                    ? "current"
+                    : "pending";
+            return (
+              <li
+                key={stage.value}
+                aria-current={status === "current" ? "step" : undefined}
+                className={`min-w-[4.5rem] shrink-0 rounded-xl border px-2 py-3 text-center text-[10px] font-black leading-tight tracking-normal break-words sm:min-w-0 sm:shrink ${
+                  status === "current"
+                    ? "border-blue-700 bg-blue-700 text-white"
+                    : status === "previous"
+                      ? "border-slate-300 bg-slate-100 text-slate-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500"
+                }`}
+              >
+                <span className="block text-[9px] opacity-70">{index + 1}</span>
+                {stage.label}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </section>
   );
 }
@@ -957,42 +959,45 @@ function TrafficCard({
   href?: string;
 }) {
   const statusColors: Record<TrafficStatus, string> = {
-    red: "border-red-600 bg-red-500 text-white",
-    yellow: "border-amber-500 bg-amber-400 text-slate-900",
-    green: "border-emerald-600 bg-emerald-500 text-white",
-    neutral: "border-slate-400 bg-slate-200 text-slate-900",
+    red: "border-red-600 bg-gradient-to-br from-red-500 via-red-600 to-rose-700 text-white",
+    yellow: "border-amber-500 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 text-white",
+    green: "border-emerald-600 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 text-white",
+    neutral: "border-slate-500 bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800 text-white",
   };
 
   const statusIcons: Record<TrafficStatus, React.ReactNode> = {
-    red: <AlertTriangle aria-hidden="true" size={48} className="opacity-80" />,
+    red: <AlertTriangle aria-hidden="true" size={48} className="opacity-90" />,
     yellow: (
-      <AlertTriangle aria-hidden="true" size={48} className="opacity-80" />
+      <AlertTriangle aria-hidden="true" size={48} className="opacity-90" />
     ),
-    green: <CheckCircle2 aria-hidden="true" size={48} className="opacity-80" />,
-    neutral: <Activity aria-hidden="true" size={48} className="opacity-60" />,
+    green: <CheckCircle2 aria-hidden="true" size={48} className="opacity-90" />,
+    neutral: <Activity aria-hidden="true" size={48} className="opacity-70" />,
   };
 
   const card = (
     <article
-      className={`relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border-b-8 p-8 shadow-lg ${statusColors[status]}`}
+      className={`relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-3xl border-b-8 p-5 shadow-xl sm:p-8 ${statusColors[status]}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider opacity-90">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15)_0%,transparent_60%)]" />
+      <div className="relative flex items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-black uppercase tracking-wider text-white/90 sm:text-2xl">
             {title}
           </h2>
-          <p className="mt-6 break-words text-5xl font-black tracking-tighter sm:text-7xl">
+          <p className="mt-4 break-words text-4xl font-black tracking-tighter drop-shadow-sm sm:mt-6 sm:text-7xl">
             {value}
           </p>
         </div>
-        <div className="shrink-0 rounded-2xl bg-white/20 p-4 backdrop-blur-md">
-          <Icon aria-hidden="true" size={48} />
+        <div className="shrink-0 rounded-2xl bg-white/15 p-3 shadow-inner backdrop-blur-md sm:p-4">
+          <Icon aria-hidden="true" className="h-8 w-8 sm:h-12 sm:w-12" />
         </div>
       </div>
 
-      <div className="mt-8 flex items-center gap-4">
-        {statusIcons[status]}
-        <p className="text-xl font-medium leading-tight opacity-90">
+      <div className="relative mt-5 flex items-center gap-3 sm:mt-8 sm:gap-4">
+        <div className="shrink-0 [&>svg]:h-8 [&>svg]:w-8 sm:[&>svg]:h-12 sm:[&>svg]:w-12">
+          {statusIcons[status]}
+        </div>
+        <p className="min-w-0 text-base font-semibold leading-tight text-white/90 sm:text-xl">
           {subtitle}
         </p>
       </div>

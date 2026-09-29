@@ -133,7 +133,7 @@ function NavigationLink({
       onClick={onNavigate}
       className={`group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
         item.isActive
-          ? "bg-blue-600 text-white shadow-lg shadow-blue-950/20"
+          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30"
           : "text-slate-300 hover:bg-slate-800 hover:text-white"
       }`}
     >
@@ -246,14 +246,14 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-slate-950 text-white lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-stone-950 text-white lg:flex">
         <div className="border-b border-slate-800 p-5">
           <Link
             href="/dashboard"
             aria-label="Ir al panel principal"
             className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-950/30">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-950/30">
               <ShieldCheck aria-hidden="true" size={21} />
             </span>
             <span>
@@ -351,7 +351,7 @@ export function Sidebar() {
               aria-label={item.title}
               aria-current={item.isActive ? "page" : undefined}
               className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[9px] font-black uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
-                item.isActive ? "bg-blue-700 text-white" : "text-slate-500"
+                item.isActive ? "bg-gradient-to-r from-blue-700 to-indigo-700 text-white" : "text-slate-500"
               }`}
             >
               <Icon aria-hidden="true" size={18} />
@@ -455,7 +455,7 @@ export function Sidebar() {
                               onClick={() => closeMobileMenu(false)}
                               className={`flex min-h-14 items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                                 item.isActive
-                                  ? "border-blue-700 bg-blue-700 text-white"
+                                  ? "border-indigo-600 bg-gradient-to-r from-blue-700 to-indigo-700 text-white"
                                   : "border-slate-200 bg-white text-slate-700"
                               }`}
                             >

@@ -1583,7 +1583,7 @@ export default function OperationProfilePage() {
           <span className="inline-flex items-center gap-2 rounded-full bg-blue-600/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-800">
             <Settings2 aria-hidden="true" size={14} /> Configuración estratégica
           </span>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-4xl">
             Perfil de operación
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
@@ -1731,7 +1731,7 @@ export default function OperationProfilePage() {
         <div
           className={
             canEdit
-              ? "grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(290px,0.65fr)]"
+              ? "grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]"
               : "space-y-6"
           }
         >

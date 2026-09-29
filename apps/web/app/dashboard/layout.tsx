@@ -70,7 +70,7 @@ export default function DashboardLayout({
         id="dashboard-content"
         tabIndex={-1}
         role="status"
-        className="flex h-screen items-center justify-center bg-slate-50 outline-none"
+        className="flex h-screen items-center justify-center bg-gradient-to-br from-stone-50 via-slate-50/50 to-stone-100/30 outline-none"
       >
         <div className="flex flex-col items-center gap-4">
           <div
@@ -99,7 +99,7 @@ export default function DashboardLayout({
             ? "Abriendo el cambio de contraseña obligatorio"
             : "Abriendo el panel disponible"
         }
-        className="flex h-screen items-center justify-center bg-slate-50 outline-none"
+        className="flex h-screen items-center justify-center bg-gradient-to-br from-stone-50 via-slate-50/50 to-stone-100/30 outline-none"
       >
         <div
           aria-hidden="true"
@@ -111,7 +111,7 @@ export default function DashboardLayout({
 
   if (!hasPermission) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-gradient-to-br from-stone-50 via-slate-50/50 to-stone-100/30">
         {!requiresPasswordChange && <Sidebar />}
         <main
           id="dashboard-content"
@@ -161,10 +161,10 @@ export default function DashboardLayout({
 
   return (
     <>
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-gradient-to-br from-stone-50 via-slate-50/50 to-stone-100/30">
         {!requiresPasswordChange && <Sidebar />}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
+          <header className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
             <div className="min-w-0 pr-4">
               <p className="truncate text-sm font-black text-slate-950">
                 {tenant?.name ?? "Organización"}
