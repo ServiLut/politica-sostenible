@@ -357,6 +357,7 @@ jobs:
           test "$(docker inspect --format '{{.State.Health.Status}}' "$worker_id")" = "healthy"
           docker exec "$worker_id" node ../../deploy/catalog-worker-healthcheck.mjs
           docker exec "$api_id" sh -c '! touch /app/api-write-probe 2>/dev/null'
+          docker exec "$worker_id" sh -c '! touch /app/worker-write-probe 2>/dev/null'
           docker exec "$web_id" sh -c '! touch /app/web-write-probe 2>/dev/null'
           if docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$web_id" \
             | grep -Eq '^(DATABASE_URL|DIRECT_URL|JWT_SECRET|OFFLINE_SYNC_HMAC_SECRET|REDIS_URL|SUPABASE_SERVICE_ROLE_KEY)='; then

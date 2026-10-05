@@ -992,6 +992,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         groupBy: jest.fn().mockResolvedValue([]),
       },
       politicalDivision: { findMany: jest.fn().mockResolvedValue(divisions) },
+      territoryLeader: { findMany: jest.fn().mockResolvedValue([]) },
       voter: { groupBy: jest.fn().mockResolvedValue([]) },
       witnessReport: {
         findMany: jest.fn().mockResolvedValue([
@@ -1161,6 +1162,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         groupBy: jest.fn().mockResolvedValue([]),
       },
       politicalDivision: { findMany },
+      territoryLeader: { findMany: jest.fn().mockResolvedValue([]) },
       consentNotice: {
         findFirst: jest.fn().mockResolvedValue({ version: '2026.1' }),
       },

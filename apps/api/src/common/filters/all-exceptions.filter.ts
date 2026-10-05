@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { getRequestId } from '../http/request-id';
 
 const PUBLIC_ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,79}$/u;

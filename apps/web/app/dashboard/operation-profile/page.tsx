@@ -1735,7 +1735,7 @@ export default function OperationProfilePage() {
         <div
           className={
             canEdit
-              ? "grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(290px,0.65fr)]"
+              ? "grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]"
               : "space-y-6"
           }
         >
