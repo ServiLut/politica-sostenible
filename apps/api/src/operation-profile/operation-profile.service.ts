@@ -9,12 +9,16 @@ import {
 import {
   AuditActorType,
   CandidateListType,
+  ElectoralCatalogStatus,
+  ElectoralCatalogType,
   ElectoralCircumscriptionType,
   PoliticalOperationMode,
   PoliticalOperationStage,
   PoliticalOperationType,
   Prisma,
   Role,
+  WitnessAssignmentStatus,
+  WitnessCaptureContext,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
@@ -26,6 +30,16 @@ import {
   getOperationProfileCoherenceError,
   UpsertOperationProfileDto,
 } from './dto/upsert-operation-profile.dto';
+import {
+  getAllowedNextOperationStages,
+  getAllowedOperationStageTransitions,
+  isValidOperationStageTransition,
+  SAFE_INITIAL_OPERATION_STAGES,
+} from './operation-profile-stage-transition';
+import {
+  getElectionDayReadinessBlockers,
+  hasExactActiveElectoralProjection,
+} from './operation-readiness';
 
 const DATA_RESPONSIBLE_ROLES: readonly Role[] = [
   Role.ADMIN,
@@ -46,6 +60,8 @@ const PROFILE_SELECT = {
   electionDate: true,
   votingStartDate: true,
   votingEndDate: true,
+  votingWindowSourceUrl: true,
+  votingWindowReference: true,
   expectedTeamSize: true,
   candidateCount: true,
   dataControllerName: true,
@@ -185,6 +201,27 @@ export class OperationProfileService {
           );
         }
 
+        if (!currentProfile && !SAFE_INITIAL_OPERATION_STAGES.has(dto.stage)) {
+          throw new BadRequestException(
+            'La operacion solo puede iniciar en EXPLORATION o PRE_CAMPAIGN',
+          );
+        }
+        if (currentProfile?.stage === PoliticalOperationStage.CLOSED) {
+          throw new ConflictException({
+            code: 'OPERATION_CLOSED',
+            message: 'La operacion cerrada no admite cambios de perfil',
+          });
+        }
+        if (
+          currentProfile &&
+          !isValidOperationStageTransition(currentProfile.stage, dto.stage)
+        ) {
+          const allowed = getAllowedOperationStageTransitions(currentProfile.stage);
+          throw new ConflictException(
+            `No se permite cambiar la etapa de ${currentProfile.stage} a ${dto.stage}. Siguientes etapas permitidas: ${allowed.join(', ')}`,
+          );
+        }
+
         if (
           currentProfile &&
           currentSettings &&
@@ -194,6 +231,95 @@ export class OperationProfileService {
         }
 
         this.assertExpectedVersion(currentProfile, dto.expectedUpdatedAt);
+
+        if (
+          currentProfile &&
+          currentProfile.stage !== PoliticalOperationStage.ELECTION_DAY &&
+          dto.stage === PoliticalOperationStage.ELECTION_DAY
+        ) {
+          const [divisions, coverageWindows, assignments, releases] =
+            await Promise.all([
+              transaction.politicalDivision.findMany({
+                where: { tenantId: user.tenantId, isActive: true },
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  parentId: true,
+                  type: true,
+                  expectedTables: true,
+                  sourceNamespace: true,
+                  sourceReleaseId: true,
+                },
+              }),
+              transaction.witnessCoverageWindow.findMany({
+                where: {
+                  tenantId: user.tenantId,
+                  captureContext: WitnessCaptureContext.REAL,
+                },
+                select: {
+                  id: true,
+                  puestoId: true,
+                  localDate: true,
+                  startsAt: true,
+                  endsAt: true,
+                  timeZone: true,
+                  utcOffsetMinutes: true,
+                },
+              }),
+              transaction.witnessAssignment.findMany({
+                where: {
+                  tenantId: user.tenantId,
+                  captureContext: WitnessCaptureContext.REAL,
+                  status: WitnessAssignmentStatus.CONFIRMED,
+                },
+                select: {
+                  coverageWindowId: true,
+                  puestoId: true,
+                  tableStart: true,
+                  tableEnd: true,
+                  shiftStartsAt: true,
+                  shiftEndsAt: true,
+                  assignmentType: true,
+                  status: true,
+                  witness: { select: { role: true, isActive: true } },
+                },
+              }),
+              transaction.electoralCatalogRelease.findMany({
+                where: {
+                  tenantId: user.tenantId,
+                  type: ElectoralCatalogType.ELECTORAL_RNEC,
+                  status: ElectoralCatalogStatus.ACTIVE,
+                },
+                select: { id: true },
+              }),
+            ]);
+          const blockers = getElectionDayReadinessBlockers(
+            divisions,
+            coverageWindows,
+            assignments.map((assignment) => ({
+              ...assignment,
+              witnessEligible:
+                assignment.witness.isActive &&
+                assignment.witness.role === Role.WITNESS,
+            })),
+            new Date(dto.votingStartDate ?? dto.electionDate),
+            new Date(dto.votingEndDate ?? dto.electionDate),
+            new Date(),
+            hasExactActiveElectoralProjection(
+              divisions,
+              releases.map((release) => release.id),
+            ),
+          );
+          if (blockers.length) {
+            throw new ConflictException({
+              code: 'ELECTION_DAY_READINESS_BLOCKED',
+              message:
+                'No se puede avanzar a Dia D hasta corregir el alistamiento territorial minimo',
+              blockers,
+            });
+          }
+        }
 
         const budget = {
           maxTotalBudget: new Prisma.Decimal(String(dto.maxTotalBudget)),
@@ -215,8 +341,10 @@ export class OperationProfileService {
           circumscriptionCode: dto.circumscriptionCode ?? null,
           listType: dto.listType ?? null,
           electionDate: new Date(dto.electionDate),
-          votingStartDate: new Date(dto.electionDate),
-          votingEndDate: new Date(dto.electionDate),
+          votingStartDate: new Date(dto.votingStartDate ?? dto.electionDate),
+          votingEndDate: new Date(dto.votingEndDate ?? dto.electionDate),
+          votingWindowSourceUrl: dto.votingWindowSourceUrl ?? null,
+          votingWindowReference: dto.votingWindowReference ?? null,
           expectedTeamSize: dto.expectedTeamSize,
           candidateCount: dto.candidateCount,
           dataControllerName: dto.dataControllerName,
@@ -240,6 +368,38 @@ export class OperationProfileService {
               },
               select: PROFILE_SELECT,
             });
+
+        if (
+          currentProfile &&
+          this.electionWindowHash(currentProfile) !==
+            this.electionWindowHash(profile)
+        ) {
+          const invalidated = await transaction.offlineE14CaptureGrant.updateMany({
+            where: {
+              tenantId: user.tenantId,
+              operationProfileId: currentProfile.id,
+              revokedAt: null,
+            },
+            data: { revokedAt: new Date() },
+          });
+          await transaction.auditEvent.create({
+            data: {
+              tenantId: user.tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              actorType: AuditActorType.USER,
+              actorUserId: actor.id,
+              action: 'E14_OFFLINE_GRANTS_INVALIDATED_WINDOW_CHANGED',
+              resourceType: 'OperationProfile',
+              resourceId: currentProfile.id,
+              metadata: {
+                previousElectionWindowSha256:
+                  this.electionWindowHash(currentProfile),
+                currentElectionWindowSha256: this.electionWindowHash(profile),
+                invalidatedGrantCount: invalidated.count,
+              },
+            },
+          });
+        }
 
         await transaction.auditEvent.create({
           data: {
@@ -313,6 +473,12 @@ export class OperationProfileService {
       profile.circumscriptionCode === (dto.circumscriptionCode ?? null) &&
       profile.listType === (dto.listType ?? null) &&
       profile.electionDate.getTime() === new Date(dto.electionDate).getTime() &&
+      profile.votingStartDate.getTime() ===
+        new Date(dto.votingStartDate ?? dto.electionDate).getTime() &&
+      profile.votingEndDate.getTime() ===
+        new Date(dto.votingEndDate ?? dto.electionDate).getTime() &&
+      profile.votingWindowSourceUrl === (dto.votingWindowSourceUrl ?? null) &&
+      profile.votingWindowReference === (dto.votingWindowReference ?? null) &&
       profile.expectedTeamSize === dto.expectedTeamSize &&
       profile.candidateCount === dto.candidateCount &&
       profile.dataControllerName === dto.dataControllerName &&
@@ -334,6 +500,7 @@ export class OperationProfileService {
           maxPublicityLimit: settings.maxPublicityLimit.toNumber(),
         },
         derived: this.deriveConfiguration(profile),
+        allowedNextStages: getAllowedNextOperationStages(profile.stage),
       },
     };
   }
@@ -416,6 +583,19 @@ export class OperationProfileService {
         .update(profile.revocationProcedure, 'utf8')
         .digest('hex'),
     };
+  }
+
+  private electionWindowHash(profile: SelectedProfile): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          start: profile.votingStartDate.toISOString(),
+          end: profile.votingEndDate.toISOString(),
+          sourceUrl: profile.votingWindowSourceUrl,
+          reference: profile.votingWindowReference,
+        }),
+      )
+      .digest('hex');
   }
 
   private isPrismaError(error: unknown, code: string): boolean {

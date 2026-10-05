@@ -54,6 +54,7 @@ export function CreateLeaderModal({ divisionId, divisionName, onClose, onSuccess
             Crear Líder
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >

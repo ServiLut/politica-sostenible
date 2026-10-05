@@ -253,7 +253,10 @@ export function listProposalResponsibles(
   if (params.page) query.set("page", String(params.page));
   
   const queryString = query.toString();
-  const url = queryString ? `proposals/responsibles?${queryString}` : "proposals/responsibles";
-  
-  return apiRequest(url, { signal });
+  return apiRequest(
+    queryString
+      ? `proposals/responsibles?${queryString}`
+      : "proposals/responsibles",
+    { signal },
+  );
 }

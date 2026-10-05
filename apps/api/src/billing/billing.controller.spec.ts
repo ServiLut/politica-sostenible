@@ -24,7 +24,7 @@ describe('BillingController authorization', () => {
   it('mantiene el catálogo de planes autenticado pero sin datos privados del tenant', () => {
     expect(
       Reflect.getMetadata(ROLES_KEY, BillingController.prototype.getPlans),
-    ).toBeUndefined();
+    ).toEqual(Object.values(Role));
   });
 });
 

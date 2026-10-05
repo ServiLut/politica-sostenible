@@ -12,6 +12,10 @@ import { Role } from '../../prisma/generated/prisma';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
 import { CreatePoliticalDivisionDto } from './dto/create-political-division.dto';
 import { CreateTerritoryLeaderDto, UpdateTerritoryLeaderDto } from './dto/territory-leader.dto';
+import {
+  TerritoryLeaderDivisionParamsDto,
+  TerritoryLeaderParamsDto,
+} from './dto/territory-leader-params.dto';
 import { Throttle } from '@nestjs/throttler';
 import { TerritoryHeatmapQueryDto } from './dto/territory-heatmap-query.dto';
 
@@ -87,9 +91,9 @@ export class CampaignController {
   @ApiOperation({ summary: 'Lista líderes territoriales de una división' })
   async listLeaders(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('divisionId') divisionId: string,
+    @Param() params: TerritoryLeaderDivisionParamsDto,
   ) {
-    return this.campaignService.listTerritoryLeaders(user, divisionId);
+    return this.campaignService.listTerritoryLeaders(user, params.divisionId);
   }
 
   @Post('divisions/:divisionId/leaders')
@@ -97,10 +101,10 @@ export class CampaignController {
   @ApiOperation({ summary: 'Crea un líder territorial en una división' })
   async createLeader(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('divisionId') divisionId: string,
+    @Param() params: TerritoryLeaderDivisionParamsDto,
     @Body() dto: CreateTerritoryLeaderDto,
   ) {
-    return this.campaignService.createTerritoryLeader(user, divisionId, dto);
+    return this.campaignService.createTerritoryLeader(user, params.divisionId, dto);
   }
 
   @Patch('divisions/:divisionId/leaders/:leaderId')
@@ -108,10 +112,10 @@ export class CampaignController {
   @ApiOperation({ summary: 'Actualiza un líder territorial' })
   async updateLeader(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('leaderId') leaderId: string,
+    @Param() params: TerritoryLeaderParamsDto,
     @Body() dto: UpdateTerritoryLeaderDto,
   ) {
-    return this.campaignService.updateTerritoryLeader(user, leaderId, dto);
+    return this.campaignService.updateTerritoryLeader(user, params.leaderId, dto);
   }
 
   @Delete('divisions/:divisionId/leaders/:leaderId')
@@ -119,8 +123,8 @@ export class CampaignController {
   @ApiOperation({ summary: 'Elimina un líder territorial' })
   async deleteLeader(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('leaderId') leaderId: string,
+    @Param() params: TerritoryLeaderParamsDto,
   ) {
-    return this.campaignService.deleteTerritoryLeader(user, leaderId);
+    return this.campaignService.deleteTerritoryLeader(user, params.leaderId);
   }
 }

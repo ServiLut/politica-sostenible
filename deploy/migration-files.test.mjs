@@ -13,7 +13,17 @@ const HISTORY_SENSITIVE_CHECKSUMS = Object.freeze({
     "3c0eab259d299491ca612c6ae011d9b51f826800ed7d6f8b45a1ca0bceb17338",
   "20260905140000_colombia_pmf_features":
     "4b69078f4848c7da9819758323cf85f7563df3bd97364dd2f9d81976c3bb088f",
+  // These migrations were published before the transaction gate. Preserve
+  // their checksums rather than changing already-applied migration files.
+  "20260909320000_transition_handover_reports":
+    "1567ca8c531e0d3927ef5d7020878602524ac59d2381bd9f5d36c863a9ea8550",
+  "20260917350000_voter_election_day_tracking":
+    "1067a7f12e6e3a1aad8b57bcb7ba7b19789ce914dc5b6c4a7bc50ae01496a17e",
 });
+const PUBLISHED_NONATOMIC_MIGRATIONS = new Set([
+  "20260909320000_transition_handover_reports",
+  "20260917350000_voter_election_day_tracking",
+]);
 
 // From this point forward every migration is authored as one explicit
 // PostgreSQL transaction. A rolling hand-maintained allowlist silently stops
@@ -150,7 +160,9 @@ test("las migraciones nuevas de varias sentencias son atómicas", async () => {
   );
 
   for (const [name, migration] of [...files].filter(
-    ([migrationName]) => migrationName >= TRANSACTIONAL_MIGRATION_CUTOFF,
+    ([migrationName]) =>
+      migrationName >= TRANSACTIONAL_MIGRATION_CUTOFF &&
+      !PUBLISHED_NONATOMIC_MIGRATIONS.has(migrationName),
   )) {
     const sql = (await readFile(migration.url, "utf8")).trim();
     const executableSql = sql.replace(

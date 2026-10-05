@@ -112,13 +112,10 @@ export class BillingService {
       },
     ];
 
-    for (const plan of plans) {
-      await this.prisma.subscriptionPlan.upsert({
-        where: { code: plan.code },
-        update: plan,
-        create: plan,
-      });
-    }
+    await this.prisma.subscriptionPlan.createMany({
+      data: plans,
+      skipDuplicates: true,
+    });
 
     const configuredCodes = await this.prisma.subscriptionPlan.findMany({
       where: { code: { in: plans.map(({ code }) => code) } },

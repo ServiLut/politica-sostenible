@@ -271,7 +271,7 @@ export class CasesService {
 
   async listAssignees(
     user: AuthenticatedUser,
-    query: { page?: number; limit?: number; search?: string }
+    query: { page?: number; limit?: number; search?: string } = {},
   ) {
     this.assertCaseWriteAccess(user);
     const mode = await this.getActiveMode(user.tenantId);
@@ -822,10 +822,6 @@ export class CasesService {
       assigneeId: value.assigneeId,
       dueAt: value.dueAt?.toISOString() ?? null,
       confidential: value.confidential,
-      title: value.title,
-      description: value.description,
-      externalContactRef: value.externalContactRef,
-      voterId: value.voterId,
       divisionId: value.divisionId,
       occurredOn: value.occurredOn?.toISOString() ?? null,
     };

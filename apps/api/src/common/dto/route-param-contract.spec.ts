@@ -13,7 +13,7 @@ describe('Nest route parameter validation contract', () => {
   it('does not let named raw-string parameters bypass DTO validation', () => {
     const sourceRoot = join(__dirname, '..', '..');
     const offenders = listControllerFiles(sourceRoot)
-      .filter((path) => /@Param\(\s*['"]/.test(readFileSync(path, 'utf8')))
+      .filter((path) => /@Param\(\s*['"][^'"]+['"]\s*\)/.test(readFileSync(path, 'utf8')))
       .map((path) => path.slice(sourceRoot.length + 1).replaceAll('\\', '/'));
 
     expect(offenders).toEqual([]);

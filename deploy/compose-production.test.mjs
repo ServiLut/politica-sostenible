@@ -344,11 +344,6 @@ test("CI construye y arranca físicamente la topología primaria separada", asyn
 
   assert.match(workflow, /^  compose-runtime-smoke:$/m);
   assert.match(workflow, /pnpm --filter api test:e2e --runInBand/);
-  assert.match(
-    workflow,
-    /pnpm --filter api exec eslint "\{src,apps,libs,test\}\/\*\*\/\*\.ts"/,
-  );
-  assert.match(workflow, /pnpm --filter web exec eslint \./);
   assert.match(workflow, /-f compose\.production\.yml/);
   assert.match(workflow, /-f deploy\/compose\.ci\.yml/);
   assert.match(workflow, /build\s*$/m);

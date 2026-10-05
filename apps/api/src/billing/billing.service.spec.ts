@@ -229,8 +229,7 @@ describe('BillingService', () => {
     for (const code of ['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']) {
       expect(migration).toContain(`'${code}'`);
     }
-    expect(migration).toContain('ON CONFLICT DO NOTHING');
-    expect(migration).not.toContain('DO UPDATE');
+    expect(migration).toContain('ON CONFLICT ("id") DO UPDATE SET');
     expect(migration).not.toContain('INSERT INTO "TenantSubscription"');
     expect(migration).not.toContain("'Sin límites'");
   });

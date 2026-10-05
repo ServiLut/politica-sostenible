@@ -261,6 +261,7 @@ export default function TerritoryLeadersPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={() => {
             setExpandedId(null);
             setLeadersByDivision({});
@@ -283,6 +284,7 @@ export default function TerritoryLeadersPage() {
           <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
             {availableTypes.map((dt) => (
               <button
+                type="button"
                 key={dt.value}
                 onClick={() => {
                   setDivisionType(dt.value);
@@ -380,6 +382,7 @@ export default function TerritoryLeadersPage() {
               {" "}
               para &ldquo;{territorySearch}&rdquo;
               <button
+                type="button"
                 onClick={() => {
                   setTerritorySearchInput("");
                   setTerritorySearch("");
@@ -493,6 +496,7 @@ export default function TerritoryLeadersPage() {
                             : ""}
                       </p>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDivision(div);

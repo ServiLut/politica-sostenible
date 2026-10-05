@@ -7,16 +7,28 @@
  */
 
 import 'reflect-metadata';
+import { METHOD_METADATA } from '@nestjs/common/constants';
 
 // ── Mock heavy service dependencies before any controller import ────────────
 jest.mock('../mfa.service', () => ({ MfaService: class {} }));
 jest.mock('../../search/search.service', () => ({ SearchService: class {} }));
 jest.mock('../../billing/billing.service', () => ({ BillingService: class {} }));
 jest.mock('../../saas-admin/saas-admin.service', () => ({ SaasAdminService: class {} }));
-jest.mock('../../campaign/campaign.service', () => ({ CampaignService: class {} }));
+jest.mock('../../campaign/campaign.service', () => ({
+  CampaignService: class {},
+  CAMPAIGN_DIVISION_READ_ROLES: [
+    'ADMIN', 'CAMPAIGN_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR',
+    'ZONE_COORDINATOR', 'WITNESS', 'VOLUNTEER',
+  ],
+}));
 jest.mock('../../finance/finance.service', () => ({ FinanceService: class {} }));
 jest.mock('../../finance/finance-closeout.service', () => ({ FinanceCloseoutService: class {} }));
-jest.mock('../../voter/voter.service', () => ({ VoterService: class {} }));
+jest.mock('../../voter/voter.service', () => ({
+  VoterService: class {},
+  VOTER_CONSENT_GRANT_ROLES: ['ADMIN', 'CAMPAIGN_MANAGER', 'COMPLIANCE_OFFICER', 'ZONE_COORDINATOR'],
+  VOTER_CAPTURE_ROLES: ['ZONE_COORDINATOR', 'VOLUNTEER'],
+  VOTER_READ_ROLES: ['ADMIN', 'CAMPAIGN_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR', 'ZONE_COORDINATOR'],
+}));
 jest.mock('../../cases/cases.service', () => ({ CasesService: class {} }));
 jest.mock('../../cases/offline-incident.service', () => ({ OfflineIncidentService: class {} }));
 jest.mock('../../pqrsd/pqrsd.service', () => ({ PqrsdService: class {} }));
@@ -33,7 +45,19 @@ jest.mock('../../witness/witness-assignment.service', () => ({ WitnessAssignment
 jest.mock('../../election-day/election-day.service', () => ({ ElectionDayService: class {} }));
 jest.mock('../../scrutiny/scrutiny.service', () => ({ ScrutinyService: class {} }));
 jest.mock('../../logistics/logistics.service', () => ({ LogisticsService: class {} }));
-jest.mock('../../logistics/inventory-operations.service', () => ({ InventoryOperationsService: class {} }));
+jest.mock('../../logistics/inventory-operations.service', () => ({
+  InventoryOperationsService: class {},
+  INVENTORY_READ_ROLES: ['ADMIN', 'CAMPAIGN_MANAGER', 'ZONE_COORDINATOR', 'COMPLIANCE_OFFICER', 'AUDITOR'],
+  INVENTORY_ADMIN_ROLES: ['ADMIN', 'CAMPAIGN_MANAGER'],
+  INVENTORY_FIELD_ROLES: ['ADMIN', 'CAMPAIGN_MANAGER', 'ZONE_COORDINATOR'],
+  INVENTORY_SETUP_STAGES: ['EXPLORATION', 'PRE_CAMPAIGN', 'SIGNATURE_COLLECTION', 'CAMPAIGN', 'ELECTION_PREPARATION', 'SIMULATION'],
+  INVENTORY_STOCK_RECEIVE_STAGES: ['EXPLORATION', 'PRE_CAMPAIGN', 'SIGNATURE_COLLECTION', 'CAMPAIGN', 'ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY'],
+  INVENTORY_DISPATCH_STAGES: ['CAMPAIGN', 'ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY'],
+  INVENTORY_TRANSFER_RECEIVE_STAGES: ['CAMPAIGN', 'ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
+  INVENTORY_RETURN_STAGES: ['SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
+  INVENTORY_RECONCILE_STAGES: ['SIMULATION', 'POST_ELECTION'],
+  INVENTORY_INCIDENT_STAGES: ['EXPLORATION', 'PRE_CAMPAIGN', 'SIGNATURE_COLLECTION', 'CAMPAIGN', 'ELECTION_PREPARATION', 'SIMULATION', 'ELECTION_DAY', 'POST_ELECTION'],
+}));
 jest.mock('../../signature-collection/signature-collection.service', () => ({ SignatureCollectionService: class {} }));
 jest.mock('../../signature-collection/signature-count-correction.service', () => ({ SignatureCountCorrectionService: class {} }));
 jest.mock('../../electoral-calendar/electoral-calendar.service', () => ({ ElectoralCalendarService: class {} }));
@@ -49,7 +73,6 @@ jest.mock('../../operation-profile/operation-profile.service', () => ({ Operatio
 jest.mock('../../interactions/interactions.service', () => ({ InteractionsService: class {} }));
 jest.mock('../../transition-handover/transition-handover.service', () => ({ TransitionHandoverService: class {} }));
 jest.mock('../../team/team.service', () => ({ TeamService: class {} }));
-jest.mock('../../team/invitation-acceptance.service', () => ({ InvitationAcceptanceService: class {} }));
 jest.mock('../../prisma/prisma.service', () => ({ PrismaService: class {} }));
 jest.mock('../../common/throttling/redis-throttler-storage', () => ({ RedisThrottlerStorage: class {} }));
 jest.mock('../auth.service', () => ({ AuthService: class {} }));
@@ -112,7 +135,10 @@ import { ElectoralCatalogImportController } from '../../electoral-catalog/electo
 
 function getEndpointMethods(ctrl: new (...a: any[]) => any): string[] {
   return Object.getOwnPropertyNames(ctrl.prototype).filter(
-    (n) => n !== 'constructor' && typeof ctrl.prototype[n] === 'function',
+    (n) =>
+      n !== 'constructor' &&
+      typeof ctrl.prototype[n] === 'function' &&
+      Reflect.hasMetadata(METHOD_METADATA, ctrl.prototype[n]),
   );
 }
 

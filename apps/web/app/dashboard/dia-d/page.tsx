@@ -222,6 +222,7 @@ export default function DiaDTrackingPage() {
         <h2 className="text-lg font-semibold text-gray-900">Error al cargar</h2>
         <p className="text-sm text-gray-500 max-w-md text-center">{error}</p>
         <button
+          type="button"
           onClick={() => void loadData()}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
         >
@@ -236,7 +237,7 @@ export default function DiaDTrackingPage() {
       {updateError && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-center justify-between">
           <span>{updateError}</span>
-          <button onClick={() => setUpdateError(null)} className="ml-4 text-red-500 hover:text-red-700">✕</button>
+          <button type="button" onClick={() => setUpdateError(null)} className="ml-4 text-red-500 hover:text-red-700">✕</button>
         </div>
       )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -259,6 +260,7 @@ export default function DiaDTrackingPage() {
             </span>
           </div>
           <button
+            type="button"
             onClick={() => void loadData()}
             disabled={loading}
             className="p-2 bg-white border rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
@@ -345,6 +347,7 @@ export default function DiaDTrackingPage() {
           <Filter className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
           {(["ALL", "PENDING", "NEEDS_TRANSPORT", "VOTED", "NO_SHOW"] as const).map((f) => (
             <button
+              type="button"
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
@@ -479,6 +482,7 @@ export default function DiaDTrackingPage() {
                           <>
                             {voter.votingStatus !== "VOTED" && (
                               <button
+                                type="button"
                                 onClick={() => handleStatusChange(voter.id, "VOTED")}
                                 className="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                               >
@@ -488,6 +492,7 @@ export default function DiaDTrackingPage() {
                             )}
                             {voter.votingStatus === "PENDING" && (
                               <button
+                                type="button"
                                 onClick={() => handleStatusChange(voter.id, "NEEDS_TRANSPORT")}
                                 className="flex-1 sm:flex-none px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
                               >
@@ -497,6 +502,7 @@ export default function DiaDTrackingPage() {
                             )}
                             {voter.votingStatus === "VOTED" && (
                               <button
+                                type="button"
                                 onClick={() => handleStatusChange(voter.id, "PENDING")}
                                 className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-500 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                               >

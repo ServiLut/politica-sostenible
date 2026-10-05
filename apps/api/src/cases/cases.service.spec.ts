@@ -24,7 +24,7 @@ describe('CasesService tenant and mode isolation', () => {
   let prisma: {
     $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
-    user: { findFirst: jest.Mock; findMany: jest.Mock };
+    user: { findFirst: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     voter: { findFirst: jest.Mock };
     politicalDivision: { findFirst: jest.Mock };
     interaction: { findFirst: jest.Mock };
@@ -51,6 +51,7 @@ describe('CasesService tenant and mode isolation', () => {
       user: {
         findFirst: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       voter: { findFirst: jest.fn() },
       politicalDivision: { findFirst: jest.fn() },
@@ -143,6 +144,10 @@ describe('CasesService tenant and mode isolation', () => {
       select: {
         id: true,
         reference: true,
+        title: true,
+        description: true,
+        divisionId: true,
+        occurredOn: true,
         status: true,
         priority: true,
         category: true,
@@ -755,6 +760,8 @@ describe('CasesService tenant and mode isolation', () => {
       where: { id: 'agent-a', tenantId: 'tenant-a' },
       select: { id: true, name: true, role: true },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip: 0,
+      take: 20,
     });
   });
 
@@ -805,6 +812,8 @@ describe('CasesService tenant and mode isolation', () => {
         },
         select: { id: true, name: true, role: true },
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: 0,
+        take: 20,
       });
     },
   );
