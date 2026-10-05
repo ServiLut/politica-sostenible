@@ -1,8 +1,9 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateTerritoryLeaderDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -10,6 +11,7 @@ export class CreateTerritoryLeaderDto {
   name: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -46,4 +48,5 @@ import { PartialType } from '@nestjs/swagger';
 
 export class UpdateTerritoryLeaderDto extends PartialType(
   CreateTerritoryLeaderDto,
+  { skipNullProperties: false },
 ) {}

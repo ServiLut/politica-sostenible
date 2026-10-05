@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
+import { updateElectionDate } from "./operation-dates";
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -1873,13 +1874,7 @@ export default function OperationProfilePage() {
                         const value = event.target.value;
                         setForm((current) =>
                           current
-                            ? {
-                                ...current,
-                                electionDate: value,
-                                votingStartDate:
-                                  current.votingStartDate || value,
-                                votingEndDate: current.votingEndDate || value,
-                              }
+                            ? updateElectionDate(current, value)
                             : current,
                         );
                         setSaveError(null);

@@ -99,7 +99,7 @@ function formatTimestamp(timestamp: string): string {
   }).format(new Date(timestamp));
 }
 
-export function TerritoryHeatmap() {
+export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {}) {
   const {
     phase: vaultPhase,
     readHeatmapSnapshot,
@@ -128,7 +128,7 @@ export function TerritoryHeatmap() {
       loadOnline: (validatedQuery) => apiRequest<unknown>(buildTerritoryHeatmapPath(validatedQuery), { signal }),
       readOffline: vaultPhase === "UNLOCKED" ? readHeatmapSnapshot : undefined,
     }), [query, readHeatmapSnapshot, vaultPhase]);
-  const { data: view, loading, error: loadError, refresh } = usePageRequest<TerritoryHeatmapView>(requestView);
+  const { data: view, loading, error: loadError, refresh } = usePageRequest<TerritoryHeatmapView>(requestView, { reloadKey });
   const result = view?.response ?? null;
   const viewSource = view?.source ?? null;
   const offlineSavedAt = view?.savedAt ?? null;
@@ -192,7 +192,7 @@ export function TerritoryHeatmap() {
     value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-CO");
   const searchTerm = normalizeSearch(territorySearch.trim());
   const listedTerritories = result?.items.filter((item) =>
-    normalizeSearch(`${item.name} ${item.code}`).includes(searchTerm),
+    normalizeSearch(`${item.name} ${item.code} ${item.code.replaceAll("/", "")}`).includes(searchTerm),
   ) ?? [];
 
   return (
@@ -438,12 +438,20 @@ export function TerritoryHeatmap() {
 
                 {projection?.points.length ? (
                   <div
-                    className="relative aspect-[4/3] min-h-80 overflow-hidden bg-slate-100 sm:aspect-[16/9]"
+                    className={projection.scope === "COLOMBIA"
+                      ? "relative mx-auto aspect-[156/183] w-full max-w-lg overflow-hidden bg-slate-50"
+                      : "relative aspect-[4/3] min-h-80 overflow-hidden bg-slate-100 sm:aspect-[16/9]"}
                     aria-label="Mapa de calor espacial de territorios con coordenadas disponibles"
                   >
+                    {projection.scope === "COLOMBIA" && (
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-[url('/maps/colombia-dane-mgn-2025.svg')] bg-[length:100%_100%] bg-no-repeat"
+                      />
+                    )}
                     <div
                       aria-hidden="true"
-                      className="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-60"
+                      className="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-30"
                     >
                       {Array.from({ length: 24 }, (_, index) => (
                         <span
@@ -493,6 +501,12 @@ export function TerritoryHeatmap() {
                       de sincronizar su geografía oficial DANE en Territorio.
                     </p>
                   </div>
+                )}
+
+                {projection?.scope === "COLOMBIA" && (
+                  <p className="border-t border-slate-200 bg-white px-4 py-2 text-xs leading-5 text-slate-500">
+                    Contornos administrativos simplificados: DANE, Marco Geoestadístico Nacional 2025. Referencia de ubicación; no sustituye la cartografía oficial detallada.
+                  </p>
                 )}
 
                 {Boolean(projection?.excludedOutsideScope) && (

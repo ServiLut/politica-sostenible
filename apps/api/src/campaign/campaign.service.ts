@@ -8,6 +8,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   AuditActorType,
   ConsentPurpose,
@@ -83,6 +84,8 @@ const CAMPAIGN_VIEW_SELECT = {
 } satisfies Prisma.TenantSelect;
 
 const TERRITORY_SYNC_TRANSACTION_TIMEOUT_MS = 120_000;
+const DANE_SNAPSHOT_PARSER_VERSION = 'dane-mgn-2025-centroids-v1';
+const DANE_SNAPSHOT_DATASET = `${DANE_DIVIPOLA_SOURCE.dataset} ${DANE_DIVIPOLA_SOURCE.version}`;
 
 const OPEN_CASE_STATUSES = [
   IssueCaseStatus.OPEN,
@@ -120,6 +123,12 @@ interface HeatmapDivision {
   sourceReleaseId?: string | null;
   latitude?: Prisma.Decimal | null;
   longitude?: Prisma.Decimal | null;
+  sourceRelease?: {
+    type: ElectoralCatalogType;
+    status: ElectoralCatalogStatus;
+    parserVersion: string;
+    sourceUrl: string;
+  } | null;
 }
 
 interface HeatmapCoordinateTarget {
@@ -275,6 +284,66 @@ export class CampaignService {
             );
           }
 
+          const snapshot = await this.ensureDaneSnapshot(
+            transaction,
+            user,
+            departments,
+            municipalities,
+          );
+          // Normalize the legacy five-digit code without changing its ID or
+          // any existing relationship. Ambiguous duplicates require review.
+          const municipalityCodes = municipalities.flatMap((municipality) => [
+            municipality.municipalityCode,
+            this.daneMunicipalityCanonicalCode(municipality),
+          ]);
+          const existingMunicipalities =
+            await transaction.politicalDivision.findMany({
+              where: {
+                tenantId,
+                type: DivisionType.MUNICIPIO,
+                code: { in: municipalityCodes },
+              },
+              select: { id: true, code: true, sourceNamespace: true },
+            });
+          for (const municipality of municipalities) {
+            const canonical = this.daneMunicipalityCanonicalCode(municipality);
+            const matches = existingMunicipalities.filter(
+              (row) =>
+                row.code === municipality.municipalityCode ||
+                row.code === canonical,
+            );
+            if (matches.length > 1) {
+              throw new ConflictException(
+                'Existen códigos municipales legacy y canónicos duplicados; revise la geografía antes de sincronizar',
+              );
+            }
+            const legacy = matches[0];
+            if (legacy && legacy.code !== canonical) {
+              if (legacy.sourceNamespace !== null) {
+                throw new ConflictException(
+                  'No se puede renombrar un código municipal con procedencia catalogada',
+                );
+              }
+              const normalized = await transaction.politicalDivision.updateMany(
+                {
+                  where: {
+                    id: legacy.id,
+                    tenantId,
+                    code: legacy.code,
+                    type: DivisionType.MUNICIPIO,
+                    sourceNamespace: null,
+                    sourceReleaseId: null,
+                  },
+                  data: { code: canonical },
+                },
+              );
+              if (normalized.count !== 1) {
+                throw new ConflictException(
+                  'La geografía municipal cambió durante la sincronización',
+                );
+              }
+            }
+          }
           const departmentIds = new Map<string, string>();
 
           for (const department of departments) {
@@ -291,7 +360,7 @@ export class CampaignService {
                 latitude: department.latitude,
                 longitude: department.longitude,
                 sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
-                sourceReleaseId: null,
+                sourceReleaseId: snapshot.id,
                 isActive: true,
                 retiredAt: null,
               },
@@ -303,6 +372,7 @@ export class CampaignService {
                 latitude: department.latitude,
                 longitude: department.longitude,
                 sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+                sourceReleaseId: snapshot.id,
               },
               select: { id: true },
             });
@@ -321,7 +391,7 @@ export class CampaignService {
               where: {
                 tenantId_code_type: {
                   tenantId,
-                  code: municipality.municipalityCode,
+                  code: this.daneMunicipalityCanonicalCode(municipality),
                   type: DivisionType.MUNICIPIO,
                 },
               },
@@ -331,19 +401,20 @@ export class CampaignService {
                 latitude: municipality.latitude,
                 longitude: municipality.longitude,
                 sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
-                sourceReleaseId: null,
+                sourceReleaseId: snapshot.id,
                 isActive: true,
                 retiredAt: null,
               },
               create: {
                 tenantId,
-                code: municipality.municipalityCode,
+                code: this.daneMunicipalityCanonicalCode(municipality),
                 name: municipality.municipalityName,
                 type: DivisionType.MUNICIPIO,
                 parentId,
                 latitude: municipality.latitude,
                 longitude: municipality.longitude,
                 sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+                sourceReleaseId: snapshot.id,
               },
             });
           }
@@ -363,6 +434,9 @@ export class CampaignService {
                 version: DANE_DIVIPOLA_SOURCE.version,
                 coordinateSystem: DANE_DIVIPOLA_SOURCE.coordinateSystem,
                 coordinateBasis: 'ADMINISTRATIVE_CENTROID',
+                sourceReleaseId: snapshot.id,
+                contentSha256: snapshot.contentSha256,
+                snapshotStatus: ElectoralCatalogStatus.VALIDATED,
                 departments: departments.length,
                 municipalities: municipalities.length,
               },
@@ -402,6 +476,151 @@ export class CampaignService {
       },
       synchronizedAt: new Date().toISOString(),
     };
+  }
+
+  private daneMunicipalityCanonicalCode(
+    municipality: DaneMunicipality,
+  ): string {
+    return `${municipality.departmentCode}/${municipality.municipalityCode.slice(2)}`;
+  }
+
+  private async ensureDaneSnapshot(
+    transaction: Prisma.TransactionClient,
+    user: AuthenticatedUser,
+    departments: DaneDepartment[],
+    municipalities: DaneMunicipality[],
+  ) {
+    const coordinates = (item: { latitude: number; longitude: number }) => ({
+      latitude: Number(item.latitude.toFixed(6)),
+      longitude: Number(item.longitude.toFixed(6)),
+    });
+    const departmentRows = departments
+      .map((row) => ({ code: row.code, name: row.name, ...coordinates(row) }))
+      .sort((a, b) => a.code.localeCompare(b.code));
+    const municipalityRows = municipalities
+      .map((row) => ({
+        code: this.daneMunicipalityCanonicalCode(row),
+        departmentCode: row.departmentCode,
+        name: row.municipalityName,
+        ...coordinates(row),
+      }))
+      .sort((a, b) => a.code.localeCompare(b.code));
+    // Hash the complete normalized snapshot that is persisted below. This is
+    // not a claimed hash of the raw ArcGIS response or an official approval.
+    const contentSha256 = createHash('sha256')
+      .update(
+        JSON.stringify({
+          parserVersion: DANE_SNAPSHOT_PARSER_VERSION,
+          source: DANE_DIVIPOLA_SOURCE,
+          departments: departmentRows,
+          municipalities: municipalityRows,
+        }),
+      )
+      .digest('hex');
+    const identity = {
+      tenantId: user.tenantId,
+      type: ElectoralCatalogType.ADMINISTRATIVE_DANE,
+      sourceDataset: DANE_SNAPSHOT_DATASET,
+      contentSha256,
+      parserVersion: DANE_SNAPSHOT_PARSER_VERSION,
+    };
+    const existing = await transaction.electoralCatalogRelease.findFirst({
+      where: identity,
+      select: { id: true, status: true, sourceUrl: true, catalogKey: true },
+    });
+    const catalogKey = 'DANE_GEOGRAPHY:MGN_2025';
+    if (existing) {
+      if (
+        existing.status !== ElectoralCatalogStatus.VALIDATED ||
+        existing.sourceUrl !== DANE_DIVIPOLA_SOURCE.layerUrl ||
+        existing.catalogKey !== catalogKey
+      ) {
+        throw new ConflictException(
+          'El snapshot DANE existente no tiene el estado o la procedencia esperados',
+        );
+      }
+      return { id: existing.id, contentSha256 };
+    }
+    const release = await transaction.electoralCatalogRelease.create({
+      data: {
+        ...identity,
+        catalogKey,
+        status: ElectoralCatalogStatus.STAGED,
+        sourceUrl: DANE_DIVIPOLA_SOURCE.layerUrl,
+        sourceOrganization: DANE_DIVIPOLA_SOURCE.organization,
+        createdById: user.userId,
+        recordCount: departmentRows.length + municipalityRows.length,
+        departmentCount: departmentRows.length,
+        municipalityCount: municipalityRows.length,
+        zoneCount: 0,
+        pollingPlaceCount: 0,
+        expectedTableCount: 0,
+      },
+      select: { id: true },
+    });
+    const entries = await transaction.electoralCatalogEntry.createManyAndReturn(
+      {
+        data: departmentRows.map((row) => ({
+          tenantId: user.tenantId,
+          releaseId: release.id,
+          namespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+          type: ElectoralCatalogEntryType.DEPARTMENT,
+          canonicalCode: row.code,
+          departmentCode: row.code,
+          name: row.name,
+          latitude: row.latitude,
+          longitude: row.longitude,
+        })),
+        select: { id: true, canonicalCode: true },
+      },
+    );
+    const entryParents = new Map(
+      entries.map((entry) => [entry.canonicalCode, entry.id]),
+    );
+    await transaction.electoralCatalogEntry.createMany({
+      data: municipalityRows.map((row) => ({
+        tenantId: user.tenantId,
+        releaseId: release.id,
+        namespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+        type: ElectoralCatalogEntryType.MUNICIPALITY,
+        canonicalCode: row.code,
+        departmentCode: row.departmentCode,
+        municipalityCode: row.code.slice(3),
+        parentId: entryParents.get(row.departmentCode),
+        name: row.name,
+        latitude: row.latitude,
+        longitude: row.longitude,
+      })),
+    });
+    const changed = await transaction.electoralCatalogRelease.updateMany({
+      where: {
+        id: release.id,
+        tenantId: user.tenantId,
+        status: ElectoralCatalogStatus.STAGED,
+      },
+      data: {
+        status: ElectoralCatalogStatus.VALIDATED,
+        validatedAt: new Date(),
+        validatedById: user.userId,
+        validationSummary: {
+          kind: 'OFFICIAL_DANE_ADMINISTRATIVE_CENTROIDS',
+          scope: 'STRUCTURAL_SOURCE_VALIDATION_NOT_ELECTORAL_ACTIVATION',
+          departmentLayerUrl: DANE_DIVIPOLA_SOURCE.departmentLayerUrl,
+          municipalityLayerUrl: DANE_DIVIPOLA_SOURCE.layerUrl,
+          coordinateSystem: DANE_DIVIPOLA_SOURCE.coordinateSystem,
+          observedAt: new Date().toISOString(),
+          contentSha256,
+          departments: departmentRows.length,
+          municipalities: municipalityRows.length,
+          pollingPlaces: 0,
+        },
+      },
+    });
+    if (changed.count !== 1)
+      throw new ConflictException(
+        'El snapshot DANE cambió durante su validación',
+      );
+    return { id: release.id, contentSha256 };
   }
 
   async getCampaign(tenantId: string) {
@@ -596,6 +815,13 @@ export class CampaignService {
                       mode: 'insensitive',
                     },
                   },
+                  ...(/^\d{5}$/.test(query.search)
+                    ? [
+                        {
+                          code: `${query.search.slice(0, 2)}/${query.search.slice(2)}`,
+                        },
+                      ]
+                    : []),
                 ],
               }
             : {}),
@@ -685,6 +911,14 @@ export class CampaignService {
             sourceReleaseId: true,
             latitude: true,
             longitude: true,
+            sourceRelease: {
+              select: {
+                type: true,
+                status: true,
+                parserVersion: true,
+                sourceUrl: true,
+              },
+            },
           },
           orderBy: [{ code: 'asc' }, { id: 'asc' }],
         });
@@ -1417,10 +1651,18 @@ export class CampaignService {
   private toAdministrativeCentroid(division: HeatmapDivision) {
     if (
       division.sourceNamespace !== ElectoralCodeNamespace.DANE_DIVIPOLA ||
+      !division.sourceReleaseId ||
+      division.sourceRelease?.type !==
+        ElectoralCatalogType.ADMINISTRATIVE_DANE ||
+      division.sourceRelease.status !== ElectoralCatalogStatus.VALIDATED ||
+      division.sourceRelease.parserVersion !== DANE_SNAPSHOT_PARSER_VERSION ||
+      division.sourceRelease.sourceUrl !== DANE_DIVIPOLA_SOURCE.layerUrl ||
       (division.type !== DivisionType.DEPARTAMENTO &&
         division.type !== DivisionType.MUNICIPIO) ||
       !(
-        division.type === DivisionType.DEPARTAMENTO ? /^\d{2}$/ : /^\d{5}$/
+        division.type === DivisionType.DEPARTAMENTO
+          ? /^\d{2}$/
+          : /^(\d{5}|\d{2}\/\d{3})$/
       ).test(division.code) ||
       division.latitude == null ||
       division.longitude == null

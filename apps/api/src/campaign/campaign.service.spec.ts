@@ -11,6 +11,8 @@ import {
   ConsentStatus,
   ConsentSubjectType,
   DivisionType,
+  ElectoralCatalogStatus,
+  ElectoralCatalogType,
   PoliticalOperationMode,
   Prisma,
   Role,
@@ -26,6 +28,7 @@ import {
 } from './dto/territory-heatmap-query.dto';
 import {
   DaneDivipolaClient,
+  DANE_DIVIPOLA_SOURCE,
   DaneDivipolaError,
   type DaneMunicipality,
   type DaneDepartment,
@@ -77,6 +80,48 @@ const daneDepartments: DaneDepartment[] = [
   { code: '08', name: 'ATLÁNTICO', latitude: 10.7, longitude: -74.99 },
 ];
 
+function daneSnapshotMocks() {
+  let release: {
+    id: string;
+    status: string;
+    sourceUrl: string;
+    catalogKey: string;
+  } | null = null;
+  return {
+    electoralCatalogRelease: {
+      findFirst: jest
+        .fn()
+        .mockImplementation((input: { where: { type: string } }) =>
+          Promise.resolve(
+            input.where.type === 'ADMINISTRATIVE_DANE' ? release : null,
+          ),
+        ),
+      create: jest.fn().mockImplementation(() => {
+        release = {
+          id: 'dane-release-a',
+          status: 'STAGED',
+          sourceUrl: DANE_DIVIPOLA_SOURCE.layerUrl,
+          catalogKey: 'DANE_GEOGRAPHY:MGN_2025',
+        };
+        return Promise.resolve({ id: release.id });
+      }),
+      updateMany: jest.fn().mockImplementation(() => {
+        if (release) release.status = 'VALIDATED';
+        return Promise.resolve({ count: 1 });
+      }),
+    },
+    electoralCatalogEntry: {
+      createManyAndReturn: jest.fn().mockResolvedValue(
+        daneDepartments.map((row) => ({
+          id: `entry-${row.code}`,
+          canonicalCode: row.code,
+        })),
+      ),
+      createMany: jest.fn().mockResolvedValue({ count: daneData.length }),
+    },
+  };
+}
+
 function openLifecycleQuery(acquired = true) {
   return jest.fn().mockImplementation((query: { sql?: string } | string[]) => {
     const sql =
@@ -120,10 +165,12 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       $queryRaw: openLifecycleQuery(),
       tenant: { findUnique: tenantFindUnique },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
-      electoralCatalogRelease: {
-        findFirst: jest.fn().mockResolvedValue(null),
+      ...daneSnapshotMocks(),
+      politicalDivision: {
+        upsert,
+        deleteMany,
+        findMany: jest.fn().mockResolvedValue([]),
       },
-      politicalDivision: { upsert, deleteMany },
       auditEvent: { create: auditCreate },
     };
     const runTransaction = jest.fn(
@@ -178,7 +225,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
           latitude: 6.922838,
           longitude: -75.565015,
           sourceNamespace: 'DANE_DIVIPOLA',
-          sourceReleaseId: null,
+          sourceReleaseId: 'dane-release-a',
         }) as object,
       }),
     );
@@ -192,7 +239,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         where: {
           tenantId_code_type: {
             tenantId: 'tenant-a',
-            code: '05001',
+            code: '05/001',
             type: DivisionType.MUNICIPIO,
           },
         },
@@ -243,10 +290,8 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         }),
       },
       user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
-      electoralCatalogRelease: {
-        findFirst: jest.fn().mockResolvedValue(null),
-      },
-      politicalDivision: { upsert },
+      ...daneSnapshotMocks(),
+      politicalDivision: { upsert, findMany: jest.fn().mockResolvedValue([]) },
       auditEvent: {
         create: jest.fn().mockResolvedValue({ id: 'audit-sync-a' }),
       },
@@ -283,6 +328,12 @@ describe('CampaignService DIVIPOLA synchronization', () => {
     );
 
     expect(secondRunKeys).toEqual(firstRunKeys);
+    expect(prismaClient.electoralCatalogRelease.create).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(prismaClient.electoralCatalogEntry.createMany).toHaveBeenCalledTimes(
+      1,
+    );
     expect(
       secondRunKeys.every(
         (key: { tenantId: string }) => key.tenantId === 'tenant-a',
@@ -648,6 +699,65 @@ describe('CampaignService DIVIPOLA synchronization', () => {
     expect(count).toHaveBeenCalledWith({ where: scopedWhere });
   });
 
+  it('finds canonical municipality codes from five digits without expanding coordinator scope', async () => {
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        { id: 'department-a', parentId: null },
+        { id: 'municipality-a', parentId: 'department-a' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'municipality-a', code: '05/001', type: DivisionType.MUNICIPIO },
+      ]);
+    const count = jest.fn().mockResolvedValue(1);
+    const transaction = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          role: Role.ZONE_COORDINATOR,
+          divisionId: 'department-a',
+        }),
+      },
+      politicalDivision: { findMany, count },
+    };
+    const service = new CampaignService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+    const result = await service.findDivisions(
+      { userId: 'coordinator-a', tenantId: 'tenant-a' },
+      { type: DivisionType.MUNICIPIO, search: '05001', page: 1, limit: 25 },
+    );
+    const where = findMany.mock.calls[1]?.[0].where;
+    expect(where).toEqual({
+      tenantId: 'tenant-a',
+      isActive: true,
+      type: DivisionType.MUNICIPIO,
+      id: { in: ['department-a', 'municipality-a'] },
+      OR: [
+        { code: { contains: '05001', mode: 'insensitive' } },
+        { name: { contains: '05001', mode: 'insensitive' } },
+        { sourceLocationCode: { contains: '05001', mode: 'insensitive' } },
+        { code: '05/001' },
+      ],
+    });
+    expect(count).toHaveBeenCalledWith({ where });
+    expect(result.items[0]).toMatchObject({
+      id: 'municipality-a',
+      code: '05/001',
+    });
+  });
+
   it('rejects a stale or inactive actor before listing divisions', async () => {
     const findMany = jest.fn();
     const count = jest.fn();
@@ -993,6 +1103,13 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         parentId: null,
         expectedTables: null,
         sourceNamespace: 'DANE_DIVIPOLA',
+        sourceReleaseId: 'dane-release-a',
+        sourceRelease: {
+          type: ElectoralCatalogType.ADMINISTRATIVE_DANE,
+          status: ElectoralCatalogStatus.VALIDATED,
+          parserVersion: 'dane-mgn-2025-centroids-v1',
+          sourceUrl: DANE_DIVIPOLA_SOURCE.layerUrl,
+        },
         latitude: new Prisma.Decimal('6.922838'),
         longitude: new Prisma.Decimal('-75.565015'),
       },
@@ -1506,6 +1623,13 @@ describe('CampaignService official administrative coordinates', () => {
       ...(row.id === item.id
         ? {
             sourceNamespace: 'DANE_DIVIPOLA',
+            sourceReleaseId: 'dane-release-a',
+            sourceRelease: {
+              type: ElectoralCatalogType.ADMINISTRATIVE_DANE,
+              status: ElectoralCatalogStatus.VALIDATED,
+              parserVersion: 'dane-mgn-2025-centroids-v1',
+              sourceUrl: DANE_DIVIPOLA_SOURCE.layerUrl,
+            },
             latitude: new Prisma.Decimal('6.922838'),
             longitude: new Prisma.Decimal('-75.565015'),
             ...override,
@@ -1579,6 +1703,9 @@ describe('CampaignService official administrative coordinates', () => {
   it.each([
     { sourceNamespace: null },
     { sourceNamespace: 'RNEC_DIVIPOLE' },
+    { sourceReleaseId: null },
+    { sourceRelease: null },
+    { sourceRelease: { type: 'ADMINISTRATIVE_DANE', status: 'STAGED' } },
     { code: 'CUSTOM-05' },
     { latitude: null },
     { longitude: undefined },

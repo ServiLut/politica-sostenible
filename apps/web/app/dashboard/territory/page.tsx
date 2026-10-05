@@ -108,6 +108,7 @@ export default function TerritoryPage() {
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [geographyRevision, setGeographyRevision] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -144,7 +145,7 @@ export default function TerritoryPage() {
     loading,
     error: requestError,
     refresh: loadDivisions,
-  } = usePageRequest(request);
+  } = usePageRequest(request, { reloadKey: geographyRevision });
   const loadError = requestError ? messageFrom(requestError) : null;
 
   useEffect(() => {
@@ -199,7 +200,7 @@ export default function TerritoryPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [canSynchronize, createType, parentSearch]);
+  }, [canSynchronize, createType, parentSearch, geographyRevision]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -219,6 +220,7 @@ export default function TerritoryPage() {
       setPage(1);
       setSearch("");
       setSearchDraft("");
+      setGeographyRevision((current) => current + 1);
       setNotice(
         `${sync.synchronized.municipalities.toLocaleString("es-CO")} municipios y ${sync.synchronized.departments.toLocaleString("es-CO")} departamentos sincronizados desde DANE.`,
       );
@@ -258,6 +260,7 @@ export default function TerritoryPage() {
       setPage(1);
       setSearch("");
       setSearchDraft("");
+      setGeographyRevision((current) => current + 1);
       setNotice(`${created.name} quedó disponible para asignaciones.`);
     } catch (requestError) {
       setError(messageFrom(requestError));
@@ -457,7 +460,7 @@ export default function TerritoryPage() {
         </section>
       )}
 
-      <TerritoryHeatmap />
+      <TerritoryHeatmap reloadKey={geographyRevision} />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
