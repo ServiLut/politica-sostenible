@@ -30,7 +30,9 @@ export class NotificationsService {
     const tasks = await this.prisma.task.findMany({
       where: {
         tenantId,
-        status: { not: TaskStatus.DONE },
+        status: {
+          in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED],
+        },
         dueAt: {
           gte: now,
           lte: in3Days,

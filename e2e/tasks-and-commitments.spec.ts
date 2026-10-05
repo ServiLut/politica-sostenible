@@ -95,6 +95,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   const authorizationHeaders: string[] = [];
   const exportPaths: string[] = [];
   let failAssigneePageTwo = true;
+  let failTaskEdit = true;
   const assignees = [
     {
       id: "user-e2e",
@@ -221,10 +222,13 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     }
 
     if (pathname === "/api/tasks" && method === "GET") {
+      const status = new URL(request.url()).searchParams.get("status");
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(paginated(tasks)),
+        body: JSON.stringify(
+          paginated(tasks.filter((task) => !status || task.status === status)),
+        ),
       });
       return;
     }
@@ -258,6 +262,17 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     if (pathname === "/api/tasks/task-1" && method === "PATCH") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      if (typeof body.title === "string" && failTaskEdit) {
+        failTaskEdit = false;
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({
+            message: "El permiso cambió; revisa tu acceso antes de guardar.",
+          }),
+        });
+        return;
+      }
       tasks = tasks.map((task) =>
         task.id === "task-1" ? { ...task, ...body } : task,
       );
@@ -374,6 +389,84 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await expect(
     page.getByText("Estado de “Verificar luminarias del barrio” actualizado."),
   ).toBeVisible();
+
+  const editTrigger = page.getByRole("button", {
+    name: "Editar tarea Verificar luminarias del barrio",
+  });
+  await editTrigger.click();
+  const editDialog = page.getByRole("dialog", {
+    name: "Editar tarea",
+    exact: true,
+  });
+  await editDialog
+    .getByLabel("Título", { exact: true })
+    .fill("Este cambio se descarta");
+  const beforeCancel = mutationBodies.length;
+  await editDialog
+    .getByRole("button", { name: "Cancelar", exact: true })
+    .click();
+  await expect(editTrigger).toBeFocused();
+  expect(mutationBodies).toHaveLength(beforeCancel);
+  await editTrigger.click();
+  await expect(editDialog.getByLabel("Título", { exact: true })).toHaveValue(
+    "Verificar luminarias del barrio",
+  );
+  await editDialog
+    .getByLabel("Título", { exact: true })
+    .fill("Verificar luminarias corregidas");
+  await editDialog
+    .getByRole("button", { name: "Responsable de la tarea" })
+    .click();
+  await editDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .fill("Andrea Territorio");
+  await editDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .press("Enter");
+  expect(mutationBodies).toHaveLength(beforeCancel);
+  await editDialog.getByRole("button", { name: /^Andrea Territorio/ }).click();
+  await editDialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(editDialog.getByRole("alert")).toContainText(
+    "El permiso cambió",
+  );
+  await expect(editDialog.getByLabel("Título", { exact: true })).toHaveValue(
+    "Verificar luminarias corregidas",
+  );
+  await expect(
+    editDialog.getByRole("button", { name: "Responsable de la tarea" }),
+  ).toHaveAccessibleDescription("Andrea Territorio");
+  await editDialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(editDialog).toBeHidden();
+  await expect(page.getByTestId("task-card-task-1")).toContainText(
+    "Verificar luminarias corregidas",
+  );
+  const editBodies = mutationBodies.filter(
+    (body) => body.title === "Verificar luminarias corregidas",
+  );
+  expect(editBodies).toEqual([
+    { title: "Verificar luminarias corregidas", assigneeId: "team-member-e2e" },
+    { title: "Verificar luminarias corregidas", assigneeId: "team-member-e2e" },
+  ]);
+
+  await page
+    .getByRole("combobox", { name: "Estado de la tarea", exact: true })
+    .selectOption("DONE");
+  await expect(page.getByTestId("task-card-task-1")).toBeVisible();
+  await page
+    .getByRole("combobox", {
+      name: "Estado de Verificar luminarias corregidas",
+      exact: true,
+    })
+    .selectOption("CANCELLED");
+  await expect(page.getByTestId("task-card-task-1")).toHaveCount(0);
+  await expect(
+    page.getByRole("tab", { name: "Tareas (0)", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Se conserva en el historial/)).toBeVisible();
+  await page
+    .getByRole("combobox", { name: "Estado de la tarea", exact: true })
+    .selectOption("");
+  await expect(page.getByTestId("task-card-task-1")).toContainText("Cancelada");
 
   await page.getByRole("button", { name: "Nueva tarea" }).click();
   const taskDialog = page.getByRole("dialog", { name: "Crear tarea" });

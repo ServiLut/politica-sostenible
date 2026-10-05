@@ -40,6 +40,7 @@ import {
   Flag,
   Link2,
   Loader2,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -53,9 +54,16 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  canEditTaskDetails,
+  taskEditInput,
+  taskEditorDraft,
+  taskFiltersAfterMutation,
+  type TaskDraft,
+} from "./task-editor";
 
 type View = "tasks" | "commitments";
-type Dialog = "task" | "commitment" | null;
+type Dialog = "task" | "edit-task" | "commitment" | null;
 type DeepLinkTarget = { view: View; entityId: string };
 
 interface TaskFilters {
@@ -336,6 +344,11 @@ function TasksWorkspace({ search }: { search: string }) {
   );
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const tasksTabRef = useRef<HTMLButtonElement>(null);
+  const [taskEdit, setTaskEdit] = useState<{
+    original: Task;
+    draft: TaskDraft;
+  } | null>(null);
 
   const [taskDraft, setNewTask] = useState({
     title: "",
@@ -403,7 +416,6 @@ function TasksWorkspace({ search }: { search: string }) {
     enabled: !linkedCaseRequestId || Boolean(linkedCase),
   });
   const taskResult = tasks.data;
-  const setTaskResult = tasks.setData;
   const taskLoading = tasks.loading;
   const taskError = tasks.error ? readableError(tasks.error) : null;
   const commitmentRequest = useCallback(
@@ -446,6 +458,8 @@ function TasksWorkspace({ search }: { search: string }) {
         ? requestedDialog
         : null
       : dialogSelection;
+  const editingTask = dialog === "edit-task" ? taskEdit : null;
+  const taskForm = editingTask?.draft ?? newTask;
   const mutationError =
     actionError ??
     (entityId.length > 128
@@ -463,6 +477,7 @@ function TasksWorkspace({ search }: { search: string }) {
     open: dialog !== null,
     containerRef: dialogRef,
     initialFocusRef: dialogTitleRef,
+    returnFocusRef: tasksTabRef,
     onClose: () => {
       if (!mutation) setDialog(null);
     },
@@ -517,8 +532,62 @@ function TasksWorkspace({ search }: { search: string }) {
     setMutationError(null);
   }
 
+  function refreshTasksAfterMutation() {
+    // The new request owns its snapshot and aborts any GET from prior filters.
+    setTaskFilters(taskFiltersAfterMutation);
+    setTaskReload((current) => current + 1);
+  }
+
+  function openTaskEditor(task: Task) {
+    if (mutation || !canEditTaskDetails(user?.backendRole, task.mode)) return;
+    setTaskEdit({ original: task, draft: taskEditorDraft(task) });
+    setMutationError(null);
+    setDialog("edit-task");
+  }
+
+  function changeTaskDraft(update: (current: TaskDraft) => TaskDraft) {
+    if (editingTask) {
+      setTaskEdit((current) =>
+        current ? { ...current, draft: update(current.draft) } : current,
+      );
+    } else {
+      setNewTask(update);
+    }
+  }
+
+  async function handleEditTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (mutation || !editingTask) return;
+    const { original, draft } = editingTask;
+    if (!canEditTaskDetails(user?.backendRole, original.mode)) {
+      setMutationError("Tu rol no permite editar los detalles de esta tarea.");
+      return;
+    }
+    setMutation("edit-task");
+    setMutationError(null);
+    try {
+      const input = taskEditInput(original, draft);
+      if (Object.keys(input).length === 0) {
+        setDialog(null);
+        showNotice("No había cambios para guardar.");
+        return;
+      }
+      await updateTask(original.id, input);
+      setDialog(null);
+      refreshTasksAfterMutation();
+      showNotice(
+        "Tarea actualizada. Consultando la lista con los filtros actuales.",
+      );
+    } catch (error) {
+      setMutationError(readableError(error));
+    } finally {
+      setMutation(null);
+    }
+  }
+
   async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation) return;
     setMutation("create-task");
     setMutationError(null);
 
@@ -550,8 +619,7 @@ function TasksWorkspace({ search }: { search: string }) {
         assigneeName: user?.name ?? "",
       });
       setDialog(null);
-      setTaskFilters((current) => ({ ...current, page: 1 }));
-      setTaskReload((current) => current + 1);
+      refreshTasksAfterMutation();
       showNotice(
         linkedCase
           ? `Tarea creada y vinculada al caso ${linkedCase.reference}.`
@@ -620,23 +688,20 @@ function TasksWorkspace({ search }: { search: string }) {
   }
 
   async function handleTaskStatus(task: Task, status: TaskStatus) {
+    if (mutation || status === task.status) return;
     const mutationKey = `task-status-${task.id}`;
     setMutation(mutationKey);
     setMutationError(null);
 
     try {
-      const updated = await updateTask(task.id, { status });
-      setTaskResult((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) =>
-                item.id === updated.id ? updated : item,
-              ),
-            }
-          : current,
+      await updateTask(task.id, { status });
+      tasksTabRef.current?.focus({ preventScroll: true });
+      refreshTasksAfterMutation();
+      showNotice(
+        status === "CANCELLED"
+          ? `Tarea “${task.title}” cancelada. Se conserva en el historial.`
+          : `Estado de “${task.title}” actualizado.`,
       );
-      showNotice(`Estado de “${task.title}” actualizado.`);
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -899,6 +964,7 @@ function TasksWorkspace({ search }: { search: string }) {
       >
         <button
           id="tasks-tab"
+          ref={tasksTabRef}
           type="button"
           role="tab"
           aria-selected={view === "tasks"}
@@ -1111,6 +1177,18 @@ function TasksWorkspace({ search }: { search: string }) {
                           )}
                         </span>
                       </label>
+                      {canEditTaskDetails(user?.backendRole, task.mode) && (
+                        <button
+                          type="button"
+                          onClick={() => openTaskEditor(task)}
+                          disabled={Boolean(mutation)}
+                          aria-label={`Editar tarea ${task.title}`}
+                          className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
+                        >
+                          <Pencil aria-hidden="true" size={16} /> Editar
+                          detalles
+                        </button>
+                      )}
                     </article>
                   );
                 })}
@@ -1447,7 +1525,11 @@ function TasksWorkspace({ search }: { search: string }) {
                   tabIndex={-1}
                   className="text-xl font-semibold text-slate-950 outline-none"
                 >
-                  {dialog === "task" ? "Crear tarea" : "Registrar compromiso"}
+                  {editingTask
+                    ? "Editar tarea"
+                    : dialog === "task"
+                      ? "Crear tarea"
+                      : "Registrar compromiso"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Define el responsable, la fecha y los detalles para facilitar
@@ -1465,7 +1547,7 @@ function TasksWorkspace({ search }: { search: string }) {
               </button>
             </header>
 
-            {linkedCase && (
+            {linkedCase && !editingTask && (
               <div
                 data-testid="linked-case-dialog-context"
                 className="mx-4 mt-4 flex max-h-32 min-w-0 shrink-0 flex-col gap-3 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50 p-3 sm:mx-6 sm:flex-row sm:items-center sm:justify-between"
@@ -1489,9 +1571,9 @@ function TasksWorkspace({ search }: { search: string }) {
               </div>
             )}
 
-            {dialog === "task" ? (
+            {dialog === "task" || editingTask ? (
               <form
-                onSubmit={handleCreateTask}
+                onSubmit={editingTask ? handleEditTask : handleCreateTask}
                 className="flex min-h-0 flex-1 flex-col"
               >
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-6">
@@ -1501,9 +1583,10 @@ function TasksWorkspace({ search }: { search: string }) {
                       required
                       maxLength={200}
                       autoComplete="off"
-                      value={newTask.title}
+                      disabled={Boolean(mutation)}
+                      value={taskForm.title}
                       onChange={(event) =>
-                        setNewTask((current) => ({
+                        changeTaskDraft((current) => ({
                           ...current,
                           title: event.target.value,
                         }))
@@ -1519,9 +1602,10 @@ function TasksWorkspace({ search }: { search: string }) {
                     <textarea
                       rows={4}
                       maxLength={5000}
-                      value={newTask.description}
+                      disabled={Boolean(mutation)}
+                      value={taskForm.description}
                       onChange={(event) =>
-                        setNewTask((current) => ({
+                        changeTaskDraft((current) => ({
                           ...current,
                           description: event.target.value,
                         }))
@@ -1534,18 +1618,18 @@ function TasksWorkspace({ search }: { search: string }) {
                     <UserCombobox
                       className="mt-2"
                       ariaLabel="Responsable de la tarea"
-                      value={newTask.assigneeId}
+                      value={taskForm.assigneeId}
                       selectedLabel={
-                        newTask.assigneeId === ownId
+                        taskForm.assigneeId === ownId
                           ? user?.name
-                          : newTask.assigneeName
+                          : taskForm.assigneeName
                       }
-                      allowUnassigned={false}
+                      allowUnassigned={Boolean(editingTask)}
                       paginated
-                      disabled={mutation === "create-task"}
+                      disabled={Boolean(mutation)}
                       fetchItems={searchTaskAssignees}
                       onChange={(value, selectedUser) =>
-                        setNewTask((current) => ({
+                        changeTaskDraft((current) => ({
                           ...current,
                           assigneeId: value,
                           assigneeName: selectedUser?.name ?? "",
@@ -1561,9 +1645,10 @@ function TasksWorkspace({ search }: { search: string }) {
                     <label className="block text-sm font-semibold text-slate-800 min-w-0">
                       Prioridad
                       <select
-                        value={newTask.priority}
+                        disabled={Boolean(mutation)}
+                        value={taskForm.priority}
                         onChange={(event) =>
-                          setNewTask((current) => ({
+                          changeTaskDraft((current) => ({
                             ...current,
                             priority: event.target.value as WorkPriority,
                           }))
@@ -1584,9 +1669,10 @@ function TasksWorkspace({ search }: { search: string }) {
                       </span>
                       <input
                         type="date"
-                        value={newTask.dueDate}
+                        disabled={Boolean(mutation)}
+                        value={taskForm.dueDate}
                         onChange={(event) =>
-                          setNewTask((current) => ({
+                          changeTaskDraft((current) => ({
                             ...current,
                             dueDate: event.target.value,
                           }))
@@ -1615,17 +1701,21 @@ function TasksWorkspace({ search }: { search: string }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={Boolean(mutation) || !newTask.assigneeId}
+                    disabled={
+                      Boolean(mutation) ||
+                      (!editingTask && !taskForm.assigneeId)
+                    }
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 max-w-full whitespace-normal"
                   >
-                    {mutation === "create-task" && (
+                    {(mutation === "create-task" ||
+                      mutation === "edit-task") && (
                       <Loader2
                         aria-hidden="true"
                         className="animate-spin"
                         size={17}
                       />
                     )}
-                    Crear tarea
+                    {editingTask ? "Guardar cambios" : "Crear tarea"}
                   </button>
                 </div>
               </form>
