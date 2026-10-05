@@ -22,7 +22,10 @@ import {
 import type { CommunicationChannel, IssueCase } from "@/lib/cases-api";
 import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError } from "@/lib/api-client";
-import { getConsentNoticePresentationKey } from "@/lib/consent-notices-api";
+import {
+  getCaseConsentAcceptanceKey,
+  hasCurrentCaseConsentAcceptance,
+} from "@/lib/case-consent-acceptance";
 import {
   createInteraction,
   CaseConsentStatus,
@@ -241,13 +244,17 @@ export function CaseInteractionsPanel({
   onCreated: (interaction: Interaction) => void;
   onClose: () => void;
 }) {
+  const hasContact = Boolean(issueCase.voterId || issueCase.externalContactRef);
+  const initialForm: InteractionFormState = hasContact
+    ? INITIAL_FORM
+    : { ...INITIAL_FORM, channel: "INTERNAL", direction: "INTERNAL" };
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const closePanelRef = useRef(onClose);
   const savingRef = useRef(false);
   const [page, setPage] = useState(1);
   const [reloadVersion, setReloadVersion] = useState(0);
-  const [form, setForm] = useState<InteractionFormState>(INITIAL_FORM);
+  const [form, setForm] = useState<InteractionFormState>(initialForm);
   const [saving, setSaving] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -280,17 +287,24 @@ export function CaseInteractionsPanel({
     [issueCase.id],
   );
   const { data: consent, setData: setConsent, loading: consentLoading, error: consentError } =
-    usePageRequest<CaseConsentStatus>(loadConsent, { reloadKey: reloadVersion });
+    usePageRequest<CaseConsentStatus>(loadConsent, {
+      enabled: hasContact,
+      reloadKey: reloadVersion,
+    });
   const consentLoadError = consentError ? readableError(consentError) : null;
-  const presentedNoticeKey = getConsentNoticePresentationKey(consent?.currentNotice);
   // An acceptance belongs to this case, this load and the exact notice presented.
-  const currentConsentNoticeKey = presentedNoticeKey
-    ? `${issueCase.id}:${reloadVersion}:${presentedNoticeKey}`
-    : null;
+  const consentPresentation = {
+    caseId: issueCase.id,
+    reloadVersion,
+    notice: consent?.currentNotice,
+  };
+  const currentConsentNoticeKey = getCaseConsentAcceptanceKey(consentPresentation);
   const consentAcceptedForCurrentNotice =
-    currentConsentNoticeKey !== null &&
-    consentAccepted &&
-    acceptedConsentNoticeKey === currentConsentNoticeKey;
+    hasCurrentCaseConsentAcceptance({
+      ...consentPresentation,
+      accepted: consentAccepted,
+      acceptedKey: acceptedConsentNoticeKey,
+    });
 
   const closePanel = useCallback(() => {
     if (savingRef.current) return;
@@ -371,7 +385,7 @@ export function CaseInteractionsPanel({
         occurredAt,
       });
 
-      setForm(INITIAL_FORM);
+      setForm(initialForm);
       setNotice("Gestión registrada y vinculada al caso.");
       setPage(1);
       setReloadVersion((value) => value + 1);
@@ -394,14 +408,7 @@ export function CaseInteractionsPanel({
       );
       return;
     }
-    const submittedNoticeKey = getConsentNoticePresentationKey(
-      consent.currentNotice,
-    );
-    if (
-      !consentAccepted ||
-      !submittedNoticeKey ||
-      acceptedConsentNoticeKey !== submittedNoticeKey
-    ) {
+    if (!consentAcceptedForCurrentNotice) {
       setConsentMutationError(
         "Confirma que la persona autorizó de forma previa, expresa e informada el aviso mostrado.",
       );
@@ -468,9 +475,7 @@ export function CaseInteractionsPanel({
   const interactions = result?.items ?? [];
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
   const outboundWithoutContact =
-    form.direction === "OUTBOUND" &&
-    !issueCase.voterId &&
-    !issueCase.externalContactRef;
+    form.direction === "OUTBOUND" && !hasContact;
   const outboundWithoutConsent =
     form.direction === "OUTBOUND" &&
     !outboundWithoutContact &&
@@ -587,8 +592,8 @@ export function CaseInteractionsPanel({
                   Este caso aún no tiene gestiones
                 </p>
                 <p className="mt-1 max-w-md text-sm font-semibold text-slate-500">
-                  La bitácora comenzará cuando el equipo registre el primer
-                  contacto real.
+                  La bitácora comenzará cuando el equipo registre la primera
+                  gestión del caso.
                 </p>
               </div>
             ) : (
@@ -639,12 +644,16 @@ export function CaseInteractionsPanel({
                 <div className="flex items-start gap-3">
                   <span
                     className={`rounded-xl p-2 ${
-                      consent?.active
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
+                      !hasContact
+                        ? "bg-blue-100 text-blue-800"
+                        : consent?.active
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {consent?.active ? (
+                    {!hasContact ? (
+                      <ShieldCheck aria-hidden="true" size={20} />
+                    ) : consent?.active ? (
                       <BadgeCheck aria-hidden="true" size={20} />
                     ) : (
                       <Ban aria-hidden="true" size={20} />
@@ -655,16 +664,28 @@ export function CaseInteractionsPanel({
                       id="case-consent-title"
                       className="text-base font-black text-slate-950"
                     >
-                      Permiso de contacto
+                      {hasContact ? "Permiso de contacto" : "Gestión interna"}
                     </h3>
                     <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
-                      {consentPurposeLabel(consent)}. El estado se consulta en
-                      la API y no muestra datos personales.
+                      {hasContact
+                        ? `${consentPurposeLabel(consent)}. El estado se consulta en la API y no muestra datos personales.`
+                        : "Este caso no tiene un ciudadano o contacto externo vinculado."}
                     </p>
                   </div>
                 </div>
 
-                {consentLoading ? (
+                {!hasContact ? (
+                  <p
+                    role="status"
+                    className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-950"
+                  >
+                    {canCreate
+                      ? "Puedes registrar actuaciones y resultados internos en la bitácora."
+                      : "La bitácora documenta las actuaciones y los resultados internos del equipo."}{" "}
+                    Las gestiones salientes requieren vincular un contacto y
+                    verificar su autorización.
+                  </p>
+                ) : consentLoading ? (
                   <div
                     role="status"
                     className="mt-4 flex items-center gap-2 rounded-xl bg-white p-3 text-xs font-bold text-slate-600"
@@ -732,7 +753,7 @@ export function CaseInteractionsPanel({
                   </div>
                 )}
 
-                {(consentNotice || consentMutationError) && (
+                {hasContact && (consentNotice || consentMutationError) && (
                   <div
                     role={consentMutationError ? "alert" : "status"}
                     aria-live="polite"
@@ -746,7 +767,8 @@ export function CaseInteractionsPanel({
                   </div>
                 )}
 
-                {!consentLoading &&
+                {hasContact &&
+                  !consentLoading &&
                   !consentLoadError &&
                   consent !== null &&
                   !consent.active &&
@@ -855,7 +877,8 @@ export function CaseInteractionsPanel({
                     </form>
                   )}
 
-                {!consentLoading &&
+                {hasContact &&
+                  !consentLoading &&
                   !consentLoadError &&
                   consent?.active &&
                   canRevokeConsent && (
@@ -1021,7 +1044,11 @@ export function CaseInteractionsPanel({
                             summary: event.target.value,
                           }))
                         }
-                        placeholder="Qué informó el ciudadano y qué gestión realizó el equipo"
+                        placeholder={
+                          hasContact
+                            ? "Qué informó el ciudadano y qué gestión realizó el equipo"
+                            : "Qué actuación interna realizó el equipo para atender este caso"
+                        }
                         className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 normal-case tracking-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                       <span className="block text-right text-[10px] font-bold text-slate-400">
