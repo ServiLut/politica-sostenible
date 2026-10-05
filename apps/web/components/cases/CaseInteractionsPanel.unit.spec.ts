@@ -30,7 +30,7 @@ const issueCase: IssueCase = {
   voter: null, division: null, _count: { interactions: 0, tasks: 0, commitments: 0 },
 };
 
-async function renderPanel(currentCase: IssueCase, canCreate = true) {
+async function renderPanel(currentCase: IssueCase, canCreate = true, territoryLabel?: string) {
   const nativeRequire = createRequire(filename);
   const requests: Array<ReturnType<typeof createPageRequestState<unknown>>> = [];
   const calls = { interactions: 0, consent: 0 };
@@ -62,7 +62,7 @@ async function renderPanel(currentCase: IssueCase, canCreate = true) {
   runInNewContext(`(function(require, module, exports) { ${compiled}\n})`)(requireModule, componentModule, componentModule.exports);
   const html = renderToStaticMarkup(createElement(componentModule.exports.CaseInteractionsPanel, {
     issueCase: currentCase, canCreate, canGrantConsent: true, canRevokeConsent: true,
-    onCreated: () => {}, onClose: () => {},
+    onCreated: () => {}, onClose: () => {}, territoryLabel,
   }));
   // Exercise the actual request lifecycle with the component's enabled flags.
   await Promise.all(requests.map(state => state.start()));
@@ -89,6 +89,15 @@ test("la vista interna de solo lectura no ofrece registrar ni autorizar", async 
   expect(html).not.toContain("Puedes registrar");
   expect(html).not.toContain("Guardar en bitácora");
   expect(html).not.toContain("Registrar autorización");
+});
+
+test("bitácora muestra el territorio persistido sólo cuando Incidentes lo proporciona", async () => {
+  const { html, calls } = await renderPanel(issueCase, true, "MEDELLÍN");
+  expect(html).toContain("Territorio vinculado:");
+  expect(html).toContain("MEDELLÍN");
+  expect(calls).toEqual({ interactions: 1, consent: 0 });
+  const ordinary = await renderPanel(issueCase);
+  expect(ordinary.html).not.toContain("Territorio vinculado:");
 });
 
 for (const relation of [{ voterId: "person-synthetic-1" }, { externalContactRef: "QA-CONTACT-1" }]) {

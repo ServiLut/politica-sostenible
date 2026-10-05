@@ -91,6 +91,7 @@ export interface CreateIssueCaseInput {
   sourceChannel: CommunicationChannel;
   priority?: WorkPriority;
   externalContactRef?: string;
+  divisionId?: string;
   assigneeId?: string;
   confidential?: boolean;
   dueAt?: string;
@@ -104,6 +105,7 @@ export interface UpdateIssueCaseInput {
   status?: IssueCaseStatus;
   priority?: WorkPriority;
   externalContactRef?: string | null;
+  divisionId?: string | null;
   assigneeId?: string | null;
   confidential?: boolean;
   dueAt?: string | null;

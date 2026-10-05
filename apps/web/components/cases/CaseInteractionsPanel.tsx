@@ -229,6 +229,7 @@ function InteractionTimelineItem({
 
 export function CaseInteractionsPanel({
   issueCase,
+  territoryLabel,
   canCreate,
   canGrantConsent,
   canRevokeConsent,
@@ -237,6 +238,7 @@ export function CaseInteractionsPanel({
   onClose,
 }: {
   issueCase: IssueCase;
+  territoryLabel?: string;
   canCreate: boolean;
   canGrantConsent: boolean;
   canRevokeConsent: boolean;
@@ -512,6 +514,11 @@ export function CaseInteractionsPanel({
             <p className="mt-1 truncate text-sm font-semibold text-slate-500">
               {issueCase.title}
             </p>
+            {territoryLabel && (
+              <p className="mt-1 break-words text-sm font-semibold text-slate-700">
+                Territorio vinculado: {territoryLabel}
+              </p>
+            )}
           </div>
           <button
             ref={closeButtonRef}

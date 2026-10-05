@@ -5,6 +5,7 @@ import { usePageRequest } from "@/lib/use-page-request";
 import { useSearchParams } from "next/navigation";
 
 import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
+import { IncidentMunicipalitySelector } from "@/components/territory/IncidentMunicipalitySelector";
 import { UserCombobox } from "@/components/ui/UserCombobox";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
@@ -21,6 +22,7 @@ import {
   WorkPriority,
 } from "@/lib/cases-api";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { type IncidentMunicipality } from "@/lib/incident-municipalities";
 import { BackendUserRole } from "@/types/saas-schema";
 import {
   AlertCircle,
@@ -32,6 +34,7 @@ import {
   FileLock2,
   History,
   Inbox,
+  MapPin,
   Loader2,
   Plus,
   RefreshCw,
@@ -218,6 +221,12 @@ function IncidentCard({
   const [priority, setPriority] = useState(incident.priority);
   const [assigneeId, setAssigneeId] = useState(incident.assigneeId ?? "");
   const [dueDate, setDueDate] = useState(toDateInput(incident.dueAt));
+  const [municipality, setMunicipality] = useState<IncidentMunicipality | null>(
+    incident.division ??
+      (incident.divisionId
+        ? { id: incident.divisionId, name: "Territorio vinculado" }
+        : null),
+  );
   const nextStatuses = useMemo(
     () => [incident.status, ...TRANSITIONS[incident.status]],
     [incident.status],
@@ -226,7 +235,8 @@ function IncidentCard({
     status !== incident.status ||
     priority !== incident.priority ||
     assigneeId !== (incident.assigneeId ?? "") ||
-    dueDate !== toDateInput(incident.dueAt);
+    dueDate !== toDateInput(incident.dueAt) ||
+    (municipality?.id ?? null) !== incident.divisionId;
   const overdue = isOverdue(incident);
 
   function save() {
@@ -238,6 +248,9 @@ function IncidentCard({
     }
     if (dueDate !== toDateInput(incident.dueAt)) {
       input.dueAt = dueDate ? toApiDate(dueDate) : null;
+    }
+    if ((municipality?.id ?? null) !== incident.divisionId) {
+      input.divisionId = municipality?.id ?? null;
     }
     void onSave(incident, input);
   }
@@ -296,6 +309,15 @@ function IncidentCard({
       </div>
 
       <dl className="mt-5 grid gap-3 text-xs sm:grid-cols-2 min-w-0">
+        <div className="rounded-2xl bg-slate-50 p-3 min-w-0 sm:col-span-2">
+          <dt className="flex items-center gap-1 font-bold text-slate-500">
+            <MapPin aria-hidden="true" size={14} /> Territorio vinculado
+          </dt>
+          <dd className="mt-1 break-words font-semibold text-slate-700">
+            {incident.division?.name ??
+              (incident.divisionId ? "Territorio vinculado" : "Sin municipio vinculado")}
+          </dd>
+        </div>
         <div className="rounded-2xl bg-slate-50 p-3 min-w-0">
           <dt className="flex items-center gap-1 font-bold text-slate-400">
             <UserRoundCheck aria-hidden="true" size={14} /> Responsable
@@ -329,6 +351,17 @@ function IncidentCard({
       {canMutate && (
         <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 min-w-0">
           <div className="grid gap-3 sm:grid-cols-2 min-w-0">
+            <div className="min-w-0 sm:col-span-2">
+              <p className="mb-1 text-sm font-semibold text-slate-500">
+                Municipio (opcional)
+              </p>
+              <IncidentMunicipalitySelector
+                ariaLabel={`Municipio de ${incident.reference}`}
+                value={municipality}
+                onChange={setMunicipality}
+                disabled={saving}
+              />
+            </div>
             <label className="text-sm font-semibold text-slate-500 min-w-0">
               Estado operativo
               <select
@@ -458,6 +491,7 @@ export default function IncidentsPage() {
     assigneeId: "",
     dueDate: "",
     confidential: false,
+    municipality: null as IncidentMunicipality | null,
   });
   const createDialogRef = useRef<HTMLDivElement>(null);
   const createDialogTitleRef = useRef<HTMLHeadingElement>(null);
@@ -536,6 +570,7 @@ export default function IncidentsPage() {
         priority: form.priority,
         externalContactRef: form.externalContactRef || undefined,
         assigneeId: form.assigneeId || undefined,
+        divisionId: form.municipality?.id,
         confidential: form.confidential,
         dueAt: form.dueDate ? toApiDate(form.dueDate) : undefined,
       });
@@ -549,6 +584,7 @@ export default function IncidentsPage() {
         assigneeId: "",
         dueDate: "",
         confidential: false,
+        municipality: null,
       });
       setIsCreateOpen(false);
       setNotice("Incidente registrado con trazabilidad de auditoría.");
@@ -581,6 +617,7 @@ export default function IncidentsPage() {
           : current,
       );
       setNotice(`${updated.reference} actualizado y auditado.`);
+      setSelectedIncident((current) => current?.id === updated.id ? updated : current);
     } catch (requestError: unknown) {
       setMutationError(readableError(requestError));
     } finally {
@@ -850,6 +887,7 @@ export default function IncidentsPage() {
               <button
                 type="button"
                 aria-label="Cerrar"
+                disabled={saving === "create"}
                 onClick={() => setIsCreateOpen(false)}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
               >
@@ -988,6 +1026,20 @@ export default function IncidentsPage() {
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
+                <div className="min-w-0 space-y-2 md:col-span-2">
+                  <p className="text-sm font-semibold text-slate-600">
+                    Municipio (opcional)
+                  </p>
+                  <IncidentMunicipalitySelector
+                    ariaLabel="Municipio del nuevo incidente"
+                    value={form.municipality}
+                    onChange={(municipality) => setForm((current) => ({ ...current, municipality }))}
+                    disabled={saving === "create"}
+                  />
+                  <p className="text-xs leading-5 text-slate-600">
+                    Vincula el incidente con un municipio de la organización para consultarlo en el mapa territorial.
+                  </p>
+                </div>
                 <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2 min-w-0">
                   <input
                     type="checkbox"
@@ -1017,6 +1069,7 @@ export default function IncidentsPage() {
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
                 <button
                   type="button"
+                  disabled={saving === "create"}
                   onClick={() => setIsCreateOpen(false)}
                   className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 max-w-full whitespace-normal"
                 >
@@ -1044,6 +1097,8 @@ export default function IncidentsPage() {
         <CaseInteractionsPanel
           key={selectedIncident.id}
           issueCase={selectedIncident}
+          territoryLabel={selectedIncident.division?.name ??
+            (selectedIncident.divisionId ? "Territorio vinculado" : "Sin municipio vinculado")}
           canCreate={canMutate}
           canGrantConsent={canMutate}
           canRevokeConsent={
