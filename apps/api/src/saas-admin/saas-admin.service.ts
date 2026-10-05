@@ -1,48 +1,92 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '../../prisma/generated/prisma';
+import { ListSaasAdminQueryDto } from './dto/list-saas-admin-query.dto';
+
+function pagination(page: number, limit: number, total: number) {
+  const totalPages = Math.ceil(total / limit);
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+  };
+}
 
 @Injectable()
 export class SaasAdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listTenants() {
-    const tenants = await this.prisma.tenant.findMany({
-      include: {
-        _count: {
-          select: {
-            users: true,
-            voters: true,
+  async listTenants(
+    query: ListSaasAdminQueryDto = new ListSaasAdminQueryDto(),
+  ) {
+    const { page = 1, limit = 25 } = query;
+    const search = query.search?.trim();
+    const where: Prisma.TenantWhereInput = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { slug: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+    // Cross-organization reads are available only through SaasAdminGuard.
+    // Count and page share one snapshot so metadata cannot silently disagree.
+    const [tenants, total] = await this.prisma.$transaction(
+      [
+        this.prisma.tenant.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+          include: {
+            _count: {
+              select: {
+                users: true,
+                voters: true,
+              },
+            },
+            auditEvents: {
+              orderBy: { occurredAt: 'desc' },
+              take: 1,
+              select: { occurredAt: true },
+            },
+            operationProfile: {
+              select: { id: true },
+            },
+            settings: {
+              select: { id: true },
+            },
           },
-        },
-        auditEvents: {
-          orderBy: { occurredAt: 'desc' },
-          take: 1,
-          select: { occurredAt: true },
-        },
-        operationProfile: {
-          select: { id: true },
-        },
-        settings: {
-          select: { id: true },
-        },
-      },
-    });
+        }),
+        this.prisma.tenant.count({ where }),
+      ],
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
 
-    return tenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      slug: t.slug,
-      type: t.type,
-      createdAt: t.createdAt,
-      userCount: t._count.users,
-      voterCount: t._count.voters,
-      lastActivity: t.auditEvents[0]?.occurredAt || null,
-      operationProfileConfigured: !!t.operationProfile,
-      campaignSettingsConfigured: !!t.settings,
-    }));
+    return {
+      data: tenants.map((t) => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        type: t.type,
+        createdAt: t.createdAt,
+        userCount: t._count.users,
+        voterCount: t._count.voters,
+        lastActivity: t.auditEvents[0]?.occurredAt || null,
+        operationProfileConfigured: !!t.operationProfile,
+        campaignSettingsConfigured: !!t.settings,
+      })),
+      pagination: pagination(page, limit, total),
+    };
   }
 
-  async getTenantDetail(tenantId: string) {
+  async getTenantDetail(
+    tenantId: string,
+    query: ListSaasAdminQueryDto = new ListSaasAdminQueryDto(),
+  ) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: {
@@ -55,17 +99,39 @@ export class SaasAdminService {
       throw new NotFoundException('Tenant not found');
     }
 
-    const users = await this.prisma.user.findMany({
-      where: { tenantId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
+    const { page = 1, limit = 25 } = query;
+    const search = query.search?.trim();
+    const userWhere: Prisma.UserWhereInput = {
+      tenantId,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' as const } },
+              { email: { contains: search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+    const [users, usersTotal] = await this.prisma.$transaction(
+      [
+        this.prisma.user.findMany({
+          where: userWhere,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            isActive: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.user.count({ where: userWhere }),
+      ],
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
 
     const maskedUsers = users.map((u) => {
       const parts = u.email.split('@');
@@ -114,6 +180,7 @@ export class SaasAdminService {
     return {
       tenant,
       users: maskedUsers,
+      usersPagination: pagination(page, limit, usersTotal),
       moduleUsage: {
         voters: votersCount,
         tasks: tasksCount,

@@ -2,11 +2,7 @@ import { apiRequest } from "@/lib/api-client";
 
 export type PoliticalOperationMode = "CAMPAIGN" | "PUBLIC_OFFICE";
 export type TaskStatus =
-  | "TODO"
-  | "IN_PROGRESS"
-  | "BLOCKED"
-  | "DONE"
-  | "CANCELLED";
+  "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE" | "CANCELLED";
 export type WorkPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type CommitmentStatus =
   | "PROPOSED"
@@ -201,9 +197,17 @@ export function listTasks(
 }
 
 export function listTaskAssignees(
+  params: { search?: string; page?: number; limit?: number } = {},
   signal?: AbortSignal,
-): Promise<WorkAssignee[]> {
-  return apiRequest("tasks/assignees", { signal });
+): Promise<PaginatedResult<WorkAssignee>> {
+  return apiRequest(
+    withQuery("tasks/assignees/search", {
+      search: params.search?.trim(),
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    }),
+    { signal },
+  );
 }
 
 export function createTask(input: CreateTaskInput): Promise<Task> {

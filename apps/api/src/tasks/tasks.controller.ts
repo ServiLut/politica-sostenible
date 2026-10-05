@@ -16,6 +16,7 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
+import { ListTaskAssigneesQueryDto } from './dto/list-task-assignees-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksService } from './tasks.service';
 
@@ -44,6 +45,18 @@ export class TasksController {
   })
   listAssignees(@CurrentUser() user: AuthenticatedUser) {
     return this.tasksService.listAssignees(user);
+  }
+
+  @Get('assignees/search')
+  @Roles(...TASK_MANAGER_ROLES)
+  @ApiOperation({
+    summary: 'Busca responsables autorizados por página y texto',
+  })
+  listAssigneesPage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListTaskAssigneesQueryDto,
+  ) {
+    return this.tasksService.listAssigneesPage(user, query);
   }
 
   @Get()

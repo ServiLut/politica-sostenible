@@ -137,12 +137,6 @@ export default function BillingPage() {
             organización.
           </p>
         </div>
-        <a
-          href="mailto:ventas@politicasostenible.co"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 max-w-full whitespace-normal"
-        >
-          Contactar ventas
-        </a>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2 min-w-0">

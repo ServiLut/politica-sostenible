@@ -42,6 +42,30 @@ function paginated<T>(items: T[]) {
   };
 }
 
+function assigneePage<T extends { name: string; id: string }>(
+  items: T[],
+  url: URL,
+) {
+  const page = Number(url.searchParams.get("page") ?? "1");
+  const limit = Number(url.searchParams.get("limit") ?? "20");
+  const search = (url.searchParams.get("search") ?? "").toLocaleLowerCase();
+  expect(Number.isInteger(page) && page >= 1).toBe(true);
+  expect(Number.isInteger(limit) && limit >= 1 && limit <= 50).toBe(true);
+  expect(url.searchParams.has("tenantId")).toBe(false);
+  const matches = items
+    .filter((item) => item.name.toLocaleLowerCase().includes(search))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+  return successful({
+    items: matches.slice((page - 1) * limit, page * limit),
+    pagination: {
+      page,
+      limit,
+      total: matches.length,
+      totalPages: Math.ceil(matches.length / limit),
+    },
+  });
+}
+
 function commitmentPage<T>(
   items: T[],
   permissions = { canCreate: true, canReadInternal: true },
@@ -70,6 +94,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   const mutationBodies: Array<Record<string, unknown>> = [];
   const authorizationHeaders: string[] = [];
   const exportPaths: string[] = [];
+  let failAssigneePageTwo = true;
   const assignees = [
     {
       id: "user-e2e",
@@ -87,6 +112,12 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
         type: "ZONA",
       },
     },
+    ...Array.from({ length: 40 }, (_, index) => ({
+      id: `synthetic-team-${index}`,
+      name: `A Equipo ${String(index).padStart(2, "0")}`,
+      role: "CASE_WORKER",
+      division: null,
+    })),
   ];
   let tasks = [
     {
@@ -168,11 +199,23 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
       return;
     }
 
-    if (pathname === "/api/tasks/assignees" && method === "GET") {
+    if (pathname === "/api/tasks/assignees/search" && method === "GET") {
+      if (
+        new URL(request.url()).searchParams.get("page") === "2" &&
+        failAssigneePageTwo
+      ) {
+        failAssigneePageTwo = false;
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Fallo transitorio de prueba" }),
+        });
+        return;
+      }
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(assignees)),
+        body: JSON.stringify(assigneePage(assignees, new URL(request.url()))),
       });
       return;
     }
@@ -339,8 +382,54 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     .getByLabel(/Descripción/)
     .fill("Consolidar y publicar los resultados del mes.");
   await taskDialog
-    .getByRole("combobox", { name: "Responsable" })
-    .selectOption("team-member-e2e");
+    .getByRole("button", { name: "Responsable de la tarea" })
+    .click();
+  await expect(taskDialog.getByText("Página 1 · 42 resultados")).toBeVisible();
+  const mutationsBeforeTaskSearchEnter = mutationBodies.length;
+  await taskDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .press("Enter");
+  await expect(taskDialog).toBeVisible();
+  expect(mutationBodies).toHaveLength(mutationsBeforeTaskSearchEnter);
+  await taskDialog
+    .getByRole("button", { name: "Siguiente", exact: true })
+    .click();
+  await expect(taskDialog.getByRole("alert")).toContainText(
+    "La selección se conserva",
+  );
+  await expect(
+    taskDialog.getByRole("button", { name: "Responsable de la tarea" }),
+  ).toContainText("Dirección operativa");
+  await taskDialog.getByRole("button", { name: "Reintentar búsqueda" }).click();
+  await expect(taskDialog.getByText("Página 2 · 42 resultados")).toBeVisible();
+  await taskDialog
+    .getByRole("button", { name: "Siguiente", exact: true })
+    .click();
+  await expect(taskDialog.getByText("Página 3 · 42 resultados")).toBeVisible();
+  await taskDialog.getByRole("button", { name: /^Andrea Territorio/ }).click();
+  await taskDialog
+    .getByRole("button", { name: "Responsable de la tarea" })
+    .click();
+  const responsibleSearch = taskDialog.getByRole("textbox", {
+    name: "Buscar usuario para asignar",
+  });
+  await responsibleSearch.fill("Dirección operativa");
+  await expect(taskDialog.getByText("Página 1 · 1 resultados")).toBeVisible();
+  await responsibleSearch.press("Escape");
+  await expect(taskDialog).toBeVisible();
+  await expect(
+    taskDialog.getByRole("button", { name: "Responsable de la tarea" }),
+  ).toContainText("Andrea Territorio");
+  await taskDialog
+    .getByRole("button", { name: "Cancelar", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Nueva tarea" }).click();
+  await expect(
+    taskDialog.getByRole("button", { name: "Responsable de la tarea" }),
+  ).toContainText("Andrea Territorio");
+  await expect(
+    taskDialog.getByRole("button", { name: "Responsable de la tarea" }),
+  ).toHaveAccessibleDescription("Andrea Territorio");
   await taskDialog.getByRole("button", { name: "Crear tarea" }).click();
 
   await expect(page.getByText("Tarea creada correctamente.")).toBeVisible();
@@ -353,10 +442,9 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
 
   await page.getByRole("tab", { name: /Compromisos/ }).click();
   await page.getByRole("button", { name: "Exportar CSV" }).click();
-  await expect.poll(() => exportPaths).toEqual([
-    "/api/export/tareas",
-    "/api/export/compromisos",
-  ]);
+  await expect
+    .poll(() => exportPaths)
+    .toEqual(["/api/export/tareas", "/api/export/compromisos"]);
   const commitmentCard = page.getByTestId("commitment-card-commitment-1");
   await expect(commitmentCard).toContainText("Iluminación segura");
 
@@ -390,8 +478,34 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     .getByLabel("Descripción")
     .fill("Coordinar y verificar la recuperación del espacio público.");
   await commitmentDialog
-    .getByRole("combobox", { name: "Responsable" })
-    .selectOption("team-member-e2e");
+    .getByRole("button", { name: "Responsable del compromiso" })
+    .click();
+  await commitmentDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .fill("Andrea Territorio");
+  const mutationsBeforeCommitmentSearchEnter = mutationBodies.length;
+  await commitmentDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .press("Enter");
+  await expect(commitmentDialog).toBeVisible();
+  expect(mutationBodies).toHaveLength(mutationsBeforeCommitmentSearchEnter);
+  await commitmentDialog
+    .getByRole("button", { name: /^Andrea Territorio/ })
+    .click();
+  await commitmentDialog
+    .getByRole("button", { name: "Cancelar", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Nuevo compromiso" }).click();
+  await expect(
+    commitmentDialog.getByRole("button", {
+      name: "Responsable del compromiso",
+    }),
+  ).toContainText("Andrea Territorio");
+  await expect(
+    commitmentDialog.getByRole("button", {
+      name: "Responsable del compromiso",
+    }),
+  ).toHaveAccessibleDescription("Andrea Territorio");
   await commitmentDialog
     .getByRole("button", { name: "Registrar compromiso" })
     .click();
@@ -504,10 +618,7 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
     const url = new URL(request.url());
     const method = request.method();
 
-    if (
-      url.pathname === "/api/billing/capabilities" &&
-      method === "GET"
-    ) {
+    if (url.pathname === "/api/billing/capabilities" && method === "GET") {
       expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
       await route.fulfill({
         status: 200,
@@ -521,7 +632,7 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(assignees)),
+        body: JSON.stringify(assigneePage(assignees, new URL(request.url()))),
       });
       return;
     }
@@ -544,11 +655,11 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
       return;
     }
 
-    if (url.pathname === "/api/tasks/assignees" && method === "GET") {
+    if (url.pathname === "/api/tasks/assignees/search" && method === "GET") {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(assignees)),
+        body: JSON.stringify(assigneePage(assignees, new URL(request.url()))),
       });
       return;
     }
@@ -651,7 +762,9 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
     await route.fulfill({
       status: 404,
       contentType: "application/json",
-      body: JSON.stringify({ message: `Ruta no simulada: ${method} ${url.pathname}` }),
+      body: JSON.stringify({
+        message: `Ruta no simulada: ${method} ${url.pathname}`,
+      }),
     });
   });
 
@@ -692,13 +805,19 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
 
   const taskDialog = page.getByRole("dialog", { name: "Crear tarea" });
   await expect(taskDialog).toBeVisible();
-  await expect(taskDialog.getByTestId("linked-case-dialog-context")).toContainText(
-    "PQRS-2026-041",
-  );
+  await expect(
+    taskDialog.getByTestId("linked-case-dialog-context"),
+  ).toContainText("PQRS-2026-041");
   await taskDialog.getByLabel("Título").fill("Confirmar reparación en terreno");
   await taskDialog
-    .getByRole("combobox", { name: "Responsable" })
-    .selectOption("user-e2e");
+    .getByRole("button", { name: "Responsable de la tarea" })
+    .click();
+  await taskDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .fill("Dirección operativa");
+  await taskDialog
+    .getByRole("button", { name: /^Dirección operativa/ })
+    .click();
   await taskDialog.getByRole("button", { name: "Crear tarea" }).click();
 
   await expect(
@@ -742,8 +861,14 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
     .getByLabel("Descripción")
     .fill("Coordinar la solución y dejar constancia verificable del cierre.");
   await commitmentDialog
-    .getByRole("combobox", { name: "Responsable" })
-    .selectOption("user-e2e");
+    .getByRole("button", { name: "Responsable del compromiso" })
+    .click();
+  await commitmentDialog
+    .getByRole("textbox", { name: "Buscar usuario para asignar" })
+    .fill("Dirección operativa");
+  await commitmentDialog
+    .getByRole("button", { name: /^Dirección operativa/ })
+    .click();
   await commitmentDialog
     .getByRole("button", { name: "Registrar compromiso" })
     .click();
@@ -871,9 +996,9 @@ test("presenta un compromiso compartido con el equipo como solo lectura", async 
   await expect(
     page.getByRole("button", { name: "Nuevo compromiso" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Exportar CSV" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Exportar CSV" })).toHaveCount(
+    0,
+  );
   expect(patchRequests).toBe(0);
 });
 
@@ -1019,7 +1144,10 @@ test("gestión pública no ofrece tareas ni carga asignables al responsable de c
       return;
     }
 
-    if (request.method() === "GET" && pathname === "/api/tasks/assignees") {
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/tasks/assignees/search"
+    ) {
       assigneeRequests += 1;
       await route.fulfill({
         status: 403,
@@ -1068,9 +1196,9 @@ test("gestión pública no ofrece tareas ni carga asignables al responsable de c
   await expect(page.getByRole("button", { name: "Nueva tarea" })).toHaveCount(
     0,
   );
-  await expect(
-    page.getByRole("button", { name: "Exportar CSV" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Exportar CSV" })).toHaveCount(
+    0,
+  );
   expect(assigneeRequests).toBe(0);
 });
 
@@ -1147,12 +1275,15 @@ test("campaña ofrece tareas y carga asignables al responsable de comunicaciones
       return;
     }
 
-    if (request.method() === "GET" && pathname === "/api/tasks/assignees") {
+    if (
+      request.method() === "GET" &&
+      pathname === "/api/tasks/assignees/search"
+    ) {
       assigneeRequests += 1;
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(assignees)),
+        body: JSON.stringify(assigneePage(assignees, new URL(request.url()))),
       });
       return;
     }
@@ -1191,14 +1322,19 @@ test("campaña ofrece tareas y carga asignables al responsable de comunicaciones
 
   const createButton = page.getByRole("button", { name: "Nueva tarea" });
   await expect(createButton).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Exportar CSV" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Exportar CSV" })).toHaveCount(
+    0,
+  );
   await createButton.click();
 
   const dialog = page.getByRole("dialog", { name: "Crear tarea" });
   await expect(
-    dialog.getByRole("combobox", { name: "Responsable" }),
+    dialog.getByRole("button", { name: "Responsable de la tarea" }),
   ).toContainText("Comunicaciones de campaña");
+  expect(assigneeRequests).toBe(0);
+  await dialog.getByRole("button", { name: "Responsable de la tarea" }).click();
+  await expect(
+    dialog.getByRole("button", { name: /^Comunicaciones de campaña/ }),
+  ).toBeVisible();
   expect(assigneeRequests).toBeGreaterThan(0);
 });

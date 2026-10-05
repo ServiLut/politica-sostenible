@@ -130,3 +130,35 @@ Sobre la restauración, y no sobre producción:
 El cierre se registra como `GO`, `NO-GO` o `ROLL-FORWARD`; “parece funcionar” no
 es un estado de liberación.
 
+## 8. Run Command en Dokploy: una sola orden para el corte
+
+Comprobado el 5 de octubre de 2026 en Dokploy 0.26.5: el proveedor
+antepone `env -i` al primer comando Docker del override. Un segundo
+`docker compose up` situado después de `&&` o de una tubería puede heredar
+variables del proceso de Dokploy en lugar de las variables propias del
+proyecto. Un `compose config` correcto al principio de esa cadena no prueba
+el entorno que recibirá el último comando.
+
+Las comprobaciones de identidad de imagen, configuración efectiva, recursos,
+respaldo y restauración se ejecutan como operaciones separadas. Deben terminar
+correctamente antes de modificar `APP_REVISION`. El resultado público y el
+entorno efectivo deben verificarse de nuevo después del corte.
+
+Para el proyecto actual, el Run Command de corte y de reversa es únicamente:
+
+```text
+compose -p politica-sostenible-crmrecuperacion-pe1dnh -f ./compose.recovery.yml up -d --no-build --no-deps app
+```
+
+Dokploy antepone `docker`; no agregar tuberías, `&&`, otras órdenes, otros
+servicios, `down`, reconstrucción remota ni eliminación de huérfanos. En la
+reversa se restablece primero la revisión anterior comprobada en el entorno
+propio y después se ejecuta la misma orden única. Esta forma no evita por sí
+sola la interrupción de un reemplazo de contenedor: hay que medir disponibilidad
+y conservar la ruta de recuperación.
+
+Antes y después se comparan ID, imagen, hora de arranque, reinicios y estado
+de los demás contenedores para comprobar el alcance. Nunca imprimir la
+configuración completa de Compose o `docker inspect` con variables de entorno:
+los diagnósticos sólo deben emitir campos permitidos y metadatos sin secretos.
+

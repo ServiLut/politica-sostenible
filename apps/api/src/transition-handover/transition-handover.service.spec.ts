@@ -223,6 +223,16 @@ function createHarness(
 }
 
 describe('TransitionHandoverService', () => {
+  beforeEach(() => {
+    // The fixture is post-election but still before its reporting deadline.
+    // Real calendar time must not change which blocker this scenario asserts.
+    jest.useFakeTimers({ now: new Date('2026-09-25T12:00:00.000Z') });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('creates a tenant-scoped, integrity-stamped closeout draft without voter or identity data', async () => {
     const { service, transaction } = createHarness();
 
@@ -337,6 +347,23 @@ describe('TransitionHandoverService', () => {
         where: { tenantId: USER.tenantId, operationProfileId: 'profile-a' },
       }),
     );
+  });
+
+  it('adds the overdue blocker after the fixture reporting deadline passes', async () => {
+    jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+    const { service, transaction } = createHarness();
+    transaction.financeReportDossier.findMany.mockResolvedValue([]);
+    transaction.financialEntry.count.mockResolvedValue(0);
+
+    const result = await service.generateHandoverReport(USER);
+
+    expect(result.finance).toMatchObject({
+      closeoutReady: false,
+      closeoutBlockerCodes: expect.arrayContaining([
+        'POST_ELECTION_REPORT_OVERDUE',
+        'NO_REPORT_DOSSIER',
+      ]),
+    });
   });
 
   it('does not aggregate or audit before the post-election stage', async () => {

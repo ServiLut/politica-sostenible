@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,7 @@ import { lockAndAssertCampaignOperationOpen } from '../common/utils/operation-li
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
+import { ListTaskAssigneesQueryDto } from './dto/list-task-assignees-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 const TASK_INCLUDE = {
@@ -32,6 +34,13 @@ const TASK_INCLUDE = {
 
 const TASK_ACCESS_ROLES = Object.values(Role);
 const TERRITORIALLY_SCOPED_TASK_ROLES = [Role.ZONE_COORDINATOR] as const;
+const LEGACY_ASSIGNEE_LIMIT = 100;
+const ASSIGNEE_SELECT = {
+  id: true,
+  name: true,
+  role: true,
+  division: { select: { id: true, name: true, type: true } },
+} satisfies Prisma.UserSelect;
 
 interface TaskAccess {
   role: Role;
@@ -43,6 +52,50 @@ export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listAssignees(user: AuthenticatedUser) {
+    const where = await this.buildAssigneeWhere(user);
+    // Old tabs need a complete array. Refuse an oversized list instead of
+    // silently hiding a selected responsible or fetching an unbounded team.
+    const items = await this.prisma.user.findMany({
+      where,
+      select: ASSIGNEE_SELECT,
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      take: LEGACY_ASSIGNEE_LIMIT + 1,
+    });
+    if (items.length > LEGACY_ASSIGNEE_LIMIT) {
+      throw new ConflictException(
+        'Actualiza esta pestaña para buscar responsables en equipos de más de 100 personas.',
+      );
+    }
+    return items;
+  }
+
+  async listAssigneesPage(
+    user: AuthenticatedUser,
+    query: ListTaskAssigneesQueryDto,
+  ) {
+    const where = await this.buildAssigneeWhere(user, query.search?.trim());
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: ASSIGNEE_SELECT,
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      items,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  private async buildAssigneeWhere(
+    user: AuthenticatedUser,
+    search?: string,
+  ): Promise<Prisma.UserWhereInput> {
     const [mode, access] = await Promise.all([
       this.getActiveMode(user.tenantId),
       this.getCurrentAccess(user),
@@ -63,16 +116,19 @@ export class TasksService {
       ];
     }
 
-    return this.prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        division: { select: { id: true, name: true, type: true } },
-      },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-    });
+    if (search) {
+      // Keep the territorial OR independent: text matches must never widen it.
+      where.AND = [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      ];
+    }
+
+    return where;
   }
 
   async findAll(user: AuthenticatedUser, query: ListTasksQueryDto) {

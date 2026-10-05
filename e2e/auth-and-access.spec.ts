@@ -113,15 +113,18 @@ test("el login devuelve a la persona al deep-link completo solicitado", async ({
       data = { access_token: jwt, user: currentUser };
     } else if (url.pathname === "/api/auth/me") {
       data = { user: currentUser };
-    } else if (url.pathname === "/api/tasks/assignees") {
-      data = [
-        {
-          id: currentUser.id,
-          name: currentUser.name,
-          role: currentUser.role,
-          division: null,
-        },
-      ];
+    } else if (url.pathname === "/api/tasks/assignees/search") {
+      data = {
+        items: [
+          {
+            id: currentUser.id,
+            name: currentUser.name,
+            role: currentUser.role,
+            division: null,
+          },
+        ],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
     } else if (url.pathname === "/api/tasks") {
       requestedEntityId = url.searchParams.get("entityId");
       data = {
@@ -323,8 +326,7 @@ test("el logout usa el JWT y nunca bloquea la salida local", async ({
     observeLogout = resolve;
   });
   let logoutRequest:
-    | { authorization: string | undefined; method: string }
-    | undefined;
+    { authorization: string | undefined; method: string } | undefined;
 
   await page.addInitScript(
     ({ storageKey, token, user }) => {

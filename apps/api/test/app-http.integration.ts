@@ -114,6 +114,8 @@ void describe(
       app.useGlobalInterceptors(new TransformInterceptor());
       app.useGlobalFilters(new AllExceptionsFilter());
       await app.init();
+      // Supertest otherwise opens an unbound server on all interfaces.
+      await app.listen(0, '127.0.0.1');
       prisma = app.get(PrismaService);
       const connectionIdentity = await prisma.$queryRaw<
         Array<{ name: string }>
@@ -620,6 +622,392 @@ void describe(
         count,
       );
     });
+
+    void describe(
+      'selector de responsables paginado con datos y autorización reales',
+      { concurrency: false },
+      () => {
+        interface Assignee {
+          id: string;
+          name: string;
+          role: Role;
+          division: { id: string; name: string; type: DivisionType } | null;
+        }
+        interface AssigneePage {
+          items: Assignee[];
+          pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+          };
+        }
+        let team: Array<{ id: string; name: string }>;
+        let inactiveId: string;
+        let foreignId: string;
+        let coordinatorId: string;
+        let coordinatorToken: string;
+        let selectedFromThirdPage: string;
+        const search = `${runId} Page`;
+        const getAssignees = async (
+          token: string,
+          query: Record<string, string | number> = {},
+        ) =>
+          body<AssigneePage>(
+            await request(app.getHttpServer())
+              .get('/tasks/assignees/search')
+              .query(query)
+              .auth(token, { type: 'bearer' })
+              .expect(200),
+          );
+
+        before(async () => {
+          const [a, b] = fixtures;
+          const passwordHash = await bcrypt.hash(password, 10);
+          const inside = await prisma.politicalDivision.create({
+            data: {
+              tenantId: a.tenantId,
+              parentId: a.divisionId,
+              type: DivisionType.MUNICIPIO,
+              name: `${runId} Inside`,
+              code: 'ASSIGNEE_INSIDE',
+            },
+          });
+          const outside = await prisma.politicalDivision.create({
+            data: {
+              tenantId: a.tenantId,
+              type: DivisionType.DEPARTAMENTO,
+              name: `${runId} Outside`,
+              code: 'ASSIGNEE_OUTSIDE',
+            },
+          });
+          await prisma.user.createMany({
+            data: Array.from({ length: 42 }, (_, index) => ({
+              tenantId: a.tenantId,
+              name: `${search} ${String(index).padStart(2, '0')}`,
+              email: `${runId}_page_${index}@example.invalid`,
+              password: passwordHash,
+              role: Role.VOLUNTEER,
+              divisionId: index < 2 ? inside.id : outside.id,
+            })),
+          });
+          team = await prisma.user.findMany({
+            where: { tenantId: a.tenantId, name: { startsWith: search } },
+            select: { id: true, name: true },
+            orderBy: [{ name: 'asc' }, { id: 'asc' }],
+          });
+          assert.equal(team.length, 42);
+          inactiveId = (
+            await prisma.user.create({
+              data: {
+                tenantId: a.tenantId,
+                name: `${search} 09 inactive`,
+                email: `${runId}_inactive@example.invalid`,
+                password: passwordHash,
+                role: Role.VOLUNTEER,
+                isActive: false,
+                divisionId: inside.id,
+              },
+            })
+          ).id;
+          foreignId = (
+            await prisma.user.create({
+              data: {
+                tenantId: b.tenantId,
+                name: `${search} 09 foreign`,
+                email: `${runId}_foreign@example.invalid`,
+                password: passwordHash,
+                role: Role.VOLUNTEER,
+              },
+            })
+          ).id;
+          const coordinator = await prisma.user.create({
+            data: {
+              tenantId: a.tenantId,
+              name: `${runId} Coordinator`,
+              email: `${runId}_self@example.invalid`,
+              password: passwordHash,
+              role: Role.ZONE_COORDINATOR,
+              divisionId: a.divisionId,
+            },
+          });
+          coordinatorId = coordinator.id;
+          coordinatorToken = body<{ access_token: string }>(
+            await request(app.getHttpServer())
+              .post('/auth/login')
+              .send({ email: coordinator.email, password })
+              .expect(201),
+          ).access_token;
+          const identity = body<{
+            user: { id: string; tenant: { id: string } };
+          }>(
+            await request(app.getHttpServer())
+              .get('/auth/me')
+              .auth(coordinatorToken, { type: 'bearer' })
+              .expect(200),
+          );
+          assert.equal(identity.user.id, coordinatorId);
+          assert.equal(identity.user.tenant.id, a.tenantId);
+        });
+
+        void it('mantiene el array completo para pestañas anteriores sin cambiar el aislamiento ni el alcance del coordinador', async () => {
+          const legacy = async (token: string) =>
+            body<Assignee[]>(
+              await request(app.getHttpServer())
+                .get('/tasks/assignees')
+                .auth(token, { type: 'bearer' })
+                .expect(200),
+            );
+          const a = await legacy(fixtures[0].token);
+          assert.ok(Array.isArray(a));
+          assert.equal(a.length, 44);
+          assert.deepEqual(
+            new Set(a.map(({ id }) => id)),
+            new Set([
+              fixtures[0].userId,
+              coordinatorId,
+              ...team.map(({ id }) => id),
+            ]),
+          );
+          assert.ok(!a.some(({ id }) => id === inactiveId || id === foreignId));
+          assert.deepEqual(
+            new Set((await legacy(fixtures[1].token)).map(({ id }) => id)),
+            new Set([fixtures[1].userId, foreignId]),
+          );
+          assert.deepEqual(
+            new Set((await legacy(coordinatorToken)).map(({ id }) => id)),
+            new Set([coordinatorId, team[0].id, team[1].id]),
+          );
+        });
+
+        void it('recorre 42 usuarios en tres páginas sin repetir, filtrar en cliente ni descargar el equipo entero', async () => {
+          const ids: string[] = [];
+          for (const page of [1, 2, 3]) {
+            const result = await getAssignees(fixtures[0].token, {
+              search,
+              page,
+            });
+            assert.deepEqual(result.pagination, {
+              page,
+              limit: 20,
+              total: 42,
+              totalPages: 3,
+            });
+            assert.equal(result.items.length, page === 3 ? 2 : 20);
+            for (const item of result.items) {
+              assert.deepEqual(Object.keys(item).sort(), [
+                'division',
+                'id',
+                'name',
+                'role',
+              ]);
+              ids.push(item.id);
+            }
+            if (page === 3) selectedFromThirdPage = result.items[1].id;
+          }
+          assert.deepEqual(
+            ids,
+            team.map(({ id }) => id),
+          );
+          assert.equal(new Set(ids).size, 42);
+          assert.ok(!ids.includes(inactiveId) && !ids.includes(foreignId));
+        });
+
+        void it('busca nombre y correo en el servidor, omite inactivos y separa exactamente el tenant B', async () => {
+          const byName = await getAssignees(fixtures[0].token, {
+            search: `  ${search} 09  `,
+          });
+          assert.equal(byName.pagination.total, 1);
+          assert.deepEqual(
+            byName.items.map(({ id }) => id),
+            [team[9].id],
+          );
+          const byEmail = await getAssignees(fixtures[0].token, {
+            search: `${runId}_page_41@`,
+          });
+          assert.equal(byEmail.pagination.total, 1);
+          assert.deepEqual(
+            byEmail.items.map(({ id }) => id),
+            [team[41].id],
+          );
+          const otherTenant = await getAssignees(fixtures[1].token, { search });
+          assert.equal(otherTenant.pagination.total, 1);
+          assert.deepEqual(
+            otherTenant.items.map(({ id }) => id),
+            [foreignId],
+          );
+        });
+
+        void it('intersecta el OR de coordinador con búsqueda y descendientes; no incluye al propio actor si no coincide', async () => {
+          const all = await getAssignees(coordinatorToken, { limit: 50 });
+          assert.equal(all.pagination.total, 3);
+          assert.deepEqual(
+            new Set(all.items.map(({ id }) => id)),
+            new Set([coordinatorId, team[0].id, team[1].id]),
+          );
+          const byName = await getAssignees(coordinatorToken, { search });
+          assert.equal(byName.pagination.total, 2);
+          assert.deepEqual(
+            byName.items.map(({ id }) => id),
+            team.slice(0, 2).map(({ id }) => id),
+          );
+          const outsideName = await getAssignees(coordinatorToken, {
+            search: `${search} 41`,
+          });
+          assert.deepEqual(outsideName.items, []);
+          assert.equal(outsideName.pagination.total, 0);
+          const self = await getAssignees(coordinatorToken, {
+            search: `${runId}_self@`,
+          });
+          assert.deepEqual(
+            self.items.map(({ id }) => id),
+            [coordinatorId],
+          );
+        });
+
+        void it('rechaza límites inválidos y autoridad inyectada mediante el DTO HTTP real', async () => {
+          for (const query of [
+            { limit: 51 },
+            { limit: 0 },
+            { page: 0 },
+            { page: 1.5 },
+            { search: 'x'.repeat(101) },
+            { tenantId: fixtures[1].tenantId },
+          ]) {
+            await request(app.getHttpServer())
+              .get('/tasks/assignees/search')
+              .query(query)
+              .auth(fixtures[0].token, { type: 'bearer' })
+              .expect(400);
+          }
+        });
+
+        void it('crea y relee una tarea asignada desde la página3; rechaza responsables de otro tenant o inactivos', async () => {
+          const [a, b] = fixtures;
+          assert.equal(selectedFromThirdPage, team[41].id);
+          const created = body<TaskRecord & { assigneeId: string }>(
+            await request(app.getHttpServer())
+              .post('/tasks')
+              .auth(a.token, { type: 'bearer' })
+              .send({
+                title: `${runId} page3 selected`,
+                assigneeId: selectedFromThirdPage,
+              })
+              .expect(201),
+          );
+          const persisted = await prisma.task.findFirstOrThrow({
+            where: { id: created.id, tenantId: a.tenantId },
+          });
+          assert.equal(persisted.assigneeId, selectedFromThirdPage);
+          const readback = body<{
+            items: Array<TaskRecord & { assigneeId: string }>;
+          }>(
+            await request(app.getHttpServer())
+              .get('/tasks')
+              .query({ entityId: created.id })
+              .auth(a.token, { type: 'bearer' })
+              .expect(200),
+          );
+          assert.equal(readback.items[0]?.assigneeId, selectedFromThirdPage);
+          assert.deepEqual(
+            body<{ items: TaskRecord[] }>(
+              await request(app.getHttpServer())
+                .get('/tasks')
+                .query({ entityId: created.id })
+                .auth(b.token, { type: 'bearer' })
+                .expect(200),
+            ).items,
+            [],
+          );
+          for (const assigneeId of [foreignId, inactiveId]) {
+            await request(app.getHttpServer())
+              .post('/tasks')
+              .auth(a.token, { type: 'bearer' })
+              .send({ title: `${runId} rejected assignment`, assigneeId })
+              .expect(400);
+          }
+        });
+
+        void it('el coordinador asigna dentro de su territorio y el servidor bloquea un id ajeno al alcance', async () => {
+          const created = body<TaskRecord & { assigneeId: string }>(
+            await request(app.getHttpServer())
+              .post('/tasks')
+              .auth(coordinatorToken, { type: 'bearer' })
+              .send({
+                title: `${runId} coordinator inside`,
+                assigneeId: team[0].id,
+              })
+              .expect(201),
+          );
+          assert.equal(
+            (
+              await prisma.task.findFirstOrThrow({
+                where: { id: created.id, tenantId: fixtures[0].tenantId },
+              })
+            ).assigneeId,
+            team[0].id,
+          );
+          await request(app.getHttpServer())
+            .post('/tasks')
+            .auth(coordinatorToken, { type: 'bearer' })
+            .send({
+              title: `${runId} coordinator outside`,
+              assigneeId: team[41].id,
+            })
+            .expect(403);
+        });
+
+        void it('acepta 100 responsables legacy, rechaza el 101 sin truncarlo y conserva la navegación del cliente paginado', async () => {
+          const a = fixtures[0];
+          const passwordHash = await bcrypt.hash(password, 10);
+          await prisma.user.createMany({
+            data: Array.from({ length: 56 }, (_, index) => ({
+              tenantId: a.tenantId,
+              name: `${runId} Legacy ${String(index).padStart(2, '0')}`,
+              email: `${runId}_legacy_${index}@example.invalid`,
+              password: passwordHash,
+              role: Role.VOLUNTEER,
+            })),
+          });
+          const legacy = body<Assignee[]>(
+            await request(app.getHttpServer())
+              .get('/tasks/assignees')
+              .auth(a.token, { type: 'bearer' })
+              .expect(200),
+          );
+          assert.ok(Array.isArray(legacy));
+          assert.equal(legacy.length, 100);
+          assert.equal(new Set(legacy.map(({ id }) => id)).size, 100);
+          await prisma.user.create({
+            data: {
+              tenantId: a.tenantId,
+              name: `${runId} Legacy overflow`,
+              email: `${runId}_legacy_overflow@example.invalid`,
+              password: passwordHash,
+              role: Role.VOLUNTEER,
+            },
+          });
+          const conflict = await request(app.getHttpServer())
+            .get('/tasks/assignees')
+            .auth(a.token, { type: 'bearer' })
+            .expect(409);
+          const error = conflict.body as {
+            message: string;
+            data?: unknown;
+          };
+          assert.match(error.message, /Actualiza esta pestaña/);
+          assert.equal(error.data, undefined);
+          const page = await getAssignees(a.token, { page: 6, limit: 20 });
+          assert.deepEqual(page.pagination, {
+            page: 6,
+            limit: 20,
+            total: 101,
+            totalPages: 6,
+          });
+          assert.equal(page.items.length, 1);
+        });
+      },
+    );
 
     void it('prueba auditoría persistida, uso de Redis y revocación del JWT al cerrar sesiones', async () => {
       const fixture = fixtures[0];

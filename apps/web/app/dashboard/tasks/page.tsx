@@ -4,7 +4,7 @@ import { usePageRequest } from "@/lib/use-page-request";
 import { useSearchParams } from "next/navigation";
 
 import { ExportButton } from "@/components/ui/ExportButton";
-import { getRoleLabel } from "@/config/navigation";
+import { UserCombobox } from "@/components/ui/UserCombobox";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import { getIssueCase } from "@/lib/cases-api";
@@ -73,6 +73,9 @@ interface CommitmentFilters {
 }
 
 const PAGE_SIZE = 9;
+
+const searchTaskAssignees = (search: string, signal: AbortSignal, page = 1) =>
+  listTaskAssignees({ search, page, limit: 20 }, signal);
 
 const CAMPAIGN_TASK_CREATE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -340,6 +343,7 @@ function TasksWorkspace({ search }: { search: string }) {
     priority: "MEDIUM" as WorkPriority,
     dueDate: "",
     assigneeId: "",
+    assigneeName: "",
   });
   const [commitmentDraft, setNewCommitment] = useState({
     reference: "",
@@ -348,8 +352,8 @@ function TasksWorkspace({ search }: { search: string }) {
     targetDate: "",
     isPublic: false,
     ownerId: "",
+    ownerName: "",
   });
-  const [assigneesReload, setAssigneesReload] = useState(0);
 
   const linkedRequest = useCallback(
     (signal: AbortSignal) => getIssueCase(linkedCaseRequestId!, signal),
@@ -366,27 +370,14 @@ function TasksWorkspace({ search }: { search: string }) {
       : linkedQuery.error
         ? `No fue posible vincular el caso solicitado. ${readableError(linkedQuery.error)}`
         : null;
-  const assigneesQuery = usePageRequest(listTaskAssignees, {
-    enabled: canCreateTask,
-    reloadKey: assigneesReload,
-  });
-  const assignees = assigneesQuery.data ?? [];
-  const assigneesLoading = assigneesQuery.loading;
-  const assigneesError = assigneesQuery.error
-    ? readableError(assigneesQuery.error)
-    : null;
-  const ownId = assignees.find((item) => item.id === user?.id)?.id ?? "";
+  const ownId = user?.id ?? "";
   const newTask = {
     ...taskDraft,
-    assigneeId: assignees.some((item) => item.id === taskDraft.assigneeId)
-      ? taskDraft.assigneeId
-      : ownId,
+    assigneeId: taskDraft.assigneeId || ownId,
   };
   const newCommitment = {
     ...commitmentDraft,
-    ownerId: assignees.some((item) => item.id === commitmentDraft.ownerId)
-      ? commitmentDraft.ownerId
-      : ownId,
+    ownerId: commitmentDraft.ownerId || ownId,
   };
   const taskRequest = useCallback(
     (signal: AbortSignal) =>
@@ -555,8 +546,8 @@ function TasksWorkspace({ search }: { search: string }) {
         description: "",
         priority: "MEDIUM",
         dueDate: "",
-        assigneeId:
-          assignees.find((assignee) => assignee.id === user?.id)?.id ?? "",
+        assigneeId: ownId,
+        assigneeName: user?.name ?? "",
       });
       setDialog(null);
       setTaskFilters((current) => ({ ...current, page: 1 }));
@@ -610,8 +601,8 @@ function TasksWorkspace({ search }: { search: string }) {
         description: "",
         targetDate: "",
         isPublic: false,
-        ownerId:
-          assignees.find((assignee) => assignee.id === user?.id)?.id ?? "",
+        ownerId: ownId,
+        ownerName: user?.name ?? "",
       });
       setDialog(null);
       setCommitmentFilters((current) => ({ ...current, page: 1 }));
@@ -1459,7 +1450,8 @@ function TasksWorkspace({ search }: { search: string }) {
                   {dialog === "task" ? "Crear tarea" : "Registrar compromiso"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Define el responsable, la fecha y los detalles para facilitar el seguimiento.
+                  Define el responsable, la fecha y los detalles para facilitar
+                  el seguimiento.
                 </p>
               </div>
               <button
@@ -1537,53 +1529,34 @@ function TasksWorkspace({ search }: { search: string }) {
                       className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                    Responsable
-                    <select
-                      required
+                  <div className="block text-sm font-semibold text-slate-800 min-w-0">
+                    <p>Responsable</p>
+                    <UserCombobox
+                      className="mt-2"
+                      ariaLabel="Responsable de la tarea"
                       value={newTask.assigneeId}
-                      disabled={assigneesLoading || Boolean(assigneesError)}
-                      onChange={(event) =>
+                      selectedLabel={
+                        newTask.assigneeId === ownId
+                          ? user?.name
+                          : newTask.assigneeName
+                      }
+                      allowUnassigned={false}
+                      paginated
+                      disabled={mutation === "create-task"}
+                      fetchItems={searchTaskAssignees}
+                      onChange={(value, selectedUser) =>
                         setNewTask((current) => ({
                           ...current,
-                          assigneeId: event.target.value,
+                          assigneeId: value,
+                          assigneeName: selectedUser?.name ?? "",
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60 min-w-0 max-w-full"
-                    >
-                      <option value="" disabled>
-                        {assigneesLoading
-                          ? "Consultando responsables…"
-                          : "Selecciona una persona"}
-                      </option>
-                      {assignees.map((assignee) => (
-                        <option key={assignee.id} value={assignee.id}>
-                          {assignee.name} ·{" "}
-                          {getRoleLabel(assignee.role as BackendUserRole)}
-                          {assignee.division
-                            ? ` · ${assignee.division.name}`
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {assigneesError && (
-                    <div
-                      role="alert"
-                      className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 min-w-0 flex-wrap"
-                    >
-                      <span>No fue posible cargar responsables.</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAssigneesReload((current) => current + 1)
-                        }
-                        className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white max-w-full whitespace-normal"
-                      >
-                        Reintentar
-                      </button>
-                    </div>
-                  )}
+                    />
+                    <p className="mt-2 text-xs font-normal text-slate-500">
+                      Busca por nombre o correo y recorre las páginas de
+                      personas autorizadas.
+                    </p>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2 min-w-0">
                     <label className="block text-sm font-semibold text-slate-800 min-w-0">
                       Prioridad
@@ -1642,12 +1615,7 @@ function TasksWorkspace({ search }: { search: string }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={
-                      Boolean(mutation) ||
-                      assigneesLoading ||
-                      Boolean(assigneesError) ||
-                      !newTask.assigneeId
-                    }
+                    disabled={Boolean(mutation) || !newTask.assigneeId}
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 max-w-full whitespace-normal"
                   >
                     {mutation === "create-task" && (
@@ -1718,53 +1686,34 @@ function TasksWorkspace({ search }: { search: string }) {
                       className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
                   </label>
-                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                    Responsable
-                    <select
-                      required
+                  <div className="block text-sm font-semibold text-slate-800 min-w-0">
+                    <p>Responsable</p>
+                    <UserCombobox
+                      className="mt-2"
+                      ariaLabel="Responsable del compromiso"
                       value={newCommitment.ownerId}
-                      disabled={assigneesLoading || Boolean(assigneesError)}
-                      onChange={(event) =>
+                      selectedLabel={
+                        newCommitment.ownerId === ownId
+                          ? user?.name
+                          : newCommitment.ownerName
+                      }
+                      allowUnassigned={false}
+                      paginated
+                      disabled={mutation === "create-commitment"}
+                      fetchItems={searchTaskAssignees}
+                      onChange={(value, selectedUser) =>
                         setNewCommitment((current) => ({
                           ...current,
-                          ownerId: event.target.value,
+                          ownerId: value,
+                          ownerName: selectedUser?.name ?? "",
                         }))
                       }
-                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60 min-w-0 max-w-full"
-                    >
-                      <option value="" disabled>
-                        {assigneesLoading
-                          ? "Consultando responsables…"
-                          : "Selecciona una persona"}
-                      </option>
-                      {assignees.map((assignee) => (
-                        <option key={assignee.id} value={assignee.id}>
-                          {assignee.name} ·{" "}
-                          {getRoleLabel(assignee.role as BackendUserRole)}
-                          {assignee.division
-                            ? ` · ${assignee.division.name}`
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {assigneesError && (
-                    <div
-                      role="alert"
-                      className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 min-w-0 flex-wrap"
-                    >
-                      <span>No fue posible cargar responsables.</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAssigneesReload((current) => current + 1)
-                        }
-                        className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white max-w-full whitespace-normal"
-                      >
-                        Reintentar
-                      </button>
-                    </div>
-                  )}
+                    />
+                    <p className="mt-2 text-xs font-normal text-slate-500">
+                      Busca por nombre o correo y recorre las páginas de
+                      personas autorizadas.
+                    </p>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2 min-w-0">
                     <label className="block text-sm font-semibold text-slate-800 min-w-0">
                       Fecha objetivo{" "}
@@ -1825,12 +1774,7 @@ function TasksWorkspace({ search }: { search: string }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={
-                      Boolean(mutation) ||
-                      assigneesLoading ||
-                      Boolean(assigneesError) ||
-                      !newCommitment.ownerId
-                    }
+                    disabled={Boolean(mutation) || !newCommitment.ownerId}
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 max-w-full whitespace-normal"
                   >
                     {mutation === "create-commitment" && (

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,7 +25,7 @@ describe('TasksService tenant and mode isolation', () => {
     $transaction: jest.Mock;
     $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
-    user: { findFirst: jest.Mock; findMany: jest.Mock };
+    user: { findFirst: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     issueCase: { findFirst: jest.Mock };
     commitment: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
@@ -56,6 +57,7 @@ describe('TasksService tenant and mode isolation', () => {
             ),
           ),
         findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       issueCase: { findFirst: jest.fn() },
       commitment: { findFirst: jest.fn() },
@@ -79,6 +81,42 @@ describe('TasksService tenant and mode isolation', () => {
     service = new TasksService(prisma as unknown as PrismaService);
   });
 
+  it.each([0, 100])(
+    'keeps the complete legacy array for %i authorized assignees with a bounded sentinel query',
+    async (count) => {
+      const items = Array.from({ length: count }, (_, index) => ({
+        id: `user-${index}`,
+        name: `Persona ${index}`,
+        role: Role.VOLUNTEER,
+        division: null,
+      }));
+      prisma.user.findMany.mockResolvedValue(items);
+      await expect(service.listAssignees(currentUser)).resolves.toEqual(items);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { tenantId: 'tenant-a', isActive: true },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          division: { select: { id: true, name: true, type: true } },
+        },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: 101,
+      });
+      expect(prisma.user.count).not.toHaveBeenCalled();
+    },
+  );
+
+  it('refuses 101 legacy assignees with an explicit refresh instruction instead of returning a partial array', async () => {
+    prisma.user.findMany.mockResolvedValue(
+      Array.from({ length: 101 }, (_, index) => ({ id: `user-${index}` })),
+    );
+    const result = service.listAssignees(currentUser);
+    await expect(result).rejects.toBeInstanceOf(ConflictException);
+    await expect(result).rejects.toThrow('Actualiza esta pestaña');
+    expect(prisma.user.count).not.toHaveBeenCalled();
+  });
+
   it('lists only active assignees from the JWT tenant for a global manager', async () => {
     prisma.user.findMany.mockResolvedValue([
       {
@@ -89,9 +127,13 @@ describe('TasksService tenant and mode isolation', () => {
       },
     ]);
 
-    await expect(service.listAssignees(currentUser)).resolves.toEqual([
-      expect.objectContaining({ id: 'creator-a', role: Role.ADMIN }),
-    ]);
+    prisma.user.count.mockResolvedValue(1);
+    await expect(
+      service.listAssigneesPage(currentUser, { page: 1, limit: 20 }),
+    ).resolves.toEqual({
+      items: [expect.objectContaining({ id: 'creator-a', role: Role.ADMIN })],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-a', isActive: true },
       select: {
@@ -101,6 +143,11 @@ describe('TasksService tenant and mode isolation', () => {
         division: { select: { id: true, name: true, type: true } },
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip: 0,
+      take: 20,
+    });
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-a', isActive: true },
     });
   });
 
@@ -114,11 +161,14 @@ describe('TasksService tenant and mode isolation', () => {
       { id: 'place-a', parentId: 'zone-a' },
     ]);
 
-    await service.listAssignees({
-      ...currentUser,
-      userId: 'coordinator-a',
-      role: Role.ZONE_COORDINATOR,
-    });
+    await service.listAssigneesPage(
+      {
+        ...currentUser,
+        userId: 'coordinator-a',
+        role: Role.ZONE_COORDINATOR,
+      },
+      { page: 2, limit: 10, search: '  Ana  ' },
+    );
 
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -129,8 +179,21 @@ describe('TasksService tenant and mode isolation', () => {
             { id: 'coordinator-a' },
             { divisionId: { in: ['zone-a', 'place-a'] } },
           ],
+          AND: [
+            {
+              OR: [
+                { name: { contains: 'Ana', mode: 'insensitive' } },
+                { email: { contains: 'Ana', mode: 'insensitive' } },
+              ],
+            },
+          ],
         },
+        skip: 10,
+        take: 10,
       }),
+    );
+    expect(prisma.user.count.mock.calls[0][0].where).toEqual(
+      prisma.user.findMany.mock.calls[0][0].where,
     );
   });
 
@@ -143,11 +206,14 @@ describe('TasksService tenant and mode isolation', () => {
       divisionId: null,
     });
 
-    await service.listAssignees({
-      ...currentUser,
-      userId: 'case-worker-a',
-      role: Role.CASE_WORKER,
-    });
+    await service.listAssigneesPage(
+      {
+        ...currentUser,
+        userId: 'case-worker-a',
+        role: Role.CASE_WORKER,
+      },
+      { page: 1, limit: 20 },
+    );
 
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -158,6 +224,74 @@ describe('TasksService tenant and mode isolation', () => {
         },
       }),
     );
+  });
+
+  it('returns later-page metadata without widening the tenant or disclosing account fields', async () => {
+    const chosen = {
+      id: 'user-on-page-three',
+      name: 'Responsable remoto',
+      role: Role.VOLUNTEER,
+      division: null,
+    };
+    prisma.user.findMany.mockResolvedValue([chosen]);
+    prisma.user.count.mockResolvedValue(41);
+    const result = await service.listAssigneesPage(currentUser, {
+      page: 3,
+      limit: 20,
+    });
+    expect(result).toEqual({
+      items: [chosen],
+      pagination: { page: 3, limit: 20, total: 41, totalPages: 3 },
+    });
+    const query = prisma.user.findMany.mock.calls[0][0];
+    expect(query.where).toEqual({ tenantId: 'tenant-a', isActive: true });
+    expect(query).toMatchObject({ skip: 40, take: 20 });
+    expect(Object.keys(query.select as Record<string, unknown>).sort()).toEqual(
+      ['division', 'id', 'name', 'role'],
+    );
+  });
+
+  it('keeps a case worker search constrained to self even when another name matches', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({
+      defaultMode: PoliticalOperationMode.PUBLIC_OFFICE,
+    });
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.CASE_WORKER,
+      divisionId: null,
+    });
+    await service.listAssigneesPage(
+      { ...currentUser, role: Role.CASE_WORKER },
+      { page: 1, limit: 20, search: 'otra persona' },
+    );
+    const { where } = prisma.user.findMany.mock.calls[0][0];
+    expect(where).toMatchObject({
+      tenantId: 'tenant-a',
+      isActive: true,
+      id: currentUser.userId,
+    });
+    expect(where.AND).toEqual([
+      {
+        OR: [
+          { name: { contains: 'otra persona', mode: 'insensitive' } },
+          { email: { contains: 'otra persona', mode: 'insensitive' } },
+        ],
+      },
+    ]);
+  });
+
+  it('refuses a role not authorized to assign in the current server-side mode before searching', async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      role: Role.CASE_WORKER,
+      divisionId: null,
+    });
+    await expect(
+      service.listAssigneesPage(currentUser, { page: 1, limit: 20 }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listAssignees(currentUser)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+    expect(prisma.user.count).not.toHaveBeenCalled();
   });
 
   it('rejects an assignee that does not belong to the JWT tenant', async () => {

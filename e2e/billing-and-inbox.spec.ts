@@ -161,9 +161,7 @@ test("muestra el plan, las métricas reales y el contacto comercial", async ({
 
   await page.goto("/dashboard/billing");
 
-  await expect(
-    page.getByRole("heading", { name: "Plan y uso" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan y uso" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: subscription.plan.name }),
   ).toBeVisible();
@@ -601,8 +599,11 @@ test("filtra, busca, enlaza y actualiza la bandeja operativa", async ({
       return;
     }
 
-    if (url.pathname === "/api/tasks/assignees") {
-      await fulfillJson(route, []);
+    if (url.pathname === "/api/tasks/assignees/search") {
+      await fulfillJson(route, {
+        items: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
       return;
     }
 
@@ -857,8 +858,11 @@ test("abre y focaliza la tarea exacta desde la bandeja", async ({ page }) => {
       await fulfillJson(route, operationalInboxResponse(false));
       return;
     }
-    if (url.pathname === "/api/tasks/assignees") {
-      await fulfillJson(route, []);
+    if (url.pathname === "/api/tasks/assignees/search") {
+      await fulfillJson(route, {
+        items: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
       return;
     }
     if (url.pathname === "/api/tasks") {
