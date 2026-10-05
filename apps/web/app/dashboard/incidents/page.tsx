@@ -618,7 +618,7 @@ export default function IncidentsPage() {
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
             Registra hechos, asigna un responsable, fija vencimientos y conserva
-            el historial de cada transición dentro del tenant autenticado.
+            el historial de seguimiento de tu organización.
           </p>
         </div>
         {canMutate && (
@@ -641,10 +641,9 @@ export default function IncidentsPage() {
       >
         <AlertTriangle className="mt-0.5 shrink-0 text-blue-700" size={19} />
         <p>
-          <strong>Decisiones humanas sobre hechos reportados.</strong> Este
-          módulo no inventa análisis de sentimiento, predicciones electorales ni
-          evaluaciones de riesgo con IA. La severidad la define el equipo y cada
-          cambio queda respaldado por la API.
+          <strong>Seguimiento del equipo.</strong> Clasifica la severidad,
+          asigna un responsable y registra la respuesta. Cada cambio se conserva
+          en la bitácora del incidente.
         </p>
       </section>
 
@@ -845,7 +844,7 @@ export default function IncidentsPage() {
                   Reportar incidente
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  La API asigna la referencia, el tenant y el modo de campaña.
+                  Describe lo ocurrido. La referencia se asignará al guardar.
                 </p>
               </div>
               <button

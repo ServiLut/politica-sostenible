@@ -45,7 +45,7 @@ function readableError(error: unknown): string {
     : "No fue posible completar la operación.";
 }
 
-export function instantFromLocal(
+function instantFromLocal(
   localDateTime: string,
   utcOffsetMinutes: number,
 ): string {
@@ -65,7 +65,7 @@ export function instantFromLocal(
   ).toISOString();
 }
 
-export function localFromInstant(
+function localFromInstant(
   instant: string,
   utcOffsetMinutes: number,
 ): string {

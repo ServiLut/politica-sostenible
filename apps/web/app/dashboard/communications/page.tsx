@@ -638,8 +638,8 @@ export default function CommunicationsPage() {
             Aprobación de comunicaciones
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
-            Revisión humana de cuatro ojos para mensajes de campaña o gestión
-            pública. La organización y el modo se obtienen de tu sesión segura.
+            Solicita la revisión de una comunicación y consulta la decisión
+            de otra persona autorizada. La aprobación no envía el mensaje.
           </p>
         </div>
         {canRequest && (
@@ -1252,8 +1252,8 @@ export default function CommunicationsPage() {
                     {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
                   </legend>
                   <p className="text-xs leading-5 text-slate-500">
-                    Busca por referencia o asunto. La API solo devuelve casos
-                    autorizados para tu organización y alcance actual.
+                    Busca por referencia o asunto entre los casos que puedes
+                    consultar en tu organización.
                   </p>
 
                   {selectedCase && (

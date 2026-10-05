@@ -21,6 +21,7 @@ import {
   type InventoryCommandResponse,
   type InventoryIncidentType,
   type InventoryTrackingMode,
+  type InventoryStockCondition,
   type InventoryTransfer,
 } from "@/lib/inventory-logistics-api";
 import type {
@@ -78,6 +79,25 @@ const RECONCILE_STAGES = new Set<PoliticalOperationStage>([
   "POST_ELECTION",
 ]);
 
+const STAGE_LABELS: Record<PoliticalOperationStage, string> = {
+  EXPLORATION: "Exploración",
+  PRE_CAMPAIGN: "Precandidatura",
+  SIGNATURE_COLLECTION: "Recolección de firmas",
+  CAMPAIGN: "Campaña",
+  ELECTION_PREPARATION: "Preparación electoral",
+  SIMULATION: "Simulacro",
+  ELECTION_DAY: "Jornada electoral",
+  POST_ELECTION: "Poselección",
+  CLOSED: "Cierre",
+};
+
+const CONDITION_LABELS: Record<InventoryStockCondition, string> = {
+  AVAILABLE: "Disponible",
+  QUARANTINED: "En cuarentena",
+  DAMAGED: "Dañado",
+  EXPIRED: "Vencido",
+};
+
 const STATUS_LABELS: Record<InventoryTransfer["status"], string> = {
   DISPATCHED: "Despachado",
   PARTIALLY_RECEIVED: "Recepción parcial",
@@ -98,7 +118,12 @@ const INCIDENT_OPTIONS: Array<{ value: InventoryIncidentType; label: string }> =
   ];
 
 function readableError(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    if (error.message === "Un articulo por lote exige lotNumber y no admite serialNumber") {
+      return "Indica el número de lote de este artículo y deja el campo serial vacío.";
+    }
+    return error.message;
+  }
   if (error instanceof Error && error.message) return error.message;
   return "Ocurrió un error inesperado. Recarga los datos y vuelve a intentar.";
 }
@@ -143,7 +168,7 @@ function commandNotice(
   result: InventoryCommandResponse<object>,
 ): string {
   return result.noOp
-    ? `${label}: la API reconoció el reintento exacto; no duplicó el movimiento.`
+    ? `${label}: este movimiento ya estaba registrado y no se duplicó.`
     : `${label}: confirmado con recibo ${result.command.id}.`;
 }
 
@@ -533,7 +558,7 @@ export default function LogisticsPage() {
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between min-w-0">
         <div>
           <p className="text-xs font-bold text-blue-700">
-            Operación electoral · {stage.replaceAll("_", " ")}
+            Operación electoral · {STAGE_LABELS[stage]}
           </p>
           <h1 className="mt-1 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
             Inventario, despacho y custodia
@@ -666,8 +691,8 @@ export default function LogisticsPage() {
                 Preparar y despachar
               </h2>
               <p className="text-sm text-slate-600">
-                Cada envío genera un recibo idempotente; no cierre ni recargue
-                hasta ver confirmación.
+                Espera la confirmación de cada movimiento antes de continuar.
+                Después podrás comprobar su recibo y el saldo actualizado.
               </p>
             </div>
           </div>
@@ -740,7 +765,7 @@ export default function LogisticsPage() {
             {SETUP_STAGES.has(stage) ? (
               <details className="rounded-2xl border border-slate-200 bg-white p-4">
                 <summary className="cursor-pointer font-semibold text-slate-900">
-                  Importar artículo validado
+                  Crear artículo
                 </summary>
                 <form
                   data-testid="item-import-form"
@@ -814,8 +839,8 @@ export default function LogisticsPage() {
                     className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2 max-w-full whitespace-normal"
                   >
                     {mutationKey === "item"
-                      ? "Importando…"
-                      : "Importar fila JSON"}
+                      ? "Guardando…"
+                      : "Guardar artículo"}
                   </button>
                 </form>
               </details>
@@ -1231,7 +1256,7 @@ export default function LogisticsPage() {
                           : "Sin vencimiento declarado"}
                       </span>
                     </td>
-                    <td className="p-2">{balance.condition}</td>
+                    <td className="p-2">{CONDITION_LABELS[balance.condition]}</td>
                     <td className="p-2 text-right text-lg font-semibold">
                       {balance.quantity}
                     </td>
@@ -1682,14 +1707,11 @@ export default function LogisticsPage() {
         <div className="flex gap-3 min-w-0">
           <ClipboardCheck className="shrink-0" aria-hidden="true" />
           <div>
-            <h2 className="font-semibold">Límites deliberados</h2>
+            <h2 className="font-semibold">Trabajo con conexión</h2>
             <p className="mt-1">
-              La importación viaja como JSON validado (máximo 100 filas), nunca
-              como archivo binario. La evidencia de incidencias usa referencia
-              HTTPS + SHA-256; la carga binaria dedicada queda fuera de este
-              módulo. No se guarda una copia offline del inventario para no
-              mezclarla con la bóveda E-14 sin un modelo de autorización y
-              revocación específico.
+              Usa una conexión activa para registrar movimientos. Comprueba
+              la confirmación y el saldo actualizado antes de entregar o recibir
+              materiales.
             </p>
           </div>
         </div>

@@ -387,8 +387,8 @@ export default function EventsPage() {
             Eventos y territorio
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Coordina horarios, lugares, aforo y responsables con estados
-            verificables. La organización y el modo provienen de tu sesión.
+            Coordina horarios, lugares, aforo y responsables. Consulta el
+            estado de cada evento y mantén informada a tu organización.
           </p>
         </div>
         {(canExport || canManage) && (

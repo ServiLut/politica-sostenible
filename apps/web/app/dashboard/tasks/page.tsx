@@ -1083,7 +1083,7 @@ function TasksWorkspace({ search }: { search: string }) {
           taskResult &&
           taskResult.items.length > 0 && (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 min-w-0">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                 {taskResult.items.map((task) => {
                   const statusMutation = mutation === `task-status-${task.id}`;
                   return (
@@ -1099,7 +1099,7 @@ function TasksWorkspace({ search }: { search: string }) {
                           ? "true"
                           : undefined
                       }
-                      className={`flex min-h-64 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                      className={`flex min-h-64 min-w-0 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
                         deepLinkTarget?.view === "tasks" &&
                         deepLinkTarget.entityId === task.id
                           ? "border-blue-500 ring-4 ring-blue-100"
@@ -1117,7 +1117,7 @@ function TasksWorkspace({ search }: { search: string }) {
                       </div>
                       <h2
                         id={`task-title-${task.id}`}
-                        className="mt-4 text-lg font-semibold leading-tight text-slate-950"
+                        className="mt-4 text-lg font-semibold leading-tight text-slate-950 [overflow-wrap:anywhere]"
                       >
                         {task.title}
                       </h2>
@@ -1127,7 +1127,7 @@ function TasksWorkspace({ search }: { search: string }) {
                       <dl className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600 min-w-0">
                         <div className="flex items-center justify-between gap-3 min-w-0 flex-wrap">
                           <dt className="font-bold">Responsable</dt>
-                          <dd className="truncate">
+                          <dd className="max-w-full truncate">
                             {task.assignee?.name ?? "Sin asignar"}
                           </dd>
                         </div>
@@ -1296,7 +1296,7 @@ function TasksWorkspace({ search }: { search: string }) {
           commitmentResult &&
           commitmentResult.items.length > 0 && (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 min-w-0">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                 {commitmentResult.items.map((commitment) => {
                   const currentProgress =
                     progressDrafts[commitment.id] ?? commitment.progress;
@@ -1318,7 +1318,7 @@ function TasksWorkspace({ search }: { search: string }) {
                           ? "true"
                           : undefined
                       }
-                      className={`flex min-h-80 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                      className={`flex min-h-80 min-w-0 flex-col rounded-3xl border bg-white p-5 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-200 ${
                         deepLinkTarget?.view === "commitments" &&
                         deepLinkTarget.entityId === commitment.id
                           ? "border-blue-500 ring-4 ring-blue-100"
@@ -1342,7 +1342,7 @@ function TasksWorkspace({ search }: { search: string }) {
                       </div>
                       <h2
                         id={`commitment-title-${commitment.id}`}
-                        className="mt-4 text-lg font-semibold leading-tight text-slate-950"
+                        className="mt-4 text-lg font-semibold leading-tight text-slate-950 [overflow-wrap:anywhere]"
                       >
                         {commitment.title}
                       </h2>
