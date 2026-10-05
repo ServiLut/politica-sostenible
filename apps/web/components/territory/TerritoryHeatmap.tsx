@@ -476,7 +476,7 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                     ref={mapViewport}
                     className={projection.scope === "COLOMBIA"
                       ? "relative mx-auto aspect-[156/183] w-full max-w-lg overflow-auto overscroll-contain bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
-                      : "relative aspect-[4/3] min-h-80 overflow-auto overscroll-contain bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:aspect-[16/9]"}
+                      : "relative aspect-[4/3] min-h-80 w-full min-w-0 overflow-auto overscroll-contain bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:aspect-[16/9]"}
                     role="region"
                     tabIndex={0}
                     aria-label="Mapa de calor espacial de territorios con coordenadas disponibles"
