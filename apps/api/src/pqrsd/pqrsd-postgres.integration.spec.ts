@@ -13,6 +13,9 @@ import {
 import type { PrismaService } from '../prisma/prisma.service';
 import { SearchService } from '../search/search.service';
 import { TasksService } from '../tasks/tasks.service';
+import { PqrsdService } from './pqrsd.service';
+import { computePqrsdCommandSha256 } from './pqrsd.hash';
+import type { CreatePqrsdRulePackageDto } from './dto/pqrsd.dto';
 
 const databaseUrl =
   process.env.PQRSD_INTEGRATION_DATABASE_URL?.trim() ??
@@ -178,6 +181,239 @@ physicalDescribe('PQRSD controls on physical PostgreSQL 16', () => {
       [`decision-${randomUUID()}`, publicTenantA, packageId, actorId],
     );
   }
+
+  it('creates rules and a calendar exception through the service with tenant inherited from the composite parent relation', async () => {
+    const pqrsd = new PqrsdService(prismaClient as unknown as PrismaService);
+    // Isolate this service fixture from the later inbox/search assertions.
+    const suffix = randomUUID();
+    const nestedTenant = 'pqrsd-nested-' + suffix;
+    const nestedReviewer = 'pqrsd-nested-reviewer-' + suffix;
+    const nestedIntake = 'pqrsd-nested-intake-' + suffix;
+    await prismaClient.tenant.create({
+      data: {
+        id: nestedTenant,
+        slug: nestedTenant,
+        name: 'SIMULATION isolated nested fixture',
+        type: 'PUBLIC_OFFICE',
+        defaultMode: 'PUBLIC_OFFICE',
+      },
+    });
+    await prismaClient.user.createMany({
+      data: [
+        {
+          id: nestedReviewer,
+          tenantId: nestedTenant,
+          name: 'SIMULATION rules creator',
+          email: nestedReviewer + '@integration.invalid',
+          password: 'not-a-real-credential',
+          role: Role.COMPLIANCE_OFFICER,
+        },
+        {
+          id: nestedIntake,
+          tenantId: nestedTenant,
+          name: 'SIMULATION intake actor',
+          email: nestedIntake + '@integration.invalid',
+          password: 'not-a-real-credential',
+          role: Role.CASE_WORKER,
+        },
+      ],
+    });
+    const actor: AuthenticatedUser = {
+      userId: nestedReviewer,
+      tenantId: nestedTenant,
+      role: Role.COMPLIANCE_OFFICER,
+    };
+    const input: Omit<CreatePqrsdRulePackageDto, 'payloadSha256'> = {
+      clientRequestId: randomUUID(),
+      scopeKey: 'NESTED_' + randomUUID(),
+      versionLabel: 'SIMULATION-v1',
+      sourceUrl: 'https://example.invalid/qa/rules',
+      sourceReference:
+        'SIMULATION WITHOUT LEGAL VALIDITY - integration fixture',
+      sourceSha256: 'a'.repeat(64),
+      timeZone: 'America/Bogota',
+      effectiveFrom: '2026-10-01',
+      effectiveTo: '2026-10-31',
+      nonWorkingWeekdays: [0, 6],
+      computationMethodNote:
+        'Synthetic three calendar day rule, not a legal deadline.',
+      rules: [
+        {
+          classificationKey: 'SIMULATION',
+          label: 'SIMULATION WITHOUT LEGAL VALIDITY',
+          durationDays: 3,
+          dayMethod: 'CALENDAR_DAYS',
+          startRule: 'NEXT_CALENDAR_DATE',
+          legalBasis: 'Synthetic integration fixture, not an official source.',
+          highRisk: false,
+        },
+      ],
+      exceptions: [
+        {
+          localDate: '2026-10-07',
+          type: 'NON_WORKING',
+          label: 'SIMULATION WITHOUT LEGAL VALIDITY',
+          sourceReference:
+            'Synthetic calendar exception, no actual holiday asserted.',
+        },
+      ],
+    };
+    const dto: CreatePqrsdRulePackageDto = {
+      ...input,
+      payloadSha256: computePqrsdCommandSha256('RULE_PACKAGE_CREATE', input),
+    };
+    const created = await pqrsd.createRulePackage(actor, dto);
+    expect(created).toMatchObject({
+      tenantId: nestedTenant,
+      createdById: nestedReviewer,
+      status: 'DRAFT',
+      revision: 1,
+    });
+    expect(created.rules).toHaveLength(1);
+    expect(created.calendarExceptions).toHaveLength(1);
+    for (const child of [...created.rules, ...created.calendarExceptions]) {
+      expect(child).toMatchObject({
+        tenantId: nestedTenant,
+        packageId: created.id,
+      });
+    }
+    const replay = await pqrsd.createRulePackage(actor, dto);
+    expect(replay.id).toBe(created.id);
+    const [rules, exceptions, commands, audit, foreign] = await Promise.all([
+      prismaClient.pqrsdRuleDefinition.count({
+        where: { tenantId: nestedTenant, packageId: created.id },
+      }),
+      prismaClient.pqrsdCalendarException.count({
+        where: { tenantId: nestedTenant, packageId: created.id },
+      }),
+      prismaClient.pqrsdCommand.count({
+        where: { tenantId: nestedTenant, commandId: input.clientRequestId },
+      }),
+      prismaClient.auditEvent.count({
+        where: {
+          tenantId: nestedTenant,
+          resourceId: created.id,
+          action: 'PQRSD_RULE_PACKAGE_CREATE',
+        },
+      }),
+      prismaClient.pqrsdRuleDefinition.count({
+        where: { tenantId: publicTenantB, packageId: created.id },
+      }),
+    ]);
+    expect([rules, exceptions, commands, audit, foreign]).toEqual([
+      1, 1, 1, 1, 0,
+    ]);
+    const independentAdminId = 'pqrsd-admin-' + randomUUID();
+    await prismaClient.user.create({
+      data: {
+        id: independentAdminId,
+        tenantId: nestedTenant,
+        name: 'SIMULATION independent administrator',
+        email: independentAdminId + '@integration.invalid',
+        password: 'not-a-real-credential',
+        role: Role.ADMIN,
+      },
+    });
+    const approval = {
+      clientRequestId: randomUUID(),
+      decision: 'APPROVE_ACTIVATE' as const,
+      rationale:
+        'Independent review of synthetic rules, without legal validity.',
+      expectedRevision: 1,
+    };
+    const active = await pqrsd.reviewRulePackage(
+      {
+        userId: independentAdminId,
+        tenantId: nestedTenant,
+        role: Role.ADMIN,
+      },
+      created.id,
+      {
+        ...approval,
+        payloadSha256: computePqrsdCommandSha256('RULE_PACKAGE_REVIEW', {
+          ...approval,
+          packageId: created.id,
+        }),
+      },
+    );
+    expect(active.status).toBe('ACTIVE');
+    const intake = {
+      clientRequestId: randomUUID(),
+      scopeKey: input.scopeKey,
+      receivedAt: '2026-10-05T15:00:00.000Z',
+      receivedTimeZone: 'America/Bogota',
+      receivedChannel: 'INTERNAL_QA_SIMULATION',
+      subject: 'SIMULATION WITHOUT LEGAL VALIDITY - nested dossier',
+      description:
+        'Synthetic software fixture with no external receipt or delivery.',
+      acknowledgementRequired: false,
+      riskLevel: 'NORMAL' as const,
+      petitioner: {
+        fullName: 'SIMULATION NO REAL PERSON',
+        preferredChannel: 'INTERNAL_QA',
+      },
+    };
+    const intakeDto = {
+      ...intake,
+      payloadSha256: computePqrsdCommandSha256('DOSSIER_CREATE', intake),
+    };
+    const intakeActor: AuthenticatedUser = {
+      userId: nestedIntake,
+      tenantId: nestedTenant,
+      role: Role.CASE_WORKER,
+    };
+    const dossier = await pqrsd.createDossier(intakeActor, intakeDto);
+    expect(dossier).toMatchObject({
+      status: 'RECEIVED',
+      version: 1,
+      internalReferenceOnly: true,
+      officialReceiptRecorded: false,
+    });
+    const sameDossier = await pqrsd.createDossier(intakeActor, intakeDto);
+    expect(sameDossier.id).toBe(dossier.id);
+    const petitionerRows = await prismaClient.pqrsdPetitionerSnapshot.findMany({
+      where: { tenantId: nestedTenant, dossierId: dossier.id },
+    });
+    const statusRows = await prismaClient.pqrsdStatusEvent.findMany({
+      where: { tenantId: nestedTenant, dossierId: dossier.id },
+    });
+    expect(petitionerRows).toHaveLength(1);
+    expect(petitionerRows[0]).toMatchObject({
+      tenantId: nestedTenant,
+      dossierId: dossier.id,
+      fullName: intake.petitioner.fullName,
+    });
+    expect(statusRows).toHaveLength(1);
+    expect(statusRows[0]).toMatchObject({
+      tenantId: nestedTenant,
+      dossierId: dossier.id,
+      actorId: nestedIntake,
+      toStatus: 'RECEIVED',
+    });
+    await expect(
+      prismaClient.pqrsdDossier.count({
+        where: { tenantId: publicTenantB, id: dossier.id },
+      }),
+    ).resolves.toBe(0);
+
+    await expectPgCode(
+      pool.query(
+        `INSERT INTO "PqrsdRuleDefinition" (
+         "id", "tenantId", "packageId", "classificationKey", "label", "durationDays", "dayMethod", "startRule", "legalBasis"
+       ) VALUES ($1, $2, $3, 'FOREIGN', 'SIMULATION foreign child', 3, 'CALENDAR_DAYS', 'NEXT_CALENDAR_DATE', 'Synthetic negative fixture')`,
+        [randomUUID(), publicTenantB, created.id],
+      ),
+      '23503',
+    );
+    await expectPgCode(
+      pool.query(
+        `INSERT INTO "PqrsdCalendarException" ("id", "tenantId", "packageId", "localDate", "type", "label", "sourceReference")
+       VALUES ($1, $2, $3, DATE '2026-10-08', 'NON_WORKING', 'SIMULATION foreign calendar', 'Synthetic negative fixture')`,
+        [randomUUID(), publicTenantB, created.id],
+      ),
+      '23503',
+    );
+  });
 
   it('rolls back same-actor approval, accepts independent review and protects ledgers', async () => {
     const fixture = await createDraftPackage(

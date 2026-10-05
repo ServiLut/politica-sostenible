@@ -15,6 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AuditActorType,
+  AuditOutcome,
   PoliticalOperationMode,
 } from '../../prisma/generated/prisma';
 import { MfaSecretCipher, MfaSecretDecryptionError } from './mfa-secret-cipher';
@@ -180,6 +181,7 @@ export class MfaService {
           actorType: AuditActorType.USER,
           actorUserId: userId,
           action: 'MFA_VERIFICATION_FAILED',
+          outcome: AuditOutcome.DENIED,
           resourceType: 'User',
           resourceId: userId,
         },
@@ -308,6 +310,7 @@ export class MfaService {
           actorType: AuditActorType.USER,
           actorUserId: userId,
           action: 'MFA_VERIFICATION_FAILED',
+          outcome: AuditOutcome.DENIED,
           resourceType: 'User',
           resourceId: userId,
         },
@@ -385,6 +388,7 @@ export class MfaService {
           actorType: AuditActorType.USER,
           actorUserId: userId,
           action: 'MFA_VERIFICATION_FAILED',
+          outcome: AuditOutcome.DENIED,
           resourceType: 'User',
           resourceId: userId,
         },

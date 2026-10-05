@@ -6,7 +6,10 @@ import {
 import { createHash, randomBytes } from 'node:crypto';
 import { generateSecret, verifySync } from 'otplib';
 import * as bcrypt from 'bcrypt';
-import { PoliticalOperationMode } from '../../prisma/generated/prisma';
+import {
+  AuditOutcome,
+  PoliticalOperationMode,
+} from '../../prisma/generated/prisma';
 import type { PrismaService } from '../prisma/prisma.service';
 import { MfaSecretCipher } from './mfa-secret-cipher';
 import { MfaService } from './mfa.service';
@@ -105,6 +108,112 @@ describe('MfaService enrollment lifecycle', () => {
     jest.mocked(bcrypt.compare).mockReset();
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
   });
+
+  it.each(
+    (
+      ['verifyAndEnable', 'verifyCode', 'verifyEnabledCode', 'disable'] as const
+    ).flatMap((operation) =>
+      (['invalid-result', 'TokenFormatError', 'TokenLengthError'] as const).map(
+        (rejection) => ({ operation, rejection }),
+      ),
+    ),
+  )(
+    'records DENIED for $operation / $rejection without changing security state or exposing credentials',
+    async ({ operation, rejection }) => {
+      const cipher = buildCipher();
+      const plaintextSecret = randomSecret();
+      const storedSecret = cipher.encrypt(plaintextSecret, secretContext);
+      const code =
+        rejection === 'TokenFormatError'
+          ? 'abcdef'
+          : rejection === 'TokenLengthError'
+            ? '123'
+            : '000000';
+      const prisma = buildPrisma({
+        isActive: true,
+        tenantId: 'tenant-a',
+        totpSecret: storedSecret,
+        totpEnabledAt:
+          operation === 'verifyAndEnable'
+            ? null
+            : new Date('2026-09-07T12:00:00.000Z'),
+        lastTotpTimeStep: null,
+        tenant: { defaultMode: tenantMode },
+      });
+      const service = buildService(prisma, cipher);
+      if (rejection === 'invalid-result') {
+        verifyOtp.mockReturnValue({ valid: false });
+      } else {
+        verifyOtp.mockImplementation(() => {
+          const error = new Error('synthetic verifier rejection');
+          error.name = rejection;
+          throw error;
+        });
+      }
+      const result = service[operation]('user-a', 'tenant-a', code);
+      if (operation === 'verifyAndEnable' || operation === 'disable') {
+        await expect(result).rejects.toBeInstanceOf(ForbiddenException);
+      } else {
+        await expect(result).resolves.toBe(false);
+      }
+      expect(prisma.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-a', tenantId: 'tenant-a' },
+        }),
+      );
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
+      expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'MFA_VERIFICATION_FAILED',
+          outcome: AuditOutcome.DENIED,
+          tenantId: 'tenant-a',
+          actorUserId: 'user-a',
+          resourceId: 'user-a',
+          resourceType: 'User',
+          mode: tenantMode,
+        }),
+      });
+      const payload = JSON.stringify(prisma.auditEvent.create.mock.calls);
+      expect(payload).not.toContain(code);
+      expect(payload).not.toContain(plaintextSecret);
+      expect(payload).not.toContain(storedSecret);
+    },
+  );
+
+  it.each(['verifyAndEnable', 'disable'] as const)(
+    'does not mark successful %s as a denial',
+    async (operation) => {
+      const cipher = buildCipher();
+      const prisma = buildPrisma({
+        isActive: true,
+        tenantId: 'tenant-a',
+        totpSecret: encryptedSecret(cipher),
+        totpEnabledAt:
+          operation === 'verifyAndEnable'
+            ? null
+            : new Date('2026-09-07T12:00:00.000Z'),
+        lastTotpTimeStep: null,
+        tenant: { defaultMode: tenantMode },
+      });
+      const service = buildService(prisma, cipher);
+      await expect(
+        service[operation]('user-a', 'tenant-a', '123456'),
+      ).resolves.toEqual(
+        operation === 'verifyAndEnable'
+          ? { enabled: true }
+          : { disabled: true },
+      );
+      expect(prisma.user.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
+      const event = prisma.auditEvent.create.mock.calls[0][0].data;
+      expect(event.action).toBe(
+        operation === 'verifyAndEnable' ? 'MFA_ENABLED' : 'MFA_DISABLED',
+      );
+      expect(event.outcome ?? AuditOutcome.SUCCESS).toBe(AuditOutcome.SUCCESS);
+    },
+  );
 
   it('rota un enrolamiento abandonado y persiste únicamente el cifrado autenticado', async () => {
     const cipher = buildCipher();

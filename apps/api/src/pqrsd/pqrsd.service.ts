@@ -460,14 +460,12 @@ export class PqrsdService {
             rules: {
               create: dto.rules.map((rule) => ({
                 id: randomUUID(),
-                tenantId: user.tenantId,
                 ...rule,
               })),
             },
             calendarExceptions: {
               create: dto.exceptions.map((exception) => ({
                 id: randomUUID(),
-                tenantId: user.tenantId,
                 ...exception,
                 localDate: dateOnly(exception.localDate, 'localDate'),
               })),
