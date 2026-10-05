@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   TableProperties,
   WifiOff,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useOfflineVault } from "@/context/offline-vault";
 import { useKeyedState } from "@/hooks/use-keyed-state";
@@ -116,6 +118,25 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
   const [selectedTerritoryId, setSelectedTerritoryId] =
     useKeyedState<string | null>(viewKey, null);
   const [territorySearch, setTerritorySearch] = useKeyedState(viewKey, "");
+  const [mapZoom, setMapZoom] = useKeyedState(viewKey, 1);
+  const mapViewport = useRef<HTMLDivElement>(null);
+  const mapCenter = useRef({ x: 0.5, y: 0.5 });
+  useLayoutEffect(() => {
+    const viewport = mapViewport.current;
+    if (!viewport) return;
+    viewport.scrollLeft = mapCenter.current.x * viewport.scrollWidth - viewport.clientWidth / 2;
+    viewport.scrollTop = mapCenter.current.y * viewport.scrollHeight - viewport.clientHeight / 2;
+  }, [mapZoom]);
+  function changeMapZoom(value: number) {
+    const viewport = mapViewport.current;
+    if (viewport) {
+      mapCenter.current = {
+        x: (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth,
+        y: (viewport.scrollTop + viewport.clientHeight / 2) / viewport.scrollHeight,
+      };
+    }
+    setMapZoom(Math.max(1, Math.min(4, value)));
+  }
   const [displayMode, setDisplayMode] =
     useState<HeatmapDisplayMode>("GEOGRAPHIC");
   const query = useMemo<TerritoryHeatmapQuery>(
@@ -437,12 +458,30 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                 </div>
 
                 {projection?.points.length ? (
+                  <>
+                  <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
+                    <div role="group" aria-label="Ampliación del mapa" className="flex items-center gap-1">
+                      <button type="button" aria-label="Reducir mapa" disabled={mapZoom === 1} onClick={() => changeMapZoom(mapZoom / 2)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
+                        <ZoomOut size={18} aria-hidden="true" />
+                      </button>
+                      <output aria-live="polite" aria-label="Nivel de ampliación" className="min-w-14 text-center text-xs font-semibold text-slate-700">{mapZoom * 100}%</output>
+                      <button type="button" aria-label="Ampliar mapa" disabled={mapZoom === 4} onClick={() => changeMapZoom(mapZoom * 2)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
+                        <ZoomIn size={18} aria-hidden="true" />
+                      </button>
+                    </div>
+                    <button type="button" disabled={mapZoom === 1} onClick={() => changeMapZoom(1)} className="min-h-11 rounded-lg px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:text-slate-400">Ver completo</button>
+                    <p className="min-w-0 text-xs leading-5 text-slate-500">Amplía y desplázate dentro del mapa para separar puntos cercanos.</p>
+                  </div>
                   <div
+                    ref={mapViewport}
                     className={projection.scope === "COLOMBIA"
-                      ? "relative mx-auto aspect-[156/183] w-full max-w-lg overflow-hidden bg-slate-50"
-                      : "relative aspect-[4/3] min-h-80 overflow-hidden bg-slate-100 sm:aspect-[16/9]"}
+                      ? "relative mx-auto aspect-[156/183] w-full max-w-lg overflow-auto overscroll-contain bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                      : "relative aspect-[4/3] min-h-80 overflow-auto overscroll-contain bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:aspect-[16/9]"}
+                    role="region"
+                    tabIndex={0}
                     aria-label="Mapa de calor espacial de territorios con coordenadas disponibles"
                   >
+                    <div className="relative" style={{ width: `${mapZoom * 100}%`, height: `${mapZoom * 100}%` }}>
                     {projection.scope === "COLOMBIA" && (
                       <div
                         aria-hidden="true"
@@ -483,7 +522,9 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                         </button>
                       );
                     })}
+                    </div>
                   </div>
+                  </>
                 ) : (
                   <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
                     <MapPinned
