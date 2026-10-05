@@ -7,7 +7,9 @@ import { OperationProfileRequired } from "@/components/operation-profile/Operati
 import { useAuth } from "@/context/auth";
 import { useConfirmation } from "@/context/confirmation";
 import { ApiError } from "@/lib/api-client";
-import { listVotingPlaces } from "@/lib/election-api";
+import type { VotingPlace } from "@/lib/election-api";
+import { InventoryVotingPlaceSelect } from "@/components/logistics/InventoryVotingPlaceSelect";
+import { createInventoryMutationState } from "@/lib/inventory-mutation-state";
 import {
   createInventoryWarehouse,
   dispatchInventory,
@@ -39,7 +41,14 @@ import {
   Truck,
   Warehouse,
 } from "lucide-react";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 const ADMIN_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
 const FIELD_ROLES = new Set<BackendUserRole>([
@@ -119,7 +128,10 @@ const INCIDENT_OPTIONS: Array<{ value: InventoryIncidentType; label: string }> =
 
 function readableError(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.message === "Un articulo por lote exige lotNumber y no admite serialNumber") {
+    if (
+      error.message ===
+      "Un articulo por lote exige lotNumber y no admite serialNumber"
+    ) {
       return "Indica el número de lote de este artículo y deja el campo serial vacío.";
     }
     return error.message;
@@ -194,32 +206,45 @@ function SummaryCard({
 }
 
 export default function LogisticsPage() {
+  const { user, tenant } = useAuth();
+  return <LogisticsPanel key={`${tenant?.id ?? ""}/${user?.id ?? ""}`} />;
+}
+
+function LogisticsPanel() {
   const confirm = useConfirmation();
-  const { user } = useAuth();
-  const [mutationKey, setMutationKey] = useState<string | null>(null);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const { user, tenant } = useAuth();
+  const mutationOwner = `${tenant?.id ?? ""}/${user?.id ?? ""}`;
+  const mutationQueue = useMemo(
+    () => createInventoryMutationState(mutationOwner),
+    [mutationOwner],
+  );
+  const mutation = useSyncExternalStore(
+    mutationQueue.subscribe,
+    mutationQueue.getSnapshot,
+    mutationQueue.getServerSnapshot,
+  );
+  const mutationKey = mutation.key;
+  const mutationError = mutation.error ? readableError(mutation.error) : null;
   const [notice, setNotice] = useState<string | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<VotingPlace | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [dispatchDestination, setDispatchDestination] = useState<
     "WAREHOUSE" | "POLLING_PLACE"
   >("POLLING_PLACE");
 
   const request = useCallback(async (signal: AbortSignal) => {
-    const [overview, votingPlaces] = await Promise.all([
-      getInventoryOverview(signal),
-      listVotingPlaces({ page: 1, limit: 100 }, signal),
-    ]);
-    return { overview, votingPlaces };
+    return getInventoryOverview(signal);
   }, []);
   const {
     data,
     loading,
     error: requestError,
     refresh: load,
-  } = usePageRequest(request, { reloadKey: reloadVersion });
-  const overview = data?.overview ?? null;
-  const places = data?.votingPlaces.items ?? [];
-  const placesLimited = (data?.votingPlaces.pagination.totalPages ?? 0) > 1;
+  } = usePageRequest(request, {
+    reloadKey: reloadVersion,
+    retainDataOnRefresh: true,
+  });
+  const overview = data;
   const loadError = requestError ? readableError(requestError) : null;
 
   const role = user?.backendRole;
@@ -234,25 +259,44 @@ export default function LogisticsPage() {
     [overview?.balances],
   );
 
-  async function runMutation<T extends object>(
+  useEffect(() => {
+    mutationQueue.activate();
+    return mutationQueue.deactivate;
+  }, [mutationQueue]);
+
+  useEffect(() => {
+    if (!mutation.key) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [mutation.key]);
+
+  function runMutation<
+    Input extends { clientRequestId: string },
+    Result extends object,
+  >(
     key: string,
     label: string,
-    action: () => Promise<InventoryCommandResponse<T>>,
+    prepare: () => Input,
+    send: (input: Input) => Promise<InventoryCommandResponse<Result>>,
     form?: HTMLFormElement,
   ) {
-    setMutationKey(key);
-    setMutationError(null);
-    setNotice(null);
-    try {
-      const result = await action();
-      setNotice(commandNotice(label, result));
-      form?.reset();
-      await load();
-    } catch (error) {
-      setMutationError(readableError(error));
-    } finally {
-      setMutationKey(null);
-    }
+    const accepted = mutationQueue.start(
+      key,
+      label,
+      prepare,
+      send,
+      (result) => {
+        setNotice(commandNotice(label, result));
+        if (form?.isConnected) form.reset();
+        if (key === "dispatch") setSelectedPlace(null);
+        void load();
+      },
+    );
+    if (accepted) setNotice(null);
   }
 
   function submitWarehouse(event: FormEvent<HTMLFormElement>) {
@@ -262,14 +306,14 @@ export default function LogisticsPage() {
     void runMutation(
       "warehouse",
       "Bodega creada",
-      () =>
-        createInventoryWarehouse({
-          clientRequestId: freshCommandId(),
-          code: requiredText(data, "code"),
-          name: requiredText(data, "name"),
-          address: optionalText(data, "address"),
-          responsibleUserId: optionalText(data, "responsibleUserId"),
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        code: requiredText(data, "code"),
+        name: requiredText(data, "name"),
+        address: optionalText(data, "address"),
+        responsibleUserId: optionalText(data, "responsibleUserId"),
+      }),
+      createInventoryWarehouse,
       form,
     );
   }
@@ -281,23 +325,23 @@ export default function LogisticsPage() {
     void runMutation(
       "item",
       "Artículo importado",
-      () =>
-        importInventoryItems({
-          clientRequestId: freshCommandId(),
-          items: [
-            {
-              sku: requiredText(data, "sku"),
-              name: requiredText(data, "name"),
-              description: optionalText(data, "description"),
-              unit: requiredText(data, "unit"),
-              trackingMode: requiredText(
-                data,
-                "trackingMode",
-              ) as InventoryTrackingMode,
-              minimumStock: integerField(data, "minimumStock"),
-            },
-          ],
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        items: [
+          {
+            sku: requiredText(data, "sku"),
+            name: requiredText(data, "name"),
+            description: optionalText(data, "description"),
+            unit: requiredText(data, "unit"),
+            trackingMode: requiredText(
+              data,
+              "trackingMode",
+            ) as InventoryTrackingMode,
+            minimumStock: integerField(data, "minimumStock"),
+          },
+        ],
+      }),
+      importInventoryItems,
       form,
     );
   }
@@ -309,20 +353,20 @@ export default function LogisticsPage() {
     void runMutation(
       "stock",
       "Ingreso de existencias",
-      () =>
-        receiveInventoryStock({
-          clientRequestId: freshCommandId(),
-          warehouseId: requiredText(data, "warehouseId"),
-          itemId: requiredText(data, "itemId"),
-          quantity: integerField(data, "quantity"),
-          lotNumber: optionalText(data, "lotNumber"),
-          serialNumber: optionalText(data, "serialNumber"),
-          expiresAt: isoFromLocal(optionalText(data, "expiresAt")),
-          responsibleUserId: optionalText(data, "responsibleUserId"),
-          reason: requiredText(data, "reason"),
-          custodyDeclaration: requiredText(data, "custodyDeclaration"),
-          occurredAt: new Date().toISOString(),
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        warehouseId: requiredText(data, "warehouseId"),
+        itemId: requiredText(data, "itemId"),
+        quantity: integerField(data, "quantity"),
+        lotNumber: optionalText(data, "lotNumber"),
+        serialNumber: optionalText(data, "serialNumber"),
+        expiresAt: isoFromLocal(optionalText(data, "expiresAt")),
+        responsibleUserId: optionalText(data, "responsibleUserId"),
+        reason: requiredText(data, "reason"),
+        custodyDeclaration: requiredText(data, "custodyDeclaration"),
+        occurredAt: new Date().toISOString(),
+      }),
+      receiveInventoryStock,
       form,
     );
   }
@@ -341,40 +385,38 @@ export default function LogisticsPage() {
     const warehouse = overview?.warehouses.find(
       (candidate) => candidate.id === destinationId,
     );
-    const place = places.find((candidate) => candidate.id === destinationId);
+    const place = selectedPlace?.id === destinationId ? selectedPlace : null;
     void runMutation(
       "dispatch",
       "Despacho confirmado",
-      () =>
-        dispatchInventory({
-          clientRequestId: freshCommandId(),
-          code: requiredText(data, "code"),
-          sourceWarehouseId: requiredText(data, "sourceWarehouseId"),
-          ...(dispatchDestination === "WAREHOUSE"
-            ? { destinationWarehouseId: destinationId }
-            : { destinationDivisionId: destinationId }),
-          destinationLabel:
-            dispatchDestination === "WAREHOUSE"
-              ? `${warehouse?.code ?? "BODEGA"} · ${warehouse?.name ?? "Destino seleccionado"}`
-              : `${place?.code ?? "PUESTO"} · ${place?.name ?? "Destino seleccionado"}`,
-          ...(dispatchDestination === "POLLING_PLACE" &&
-          optionalText(data, "destinationTableNumber")
-            ? {
-                destinationTableNumber: integerField(
-                  data,
-                  "destinationTableNumber",
-                ),
-              }
-            : {}),
-          custodianUserId: requiredText(data, "custodianUserId"),
-          purpose: requiredText(data, "purpose"),
-          custodyDeclaration: requiredText(data, "custodyDeclaration"),
-          occurredAt: new Date().toISOString(),
-          expectedReturnAt: isoFromLocal(
-            optionalText(data, "expectedReturnAt"),
-          ),
-          lines,
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        code: requiredText(data, "code"),
+        sourceWarehouseId: requiredText(data, "sourceWarehouseId"),
+        ...(dispatchDestination === "WAREHOUSE"
+          ? { destinationWarehouseId: destinationId }
+          : { destinationDivisionId: destinationId }),
+        destinationLabel:
+          dispatchDestination === "WAREHOUSE"
+            ? `${warehouse?.code ?? "BODEGA"} · ${warehouse?.name ?? "Destino seleccionado"}`
+            : `${place?.code ?? "PUESTO"} · ${place?.name ?? "Destino seleccionado"}`,
+        ...(dispatchDestination === "POLLING_PLACE" &&
+        optionalText(data, "destinationTableNumber")
+          ? {
+              destinationTableNumber: integerField(
+                data,
+                "destinationTableNumber",
+              ),
+            }
+          : {}),
+        custodianUserId: requiredText(data, "custodianUserId"),
+        purpose: requiredText(data, "purpose"),
+        custodyDeclaration: requiredText(data, "custodyDeclaration"),
+        occurredAt: new Date().toISOString(),
+        expectedReturnAt: isoFromLocal(optionalText(data, "expectedReturnAt")),
+        lines,
+      }),
+      dispatchInventory,
       form,
     );
   }
@@ -400,14 +442,14 @@ export default function LogisticsPage() {
     void runMutation(
       `receive-${transfer.id}`,
       "Recepción confirmada",
-      () =>
-        receiveInventoryTransfer(transfer.id, {
-          clientRequestId: freshCommandId(),
-          expectedTransferUpdatedAt: transfer.updatedAt,
-          custodyDeclaration: requiredText(data, "custodyDeclaration"),
-          occurredAt: new Date().toISOString(),
-          lines,
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        expectedTransferUpdatedAt: transfer.updatedAt,
+        custodyDeclaration: requiredText(data, "custodyDeclaration"),
+        occurredAt: new Date().toISOString(),
+        lines,
+      }),
+      (input) => receiveInventoryTransfer(transfer.id, input),
       form,
     );
   }
@@ -428,14 +470,14 @@ export default function LogisticsPage() {
     void runMutation(
       `return-${transfer.id}`,
       "Devolución confirmada",
-      () =>
-        returnInventoryTransfer(transfer.id, {
-          clientRequestId: freshCommandId(),
-          expectedTransferUpdatedAt: transfer.updatedAt,
-          custodyDeclaration: requiredText(data, "custodyDeclaration"),
-          occurredAt: new Date().toISOString(),
-          lines,
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        expectedTransferUpdatedAt: transfer.updatedAt,
+        custodyDeclaration: requiredText(data, "custodyDeclaration"),
+        occurredAt: new Date().toISOString(),
+        lines,
+      }),
+      (input) => returnInventoryTransfer(transfer.id, input),
       form,
     );
   }
@@ -445,6 +487,8 @@ export default function LogisticsPage() {
     transfer: InventoryTransfer,
   ) {
     event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
     if (
       !(await confirm({
         title: "Conciliar despacho definitivamente",
@@ -455,24 +499,22 @@ export default function LogisticsPage() {
     ) {
       return;
     }
-    const form = event.currentTarget;
-    const data = new FormData(form);
     void runMutation(
       `reconcile-${transfer.id}`,
       "Conciliación definitiva",
-      () =>
-        reconcileInventoryTransfer(transfer.id, {
-          clientRequestId: freshCommandId(),
-          expectedTransferUpdatedAt: transfer.updatedAt,
-          reconciliationNote: requiredText(data, "reconciliationNote"),
-          occurredAt: new Date().toISOString(),
-          lines: transfer.lines.map((line) => ({
-            lineId: line.id,
-            consumedQuantity: integerField(data, `consumed-${line.id}`),
-            missingQuantity: integerField(data, `missing-${line.id}`),
-            damagedQuantity: integerField(data, `damaged-${line.id}`),
-          })),
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        expectedTransferUpdatedAt: transfer.updatedAt,
+        reconciliationNote: requiredText(data, "reconciliationNote"),
+        occurredAt: new Date().toISOString(),
+        lines: transfer.lines.map((line) => ({
+          lineId: line.id,
+          consumedQuantity: integerField(data, `consumed-${line.id}`),
+          missingQuantity: integerField(data, `missing-${line.id}`),
+          damagedQuantity: integerField(data, `damaged-${line.id}`),
+        })),
+      }),
+      (input) => reconcileInventoryTransfer(transfer.id, input),
       form,
     );
   }
@@ -488,18 +530,18 @@ export default function LogisticsPage() {
     void runMutation(
       `incident-${transfer.id}`,
       "Incidencia registrada",
-      () =>
-        reportInventoryIncident(transfer.id, {
-          clientRequestId: freshCommandId(),
-          expectedTransferUpdatedAt: transfer.updatedAt,
-          lineId: optionalText(data, "lineId"),
-          type: requiredText(data, "type") as InventoryIncidentType,
-          ...(quantity ? { quantity: Number(quantity) } : {}),
-          description: requiredText(data, "description"),
-          evidenceReference: optionalText(data, "evidenceReference"),
-          evidenceSha256: optionalText(data, "evidenceSha256"),
-          occurredAt: new Date().toISOString(),
-        }),
+      () => ({
+        clientRequestId: freshCommandId(),
+        expectedTransferUpdatedAt: transfer.updatedAt,
+        lineId: optionalText(data, "lineId"),
+        type: requiredText(data, "type") as InventoryIncidentType,
+        ...(quantity ? { quantity: Number(quantity) } : {}),
+        description: requiredText(data, "description"),
+        evidenceReference: optionalText(data, "evidenceReference"),
+        evidenceSha256: optionalText(data, "evidenceSha256"),
+        occurredAt: new Date().toISOString(),
+      }),
+      (input) => reportInventoryIncident(transfer.id, input),
       form,
     );
   }
@@ -519,7 +561,12 @@ export default function LogisticsPage() {
   }
 
   if (!overview && isOperationProfileRequired(requestError)) {
-    return <OperationProfileRequired title="Logística electoral" description="El perfil permite organizar bodegas, entregas y responsables según la etapa de la campaña. Revísalo para empezar a gestionar el inventario." />;
+    return (
+      <OperationProfileRequired
+        title="Logística electoral"
+        description="El perfil permite organizar bodegas, entregas y responsables según la etapa de la campaña. Revísalo para empezar a gestionar el inventario."
+      />
+    );
   }
 
   if (loadError && !overview) {
@@ -585,6 +632,30 @@ export default function LogisticsPage() {
         </button>
       </header>
 
+      {loadError ? (
+        <div
+          role="alert"
+          className="min-w-0 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+        >
+          <p>
+            Se muestran los últimos saldos consultados. No se pudo
+            actualizarlos: {loadError}
+          </p>
+          <p className="mt-1">
+            Los recibos de movimientos ya confirmados se conservan; esta
+            consulta no vuelve a registrar movimientos.
+          </p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => setReloadVersion((version) => version + 1)}
+            className="mt-2 min-h-11 rounded-xl border border-amber-500 px-3 font-semibold disabled:opacity-50"
+          >
+            Reintentar consulta de saldos
+          </button>
+        </div>
+      ) : null}
+
       {overview.readOnly ? (
         <section
           role="status"
@@ -622,14 +693,36 @@ export default function LogisticsPage() {
           <p>{warning}</p>
         </div>
       ))}
-      {placesLimited ? (
+      {mutation.phase !== "idle" ? (
         <div
-          role="note"
-          className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950 min-w-0"
+          role={mutation.phase === "uncertain" ? "alert" : "status"}
+          className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 min-w-0"
         >
-          El selector muestra los primeros 100 puestos oficiales. Use el código
-          de puesto como filtro en Territorio antes de preparar despachos
-          masivos; la API nunca acepta una mesa fuera del puesto activo.
+          <p className="font-semibold">
+            {mutation.phase === "uncertain"
+              ? "El resultado aún no está confirmado"
+              : "Esperando el recibo del movimiento"}
+          </p>
+          <p>
+            {mutation.label}. Las nuevas órdenes están bloqueadas hasta aclarar
+            esta operación. El reintento conserva el contenido original aunque
+            hayas editado los campos.
+          </p>
+          <p className="mt-2">
+            No cierres, recargues ni salgas de esta página: el reintento se
+            conserva sólo en memoria. Si sales, revisa los recibos y saldos
+            antes de repetir un movimiento; esta pantalla no recupera órdenes
+            pendientes después de navegar o recargar.
+          </p>
+          {mutation.phase === "uncertain" ? (
+            <button
+              type="button"
+              onClick={() => void mutationQueue.retry()}
+              className="mt-3 min-h-11 rounded-xl border border-amber-600 px-4 font-semibold"
+            >
+              Reintentar la misma operación
+            </button>
+          ) : null}
         </div>
       ) : null}
       {mutationError ? (
@@ -838,9 +931,7 @@ export default function LogisticsPage() {
                     disabled={Boolean(mutationKey)}
                     className="min-h-11 rounded-xl bg-blue-700 px-4 font-bold text-white disabled:opacity-50 sm:col-span-2 max-w-full whitespace-normal"
                   >
-                    {mutationKey === "item"
-                      ? "Guardando…"
-                      : "Guardar artículo"}
+                    {mutationKey === "item" ? "Guardando…" : "Guardar artículo"}
                   </button>
                 </form>
               </details>
@@ -1053,25 +1144,11 @@ export default function LogisticsPage() {
                   </fieldset>
                   {dispatchDestination === "POLLING_PLACE" ? (
                     <div className="grid gap-3 md:grid-cols-2 min-w-0">
-                      <label className="text-sm font-semibold min-w-0">
-                        Puesto electoral
-                        <select
-                          required
-                          name="destinationId"
-                          className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 min-w-0 max-w-full"
-                        >
-                          <option value="">Seleccione puesto activo</option>
-                          {places.map((place) => (
-                            <option key={place.id} value={place.id}>
-                              {place.code} · {place.name}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="mt-1 block text-xs font-normal text-slate-500">
-                          No se inventan dirección ni coordenadas: sólo código y
-                          nombre oficiales disponibles.
-                        </span>
-                      </label>
+                      <InventoryVotingPlaceSelect
+                        value={selectedPlace}
+                        onChange={setSelectedPlace}
+                        disabled={Boolean(mutationKey)}
+                      />
                       <label className="text-sm font-semibold min-w-0">
                         Mesa específica (opcional)
                         <input
@@ -1256,7 +1333,9 @@ export default function LogisticsPage() {
                           : "Sin vencimiento declarado"}
                       </span>
                     </td>
-                    <td className="p-2">{CONDITION_LABELS[balance.condition]}</td>
+                    <td className="p-2">
+                      {CONDITION_LABELS[balance.condition]}
+                    </td>
                     <td className="p-2 text-right text-lg font-semibold">
                       {balance.quantity}
                     </td>
@@ -1709,8 +1788,8 @@ export default function LogisticsPage() {
           <div>
             <h2 className="font-semibold">Trabajo con conexión</h2>
             <p className="mt-1">
-              Usa una conexión activa para registrar movimientos. Comprueba
-              la confirmación y el saldo actualizado antes de entregar o recibir
+              Usa una conexión activa para registrar movimientos. Comprueba la
+              confirmación y el saldo actualizado antes de entregar o recibir
               materiales.
             </p>
           </div>
