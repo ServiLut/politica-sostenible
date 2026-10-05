@@ -275,6 +275,18 @@ describe('OperationProfileService.getReadiness', () => {
     }
     expect(transaction.politicalDivision.findMany).toHaveBeenCalledTimes(1);
     expect(transaction.witnessAssignment.findMany).toHaveBeenCalledTimes(1);
+    for (const query of [
+      transaction.witnessCoverageWindow.findMany.mock.calls[0][0],
+      transaction.witnessAssignment.findMany.mock.calls[0][0],
+    ]) {
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          tenantId: jwtUser.tenantId,
+          operationProfileId: 'profile-from-tenant',
+          captureContext: 'REAL',
+        }),
+      );
+    }
   });
 
   it('uses the current database role rather than the stale JWT role', async () => {

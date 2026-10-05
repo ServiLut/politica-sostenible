@@ -9,16 +9,22 @@ import {
 import {
   AuditActorType,
   CandidateListType,
+  CommunicationApprovalStatus,
+  ConsentPurpose,
   ElectoralCatalogStatus,
   ElectoralCatalogType,
   ElectoralCircumscriptionType,
+  FinanceStatus,
+  IssueCaseStatus,
   PoliticalOperationMode,
   PoliticalOperationStage,
   PoliticalOperationType,
   Prisma,
   Role,
+  TaskStatus,
   WitnessAssignmentStatus,
   WitnessCaptureContext,
+  WitnessReportStatus,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
@@ -26,6 +32,12 @@ import {
   CAMPAIGN_TENANT_SELECT,
 } from '../common/utils/campaign-mode.util';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  FINANCE_COMPLIANCE_SELECT,
+  getFinanceComplianceReadiness,
+} from '../finance/finance-compliance';
+import { getFinanceCloseoutReadiness } from '../finance/finance-closeout-readiness';
+import type { OperationReadinessResponseDto } from './dto/operation-readiness.dto';
 import {
   getOperationProfileCoherenceError,
   UpsertOperationProfileDto,
@@ -37,8 +49,11 @@ import {
   SAFE_INITIAL_OPERATION_STAGES,
 } from './operation-profile-stage-transition';
 import {
+  buildOperationReadiness,
+  countDivergentE14Tables,
   getElectionDayReadinessBlockers,
   hasExactActiveElectoralProjection,
+  OPERATION_PROFILE_READ_ROLES,
 } from './operation-readiness';
 
 const DATA_RESPONSIBLE_ROLES: readonly Role[] = [
@@ -96,16 +111,308 @@ const SERIALIZABLE_OPTIONS = {
 export class OperationProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getReadiness(user: AuthenticatedUser) {
-    return {
-      status: 'READY' as const,
-      organizationConfigured: true,
-      budgetConfigured: true,
-      stageAligned: true,
-      dataResponsibleActive: true,
-      activeTeamCount: 1,
-      errors: [],
-    };
+  async getReadiness(
+    user: AuthenticatedUser,
+    evaluatedAt = new Date(),
+  ): Promise<OperationReadinessResponseDto> {
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const tenant = await transaction.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: CAMPAIGN_TENANT_SELECT,
+        });
+        assertCampaignTenant(tenant);
+
+        // Recheck the current database role before reading any operational data.
+        const actor = await transaction.user.findFirst({
+          where: {
+            id: user.userId,
+            tenantId: user.tenantId,
+            isActive: true,
+            role: { in: [...OPERATION_PROFILE_READ_ROLES] },
+          },
+          select: { id: true, role: true },
+        });
+        if (!actor) throw new ForbiddenException('Acceso no autorizado');
+
+        const tenantId = user.tenantId;
+        const campaign = { tenantId, mode: PoliticalOperationMode.CAMPAIGN };
+        const profile = await transaction.operationProfile.findUnique({
+          where: { tenantId },
+          select: {
+            id: true,
+            stage: true,
+            electionDate: true,
+            votingStartDate: true,
+            votingEndDate: true,
+            votingWindowSourceUrl: true,
+            votingWindowReference: true,
+            closureType: true,
+            terminatedAt: true,
+            terminationCause: true,
+          },
+        });
+        const [
+          consentCount,
+          settings,
+          teamCount,
+          divisions,
+          releases,
+          windows,
+          assignments,
+          e14Statuses,
+          e14Fingerprints,
+          voterCount,
+          cases,
+          tasks,
+          overdueTaskCount,
+          communications,
+          finances,
+          auditActions,
+        ] = await Promise.all([
+          transaction.consentNotice.count({
+            where: {
+              ...campaign,
+              purpose: ConsentPurpose.POLITICAL_COMMUNICATION,
+              isActive: true,
+            },
+          }),
+          transaction.campaignSettings.findUnique({
+            where: { tenantId },
+            select: FINANCE_COMPLIANCE_SELECT,
+          }),
+          transaction.user.count({
+            where: { tenantId, isActive: true, role: { not: Role.ADMIN } },
+          }),
+          transaction.politicalDivision.findMany({
+            where: { tenantId, isActive: true },
+            select: {
+              id: true,
+              parentId: true,
+              type: true,
+              expectedTables: true,
+              sourceNamespace: true,
+              sourceReleaseId: true,
+            },
+          }),
+          transaction.electoralCatalogRelease.findMany({
+            where: {
+              tenantId,
+              type: ElectoralCatalogType.ELECTORAL_RNEC,
+              status: ElectoralCatalogStatus.ACTIVE,
+            },
+            select: { id: true },
+          }),
+          transaction.witnessCoverageWindow.findMany({
+            where: {
+              tenantId,
+              operationProfileId: profile?.id ?? '',
+              captureContext: WitnessCaptureContext.REAL,
+            },
+            select: {
+              id: true,
+              puestoId: true,
+              localDate: true,
+              startsAt: true,
+              endsAt: true,
+              timeZone: true,
+              utcOffsetMinutes: true,
+            },
+          }),
+          transaction.witnessAssignment.findMany({
+            where: {
+              tenantId,
+              operationProfileId: profile?.id ?? '',
+              captureContext: WitnessCaptureContext.REAL,
+              status: { not: WitnessAssignmentStatus.CANCELLED },
+            },
+            select: {
+              coverageWindowId: true,
+              puestoId: true,
+              tableStart: true,
+              tableEnd: true,
+              shiftStartsAt: true,
+              shiftEndsAt: true,
+              assignmentType: true,
+              status: true,
+              witness: { select: { role: true, isActive: true } },
+            },
+          }),
+          transaction.witnessReport.groupBy({
+            by: ['status'],
+            where: {
+              tenantId,
+              captureContext: WitnessCaptureContext.REAL,
+              supersededById: null,
+            },
+            _count: { _all: true },
+          }),
+          transaction.witnessReport.groupBy({
+            by: [
+              'puestoId',
+              'mesa',
+              'candidateVotes',
+              'blankVotes',
+              'nullVotes',
+              'unmarkedVotes',
+              'totalTableVotes',
+              'status',
+            ],
+            where: {
+              tenantId,
+              captureContext: WitnessCaptureContext.REAL,
+              supersededById: null,
+              status: {
+                in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
+              },
+            },
+          }),
+          transaction.voter.count({ where: { ...campaign } }),
+          transaction.issueCase.groupBy({
+            by: ['status'],
+            where: campaign,
+            _count: { _all: true },
+          }),
+          transaction.task.groupBy({
+            by: ['status'],
+            where: campaign,
+            _count: { _all: true },
+          }),
+          transaction.task.count({
+            where: {
+              ...campaign,
+              status: {
+                in: [
+                  TaskStatus.TODO,
+                  TaskStatus.IN_PROGRESS,
+                  TaskStatus.BLOCKED,
+                ],
+              },
+              dueAt: { lt: evaluatedAt },
+            },
+          }),
+          transaction.communicationApproval.groupBy({
+            by: ['status'],
+            where: campaign,
+            _count: { _all: true },
+          }),
+          transaction.financialEntry.groupBy({
+            by: ['status'],
+            where: { tenantId },
+            _count: { _all: true },
+          }),
+          transaction.auditEvent.groupBy({
+            by: ['action'],
+            where: {
+              tenantId,
+              mode: PoliticalOperationMode.CAMPAIGN,
+              action: {
+                in: ['OPERATION_PROFILE_CREATED', 'OPERATION_STAGE_ADOPTED'],
+              },
+            },
+            _count: { _all: true },
+          }),
+        ]);
+
+        const countStatus = <
+          T extends { status: string; _count: { _all: number } },
+        >(
+          rows: T[],
+          statuses: readonly string[],
+        ) =>
+          rows.reduce(
+            (sum, row) =>
+              sum + (statuses.includes(row.status) ? row._count._all : 0),
+            0,
+          );
+        const pendingFinanceCount = countStatus(finances, [
+          FinanceStatus.PENDING,
+        ]);
+        const unreportedFinanceCount = countStatus(finances, [
+          FinanceStatus.PENDING,
+          FinanceStatus.APPROVED,
+        ]);
+        const financeCloseoutReadiness =
+          profile &&
+          (profile.stage === PoliticalOperationStage.POST_ELECTION ||
+            profile.stage === PoliticalOperationStage.CLOSED)
+            ? await getFinanceCloseoutReadiness(
+                transaction,
+                tenantId,
+                profile.id,
+                evaluatedAt,
+              )
+            : null;
+
+        return buildOperationReadiness(
+          {
+            profile,
+            activeConsentNoticeCount: consentCount,
+            financeCompliance: getFinanceComplianceReadiness(settings),
+            financeReportDeadline: settings?.reportDeadline ?? null,
+            activeNonAdminTeamCount: teamCount,
+            activeElectoralCatalogReleaseIds: releases.map(({ id }) => id),
+            divisions,
+            witnessCoverageWindows: windows,
+            witnessAssignments: assignments.map((assignment) => ({
+              ...assignment,
+              witnessEligible:
+                assignment.witness.isActive &&
+                assignment.witness.role === Role.WITNESS,
+            })),
+            e14PendingCount: countStatus(e14Statuses, [
+              WitnessReportStatus.PENDING,
+            ]),
+            e14RejectedCount: countStatus(e14Statuses, [
+              WitnessReportStatus.REJECTED,
+            ]),
+            e14DivergentTableCount: countDivergentE14Tables(e14Fingerprints),
+            openCaseCount: countStatus(cases, [
+              IssueCaseStatus.OPEN,
+              IssueCaseStatus.TRIAGED,
+              IssueCaseStatus.IN_PROGRESS,
+              IssueCaseStatus.WAITING_ON_CITIZEN,
+              IssueCaseStatus.WAITING_ON_EXTERNAL_ENTITY,
+            ]),
+            openTaskCount: countStatus(tasks, [
+              TaskStatus.TODO,
+              TaskStatus.IN_PROGRESS,
+              TaskStatus.BLOCKED,
+            ]),
+            overdueTaskCount,
+            pendingCommunicationCount: countStatus(communications, [
+              CommunicationApprovalStatus.PENDING,
+            ]),
+            pendingFinanceCount,
+            unreportedFinanceCount,
+            hasOperationalActivity:
+              voterCount > 0 ||
+              cases.length > 0 ||
+              tasks.length > 0 ||
+              communications.length > 0 ||
+              finances.length > 0 ||
+              e14Statuses.length > 0,
+            lifecycleCreatedAuditCount: countStatus(
+              auditActions.map(({ action, _count }) => ({
+                status: action,
+                _count,
+              })),
+              ['OPERATION_PROFILE_CREATED'],
+            ),
+            lifecycleAdoptionAuditCount: countStatus(
+              auditActions.map(({ action, _count }) => ({
+                status: action,
+                _count,
+              })),
+              ['OPERATION_STAGE_ADOPTED'],
+            ),
+            financeCloseoutReadiness,
+          },
+          evaluatedAt,
+        );
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async getCurrent(user: AuthenticatedUser) {
@@ -216,7 +523,9 @@ export class OperationProfileService {
           currentProfile &&
           !isValidOperationStageTransition(currentProfile.stage, dto.stage)
         ) {
-          const allowed = getAllowedOperationStageTransitions(currentProfile.stage);
+          const allowed = getAllowedOperationStageTransitions(
+            currentProfile.stage,
+          );
           throw new ConflictException(
             `No se permite cambiar la etapa de ${currentProfile.stage} a ${dto.stage}. Siguientes etapas permitidas: ${allowed.join(', ')}`,
           );
@@ -374,14 +683,15 @@ export class OperationProfileService {
           this.electionWindowHash(currentProfile) !==
             this.electionWindowHash(profile)
         ) {
-          const invalidated = await transaction.offlineE14CaptureGrant.updateMany({
-            where: {
-              tenantId: user.tenantId,
-              operationProfileId: currentProfile.id,
-              revokedAt: null,
-            },
-            data: { revokedAt: new Date() },
-          });
+          const invalidated =
+            await transaction.offlineE14CaptureGrant.updateMany({
+              where: {
+                tenantId: user.tenantId,
+                operationProfileId: currentProfile.id,
+                revokedAt: null,
+              },
+              data: { revokedAt: new Date() },
+            });
           await transaction.auditEvent.create({
             data: {
               tenantId: user.tenantId,
@@ -416,11 +726,11 @@ export class OperationProfileService {
               currentProfile && currentSettings
                 ? this.toAuditSnapshot(currentProfile, currentSettings)
                 : undefined,
-            after: this.toAuditSnapshot(profile as SelectedProfile, settings),
+            after: this.toAuditSnapshot(profile, settings),
           },
         });
 
-        return this.toContext(profile as SelectedProfile, settings);
+        return this.toContext(profile, settings);
       }, SERIALIZABLE_OPTIONS);
     } catch (error: unknown) {
       if (this.isPrismaError(error, 'P2002')) {
