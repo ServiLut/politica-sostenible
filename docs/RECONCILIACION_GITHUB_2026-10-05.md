@@ -1,6 +1,6 @@
 # Reconciliación de GitHub y del trabajo local
 
-Se descargó `origin` el 5 de octubre de 2026. La revisión de `main` recibida es
+Se descargó `origin` el 5 de octubre de 2026. La primera revisión de `main` recibida fue
 `054401fd614b83444d8730a4226bb6030a1ea2c7` y contiene dos commits posteriores
 a la base común `48e14f7835ed2525ee27c0d32375cfec391edde2`:
 
@@ -92,3 +92,43 @@ Se preservan los informes y logs completos bajo
 final y las pruebas de navegador/productivas siguen siendo pasos distintos.
 Los resultados del candidato 81839db o del remoto 054401f no se presentan como
 validación de una imagen reconciliada todavía no publicada.
+
+## Segundo corte de GitHub: 17:20 UTC
+
+Durante la preparación del parche de Tareas apareció `86bd8d37c4db605a026fb2f7b919a422211a0ffb`,
+«fix: calculate operation readiness and document Windows preview». Se descargó
+y se detuvo la entrega C133 antes de respaldo, transferencia, importación o corte.
+La versión ED0 siguió publicada. El delta desde 054401f comprende cuatro archivos:
+README, servicio, controlador y prueba de alistamiento.
+
+Este commit sí reemplaza el `READY` fijo de la rama remota por un cálculo real.
+La integración local ya disponía de ese cálculo y de protecciones adicionales;
+el conflicto se resuelve conservándolas e incorporando las mejoras nuevas:
+
+- Ventanas y asignaciones de testigos acotadas al perfil operativo vigente y
+  al tenant validado. Se conserva la exigencia de asignación confirmada.
+- Estados E14 calculados sobre reportes no sustituidos y divergencias entre
+  reportes pendientes o aceptados vigentes. El conteo histórico separado impide
+  presentar una operación con actividad previa como si nunca hubiera operado.
+- La misma interpretación de reportes vigentes se aplica al control de cierre.
+- Las comprobaciones remotas de alcance entran en las pruebas locales.
+- Se incorpora la instrucción de vista previa Windows; el controlador ya
+  coincidía con el cambio remoto antes de esta segunda integración.
+
+Se conservan la auditoría `OPERATION_STAGE_ADOPTION_APPROVED`, los controles de
+firmas, calendario, transición y cierre, el bloqueo de mutaciones después del
+cierre y la función compartida de normalización de ventanas. Sus diferencias
+frente a la rama remota corresponden a trabajo local previo: no se presentan
+como eliminaciones causadas por el autor del nuevo commit.
+
+La imagen C133 y sus resultados locales se conservan como candidato anterior,
+sin atribuirlos a la integración posterior. La nueva fuente requiere su propio
+commit, validación y paquete de entrega. Este documento no acredita publicación.
+
+La segunda integración aprobó 244 pruebas API focales en 12 suites, sin
+omisiones, TypeScript API completo y lint de los tres archivos afectados.
+La suite web completa aprobó 333 pruebas, sin omisiones ni casos inestables,
+incluidas las regresiones de Compromisos. Los tipos web y lint del área también
+pasaron. Los 12 casos de navegador preparados se descubrieron, pero no se
+presentan como ejecutados. Los informes y logs se conservan en
+`github-readiness-release` y en el recibo de Compromisos de `task-followup-release`.

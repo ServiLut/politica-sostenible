@@ -57,3 +57,20 @@ No cambian dependencias, esquema, migraciones, conexiones, recursos del
 servidor ni los otros programas. Los registros preexistentes de líderes cuya
 procedencia está pendiente de cotejo permanecen identificados como una revisión
 de datos aparte; no se validan como auténticos por abrir correctamente su lista.
+
+## Ampliación tras el segundo corte de GitHub
+
+La revisión independiente encontró el mismo defecto de lista obsoleta en
+Compromisos. Después de guardar estado o avance, ahora se consulta de nuevo
+la lista con los filtros vigentes y página uno. El total procede de esa misma
+respuesta; una respuesta PATCH tardía no reemplaza una lista de filtros nuevos.
+Se conserva el requisito de avance en 100 % antes de marcar Cumplido y el
+control efectivo de permisos del backend. Se bloquea una segunda mutación
+mientras otra está en curso y el foco vuelve a la pestaña Compromisos cuando
+desaparece la tarjeta filtrada.
+
+El alta reutiliza esa actualización coherente de la lista. No se añadió un
+editor general de compromisos ni se crearon compromisos en producción para
+esta revisión. Los casos de navegador con respuestas simuladas se ampliaron
+para el filtro de estado, el total y el avance, con su alcance de ejecución
+indicado en los recibos de validación.

@@ -24,6 +24,16 @@ pnpm dev
 
 Copia `.env.example` a un archivo local no versionado y usa valores exclusivos de desarrollo. Nunca reutilices secretos productivos.
 
+### Abrir la web localmente en Windows
+
+Si PowerShell bloquea `pnpm.ps1` o Windows bloquea el binario nativo de Next.js, inicia la web desde la raíz del repositorio con Webpack:
+
+```powershell
+corepack.cmd pnpm --filter web exec next dev --webpack
+```
+
+Corepack utiliza la versión de pnpm fijada en `package.json`, aunque haya otra versión global instalada. Mantén abierta esa terminal y visita [http://localhost:3000](http://localhost:3000). La portada puede cargar sin la API; las funciones con datos requieren iniciar NestJS con PostgreSQL y las variables obligatorias de desarrollo, entre ellas `DATABASE_URL` y `MFA_TOTP_ACTIVE_KEY_ID`.
+
 ## Verificación
 
 ```bash

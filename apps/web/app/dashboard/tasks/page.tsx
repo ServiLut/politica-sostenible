@@ -345,6 +345,7 @@ function TasksWorkspace({ search }: { search: string }) {
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const tasksTabRef = useRef<HTMLButtonElement>(null);
+  const commitmentsTabRef = useRef<HTMLButtonElement>(null);
   const [taskEdit, setTaskEdit] = useState<{
     original: Task;
     draft: TaskDraft;
@@ -442,7 +443,6 @@ function TasksWorkspace({ search }: { search: string }) {
     enabled: !linkedCaseRequestId || Boolean(linkedCase),
   });
   const commitmentResult = commitments.data;
-  const setCommitmentResult = commitments.setData;
   const commitmentLoading = commitments.loading;
   const commitmentError = commitments.error
     ? readableError(commitments.error)
@@ -477,7 +477,7 @@ function TasksWorkspace({ search }: { search: string }) {
     open: dialog !== null,
     containerRef: dialogRef,
     initialFocusRef: dialogTitleRef,
-    returnFocusRef: tasksTabRef,
+    returnFocusRef: view === "commitments" ? commitmentsTabRef : tasksTabRef,
     onClose: () => {
       if (!mutation) setDialog(null);
     },
@@ -536,6 +536,11 @@ function TasksWorkspace({ search }: { search: string }) {
     // The new request owns its snapshot and aborts any GET from prior filters.
     setTaskFilters(taskFiltersAfterMutation);
     setTaskReload((current) => current + 1);
+  }
+
+  function refreshCommitmentsAfterMutation() {
+    setCommitmentFilters(taskFiltersAfterMutation);
+    setCommitmentReload((current) => current + 1);
   }
 
   function openTaskEditor(task: Task) {
@@ -634,6 +639,7 @@ function TasksWorkspace({ search }: { search: string }) {
 
   async function handleCreateCommitment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation) return;
     if (!commitmentResult?.permissions.canCreate) {
       setMutationError(
         "Tu acceso actual permite consultar compromisos, pero no crearlos.",
@@ -673,8 +679,7 @@ function TasksWorkspace({ search }: { search: string }) {
         ownerName: user?.name ?? "",
       });
       setDialog(null);
-      setCommitmentFilters((current) => ({ ...current, page: 1 }));
-      setCommitmentReload((current) => current + 1);
+      refreshCommitmentsAfterMutation();
       showNotice(
         linkedCase
           ? `Compromiso creado y vinculado al caso ${linkedCase.reference}.`
@@ -713,7 +718,8 @@ function TasksWorkspace({ search }: { search: string }) {
     commitment: Commitment,
     status: CommitmentStatus,
   ) {
-    if (!commitment.canUpdate) return;
+    if (mutation || !commitment.canUpdate || status === commitment.status)
+      return;
     if (status === "FULFILLED" && commitment.progress !== 100) {
       setMutationError(
         "Guarda primero el avance en 100% antes de marcar el compromiso como cumplido.",
@@ -726,16 +732,8 @@ function TasksWorkspace({ search }: { search: string }) {
 
     try {
       const updated = await updateCommitment(commitment.id, { status });
-      setCommitmentResult((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) =>
-                item.id === updated.id ? updated : item,
-              ),
-            }
-          : current,
-      );
+      commitmentsTabRef.current?.focus({ preventScroll: true });
+      refreshCommitmentsAfterMutation();
       setProgressDrafts((current) => ({
         ...current,
         [commitment.id]: updated.progress,
@@ -749,7 +747,7 @@ function TasksWorkspace({ search }: { search: string }) {
   }
 
   async function handleCommitmentProgress(commitment: Commitment) {
-    if (!commitment.canUpdate) return;
+    if (mutation || !commitment.canUpdate) return;
     const progress = progressDrafts[commitment.id] ?? commitment.progress;
     if (!Number.isInteger(progress) || progress < 0 || progress > 100) {
       setMutationError("El avance debe ser un número entero entre 0 y 100.");
@@ -762,16 +760,8 @@ function TasksWorkspace({ search }: { search: string }) {
 
     try {
       const updated = await updateCommitment(commitment.id, { progress });
-      setCommitmentResult((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) =>
-                item.id === updated.id ? updated : item,
-              ),
-            }
-          : current,
-      );
+      commitmentsTabRef.current?.focus({ preventScroll: true });
+      refreshCommitmentsAfterMutation();
       setProgressDrafts((current) => ({
         ...current,
         [commitment.id]: updated.progress,
@@ -980,6 +970,7 @@ function TasksWorkspace({ search }: { search: string }) {
         </button>
         <button
           id="commitments-tab"
+          ref={commitmentsTabRef}
           type="button"
           role="tab"
           aria-selected={view === "commitments"}

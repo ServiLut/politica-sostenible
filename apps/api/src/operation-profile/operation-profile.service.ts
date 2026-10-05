@@ -169,14 +169,29 @@ export class OperationProfileService {
           throw new ForbiddenException(
             'El usuario no tiene acceso vigente al alistamiento',
           );
+        const profile = await transaction.operationProfile.findUnique({
+          where: { tenantId },
+          select: {
+            id: true,
+            stage: true,
+            electionDate: true,
+            votingStartDate: true,
+            votingEndDate: true,
+            votingWindowSourceUrl: true,
+            votingWindowReference: true,
+            closureType: true,
+            terminatedAt: true,
+            terminationCause: true,
+          },
+        });
         const [
-          profile,
           settings,
           activeConsentNoticeCount,
           activeNonAdminTeamCount,
           territory,
           reportStatuses,
           fingerprints,
+          historicalE14Count,
           voterCount,
           caseStatuses,
           taskStatuses,
@@ -185,21 +200,6 @@ export class OperationProfileService {
           financeStatuses,
           lifecycle,
         ] = await Promise.all([
-          transaction.operationProfile.findUnique({
-            where: { tenantId },
-            select: {
-              id: true,
-              stage: true,
-              electionDate: true,
-              votingStartDate: true,
-              votingEndDate: true,
-              votingWindowSourceUrl: true,
-              votingWindowReference: true,
-              closureType: true,
-              terminatedAt: true,
-              terminationCause: true,
-            },
-          }),
           transaction.campaignSettings.findUnique({
             where: { tenantId },
             select: FINANCE_COMPLIANCE_SELECT,
@@ -215,14 +215,33 @@ export class OperationProfileService {
           transaction.user.count({
             where: { tenantId, isActive: true, role: { not: Role.ADMIN } },
           }),
-          this.readTerritorialReadiness(transaction, tenantId),
+          this.readTerritorialReadiness(
+            transaction,
+            tenantId,
+            profile?.id ?? '',
+          ),
           transaction.witnessReport.groupBy({
             by: ['status'],
-            where: { tenantId, captureContext: WitnessCaptureContext.REAL },
+            where: {
+              tenantId,
+              captureContext: WitnessCaptureContext.REAL,
+              supersededById: null,
+            },
             _count: { _all: true },
           }),
           transaction.witnessReport.groupBy({
             by: E14_FINGERPRINT_FIELDS,
+            where: {
+              tenantId,
+              captureContext: WitnessCaptureContext.REAL,
+              supersededById: null,
+              status: {
+                in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
+              },
+            },
+          }),
+          // Historical activity remains evidence even after reports are superseded.
+          transaction.witnessReport.count({
             where: { tenantId, captureContext: WitnessCaptureContext.REAL },
           }),
           transaction.voter.count({ where: { tenantId } }),
@@ -320,6 +339,7 @@ export class OperationProfileService {
             ]),
             hasOperationalActivity:
               voterCount > 0 ||
+              historicalE14Count > 0 ||
               [
                 ...reportStatuses,
                 ...caseStatuses,
@@ -347,6 +367,7 @@ export class OperationProfileService {
   private async readTerritorialReadiness(
     transaction: Prisma.TransactionClient,
     tenantId: string,
+    operationProfileId: string,
   ) {
     const [divisions, witnessCoverageWindows, assignments, releases] =
       await Promise.all([
@@ -364,7 +385,11 @@ export class OperationProfileService {
           },
         }),
         transaction.witnessCoverageWindow.findMany({
-          where: { tenantId, captureContext: WitnessCaptureContext.REAL },
+          where: {
+            tenantId,
+            operationProfileId,
+            captureContext: WitnessCaptureContext.REAL,
+          },
           select: {
             id: true,
             puestoId: true,
@@ -378,6 +403,7 @@ export class OperationProfileService {
         transaction.witnessAssignment.findMany({
           where: {
             tenantId,
+            operationProfileId,
             captureContext: WitnessCaptureContext.REAL,
             status: WitnessAssignmentStatus.CONFIRMED,
           },
@@ -572,6 +598,7 @@ export class OperationProfileService {
             const territory = await this.readTerritorialReadiness(
               transaction,
               tenantId,
+              currentProfile.id,
             );
             const blockers = getElectionDayReadinessBlockers(
               territory.divisions,
@@ -901,12 +928,20 @@ export class OperationProfileService {
         where: {
           tenantId,
           captureContext: WitnessCaptureContext.REAL,
+          supersededById: null,
           status: WitnessReportStatus.PENDING,
         },
       }),
       transaction.witnessReport.groupBy({
         by: E14_FINGERPRINT_FIELDS,
-        where: { tenantId, captureContext: WitnessCaptureContext.REAL },
+        where: {
+          tenantId,
+          captureContext: WitnessCaptureContext.REAL,
+          supersededById: null,
+          status: {
+            in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
+          },
+        },
       }),
       transaction.issueCase.count({
         where: {

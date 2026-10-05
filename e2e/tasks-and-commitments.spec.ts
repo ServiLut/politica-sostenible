@@ -96,6 +96,8 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   const exportPaths: string[] = [];
   let failAssigneePageTwo = true;
   let failTaskEdit = true;
+  let failCommitmentStatus = true;
+  const commitmentReadbacks: string[] = [];
   const assignees = [
     {
       id: "user-e2e",
@@ -287,10 +289,19 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     }
 
     if (pathname === "/api/commitments" && method === "GET") {
+      const url = new URL(request.url());
+      const status = url.searchParams.get("status");
+      commitmentReadbacks.push(url.search);
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(commitmentPage(commitments)),
+        body: JSON.stringify(
+          commitmentPage(
+            commitments.filter(
+              (commitment) => !status || commitment.status === status,
+            ),
+          ),
+        ),
       });
       return;
     }
@@ -326,6 +337,17 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     if (pathname === "/api/commitments/commitment-1" && method === "PATCH") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      if (body.status && failCommitmentStatus) {
+        failCommitmentStatus = false;
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({
+            message: "No se guardó el cambio del compromiso.",
+          }),
+        });
+        return;
+      }
       commitments = commitments.map((commitment) =>
         commitment.id === "commitment-1"
           ? { ...commitment, ...body }
@@ -541,13 +563,47 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   const commitmentCard = page.getByTestId("commitment-card-commitment-1");
   await expect(commitmentCard).toContainText("Iluminación segura");
 
+  const commitmentStatusFilter = page.getByRole("combobox", {
+    name: "Estado del compromiso",
+    exact: true,
+  });
+  await commitmentStatusFilter.selectOption("IN_PROGRESS");
+  await expect(commitmentCard).toBeVisible();
+  await commitmentCard
+    .getByRole("combobox", { name: "Estado de Iluminación segura" })
+    .selectOption("AT_RISK");
+  await expect(page.getByRole("alert")).toContainText(
+    "No se guardó el cambio del compromiso.",
+  );
+  await expect(commitmentCard).toBeVisible();
+  await expect(
+    commitmentCard.getByRole("combobox", {
+      name: "Estado de Iluminación segura",
+    }),
+  ).toHaveValue("IN_PROGRESS");
   await commitmentCard
     .getByRole("combobox", { name: "Estado de Iluminación segura" })
     .selectOption("AT_RISK");
   await expect(
     page.getByText("Estado de “Iluminación segura” actualizado."),
   ).toBeVisible();
+  await expect(commitmentCard).toHaveCount(0);
+  await expect(
+    page.getByRole("tab", { name: "Compromisos (0)", exact: true }),
+  ).toBeFocused();
+  await expect(commitmentStatusFilter).toHaveValue("IN_PROGRESS");
+  await expect(
+    page.getByText("No hay compromisos con estos filtros"),
+  ).toBeVisible();
+  await commitmentStatusFilter.selectOption("");
+  await expect(commitmentCard).toBeVisible();
+  await expect(
+    commitmentCard.getByRole("combobox", {
+      name: "Estado de Iluminación segura",
+    }),
+  ).toHaveValue("AT_RISK");
 
+  const readbacksBeforeProgress = commitmentReadbacks.length;
   await commitmentCard.getByRole("spinbutton", { name: "Avance" }).fill("70");
   await commitmentCard.getByRole("button", { name: "Guardar" }).click();
   await expect(
@@ -558,6 +614,9 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
       name: "Avance de Iluminación segura",
     }),
   ).toHaveAttribute("aria-valuenow", "70");
+  await expect
+    .poll(() => commitmentReadbacks.length)
+    .toBeGreaterThan(readbacksBeforeProgress);
 
   await page.getByRole("button", { name: "Nuevo compromiso" }).click();
   const commitmentDialog = page.getByRole("dialog", {

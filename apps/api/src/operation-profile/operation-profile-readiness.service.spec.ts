@@ -153,6 +153,7 @@ function buildReadinessTransaction() {
     },
     witnessReport: {
       groupBy: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
+      count: jest.fn().mockResolvedValue(0),
     },
     voter: { count: jest.fn().mockResolvedValue(731) },
     issueCase: { groupBy: jest.fn().mockResolvedValue([]) },
@@ -260,6 +261,7 @@ describe('OperationProfileService.getReadiness', () => {
       transaction.witnessAssignment.findMany.mock.calls[0][0],
       transaction.witnessReport.groupBy.mock.calls[0][0],
       transaction.witnessReport.groupBy.mock.calls[1][0],
+      transaction.witnessReport.count.mock.calls[0][0],
       transaction.voter.count.mock.calls[0][0],
       transaction.issueCase.groupBy.mock.calls[0][0],
       transaction.task.groupBy.mock.calls[0][0],
@@ -283,6 +285,18 @@ describe('OperationProfileService.getReadiness', () => {
       },
     });
     expect(transaction.witnessAssignment.findMany).toHaveBeenCalledTimes(1);
+    for (const query of [
+      transaction.witnessCoverageWindow.findMany.mock.calls[0][0],
+      transaction.witnessAssignment.findMany.mock.calls[0][0],
+    ]) {
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          tenantId: jwtUser.tenantId,
+          operationProfileId: 'profile-from-tenant',
+          captureContext: 'REAL',
+        }),
+      );
+    }
   });
 
   it('uses the current database role rather than the stale JWT role', async () => {
@@ -453,6 +467,143 @@ describe('OperationProfileService.getReadiness', () => {
           'candidateVotes',
           'status',
         ]),
+      }),
+    );
+  });
+
+  it('excludes rejected and superseded fingerprints but still warns about current rejections', async () => {
+    const transaction = buildReadinessTransaction();
+    const base = {
+      tenantId: jwtUser.tenantId,
+      captureContext: 'REAL',
+      supersededById: null as string | null,
+      puestoId: 'place-a',
+      mesa: 1,
+      candidateVotes: 10,
+      blankVotes: 0,
+      nullVotes: 0,
+      unmarkedVotes: 0,
+      totalTableVotes: 10,
+    };
+    const records = [
+      { ...base, status: WitnessReportStatus.PENDING },
+      { ...base, status: WitnessReportStatus.ACCEPTED },
+      { ...base, status: WitnessReportStatus.REJECTED, candidateVotes: 7 },
+      {
+        ...base,
+        status: WitnessReportStatus.SUPERSEDED,
+        supersededById: 'replacement-report',
+        candidateVotes: 5,
+      },
+      { ...base, status: WitnessReportStatus.PENDING, tenantId: 'foreign' },
+      {
+        ...base,
+        status: WitnessReportStatus.PENDING,
+        captureContext: 'SIMULATION',
+      },
+    ];
+    transaction.witnessReport.groupBy.mockReset().mockImplementation(
+      (query: {
+        by: string[];
+        where: {
+          tenantId: string;
+          captureContext: string;
+          supersededById?: null;
+          status?: { in: WitnessReportStatus[] };
+        };
+      }) => {
+        const rows = records.filter(
+          (row) =>
+            row.tenantId === query.where.tenantId &&
+            row.captureContext === query.where.captureContext &&
+            (query.where.supersededById === undefined ||
+              row.supersededById === null) &&
+            (!query.where.status || query.where.status.in.includes(row.status)),
+        );
+        return Promise.resolve(
+          query.by.length === 1
+            ? rows.map(({ status }) => ({ status, _count: { _all: 1 } }))
+            : rows,
+        );
+      },
+    );
+    const { service } = buildService(transaction);
+
+    const result = await service.getReadiness(jwtUser, fixedNow);
+
+    expect(readinessCheck(result, 'E14_DIVERGENT').status).toBe('PASS');
+    expect(readinessCheck(result, 'E14_PENDING').detail).toContain('1');
+    expect(readinessCheck(result, 'E14_REJECTED')).toMatchObject({
+      status: 'WARN',
+      detail: expect.stringContaining('1 formularios'),
+    });
+    expect(transaction.witnessReport.groupBy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: {
+          tenantId: jwtUser.tenantId,
+          captureContext: 'REAL',
+          supersededById: null,
+          status: {
+            in: [WitnessReportStatus.PENDING, WitnessReportStatus.ACCEPTED],
+          },
+        },
+      }),
+    );
+  });
+
+  it('preserves historical activity when all real reports have been superseded', async () => {
+    const transaction = buildReadinessTransaction();
+    transaction.operationProfile.findUnique.mockResolvedValue(null);
+    transaction.voter.count.mockResolvedValue(0);
+    transaction.auditEvent.groupBy.mockResolvedValue([]);
+    transaction.witnessReport.count.mockResolvedValue(1);
+    const { service } = buildService(transaction);
+
+    const result = await service.getReadiness(jwtUser, fixedNow);
+
+    expect(
+      readinessCheck(result, 'LIFECYCLE_HISTORY_NOT_ESTABLISHED'),
+    ).toMatchObject({
+      status: 'WARN',
+      detail: expect.stringContaining('Hay actividad operativa'),
+    });
+    expect(transaction.witnessReport.count).toHaveBeenCalledWith({
+      where: { tenantId: jwtUser.tenantId, captureContext: 'REAL' },
+    });
+    for (const call of [
+      transaction.witnessCoverageWindow.findMany.mock.calls[0][0],
+      transaction.witnessAssignment.findMany.mock.calls[0][0],
+    ]) {
+      expect(call.where.operationProfileId).toBe('');
+    }
+  });
+
+  it('keeps the approved adoption audit as evidence of an incomplete earlier lifecycle', async () => {
+    const transaction = buildReadinessTransaction();
+    transaction.auditEvent.groupBy.mockResolvedValue([
+      { action: 'OPERATION_STAGE_ADOPTION_APPROVED', _count: { _all: 1 } },
+    ]);
+    const { service } = buildService(transaction);
+
+    const result = await service.getReadiness(jwtUser, fixedNow);
+
+    expect(
+      readinessCheck(result, 'LIFECYCLE_HISTORY_NOT_ESTABLISHED'),
+    ).toMatchObject({
+      status: 'WARN',
+      detail: expect.stringContaining('fue adoptada'),
+    });
+    expect(transaction.auditEvent.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          action: {
+            in: [
+              'OPERATION_PROFILE_CREATED',
+              'OPERATION_STAGE_ADOPTION_APPROVED',
+            ],
+          },
+        }),
       }),
     );
   });

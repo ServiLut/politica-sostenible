@@ -606,6 +606,7 @@ describe('OperationProfileService', () => {
       expect(transaction.witnessAssignment.findMany).toHaveBeenCalledWith({
         where: {
           tenantId: admin.tenantId,
+          operationProfileId: 'profile-a',
           captureContext: 'REAL',
           status: 'CONFIRMED',
         },
@@ -779,6 +780,85 @@ describe('OperationProfileService', () => {
       jest.useRealTimers();
     }
   });
+
+  it.each([WitnessReportStatus.REJECTED, WitnessReportStatus.SUPERSEDED])(
+    'does not invent a closing divergence against a %s report while a real pending report still blocks closure',
+    async (excludedStatus) => {
+      const transaction = buildTransaction();
+      transaction.operationProfile.findUnique.mockResolvedValue(
+        savedProfile({ stage: PoliticalOperationStage.POST_ELECTION }),
+      );
+      transaction.campaignSettings.findUnique
+        .mockReset()
+        .mockResolvedValueOnce(savedSettings())
+        .mockResolvedValueOnce(compliantSettings());
+      const base = {
+        puestoId: 'place-a',
+        mesa: 1,
+        candidateVotes: 10,
+        blankVotes: 0,
+        nullVotes: 0,
+        unmarkedVotes: 0,
+        totalTableVotes: 10,
+        supersededById: null as string | null,
+      };
+      const records = [
+        { ...base, status: WitnessReportStatus.PENDING },
+        { ...base, status: WitnessReportStatus.ACCEPTED },
+        {
+          ...base,
+          status: excludedStatus,
+          candidateVotes: 7,
+          supersededById:
+            excludedStatus === WitnessReportStatus.SUPERSEDED
+              ? 'replacement'
+              : null,
+        },
+      ];
+      transaction.witnessReport.count.mockResolvedValue(1);
+      transaction.witnessReport.groupBy.mockImplementation(
+        ({
+          where,
+        }: {
+          where: {
+            supersededById?: null;
+            status?: { in: WitnessReportStatus[] };
+          };
+        }) =>
+          Promise.resolve(
+            records.filter(
+              (row) =>
+                (where.supersededById === undefined ||
+                  row.supersededById === null) &&
+                (!where.status || where.status.in.includes(row.status)),
+            ),
+          ),
+      );
+      const { service } = buildService(transaction);
+
+      await expect(
+        service.upsert(admin, {
+          ...dto,
+          stage: PoliticalOperationStage.CLOSED,
+          expectedUpdatedAt: savedAt.toISOString(),
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'OPERATION_CLOSURE_READINESS_BLOCKED',
+          blockers: ['PENDING_E14_REPORTS'],
+        },
+      });
+      expect(transaction.witnessReport.count).toHaveBeenCalledWith({
+        where: {
+          tenantId: admin.tenantId,
+          captureContext: 'REAL',
+          supersededById: null,
+          status: WitnessReportStatus.PENDING,
+        },
+      });
+      expect(transaction.operationProfile.update).not.toHaveBeenCalled();
+    },
+  );
 
   it('blocks closure when a tenant/profile dossier has no immutable version', async () => {
     const transaction = buildTransaction();
