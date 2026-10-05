@@ -34,6 +34,8 @@ import {
 import {
   DANE_DIVIPOLA_SOURCE,
   DaneDivipolaClient,
+  DaneDivipolaError,
+  type DaneDepartment,
   type DaneMunicipality,
 } from './dane-divipola.client';
 import { ListDivisionsQueryDto } from './dto/list-divisions-query.dto';
@@ -71,11 +73,6 @@ const TERRITORIALLY_SCOPED_DIVISION_ROLES = [
   Role.WITNESS,
   Role.VOLUNTEER,
 ] as const;
-
-interface Department {
-  code: string;
-  name: string;
-}
 
 const CAMPAIGN_VIEW_SELECT = {
   id: true,
@@ -121,6 +118,8 @@ interface HeatmapDivision {
   expectedTables: number | null;
   sourceNamespace?: ElectoralCodeNamespace | null;
   sourceReleaseId?: string | null;
+  latitude?: Prisma.Decimal | null;
+  longitude?: Prisma.Decimal | null;
 }
 
 interface HeatmapCoordinateTarget {
@@ -186,8 +185,13 @@ export class CampaignService {
     }
 
     let municipalities: DaneMunicipality[];
+    let departments: DaneDepartment[];
     try {
-      municipalities = await this.daneDivipolaClient.fetchMunicipalities();
+      [municipalities, departments] = await Promise.all([
+        this.daneDivipolaClient.fetchMunicipalities(),
+        this.daneDivipolaClient.fetchDepartments(),
+      ]);
+      this.assertDaneLayerConsistency(municipalities, departments);
     } catch (error) {
       this.logger.error(
         'No se pudo obtener o validar DIVIPOLA MGN 2025',
@@ -197,8 +201,6 @@ export class CampaignService {
         'No fue posible sincronizar con DANE; no se realizaron cambios',
       );
     }
-
-    const departments = this.collectDepartments(municipalities);
 
     try {
       await this.prisma.$transaction(
@@ -286,6 +288,10 @@ export class CampaignService {
               },
               update: {
                 name: department.name,
+                latitude: department.latitude,
+                longitude: department.longitude,
+                sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+                sourceReleaseId: null,
                 isActive: true,
                 retiredAt: null,
               },
@@ -294,6 +300,9 @@ export class CampaignService {
                 code: department.code,
                 name: department.name,
                 type: DivisionType.DEPARTAMENTO,
+                latitude: department.latitude,
+                longitude: department.longitude,
+                sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
               },
               select: { id: true },
             });
@@ -319,6 +328,10 @@ export class CampaignService {
               update: {
                 name: municipality.municipalityName,
                 parentId,
+                latitude: municipality.latitude,
+                longitude: municipality.longitude,
+                sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+                sourceReleaseId: null,
                 isActive: true,
                 retiredAt: null,
               },
@@ -328,6 +341,9 @@ export class CampaignService {
                 name: municipality.municipalityName,
                 type: DivisionType.MUNICIPIO,
                 parentId,
+                latitude: municipality.latitude,
+                longitude: municipality.longitude,
+                sourceNamespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
               },
             });
           }
@@ -345,6 +361,8 @@ export class CampaignService {
                 source: DANE_DIVIPOLA_SOURCE.organization,
                 dataset: DANE_DIVIPOLA_SOURCE.dataset,
                 version: DANE_DIVIPOLA_SOURCE.version,
+                coordinateSystem: DANE_DIVIPOLA_SOURCE.coordinateSystem,
+                coordinateBasis: 'ADMINISTRATIVE_CENTROID',
                 departments: departments.length,
                 municipalities: municipalities.length,
               },
@@ -665,6 +683,8 @@ export class CampaignService {
             expectedTables: true,
             sourceNamespace: true,
             sourceReleaseId: true,
+            latitude: true,
+            longitude: true,
           },
           orderBy: [{ code: 'asc' }, { id: 'asc' }],
         });
@@ -729,6 +749,12 @@ export class CampaignService {
               where: {
                 tenantId: user.tenantId,
                 type: ElectoralCatalogEntryType.POLLING_PLACE,
+                namespace: ElectoralCodeNamespace.RNEC_DIVIPOLE,
+                release: {
+                  tenantId: user.tenantId,
+                  type: ElectoralCatalogType.ELECTORAL_RNEC,
+                  status: ElectoralCatalogStatus.ACTIVE,
+                },
                 releaseId: {
                   in: [
                     ...new Set(
@@ -998,6 +1024,7 @@ export class CampaignService {
             openCaseCount,
             teamCount,
           });
+          const administrativeCentroid = this.toAdministrativeCentroid(item);
 
           return {
             item,
@@ -1023,13 +1050,20 @@ export class CampaignService {
                     locatedPollingPlaces,
                     totalPollingPlaces,
                   }
-                : {
-                    latitude: null,
-                    longitude: null,
-                    basis: null,
-                    locatedPollingPlaces: 0,
-                    totalPollingPlaces,
-                  },
+                : administrativeCentroid
+                  ? {
+                      ...administrativeCentroid,
+                      basis: 'ADMINISTRATIVE_CENTROID' as const,
+                      locatedPollingPlaces: 0,
+                      totalPollingPlaces,
+                    }
+                  : {
+                      latitude: null,
+                      longitude: null,
+                      basis: null,
+                      locatedPollingPlaces: 0,
+                      totalPollingPlaces,
+                    },
           };
         });
         const threshold = HEATMAP_PRIVACY_THRESHOLDS[query.metric];
@@ -1356,19 +1390,54 @@ export class CampaignService {
     return orderedLevels.find((level) => childTypes.has(level)) ?? null;
   }
 
-  private collectDepartments(municipalities: DaneMunicipality[]): Department[] {
-    const departments = new Map<string, Department>();
-
-    for (const municipality of municipalities) {
-      departments.set(municipality.departmentCode, {
-        code: municipality.departmentCode,
-        name: municipality.departmentName,
-      });
-    }
-
-    return [...departments.values()].sort((left, right) =>
-      left.code.localeCompare(right.code),
+  private assertDaneLayerConsistency(
+    municipalities: DaneMunicipality[],
+    departments: DaneDepartment[],
+  ): void {
+    const departmentsByCode = new Map(
+      departments.map((department) => [department.code, department]),
     );
+    const seen = new Set<string>();
+    for (const municipality of municipalities) {
+      const department = departmentsByCode.get(municipality.departmentCode);
+      if (!department || department.name !== municipality.departmentName) {
+        throw new DaneDivipolaError(
+          'Las capas DANE de departamentos y municipios no coinciden',
+        );
+      }
+      seen.add(department.code);
+    }
+    if (seen.size !== departments.length) {
+      throw new DaneDivipolaError(
+        'Las capas DANE no incluyen los mismos departamentos',
+      );
+    }
+  }
+
+  private toAdministrativeCentroid(division: HeatmapDivision) {
+    if (
+      division.sourceNamespace !== ElectoralCodeNamespace.DANE_DIVIPOLA ||
+      (division.type !== DivisionType.DEPARTAMENTO &&
+        division.type !== DivisionType.MUNICIPIO) ||
+      !(
+        division.type === DivisionType.DEPARTAMENTO ? /^\d{2}$/ : /^\d{5}$/
+      ).test(division.code) ||
+      division.latitude == null ||
+      division.longitude == null
+    )
+      return null;
+    const latitude = Number(division.latitude);
+    const longitude = Number(division.longitude);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    )
+      return null;
+    return { latitude, longitude };
   }
 
   async listTerritoryLeaders(user: AuthenticatedUser, divisionId: string) {

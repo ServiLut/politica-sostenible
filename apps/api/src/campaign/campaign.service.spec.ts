@@ -20,11 +20,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CampaignService } from './campaign.service';
 import { CreatableDivisionType } from './dto/create-political-division.dto';
-import { TerritoryHeatmapMetric } from './dto/territory-heatmap-query.dto';
+import {
+  TerritoryHeatmapMetric,
+  type TerritoryHeatmapLevel,
+} from './dto/territory-heatmap-query.dto';
 import {
   DaneDivipolaClient,
   DaneDivipolaError,
   type DaneMunicipality,
+  type DaneDepartment,
 } from './dane-divipola.client';
 
 interface DivisionUpsertInput {
@@ -55,13 +59,22 @@ const daneData: DaneMunicipality[] = [
     departmentName: 'ANTIOQUIA',
     municipalityCode: '05001',
     municipalityName: 'MEDELLÍN',
+    latitude: 6.257588,
+    longitude: -75.611036,
   },
   {
     departmentCode: '08',
     departmentName: 'ATLÁNTICO',
     municipalityCode: '08001',
     municipalityName: 'BARRANQUILLA',
+    latitude: 10.98,
+    longitude: -74.8,
   },
+];
+
+const daneDepartments: DaneDepartment[] = [
+  { code: '05', name: 'ANTIOQUIA', latitude: 6.922838, longitude: -75.565015 },
+  { code: '08', name: 'ATLÁNTICO', latitude: 10.7, longitude: -74.99 },
 ];
 
 function openLifecycleQuery(acquired = true) {
@@ -122,7 +135,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         ...prismaClient,
         $transaction: runTransaction,
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     const result = await service.initializeElectoralData({
@@ -149,6 +165,23 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       timeout: 120_000,
     });
     expect(upsert).toHaveBeenCalledTimes(4);
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          type: DivisionType.DEPARTAMENTO,
+          code: '05',
+          latitude: 6.922838,
+          longitude: -75.565015,
+          sourceNamespace: 'DANE_DIVIPOLA',
+        }) as object,
+        update: expect.objectContaining({
+          latitude: 6.922838,
+          longitude: -75.565015,
+          sourceNamespace: 'DANE_DIVIPOLA',
+          sourceReleaseId: null,
+        }) as object,
+      }),
+    );
     for (const [input] of upsert.mock.calls) {
       expect(input.where.tenantId_code_type.tenantId).toBe('tenant-a');
       expect(input.create.tenantId).toBe('tenant-a');
@@ -166,6 +199,9 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         create: expect.objectContaining({
           tenantId: 'tenant-a',
           parentId: 'tenant-a-DEPARTAMENTO-05',
+          latitude: 6.257588,
+          longitude: -75.611036,
+          sourceNamespace: 'DANE_DIVIPOLA',
         }) as object,
       }),
     );
@@ -225,6 +261,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         $transaction: runTransaction,
       } as unknown as PrismaService,
       {
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
         fetchMunicipalities: jest.fn().mockResolvedValue(daneData),
       } as unknown as DaneDivipolaClient,
     );
@@ -271,7 +308,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         },
         politicalDivision: { upsert },
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     await expect(
@@ -305,6 +345,7 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         politicalDivision: { upsert },
       } as unknown as PrismaService,
       {
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
         fetchMunicipalities: jest
           .fn()
           .mockRejectedValue(new DaneDivipolaError('invalid response')),
@@ -338,7 +379,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         },
         politicalDivision: { upsert },
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     await expect(
@@ -384,7 +428,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         ...prismaClient,
         $transaction: runTransaction,
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     await expect(
@@ -429,7 +476,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
             callback(prismaClient),
         ),
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     await expect(
@@ -649,7 +699,10 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         },
         politicalDivision: { upsert },
       } as unknown as PrismaService,
-      { fetchMunicipalities } as unknown as DaneDivipolaClient,
+      {
+        fetchMunicipalities,
+        fetchDepartments: jest.fn().mockResolvedValue(daneDepartments),
+      } as unknown as DaneDivipolaClient,
     );
 
     await expect(
@@ -939,6 +992,9 @@ describe('CampaignService DIVIPOLA synchronization', () => {
         type: DivisionType.DEPARTAMENTO,
         parentId: null,
         expectedTables: null,
+        sourceNamespace: 'DANE_DIVIPOLA',
+        latitude: new Prisma.Decimal('6.922838'),
+        longitude: new Prisma.Decimal('-75.565015'),
       },
       {
         id: 'municipality-a',
@@ -1077,6 +1133,12 @@ describe('CampaignService DIVIPOLA synchronization', () => {
       where: {
         tenantId: 'tenant-a',
         type: 'POLLING_PLACE',
+        namespace: 'RNEC_DIVIPOLE',
+        release: {
+          tenantId: 'tenant-a',
+          type: 'ELECTORAL_RNEC',
+          status: 'ACTIVE',
+        },
         releaseId: { in: ['release-a'] },
         canonicalCode: {
           in: expect.arrayContaining(['05/001/01/01', '05/001/01/02']),
@@ -1332,4 +1394,224 @@ describe('CampaignService DIVIPOLA synchronization', () => {
     expect(voterGroupBy).not.toHaveBeenCalled();
     expect(tx.witnessReport.findMany).not.toHaveBeenCalled();
   });
+});
+
+describe('CampaignService official administrative coordinates', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([
+    [{ code: '08', name: 'ATLÁNTICO', latitude: 10, longitude: -74 }],
+    [{ ...daneDepartments[0], name: 'OTHER' }, daneDepartments[1]],
+    [
+      ...daneDepartments,
+      { code: '76', name: 'VALLE', latitude: 3, longitude: -76 },
+    ],
+  ])(
+    'rejects incompatible official layers before opening a write transaction',
+    async (...departments: DaneDepartment[]) => {
+      jest.spyOn(Logger.prototype, 'error').mockImplementation();
+      const transaction = jest.fn();
+      const service = new CampaignService(
+        {
+          tenant: {
+            findUnique: jest.fn().mockResolvedValue({
+              defaultMode: PoliticalOperationMode.CAMPAIGN,
+              type: TenantType.CANDIDACY,
+            }),
+          },
+          user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+          electoralCatalogRelease: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: transaction,
+        } as unknown as PrismaService,
+        {
+          fetchMunicipalities: jest.fn().mockResolvedValue(daneData),
+          fetchDepartments: jest.fn().mockResolvedValue(departments),
+        } as unknown as DaneDivipolaClient,
+      );
+      await expect(
+        service.initializeElectoralData({
+          userId: 'admin-a',
+          tenantId: 'tenant-a',
+        }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when the department provider fails even if municipalities succeed', async () => {
+    jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const transaction = jest.fn();
+    const service = new CampaignService(
+      {
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type: TenantType.CANDIDACY,
+          }),
+        },
+        user: { findFirst: jest.fn().mockResolvedValue({ id: 'admin-a' }) },
+        electoralCatalogRelease: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        $transaction: transaction,
+      } as unknown as PrismaService,
+      {
+        fetchMunicipalities: jest.fn().mockResolvedValue(daneData),
+        fetchDepartments: jest
+          .fn()
+          .mockRejectedValue(new DaneDivipolaError('invalid centroid')),
+      } as unknown as DaneDivipolaClient,
+    );
+    await expect(
+      service.initializeElectoralData({
+        userId: 'admin-a',
+        tenantId: 'tenant-a',
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  const hierarchy = [
+    {
+      id: 'dept-a',
+      code: '05',
+      type: DivisionType.DEPARTAMENTO,
+      parentId: null,
+    },
+    {
+      id: 'mun-a',
+      code: '05001',
+      type: DivisionType.MUNICIPIO,
+      parentId: 'dept-a',
+    },
+    { id: 'zone-a', code: '01', type: DivisionType.ZONA, parentId: 'mun-a' },
+    {
+      id: 'place-a',
+      code: '01',
+      type: DivisionType.PUESTO,
+      parentId: 'zone-a',
+    },
+  ];
+  async function mapWithCoordinate(
+    level: TerritoryHeatmapLevel,
+    override: Record<string, unknown> = {},
+  ) {
+    const item = hierarchy.find((row) => row.type === level)!;
+    const divisions = hierarchy.map((row) => ({
+      ...row,
+      name: row.id,
+      expectedTables: null,
+      ...(row.id === item.id
+        ? {
+            sourceNamespace: 'DANE_DIVIPOLA',
+            latitude: new Prisma.Decimal('6.922838'),
+            longitude: new Prisma.Decimal('-75.565015'),
+            ...override,
+          }
+        : {}),
+    }));
+    const tx = {
+      tenant: {
+        findUnique: jest.fn().mockResolvedValue({
+          defaultMode: PoliticalOperationMode.CAMPAIGN,
+          type: TenantType.CANDIDACY,
+        }),
+      },
+      user: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ role: Role.ADMIN, divisionId: null }),
+        groupBy: jest.fn().mockResolvedValue([]),
+      },
+      politicalDivision: { findMany: jest.fn().mockResolvedValue(divisions) },
+      territoryLeader: { findMany: jest.fn().mockResolvedValue([]) },
+      witnessReport: { findMany: jest.fn().mockResolvedValue([]) },
+      electoralCatalogEntry: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = new CampaignService(
+      {
+        $transaction: jest.fn(
+          async (callback: (client: typeof tx) => Promise<unknown>) =>
+            callback(tx),
+        ),
+      } as unknown as PrismaService,
+      {} as DaneDivipolaClient,
+    );
+    const result = await service.getTerritoryHeatmap(
+      { userId: 'admin-a', tenantId: 'tenant-a' },
+      {
+        level,
+        ...(item.parentId ? { parentId: item.parentId } : {}),
+        metric: TerritoryHeatmapMetric.E14_COVERAGE,
+      },
+    );
+    return { result, tx };
+  }
+
+  it.each([DivisionType.DEPARTAMENTO, DivisionType.MUNICIPIO] as const)(
+    'locates official %s without inventing a geolocated polling place or table coverage',
+    async (level) => {
+      const { result, tx } = await mapWithCoordinate(level);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].geo).toEqual({
+        latitude: 6.922838,
+        longitude: -75.565015,
+        basis: 'ADMINISTRATIVE_CENTROID',
+        locatedPollingPlaces: 0,
+        totalPollingPlaces: 1,
+      });
+      expect(result.items[0].operationalContext).toEqual({
+        expectedTables: 0,
+        acceptedTables: 0,
+      });
+      expect(result.items[0].value).toBeNull();
+      expect(tx.politicalDivision.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId: 'tenant-a', isActive: true },
+        }),
+      );
+      expect(tx.electoralCatalogEntry.findMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { sourceNamespace: null },
+    { sourceNamespace: 'RNEC_DIVIPOLE' },
+    { code: 'CUSTOM-05' },
+    { latitude: null },
+    { longitude: undefined },
+    { latitude: NaN },
+    { longitude: Infinity },
+    { latitude: 91 },
+    { latitude: -91 },
+    { longitude: 181 },
+    { longitude: -181 },
+  ])(
+    'keeps incomplete, unverified or invalid administrative coordinates unlocated: %j',
+    async (override) => {
+      const { result } = await mapWithCoordinate(
+        DivisionType.DEPARTAMENTO,
+        override,
+      );
+      expect(result.items[0].geo).toEqual({
+        latitude: null,
+        longitude: null,
+        basis: null,
+        locatedPollingPlaces: 0,
+        totalPollingPlaces: 1,
+      });
+    },
+  );
+
+  it.each([DivisionType.ZONA, DivisionType.PUESTO] as const)(
+    'does not invent an administrative centroid for %s even when a row contains coordinates',
+    async (level) => {
+      const { result } = await mapWithCoordinate(level);
+      expect(result.items[0].geo.basis).toBeNull();
+      expect(result.items[0].geo.locatedPollingPlaces).toBe(0);
+      expect(result.items[0].geo.latitude).toBeNull();
+    },
+  );
 });

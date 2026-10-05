@@ -45,7 +45,7 @@ export interface TerritoryHeatmapItem {
   geo: {
     latitude: number | null;
     longitude: number | null;
-    basis: "POLLING_PLACE" | "CENTROID" | null;
+    basis: "POLLING_PLACE" | "CENTROID" | "ADMINISTRATIVE_CENTROID" | null;
     locatedPollingPlaces: number;
     totalPollingPlaces: number;
   };
@@ -216,15 +216,21 @@ function validateHeatmapGeo(
         value.locatedPollingPlaces === 1 &&
         value.totalPollingPlaces === 1)) &&
     (value.basis !== "CENTROID" || itemType !== "PUESTO");
+  const hasAdministrativeCoordinates =
+    isFiniteCoordinate(value.latitude, -90, 90) &&
+    isFiniteCoordinate(value.longitude, -180, 180) &&
+    value.basis === "ADMINISTRATIVE_CENTROID" &&
+    ["DEPARTAMENTO", "MUNICIPIO"].includes(itemType) &&
+    value.locatedPollingPlaces === 0;
 
-  if (!hasNoCoordinates && !hasCoordinates) {
+  if (!hasNoCoordinates && !hasCoordinates && !hasAdministrativeCoordinates) {
     throw new Error("La georreferencia territorial no supera la validación.");
   }
 
   return {
     latitude: value.latitude as number | null,
     longitude: value.longitude as number | null,
-    basis: value.basis as "POLLING_PLACE" | "CENTROID" | null,
+    basis: value.basis as TerritoryHeatmapItem["geo"]["basis"],
     locatedPollingPlaces: value.locatedPollingPlaces,
     totalPollingPlaces: value.totalPollingPlaces,
   };
@@ -430,7 +436,12 @@ export function projectTerritoryHeatmapItems(
   }
 
   const colombia = located.filter(isInsideColombiaExtent);
-  const useColombiaExtent = colombia.length * 2 >= located.length;
+  // Country extent is useful for the national overview. Keeping it while
+  // drilling into nearby municipalities or polling places stacks their
+  // markers into the same few pixels and makes them impossible to select.
+  const useColombiaExtent =
+    items.every((item) => item.type === "DEPARTAMENTO") &&
+    colombia.length * 2 >= located.length;
   const visible = useColombiaExtent ? colombia : located;
   const latitudes = visible.map((item) => item.geo.latitude as number);
   const longitudes = visible.map((item) => item.geo.longitude as number);
@@ -463,6 +474,28 @@ export function projectTerritoryHeatmapItems(
       ? located.length - visible.length
       : 0,
   };
+}
+
+export function describeTerritoryHeatmapLocation(
+  geo: TerritoryHeatmapItem["geo"],
+): string {
+  if (geo.basis === "ADMINISTRATIVE_CENTROID") {
+    return "Centroide administrativo DANE; no corresponde a un puesto electoral.";
+  }
+  if (geo.basis === null) return "Sin coordenadas verificadas.";
+  return `${geo.locatedPollingPlaces.toLocaleString("es-CO")} de ${geo.totalPollingPlaces.toLocaleString("es-CO")} registros de puesto o jornada con coordenadas.`;
+}
+
+export function hasReportableLowActivity(
+  item: TerritoryHeatmapItem,
+  metric: HeatmapMetric,
+): boolean {
+  return (
+    metric === "VOTER_ACTIVITY" &&
+    !item.suppressed &&
+    item.value !== null &&
+    item.bucket <= 1
+  );
 }
 
 export function validateTerritoryHeatmapResponse(

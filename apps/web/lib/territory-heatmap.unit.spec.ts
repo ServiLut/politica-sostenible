@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { ApiError } from "./api-client";
 import {
   buildTerritoryHeatmapPath,
+  describeTerritoryHeatmapLocation,
+  hasReportableLowActivity,
   projectTerritoryHeatmapItems,
   resolveTerritoryHeatmapView,
   territoryHeatmapSnapshotKey,
@@ -207,6 +209,75 @@ test("usa escala relativa al consultar exclusivamente el exterior", () => {
     excludedOutsideScope: 0,
   });
   expect(projection.points[0]).toMatchObject({ x: 50, y: 50 });
+});
+
+test("acepta ubicación administrativa sin atribuirle puestos electorales", () => {
+  const response = structuredClone(RESPONSE);
+  response.items[0].geo = {
+    latitude: 6.922837661599162,
+    longitude: -75.5650154399505,
+    basis: "ADMINISTRATIVE_CENTROID",
+    locatedPollingPlaces: 0,
+    totalPollingPlaces: 8,
+  };
+  const item = validateTerritoryHeatmapResponse(response, QUERY).items[0];
+  expect(item.geo.totalPollingPlaces).toBe(8);
+  expect(item.geo.locatedPollingPlaces).toBe(0);
+  expect(describeTerritoryHeatmapLocation(item.geo)).toMatch(/DANE; no corresponde a un puesto/);
+  expect(validateTerritoryHeatmapSnapshot({ ...SNAPSHOT, response }).response).toEqual(response);
+});
+
+test("rechaza un centroide DANE con cobertura electoral inventada o coordenadas parciales", () => {
+  for (const patch of [
+    { locatedPollingPlaces: 1 },
+    { latitude: null },
+    { longitude: Number.NaN },
+  ]) {
+    const response = structuredClone(RESPONSE);
+    response.items[0].geo = {
+      latitude: 6.9, longitude: -75.5, basis: "ADMINISTRATIVE_CENTROID",
+      locatedPollingPlaces: 0, totalPollingPlaces: 8, ...patch,
+    };
+    expect(() => validateTerritoryHeatmapResponse(response, QUERY)).toThrow(/georreferencia/);
+  }
+});
+
+for (const level of ["MUNICIPIO", "ZONA", "PUESTO"] as const) {
+  test(`centroide administrativo sólo válido en municipio, nunca en zona o puesto: ${level}`, () => {
+    const parent = { id: "parent-05", code: "05", name: "Territorio padre QA", type: "DEPARTAMENTO" as const };
+    const query = { ...QUERY, level, parentId: parent.id };
+    const response = structuredClone(RESPONSE);
+    response.level = level;
+    response.parent = parent;
+    response.breadcrumbs = [parent];
+    Object.assign(response.items[0], { type: level, parentId: parent.id, hasChildren: false, nextLevel: null });
+    response.items[0].geo = { latitude: 6.25, longitude: -75.61, basis: "ADMINISTRATIVE_CENTROID", locatedPollingPlaces: 0, totalPollingPlaces: 0 };
+    if (level === "MUNICIPIO") expect(validateTerritoryHeatmapResponse(response, query)).toEqual(response);
+    else expect(() => validateTerritoryHeatmapResponse(response, query)).toThrow(/georreferencia/);
+  });
+}
+
+test("amplía municipios cercanos en lugar de comprimirlos en la escala nacional", () => {
+  const municipalities = [6.25, 6.26].map((latitude, index) => ({
+    ...structuredClone(RESPONSE.items[0]), id: `municipio-${index}`, type: "MUNICIPIO" as const,
+    geo: { latitude, longitude: -75.6 + index * 0.01, basis: "ADMINISTRATIVE_CENTROID" as const, locatedPollingPlaces: 0, totalPollingPlaces: 0 },
+  }));
+  const projection = projectTerritoryHeatmapItems(municipalities);
+  expect(projection.scope).toBe("RELATIVE");
+  expect(projection.points.map(({ x, y }) => ({ x, y }))).toEqual([{ x: 4, y: 96 }, { x: 96, y: 4 }]);
+  const identical = projectTerritoryHeatmapItems([municipalities[0], { ...municipalities[0], id: "same-coordinates" }]);
+  expect(identical.points).toHaveLength(2);
+  expect(identical.points.every(({ x, y }) => x === 50 && y === 50)).toBe(true);
+});
+
+test("nunca interpreta una cifra protegida como baja actividad o cero", () => {
+  const item = { ...structuredClone(RESPONSE.items[0]), value: null, suppressed: true, bucket: 0 };
+  expect(hasReportableLowActivity(item, "VOTER_ACTIVITY")).toBe(false);
+  expect(hasReportableLowActivity({ ...item, suppressed: false }, "VOTER_ACTIVITY")).toBe(false);
+  const reportable = { ...item, suppressed: false, value: 0 };
+  expect(hasReportableLowActivity(reportable, "VOTER_ACTIVITY")).toBe(true);
+  expect(hasReportableLowActivity(reportable, "TEAM_COVERAGE")).toBe(false);
+  expect(hasReportableLowActivity({ ...reportable, value: 100, bucket: 5 }, "VOTER_ACTIVITY")).toBe(false);
 });
 
 test("rechaza inconsistencias de consulta, jerarquía, métricas y duplicados", () => {

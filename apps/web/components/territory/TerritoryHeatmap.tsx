@@ -23,6 +23,8 @@ import { ApiError, apiRequest } from "@/lib/api-client";
 import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
 import {
   buildTerritoryHeatmapPath,
+  describeTerritoryHeatmapLocation,
+  hasReportableLowActivity,
   projectTerritoryHeatmapItems,
   resolveTerritoryHeatmapView,
   type HeatmapLevel,
@@ -111,6 +113,9 @@ export function TerritoryHeatmap() {
   const viewKey = `${level}:${metric}:${parentId}:${vaultPhase}`;
   const [saveMessage, setSaveMessage] = useKeyedState<string | null>(viewKey, null);
   const [saveError, setSaveError] = useKeyedState<string | null>(viewKey, null);
+  const [selectedTerritoryId, setSelectedTerritoryId] =
+    useKeyedState<string | null>(viewKey, null);
+  const [territorySearch, setTerritorySearch] = useKeyedState(viewKey, "");
   const [displayMode, setDisplayMode] =
     useState<HeatmapDisplayMode>("GEOGRAPHIC");
   const query = useMemo<TerritoryHeatmapQuery>(
@@ -180,6 +185,15 @@ export function TerritoryHeatmap() {
     () => (result ? projectTerritoryHeatmapItems(result.items) : null),
     [result],
   );
+  const selectedTerritory = result?.items.find(
+    (item) => item.id === selectedTerritoryId,
+  );
+  const normalizeSearch = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-CO");
+  const searchTerm = normalizeSearch(territorySearch.trim());
+  const listedTerritories = result?.items.filter((item) =>
+    normalizeSearch(`${item.name} ${item.code}`).includes(searchTerm),
+  ) ?? [];
 
   return (
     <section
@@ -404,12 +418,14 @@ export function TerritoryHeatmap() {
                 <div className="flex flex-col gap-2 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-black text-slate-900">
-                      Distribución espacial relativa
+                      Ubicación de los territorios
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       {projection?.scope === "COLOMBIA"
                         ? "Escala fija aproximada de Colombia; los puntos externos se informan aparte."
                         : "Escala ajustada al territorio visible; no representa límites administrativos."}
+                      {" "}Los centroides administrativos DANE no indican la
+                      ubicación de puestos electorales.
                     </p>
                   </div>
                   <p className="text-xs font-bold text-slate-600">
@@ -437,41 +453,26 @@ export function TerritoryHeatmap() {
                       ))}
                     </div>
                     {projection.points.map(({ item, x, y }) => {
-                      const canDrill = Boolean(
-                        item.hasChildren && item.nextLevel,
-                      );
-                      const hasLowPresenceAlert =
-                        metric === "VOTER_ACTIVITY" && item.bucket <= 1;
-                      const label = `${hasLowPresenceAlert ? "⚠️ ALERTA BAJA PRESENCIA - " : ""}${item.name}: ${item.displayValue}; ${item.geo.locatedPollingPlaces.toLocaleString("es-CO")} de ${item.geo.totalPollingPlaces.toLocaleString("es-CO")} registros de puesto o jornada con coordenadas${canDrill ? "; abrir siguiente nivel" : ""}`;
-                      const pointClass = `absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-[10px] font-black shadow-md ${tileClass(item.bucket)}`;
+                      const label = `${item.name}: ${item.displayValue}. ${describeTerritoryHeatmapLocation(item.geo)} Seleccionar territorio.`;
+                      const pointClass = `absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-xs font-black shadow-md ${tileClass(item.bucket)}`;
                       const style = {
-                        left: `${x}%`,
-                        top: `${y}%`,
-                        zIndex: Math.max(1, item.bucket),
+                        left: `clamp(24px, ${x}%, calc(100% - 24px))`,
+                        top: `clamp(24px, ${y}%, calc(100% - 24px))`,
+                        zIndex: selectedTerritoryId === item.id ? 10 : Math.max(1, item.bucket),
                       };
-                      return canDrill ? (
+                      return (
                         <button
                           key={item.id}
                           type="button"
                           title={label}
                           aria-label={label}
-                          onClick={() => drillDown(item)}
+                          aria-pressed={selectedTerritoryId === item.id}
+                          onClick={() => setSelectedTerritoryId(item.id)}
                           style={style}
-                          className={`${pointClass} transition hover:scale-125 hover:shadow-xl focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300`}
+                          className={`${pointClass} transition hover:shadow-xl focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 ${selectedTerritoryId === item.id ? "ring-4 ring-blue-300" : ""}`}
                         >
-                          {item.bucket}
+                          {item.suppressed || item.value === null ? "—" : item.bucket}
                         </button>
-                      ) : (
-                        <span
-                          key={item.id}
-                          role="img"
-                          title={label}
-                          aria-label={label}
-                          style={style}
-                          className={pointClass}
-                        >
-                          {item.bucket}
-                        </span>
                       );
                     })}
                   </div>
@@ -488,6 +489,8 @@ export function TerritoryHeatmap() {
                     <p className="mt-1 max-w-xl text-sm text-slate-500">
                       La matriz sigue disponible. El sistema no completa ni
                       aproxima puestos sin coordenadas de la fuente activada.
+                      Los departamentos y municipios pueden ubicarse después
+                      de sincronizar su geografía oficial DANE en Territorio.
                     </p>
                   </div>
                 )}
@@ -499,6 +502,83 @@ export function TerritoryHeatmap() {
                     Colombia. Ingresa a Exterior para verlos en escala relativa.
                   </p>
                 )}
+                <div className="border-t border-slate-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Selecciona un punto o un territorio de la lista
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    La lista permite consultar también los puntos superpuestos
+                    y los territorios sin coordenadas.
+                  </p>
+                  <label className="mt-4 block max-w-md text-xs font-semibold text-slate-700">
+                    Buscar territorio por nombre o código
+                    <input
+                      type="search"
+                      value={territorySearch}
+                      onChange={(event) => setTerritorySearch(event.target.value)}
+                      maxLength={80}
+                      placeholder="Por ejemplo, Medellín o 05001"
+                      className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    />
+                  </label>
+                  <p role="status" className="mt-2 text-xs text-slate-500">
+                    {listedTerritories.length} de {result.items.length} territorios
+                  </p>
+                  <ul
+                    aria-label="Territorios del mapa"
+                    className="mt-3 grid max-h-64 gap-2 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3"
+                  >
+                    {listedTerritories.map((item) => (
+                      <li key={item.id} className="min-w-0">
+                        <button
+                          type="button"
+                          aria-pressed={selectedTerritoryId === item.id}
+                          onClick={() => setSelectedTerritoryId(item.id)}
+                          className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${selectedTerritoryId === item.id ? "border-blue-600 bg-blue-50 text-blue-950" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                        >
+                          <span className="min-w-0 break-words font-semibold">{item.name}</span>
+                          <span className="shrink-0 text-xs">{item.displayValue}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {listedTerritories.length === 0 && (
+                    <p className="mt-2 text-sm text-slate-600">No hay coincidencias. Prueba otro nombre o código.</p>
+                  )}
+                  {selectedTerritory && (
+                    <div
+                      role="region"
+                      aria-label="Detalle del territorio seleccionado"
+                      aria-live="polite"
+                      className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950"
+                    >
+                      <p className="break-words text-base font-bold">{selectedTerritory.name}</p>
+                      <p className="mt-2 text-sm">{activeMetric?.label}: <strong>{selectedTerritory.displayValue}</strong></p>
+                      <p className="mt-2 text-xs leading-5">{describeTerritoryHeatmapLocation(selectedTerritory.geo)}</p>
+                      {selectedTerritory.suppressed && (
+                        <p className="mt-2 text-xs leading-5">La cifra se reserva para proteger grupos pequeños; no significa que sea cero.</p>
+                      )}
+                      {hasReportableLowActivity(selectedTerritory, metric) && (
+                        <p className="mt-2 text-xs font-semibold">Pocos registros autorizados en esta vista.</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {selectedTerritory.hasChildren && selectedTerritory.nextLevel && (
+                          <button
+                            type="button"
+                            onClick={() => drillDown(selectedTerritory)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-800 px-4 text-sm font-bold text-white"
+                          >
+                            Ver {LEVEL_LABELS[selectedTerritory.nextLevel]}
+                            <ChevronRight size={16} aria-hidden="true" />
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setSelectedTerritoryId(null)} className="min-h-11 rounded-lg border border-blue-300 px-4 text-sm font-semibold">
+                          Quitar selección
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
@@ -517,13 +597,10 @@ export function TerritoryHeatmap() {
                       <p className="mt-5 text-lg font-black leading-tight">
                         {item.name}
                       </p>
-                      <p className="mt-3 text-2xl font-black flex items-center gap-2">
+                      <p className="mt-3 flex flex-wrap items-center gap-2 text-2xl font-black">
                         {item.displayValue}
-                        {metric === "VOTER_ACTIVITY" &&
-                          !item.suppressed &&
-                          item.value !== null &&
-                          item.bucket <= 1 && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-widest text-red-700 ring-1 ring-inset ring-red-600/20">
+                        {hasReportableLowActivity(item, metric) && (
+                            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 ring-1 ring-inset ring-red-600/20">
                               <AlertCircle size={10} />
                               POCOS REGISTROS AUTORIZADOS
                             </span>
@@ -569,9 +646,10 @@ export function TerritoryHeatmap() {
                 {result.privacy.rule}
               </div>
               <div
-                className="flex items-center gap-1"
+                className="flex flex-wrap items-center gap-1"
                 aria-label="Escala de intensidad de menor a mayor"
               >
+                <span className="basis-full pb-1 font-semibold">Intensidad relativa (0–5); — sin cifra disponible</span>
                 <span className="mr-2 font-bold">Menor</span>
                 {[0, 1, 2, 3, 4, 5].map((bucket) => (
                   <span

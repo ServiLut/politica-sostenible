@@ -4,7 +4,8 @@ import { Injectable } from '@nestjs/common';
  * Fuente oficial de la división político-administrativa colombiana.
  *
  * DANE, DIVIPOLA según el Marco Geoestadístico Nacional (MGN), versión 2025.
- * La capa 317 contiene un registro por municipio e incluye su departamento.
+ * Las capas 317 y 319 contienen municipios y departamentos respectivamente.
+ * Sus centroides administrativos no representan puestos de votación.
  */
 export const DANE_DIVIPOLA_SOURCE = Object.freeze({
   organization: 'Departamento Administrativo Nacional de Estadística (DANE)',
@@ -13,20 +14,33 @@ export const DANE_DIVIPOLA_SOURCE = Object.freeze({
   layer: 'Municipio (317)',
   layerUrl:
     'https://geoportal.dane.gov.co/mparcgis/rest/services/Divipola/Serv_DIVIPOLA_MGN_2025/FeatureServer/317',
+  departmentLayer: 'Departamento (319)',
+  departmentLayerUrl:
+    'https://geoportal.dane.gov.co/mparcgis/rest/services/Divipola/Serv_DIVIPOLA_MGN_2025/FeatureServer/319',
+  coordinateSystem: 'EPSG:4326',
 });
 
 const DANE_HOSTNAME = 'geoportal.dane.gov.co';
-const DANE_QUERY_PATH =
-  '/mparcgis/rest/services/Divipola/Serv_DIVIPOLA_MGN_2025/FeatureServer/317/query';
+const DANE_QUERY_BASE =
+  '/mparcgis/rest/services/Divipola/Serv_DIVIPOLA_MGN_2025/FeatureServer';
 const DANE_REQUEST_TIMEOUT_MS = 12_000;
 const DANE_MAX_RECORDS = 2_000;
-const DANE_MAX_RESPONSE_CHARACTERS = 2_000_000;
+const DANE_MAX_RESPONSE_BYTES = 2_000_000;
+
+export interface DaneDepartment {
+  code: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}
 
 export interface DaneMunicipality {
   departmentCode: string;
   departmentName: string;
   municipalityCode: string;
   municipalityName: string;
+  latitude: number;
+  longitude: number;
 }
 
 export class DaneDivipolaError extends Error {
@@ -39,6 +53,30 @@ export class DaneDivipolaError extends Error {
 @Injectable()
 export class DaneDivipolaClient {
   async fetchMunicipalities(): Promise<DaneMunicipality[]> {
+    return this.parseMunicipalities(await this.fetchLayer('317'));
+  }
+
+  async fetchDepartments(): Promise<DaneDepartment[]> {
+    const features = this.parseFeatures(await this.fetchLayer('319'));
+    const codes = new Set<string>();
+    return features.map((feature) => {
+      const attributes = this.parseAttributes(feature);
+      const code = parseCode(attributes.DPTO_CCDGO, /^\d{2}$/, 'DPTO_CCDGO');
+      if (codes.has(code)) {
+        throw new DaneDivipolaError(
+          `DANE reportó dos veces el departamento ${code}`,
+        );
+      }
+      codes.add(code);
+      return {
+        code,
+        name: parseName(attributes.DPTO_CNMBRE, 'DPTO_CNMBRE'),
+        ...parseCentroid(feature),
+      };
+    });
+  }
+
+  private async fetchLayer(layer: '317' | '319'): Promise<unknown> {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
@@ -46,7 +84,7 @@ export class DaneDivipolaClient {
     );
 
     try {
-      const response = await fetch(this.createQueryUrl(), {
+      const response = await fetch(this.createQueryUrl(layer), {
         method: 'GET',
         headers: { Accept: 'application/json' },
         redirect: 'error',
@@ -59,10 +97,7 @@ export class DaneDivipolaClient {
         );
       }
 
-      const body = await response.text();
-      if (body.length > DANE_MAX_RESPONSE_CHARACTERS) {
-        throw new DaneDivipolaError('La respuesta de DANE excede el límite');
-      }
+      const body = await readBoundedBody(response);
 
       let payload: unknown;
       try {
@@ -73,7 +108,7 @@ export class DaneDivipolaClient {
         });
       }
 
-      return this.parseResponse(payload);
+      return payload;
     } catch (error) {
       if (error instanceof DaneDivipolaError) {
         throw error;
@@ -88,15 +123,23 @@ export class DaneDivipolaClient {
     }
   }
 
-  private createQueryUrl(): URL {
-    const url = new URL(`${DANE_DIVIPOLA_SOURCE.layerUrl}/query`);
+  private createQueryUrl(layer: '317' | '319'): URL {
+    const source =
+      layer === '317'
+        ? DANE_DIVIPOLA_SOURCE.layerUrl
+        : DANE_DIVIPOLA_SOURCE.departmentLayerUrl;
+    const url = new URL(`${source}/query`);
 
     // Defensa en profundidad: el destino no puede alterarse mediante variables
     // de entorno ni datos de la solicitud.
     if (
       url.protocol !== 'https:' ||
       url.hostname !== DANE_HOSTNAME ||
-      url.pathname !== DANE_QUERY_PATH
+      !['317', '319'].includes(layer) ||
+      url.pathname !== `${DANE_QUERY_BASE}/${layer}/query` ||
+      url.port !== '' ||
+      url.username !== '' ||
+      url.password !== ''
     ) {
       throw new DaneDivipolaError('La fuente DANE configurada no es válida');
     }
@@ -104,15 +147,20 @@ export class DaneDivipolaClient {
     url.search = new URLSearchParams({
       f: 'json',
       where: '1=1',
-      outFields: 'DPTO_CCDGO,DPTO_CNMBRE,MPIO_CDPMP,MPIO_CNMBRE',
+      outFields:
+        layer === '317'
+          ? 'DPTO_CCDGO,DPTO_CNMBRE,MPIO_CDPMP,MPIO_CNMBRE'
+          : 'DPTO_CCDGO,DPTO_CNMBRE',
       returnGeometry: 'false',
-      orderByFields: 'MPIO_CDPMP ASC',
+      returnCentroid: 'true',
+      outSR: '4326',
+      orderByFields: layer === '317' ? 'MPIO_CDPMP ASC' : 'DPTO_CCDGO ASC',
     }).toString();
 
     return url;
   }
 
-  private parseResponse(payload: unknown): DaneMunicipality[] {
+  private parseFeatures(payload: unknown): Record<string, unknown>[] {
     if (!isRecord(payload)) {
       throw new DaneDivipolaError('La respuesta de DANE no es un objeto');
     }
@@ -127,9 +175,11 @@ export class DaneDivipolaClient {
       );
     }
 
+    assertSpatialReference(payload.spatialReference);
+
     if (!Array.isArray(payload.features)) {
       throw new DaneDivipolaError(
-        'La respuesta de DANE no contiene una lista de municipios',
+        'La respuesta de DANE no contiene una lista de divisiones',
       );
     }
 
@@ -138,38 +188,49 @@ export class DaneDivipolaClient {
       payload.features.length > DANE_MAX_RECORDS
     ) {
       throw new DaneDivipolaError(
-        'La cantidad de municipios reportada por DANE no es válida',
+        'La cantidad de divisiones reportada por DANE no es válida',
       );
     }
-
-    const departmentNames = new Map<string, string>();
-    const municipalityCodes = new Set<string>();
 
     return payload.features.map((feature, index) => {
       if (!isRecord(feature) || !isRecord(feature.attributes)) {
         throw new DaneDivipolaError(
-          `El municipio DANE en la posición ${index} no es válido`,
+          `La división DANE en la posición ${index} no es válida`,
         );
       }
+      return feature;
+    });
+  }
+
+  private parseAttributes(
+    feature: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (!isRecord(feature.attributes)) {
+      throw new DaneDivipolaError(
+        'La división DANE no contiene atributos válidos',
+      );
+    }
+    return feature.attributes;
+  }
+
+  private parseMunicipalities(payload: unknown): DaneMunicipality[] {
+    const departmentNames = new Map<string, string>();
+    const municipalityCodes = new Set<string>();
+    return this.parseFeatures(payload).map((feature) => {
+      const attributes = this.parseAttributes(feature);
 
       const departmentCode = parseCode(
-        feature.attributes.DPTO_CCDGO,
+        attributes.DPTO_CCDGO,
         /^\d{2}$/,
         'DPTO_CCDGO',
       );
       const municipalityCode = parseCode(
-        feature.attributes.MPIO_CDPMP,
+        attributes.MPIO_CDPMP,
         /^\d{5}$/,
         'MPIO_CDPMP',
       );
-      const departmentName = parseName(
-        feature.attributes.DPTO_CNMBRE,
-        'DPTO_CNMBRE',
-      );
-      const municipalityName = parseName(
-        feature.attributes.MPIO_CNMBRE,
-        'MPIO_CNMBRE',
-      );
+      const departmentName = parseName(attributes.DPTO_CNMBRE, 'DPTO_CNMBRE');
+      const municipalityName = parseName(attributes.MPIO_CNMBRE, 'MPIO_CNMBRE');
 
       if (!municipalityCode.startsWith(departmentCode)) {
         throw new DaneDivipolaError(
@@ -200,8 +261,70 @@ export class DaneDivipolaClient {
         departmentName,
         municipalityCode,
         municipalityName,
+        ...parseCentroid(feature),
       };
     });
+  }
+}
+
+function assertSpatialReference(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    value.wkid !== 4326 ||
+    (value.latestWkid !== undefined && value.latestWkid !== 4326)
+  ) {
+    throw new DaneDivipolaError('DANE no confirmó coordenadas EPSG:4326');
+  }
+}
+
+function parseCentroid(feature: Record<string, unknown>) {
+  const centroid = feature.centroid;
+  if (
+    !isRecord(centroid) ||
+    typeof centroid.x !== 'number' ||
+    typeof centroid.y !== 'number' ||
+    !Number.isFinite(centroid.x) ||
+    !Number.isFinite(centroid.y) ||
+    centroid.x < -180 ||
+    centroid.x > 180 ||
+    centroid.y < -90 ||
+    centroid.y > 90
+  ) {
+    throw new DaneDivipolaError(
+      'DANE devolvió un centroide ausente o inválido',
+    );
+  }
+  if (centroid.spatialReference !== undefined)
+    assertSpatialReference(centroid.spatialReference);
+  return { latitude: centroid.y, longitude: centroid.x };
+}
+
+async function readBoundedBody(response: Response): Promise<string> {
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (declaredLength > DANE_MAX_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    throw new DaneDivipolaError('La respuesta de DANE excede el límite');
+  }
+  if (!response.body)
+    throw new DaneDivipolaError('DANE devolvió una respuesta vacía');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let bytes = 0;
+  let text = '';
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (bytes > DANE_MAX_RESPONSE_BYTES) {
+        await reader.cancel();
+        throw new DaneDivipolaError('La respuesta de DANE excede el límite');
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally {
+    reader.releaseLock();
   }
 }
 
