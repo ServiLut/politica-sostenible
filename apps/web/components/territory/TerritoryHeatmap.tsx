@@ -23,6 +23,7 @@ import { useKeyedState } from "@/hooks/use-keyed-state";
 import { usePageRequest } from "@/lib/use-page-request";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
+import { groupTerritoryMarkers } from "@/lib/territory-map-markers";
 import {
   buildTerritoryHeatmapPath,
   describeTerritoryHeatmapLocation,
@@ -120,6 +121,9 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
   const [territorySearch, setTerritorySearch] = useKeyedState(viewKey, "");
   const [mapZoom, setMapZoom] = useKeyedState(viewKey, 1);
   const mapViewport = useRef<HTMLDivElement>(null);
+  const territoryList = useRef<HTMLDivElement>(null);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+  const [groupSelection, setGroupSelection] = useKeyedState<string[] | null>(`${viewKey}:${mapZoom}`, null);
   const mapCenter = useRef({ x: 0.5, y: 0.5 });
   useLayoutEffect(() => {
     const viewport = mapViewport.current;
@@ -206,6 +210,21 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
     () => (result ? projectTerritoryHeatmapItems(result.items) : null),
     [result],
   );
+  useLayoutEffect(() => {
+    const viewport = mapViewport.current;
+    if (!viewport) return;
+    const observer = new ResizeObserver(() => {
+      const width = viewport.clientWidth;
+      const height = viewport.clientHeight;
+      setMapSize(current => current.width === width && current.height === height ? current : { width, height });
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [projection, displayMode]);
+  const mapMarkers = useMemo(() => {
+    if (!projection) return [];
+    return groupTerritoryMarkers(projection.points, mapSize.width * mapZoom, mapSize.height * mapZoom);
+  }, [projection, mapSize, mapZoom]);
   const selectedTerritory = result?.items.find(
     (item) => item.id === selectedTerritoryId,
   );
@@ -213,7 +232,7 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
     value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-CO");
   const searchTerm = normalizeSearch(territorySearch.trim());
   const listedTerritories = result?.items.filter((item) =>
-    normalizeSearch(`${item.name} ${item.code} ${item.code.replaceAll("/", "")}`).includes(searchTerm),
+    (!groupSelection || groupSelection.includes(item.id)) && normalizeSearch(`${item.name} ${item.code} ${item.code.replaceAll("/", "")}`).includes(searchTerm),
   ) ?? [];
 
   return (
@@ -499,7 +518,26 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                         />
                       ))}
                     </div>
-                    {projection.points.map(({ item, x, y }) => {
+                    {mapMarkers.map(({ items, x, y }) => {
+                      const item = items[0];
+                      if (items.length > 1) {
+                        const groupLabel = `${items.length} ${LEVEL_LABELS[level]} próximos. Ver territorios agrupados.`;
+                        return <button
+                          key={`group-${item.id}`}
+                          type="button"
+                          aria-label={groupLabel}
+                          title={groupLabel}
+                          onClick={() => {
+                            setGroupSelection(items.map(member => member.id));
+                            setTerritorySearch("");
+                            setSelectedTerritoryId(null);
+                            territoryList.current?.scrollIntoView({ block: "nearest" });
+                            territoryList.current?.focus({ preventScroll: true });
+                          }}
+                          style={{ left: `${x}%`, top: `${y}%` }}
+                          className="absolute z-10 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-xl border-2 border-slate-400 bg-white text-slate-800 shadow-sm hover:border-blue-600 hover:bg-blue-50 focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+                        ><Layers3 size={12} aria-hidden="true" /><span className="text-xs font-bold">{items.length}</span></button>;
+                      }
                       const label = `${item.name}: ${item.displayValue}. ${describeTerritoryHeatmapLocation(item.geo)} Seleccionar territorio.`;
                       const pointClass = `absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-xs font-black shadow-md ${tileClass(item.bucket)}`;
                       const style = {
@@ -514,7 +552,7 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                           title={label}
                           aria-label={label}
                           aria-pressed={selectedTerritoryId === item.id}
-                          onClick={() => setSelectedTerritoryId(item.id)}
+                          onClick={() => { setGroupSelection(null); setSelectedTerritoryId(item.id); }}
                           style={style}
                           className={`${pointClass} transition hover:shadow-xl focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 ${selectedTerritoryId === item.id ? "ring-4 ring-blue-300" : ""}`}
                         >
@@ -557,20 +595,23 @@ export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {})
                     Colombia. Ingresa a Exterior para verlos en escala relativa.
                   </p>
                 )}
-                <div className="border-t border-slate-200 bg-white p-4">
+                <div ref={territoryList} tabIndex={-1} className="border-t border-slate-200 bg-white p-4 focus-visible:outline-none">
                   <p className="text-sm font-semibold text-slate-900">
                     Selecciona un punto o un territorio de la lista
                   </p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    La lista permite consultar también los puntos superpuestos
-                    y los territorios sin coordenadas.
+                    Los marcadores con capas agrupan territorios cercanos: su número indica territorios, no casos ni personas. Amplía el mapa o abre un grupo para consultar cada uno.
                   </p>
+                  {groupSelection && <div role="status" className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-950">
+                    <span>Grupo de {groupSelection.length} {LEVEL_LABELS[level]}</span>
+                    <button type="button" onClick={() => { setGroupSelection(null); territoryList.current?.focus({ preventScroll: true }); }} className="min-h-11 rounded-lg border border-blue-200 bg-white px-3 font-semibold">Mostrar todos los territorios</button>
+                  </div>}
                   <label className="mt-4 block max-w-md text-xs font-semibold text-slate-700">
                     Buscar territorio por nombre o código
                     <input
                       type="search"
                       value={territorySearch}
-                      onChange={(event) => setTerritorySearch(event.target.value)}
+                      onChange={(event) => { setTerritorySearch(event.target.value); setGroupSelection(null); }}
                       maxLength={80}
                       placeholder="Por ejemplo, Medellín o 05001"
                       className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
