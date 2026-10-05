@@ -3,6 +3,7 @@ import {
   canAccessNavigationItem,
   dashboardConfig,
   getDefaultDashboardRoute,
+  getMatchingNavigationItem,
   getNavigationGroupsForRole,
   getVisibleNavigationItems,
 } from "./navigation";
@@ -13,6 +14,19 @@ function item(href: string) {
   if (!result) throw new Error(`Ruta no configurada: ${href}`);
   return result;
 }
+
+test("mapa y líderes identifican su ruta propia sin marcar también Territorio", () => {
+  for (const href of ["/dashboard/territory/heatmap", "/dashboard/territory/leaders"]) {
+    expect(getMatchingNavigationItem(href, dashboardConfig)?.href).toBe(href);
+    expect(getMatchingNavigationItem(`${href}/detalle`, [...dashboardConfig].reverse())?.href).toBe(href);
+  }
+});
+
+test("las páginas de detalle conservan el módulo accesible y no confunden prefijos", () => {
+  expect(getMatchingNavigationItem("/dashboard/votantes/new", dashboardConfig)?.href).toBe("/dashboard/votantes");
+  expect(getMatchingNavigationItem("/dashboard/territory-extra", dashboardConfig)).toBeUndefined();
+  expect(getMatchingNavigationItem("/dashboard/territory/heatmap", [])).toBeUndefined();
+});
 
 test("cumplimiento puede conciliar E-14 pero no administrar accesos", () => {
   const user = {

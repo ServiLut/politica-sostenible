@@ -839,6 +839,16 @@ export function matchesNavigationPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+export function getMatchingNavigationItem(
+  pathname: string,
+  items: readonly NavItem[],
+) {
+  return items.reduce<NavItem | undefined>((match, item) => {
+    if (!matchesNavigationPath(pathname, item.href)) return match;
+    return !match || item.href.length > match.href.length ? item : match;
+  }, undefined);
+}
+
 export function getVisibleNavigationItems(
   user: Pick<User, "role" | "backendRole">,
   tenant: Pick<Tenant, "type">,

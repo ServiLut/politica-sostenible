@@ -39,7 +39,7 @@ import {
   getRoleLabel,
   getTenantTypeLabel,
   getVisibleNavigationItems,
-  matchesNavigationPath,
+  getMatchingNavigationItem,
   type NavItem,
   type NavigationIcon,
 } from "@/config/navigation";
@@ -160,11 +160,11 @@ export function Sidebar() {
   const restoreDrawerFocusRef = useRef(true);
 
   const stage = tenant?.operationStage;
-  const navigation: ActiveNavItem[] = (
-    user && tenant ? getVisibleNavigationItems(user, tenant, stage) : []
-  ).map((item) => ({
+  const visibleNavigation = user && tenant ? getVisibleNavigationItems(user, tenant, stage) : [];
+  const activeHref = getMatchingNavigationItem(pathname, visibleNavigation)?.href;
+  const navigation: ActiveNavItem[] = visibleNavigation.map((item) => ({
     ...item,
-    isActive: matchesNavigationPath(pathname, item.href),
+    isActive: item.href === activeHref,
   }));
 
   const roleNavigationGroups = user

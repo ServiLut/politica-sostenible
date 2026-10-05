@@ -12,7 +12,7 @@ import {
   getDefaultDashboardRoute,
   getRoleLabel,
   getTenantTypeLabel,
-  matchesNavigationPath,
+  getMatchingNavigationItem,
 } from "@/config/navigation";
 
 import { CommandPalette } from "@/components/ui/CommandPalette";
@@ -32,9 +32,7 @@ export default function DashboardLayout({
   const searchParams = useSearchParams();
 
   const stage = tenant?.operationStage;
-  const currentRouteConfig = dashboardConfig.find((item) =>
-    matchesNavigationPath(pathname, item.href),
-  );
+  const currentRouteConfig = getMatchingNavigationItem(pathname, dashboardConfig);
   const isPersonalAccountRoute = pathname === "/dashboard/profile";
   const requiresPasswordChange = user?.mustChangePassword === true;
   const isCurrentStageAllowed =
