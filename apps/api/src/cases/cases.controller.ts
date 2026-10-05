@@ -13,8 +13,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
-import { CuidIdParamsDto } from '../common/dto/cuid-id-params.dto';
 import { CasesService } from './cases.service';
+import { IssueCaseIdParamsDto } from './dto/issue-case-id-params.dto';
 import { ListAssigneesQueryDto } from './dto/list-assignees-query.dto';
 import { CreateIssueCaseDto } from './dto/create-issue-case.dto';
 import { ListIssueCasesQueryDto } from './dto/list-issue-cases-query.dto';
@@ -63,7 +63,7 @@ export class CasesController {
   @ApiOperation({ summary: 'Consulta un caso del tenant y modo activos' })
   findOne(
     @CurrentUser() user: AuthenticatedUser,
-    @Param() params: CuidIdParamsDto,
+    @Param() params: IssueCaseIdParamsDto,
   ) {
     return this.casesService.findOne(user, params.id);
   }
@@ -96,7 +96,7 @@ export class CasesController {
   @ApiOperation({ summary: 'Actualiza un caso sin eliminar su historial' })
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param() params: CuidIdParamsDto,
+    @Param() params: IssueCaseIdParamsDto,
     @Body() dto: UpdateIssueCaseDto,
   ) {
     return this.casesService.update(user, params.id, dto);
