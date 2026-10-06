@@ -76,6 +76,7 @@ describe('StorageService durable private-file authorization', () => {
     aggregate: jest.Mock;
   };
   type TransactionMock = {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
@@ -136,6 +137,7 @@ describe('StorageService durable private-file authorization', () => {
       }),
     };
     transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ protected: false }]),
       tenant: {
         findUnique: jest.fn().mockImplementation(() =>
           Promise.resolve({
@@ -556,6 +558,7 @@ describe('StorageService durable private-file authorization', () => {
     prisma.storedObject.findMany.mockResolvedValue([
       {
         id: 'orphan-a',
+        module: StorageObjectModule.E14,
         status: StoredObjectStatus.CONFIRMED,
         path: orphanPath,
       },
@@ -589,19 +592,7 @@ describe('StorageService durable private-file authorization', () => {
         }) as object,
         data: {
           status: StoredObjectStatus.EXPIRED,
-          integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
-          actualSize: null,
-          etag: null,
           confirmedAt: null,
-          calculatedSha256: null,
-          observedSize: null,
-          observedContentType: null,
-          integrityCheckedAt: null,
-          integrityVerifiedAt: null,
-          integrityFailureCode: null,
-          integrityVerificationAttempts: 0,
-          integrityVerificationStartedAt: null,
-          integrityVerificationLeaseId: null,
         },
       }),
     );
@@ -614,6 +605,31 @@ describe('StorageService durable private-file authorization', () => {
         consumedAt: null,
       },
     });
+  });
+
+  it('preserves a pending schema-45 proof without requesting a Storage delete', async () => {
+    prisma.storedObject.findMany.mockResolvedValue([
+      {
+        id: 'protected-consent',
+        module: StorageObjectModule.CONSENT,
+        status: StoredObjectStatus.CONFIRMED,
+        path: consentPath,
+      },
+    ]);
+    transaction.$queryRaw.mockResolvedValue([{ protected: true }]);
+    await service.createUploadUrl(user, {
+      module: StorageModuleName.CONSENT,
+      fileName: 'prueba.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+    });
+    expect(gateway.removeObject).not.toHaveBeenCalled();
+    expect(prisma.storedObject.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.storedObject.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'protected-consent' }) as object,
+      }),
+    );
   });
 
   it('uses the active database role rather than a forged JWT role', async () => {

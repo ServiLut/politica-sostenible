@@ -37,6 +37,8 @@ export interface RetentionExecutionCapability {
 export interface RetentionRecordCounts {
   voters: number | null;
   consentRecords: number | null;
+  personImportJobs?: number | null;
+  personImportRows?: number | null;
   interactions: number | null;
   storedObjects: number | null;
   financialEntries: number | null;

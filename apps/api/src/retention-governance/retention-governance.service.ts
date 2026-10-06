@@ -144,6 +144,8 @@ type SelectedLegalHold = Prisma.RetentionLegalHoldGetPayload<{
 type RecordCounts = Readonly<{
   voters: number | null;
   consentRecords: number | null;
+  personImportJobs: number | null;
+  personImportRows: number | null;
   interactions: number | null;
   storedObjects: number | null;
   financialEntries: number | null;
@@ -928,6 +930,8 @@ export class RetentionGovernanceService {
     const [
       voters,
       consentRecords,
+      personImportJobs,
+      personImportRows,
       interactions,
       storedObjects,
       financialEntries,
@@ -942,6 +946,19 @@ export class RetentionGovernanceService {
       includeSubjects
         ? transaction.consentRecord.count({
             where: { tenantId, createdAt: { lte: cutoffAt } },
+          })
+        : null,
+      includeSubjects
+        ? transaction.personImportJob.count({
+            where: { tenantId, createdAt: { lte: cutoffAt } },
+          })
+        : null,
+      includeSubjects
+        ? transaction.personImportRowResult.count({
+            where: {
+              tenantId,
+              job: { tenantId, createdAt: { lte: cutoffAt } },
+            },
           })
         : null,
       includeInteractions
@@ -973,6 +990,8 @@ export class RetentionGovernanceService {
     const values = [
       voters,
       consentRecords,
+      personImportJobs,
+      personImportRows,
       interactions,
       storedObjects,
       financialEntries,
@@ -982,6 +1001,8 @@ export class RetentionGovernanceService {
     return {
       voters,
       consentRecords,
+      personImportJobs,
+      personImportRows,
       interactions,
       storedObjects,
       financialEntries,

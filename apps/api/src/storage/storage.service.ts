@@ -56,6 +56,7 @@ import {
   STORAGE_INTEGRITY_QUEUE_PORT,
   type StorageIntegrityQueuePort,
 } from './storage-integrity-queue.constants';
+import { claimStorageOrphan } from './storage-orphan-claim';
 
 interface NormalizedUploadMetadata {
   readonly fileName: string;
@@ -889,43 +890,17 @@ export class StorageService {
           },
         ],
       },
-      select: { id: true, status: true, path: true },
+      select: { id: true, status: true, path: true, module: true },
       orderBy: { createdAt: 'asc' },
       take: ORPHAN_CLEANUP_BATCH_SIZE,
     });
 
     for (const candidate of candidates) {
-      let claimed = candidate.status === StoredObjectStatus.EXPIRED;
-      if (!claimed) {
-        const transition = await this.prisma.storedObject.updateMany({
-          where: {
-            id: candidate.id,
-            tenantId,
-            status: candidate.status,
-            consumedAt: null,
-            ...(candidate.status === StoredObjectStatus.ISSUED
-              ? { expiresAt: { lte: now } }
-              : { confirmedAt: { lte: confirmedBefore } }),
-          },
-          data: {
-            status: StoredObjectStatus.EXPIRED,
-            integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
-            actualSize: null,
-            etag: null,
-            confirmedAt: null,
-            calculatedSha256: null,
-            observedSize: null,
-            observedContentType: null,
-            integrityCheckedAt: null,
-            integrityVerifiedAt: null,
-            integrityFailureCode: null,
-            integrityVerificationAttempts: 0,
-            integrityVerificationStartedAt: null,
-            integrityVerificationLeaseId: null,
-          },
-        });
-        claimed = transition.count === 1;
-      }
+      const claimed = await this.prisma.$transaction(
+        (tx) =>
+          claimStorageOrphan(tx, tenantId, candidate, now, confirmedBefore),
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      );
       if (!claimed) continue;
 
       try {

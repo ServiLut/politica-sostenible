@@ -2302,6 +2302,47 @@ exports.Prisma.PqrsdCommandScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PersonImportJobScalarFieldEnum = {
+  fileName: 'fileName',
+  id: 'id',
+  tenantId: 'tenantId',
+  requestedById: 'requestedById',
+  clientRequestId: 'clientRequestId',
+  payloadSha256: 'payloadSha256',
+  sourceArtifactPath: 'sourceArtifactPath',
+  expectedContentSha256: 'expectedContentSha256',
+  noticeVersion: 'noticeVersion',
+  status: 'status',
+  importRequestedAt: 'importRequestedAt',
+  totalRows: 'totalRows',
+  validRows: 'validRows',
+  errorRows: 'errorRows',
+  skippedRows: 'skippedRows',
+  importedRows: 'importedRows',
+  validatedThrough: 'validatedThrough',
+  attempts: 'attempts',
+  leaseToken: 'leaseToken',
+  leaseExpiresAt: 'leaseExpiresAt',
+  lastErrorCode: 'lastErrorCode',
+  lastErrorMessage: 'lastErrorMessage',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PersonImportRowResultScalarFieldEnum = {
+  id: 'id',
+  tenantId: 'tenantId',
+  jobId: 'jobId',
+  rowNumber: 'rowNumber',
+  documentId: 'documentId',
+  proofPath: 'proofPath',
+  values: 'values',
+  errors: 'errors',
+  status: 'status',
+  voterId: 'voterId'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2349,6 +2390,7 @@ exports.FinanceReportScope = exports.$Enums.FinanceReportScope = {
 };
 
 exports.StorageObjectModule = exports.$Enums.StorageObjectModule = {
+  PERSON_IMPORT: 'PERSON_IMPORT',
   FINANCE: 'FINANCE',
   E14: 'E14',
   CONSENT: 'CONSENT',
@@ -3331,6 +3373,23 @@ exports.PqrsdCommandType = exports.$Enums.PqrsdCommandType = {
   DOSSIER_REOPEN: 'DOSSIER_REOPEN'
 };
 
+exports.PersonImportStatus = exports.$Enums.PersonImportStatus = {
+  QUEUED: 'QUEUED',
+  VALIDATING: 'VALIDATING',
+  READY: 'READY',
+  IMPORT_QUEUED: 'IMPORT_QUEUED',
+  IMPORTING: 'IMPORTING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+exports.PersonImportRowStatus = exports.$Enums.PersonImportRowStatus = {
+  READY: 'READY',
+  INVALID: 'INVALID',
+  SKIPPED: 'SKIPPED',
+  IMPORTED: 'IMPORTED'
+};
+
 exports.Prisma.ModelName = {
   Tenant: 'Tenant',
   CampaignSettings: 'CampaignSettings',
@@ -3449,7 +3508,9 @@ exports.Prisma.ModelName = {
   PqrsdClosure: 'PqrsdClosure',
   PqrsdReopening: 'PqrsdReopening',
   PqrsdStatusEvent: 'PqrsdStatusEvent',
-  PqrsdCommand: 'PqrsdCommand'
+  PqrsdCommand: 'PqrsdCommand',
+  PersonImportJob: 'PersonImportJob',
+  PersonImportRowResult: 'PersonImportRowResult'
 };
 
 /**

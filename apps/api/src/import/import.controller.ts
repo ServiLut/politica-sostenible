@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ImportService } from './import.service';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,10 +22,12 @@ import {
   RequiresPlanFeature,
 } from '../auth/decorators/requires-plan-feature.decorator';
 import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
+import { ImportRecoveryGuard } from './import-recovery.guard';
 
 @Controller('import')
 @RequiresPlanFeature(PlanFeature.IMPORT)
 @BlockWhenOperationClosed()
+@UseGuards(ImportRecoveryGuard)
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
 
