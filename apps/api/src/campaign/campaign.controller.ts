@@ -26,6 +26,7 @@ import {
 } from './dto/territory-leader.dto';
 import { Throttle } from '@nestjs/throttler';
 import { TerritoryHeatmapQueryDto } from './dto/territory-heatmap-query.dto';
+import { TerritoryOverviewQueryDto } from './dto/territory-overview-query.dto';
 import {
   TerritoryDivisionParamsDto,
   TerritoryLeaderParamsDto,
@@ -89,6 +90,19 @@ export class CampaignController {
     @Query() query: TerritoryHeatmapQueryDto,
   ) {
     return this.campaignService.getTerritoryHeatmap(user, query);
+  }
+
+  @Get('territory-overview')
+  @Roles(...CAMPAIGN_DIVISION_READ_ROLES)
+  @ApiOperation({
+    summary:
+      'Consulta territorios con búsqueda, prioridades y paginación protegida',
+  })
+  async getTerritoryOverview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: TerritoryOverviewQueryDto,
+  ) {
+    return this.campaignService.getTerritoryOverview(user, query);
   }
 
   @Get()

@@ -58,6 +58,10 @@ import {
   type TerritoryHeatmapLevel,
   type TerritoryHeatmapQueryDto,
 } from './dto/territory-heatmap-query.dto';
+import {
+  TERRITORY_OVERVIEW_ACTIVITIES,
+  type TerritoryOverviewQueryDto,
+} from './dto/territory-overview-query.dto';
 
 export const CAMPAIGN_DIVISION_READ_ROLES = [
   Role.ADMIN,
@@ -877,6 +881,124 @@ export class CampaignService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
+  }
+
+  async getTerritoryOverview(
+    user: AuthenticatedUser,
+    query: TerritoryOverviewQueryDto,
+  ) {
+    const { page = 1, limit = 20, activity = 'ACTIVE', search } = query;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 1 ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 50 ||
+      !TERRITORY_OVERVIEW_ACTIVITIES.includes(activity) ||
+      (search !== undefined &&
+        (typeof search !== 'string' || search.length > 80))
+    ) {
+      throw new BadRequestException(
+        'Los filtros territoriales no son válidos. Use páginas desde 1 y un máximo de 50 lugares.',
+      );
+    }
+
+    // Reuse the authorized snapshot. Filtering never sees the suppressed raw counts.
+    const snapshot = await this.getTerritoryHeatmap(user, {
+      level: query.level,
+      metric: query.metric,
+      parentId: query.parentId,
+    });
+    const summary = {
+      totalTerritories: snapshot.items.length,
+      reportedTerritories: 0,
+      zeroTerritories: 0,
+      protectedTerritories: 0,
+      unavailableTerritories: 0,
+    };
+    for (const item of snapshot.items) {
+      if (item.suppressed) summary.protectedTerritories += 1;
+      else if (item.value === null) summary.unavailableTerritories += 1;
+      else if (item.value === 0) summary.zeroTerritories += 1;
+      else summary.reportedTerritories += 1;
+    }
+
+    const normalize = (value: string) =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('es')
+        .trim();
+    const needle = normalize(search ?? '');
+    const canonicalNeedle = /^\d{5}$/.test(needle)
+      ? `${needle.slice(0, 2)}/${needle.slice(2)}`
+      : needle;
+    const coverage = query.metric === TerritoryHeatmapMetric.E14_COVERAGE;
+    const team = query.metric === TerritoryHeatmapMetric.TEAM_COVERAGE;
+    const matches = snapshot.items.filter((item) => {
+      const active = coverage
+        ? item.value !== null && item.operationalContext.expectedTables > 0
+        : item.suppressed || (item.value !== null && item.value > 0);
+      if (activity === 'ACTIVE' && !active) return false;
+      return (
+        !needle ||
+        normalize(item.name).includes(needle) ||
+        normalize(item.code).includes(needle) ||
+        normalize(item.code).includes(canonicalNeedle)
+      );
+    });
+    type Item = (typeof snapshot.items)[number];
+    const alphabetical = (left: Item, right: Item) =>
+      left.name.localeCompare(right.name, 'es', { sensitivity: 'base' }) ||
+      left.code.localeCompare(right.code, 'es') ||
+      left.id.localeCompare(right.id);
+    const rank = (item: Item) => {
+      if (team && activity === 'ALL' && item.value === 0 && !item.suppressed)
+        return 0;
+      if (item.suppressed) return 1;
+      if (item.value === null) return 3;
+      if (team) return 2;
+      return item.value === 0 ? 2 : 0;
+    };
+    matches.sort((left, right) => {
+      if (coverage) {
+        const leftValue =
+          left.operationalContext.expectedTables > 0 ? left.value : null;
+        const rightValue =
+          right.operationalContext.expectedTables > 0 ? right.value : null;
+        if (leftValue === null || rightValue === null) {
+          return (
+            Number(leftValue === null) - Number(rightValue === null) ||
+            alphabetical(left, right)
+          );
+        }
+        return leftValue - rightValue || alphabetical(left, right);
+      }
+      const priority = rank(left) - rank(right);
+      if (priority) return priority;
+      if (
+        left.suppressed ||
+        right.suppressed ||
+        left.value === null ||
+        right.value === null
+      )
+        return alphabetical(left, right);
+      return (
+        (team ? left.value - right.value : right.value - left.value) ||
+        alphabetical(left, right)
+      );
+    });
+    const totalItems = matches.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    return {
+      ...snapshot,
+      items:
+        page > totalPages
+          ? []
+          : matches.slice((page - 1) * limit, page * limit),
+      pageInfo: { page, limit, totalPages, totalItems },
+      summary,
+    };
   }
 
   async getTerritoryHeatmap(

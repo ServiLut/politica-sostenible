@@ -1,776 +1,165 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  ChevronRight,
-  Clock3,
-  HardDriveDownload,
-  Layers3,
-  Loader2,
-  LockKeyhole,
-  MapPinned,
-  RefreshCw,
-  ShieldCheck,
-  TableProperties,
-  WifiOff,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { useCallback, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useAuth } from "@/context/auth";
+import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Download, Info, Loader2, MapPinned, RefreshCw, Search, ShieldCheck, WifiOff } from "lucide-react";
 import { useOfflineVault } from "@/context/offline-vault";
 import { useKeyedState } from "@/hooks/use-keyed-state";
 import { usePageRequest } from "@/lib/use-page-request";
-import { ApiError, apiRequest } from "@/lib/api-client";
+import { apiRequest } from "@/lib/api-client";
 import { OFFLINE_VAULT_OPEN_EVENT } from "@/lib/offline-vault";
-import { groupTerritoryMarkers } from "@/lib/territory-map-markers";
-import {
-  buildTerritoryHeatmapPath,
-  describeTerritoryHeatmapLocation,
-  hasReportableLowActivity,
-  projectTerritoryHeatmapItems,
-  resolveTerritoryHeatmapView,
-  type HeatmapLevel,
-  type HeatmapMetric,
-  type TerritoryHeatmapItem,
-  type TerritoryHeatmapQuery,
-  type TerritoryHeatmapView,
-} from "@/lib/territory-heatmap";
+import { buildTerritoryHeatmapPath, validateTerritoryHeatmapResponse, type HeatmapLevel, type HeatmapMetric, type TerritoryHeatmapItem } from "@/lib/territory-heatmap";
+import { buildTerritoryOverviewPath, heatmapQuery, resolveTerritoryOverview, type TerritoryOverviewQuery, type TerritoryOverviewView } from "@/lib/territory-overview";
+import { TerritoryPageMap } from "./TerritoryPageMap";
 
-interface HeatmapHistoryEntry {
-  level: HeatmapLevel;
-  parentId: string | null;
-}
-
-type HeatmapDisplayMode = "GEOGRAPHIC" | "MATRIX";
-
-const METRICS: ReadonlyArray<{
-  value: HeatmapMetric;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "E14_COVERAGE",
-    label: "Cobertura E-14",
-    description:
-      "Mesas aceptadas frente a las mesas configuradas para la operación.",
-  },
-  {
-    value: "VOTER_ACTIVITY",
-    label: "Actividad autorizada",
-    description: "Volumen relativo de registros con consentimiento.",
-  },
-  {
-    value: "OPEN_CASES",
-    label: "Casos abiertos",
-    description: "Concentración relativa de asuntos territoriales pendientes.",
-  },
-  {
-    value: "TEAM_COVERAGE",
-    label: "Equipo asignado",
-    description: "Cobertura relativa del equipo activo por territorio.",
-  },
+const LEVEL_LABELS: Record<HeatmapLevel, string> = { DEPARTAMENTO: "departamentos", MUNICIPIO: "municipios", ZONA: "zonas", PUESTO: "puestos" };
+const METRICS: Array<{ value: HeatmapMetric; label: string; column: string; description: string; source: string }> = [
+  { value: "OPEN_CASES", label: "Casos por resolver", column: "Casos abiertos", description: "Consulta dónde hay asuntos abiertos y entra al lugar que necesitas revisar.", source: "Se completa con los casos abiertos que tienen un territorio asignado. Los casos sin territorio no aparecen aquí." },
+  { value: "TEAM_COVERAGE", label: "Equipo en territorio", column: "Integrantes activos", description: "Revisa cuántos integrantes activos tiene asignados cada lugar.", source: "Se completa con las cuentas activas del equipo que tienen territorio asignado." },
+  { value: "VOTER_ACTIVITY", label: "Personas con autorización", column: "Personas autorizadas", description: "Consulta los registros con autorización vigente y ubicación electoral vinculada.", source: "Se completa con Personas. Sólo incluye autorización vigente y un puesto vinculado; no es el total de personas del directorio." },
+  { value: "E14_COVERAGE", label: "Revisión de actas E-14", column: "Mesas con acta aceptada", description: "Compara las actas aceptadas con las mesas configuradas para cada lugar.", source: "Se completa con actas aceptadas y mesas configuradas. Sin mesas configuradas no se calcula un porcentaje." },
 ];
-
-const LEVEL_LABELS: Readonly<Record<HeatmapLevel, string>> = {
-  DEPARTAMENTO: "departamentos",
-  MUNICIPIO: "municipios",
-  ZONA: "zonas",
-  PUESTO: "puestos",
-};
-
-function tileClass(bucket: number): string {
-  if (bucket >= 5) return "border-blue-950 bg-blue-950 text-white";
-  if (bucket === 4) return "border-blue-800 bg-blue-800 text-white";
-  if (bucket === 3) return "border-blue-600 bg-blue-600 text-white";
-  if (bucket === 2) return "border-blue-300 bg-blue-200 text-blue-950";
-  if (bucket === 1) return "border-blue-100 bg-blue-50 text-blue-950";
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function messageFrom(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error) return error.message;
-  return "No fue posible construir el mapa de calor territorial.";
-}
-
-function formatTimestamp(timestamp: string): string {
-  return new Intl.DateTimeFormat("es-CO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/Bogota",
-  }).format(new Date(timestamp));
-}
+const INITIAL_QUERY: TerritoryOverviewQuery = { level: "DEPARTAMENTO", metric: "OPEN_CASES", parentId: null, search: "", activity: "ACTIVE", page: 1, limit: 20 };
+interface HistoryEntry { level: HeatmapLevel; parentId: string | null; label: string }
+const dateLabel = (value: string) => new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Bogota" }).format(new Date(value));
+const message = (error: unknown) => error instanceof Error ? error.message : "No se pudo cargar la información. Intenta de nuevo.";
 
 export function TerritoryHeatmap({ reloadKey = 0 }: { reloadKey?: number } = {}) {
-  const {
-    phase: vaultPhase,
-    readHeatmapSnapshot,
-    saveHeatmapSnapshot,
-  } = useOfflineVault();
-  const [level, setLevel] = useState<HeatmapLevel>("DEPARTAMENTO");
-  const [metric, setMetric] = useState<HeatmapMetric>("E14_COVERAGE");
-  const [parentId, setParentId] = useState<string | null>(null);
-  const [history, setHistory] = useState<HeatmapHistoryEntry[]>([]);
+  const { user, tenant } = useAuth();
+  const identityKey = `${tenant?.id}:${user?.id}:${user?.role}`;
+  const { phase: vaultPhase, readHeatmapSnapshot, saveHeatmapSnapshot } = useOfflineVault();
+  const [query, setQuery] = useState<TerritoryOverviewQuery>(INITIAL_QUERY);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const queryKey = `${identityKey}:${query.metric}:${query.level}:${query.parentId}:${query.page}:${query.search}:${query.activity}:${vaultPhase}`;
+  const scopeKey = `${identityKey}:${query.metric}:${query.level}:${query.parentId}`;
+  const [draftSearch, setDraftSearch] = useKeyedState(scopeKey, "");
+  const [selectedId, setSelectedId] = useKeyedState<string | null>(queryKey, null);
+  const [mapOpen, setMapOpen] = useKeyedState(queryKey, false);
+  const [saveMessage, setSaveMessage] = useKeyedState<string | null>(scopeKey, null);
+  const [saveError, setSaveError] = useKeyedState<string | null>(scopeKey, null);
   const [saving, setSaving] = useState(false);
-  const viewKey = `${level}:${metric}:${parentId}:${vaultPhase}`;
-  const [saveMessage, setSaveMessage] = useKeyedState<string | null>(viewKey, null);
-  const [saveError, setSaveError] = useKeyedState<string | null>(viewKey, null);
-  const [selectedTerritoryId, setSelectedTerritoryId] =
-    useKeyedState<string | null>(viewKey, null);
-  const [territorySearch, setTerritorySearch] = useKeyedState(viewKey, "");
-  const [mapZoom, setMapZoom] = useKeyedState(viewKey, 1);
-  const mapViewport = useRef<HTMLDivElement>(null);
-  const territoryList = useRef<HTMLDivElement>(null);
-  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
-  const [groupSelection, setGroupSelection] = useKeyedState<string[] | null>(`${viewKey}:${mapZoom}`, null);
-  const mapCenter = useRef({ x: 0.5, y: 0.5 });
+  const savingLock = useRef(false);
+  const resultsHeading = useRef<HTMLHeadingElement>(null);
+  const pendingScroll = useRef(false);
+  const request = useCallback((signal: AbortSignal) => resolveTerritoryOverview(query, {
+    loadOnline: validated => apiRequest<unknown>(buildTerritoryOverviewPath(validated), { signal }),
+    readOffline: vaultPhase === "UNLOCKED" ? readHeatmapSnapshot : undefined,
+  }), [query, vaultPhase, readHeatmapSnapshot]);
+  const { data: view, loading, error, refresh } = usePageRequest<TerritoryOverviewView>(request, { enabled: Boolean(user && tenant), reloadKey: `${identityKey}:${reloadKey}` });
+  const result = view?.response;
+  const activeMetric = METRICS.find(metric => metric.value === query.metric)!;
+  const activeCount = result ? result.summary.reportedTerritories + result.summary.protectedTerritories + (query.metric === "E14_COVERAGE" ? result.summary.zeroTerritories : 0) : 0;
+  const pageRange = !result?.items.length ? "" : `${(query.page - 1) * query.limit + 1}–${(query.page - 1) * query.limit + result.items.length} de ${result.pageInfo.totalItems}`;
   useLayoutEffect(() => {
-    const viewport = mapViewport.current;
-    if (!viewport) return;
-    viewport.scrollLeft = mapCenter.current.x * viewport.scrollWidth - viewport.clientWidth / 2;
-    viewport.scrollTop = mapCenter.current.y * viewport.scrollHeight - viewport.clientHeight / 2;
-  }, [mapZoom]);
-  function changeMapZoom(value: number) {
-    const viewport = mapViewport.current;
-    if (viewport) {
-      mapCenter.current = {
-        x: (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth,
-        y: (viewport.scrollTop + viewport.clientHeight / 2) / viewport.scrollHeight,
-      };
-    }
-    setMapZoom(Math.max(1, Math.min(4, value)));
+    if (!pendingScroll.current || loading || !result) return;
+    pendingScroll.current = false;
+    resultsHeading.current?.focus({ preventScroll: true });
+    resultsHeading.current?.scrollIntoView({ block: "start" });
+  }, [loading, result]);
+
+  function changeMetric(metric: HeatmapMetric) {
+    setQuery(current => ({ ...current, metric, search: "", page: 1, activity: metric === "TEAM_COVERAGE" ? "ALL" : "ACTIVE" }));
   }
-  const [displayMode, setDisplayMode] =
-    useState<HeatmapDisplayMode>("GEOGRAPHIC");
-  const query = useMemo<TerritoryHeatmapQuery>(
-    () => ({ level, metric, parentId }),
-    [level, metric, parentId],
-  );
-
-  const requestView = useCallback((signal: AbortSignal) =>
-    resolveTerritoryHeatmapView(query, {
-      loadOnline: (validatedQuery) => apiRequest<unknown>(buildTerritoryHeatmapPath(validatedQuery), { signal }),
-      readOffline: vaultPhase === "UNLOCKED" ? readHeatmapSnapshot : undefined,
-    }), [query, readHeatmapSnapshot, vaultPhase]);
-  const { data: view, loading, error: loadError, refresh } = usePageRequest<TerritoryHeatmapView>(requestView, { reloadKey });
-  const result = view?.response ?? null;
-  const viewSource = view?.source ?? null;
-  const offlineSavedAt = view?.savedAt ?? null;
-  const error = loadError ? messageFrom(loadError) : null;
-  const load = () => {
-    setSaveMessage(null);
-    setSaveError(null);
-    return refresh();
-  };
-
-  function drillDown(item: TerritoryHeatmapItem) {
-    if (!item.hasChildren || !item.nextLevel) return;
-    setHistory((current) => [...current, { level, parentId }]);
-    setLevel(item.nextLevel);
-    setParentId(item.id);
+  function selectTerritory(item: TerritoryHeatmapItem) {
+    if (item.hasChildren && item.nextLevel) {
+      pendingScroll.current = true;
+      setHistory(current => [...current, { level: query.level, parentId: query.parentId, label: result?.parent?.name ?? "Colombia" }]);
+      setQuery(current => ({ ...current, level: item.nextLevel!, parentId: item.id, search: "", page: 1 }));
+    } else setSelectedId(item.id);
   }
-
-  function goBack() {
-    const previous = history.at(-1);
+  function backTo(index: number) {
+    const previous = history[index];
     if (!previous) return;
-    setHistory((current) => current.slice(0, -1));
-    setLevel(previous.level);
-    setParentId(previous.parentId);
+    pendingScroll.current = true;
+    setHistory(current => current.slice(0, index));
+    setQuery(current => ({ ...current, level: previous.level, parentId: previous.parentId, search: "", page: 1 }));
   }
-
-  async function saveCurrentView() {
+  function search(event: FormEvent) {
+    event.preventDefault();
+    setQuery(current => ({ ...current, search: draftSearch.trim(), page: 1 }));
+  }
+  function changePage(page: number) {
+    pendingScroll.current = true;
+    setQuery(current => ({ ...current, page }));
+  }
+  async function saveOffline() {
+    if (savingLock.current) return;
     setSaveMessage(null);
     setSaveError(null);
-    if (vaultPhase !== "UNLOCKED") {
-      setSaveMessage(
-        "Desbloquea o crea la bóveda cifrada para guardar esta vista.",
-      );
-      window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT));
-      return;
-    }
-    if (!result || viewSource !== "ONLINE") return;
-
+    if (vaultPhase !== "UNLOCKED") { window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT)); return; }
+    if (!result || result.summary.totalTerritories > 500) { setSaveError("Abre un territorio más pequeño para guardar hasta 500 lugares por copia."); return; }
+    savingLock.current = true;
     setSaving(true);
     try {
-      const snapshot = await saveHeatmapSnapshot(query, result);
-      setSaveMessage(
-        `Vista cifrada guardada en este dispositivo: ${formatTimestamp(snapshot.savedAt)}.`,
-      );
-    } catch (saveFailure) {
-      setSaveError(messageFrom(saveFailure));
-    } finally {
-      setSaving(false);
-    }
+      const exactQuery = heatmapQuery(query);
+      // Save the whole bounded level, never a page disguised as a full snapshot.
+      const full = validateTerritoryHeatmapResponse(await apiRequest<unknown>(buildTerritoryHeatmapPath(exactQuery)), exactQuery);
+      const saved = await saveHeatmapSnapshot(exactQuery, full);
+      setSaveMessage(`${full.items.length} lugares guardados en este dispositivo. Copia del ${dateLabel(saved.savedAt)}.`);
+    } catch (failure) { setSaveError(message(failure)); }
+    finally { savingLock.current = false; setSaving(false); }
   }
 
-  const activeMetric = METRICS.find((option) => option.value === metric);
-  const canSave = Boolean(result && viewSource === "ONLINE" && !loading);
-  const projection = useMemo(
-    () => (result ? projectTerritoryHeatmapItems(result.items) : null),
-    [result],
-  );
-  useLayoutEffect(() => {
-    const viewport = mapViewport.current;
-    if (!viewport) return;
-    const observer = new ResizeObserver(() => {
-      const width = viewport.clientWidth;
-      const height = viewport.clientHeight;
-      setMapSize(current => current.width === width && current.height === height ? current : { width, height });
-    });
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, [projection, displayMode]);
-  const mapMarkers = useMemo(() => {
-    if (!projection) return [];
-    return groupTerritoryMarkers(projection.points, mapSize.width * mapZoom, mapSize.height * mapZoom);
-  }, [projection, mapSize, mapZoom]);
-  const selectedTerritory = result?.items.find(
-    (item) => item.id === selectedTerritoryId,
-  );
-  const normalizeSearch = (value: string) =>
-    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-CO");
-  const searchTerm = normalizeSearch(territorySearch.trim());
-  const listedTerritories = result?.items.filter((item) =>
-    (!groupSelection || groupSelection.includes(item.id)) && normalizeSearch(`${item.name} ${item.code} ${item.code.replaceAll("/", "")}`).includes(searchTerm),
-  ) ?? [];
+  return <section aria-labelledby="territory-heatmap-title" className="min-w-0 space-y-4">
+    <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="min-w-0 flex-1">
+        <h1 id="territory-heatmap-title" className="text-2xl font-bold tracking-tight text-slate-950">Territorio y actividad</h1>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Datos automáticos de tu equipo.</p>
+      </div>
+      <div className="w-full min-w-0 md:w-80 md:shrink-0">
+        <div className="flex items-end gap-2"><label className="block min-w-0 flex-1 text-sm font-semibold text-slate-900">¿Qué quieres consultar?
+          <select value={query.metric} onChange={event => changeMetric(event.target.value as HeatmapMetric)} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">{METRICS.map(metric => <option key={metric.value} value={metric.value}>{metric.label}</option>)}</select>
+        </label><button type="button" aria-label="Actualizar" title="Actualizar" onClick={() => void refresh()} disabled={loading} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-50"><RefreshCw size={17} className={loading ? "animate-spin" : ""} aria-hidden="true" /></button></div>
+        <details className="mt-2"><summary className="w-fit cursor-pointer text-xs font-semibold text-blue-700">¿De dónde sale esta información?</summary><p className="mt-2 text-xs leading-5 text-slate-600">{activeMetric.source}</p></details>
+      </div>
+    </header>
+    {view?.source === "OFFLINE" && view.savedAt && <div role="status" className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><WifiOff size={20} className="shrink-0" /><p><strong>Sin conexión: estás viendo una copia guardada.</strong><br />Copia del {dateLabel(view.savedAt)}. Los cambios posteriores no aparecen aquí.</p></div>}
 
-  return (
-    <section
-      aria-labelledby="territory-heatmap-title"
-      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-    >
-      <div className="border-b border-slate-200 bg-slate-950 p-6 text-white">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-300">
-              <Layers3 size={16} aria-hidden="true" /> Inteligencia territorial
-              agregada
-            </div>
-            <h2
-              id="territory-heatmap-title"
-              className="mt-3 text-2xl font-black"
-            >
-              Mapa de calor operativo
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Compara intensidad y baja desde departamento hasta puesto en una
-              vista espacial o matricial. No ubica personas ni mide afinidad
-              política.
-            </p>
-          </div>
-          <label className="w-full max-w-sm text-xs font-black uppercase tracking-wider text-slate-300">
-            Indicador
-            <select
-              value={metric}
-              onChange={(event) => {
-                setMetric(event.target.value as HeatmapMetric);
-                setLevel("DEPARTAMENTO");
-                setParentId(null);
-                setHistory([]);
-              }}
-              className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-bold normal-case tracking-normal text-white"
-            >
-              {METRICS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-4">
+        <nav aria-label="Ruta del territorio" className="flex flex-wrap items-center gap-1 text-sm">
+          {history.map((entry, index) => <span key={`${entry.level}:${entry.parentId}`} className="inline-flex max-w-full items-center gap-1"><button type="button" onClick={() => backTo(index)} className="min-h-11 break-words rounded-lg px-2 text-left text-blue-700 hover:bg-blue-50">{entry.label}</button><ChevronRight size={14} className="shrink-0 text-slate-400" /></span>)}
+          <span className="min-w-0 break-words font-semibold text-slate-950">{result?.parent?.name ?? (query.parentId ? "Cargando territorio…" : "Colombia")}</span>
+        </nav>
+        <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div><h2 ref={resultsHeading} tabIndex={-1} className="scroll-mt-24 text-lg font-bold text-slate-950 focus:outline-none">{activeMetric.label}</h2>{result && <p className="mt-1 text-xs leading-5 text-slate-500">{result.summary.totalTerritories.toLocaleString("es-CO")} {LEVEL_LABELS[query.level]} disponibles · actualizado {dateLabel(result.generatedAt)}</p>}</div>
+          {history.length > 0 && <button type="button" onClick={() => backTo(history.length - 1)} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border px-3 text-sm text-slate-700"><ArrowLeft size={16} />Volver</button>}
+        </div>
+        <form onSubmit={search} className="mt-4 flex min-w-0 gap-2">
+          <label className="min-w-0 flex-1"><span className="sr-only">Buscar lugar por nombre o código</span><input type="search" value={draftSearch} onChange={event => setDraftSearch(event.target.value)} maxLength={80} placeholder={query.level === "DEPARTAMENTO" ? "Buscar un departamento, por ejemplo Antioquia" : "Buscar un lugar, por ejemplo Medellín o 05001"} className="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" /></label>
+          <button type="submit" aria-label="Buscar" className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-700 text-sm font-semibold text-white hover:bg-blue-800 sm:px-5"><Search size={16} /><span className="hidden sm:inline">Buscar</span></button>
+        </form>
+        {query.search && <button type="button" onClick={() => { setDraftSearch(""); setQuery(current => ({ ...current, search: "", page: 1 })); }} className="mt-2 min-h-11 rounded-xl border px-4 text-sm text-slate-600">Quitar búsqueda</button>}
+        <div role="group" aria-label="Lugares que se muestran" className="mt-3 flex flex-wrap gap-2">
+          <button type="button" aria-pressed={query.activity === "ACTIVE"} onClick={() => setQuery(current => ({ ...current, activity: "ACTIVE", page: 1 }))} className={`min-h-11 rounded-full border px-4 text-xs font-semibold ${query.activity === "ACTIVE" ? "border-blue-300 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-600"}`}>{query.metric === "E14_COVERAGE" ? "Con mesas configuradas" : "Con registros"}{result ? ` (${activeCount})` : ""}</button>
+          <button type="button" aria-pressed={query.activity === "ALL"} onClick={() => setQuery(current => ({ ...current, activity: "ALL", page: 1 }))} className={`min-h-11 rounded-full border px-4 text-xs font-semibold ${query.activity === "ALL" ? "border-blue-300 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-600"}`}><span className="sm:hidden">Todos</span><span className="hidden sm:inline">Todos los lugares</span>{result ? ` (${result.summary.totalTerritories})` : ""}</button>
         </div>
       </div>
 
-      <div className="space-y-5 p-5 sm:p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-              <span>Colombia</span>
-              {result?.breadcrumbs.map((breadcrumb) => (
-                <span key={breadcrumb.id} className="inline-flex items-center">
-                  <ChevronRight size={13} aria-hidden="true" />
-                  {breadcrumb.name}
-                </span>
-              ))}
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              {activeMetric?.description}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {history.length > 0 && (
-              <button
-                type="button"
-                onClick={goBack}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 hover:bg-slate-50"
-              >
-                <ArrowLeft size={16} aria-hidden="true" /> Subir un nivel
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                aria-hidden="true"
-                className={loading ? "animate-spin" : undefined}
-              />
-              Actualizar vista
-            </button>
-            <button
-              type="button"
-              onClick={() => void saveCurrentView()}
-              disabled={saving || (!canSave && vaultPhase === "UNLOCKED")}
-              aria-describedby="territory-offline-storage-warning"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? (
-                <Loader2
-                  size={16}
-                  aria-hidden="true"
-                  className="animate-spin"
-                />
-              ) : vaultPhase === "UNLOCKED" ? (
-                <HardDriveDownload size={16} aria-hidden="true" />
-              ) : (
-                <LockKeyhole size={16} aria-hidden="true" />
-              )}
-              Guardar esta vista offline
-            </button>
-          </div>
-        </div>
+      {loading ? <div role="status" className="flex min-h-48 items-center justify-center gap-3 p-6 text-sm text-slate-600"><Loader2 className="animate-spin text-blue-700" size={20} />Cargando lugares…</div> : error ? <div role="alert" className="m-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p className="flex gap-2"><AlertCircle size={18} className="shrink-0" />{message(error)}</p><button type="button" onClick={() => void refresh()} className="mt-3 min-h-11 rounded-lg bg-red-700 px-4 font-semibold text-white">Volver a intentar</button></div> : result?.items.length ? <>
+        <div className="hidden grid-cols-[1fr_minmax(160px,auto)_minmax(130px,auto)] gap-4 bg-slate-50 px-6 py-3 text-xs font-semibold text-slate-600 sm:grid"><span>Lugar</span><span>{activeMetric.column}</span><span className="text-right">Qué puedes hacer</span></div>
+        <ul aria-label="Resultados por territorio" className="divide-y divide-slate-100">{result.items.map(item => <li key={item.id}>
+          <button type="button" onClick={() => selectTerritory(item)} aria-label={`${item.name}: ${item.displayValue}. ${item.hasChildren && item.nextLevel ? `Ver ${LEVEL_LABELS[item.nextLevel]}` : "Ver detalle"}`} aria-expanded={item.hasChildren ? undefined : selectedId === item.id} className={`grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600 sm:grid-cols-[1fr_minmax(160px,auto)_minmax(130px,auto)] sm:gap-4 sm:px-6 ${selectedId === item.id ? "bg-blue-50" : ""}`}>
+            <span className="min-w-0"><span className="block break-words text-sm font-semibold text-slate-900">{item.name}</span><span className="mt-1 block text-xs text-slate-500">Código {item.code}</span></span>
+            <span className="text-right sm:text-left"><strong className={`block text-lg font-bold ${item.value === 0 ? "text-slate-500" : "text-blue-900"}`}>{item.displayValue}</strong><span className="mt-1 block max-w-40 text-xs leading-4 text-slate-500 sm:hidden">{activeMetric.column}</span>{query.metric === "E14_COVERAGE" && <span className="mt-1 block text-xs text-slate-500">{item.operationalContext.expectedTables ? `${item.operationalContext.acceptedTables} de ${item.operationalContext.expectedTables} mesas` : "Sin mesas configuradas"}</span>}</span>
+            <span className="col-span-2 flex items-center gap-1 text-xs font-semibold text-blue-700 sm:col-span-1 sm:justify-end">{item.hasChildren && item.nextLevel ? `Ver ${LEVEL_LABELS[item.nextLevel]}` : "Ver detalle"}<ArrowRight size={15} /></span>
+          </button>
+          {selectedId === item.id && <div role="region" aria-label={`Detalle de ${item.name}`} className="border-t border-blue-100 bg-blue-50 px-4 py-4 sm:px-6"><p className="text-sm leading-6 text-blue-950">{item.suppressed ? "El conteo es pequeño y se reserva para proteger a las personas. No significa cero." : activeMetric.source}</p><p className="mt-2 text-xs leading-5 text-blue-900">{item.geo.latitude === null || item.geo.longitude === null ? "Este lugar aún no tiene coordenadas disponibles." : "La ubicación del mapa es una referencia administrativa; no indica direcciones de personas."}</p><button type="button" onClick={() => setSelectedId(null)} className="mt-2 min-h-11 rounded-lg border border-blue-200 bg-white px-4 text-sm text-blue-800">Cerrar detalle</button></div>}
+        </li>)}</ul>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 sm:px-6"><p role="status" className="text-xs text-slate-600">Mostrando {pageRange} lugares</p><div className="flex gap-2"><button type="button" disabled={query.page <= 1} onClick={() => changePage(query.page - 1)} className="min-h-11 rounded-lg border px-3 text-sm disabled:opacity-40">Anterior</button><button type="button" disabled={query.page >= result.pageInfo.totalPages} onClick={() => changePage(query.page + 1)} className="min-h-11 rounded-lg border px-3 text-sm disabled:opacity-40">Siguiente</button></div></div>
+      </> : result ? <div className="flex flex-col items-center p-8 text-center sm:p-12">
+        <CheckCircle2 size={28} className="text-slate-400" aria-hidden="true" />
+        <h3 className="mt-3 text-base font-semibold text-slate-900">{query.search ? "No encontramos ese lugar en esta vista" : query.page > 1 ? "Esta página ya no tiene resultados" : query.activity === "ACTIVE" ? query.metric === "OPEN_CASES" ? "No hay casos abiertos vinculados a estos lugares" : "Todavía no hay registros para mostrar" : "No hay lugares disponibles en este nivel"}</h3>
+        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-600">{query.search ? "Prueba con parte del nombre o consulta todos los lugares. La búsqueda corresponde al nivel y al territorio elegidos." : activeMetric.source}</p>
+        {query.activity === "ACTIVE" && result.summary.totalTerritories > 0 && <button type="button" onClick={() => { setDraftSearch(""); setQuery(current => ({ ...current, activity: "ALL", search: "", page: 1 })); }} className="mt-4 min-h-11 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800">Ver los {result.summary.totalTerritories} lugares disponibles</button>}
+        {query.page > 1 && <button type="button" onClick={() => setQuery(current => ({ ...current, page: 1 }))} className="mt-3 min-h-11 px-4 text-sm font-semibold text-blue-700">Volver a la primera página</button>}
+      </div> : null}
+    </div>
 
-        <div
-          id="territory-offline-storage-warning"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"
-        >
-          <p className="font-black">Almacenamiento local opcional</p>
-          <p className="mt-1">
-            Al guardar, este dispositivo conserva cifrados los nombres, códigos
-            e identificadores de territorios y los agregados de esta vista
-            exacta. No guarda personas. La copia no se actualiza sola y puede
-            quedar desactualizada; bloquéala al terminar.
-          </p>
-        </div>
-
-        <div aria-live="polite" className="space-y-2">
-          {saveMessage && (
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-900">
-              {saveMessage}
-            </p>
-          )}
-          {saveError && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800"
-            >
-              {saveError}
-            </p>
-          )}
-        </div>
-
-        {viewSource === "OFFLINE" && result && offlineSavedAt && (
-          <div
-            role="status"
-            className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950"
-          >
-            <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em]">
-              <WifiOff size={18} aria-hidden="true" /> Modo offline
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-5">
-              Copia cifrada guardada el{" "}
-              <time dateTime={offlineSavedAt}>
-                {formatTimestamp(offlineSavedAt)}
-              </time>
-              . Puede estar desactualizada y no se actualizará hasta recuperar
-              conexión y volver a guardarla.
-            </p>
-          </div>
-        )}
-
-        {result && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-              <Clock3 size={15} aria-hidden="true" />
-              Corte del servidor:{" "}
-              <time dateTime={result.generatedAt}>
-                {formatTimestamp(result.generatedAt)}
-              </time>
-            </p>
-            <div
-              role="group"
-              aria-label="Presentación del mapa de calor"
-              className="inline-flex w-fit rounded-xl border border-slate-200 bg-slate-50 p-1"
-            >
-              <button
-                type="button"
-                aria-pressed={displayMode === "GEOGRAPHIC"}
-                onClick={() => setDisplayMode("GEOGRAPHIC")}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${displayMode === "GEOGRAPHIC" ? "bg-white text-blue-800 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
-              >
-                <MapPinned size={15} aria-hidden="true" /> Geográfica
-              </button>
-              <button
-                type="button"
-                aria-pressed={displayMode === "MATRIX"}
-                onClick={() => setDisplayMode("MATRIX")}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${displayMode === "MATRIX" ? "bg-white text-blue-800 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
-              >
-                <TableProperties size={15} aria-hidden="true" /> Matriz
-              </button>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div
-            role="alert"
-            className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 shrink-0" size={18} /> {error}
-            </span>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="min-h-10 rounded-xl bg-red-700 px-4 text-xs font-black uppercase tracking-wider text-white"
-            >
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {loading ? (
-          <div
-            role="status"
-            className="flex min-h-64 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-500"
-          >
-            <Loader2 className="animate-spin text-blue-700" size={24} />
-            Calculando agregados autorizados…
-          </div>
-        ) : result?.items.length ? (
-          <>
-            {displayMode === "GEOGRAPHIC" ? (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                <div className="flex flex-col gap-2 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-black text-slate-900">
-                      Ubicación de los territorios
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      {projection?.scope === "COLOMBIA"
-                        ? "Escala fija aproximada de Colombia; los puntos externos se informan aparte."
-                        : "Escala ajustada al territorio visible; no representa límites administrativos."}
-                      {" "}Los centroides administrativos DANE no indican la
-                      ubicación de puestos electorales.
-                    </p>
-                  </div>
-                  <p className="text-xs font-bold text-slate-600">
-                    {projection?.points.length.toLocaleString("es-CO")} con
-                    coordenadas ·{" "}
-                    {projection?.missingCoordinates.toLocaleString("es-CO")} sin
-                    coordenadas
-                  </p>
-                </div>
-
-                {projection?.points.length ? (
-                  <>
-                  <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
-                    <div role="group" aria-label="Ampliación del mapa" className="flex items-center gap-1">
-                      <button type="button" aria-label="Reducir mapa" disabled={mapZoom === 1} onClick={() => changeMapZoom(mapZoom / 2)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
-                        <ZoomOut size={18} aria-hidden="true" />
-                      </button>
-                      <output aria-live="polite" aria-label="Nivel de ampliación" className="min-w-14 text-center text-xs font-semibold text-slate-700">{mapZoom * 100}%</output>
-                      <button type="button" aria-label="Ampliar mapa" disabled={mapZoom === 4} onClick={() => changeMapZoom(mapZoom * 2)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
-                        <ZoomIn size={18} aria-hidden="true" />
-                      </button>
-                    </div>
-                    <button type="button" disabled={mapZoom === 1} onClick={() => changeMapZoom(1)} className="min-h-11 rounded-lg px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:text-slate-400">Ver completo</button>
-                    <p className="min-w-0 text-xs leading-5 text-slate-500">Amplía y desplázate dentro del mapa para separar puntos cercanos.</p>
-                  </div>
-                  <div
-                    ref={mapViewport}
-                    className={projection.scope === "COLOMBIA"
-                      ? "relative mx-auto aspect-[156/183] w-full max-w-lg overflow-auto overscroll-contain bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
-                      : "relative aspect-[4/3] min-h-80 w-full min-w-0 overflow-auto overscroll-contain bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:aspect-[16/9]"}
-                    role="region"
-                    tabIndex={0}
-                    aria-label="Mapa de calor espacial de territorios con coordenadas disponibles"
-                  >
-                    <div className="relative" style={{ width: `${mapZoom * 100}%`, height: `${mapZoom * 100}%` }}>
-                    {projection.scope === "COLOMBIA" && (
-                      <div
-                        aria-hidden="true"
-                        className="absolute inset-0 bg-[url('/maps/colombia-dane-mgn-2025.svg')] bg-[length:100%_100%] bg-no-repeat"
-                      />
-                    )}
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-30"
-                    >
-                      {Array.from({ length: 24 }, (_, index) => (
-                        <span
-                          key={index}
-                          className="border-b border-r border-slate-200"
-                        />
-                      ))}
-                    </div>
-                    {mapMarkers.map(({ items, x, y }) => {
-                      const item = items[0];
-                      if (items.length > 1) {
-                        const groupLabel = `${items.length} ${LEVEL_LABELS[level]} próximos. Ver territorios agrupados.`;
-                        return <button
-                          key={`group-${item.id}`}
-                          type="button"
-                          aria-label={groupLabel}
-                          title={groupLabel}
-                          onClick={() => {
-                            setGroupSelection(items.map(member => member.id));
-                            setTerritorySearch("");
-                            setSelectedTerritoryId(null);
-                            territoryList.current?.scrollIntoView({ block: "nearest" });
-                            territoryList.current?.focus({ preventScroll: true });
-                          }}
-                          style={{ left: `${x}%`, top: `${y}%` }}
-                          className="absolute z-10 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-xl border-2 border-slate-400 bg-white text-slate-800 shadow-sm hover:border-blue-600 hover:bg-blue-50 focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
-                        ><Layers3 size={12} aria-hidden="true" /><span className="text-xs font-bold">{items.length}</span></button>;
-                      }
-                      const label = `${item.name}: ${item.displayValue}. ${describeTerritoryHeatmapLocation(item.geo)} Seleccionar territorio.`;
-                      const pointClass = `absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-xs font-black shadow-md ${tileClass(item.bucket)}`;
-                      const style = {
-                        left: `clamp(24px, ${x}%, calc(100% - 24px))`,
-                        top: `clamp(24px, ${y}%, calc(100% - 24px))`,
-                        zIndex: selectedTerritoryId === item.id ? 10 : Math.max(1, item.bucket),
-                      };
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          title={label}
-                          aria-label={label}
-                          aria-pressed={selectedTerritoryId === item.id}
-                          onClick={() => { setGroupSelection(null); setSelectedTerritoryId(item.id); }}
-                          style={style}
-                          className={`${pointClass} transition hover:shadow-xl focus-visible:z-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 ${selectedTerritoryId === item.id ? "ring-4 ring-blue-300" : ""}`}
-                        >
-                          {item.suppressed || item.value === null ? "—" : item.bucket}
-                        </button>
-                      );
-                    })}
-                    </div>
-                  </div>
-                  </>
-                ) : (
-                  <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-                    <MapPinned
-                      className="text-slate-300"
-                      size={40}
-                      aria-hidden="true"
-                    />
-                    <p className="mt-3 font-black text-slate-900">
-                      No hay coordenadas verificadas para esta vista
-                    </p>
-                    <p className="mt-1 max-w-xl text-sm text-slate-500">
-                      La matriz sigue disponible. El sistema no completa ni
-                      aproxima puestos sin coordenadas de la fuente activada.
-                      Los departamentos y municipios pueden ubicarse después
-                      de sincronizar su geografía oficial DANE en Territorio.
-                    </p>
-                  </div>
-                )}
-
-                {projection?.scope === "COLOMBIA" && (
-                  <p className="border-t border-slate-200 bg-white px-4 py-2 text-xs leading-5 text-slate-500">
-                    Contornos administrativos simplificados: DANE, Marco Geoestadístico Nacional 2025. Referencia de ubicación; no sustituye la cartografía oficial detallada.
-                  </p>
-                )}
-
-                {Boolean(projection?.excludedOutsideScope) && (
-                  <p className="border-t border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-950">
-                    {projection?.excludedOutsideScope.toLocaleString("es-CO")}{" "}
-                    territorio(s) exterior(es) quedaron fuera de la escala
-                    Colombia. Ingresa a Exterior para verlos en escala relativa.
-                  </p>
-                )}
-                <div ref={territoryList} tabIndex={-1} className="border-t border-slate-200 bg-white p-4 focus-visible:outline-none">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Selecciona un punto o un territorio de la lista
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Los marcadores con capas agrupan territorios cercanos: su número indica territorios, no casos ni personas. Amplía el mapa o abre un grupo para consultar cada uno.
-                  </p>
-                  {groupSelection && <div role="status" className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-950">
-                    <span>Grupo de {groupSelection.length} {LEVEL_LABELS[level]}</span>
-                    <button type="button" onClick={() => { setGroupSelection(null); territoryList.current?.focus({ preventScroll: true }); }} className="min-h-11 rounded-lg border border-blue-200 bg-white px-3 font-semibold">Mostrar todos los territorios</button>
-                  </div>}
-                  <label className="mt-4 block max-w-md text-xs font-semibold text-slate-700">
-                    Buscar territorio por nombre o código
-                    <input
-                      type="search"
-                      value={territorySearch}
-                      onChange={(event) => { setTerritorySearch(event.target.value); setGroupSelection(null); }}
-                      maxLength={80}
-                      placeholder="Por ejemplo, Medellín o 05001"
-                      className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                    />
-                  </label>
-                  <p role="status" className="mt-2 text-xs text-slate-500">
-                    {listedTerritories.length} de {result.items.length} territorios
-                  </p>
-                  <ul
-                    aria-label="Territorios del mapa"
-                    className="mt-3 grid max-h-64 gap-2 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3"
-                  >
-                    {listedTerritories.map((item) => (
-                      <li key={item.id} className="min-w-0">
-                        <button
-                          type="button"
-                          aria-pressed={selectedTerritoryId === item.id}
-                          onClick={() => setSelectedTerritoryId(item.id)}
-                          className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${selectedTerritoryId === item.id ? "border-blue-600 bg-blue-50 text-blue-950" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-                        >
-                          <span className="min-w-0 break-words font-semibold">{item.name}</span>
-                          <span className="shrink-0 text-xs">{item.displayValue}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {listedTerritories.length === 0 && (
-                    <p className="mt-2 text-sm text-slate-600">No hay coincidencias. Prueba otro nombre o código.</p>
-                  )}
-                  {selectedTerritory && (
-                    <div
-                      role="region"
-                      aria-label="Detalle del territorio seleccionado"
-                      aria-live="polite"
-                      className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950"
-                    >
-                      <p className="break-words text-base font-bold">{selectedTerritory.name}</p>
-                      <p className="mt-2 text-sm">{activeMetric?.label}: <strong>{selectedTerritory.displayValue}</strong></p>
-                      <p className="mt-2 text-xs leading-5">{describeTerritoryHeatmapLocation(selectedTerritory.geo)}</p>
-                      {selectedTerritory.suppressed && (
-                        <p className="mt-2 text-xs leading-5">La cifra se reserva para proteger grupos pequeños; no significa que sea cero.</p>
-                      )}
-                      {hasReportableLowActivity(selectedTerritory, metric) && (
-                        <p className="mt-2 text-xs font-semibold">Pocos registros autorizados en esta vista.</p>
-                      )}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {selectedTerritory.hasChildren && selectedTerritory.nextLevel && (
-                          <button
-                            type="button"
-                            onClick={() => drillDown(selectedTerritory)}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-800 px-4 text-sm font-bold text-white"
-                          >
-                            Ver {LEVEL_LABELS[selectedTerritory.nextLevel]}
-                            <ChevronRight size={16} aria-hidden="true" />
-                          </button>
-                        )}
-                        <button type="button" onClick={() => setSelectedTerritoryId(null)} className="min-h-11 rounded-lg border border-blue-300 px-4 text-sm font-semibold">
-                          Quitar selección
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                {result.items.map((item) => {
-                  const canDrill = Boolean(item.hasChildren && item.nextLevel);
-                  const contents = (
-                    <>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
-                          {item.type} · {item.code}
-                        </span>
-                        {canDrill && (
-                          <ChevronRight size={17} aria-hidden="true" />
-                        )}
-                      </div>
-                      <p className="mt-5 text-lg font-black leading-tight">
-                        {item.name}
-                      </p>
-                      <p className="mt-3 flex flex-wrap items-center gap-2 text-2xl font-black">
-                        {item.displayValue}
-                        {hasReportableLowActivity(item, metric) && (
-                            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 ring-1 ring-inset ring-red-600/20">
-                              <AlertCircle size={10} />
-                              POCOS REGISTROS AUTORIZADOS
-                            </span>
-                          )}
-                      </p>
-                      {metric === "E14_COVERAGE" && (
-                        <p className="mt-1 text-xs font-semibold opacity-75">
-                          {item.operationalContext.acceptedTables.toLocaleString(
-                            "es-CO",
-                          )}{" "}
-                          de{" "}
-                          {item.operationalContext.expectedTables.toLocaleString(
-                            "es-CO",
-                          )}{" "}
-                          mesas configuradas
-                        </p>
-                      )}
-                    </>
-                  );
-                  const itemClass = `min-h-36 rounded-2xl border p-5 text-left transition ${tileClass(item.bucket)}`;
-                  return canDrill ? (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => drillDown(item)}
-                      aria-label={`${item.name}: ${item.displayValue}; abrir siguiente nivel`}
-                      className={`${itemClass} cursor-pointer hover:-translate-y-0.5 hover:shadow-lg`}
-                    >
-                      {contents}
-                    </button>
-                  ) : (
-                    <article key={item.id} className={itemClass}>
-                      {contents}
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-2 font-semibold">
-                <ShieldCheck className="shrink-0 text-emerald-700" size={18} />
-                {result.privacy.rule}
-              </div>
-              <div
-                className="flex flex-wrap items-center gap-1"
-                aria-label="Escala de intensidad de menor a mayor"
-              >
-                <span className="basis-full pb-1 font-semibold">Intensidad relativa (0–5); — sin cifra disponible</span>
-                <span className="mr-2 font-bold">Menor</span>
-                {[0, 1, 2, 3, 4, 5].map((bucket) => (
-                  <span
-                    key={bucket}
-                    className={`h-5 w-7 rounded border ${tileClass(bucket)}`}
-                    aria-hidden="true"
-                  />
-                ))}
-                <span className="ml-2 font-bold">Mayor</span>
-              </div>
-            </div>
-          </>
-        ) : !error ? (
-          <div className="flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <Layers3 className="text-slate-300" size={40} aria-hidden="true" />
-            <p className="mt-3 font-black text-slate-900">
-              No hay {LEVEL_LABELS[level]} para este alcance
-            </p>
-            <p className="mt-1 max-w-lg text-sm text-slate-500">
-              Sincroniza el catálogo electoral vigente o revisa la asignación
-              territorial del usuario. No se muestran datos simulados.
-            </p>
-          </div>
-        ) : null}
-      </div>
-    </section>
-  );
+    {result && !loading && <>
+      {result.privacy.minimumReportableCount !== null && <p className="flex items-start gap-2 px-1 text-xs leading-5 text-slate-500"><ShieldCheck size={16} className="mt-0.5 shrink-0" />Los conteos pequeños se reservan y aparecen como «Menos de {result.privacy.minimumReportableCount}». El cero sí significa que no hay registros para esta consulta.</p>}
+      {result.items.length > 0 && <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><button type="button" aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)} className="flex min-h-16 w-full items-center justify-between gap-3 p-4 text-left sm:px-6"><span className="flex items-center gap-3"><MapPinned size={20} className="shrink-0 text-blue-700" /><span><span className="block text-sm font-semibold text-slate-900">Ver estos lugares en el mapa</span><span className="mt-1 block text-xs text-slate-500">Vista opcional de los {result.items.length} resultados de esta página</span></span></span><ChevronDown size={18} className={`shrink-0 ${mapOpen ? "rotate-180" : ""}`} /></button>{mapOpen && <div className="border-t p-3 sm:p-4"><TerritoryPageMap key={queryKey} items={result.items} onSelect={selectTerritory} /></div>}</div>}
+      <details className="rounded-xl border border-slate-200 bg-white p-4"><summary className="cursor-pointer text-sm font-semibold text-slate-600">Guardar una copia para consultar sin conexión</summary><div className="mt-3 max-w-2xl space-y-3 text-xs leading-5 text-slate-600"><p className="flex gap-2"><Info size={16} className="mt-0.5 shrink-0" />Guarda este nivel completo, hasta 500 lugares, cifrado en este dispositivo. No guarda personas. La copia no se actualiza sola; después podrás abrirla desde Bóveda offline.</p><button type="button" onClick={() => void saveOffline()} disabled={saving || view?.source !== "ONLINE"} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-semibold disabled:opacity-40">{saving ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}{saving ? "Guardando copia…" : vaultPhase === "UNLOCKED" ? "Guardar este nivel" : "Abrir bóveda para guardar"}</button>{saveMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-emerald-900">{saveMessage}</p>}{saveError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">{saveError}</p>}</div></details>
+    </>}
+  </section>;
 }
