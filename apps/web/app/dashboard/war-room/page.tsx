@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -930,61 +931,53 @@ export default function WarRoomPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 min-w-0">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
-            <ShieldCheck aria-hidden="true" size={14} /> Reportes verificables
+      <PageHeader
+        title="Control de reportes E-14"
+        description="Concilia lecturas independientes por mesa. Las actas aceptadas alimentan resultados internos; no sustituyen el escrutinio oficial."
+        icon={ShieldCheck}
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row min-w-0">
+            {canReportE14 && (
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))
+                }
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 text-sm font-semibold text-blue-900 transition hover:border-blue-400 max-w-full whitespace-normal"
+              >
+                <LockKeyhole aria-hidden="true" size={17} />
+                Capturar offline
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              disabled={isContextLoading}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-blue-300 disabled:opacity-50 max-w-full whitespace-normal"
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={isContextLoading ? "animate-spin" : ""}
+                size={17}
+              />
+              Actualizar
+            </button>
+            {canReportE14 && (
+              <button
+                type="button"
+                onClick={() => openReportDialog()}
+                disabled={isContextLoading || reportablePlaces.length === 0}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45 max-w-full whitespace-normal"
+              >
+                <Plus aria-hidden="true" size={18} />{" "}
+                {isSimulationMode
+                  ? "Registrar E-14 de simulacro"
+                  : "Registrar E-14 real"}
+              </button>
+            )}
           </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Control de reportes E-14
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Concilia lecturas independientes por mesa. Solo las actas aceptadas
-            alimentan únicamente los resultados internos y la cobertura del
-            tablero; no sustituyen el escrutinio oficial.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row min-w-0">
-          {canReportE14 && (
-            <button
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(new Event(OFFLINE_VAULT_OPEN_EVENT))
-              }
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 text-sm font-semibold text-blue-900 transition hover:border-blue-400 max-w-full whitespace-normal"
-            >
-              <LockKeyhole aria-hidden="true" size={17} />
-              Capturar offline
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            disabled={isContextLoading}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-blue-300 disabled:opacity-50 max-w-full whitespace-normal"
-          >
-            <RefreshCw
-              aria-hidden="true"
-              className={isContextLoading ? "animate-spin" : ""}
-              size={17}
-            />
-            Actualizar
-          </button>
-          {canReportE14 && (
-            <button
-              type="button"
-              onClick={() => openReportDialog()}
-              disabled={isContextLoading || reportablePlaces.length === 0}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-45 max-w-full whitespace-normal"
-            >
-              <Plus aria-hidden="true" size={18} />{" "}
-              {isSimulationMode
-                ? "Registrar E-14 de simulacro"
-                : "Registrar E-14 real"}
-            </button>
-          )}
-        </div>
-      </header>
+        }
+      />
 
       {operationStage === "SIMULATION" && (
         <div

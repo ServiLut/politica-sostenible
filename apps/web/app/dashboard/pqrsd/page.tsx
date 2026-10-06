@@ -1,12 +1,14 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { useSearchParams } from "next/navigation";
 
 import {
   type FormEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -15,6 +17,7 @@ import {
 } from "react";
 import {
   AlertTriangle,
+  ChevronDown,
   FileLock2,
   Loader2,
   RefreshCw,
@@ -88,7 +91,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
   TRANSFER_PROOF: "Constancia de traslado",
   EXTENSION_SUPPORT: "Soporte de prorroga",
   RESPONSE_ATTACHMENT: "Anexo de respuesta",
-  AUTHORIZATION_ARTIFACT: "Artefacto de autorizacion",
+  AUTHORIZATION_ARTIFACT: "Documento de autorización",
   DELIVERY_PROOF: "Constancia de entrega",
   CLOSURE_SUPPORT: "Soporte de cierre",
   REOPENING_SUPPORT: "Soporte de reapertura",
@@ -199,10 +202,13 @@ function Workflow({
   return (
     <details
       open={open}
-      className="rounded-xl border border-slate-200 bg-white shadow-sm"
+      className="group rounded-xl border border-slate-200 bg-white shadow-sm"
     >
       <summary className="cursor-pointer list-none px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600">
-        <span className="block font-semibold text-slate-950">{title}</span>
+        <span className="flex items-start justify-between gap-3 font-semibold text-slate-950">
+          {title}
+          <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 group-open:rotate-180" aria-hidden="true" />
+        </span>
         <span className="mt-1 block text-sm text-slate-600">{description}</span>
       </summary>
       <div className="border-t border-slate-200 p-4 min-w-0">{children}</div>
@@ -277,17 +283,20 @@ export default function PqrsdPage() {
   const searchParams = useSearchParams();
   const linked = readEntityDeepLink(searchParams.toString());
   const detailRequest = useRef<AbortController | null>(null);
+  const detailFocusRequest = useRef<string | null>(null);
   useEffect(() => () => detailRequest.current?.abort(), [linked, canRead]);
   const openDetail = useCallback(
     async (
       dossierId: string,
       accessPurpose: string,
       parentSignal?: AbortSignal,
+      focusOnReady = false,
     ) => {
       if (parentSignal?.aborted) return;
       detailRequest.current?.abort();
       const controller = new AbortController();
       detailRequest.current = controller;
+      detailFocusRequest.current = focusOnReady ? dossierId : null;
       const abort = () => controller.abort();
       parentSignal?.addEventListener("abort", abort, { once: true });
       setDetailLoading(true);
@@ -302,7 +311,10 @@ export default function PqrsdPage() {
         if (controller.signal.aborted) return;
         setDetail(result);
       } catch (cause: unknown) {
-        if (!controller.signal.aborted) setError(readableError(cause));
+        if (!controller.signal.aborted) {
+          detailFocusRequest.current = null;
+          setError(readableError(cause));
+        }
       } finally {
         parentSignal?.removeEventListener("abort", abort);
         if (!controller.signal.aborted) setDetailLoading(false);
@@ -372,7 +384,7 @@ export default function PqrsdPage() {
   );
   if (!canRead) {
     return (
-      <main className="p-6 min-w-0" aria-labelledby="pqrsd-title">
+      <main className="p-6 min-w-0" aria-label="Expedientes PQRSD">
         <h1
           id="pqrsd-title"
           className="font-semibold text-slate-950 text-2xl sm:text-3xl break-words"
@@ -388,24 +400,13 @@ export default function PqrsdPage() {
 
   return (
     <main className="space-y-6 min-w-0" aria-labelledby="pqrsd-title">
-      <header className="rounded-2xl bg-slate-950 p-5 text-white md:p-7 min-w-0">
-        <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
-          <div>
-            <p className="text-xs font-bold text-blue-200">
-              Gestion publica · separado de CAS-GP y de campana
-            </p>
-            <h1
-              id="pqrsd-title"
-              className="mt-2 font-semibold text-2xl sm:text-3xl break-words"
-            >
-              Expediente PQRSD con control probatorio
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-200">
-              Plazos desde paquetes aprobados, cuatro ojos y entrega externa
-              solo con constancia. Los listados ocultan identidad y todo acceso
-              al detalle queda auditado.
-            </p>
-          </div>
+      <PageHeader
+        title="Expedientes PQRSD"
+        eyebrow="Atención formal en el despacho"
+        icon={FileLock2}
+        description="Recibe solicitudes, revisa sus soportes y prepara la respuesta. Los plazos requieren reglas aprobadas y la entrega externa requiere una constancia."
+        meta="Los listados ocultan la identidad de la persona. Cada consulta del expediente queda registrada."
+        actions={
           <button
             type="button"
             className={secondaryButtonClass}
@@ -413,10 +414,10 @@ export default function PqrsdPage() {
             disabled={loading}
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Reintentar carga
+            {requestError ? "Reintentar carga" : "Actualizar"}
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {error ? (
         <div
@@ -520,8 +521,8 @@ export default function PqrsdPage() {
 
           {canReview ? (
             <Workflow
-              title="1. Paquete normativo y calendario"
-              description="No existen plazos 10/15/30 por defecto. Registre fuente, vigencia, zona, metodo y regla explicita."
+              title="1. Reglas y calendario de atención"
+              description="Define la fuente, la vigencia y las reglas para calcular los plazos. Otra persona debe revisarlas; no se aplican plazos por defecto."
               open={!overview.configurationReady}
             >
               <RulePackageForm
@@ -537,7 +538,7 @@ export default function PqrsdPage() {
               {draftPackages.length > 0 ? (
                 <div className="mt-5 space-y-3 border-t border-slate-200 pt-5 min-w-0">
                   <h3 className="font-semibold text-slate-950">
-                    Borradores pendientes de cuatro ojos
+                    Borradores pendientes de revisión independiente
                   </h3>
                   {draftPackages.map((item) => (
                     <form
@@ -600,8 +601,8 @@ export default function PqrsdPage() {
 
           {canIntake ? (
             <Workflow
-              title="2. Recepcion interna"
-              description="Crea expediente e identidad privada solo si existe paquete activo y vigente. La referencia PQRSD-INT no finge radicado externo."
+              title="2. Registrar una solicitud"
+              description="Registra la solicitud cuando existan reglas aprobadas y vigentes. La referencia PQRSD-INT identifica el expediente interno; no acredita una radicación externa."
               open={
                 overview.configurationReady && overview.dossiers.length === 0
               }
@@ -727,7 +728,7 @@ export default function PqrsdPage() {
                               detailLoading || purpose.trim().length < 10
                             }
                             onClick={() =>
-                              void openDetail(item.id, purpose.trim())
+                              void openDetail(item.id, purpose.trim(), undefined, true)
                             }
                           >
                             <FileLock2 className="h-4 w-4" aria-hidden="true" />
@@ -760,6 +761,8 @@ export default function PqrsdPage() {
                       void openDetail(
                         alert.dossierId,
                         `Revision de alerta ${alert.code} en centro PQRSD`,
+                        undefined,
+                        true,
                       )
                     }
                   >
@@ -787,6 +790,7 @@ export default function PqrsdPage() {
           {detail ? (
             <DetailWorkspace
               detail={detail}
+              focusRequestRef={detailFocusRequest}
               overview={overview}
               action={action}
               setAction={setAction}
@@ -929,7 +933,7 @@ function RulePackageForm({
           className={inputClass}
         />
       </Field>
-      <Field label="Zona IANA">
+      <Field label="Zona horaria (ej. America/Bogota)">
         <input
           name="timeZone"
           required
@@ -1121,7 +1125,7 @@ function DossierForm({
           className={inputClass}
         />
       </Field>
-      <Field label="Zona IANA del paquete">
+      <Field label="Zona horaria de las reglas (ej. America/Bogota)">
         <input
           name="receivedTimeZone"
           required
@@ -1262,6 +1266,7 @@ function DossierForm({
 
 function DetailWorkspace({
   detail,
+  focusRequestRef,
   overview,
   action,
   setAction,
@@ -1273,6 +1278,7 @@ function DetailWorkspace({
   setDownload,
 }: {
   detail: PqrsdDetail;
+  focusRequestRef: RefObject<string | null>;
   overview: PqrsdOverview;
   action: WorkflowAction;
   setAction: (value: WorkflowAction) => void;
@@ -1287,12 +1293,20 @@ function DetailWorkspace({
   ) => Promise<void>;
   setDownload: (value: { url: string; expiresAt: string } | null) => void;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusRequestRef.current !== detail.id || !headingRef.current) return;
+    focusRequestRef.current = null;
+    headingRef.current.focus({ preventScroll: true });
+    headingRef.current.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [detail.id, focusRequestRef]);
+
   const permittedActions = useMemo(
     () =>
       [
         ...(canIntake
           ? [
-              ["DOCUMENT", "Adjuntar documento directo a Storage"],
+              ["DOCUMENT", "Adjuntar documento"],
               ["ACK", "Registrar acuse"],
               ["CLASSIFY", "Proponer clasificacion"],
               ["TRANSFER", "Proponer traslado"],
@@ -1344,7 +1358,9 @@ function DetailWorkspace({
           </p>
           <h2
             id="detail-title"
-            className="mt-1 text-xl font-semibold text-slate-950"
+            ref={headingRef}
+            tabIndex={-1}
+            className="mt-1 scroll-mt-4 rounded text-xl font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             {detail.reference}
           </h2>
@@ -1459,7 +1475,7 @@ function DetailWorkspace({
           </h3>
           <ul className="mt-3 space-y-2 text-sm text-slate-700 min-w-0">
             <li>Clasificaciones: {detail.classifications.length}</li>
-            <li>Snapshots de plazo: {detail.deadlines.length}</li>
+            <li>Cálculos de plazo guardados: {detail.deadlines.length}</li>
             <li>Asignaciones: {detail.assignments.length}</li>
             <li>Traslados: {detail.transfers.length}</li>
             <li>Prorrogas: {detail.extensions.length}</li>
@@ -1475,7 +1491,7 @@ function DetailWorkspace({
       {permittedActions.length > 0 ? (
         <article className="rounded-xl border border-slate-300 bg-white p-4 md:p-5 min-w-0">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-end min-w-0">
-            <Field label="Operacion controlada">
+            <Field label="¿Qué necesitas hacer?">
               <select
                 className={inputClass}
                 value={action}
@@ -1490,11 +1506,21 @@ function DetailWorkspace({
                 ))}
               </select>
             </Field>
-            <p className="text-sm text-slate-600">
-              Cada envio usa UUID idempotente, SHA canonico y la version{" "}
-              {detail.version}. Si otra persona cambia el expediente, debe
-              recargar.
-            </p>
+            <div className="space-y-2 text-sm text-slate-600">
+              <p>
+                Si otra persona actualiza este expediente, vuelve a cargarlo
+                antes de guardar. Se conserva el historial de cada cambio.
+              </p>
+              <details>
+                <summary className="cursor-pointer font-medium text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+                  Ver controles técnicos de este registro
+                </summary>
+                <p className="mt-2 break-words">
+                  Cada operación usa un UUID idempotente, un SHA canónico y la
+                  versión {detail.version} del expediente.
+                </p>
+              </details>
+            </div>
           </div>
           <ActionForm
             key={`${detail.id}-${detail.version}-${action}`}
@@ -1577,7 +1603,7 @@ function ActionForm({
             sourceReference: optionalValue(form, "sourceReference"),
             expectedVersion,
           });
-        }, "Archivo confirmado en Storage y asociado; aun requiere segunda revision.");
+        }, "Documento cargado y asociado. Aún requiere la revisión de otra persona.");
         return;
       }
       case "DOCUMENT_REVIEW":
@@ -1819,7 +1845,7 @@ function ActionForm({
           </Field>
           <Field
             label="Archivo"
-            hint="Viaja navegador → Supabase Storage; nunca atraviesa Nest."
+            hint="El archivo se carga de forma segura y queda vinculado a este expediente. Después deberá revisarlo otra persona."
           >
             <input
               name="file"
@@ -2082,7 +2108,7 @@ function ActionForm({
               className={inputClass}
             />
           </Field>
-          <Field label="Zona IANA">
+          <Field label="Zona horaria (ej. America/Bogota)">
             <input
               name="timeZone"
               required

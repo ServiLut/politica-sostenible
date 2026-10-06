@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -236,39 +237,35 @@ export default function DiaDTrackingPage() {
           </button>
         </div>
       )}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-w-0">
-        <div>
-          <h1 className="font-bold tracking-tight text-gray-900 text-2xl sm:text-3xl break-words">
-            Día D — Seguimiento de participación
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Reportes manuales del equipo, actualizados cada 30 segundos. No son
-            votos asegurados ni resultados oficiales.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 min-w-0 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-gray-500 bg-white px-4 py-2 rounded-lg border shadow-sm min-w-0">
-            <Clock className="w-4 h-4" />
-            <span>
-              {lastRefreshed?.toLocaleTimeString("es-CO", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+      <PageHeader
+        title="Día D — Seguimiento de participación"
+        description="Reportes manuales del equipo, actualizados cada 30 segundos. No son votos asegurados ni resultados oficiales."
+        icon={BarChart3}
+        actions={
+          <div className="flex items-center gap-3 min-w-0 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-gray-500 bg-white px-4 py-2 rounded-lg border shadow-sm min-w-0">
+              <Clock className="w-4 h-4" />
+              <span>
+                {lastRefreshed?.toLocaleTimeString("es-CO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <button
+              type="button"
+              aria-label="Actualizar seguimiento de participación"
+              onClick={() => void loadData()}
+              disabled={loading || updatingIds.size > 0}
+              className="inline-flex h-11 w-11 items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors max-w-full whitespace-normal"
+            >
+              <RefreshCw
+                className={`w-4 h-4 text-gray-600 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="Actualizar seguimiento de participación"
-            onClick={() => void loadData()}
-            disabled={loading || updatingIds.size > 0}
-            className="p-2 bg-white border rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors max-w-full whitespace-normal"
-          >
-            <RefreshCw
-              className={`w-4 h-4 text-gray-600 ${loading ? "animate-spin" : ""}`}
-            />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {error && data && (
         <div

@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -137,78 +138,63 @@ export default function PublicOfficePage() {
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-6 min-w-0">
-      <section className="relative overflow-hidden border border-slate-800 bg-slate-950 px-6 py-7 text-white shadow-xl sm:px-8 lg:px-10 lg:py-9 min-w-0">
-        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.22),transparent_62%)] min-w-0" />
-        <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end min-w-0">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-bold text-blue-300">
-              <Landmark size={15} aria-hidden="true" /> Gestión pública ·
-              Espacio separado
-            </p>
-            <p className="mt-5 text-sm font-medium text-slate-400">
-              Hola, {user?.name?.split(" ")[0] ?? "equipo"}. Este es el corte de
-              atención y cumplimiento.
-            </p>
-            <h1 className="mt-1 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Centro de gestión pública
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
-              Seguimiento de{" "}
-              {briefing?.tenant.name ?? tenant?.name ?? "la organización"},
-              calculado con PQRSD formales, casos, tareas y compromisos del modo
-              autenticado.
-            </p>
-          </div>
-
-          <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur min-w-0">
-            <div className="flex items-center justify-between gap-4 min-w-0 flex-wrap">
-              <div>
-                <p className="text-xs font-bold text-slate-400">
-                  Activación del servicio
-                </p>
-                <p className="mt-1 text-2xl font-semibold">
-                  {briefing
-                    ? `${briefing.activation.completedSteps}/${briefing.activation.totalSteps}`
-                    : "—"}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void loadBriefing()}
-                disabled={loading}
-                aria-label="Actualizar centro de gestión"
-                className="grid h-11 w-11 place-items-center border border-white/15 bg-white/10 transition hover:bg-white/20 disabled:opacity-50 max-w-full whitespace-normal"
-              >
-                {loading ? (
-                  <LoaderCircle className="animate-spin" size={18} />
-                ) : (
-                  <RefreshCw size={18} />
-                )}
-              </button>
-            </div>
-            <div
-              className="mt-4 h-1.5 overflow-hidden bg-white/10 min-w-0"
-              role="progressbar"
-              aria-label="Progreso de activación de gestión pública"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={briefing ? progress : undefined}
-            >
-              <div
-                className="h-full bg-blue-400 transition-[width] min-w-0"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="mt-3 text-xs leading-5 text-slate-400">
+      <PageHeader
+        title="Centro de gestión pública"
+        icon={Landmark}
+        description="Consulta PQRSD, casos, tareas y compromisos de tu organización."
+        meta={briefing?.tenant.name ?? tenant?.name}
+        actions={
+          <button
+            type="button"
+            onClick={() => void loadBriefing()}
+            disabled={loading}
+            aria-label="Actualizar centro de gestión"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 disabled:opacity-50 max-w-full whitespace-normal"
+          >
+            {loading ? (
+              <LoaderCircle className="animate-spin" size={18} />
+            ) : (
+              <RefreshCw size={18} />
+            )}
+            <span>Actualizar</span>
+          </button>
+        }
+      />
+      <section
+        aria-label="Activación del servicio"
+        className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white px-5 py-4"
+      >
+        <div>
+          <p className="text-sm font-semibold text-slate-900">
+            Configuración inicial{" "}
+            <span className="ml-2 tabular-nums text-blue-700">
               {briefing
-                ? briefing.activation.ready
-                  ? "Onboarding operativo completo para los controles medidos."
-                  : "Completa la ruta para asegurar responsables y evidencia."
-                : loading
-                  ? "Consultando el estado del servicio…"
-                  : "Estado no disponible. Actualiza para volver a consultarlo."}
-            </p>
-          </div>
+                ? `${briefing.activation.completedSteps}/${briefing.activation.totalSteps}`
+                : "—"}
+            </span>
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            {briefing
+              ? briefing.activation.ready
+                ? "Controles iniciales completos."
+                : "Revisa los pasos pendientes más abajo."
+              : loading
+                ? "Consultando el estado del servicio…"
+                : "Estado no disponible. Actualiza para volver a consultarlo."}
+          </p>
+        </div>
+        <div
+          className="h-2 w-40 max-w-full overflow-hidden rounded-full bg-slate-100"
+          role="progressbar"
+          aria-label="Progreso de activación de gestión pública"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={briefing ? progress : undefined}
+        >
+          <div
+            className="h-full rounded-full bg-blue-600 transition-[width]"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </section>
 

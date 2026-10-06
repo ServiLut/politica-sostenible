@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { FinanceCloseoutPanel } from "@/components/finance/FinanceCloseoutPanel";
@@ -609,63 +611,63 @@ export default function FinancePage() {
   return (
     <div className="space-y-8 min-w-0">
       {notice && (
-        <div className="fixed right-6 top-6 z-50 flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl min-w-0">
-          <CheckCircle2 size={18} /> {notice}
+        <div
+          role="status"
+          className="fixed right-4 top-4 z-50 flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-950 shadow-lg min-w-0"
+        >
+          <CheckCircle2
+            className="mt-0.5 shrink-0"
+            size={18}
+            aria-hidden="true"
+          />{" "}
+          <span>{notice}</span>
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
-        <div className="space-y-2 min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
-            <ReceiptText size={13} /> Preparación y control contable
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Finanzas de campaña
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Registra hechos económicos con soporte, responsable y estado de
-            revisión. La plataforma prepara la información; el reporte oficial
-            sigue realizándose ante el CNE.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap min-w-0">
-          <button
-            type="button"
-            onClick={() => void handleDownloadCneReviewDraft()}
-            disabled={!hasLoadedFinance || !complianceReady}
-            title={
-              complianceReady
-                ? undefined
-                : "Completa el expediente financiero antes de exportar"
-            }
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
-          >
-            <Download size={15} /> Borrador interno para revisión CNE
-          </button>
-          <button
-            type="button"
-            onClick={() => void loadFinance()}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 max-w-full whitespace-normal"
-          >
-            <RefreshCw size={15} /> Actualizar
-          </button>
-          {canWrite && (
+      <PageHeader
+        title="Finanzas de campaña"
+        description="Controla ingresos, gastos y sus soportes. El reporte oficial se presenta ante el CNE."
+        icon={ReceiptText}
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap min-w-0">
             <button
               type="button"
-              onClick={() => setIsOpen(true)}
-              disabled={!complianceReady}
+              onClick={() => void handleDownloadCneReviewDraft()}
+              disabled={!hasLoadedFinance || !complianceReady}
               title={
                 complianceReady
                   ? undefined
-                  : "Completa el expediente financiero antes de registrar movimientos"
+                  : "Completa el expediente financiero antes de exportar"
               }
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
             >
-              <Plus size={16} /> Registrar movimiento
+              <Download size={15} /> Borrador interno para revisión CNE
             </button>
-          )}
-        </div>
-      </header>
+            <button
+              type="button"
+              onClick={() => void loadFinance()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 max-w-full whitespace-normal"
+            >
+              <RefreshCw size={15} /> Actualizar
+            </button>
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                disabled={!complianceReady}
+                title={
+                  complianceReady
+                    ? undefined
+                    : "Completa el expediente financiero antes de registrar movimientos"
+                }
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
+              >
+                <Plus size={16} /> Registrar movimiento
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {loadError && (
         <div
@@ -723,9 +725,9 @@ export default function FinancePage() {
               Completa el expediente financiero electoral
             </p>
             <p className="mt-1 text-sm leading-6 text-blue-800">
-              Para evitar registros sin contexto legal, el backend bloquea
-              movimientos y borradores mientras falten la elección, fuente de
-              topes, responsables, cuenta única o plazo del informe.
+              Configura la elección, los topes, los responsables, la cuenta
+              única y el plazo del informe para habilitar el registro de
+              movimientos.
             </p>
             {missingComplianceLabels.length > 0 && (
               <p className="mt-2 text-xs font-semibold leading-5 text-blue-900">
@@ -825,17 +827,10 @@ export default function FinancePage() {
         </section>
       )}
 
-      {hasLoadedFinance && (
-        <FinanceCloseoutPanel
-          financialEntries={entries}
-          complianceReady={complianceReady}
-        />
-      )}
-
       <section className="grid gap-5 md:grid-cols-3 min-w-0">
-        <article className="rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl min-w-0">
+        <article className="rounded-2xl bg-slate-900 p-6 text-white shadow-panel min-w-0">
           <WalletCards className="mb-5 text-blue-300" />
-          <p className="text-xs font-semibold text-slate-400">
+          <p className="text-xs font-semibold text-slate-500">
             Balance registrado
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-tight">
@@ -843,13 +838,13 @@ export default function FinancePage() {
           </p>
         </article>
         <article className="rounded-[2rem] border border-slate-200 bg-white p-7 min-w-0">
-          <p className="text-xs font-semibold text-slate-400">Ingresos</p>
+          <p className="text-xs font-semibold text-slate-500">Ingresos</p>
           <p className="mt-3 text-2xl font-semibold tracking-tight text-emerald-700">
             {hasLoadedFinance ? formatCop(summary.totalIncome) : "—"}
           </p>
         </article>
         <article className="rounded-[2rem] border border-slate-200 bg-white p-7 min-w-0">
-          <p className="text-xs font-semibold text-slate-400">Gastos</p>
+          <p className="text-xs font-semibold text-slate-500">Gastos</p>
           <p className="mt-3 text-2xl font-semibold tracking-tight text-red-700">
             {hasLoadedFinance ? formatCop(summary.totalExpenses) : "—"}
           </p>
@@ -861,16 +856,15 @@ export default function FinancePage() {
           <div>
             <h2 className="font-semibold text-slate-900">Libro cronológico</h2>
             <p className="mt-1 text-xs text-slate-500">
-              {entries.length} movimientos del tenant autenticado
+              {entries.length} movimientos de tu organización
             </p>
           </div>
-          <Clock3 className="text-slate-400" size={20} />
+          <Clock3 className="text-slate-500" size={20} />
         </div>
 
         {loading && !hasLoadedFinance ? (
-          <div className="flex items-center justify-center gap-3 py-20 text-sm font-bold text-slate-400 min-w-0">
-            <Loader2 className="animate-spin" size={20} /> Consultando la API
-            segura…
+          <div className="flex items-center justify-center gap-3 py-20 text-sm font-bold text-slate-500 min-w-0">
+            <Loader2 className="animate-spin" size={20} /> Cargando movimientos…
           </div>
         ) : loadError && !hasLoadedFinance ? (
           <div className="px-6 py-20 text-center min-w-0">
@@ -902,7 +896,7 @@ export default function FinancePage() {
             tabIndex={0}
           >
             <table className="w-full min-w-[980px] text-left">
-              <thead className="text-xs font-semibold text-slate-400">
+              <thead className="text-xs font-semibold text-slate-500">
                 <tr>
                   <th className="px-6 py-4">Fecha / concepto</th>
                   <th className="px-6 py-4">Tercero</th>
@@ -919,7 +913,7 @@ export default function FinancePage() {
                       <p className="text-sm font-semibold text-slate-900">
                         {entry.description}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-slate-500">
                         {new Date(entry.date).toLocaleDateString("es-CO")}
                       </p>
                     </td>
@@ -927,7 +921,7 @@ export default function FinancePage() {
                       <p className="text-xs font-bold text-slate-600">
                         {entry.vendorName}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-slate-500">
                         NIT/ID {entry.vendorTaxId}
                       </p>
                     </td>
@@ -1003,7 +997,7 @@ export default function FinancePage() {
                       ) : canReview &&
                         entry.status === "PENDING" &&
                         entry.reportedByMe ? (
-                        <span className="text-xs font-bold text-slate-400">
+                        <span className="text-xs font-bold text-slate-500">
                           Registrado por ti
                         </span>
                       ) : canReview && entry.status === "APPROVED" ? (
@@ -1029,6 +1023,13 @@ export default function FinancePage() {
         )}
       </section>
 
+      {hasLoadedFinance && (
+        <FinanceCloseoutPanel
+          financialEntries={entries}
+          complianceReady={complianceReady}
+        />
+      )}
+
       {isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <div
@@ -1036,9 +1037,9 @@ export default function FinancePage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="finance-entry-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl min-w-0"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-4 sm:p-6 min-w-0">
               <div>
                 <h2
                   ref={entryTitleRef}
@@ -1059,141 +1060,146 @@ export default function FinancePage() {
                   setIsOpen(false);
                   setError(null);
                 }}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6 p-7 min-w-0">
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700 min-w-0"
-                >
-                  {error}
-                </div>
-              )}
-              <div className="grid gap-5 md:grid-cols-2 min-w-0">
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Tipo
-                  <select
-                    value={form.type}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        type: event.target.value as EntryType,
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+            <form
+              onSubmit={handleSubmit}
+              className="flex min-h-0 flex-col min-w-0"
+            >
+              <div className="min-h-0 overflow-y-auto overscroll-contain space-y-5 px-4 py-5 sm:px-6">
+                {error && (
+                  <div
+                    role="alert"
+                    className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700 min-w-0"
                   >
-                    <option value="EXPENSE">Gasto</option>
-                    <option value="INCOME">Ingreso</option>
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Fecha
-                  <input
-                    required
-                    type="date"
-                    value={form.date}
-                    onChange={(event) =>
-                      setForm({ ...form, date: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Monto COP
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.amount}
-                    onChange={(event) =>
-                      setForm({ ...form, amount: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Categoría operativa
-                  <select
-                    value={form.cneCode}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        cneCode: event.target.value as CneCode,
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  >
-                    {INTERNAL_FINANCE_CATEGORIES.map((code) => (
-                      <option key={code.value} value={code.value}>
-                        {code.label}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
-                    Clasificación operativa interna; no equivale a un código
-                    oficial de Cuentas Claras.
-                  </span>
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
-                  Concepto
-                  <input
-                    required
-                    value={form.description}
-                    onChange={(event) =>
-                      setForm({ ...form, description: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Tercero / aportante
-                  <input
-                    required
-                    value={form.vendorName}
-                    onChange={(event) =>
-                      setForm({ ...form, vendorName: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  NIT o documento
-                  <input
-                    required
-                    value={form.vendorTaxId}
-                    onChange={(event) =>
-                      setForm({ ...form, vendorTaxId: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
-                  Soporte privado (opcional)
-                  <span className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold normal-case tracking-normal text-slate-700">
-                    <UploadCloud size={20} className="text-blue-700" />
-                    {evidenceFile?.name ??
-                      "Seleccionar PDF, imagen, CSV o XLSX"}
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.xlsx,application/pdf,image/jpeg,image/png,image/webp,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      className="sr-only min-w-0 max-w-full"
+                    {error}
+                  </div>
+                )}
+                <div className="grid gap-5 md:grid-cols-2 min-w-0">
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Tipo
+                    <select
+                      value={form.type}
                       onChange={(event) =>
-                        setEvidenceFile(event.target.files?.[0] ?? null)
+                        setForm({
+                          ...form,
+                          type: event.target.value as EntryType,
+                        })
                       }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    >
+                      <option value="EXPENSE">Gasto</option>
+                      <option value="INCOME">Ingreso</option>
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Fecha
+                    <input
+                      required
+                      type="date"
+                      value={form.date}
+                      onChange={(event) =>
+                        setForm({ ...form, date: event.target.value })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
-                  </span>
-                  <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
-                    Máximo 20 MB. Se sube directo a Storage; NestJS nunca recibe
-                    el binario.
-                  </span>
-                </label>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Monto COP
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.amount}
+                      onChange={(event) =>
+                        setForm({ ...form, amount: event.target.value })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Categoría operativa
+                    <select
+                      value={form.cneCode}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          cneCode: event.target.value as CneCode,
+                        })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    >
+                      {INTERNAL_FINANCE_CATEGORIES.map((code) => (
+                        <option key={code.value} value={code.value}>
+                          {code.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
+                      Clasificación operativa interna; no equivale a un código
+                      oficial de Cuentas Claras.
+                    </span>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
+                    Concepto
+                    <input
+                      required
+                      value={form.description}
+                      onChange={(event) =>
+                        setForm({ ...form, description: event.target.value })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Tercero / aportante
+                    <input
+                      required
+                      value={form.vendorName}
+                      onChange={(event) =>
+                        setForm({ ...form, vendorName: event.target.value })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    NIT o documento
+                    <input
+                      required
+                      value={form.vendorTaxId}
+                      onChange={(event) =>
+                        setForm({ ...form, vendorTaxId: event.target.value })
+                      }
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
+                    Soporte privado (opcional)
+                    <span className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold normal-case tracking-normal text-slate-700">
+                      <UploadCloud size={20} className="text-blue-700" />
+                      {evidenceFile?.name ??
+                        "Seleccionar PDF, imagen, CSV o XLSX"}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.xlsx,application/pdf,image/jpeg,image/png,image/webp,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        className="sr-only min-w-0 max-w-full"
+                        onChange={(event) =>
+                          setEvidenceFile(event.target.files?.[0] ?? null)
+                        }
+                      />
+                    </span>
+                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
+                      Máximo 20 MB. El archivo será privado y sólo estará
+                      disponible para los roles autorizados.
+                    </span>
+                  </label>
+                </div>
               </div>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
+              <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 bg-white px-4 py-4 sm:px-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -1234,7 +1240,7 @@ export default function FinancePage() {
             aria-labelledby="finance-review-title"
           >
             <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl min-w-0">
-              <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-4 sm:p-6 min-w-0">
                 <div>
                   <p className="text-xs font-semibold text-blue-700">
                     Control de cuatro ojos
@@ -1257,7 +1263,7 @@ export default function FinancePage() {
                   aria-label="Cerrar revisión"
                   disabled={saving}
                   onClick={closeReview}
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   <X />
                 </button>
@@ -1357,7 +1363,7 @@ export default function FinancePage() {
                   />
                   <span
                     id="finance-review-reason-help"
-                    className="flex justify-between text-xs font-semibold normal-case tracking-normal text-slate-400"
+                    className="flex justify-between text-xs font-semibold normal-case tracking-normal text-slate-500"
                   >
                     <span>Explica la verificación realizada (10 a 500).</span>
                     <span>{reviewReason.length}/500</span>
@@ -1407,7 +1413,7 @@ export default function FinancePage() {
           aria-labelledby="finance-cne-report-title"
         >
           <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl min-w-0">
-            <div className="flex items-start justify-between border-b border-slate-100 p-7 min-w-0 flex-wrap gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-4 sm:p-6 min-w-0">
               <div>
                 <p className="text-xs font-semibold text-blue-700">
                   Anotación interna aportada por el usuario
@@ -1432,7 +1438,7 @@ export default function FinancePage() {
                 aria-label="Cerrar anotación de referencia externa"
                 disabled={saving}
                 onClick={closeExternalReport}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" />
               </button>
@@ -1470,7 +1476,7 @@ export default function FinancePage() {
                   placeholder="Ej. CC-2026/004219"
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                 />
-                <span className="flex justify-between text-xs font-semibold normal-case tracking-normal text-slate-400">
+                <span className="flex justify-between text-xs font-semibold normal-case tracking-normal text-slate-500">
                   <span>
                     Se transcribe del soporte; la plataforma no la verifica.
                   </span>
@@ -1488,9 +1494,9 @@ export default function FinancePage() {
                   }
                   className="block w-full rounded-2xl border border-dashed border-slate-300 px-4 py-4 text-xs font-semibold normal-case tracking-normal text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-black file:text-blue-800 min-w-0 max-w-full"
                 />
-                <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
-                  Se sube directamente al almacenamiento privado. La API solo
-                  registra una ruta confirmada y nunca devuelve esa ruta.
+                <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
+                  El soporte se guarda de forma privada y queda vinculado al
+                  movimiento.
                 </span>
               </label>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
@@ -1552,7 +1558,7 @@ export default function FinancePage() {
                   setIsSettingsOpen(false);
                   setError(null);
                 }}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X aria-hidden="true" />
               </button>
@@ -1744,7 +1750,7 @@ export default function FinancePage() {
                       }
                       className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
-                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
+                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
                       Por privacidad se exige reingresarlo en cada cambio.
                     </span>
                   </label>
@@ -1785,8 +1791,8 @@ export default function FinancePage() {
                       }
                       className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
-                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
-                      El documento completo no se devuelve desde la API.
+                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
+                      El documento completo no se muestra en este listado.
                     </span>
                   </label>
                 </div>
@@ -1834,7 +1840,7 @@ export default function FinancePage() {
                       }
                       className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
-                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-400">
+                    <span className="block text-xs font-semibold normal-case tracking-normal text-slate-500">
                       Nunca ingreses el número completo de la cuenta.
                     </span>
                   </label>

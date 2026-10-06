@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 
@@ -145,7 +147,8 @@ export default function TeamPage() {
   const [resetCopyStatus, setResetCopyStatus] = useState<
     "idle" | "copied" | "failed"
   >("idle");
-  const savingDivision = divisionMember !== null && updatingMemberId === divisionMember.id;
+  const savingDivision =
+    divisionMember !== null && updatingMemberId === divisionMember.id;
   function closeDivisionAssignment() {
     if (!savingDivision) setDivisionMember(null);
   }
@@ -421,25 +424,16 @@ export default function TeamPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-blue-700 min-w-0">
-            <ShieldCheck size={16} aria-hidden="true" /> Administración de
-            acceso
+      <PageHeader
+        title="Equipo y accesos"
+        description="Consulta quién integra el equipo y qué puede hacer cada persona."
+        icon={ShieldCheck}
+        actions={
+          <div className="flex items-center gap-3 min-w-0 flex-wrap">
+            <ExportButton moduleName="equipo" />
           </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Equipo y accesos
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
-            Invita a cada persona con el menor privilegio necesario. Los enlaces
-            vencen en 72 horas y se usan una sola vez. Los privilegios ADMIN no
-            se delegan mediante invitaciones ordinarias.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 min-w-0 flex-wrap">
-          <ExportButton moduleName="equipo" />
-        </div>
-      </header>
+        }
+      />
 
       {deepLinkedMemberIsMissing && (
         <p
@@ -450,135 +444,149 @@ export default function TeamPage() {
         </p>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)] min-w-0">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
-          <div className="mb-5 flex items-center gap-3 min-w-0">
-            <span className="rounded-2xl bg-blue-50 p-3 text-blue-700">
-              <UserPlus size={22} aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">
-                Invitar persona
-              </h2>
-              <p className="text-xs font-semibold text-slate-500">
-                Entrega manual y controlada
-              </p>
+      <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-2xl px-5 py-4 text-sm font-semibold text-blue-800 hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
+          <UserPlus size={20} aria-hidden="true" />
+          <span className="flex-1">Invitar una persona al equipo</span>
+          <span
+            aria-hidden="true"
+            className="text-xl font-normal transition-transform group-open:rotate-45"
+          >
+            +
+          </span>
+        </summary>
+        <section
+          className={`grid gap-6 border-t border-slate-100 p-4 sm:p-5 min-w-0 ${created ? "xl:grid-cols-2" : ""}`}
+        >
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">
+            <div className="mb-5 flex items-center gap-3 min-w-0">
+              <span className="rounded-2xl bg-blue-50 p-3 text-blue-700">
+                <UserPlus size={22} aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Invitar persona
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Elige el acceso que necesita para su trabajo.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <form onSubmit={handleInvite} className="space-y-4 min-w-0">
-            <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-              Correo electrónico
-              <input
-                required
-                type="email"
-                maxLength={254}
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="persona@organizacion.co"
-                className="min-h-12 w-full rounded-xl border border-slate-200 px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
-              />
-            </label>
-            <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-              Rol para la invitación
-              <select
-                aria-label="Rol para la invitación"
-                value={role}
-                onChange={(event) =>
-                  setRole(event.target.value as BackendUserRole)
-                }
-                className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
-              >
-                {invitationRoleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {mutationError && (
-              <p
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"
-              >
-                {mutationError}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
+            <form
+              onSubmit={handleInvite}
+              className="grid items-end gap-4 min-w-0 md:grid-cols-2"
             >
-              {saving ? (
-                <Loader2
-                  className="animate-spin"
-                  size={18}
-                  aria-hidden="true"
-                />
-              ) : (
-                <UserPlus size={18} aria-hidden="true" />
-              )}
-              Crear invitación
-            </button>
-          </form>
-
-          <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
-            La plataforma no envía correos sin un proveedor configurado. Copia
-            el enlace y compártelo por un canal verificado con la persona.
-          </p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm min-w-0">
-          <h2 className="text-lg font-semibold">Enlace de un solo uso</h2>
-          {!created ? (
-            <div className="mt-5 flex min-h-44 items-center justify-center rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm font-semibold text-slate-400 min-w-0">
-              El enlace aparecerá aquí una sola vez después de crear la
-              invitación.
-            </div>
-          ) : (
-            <div className="mt-5 space-y-4 min-w-0" role="status">
-              <p className="text-sm font-semibold text-emerald-300">
-                Invitación creada para {created.invitation.email} como{" "}
-                {invitationRoleLabel(created.invitation.role)}
-              </p>
-              <label className="block text-sm font-semibold text-slate-400 min-w-0">
-                Enlace secreto
-                <textarea
-                  aria-label="Enlace secreto de invitación"
-                  readOnly
-                  rows={4}
-                  value={created.invitationUrl}
-                  className="mt-2 w-full resize-none rounded-xl border border-slate-700 bg-slate-900 p-3 font-mono text-xs normal-case tracking-normal text-slate-100 min-w-0 max-w-full"
-                  onFocus={(event) => event.currentTarget.select()}
+              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                Correo electrónico
+                <input
+                  required
+                  type="email"
+                  maxLength={254}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="persona@organizacion.co"
+                  className="min-h-12 w-full rounded-xl border border-slate-200 px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                 />
               </label>
-              <button
-                type="button"
-                onClick={() => void copyInvitationLink()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-950 max-w-full whitespace-normal"
-              >
-                {copyStatus === "copied" ? (
-                  <Check size={17} aria-hidden="true" />
-                ) : (
-                  <Clipboard size={17} aria-hidden="true" />
-                )}
-                {copyStatus === "copied" ? "Enlace copiado" : "Copiar enlace"}
-              </button>
-              {copyStatus === "failed" && (
-                <p role="alert" className="text-xs font-bold text-amber-300">
-                  No se pudo acceder al portapapeles. Selecciona y copia el
-                  enlace manualmente.
+              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                Rol para la invitación
+                <select
+                  aria-label="Rol para la invitación"
+                  value={role}
+                  onChange={(event) =>
+                    setRole(event.target.value as BackendUserRole)
+                  }
+                  className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
+                >
+                  {invitationRoleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {mutationError && (
+                <p
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"
+                >
+                  {mutationError}
                 </p>
               )}
-              <p className="text-xs leading-5 text-slate-400">
-                Por seguridad, este secreto no vuelve a aparecer en el listado.
-                Si se pierde, crea una nueva invitación cuando esta venza.
-              </p>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
+              >
+                {saving ? (
+                  <Loader2
+                    className="animate-spin"
+                    size={18}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <UserPlus size={18} aria-hidden="true" />
+                )}
+                Crear invitación
+              </button>
+            </form>
+
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Copia el enlace y compártelo directamente con la persona. No se
+              envía un correo automático. El enlace vence en 72 horas, se usa
+              una sola vez y no permite otorgar acceso de Administración.
+            </p>
+          </div>
+
+          {created && (
+            <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white shadow-sm min-w-0">
+              <h2 className="text-lg font-semibold">Enlace de un solo uso</h2>
+              <div className="mt-5 space-y-4 min-w-0" role="status">
+                <p className="text-sm font-semibold text-emerald-300">
+                  Invitación creada para {created.invitation.email} como{" "}
+                  {invitationRoleLabel(created.invitation.role)}
+                </p>
+                <label className="block text-sm font-semibold text-slate-400 min-w-0">
+                  Enlace secreto
+                  <textarea
+                    aria-label="Enlace secreto de invitación"
+                    readOnly
+                    rows={4}
+                    value={created.invitationUrl}
+                    className="mt-2 w-full resize-none rounded-xl border border-slate-700 bg-slate-900 p-3 font-mono text-xs normal-case tracking-normal text-slate-100 min-w-0 max-w-full"
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void copyInvitationLink()}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-950 max-w-full whitespace-normal"
+                >
+                  {copyStatus === "copied" ? (
+                    <Check size={17} aria-hidden="true" />
+                  ) : (
+                    <Clipboard size={17} aria-hidden="true" />
+                  )}
+                  {copyStatus === "copied" ? "Enlace copiado" : "Copiar enlace"}
+                </button>
+                {copyStatus === "failed" && (
+                  <p role="alert" className="text-xs font-bold text-amber-300">
+                    No se pudo acceder al portapapeles. Selecciona y copia el
+                    enlace manualmente.
+                  </p>
+                )}
+                <p className="text-xs leading-5 text-slate-400">
+                  Por seguridad, este secreto no vuelve a aparecer en el
+                  listado. Si se pierde, crea una nueva invitación cuando esta
+                  venza.
+                </p>
+              </div>
             </div>
           )}
-        </div>
-      </section>
+        </section>
+      </details>
 
       {loading ? (
         <div
@@ -912,13 +920,15 @@ export default function TeamPage() {
                 className="mt-3 flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between min-w-0"
               >
                 <span>{divisionError}</span>
-                {!divisionMutationError && <button
-                  type="button"
-                  onClick={() => setDivisionReload((value) => value + 1)}
-                  className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-800 max-w-full whitespace-normal"
-                >
-                  Reintentar territorio
-                </button>}
+                {!divisionMutationError && (
+                  <button
+                    type="button"
+                    onClick={() => setDivisionReload((value) => value + 1)}
+                    className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-800 max-w-full whitespace-normal"
+                  >
+                    Reintentar territorio
+                  </button>
+                )}
               </div>
             )}
             {!loadingDivisions &&

@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist";
@@ -467,18 +469,12 @@ export default function ExecutivePage() {
 
   if (!briefing) {
     return (
-      <main
-        id="main-content"
-        className="mx-auto min-w-0 max-w-[1440px] space-y-6"
-      >
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Cuadro de Mando
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
-            {tenant?.name ?? "Operación Política"}
-          </p>
-        </header>
+      <div className="mx-auto min-w-0 max-w-[1440px] space-y-6">
+        <PageHeader
+          title="Cuadro de mando"
+          icon={Activity}
+          description={tenant?.name ?? "Operación política"}
+        />
         <section
           role="alert"
           className="rounded-3xl border border-red-200 bg-red-50 p-8 text-red-950"
@@ -504,7 +500,7 @@ export default function ExecutivePage() {
             {loading ? "Reintentando…" : "Reintentar consulta"}
           </button>
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -527,41 +523,32 @@ export default function ExecutivePage() {
       : "Se habilita desde la preparación electoral, según la etapa configurada.";
 
   return (
-    <main
-      id="main-content"
-      className="mx-auto min-w-0 max-w-[1440px] space-y-6"
-    >
-      <header className="flex min-w-0 items-start justify-between gap-3 sm:gap-5">
-        <div className="min-w-0">
-          <p className="mb-2 text-xs font-semibold text-blue-700">Vista general de la operación</p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Cuadro de Mando
-          </h1>
-          <p className="mt-2 break-words text-sm leading-6 text-slate-600 sm:text-base">
-            {briefing.tenant.name}
-          </p>
-          {generatedAt && (
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Corte del {generatedAt}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          aria-label="Actualizar cuadro de mando"
-          title="Actualizar cuadro de mando"
-          onClick={() => void loadBriefing()}
-          disabled={loading}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-wait disabled:opacity-60 sm:px-4"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            size={18}
-            className={loading ? "animate-spin" : undefined}
-          />
-          <span className="hidden sm:inline">{loading ? "Actualizando…" : "Actualizar"}</span>
-        </button>
-      </header>
+    <div className="mx-auto min-w-0 max-w-[1440px] space-y-6">
+      <PageHeader
+        title="Cuadro de mando"
+        icon={Activity}
+        description={briefing.tenant.name}
+        meta={generatedAt ? `Actualizado el ${generatedAt}` : undefined}
+        actions={
+          <button
+            type="button"
+            aria-label="Actualizar cuadro de mando"
+            title="Actualizar cuadro de mando"
+            onClick={() => void loadBriefing()}
+            disabled={loading}
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-wait disabled:opacity-60 sm:px-4"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              size={18}
+              className={loading ? "animate-spin" : undefined}
+            />
+            <span className="hidden sm:inline">
+              {loading ? "Actualizando…" : "Actualizar"}
+            </span>
+          </button>
+        }
+      />
 
       {error && (
         <div
@@ -580,7 +567,10 @@ export default function ExecutivePage() {
 
       <OperationLifecycle currentStage={tenant?.operationStage ?? null} />
 
-      <section aria-label="Resumen de la operación" className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="Resumen de la operación"
+        className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
         <TrafficCard
           title="Ejecución presupuestal"
           value={budget.value}
@@ -772,7 +762,7 @@ export default function ExecutivePage() {
         Este corte es operativo e interno; no equivale a una certificación de
         autoridad electoral, contable o de protección de datos.
       </p>
-    </main>
+    </div>
   );
 }
 
@@ -816,36 +806,42 @@ function OperationLifecycle({
       <details className="group/steps mt-4 rounded-xl bg-slate-50 px-3 py-1">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-sm font-medium text-slate-700 focus-ring [&::-webkit-details-marker]:hidden">
           Ver etapas del ciclo
-          <ChevronDown aria-hidden="true" size={17} className="shrink-0 transition-transform group-open/steps:rotate-180" />
+          <ChevronDown
+            aria-hidden="true"
+            size={17}
+            className="shrink-0 transition-transform group-open/steps:rotate-180"
+          />
         </summary>
-      <ol className="grid min-w-0 grid-cols-3 gap-2 pb-3 pt-2 xl:grid-cols-9">
-        {OPERATION_STAGES.map((stage, index) => {
-          const status =
-            currentIndex < 0
-              ? "pending"
-              : index < currentIndex
-                ? "previous"
-                : index === currentIndex
-                  ? "current"
-                  : "pending";
-          return (
-            <li
-              key={stage.value}
-              aria-current={status === "current" ? "step" : undefined}
-              className={`min-w-0 rounded-lg border px-1 py-2.5 text-center text-[11px] leading-4 font-semibold [overflow-wrap:anywhere] sm:text-xs ${
-                status === "current"
-                  ? "border-blue-700 bg-blue-700 text-white"
-                  : status === "previous"
-                    ? "border-slate-300 bg-slate-100 text-slate-700"
-                    : "border-slate-200 bg-slate-50 text-slate-500"
-              }`}
-            >
-              <span className="mb-1 block text-xs opacity-70">{index + 1}</span>
-              {stage.label}
-            </li>
-          );
-        })}
-      </ol>
+        <ol className="grid min-w-0 grid-cols-3 gap-2 pb-3 pt-2 xl:grid-cols-9">
+          {OPERATION_STAGES.map((stage, index) => {
+            const status =
+              currentIndex < 0
+                ? "pending"
+                : index < currentIndex
+                  ? "previous"
+                  : index === currentIndex
+                    ? "current"
+                    : "pending";
+            return (
+              <li
+                key={stage.value}
+                aria-current={status === "current" ? "step" : undefined}
+                className={`min-w-0 rounded-lg border px-1 py-2.5 text-center text-[11px] leading-4 font-semibold [overflow-wrap:anywhere] sm:text-xs ${
+                  status === "current"
+                    ? "border-blue-700 bg-blue-700 text-white"
+                    : status === "previous"
+                      ? "border-slate-300 bg-slate-100 text-slate-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500"
+                }`}
+              >
+                <span className="mb-1 block text-xs opacity-70">
+                  {index + 1}
+                </span>
+                {stage.label}
+              </li>
+            );
+          })}
+        </ol>
       </details>
     </section>
   );
@@ -871,20 +867,21 @@ function OperationalMetric({
       <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700">
         <Icon aria-hidden="true" size={20} />
       </div>
-      <p className="mt-4 text-sm font-medium text-slate-600">
-        {label}
-      </p>
+      <p className="mt-4 text-sm font-medium text-slate-600">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 tabular-nums">
         {value}
       </p>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 text-xs leading-5 text-slate-500">{detail}</p>
+        <p className="min-w-0 flex-1 text-xs leading-5 text-slate-500">
+          {detail}
+        </p>
         {href ? (
-          <Link href={href} aria-label={`Abrir ${label.toLowerCase()}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-blue-700 transition-colors hover:bg-blue-50 focus-ring">
-            <ArrowRight
-              aria-hidden="true"
-              size={18}
-            />
+          <Link
+            href={href}
+            aria-label={`Abrir ${label.toLowerCase()}`}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-blue-700 transition-colors hover:bg-blue-50 focus-ring"
+          >
+            <ArrowRight aria-hidden="true" size={18} />
           </Link>
         ) : (
           <span className="basis-full text-xs leading-5 text-amber-800">
@@ -958,29 +955,40 @@ function TrafficCard({
   };
 
   const card = (
-    <article
-      className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors group-hover:border-blue-300"
-    >
+    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors group-hover:border-blue-300">
       <div className="flex min-w-0 items-start justify-between gap-3">
-          <h2 className="min-w-0 text-sm leading-5 font-medium text-slate-600">
-            {title}
-          </h2>
-        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${statusColors[status]}`}>
+        <h2 className="min-w-0 text-sm leading-5 font-medium text-slate-600">
+          {title}
+        </h2>
+        <div
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${statusColors[status]}`}
+        >
           <Icon aria-hidden="true" size={20} />
         </div>
       </div>
-      <p className={`mt-4 break-words font-semibold leading-tight tracking-tight text-slate-950 tabular-nums ${value.length > 9 ? "text-2xl" : "text-3xl sm:text-4xl"}`}>
+      <p
+        className={`mt-4 break-words font-semibold leading-tight tracking-tight text-slate-950 tabular-nums ${value.length > 9 ? "text-2xl" : "text-3xl sm:text-4xl"}`}
+      >
         {value}
       </p>
-      <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
-          {subtitle}
-      </p>
+      <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{subtitle}</p>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusColors[status]}`}>
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusColors[status]}`}
+        >
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 rounded-full bg-current"
+          />
           {statusLabels[status]}
         </span>
-        {href && <ArrowRight aria-hidden="true" size={17} className="text-slate-400 group-hover:text-blue-700" />}
+        {href && (
+          <ArrowRight
+            aria-hidden="true"
+            size={17}
+            className="text-slate-400 group-hover:text-blue-700"
+          />
+        )}
       </div>
     </article>
   );

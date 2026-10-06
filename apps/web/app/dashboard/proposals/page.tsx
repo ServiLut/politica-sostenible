@@ -43,6 +43,7 @@ import {
 import type { BackendUserRole } from "@/types/saas-schema";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
 import { UserCombobox } from "@/components/ui/UserCombobox";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const PROPOSAL_MANAGER_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -86,6 +87,11 @@ interface ProposalForm {
   estimatedCost: string;
   internalDistributionFlag: boolean;
   ownerId: string;
+}
+
+interface StatusFeedback {
+  kind: "success" | "error";
+  message: string;
 }
 
 const EMPTY_FORM: ProposalForm = {
@@ -143,6 +149,11 @@ export default function ProposalsPage() {
   const [form, setForm] = useState<ProposalForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const statusRequests = useRef(new Set<string>());
+  const [savingStatuses, setSavingStatuses] = useState<Set<string>>(new Set());
+  const [statusFeedback, setStatusFeedback] = useState<
+    Record<string, StatusFeedback>
+  >({});
   const searchParams = useSearchParams();
   const deepLinkProposalId = readEntityDeepLink(searchParams.toString());
   const [deleteTarget, setDeleteTarget] = useState<PoliticalProposal | null>(
@@ -181,7 +192,7 @@ export default function ProposalsPage() {
     error: requestError,
     refresh: loadProposals,
     setData: setProposals,
-  } = usePageRequest(request);
+  } = usePageRequest(request, { retainDataOnRefresh: true });
   const proposals = useMemo(() => proposalsData ?? [], [proposalsData]);
   const fetchError = requestError
     ? errorMessage(
@@ -208,7 +219,7 @@ export default function ProposalsPage() {
   };
 
   const openEdit = (proposal: PoliticalProposal) => {
-    if (!canMutate) return;
+    if (!canMutate || statusRequests.current.has(proposal.id)) return;
     setForm({
       title: proposal.title,
       description: proposal.description,
@@ -234,6 +245,57 @@ export default function ProposalsPage() {
       openEdit(proposal);
     }
   };
+
+  async function handleStatusChange(
+    proposal: PoliticalProposal,
+    status: ProposalStatus,
+  ) {
+    if (
+      !canMutate ||
+      statusRequests.current.has(proposal.id) ||
+      status === proposal.status ||
+      !allowedProposalStatuses(proposal.status).includes(status)
+    ) {
+      return;
+    }
+
+    statusRequests.current.add(proposal.id);
+    setSavingStatuses(new Set(statusRequests.current));
+    setStatusFeedback((current) => {
+      const next = { ...current };
+      delete next[proposal.id];
+      return next;
+    });
+    try {
+      const confirmed = await updateProposal(proposal.id, { status });
+      // Only an API-confirmed record replaces the last known state. This also
+      // cancels an older GET so it cannot overwrite the confirmed change.
+      setProposals((current) =>
+        (current ?? []).map((item) =>
+          item.id === confirmed.id ? confirmed : item,
+        ),
+      );
+      setStatusFeedback((current) => ({
+        ...current,
+        [proposal.id]: {
+          kind: "success",
+          message: `«${proposal.title}»: estado guardado como ${STATUS_LABELS[confirmed.status]}.`,
+        },
+      }));
+      await loadProposals();
+    } catch (error: unknown) {
+      setStatusFeedback((current) => ({
+        ...current,
+        [proposal.id]: {
+          kind: "error",
+          message: `No se pudo confirmar el cambio de «${proposal.title}». ${errorMessage(error, "Intenta actualizar el listado.")} Comprueba su estado con Actualizar antes de repetir el cambio.`,
+        },
+      }));
+    } finally {
+      statusRequests.current.delete(proposal.id);
+      setSavingStatuses(new Set(statusRequests.current));
+    }
+  }
 
   const confirmDelete = async () => {
     if (!deleteTarget || !canMutate || deleting) return;
@@ -349,47 +411,69 @@ export default function ProposalsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 min-w-0">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-        <div>
-          <h1 className="font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
-            Programa político
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Gestión y seguimiento de propuestas y compromisos.
-          </p>
-          {!canMutate && user && (
+      <PageHeader
+        title="Programa político"
+        description="Gestión y seguimiento de propuestas y compromisos."
+        icon={FileText}
+        meta={
+          !canMutate && user ? (
             <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
               Acceso de consulta
             </p>
-          )}
-          {fetchError && (
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-900 min-w-0">
-              <AlertCircle size={20} />
-              {fetchError}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row min-w-0">
-          <button
-            type="button"
-            onClick={() => void loadProposals()}
-            disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
-          >
-            <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
-            Actualizar
-          </button>
-          {canMutate && (
+          ) : undefined
+        }
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row min-w-0">
             <button
               type="button"
-              onClick={openCreate}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
+              onClick={() => void loadProposals()}
+              disabled={loading}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
             >
-              <Plus size={16} /> Nueva propuesta
+              <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
+              Actualizar
             </button>
-          )}
+            {canMutate && (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
+              >
+                <Plus size={16} /> Nueva propuesta
+              </button>
+            )}
+          </div>
+        }
+      />
+
+      {fetchError && (
+        <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900 min-w-0">
+          <AlertCircle size={20} className="shrink-0" />
+          <p>{fetchError}{proposalsData !== null && " Se conserva el último listado recibido; puede estar desactualizado."}</p>
         </div>
-      </header>
+      )}
+      {mutationError && !dialogProposal && (
+        <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">{mutationError}</p>
+      )}
+      {Object.entries(statusFeedback).map(([id, feedback]) => (
+        <div
+          key={id}
+          role={feedback.kind === "error" ? "alert" : "status"}
+          className={`flex min-w-0 items-start gap-3 rounded-2xl border p-4 text-sm ${feedback.kind === "error" ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
+        >
+          <p className="min-w-0 flex-1 break-words">{feedback.message}</p>
+          <button
+            type="button"
+            aria-label="Cerrar aviso de cambio de estado"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2"
+            onClick={() => setStatusFeedback((current) => {
+              const next = { ...current };
+              delete next[id];
+              return next;
+            })}
+          ><X size={18} aria-hidden="true" /></button>
+        </div>
+      ))}
 
       {deepLinkedProposalIsMissing && (
         <p
@@ -403,7 +487,9 @@ export default function ProposalsPage() {
 
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
         <div className="flex-1 max-w-sm min-w-0">
+          <label htmlFor="proposal-search" className="mb-1 block text-sm font-semibold text-slate-700">Buscar propuestas</label>
           <input
+            id="proposal-search"
             type="search"
             placeholder="Buscar propuestas..."
             value={searchQuery}
@@ -412,16 +498,17 @@ export default function ProposalsPage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-2 pb-1 min-w-0 max-w-full">
+        <div role="group" aria-label="Filtrar propuestas por estado" className="flex flex-wrap gap-2 min-w-0 max-w-full">
           {(["ALL", ...PROPOSAL_STATUSES] as const).map((status) => (
             <button
               type="button"
               key={status}
+              aria-pressed={statusFilter === status}
               onClick={() => setStatusFilter(status)}
-              className={`-mb-[17px] whitespace-nowrap pb-4 text-sm font-semibold transition-colors ${
+              className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                 statusFilter === status
-                  ? "border-b-2 border-blue-700 text-blue-700"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "border-blue-700 bg-blue-50 text-blue-700"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               {status === "ALL" ? "Todas" : STATUS_LABELS[status]}
@@ -431,8 +518,10 @@ export default function ProposalsPage() {
             </button>
           ))}
         </div>
+        <div className="min-w-0">
+        <label htmlFor="proposal-category-filter" className="mb-1 block text-sm font-semibold text-slate-700">Filtrar por categoría</label>
         <select
-          aria-label="Filtrar por categoría"
+          id="proposal-category-filter"
           value={categoryFilter}
           onChange={(event) =>
             setCategoryFilter(event.target.value as ProposalCategory | "ALL")
@@ -446,14 +535,15 @@ export default function ProposalsPage() {
             </option>
           ))}
         </select>
+        </div>
       </div>
 
-      {loading ? (
+      {loading && proposalsData === null ? (
         <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 min-w-0">
           <Loader2 className="animate-spin text-slate-400" size={24} />
           Cargando propuestas...
         </div>
-      ) : filteredProposals.length === 0 ? (
+      ) : fetchError && proposalsData === null ? null : filteredProposals.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center min-w-0">
           <FileText className="text-slate-400" size={48} />
           <p className="text-sm font-medium text-slate-500">
@@ -486,6 +576,7 @@ export default function ProposalsPage() {
               aria-label={
                 canMutate ? `Editar propuesta ${proposal.title}` : undefined
               }
+              aria-disabled={canMutate && savingStatuses.has(proposal.id) ? true : undefined}
               className={`flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm outline-none transition-shadow ${
                 canMutate
                   ? "cursor-pointer hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100"
@@ -526,6 +617,7 @@ export default function ProposalsPage() {
                         <button
                           type="button"
                           aria-label={`Eliminar borrador ${proposal.title}`}
+                          disabled={savingStatuses.has(proposal.id)}
                           onClick={(event) => {
                             event.stopPropagation();
                             setDeleteTarget(proposal);
@@ -593,35 +685,23 @@ export default function ProposalsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-slate-100 pt-3 min-w-0">
-                  <label className="block text-sm font-semibold text-slate-700 mb-1 min-w-0">
-                    Cambiar estado rápido
+                <div className="mt-4 border-t border-slate-100 pt-3 min-w-0" onClick={(event) => event.stopPropagation()}>
+                  <label htmlFor={`proposal-status-${proposal.id}`} className="block text-sm font-semibold text-slate-700 mb-1 min-w-0">
+                    Cambiar estado <span className="sr-only">de {proposal.title}</span>
                   </label>
                   <select
+                    id={`proposal-status-${proposal.id}`}
                     value=""
                     onChange={(e) => {
                       const newStatus = e.target.value as ProposalStatus;
                       if (!newStatus) return;
-                      // Optimistic update
-                      setProposals((prev) =>
-                        (prev ?? []).map((p) =>
-                          p.id === proposal.id
-                            ? { ...p, status: newStatus }
-                            : p,
-                        ),
-                      );
-                      updateProposal(proposal.id, { status: newStatus }).catch(
-                        () => {
-                          // Revert
-                          void loadProposals();
-                        },
-                      );
+                      void handleStatusChange(proposal, newStatus);
                     }}
-                    disabled={!canMutate}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold outline-none focus:border-blue-500 disabled:opacity-50 min-w-0 max-w-full"
+                    disabled={!canMutate || savingStatuses.has(proposal.id) || allowedProposalStatuses(proposal.status).length < 2}
+                    className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500 disabled:opacity-50 min-w-0 max-w-full"
                   >
-                    <option value="">Seleccionar transición...</option>
-                    {allowedProposalStatuses(proposal.status).map((st) => (
+                    <option value="">{savingStatuses.has(proposal.id) ? "Guardando estado..." : allowedProposalStatuses(proposal.status).length < 2 ? "Estado final" : "Seleccionar estado..."}</option>
+                    {allowedProposalStatuses(proposal.status).filter((st) => st !== proposal.status).map((st) => (
                       <option key={st} value={st}>
                         {STATUS_LABELS[st]}
                       </option>
@@ -641,10 +721,10 @@ export default function ProposalsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="proposal-dialog-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl min-w-0"
           >
-            <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5 min-w-0 flex-wrap gap-3">
-              <div>
+            <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 bg-white px-4 py-4 sm:px-6 min-w-0">
+              <div className="min-w-0 break-words">
                 <h2
                   ref={proposalDialogTitleRef}
                   tabIndex={-1}
@@ -667,14 +747,15 @@ export default function ProposalsPage() {
                 aria-label="Cerrar"
                 disabled={submitting}
                 onClick={() => setDialogProposal(null)}
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
               >
                 <X size={21} />
               </button>
             </header>
-            <form onSubmit={submitForm} className="space-y-5 p-6 min-w-0">
+            <form onSubmit={submitForm} className="flex min-h-0 min-w-0 flex-col">
+              <div className="min-h-0 overflow-y-auto overscroll-contain space-y-5 px-4 py-5 sm:px-6">
               {mutationError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900 min-w-0">
+                <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900 min-w-0">
                   {mutationError}
                 </div>
               )}
@@ -831,8 +912,8 @@ export default function ProposalsPage() {
                   </span>
                 </span>
               </label>
-
-              <footer className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4 min-w-0 flex-wrap">
+              </div>
+              <footer className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 bg-white px-4 py-4 sm:px-6 min-w-0">
                 <button
                   type="button"
                   disabled={submitting}

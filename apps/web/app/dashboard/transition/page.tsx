@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -208,48 +209,38 @@ export default function TransitionPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 pb-28 lg:pb-8 min-w-0">
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between min-w-0">
-          <div className="max-w-3xl min-w-0">
-            <p className="text-xs font-semibold text-blue-300">
-              Cierre documentado de la operación
-            </p>
-            <h1 className="mt-3 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Cierre y transición responsable
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-slate-300">
-              Consolida un corte interno con pendientes financieros, operativos,
-              de actas, evidencia y privacidad. Cada generación queda auditada y
-              lleva una huella SHA-256.
-            </p>
-          </div>
-          {canGenerate && (
-            <Button
-              type="button"
-              onClick={() => void generate()}
-              disabled={loading || !isPostElection}
-              className="min-h-12 gap-2 bg-blue-600 text-white hover:bg-blue-500 max-w-full whitespace-normal"
-            >
-              {loading ? (
-                <Loader2
-                  aria-hidden="true"
-                  className="animate-spin"
-                  size={18}
-                />
-              ) : report ? (
-                <RefreshCw aria-hidden="true" size={18} />
-              ) : (
-                <FileCheck2 aria-hidden="true" size={18} />
-              )}
-              {loading
-                ? "Generando…"
-                : report
-                  ? "Generar nuevo corte"
-                  : "Generar expediente"}
-            </Button>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title="Cierre y transición responsable"
+        icon={Archive}
+        description={
+          <>
+            Consolida un corte interno con pendientes financieros, operativos,
+            de actas, evidencia y privacidad. Cada generación queda auditada y
+            lleva una huella SHA-256.
+          </>
+        }
+        actions={
+          <Button
+            type="button"
+            onClick={() => void generate()}
+            disabled={loading || !isPostElection}
+            className="min-h-12 gap-2 bg-blue-600 text-white hover:bg-blue-500 max-w-full whitespace-normal"
+          >
+            {loading ? (
+              <Loader2 aria-hidden="true" className="animate-spin" size={18} />
+            ) : report ? (
+              <RefreshCw aria-hidden="true" size={18} />
+            ) : (
+              <FileCheck2 aria-hidden="true" size={18} />
+            )}
+            {loading
+              ? "Generando…"
+              : report
+                ? "Generar nuevo corte"
+                : "Generar expediente"}
+          </Button>
+        }
+      />
 
       {!isPostElection && (
         <section

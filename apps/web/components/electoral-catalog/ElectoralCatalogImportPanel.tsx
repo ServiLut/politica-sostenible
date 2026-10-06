@@ -395,17 +395,16 @@ export function ElectoralCatalogImportPanel({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-300">
-            Ingesta privada y auditable
+            Carga y revisión de archivos
           </p>
           <h2 id="catalog-import-title" className="mt-2 text-2xl font-black">
-            Artefactos electorales de RNEC
+            Incorporar un archivo electoral de RNEC
           </h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-            El navegador calcula SHA-256 y sube el JSON directamente al Storage
-            privado. NestJS recibe únicamente metadatos, confirma el objeto y
-            encola su procesamiento. El resultado queda en preparación: no es
-            oficial ni operativo hasta superar validación independiente y quedar
-            Activo.
+            Selecciona el archivo preparado por el equipo autorizado y completa
+            su procedencia. La carga se verifica y procesa en segundo plano.
+            El resultado queda en preparación: requiere revisión independiente
+            y activación antes de usarse en la operación electoral.
           </p>
         </div>
         <button
@@ -419,7 +418,7 @@ export function ElectoralCatalogImportPanel({
           className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white hover:bg-white/15 disabled:opacity-50"
         >
           <RefreshCw className={loadingJobs ? "animate-spin" : ""} size={16} />
-          Actualizar ingestas
+          Actualizar cargas
         </button>
       </div>
 

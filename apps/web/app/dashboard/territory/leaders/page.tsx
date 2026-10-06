@@ -19,6 +19,7 @@ import {
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { CreateLeaderModal } from "@/components/territory/CreateLeaderModal";
 import { useAuth } from "@/context/auth";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   getLeaderWhatsAppHref,
   getPublicProfileHref,
@@ -273,52 +274,55 @@ export default function TerritoryLeadersPage() {
   return (
     <div className="space-y-6 min-w-0">
       {/* Header */}
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between min-w-0">
-        <div className="space-y-2 min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
-            <Users size={13} /> Directorio de líderes
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Líderes Territoriales
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Consulta y gestiona los líderes asignados a cada territorio. Filtra
+      <PageHeader
+        title="Líderes territoriales"
+        eyebrow="Directorio de líderes"
+        icon={Users}
+        description="Consulta y gestiona los líderes asignados a cada territorio. Filtra
             por municipio, zona o puesto de votación. Los filtros de nombre y
-            cargo se aplican a los líderes del territorio que abras.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setExpandedId(null);
-            setLeadersByDivision({});
-            void loadDivisions();
-          }}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
-        >
-          <RefreshCw size={16} /> Actualizar
-        </button>
-      </header>
+            cargo se aplican a los líderes del territorio que abras."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setExpandedId(null);
+              setLeadersByDivision({});
+              void loadDivisions();
+            }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
+          >
+            <RefreshCw size={16} /> Actualizar
+          </button>
+        }
+      />
 
       {/* Filters Bar */}
       <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-4 xl:items-end">
         {/* Territory Type */}
         <div className="flex-1 min-w-0">
-          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
+          <p
+            id="leader-division-type-label"
+            className="mb-1 block text-sm font-semibold text-slate-600 min-w-0"
+          >
             <Filter size={11} className="mr-1 inline" />
             Nivel territorial
-          </label>
-          <div className="grid min-w-0 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-3">
+          </p>
+          <div
+            role="group"
+            aria-labelledby="leader-division-type-label"
+            className="grid min-w-0 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-3"
+          >
             {availableTypes.map((dt) => (
               <button
                 type="button"
                 key={dt.value}
+                aria-pressed={divisionType === dt.value}
                 onClick={() => {
                   setDivisionType(dt.value);
                   setDivisionPage(1);
                   setExpandedId(null);
                 }}
-                className={`min-w-0 whitespace-normal rounded-lg px-2 py-2 text-sm font-semibold transition-all ${
+                className={`min-h-11 min-w-0 whitespace-normal rounded-lg px-2 py-2 text-sm font-semibold transition-all ${
                   divisionType === dt.value
                     ? "bg-white text-blue-700 shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
@@ -332,12 +336,16 @@ export default function TerritoryLeadersPage() {
 
         {/* Territory Search */}
         <form onSubmit={handleTerritorySearch} className="flex-1 min-w-0">
-          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
+          <label
+            htmlFor="leader-territory-search"
+            className="mb-1 block text-sm font-semibold text-slate-600 min-w-0"
+          >
             <MapPin size={11} className="mr-1 inline" />
             Buscar territorio
           </label>
           <div className="flex min-w-0 gap-2 flex-wrap">
             <input
+              id="leader-territory-search"
               value={territorySearchInput}
               onChange={(e) => setTerritorySearchInput(e.target.value)}
               placeholder="Ej: Medellín, Bello, Itagüí..."
@@ -354,11 +362,15 @@ export default function TerritoryLeadersPage() {
 
         {/* Leader Name Filter */}
         <div className="flex-1 min-w-0">
-          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
+          <label
+            htmlFor="leader-name-filter"
+            className="mb-1 block text-sm font-semibold text-slate-600 min-w-0"
+          >
             <Users size={11} className="mr-1 inline" />
             Filtrar por nombre de líder
           </label>
           <input
+            id="leader-name-filter"
             value={leaderNameFilter}
             onChange={(e) => setLeaderNameFilter(e.target.value)}
             placeholder="Nombre del líder..."
@@ -368,10 +380,14 @@ export default function TerritoryLeadersPage() {
 
         {/* Role Filter */}
         <div className="w-full min-w-0">
-          <label className="mb-1 block text-sm font-semibold text-slate-500 min-w-0">
+          <label
+            htmlFor="leader-role-filter"
+            className="mb-1 block text-sm font-semibold text-slate-600 min-w-0"
+          >
             Cargo
           </label>
           <select
+            id="leader-role-filter"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
@@ -523,7 +539,7 @@ export default function TerritoryLeadersPage() {
                         {isLoading
                           ? "Cargando líderes…"
                           : leaders
-                            ? `${filteredLeaders.length} líder(es) encontrado(s)`
+                            ? `${filteredLeaders.length} ${filteredLeaders.length === 1 ? "líder encontrado" : "líderes encontrados"}`
                             : ""}
                       </p>
                       {canCreate && (
@@ -705,10 +721,9 @@ export default function TerritoryLeadersPage() {
       )}
 
       {/* Footer note */}
-      <p className="text-xs leading-5 text-slate-400">
-        Los líderes territoriales se asignan por territorio operativo del
-        tenant. Los datos de contacto (teléfono, correo, redes sociales) son
-        gestionados internamente por la campaña y no se exponen públicamente.
+      <p className="text-xs leading-5 text-slate-600">
+        Cada líder pertenece a un territorio de tu organización. Sus datos de
+        contacto sólo se muestran a los miembros autorizados del equipo.
       </p>
 
       {/* Create Leader Modal */}

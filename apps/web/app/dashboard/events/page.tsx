@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -375,37 +377,28 @@ export default function EventsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="flex flex-col gap-5 rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:flex-row sm:items-end sm:justify-between md:p-8 min-w-0">
-        <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-blue-300 min-w-0">
-            <CalendarDays aria-hidden="true" size={17} /> Agenda operativa
-            <span className="rounded-full bg-white/10 px-3 py-1 text-white">
-              {modeLabel}
-            </span>
-          </div>
-          <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-            Eventos y territorio
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Coordina horarios, lugares, aforo y responsables. Consulta el
-            estado de cada evento y mantén informada a tu organización.
-          </p>
-        </div>
-        {(canExport || canManage) && (
-          <div className="flex items-center gap-3 min-w-0 flex-wrap">
-            {canExport && <ExportButton moduleName="eventos" />}
-            {canManage && (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-500 max-w-full whitespace-normal"
-              >
-                <Plus aria-hidden="true" size={18} /> Nuevo evento
-              </button>
-            )}
-          </div>
-        )}
-      </header>
+      <PageHeader
+        title="Agenda y eventos"
+        description="Coordina fechas, lugares y responsables. Revisa cada evento desde su preparación hasta el cierre."
+        icon={CalendarDays}
+        meta={modeLabel}
+        actions={
+          (canExport || canManage) && (
+            <div className="flex items-center gap-3 min-w-0 flex-wrap">
+              {canExport && <ExportButton moduleName="eventos" />}
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={openCreate}
+                  className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 max-w-full whitespace-normal"
+                >
+                  <Plus aria-hidden="true" size={18} /> Nuevo evento
+                </button>
+              )}
+            </div>
+          )
+        }
+      />
 
       <section
         aria-label="Filtros de agenda"
@@ -699,7 +692,7 @@ export default function EventsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="event-dialog-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl min-w-0"
           >
             <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-white px-6 py-5 min-w-0">
               <div className="min-w-0 flex-1 break-words">
@@ -712,8 +705,9 @@ export default function EventsPage() {
                   {dialogEvent === "new" ? "Crear evento" : "Editar evento"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Los borradores deben programarse mediante una transición
-                  explícita.
+                  {dialogEvent === "new"
+                    ? "Guarda el borrador y luego selecciona Programar para confirmar el evento."
+                    : "Actualiza los detalles. El estado del evento se mantiene hasta que selecciones una transición en la agenda."}
                 </p>
               </div>
               <button
@@ -721,140 +715,149 @@ export default function EventsPage() {
                 onClick={() => setDialogEvent(null)}
                 disabled={Boolean(mutation)}
                 aria-label="Cerrar formulario"
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50 max-w-full whitespace-normal"
               >
                 <X size={21} />
               </button>
             </header>
-            <form onSubmit={submitEvent} className="space-y-5 p-6 min-w-0">
-              <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                Nombre
-                <input
-                  required
-                  minLength={3}
-                  maxLength={200}
-                  autoComplete="off"
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
-                />
-              </label>
-              <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                Descripción{" "}
-                <span className="font-normal text-slate-400">(opcional)</span>
-                <textarea
-                  rows={3}
-                  maxLength={5000}
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+            <form
+              onSubmit={submitEvent}
+              className="flex min-h-0 flex-col min-w-0"
+            >
+              <div className="min-h-0 overflow-y-auto overscroll-contain space-y-5 px-4 py-5 sm:px-6">
                 <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                  Inicio
+                  Nombre
                   <input
                     required
-                    type="datetime-local"
-                    value={form.startsAt}
+                    minLength={3}
+                    maxLength={200}
+                    autoComplete="off"
+                    value={form.name}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        startsAt: event.target.value,
+                        name: event.target.value,
                       }))
                     }
                     className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
                 <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                  Fin
-                  <input
-                    required
-                    type="datetime-local"
-                    value={form.endsAt}
+                  Descripción{" "}
+                  <span className="font-normal text-slate-600">(opcional)</span>
+                  <textarea
+                    rows={3}
+                    maxLength={5000}
+                    value={form.description}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        endsAt: event.target.value,
+                        description: event.target.value,
                       }))
                     }
-                    className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
-              </div>
-              <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                Lugar{" "}
-                <span className="font-normal text-slate-400">(opcional)</span>
-                <input
-                  maxLength={300}
-                  autoComplete="street-address"
-                  value={form.location}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      location: event.target.value,
-                    }))
-                  }
-                  className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-2 min-w-0">
-                <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                  Responsable{" "}
-                  <span className="font-normal text-slate-400">(opcional)</span>
-                  <div className="mt-2 min-w-0">
-                    <UserCombobox
-                      value={form.responsibleId}
-                      onChange={(val) =>
+                <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
+                    Inicio
+                    <input
+                      required
+                      type="datetime-local"
+                      value={form.startsAt}
+                      onChange={(event) =>
                         setForm((current) => ({
                           ...current,
-                          responsibleId: val,
+                          startsAt: event.target.value,
                         }))
                       }
-                      fetchItems={(search, signal) =>
-                        listEventResponsibles({ search, limit: 10 }, signal)
-                      }
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                     />
-                  </div>
-                </label>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
+                    Fin
+                    <input
+                      required
+                      type="datetime-local"
+                      value={form.endsAt}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          endsAt: event.target.value,
+                        }))
+                      }
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
+                    />
+                  </label>
+                </div>
                 <label className="block text-sm font-semibold text-slate-800 min-w-0">
-                  Capacidad{" "}
-                  <span className="font-normal text-slate-400">(opcional)</span>
+                  Lugar{" "}
+                  <span className="font-normal text-slate-600">(opcional)</span>
                   <input
-                    type="number"
-                    min={1}
-                    max={1_000_000}
-                    step={1}
-                    value={form.capacity}
+                    maxLength={300}
+                    autoComplete="street-address"
+                    value={form.location}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        capacity: event.target.value,
+                        location: event.target.value,
                       }))
                     }
                     className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   />
                 </label>
+                <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
+                    Responsable{" "}
+                    <span className="font-normal text-slate-600">
+                      (opcional)
+                    </span>
+                    <div className="mt-2 min-w-0">
+                      <UserCombobox
+                        value={form.responsibleId}
+                        onChange={(val) =>
+                          setForm((current) => ({
+                            ...current,
+                            responsibleId: val,
+                          }))
+                        }
+                        fetchItems={(search, signal) =>
+                          listEventResponsibles({ search, limit: 10 }, signal)
+                        }
+                      />
+                    </div>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-800 min-w-0">
+                    Capacidad{" "}
+                    <span className="font-normal text-slate-600">
+                      (opcional)
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1_000_000}
+                      step={1}
+                      value={form.capacity}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          capacity: event.target.value,
+                        }))
+                      }
+                      className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
+                    />
+                  </label>
+                </div>
+                {mutationError && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900"
+                  >
+                    {mutationError}
+                  </p>
+                )}
               </div>
-              {mutationError && (
-                <p
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900"
-                >
-                  {mutationError}
-                </p>
-              )}
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 min-w-0 flex-wrap">
+              <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 bg-white px-4 py-4 sm:px-6">
                 <button
                   type="button"
                   onClick={() => setDialogEvent(null)}

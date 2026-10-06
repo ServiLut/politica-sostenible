@@ -65,8 +65,7 @@ type BankLineForm = {
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900";
-const labelClass =
-  "space-y-1 text-[10px] font-black uppercase tracking-wider text-slate-500";
+const labelClass = "space-y-1 text-xs font-semibold text-slate-600";
 const actionClass =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -196,9 +195,20 @@ export function FinanceCloseoutPanel({
     reviewNote: "",
   });
 
-  const { data: overview, loading, error: loadError, refresh: refreshData } =
-    usePageRequest<FinanceCloseoutOverview>(getFinanceCloseoutOverview);
-  const error = mutationError ?? (loadError ? errorMessage(loadError, "No fue posible consultar el cierre financiero.") : null);
+  const {
+    data: overview,
+    loading,
+    error: loadError,
+    refresh: refreshData,
+  } = usePageRequest<FinanceCloseoutOverview>(getFinanceCloseoutOverview);
+  const error =
+    mutationError ??
+    (loadError
+      ? errorMessage(
+          loadError,
+          "No fue posible consultar el cierre financiero.",
+        )
+      : null);
   const load = () => {
     setError(null);
     return refreshData();
@@ -217,8 +227,7 @@ export function FinanceCloseoutPanel({
       (overview?.bankStatements ?? []).flatMap((statement) =>
         statement.lines
           .filter(
-            (line) =>
-              Number(line.debit) > 0 && line.matchStatus === "MATCHED",
+            (line) => Number(line.debit) > 0 && line.matchStatus === "MATCHED",
           )
           .map((line) => ({
             ...line,
@@ -238,7 +247,9 @@ export function FinanceCloseoutPanel({
       setOpenForm(null);
       await load();
     } catch (requestError) {
-      setError(errorMessage(requestError, "No fue posible completar la accion."));
+      setError(
+        errorMessage(requestError, "No fue posible completar la accion."),
+      );
     } finally {
       setSaving(false);
     }
@@ -253,7 +264,8 @@ export function FinanceCloseoutPanel({
   }
 
   function latestVersion(dossierId: string) {
-    return overview?.dossiers.find((item) => item.id === dossierId)?.versions[0];
+    return overview?.dossiers.find((item) => item.id === dossierId)
+      ?.versions[0];
   }
 
   const readOnly = overview?.readOnly === true;
@@ -323,7 +335,7 @@ export function FinanceCloseoutPanel({
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <article className="rounded-2xl bg-slate-950 p-5 text-white">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <p className="text-xs font-semibold text-slate-300">
                 Alistamiento financiero
               </p>
               <p className="mt-2 text-xl font-black">
@@ -331,15 +343,16 @@ export function FinanceCloseoutPanel({
               </p>
             </article>
             <article className="rounded-2xl border border-slate-200 p-5">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <p className="text-xs font-semibold text-slate-600">
                 Expedientes / extractos
               </p>
               <p className="mt-2 text-xl font-black text-slate-950">
-                {overview.summary.dossierCount} / {overview.summary.bankStatementCount}
+                {overview.summary.dossierCount} /{" "}
+                {overview.summary.bankStatementCount}
               </p>
             </article>
             <article className="rounded-2xl border border-slate-200 p-5">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <p className="text-xs font-semibold text-slate-600">
                 Lineas sin conciliar
               </p>
               <p className="mt-2 text-xl font-black text-slate-950">
@@ -347,7 +360,7 @@ export function FinanceCloseoutPanel({
               </p>
             </article>
             <article className="rounded-2xl border border-slate-200 p-5">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <p className="text-xs font-semibold text-slate-600">
                 Cuentas por pagar
               </p>
               <p className="mt-2 text-xl font-black text-slate-950">
@@ -418,7 +431,9 @@ export function FinanceCloseoutPanel({
               <button
                 type="button"
                 onClick={() => setOpenForm("settlement")}
-                disabled={overview?.payables.every((item) => item.status === "PAID")}
+                disabled={overview?.payables.every(
+                  (item) => item.status === "PAID",
+                )}
                 className={actionClass}
               >
                 Registrar pago
@@ -474,7 +489,10 @@ export function FinanceCloseoutPanel({
                   : dossierForm.subjectCode
               }
               onChange={(event) =>
-                setDossierForm({ ...dossierForm, subjectCode: event.target.value })
+                setDossierForm({
+                  ...dossierForm,
+                  subjectCode: event.target.value,
+                })
               }
               className={inputClass}
             />
@@ -487,7 +505,10 @@ export function FinanceCloseoutPanel({
               maxLength={200}
               value={dossierForm.subjectName}
               onChange={(event) =>
-                setDossierForm({ ...dossierForm, subjectName: event.target.value })
+                setDossierForm({
+                  ...dossierForm,
+                  subjectName: event.target.value,
+                })
               }
               className={inputClass}
             />
@@ -545,7 +566,10 @@ export function FinanceCloseoutPanel({
               type="date"
               value={versionForm.periodEndsAt}
               onChange={(event) =>
-                setVersionForm({ ...versionForm, periodEndsAt: event.target.value })
+                setVersionForm({
+                  ...versionForm,
+                  periodEndsAt: event.target.value,
+                })
               }
               className={inputClass}
             />
@@ -601,7 +625,9 @@ export function FinanceCloseoutPanel({
               className={inputClass}
             >
               <option value="APPROVE">Aprobar mi control</option>
-              <option value="RETURN_FOR_CORRECTION">Devolver para correccion</option>
+              <option value="RETURN_FOR_CORRECTION">
+                Devolver para correccion
+              </option>
             </select>
           </label>
           <label className={labelClass}>
@@ -612,7 +638,10 @@ export function FinanceCloseoutPanel({
               maxLength={2000}
               value={approvalForm.rationale}
               onChange={(event) =>
-                setApprovalForm({ ...approvalForm, rationale: event.target.value })
+                setApprovalForm({
+                  ...approvalForm,
+                  rationale: event.target.value,
+                })
               }
               className={inputClass}
             />
@@ -717,29 +746,31 @@ export function FinanceCloseoutPanel({
                   }
                   className={inputClass}
                 />
-                {(["bankReference", "description", "debit", "credit"] as const).map(
-                  (key) => (
-                    <input
-                      key={key}
-                      aria-label={`${key} linea ${line.lineNumber}`}
-                      required
-                      type={key === "debit" || key === "credit" ? "number" : "text"}
-                      step="0.01"
-                      value={line[key]}
-                      onChange={(event) =>
-                        setBankLines((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, [key]: event.target.value }
-                              : item,
-                          ),
-                        )
-                      }
-                      className={inputClass}
-                      placeholder={key}
-                    />
-                  ),
-                )}
+                {(
+                  ["bankReference", "description", "debit", "credit"] as const
+                ).map((key) => (
+                  <input
+                    key={key}
+                    aria-label={`${key} linea ${line.lineNumber}`}
+                    required
+                    type={
+                      key === "debit" || key === "credit" ? "number" : "text"
+                    }
+                    step="0.01"
+                    value={line[key]}
+                    onChange={(event) =>
+                      setBankLines((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, [key]: event.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                    className={inputClass}
+                    placeholder={key}
+                  />
+                ))}
                 <select
                   aria-label={`Estado linea ${line.lineNumber}`}
                   value={line.matchStatus}
@@ -749,7 +780,8 @@ export function FinanceCloseoutPanel({
                         itemIndex === index
                           ? {
                               ...item,
-                              matchStatus: event.target.value as FinanceBankMatchStatus,
+                              matchStatus: event.target
+                                .value as FinanceBankMatchStatus,
                               matchedEntryId: "",
                               exclusionReason: "",
                             }
@@ -782,7 +814,8 @@ export function FinanceCloseoutPanel({
                     <option value="">Selecciona movimiento</option>
                     {approvedEntries.map((entry) => (
                       <option key={entry.id} value={entry.id}>
-                        {entry.type} · {money(entry.amount)} · {entry.description}
+                        {entry.type} · {money(entry.amount)} ·{" "}
+                        {entry.description}
                       </option>
                     ))}
                   </select>
@@ -968,7 +1001,8 @@ export function FinanceCloseoutPanel({
               <option value="">Selecciona debito</option>
               {payableBankLines.map((line) => (
                 <option key={line.id} value={line.id}>
-                  {line.statementLabel} · {line.bankReference} · {money(line.debit)}
+                  {line.statementLabel} · {line.bankReference} ·{" "}
+                  {money(line.debit)}
                 </option>
               ))}
             </select>
@@ -983,7 +1017,13 @@ export function FinanceCloseoutPanel({
               <input
                 required
                 readOnly={key === "amount" || key === "paidAt"}
-                type={key === "amount" ? "number" : key === "paidAt" ? "date" : "text"}
+                type={
+                  key === "amount"
+                    ? "number"
+                    : key === "paidAt"
+                      ? "date"
+                      : "text"
+                }
                 value={settlementForm[key]}
                 onChange={(event) =>
                   setSettlementForm({
@@ -1048,7 +1088,10 @@ export function FinanceCloseoutPanel({
                 type={type}
                 value={evidenceForm[key]}
                 onChange={(event) =>
-                  setEvidenceForm({ ...evidenceForm, [key]: event.target.value })
+                  setEvidenceForm({
+                    ...evidenceForm,
+                    [key]: event.target.value,
+                  })
                 }
                 className={inputClass}
               />
@@ -1060,13 +1103,15 @@ export function FinanceCloseoutPanel({
               required
               type="file"
               accept="application/pdf,image/*"
-              onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                setEvidenceFile(event.target.files?.[0] ?? null)
+              }
               className={inputClass}
             />
           </label>
           <p className="md:col-span-2 text-xs leading-5 text-amber-800">
-            Guardar esta evidencia no transmite datos ni prueba por si solo que la
-            autoridad recibio o valido el informe.
+            Guardar esta evidencia no transmite datos ni prueba por si solo que
+            la autoridad recibio o valido el informe.
           </p>
           <FormActions saving={saving} onCancel={() => setOpenForm(null)} />
         </form>
@@ -1136,11 +1181,16 @@ export function FinanceCloseoutPanel({
         {overview?.dossiers.map((dossier) => {
           const version = dossier.versions[0];
           return (
-            <article key={dossier.id} className="rounded-2xl border border-slate-200 p-5">
+            <article
+              key={dossier.id}
+              className="rounded-2xl border border-slate-200 p-5"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
-                    {dossier.kind === "CANDIDATE" ? "Candidatura" : "Consolidado"}
+                    {dossier.kind === "CANDIDATE"
+                      ? "Candidatura"
+                      : "Consolidado"}
                   </p>
                   <h4 className="mt-1 font-black text-slate-950">
                     {dossier.subjectName} · {dossier.subjectCode}
@@ -1153,9 +1203,11 @@ export function FinanceCloseoutPanel({
                       setVersionForm({
                         dossierId: dossier.id,
                         periodStartsAt:
-                          version?.ledgerCut.periodStartsAt.slice(0, 10) ?? today(),
+                          version?.ledgerCut.periodStartsAt.slice(0, 10) ??
+                          today(),
                         periodEndsAt:
-                          version?.ledgerCut.periodEndsAt.slice(0, 10) ?? today(),
+                          version?.ledgerCut.periodEndsAt.slice(0, 10) ??
+                          today(),
                         preparationNote: "",
                       });
                       setOpenForm("version");
@@ -1243,11 +1295,19 @@ function FormActions({
 }) {
   return (
     <div className="flex gap-2 md:col-span-full">
-      <button type="button" onClick={onCancel} className="rounded-xl border border-slate-200 px-4 text-xs font-black">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="rounded-xl border border-slate-200 px-4 text-xs font-black"
+      >
         Cancelar
       </button>
       <button disabled={saving} type="submit" className={actionClass}>
-        {saving ? <Loader2 className="animate-spin" size={15} /> : <ShieldCheck size={15} />}
+        {saving ? (
+          <Loader2 className="animate-spin" size={15} />
+        ) : (
+          <ShieldCheck size={15} />
+        )}
         Guardar con control
       </button>
     </div>
@@ -1283,7 +1343,8 @@ function VersionCard({
           Version {version.versionNumber} · {version.internalStatus}
         </p>
         <p className="text-xs font-bold text-slate-500">
-          {version.ledgerCut.entryCount} movimientos · {money(version.ledgerCut.balance)}
+          {version.ledgerCut.entryCount} movimientos ·{" "}
+          {money(version.ledgerCut.balance)}
         </p>
       </div>
       <p className="mt-2 break-all font-mono text-[10px] text-slate-500">
@@ -1319,22 +1380,35 @@ function VersionCard({
         {canApprove &&
           version.internalStatus !== "APPROVED_INTERNAL" &&
           version.internalStatus !== "RETURNED_FOR_CORRECTION" && (
-            <button type="button" onClick={onApproval} className="text-xs font-black text-indigo-700">
+            <button
+              type="button"
+              onClick={onApproval}
+              className="text-xs font-black text-indigo-700"
+            >
               Registrar mi control
             </button>
           )}
         {canRecordEvidence &&
           version.internalStatus === "APPROVED_INTERNAL" &&
           version.externalEvidenceStatus === "NOT_RECORDED" && (
-            <button type="button" onClick={onEvidence} className="text-xs font-black text-indigo-700">
+            <button
+              type="button"
+              onClick={onEvidence}
+              className="text-xs font-black text-indigo-700"
+            >
               Anotar constancia externa
             </button>
           )}
-        {canAuditEvidence && version.externalEvidenceStatus === "PENDING_REVIEW" && (
-          <button type="button" onClick={onReview} className="text-xs font-black text-indigo-700">
-            Auditar constancia
-          </button>
-        )}
+        {canAuditEvidence &&
+          version.externalEvidenceStatus === "PENDING_REVIEW" && (
+            <button
+              type="button"
+              onClick={onReview}
+              className="text-xs font-black text-indigo-700"
+            >
+              Auditar constancia
+            </button>
+          )}
       </div>
     </div>
   );
@@ -1355,7 +1429,10 @@ function EvidenceList({
       ) : (
         <ul className="mt-3 space-y-3">
           {items.slice(0, 10).map((item) => (
-            <li key={item.id} className="border-t border-slate-100 pt-2 first:border-0">
+            <li
+              key={item.id}
+              className="border-t border-slate-100 pt-2 first:border-0"
+            >
               <p className="text-sm font-bold text-slate-800">{item.primary}</p>
               <p className="mt-1 text-xs text-slate-500">{item.secondary}</p>
             </li>
@@ -1407,7 +1484,9 @@ function EvidenceAccountingForm({
           <EntrySelect
             label="Gasto espejo aprobado"
             value={fields.expenseEntryId}
-            entries={approvedEntries.filter((entry) => entry.type === "EXPENSE")}
+            entries={approvedEntries.filter(
+              (entry) => entry.type === "EXPENSE",
+            )}
             onChange={(value) => setField("expenseEntryId", value)}
           />
           {[
@@ -1433,7 +1512,9 @@ function EvidenceAccountingForm({
           <EntrySelect
             label="Gasto aprobado"
             value={fields.expenseEntryId}
-            entries={approvedEntries.filter((entry) => entry.type === "EXPENSE")}
+            entries={approvedEntries.filter(
+              (entry) => entry.type === "EXPENSE",
+            )}
             onChange={(value) => setField("expenseEntryId", value)}
           />
           {[
@@ -1456,7 +1537,13 @@ function EvidenceAccountingForm({
       )}
       <label className={labelClass}>
         Soporte privado
-        <input required type="file" accept="application/pdf,image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className={inputClass} />
+        <input
+          required
+          type="file"
+          accept="application/pdf,image/*"
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          className={inputClass}
+        />
       </label>
       <FormActions saving={saving} onCancel={onCancel} />
     </form>
@@ -1477,7 +1564,12 @@ function EntrySelect({
   return (
     <label className={labelClass}>
       {label}
-      <select required value={value} onChange={(event) => onChange(event.target.value)} className={inputClass}>
+      <select
+        required
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClass}
+      >
         <option value="">Selecciona movimiento</option>
         {entries.map((entry) => (
           <option key={entry.id} value={entry.id}>
@@ -1503,7 +1595,14 @@ function TextField({
   return (
     <label className={labelClass}>
       {label}
-      <input required type={type} step={type === "number" ? "0.01" : undefined} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />
+      <input
+        required
+        type={type}
+        step={type === "number" ? "0.01" : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClass}
+      />
     </label>
   );
 }

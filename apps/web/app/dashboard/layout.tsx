@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { ArrowLeft, Menu, Search, ShieldAlert } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { UserNav } from "@/components/UserNav";
 import { useAuth } from "@/context/auth";
@@ -32,7 +33,10 @@ export default function DashboardLayout({
   const searchParams = useSearchParams();
 
   const stage = tenant?.operationStage;
-  const currentRouteConfig = getMatchingNavigationItem(pathname, dashboardConfig);
+  const currentRouteConfig = getMatchingNavigationItem(
+    pathname,
+    dashboardConfig,
+  );
   const isPersonalAccountRoute = pathname === "/dashboard/profile";
   const requiresPasswordChange = user?.mustChangePassword === true;
   const isCurrentStageAllowed =
@@ -124,21 +128,33 @@ export default function DashboardLayout({
   }
 
   if (!hasPermission) {
+    const profileRoute = getMatchingNavigationItem(
+      "/dashboard/operation-profile",
+      dashboardConfig,
+    );
+    const canReviewStage = Boolean(
+      !isCurrentStageAllowed &&
+      tenant &&
+      profileRoute &&
+      canAccessNavigationItem(profileRoute, user, tenant),
+    );
     return (
-      <div className="flex h-[calc(100dvh-var(--app-banner-height))] min-h-0 bg-slate-50">
+      <div className="flex h-[calc(100dvh-var(--app-banner-height))] min-h-0 bg-canvas">
         {!requiresPasswordChange && <Sidebar />}
         <main
           id="dashboard-content"
           tabIndex={-1}
           className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-y-auto p-4 pb-28 text-center outline-none sm:p-6 lg:pb-6"
         >
-          <div className="flex max-w-md flex-col items-center gap-6 rounded-[2rem] border border-red-100 bg-red-50 p-8 shadow-xl shadow-red-900/5">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-100 text-red-600">
-              <ShieldAlert aria-hidden="true" size={44} />
+          <div className="flex max-w-md flex-col items-center gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-panel sm:p-8">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+              <ShieldAlert aria-hidden="true" size={28} />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                Acceso restringido
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                {canReviewStage
+                  ? "Esta sección se habilita más adelante"
+                  : "Acceso restringido"}
               </h1>
               <p className="mt-3 font-medium leading-relaxed text-slate-600">
                 {currentRouteConfig?.allowedStages && !isCurrentStageAllowed ? (
@@ -156,6 +172,14 @@ export default function DashboardLayout({
                 )}
               </p>
             </div>
+            {canReviewStage && (
+              <Link
+                href="/dashboard/operation-profile"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                Consultar etapas y requisitos
+              </Link>
+            )}
             <button
               type="button"
               onClick={() =>
@@ -163,7 +187,7 @@ export default function DashboardLayout({
                   tenant ? getDefaultDashboardRoute(user, tenant, stage) : "/",
                 )
               }
-              className="flex min-h-12 items-center gap-2 rounded-xl bg-slate-950 px-6 text-xs font-black uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition-colors hover:bg-blue-50 focus-ring"
             >
               <ArrowLeft aria-hidden="true" size={16} /> Volver al panel
             </button>
@@ -175,34 +199,39 @@ export default function DashboardLayout({
 
   return (
     <>
-      <div className="flex h-[calc(100dvh-var(--app-banner-height))] min-h-0 bg-slate-50">
+      <div className="flex h-[calc(100dvh-var(--app-banner-height))] min-h-0 bg-canvas">
         {!requiresPasswordChange && <Sidebar />}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
+          <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-3 sm:px-6 lg:h-[4.5rem] lg:px-8">
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              {!requiresPasswordChange && <button
-                type="button"
-                onClick={openMobileNavigation}
-                aria-label="Abrir menú de navegación"
-                aria-haspopup="dialog"
-                aria-controls="mobile-navigation-drawer"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-ring lg:hidden"
-              >
-                <Menu aria-hidden="true" size={21} />
-              </button>}
+              {!requiresPasswordChange && (
+                <button
+                  type="button"
+                  onClick={openMobileNavigation}
+                  aria-label="Abrir menú de navegación"
+                  aria-haspopup="dialog"
+                  aria-controls="mobile-navigation-drawer"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-ring lg:hidden"
+                >
+                  <Menu aria-hidden="true" size={21} />
+                </button>
+              )}
               <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950" title={tenant?.name}>
-                {tenant?.name ?? "Organización"}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-slate-500">
-                {isPersonalAccountRoute
-                  ? "Mi cuenta y seguridad"
-                  : (currentRouteConfig?.title ?? "Panel")}
-                {tenant ? ` · ${getTenantTypeLabel(tenant.type)}` : ""}
-              </p>
+                <p className="truncate text-sm font-semibold text-slate-950">
+                  {isPersonalAccountRoute
+                    ? "Mi cuenta y seguridad"
+                    : (currentRouteConfig?.title ?? "Panel")}
+                </p>
+                <p
+                  className="mt-0.5 truncate text-xs text-slate-600"
+                  title={tenant?.name}
+                >
+                  {tenant?.name ?? "Organización"}
+                  {tenant ? ` · ${getTenantTypeLabel(tenant.type)}` : ""}
+                </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-3 lg:gap-5">
               <button
                 type="button"
                 onClick={openGlobalSearch}
@@ -212,45 +241,44 @@ export default function DashboardLayout({
               >
                 <Search aria-hidden="true" size={20} />
               </button>
-              <span
-                role={requiresPasswordChange ? "status" : undefined}
-                aria-live={requiresPasswordChange ? "assertive" : undefined}
-                className={`items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${
-                  requiresPasswordChange
-                    ? "inline-flex"
-                    : "hidden md:inline-flex"
-                } ${
-                  requiresPasswordChange
-                    ? "bg-amber-50 text-amber-800"
-                    : "bg-emerald-50 text-emerald-700"
-                }`}
+              <button
+                type="button"
+                onClick={openGlobalSearch}
+                aria-label="Buscar en la organización"
+                aria-haspopup="dialog"
+                className="hidden min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-600 transition-colors hover:border-blue-300 hover:bg-white focus-ring lg:inline-flex"
               >
-                <span
+                <Search aria-hidden="true" size={17} />
+                <span>Buscar en tu equipo</span>
+                <kbd
                   aria-hidden="true"
-                  className={`h-2 w-2 rounded-full ${
-                    requiresPasswordChange ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
-                />
-                {requiresPasswordChange
-                  ? "Cambio de clave obligatorio"
-                  : "Sesión activa"}
-              </span>
-              <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 xl:block">
-                {getRoleLabel(user.backendRole)}
-              </span>
+                  className="ml-4 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-500"
+                >
+                  Ctrl/⌘ K
+                </kbd>
+              </button>
+              {requiresPasswordChange && (
+                <span
+                  role="status"
+                  aria-live="assertive"
+                  className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800"
+                >
+                  Cambio de clave obligatorio
+                </span>
+              )}
               <UserNav />
             </div>
           </header>
           <main
             id="dashboard-content"
             tabIndex={-1}
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-none sm:p-6 lg:p-8"
+            className="workspace-scroll min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-none sm:p-6 lg:p-8"
           >
             <DashboardErrorBoundary key={pathname}>
               {children}
             </DashboardErrorBoundary>
           </main>
-          <footer className="shrink-0 border-t border-slate-200/80 bg-white px-4 pt-2 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:pb-2">
+          <footer className="shrink-0 border-t border-slate-200/80 bg-white px-4 pt-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:py-1">
             <div id="pwa-workspace-controls" />
           </footer>
         </div>

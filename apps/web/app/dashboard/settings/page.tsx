@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -111,34 +112,26 @@ export default function ConsentSettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7 min-w-0">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0">
-        <div className="max-w-2xl min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <ShieldCheck aria-hidden="true" size={14} /> Gobierno de datos
-          </span>
-          <h1 className="mt-4 font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
-            Aviso de privacidad de la organización
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            El equipo solo podrá registrar autorizaciones después de activar un
-            aviso propio. Cada nueva versión conserva la anterior y obliga a
-            confirmar nuevamente el consentimiento.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setReload((value) => value + 1)}
-          disabled={loading || saving}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            size={15}
-            className={loading ? "animate-spin" : undefined}
-          />
-          Actualizar
-        </button>
-      </header>
+      <PageHeader
+        title="Aviso de privacidad"
+        description="Activa el aviso propio de tu organización antes de registrar autorizaciones. Una nueva versión requiere confirmar nuevamente el consentimiento."
+        icon={ShieldCheck}
+        actions={
+          <button
+            type="button"
+            onClick={() => setReload((value) => value + 1)}
+            disabled={loading || saving}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              size={15}
+              className={loading ? "animate-spin" : undefined}
+            />
+            Actualizar
+          </button>
+        }
+      />
 
       {notice && (
         <div

@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { useCallback } from "react";
 import { usePageRequest } from "@/lib/use-page-request";
@@ -55,7 +56,7 @@ export default function BillingPage() {
     ]);
     if (!isBillingEntitledForDisplay(subRes)) {
       throw new Error(
-        "La API no confirmó una suscripción vigente para esta organización.",
+        "No se pudo confirmar una suscripción vigente para esta organización.",
       );
     }
     return { subscription: subRes, usage: usageRes };
@@ -127,17 +128,10 @@ export default function BillingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7 min-w-0">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0">
-        <div>
-          <h1 className="font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
-            Plan y uso
-          </h1>
-          <p className="mt-2 text-base text-slate-500">
-            Consulta tu plan actual y revisa los límites de uso de tu
-            organización.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="Plan y uso"
+        description="Consulta tu plan actual y los límites de uso de tu organización."
+      />
 
       <div className="grid gap-6 lg:grid-cols-2 min-w-0">
         <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm min-w-0">

@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 import { useSearchParams } from "next/navigation";
 
@@ -150,7 +152,7 @@ function statusLabel<T extends string>(
 function modeLabel(mode: PoliticalOperationMode | undefined): string {
   if (mode === "CAMPAIGN") return "Campaña";
   if (mode === "PUBLIC_OFFICE") return "Gestión pública";
-  return "Modo definido por la API";
+  return "Operación del equipo";
 }
 
 function readableError(error: unknown): string {
@@ -810,42 +812,32 @@ function TasksWorkspace({ search }: { search: string }) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
-            <span
-              className="h-2 w-2 rounded-full bg-blue-600"
-              aria-hidden="true"
-            />
-            {modeLabel(activeMode)}
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Tareas y compromisos
-          </h1>
-          <p className="mt-2 max-w-2xl text-slate-600">
-            Organiza el trabajo operativo y da seguimiento verificable a los
-            compromisos de la organización.
-          </p>
-        </div>
-        {(canExport || canCreateCurrentView) && (
-          <div className="flex items-center gap-3 min-w-0 flex-wrap">
-            {canExport && <ExportButton moduleName={exportModuleName} />}
-            {canCreateCurrentView && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMutationError(null);
-                  setDialog(view === "tasks" ? "task" : "commitment");
-                }}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700 max-w-full whitespace-normal"
-              >
-                <Plus aria-hidden="true" size={19} />
-                {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
-              </button>
-            )}
-          </div>
-        )}
-      </header>
+      <PageHeader
+        title="Tareas y compromisos"
+        description="Asigna responsables, organiza pendientes y da seguimiento a cada compromiso."
+        icon={ClipboardList}
+        meta={modeLabel(activeMode)}
+        actions={
+          (canExport || canCreateCurrentView) && (
+            <div className="flex items-center gap-3 min-w-0 flex-wrap">
+              {canExport && <ExportButton moduleName={exportModuleName} />}
+              {canCreateCurrentView && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMutationError(null);
+                    setDialog(view === "tasks" ? "task" : "commitment");
+                  }}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700 max-w-full whitespace-normal"
+                >
+                  <Plus aria-hidden="true" size={19} />
+                  {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
+                </button>
+              )}
+            </div>
+          )
+        }
+      />
 
       {linkedCaseLoading && (
         <div
@@ -999,9 +991,9 @@ function TasksWorkspace({ search }: { search: string }) {
             role="search"
             aria-label="Filtrar tareas"
             onSubmit={submitTaskSearch}
-            className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto] min-w-0"
+            className="grid grid-cols-2 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto] min-w-0"
           >
-            <label className="relative min-w-0">
+            <label className="relative col-span-2 lg:col-span-1 min-w-0">
               <span className="sr-only">Buscar tareas</span>
               <Search
                 aria-hidden="true"
@@ -1017,7 +1009,9 @@ function TasksWorkspace({ search }: { search: string }) {
               />
             </label>
             <label>
-              <span className="sr-only">Estado de la tarea</span>
+              <span className="mb-1 block text-xs font-medium text-slate-600">
+                Estado de la tarea
+              </span>
               <select
                 value={taskFilters.status}
                 onChange={(event) =>
@@ -1029,7 +1023,7 @@ function TasksWorkspace({ search }: { search: string }) {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
               >
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 {TASK_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
@@ -1038,7 +1032,9 @@ function TasksWorkspace({ search }: { search: string }) {
               </select>
             </label>
             <label>
-              <span className="sr-only">Prioridad de la tarea</span>
+              <span className="mb-1 block text-xs font-medium text-slate-600">
+                Prioridad de la tarea
+              </span>
               <select
                 value={taskFilters.priority}
                 onChange={(event) =>
@@ -1050,7 +1046,7 @@ function TasksWorkspace({ search }: { search: string }) {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
               >
-                <option value="">Todas las prioridades</option>
+                <option value="">Todas</option>
                 {PRIORITIES.map((priority) => (
                   <option key={priority.value} value={priority.value}>
                     {priority.label}
@@ -1060,7 +1056,7 @@ function TasksWorkspace({ search }: { search: string }) {
             </label>
             <button
               type="submit"
-              className="min-h-12 rounded-2xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 max-w-full whitespace-normal"
+              className="col-span-2 lg:col-span-1 min-h-12 rounded-2xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 max-w-full whitespace-normal"
             >
               Buscar
             </button>
@@ -1207,9 +1203,9 @@ function TasksWorkspace({ search }: { search: string }) {
             role="search"
             aria-label="Filtrar compromisos"
             onSubmit={submitCommitmentSearch}
-            className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto] min-w-0"
+            className="grid grid-cols-2 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto] min-w-0"
           >
-            <label className="relative min-w-0">
+            <label className="relative col-span-2 lg:col-span-1 min-w-0">
               <span className="sr-only">Buscar compromisos</span>
               <Search
                 aria-hidden="true"
@@ -1225,7 +1221,9 @@ function TasksWorkspace({ search }: { search: string }) {
               />
             </label>
             <label>
-              <span className="sr-only">Estado del compromiso</span>
+              <span className="mb-1 block text-xs font-medium text-slate-600">
+                Estado del compromiso
+              </span>
               <select
                 value={commitmentFilters.status}
                 onChange={(event) =>
@@ -1237,7 +1235,7 @@ function TasksWorkspace({ search }: { search: string }) {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
               >
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 {COMMITMENT_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
@@ -1246,7 +1244,9 @@ function TasksWorkspace({ search }: { search: string }) {
               </select>
             </label>
             <label>
-              <span className="sr-only">Visibilidad del compromiso</span>
+              <span className="mb-1 block text-xs font-medium text-slate-600">
+                Visibilidad del compromiso
+              </span>
               <select
                 value={commitmentFilters.isPublic}
                 onChange={(event) =>
@@ -1258,7 +1258,7 @@ function TasksWorkspace({ search }: { search: string }) {
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
               >
-                <option value="">Todos los niveles de acceso</option>
+                <option value="">Todos</option>
                 <option value="true">Todo el equipo</option>
                 {commitmentResult?.permissions.canReadInternal && (
                   <option value="false">Acceso restringido</option>
@@ -1267,7 +1267,7 @@ function TasksWorkspace({ search }: { search: string }) {
             </label>
             <button
               type="submit"
-              className="min-h-12 rounded-2xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 max-w-full whitespace-normal"
+              className="col-span-2 lg:col-span-1 min-h-12 rounded-2xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 max-w-full whitespace-normal"
             >
               Buscar
             </button>

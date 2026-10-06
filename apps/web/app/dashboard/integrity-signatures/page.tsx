@@ -3,6 +3,8 @@
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { Button, Input, Label } from "@/components/ui";
+import { PageHeader } from "@/components/ui/PageHeader";
+import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -200,29 +202,27 @@ export default function IntegritySignaturesPage() {
       tabIndex={-1}
       className="space-y-8 outline-none min-w-0"
     >
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-          <div className="max-w-3xl space-y-3 min-w-0">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300 min-w-0">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Integridad documental
-            </div>
-            <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Sellos de vínculo y metadatos con MFA
-            </h1>
-            <p className="leading-7 text-slate-300">
-              Confirma con MFA la evidencia financiera o E-14 que tú mismo
-              cargaste y comprueba después su vínculo y metadatos de Storage.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100 lg:max-w-md min-w-0">
-            No es la recolección de apoyos ciudadanos ni sustituye un reporte,
-            radicación o firma exigidos por la autoridad electoral. El servidor
-            recalcula el SHA-256 de los bytes mediante un worker independiente
-            antes de permitir que la evidencia sea consumida.
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Sellos de documentos"
+        eyebrow="Integridad documental"
+        icon={ShieldCheck}
+        description="Confirma el vínculo entre un archivo que cargaste y su registro financiero o acta E-14. Necesitas un documento elegible y el código de tu aplicación de autenticación."
+      />
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+        Este sello no es una firma de apoyo ciudadano ni sustituye un reporte,
+        radicación o firma exigidos por la autoridad electoral.
+        <details className="mt-2">
+          <summary className="cursor-pointer py-2 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            Qué comprueba el sistema
+          </summary>
+          <p className="mt-1">
+            Antes de vincular la evidencia, un proceso independiente comprueba
+            su contenido mediante SHA-256. La consulta del sello comprueba el
+            vínculo y los metadatos guardados; no acredita por sí sola la
+            autenticidad ni la validez jurídica del documento.
+          </p>
+        </details>
+      </div>
 
       {isClosed && (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950 min-w-0">
@@ -236,11 +236,12 @@ export default function IntegritySignaturesPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
             <div>
               <h2 className="text-xl font-semibold text-slate-950">
-                Mis documentos elegibles
+                Crear un sello
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                La API solo devuelve archivos consumidos, confirmados y ligados
-                a un registro de tu propiedad.
+                Elige un documento de la lista y confirma con tu código de
+                autenticación. Solo aparecen archivos verificados y vinculados
+                a un registro propio.
               </p>
             </div>
             <Button
@@ -256,6 +257,15 @@ export default function IntegritySignaturesPage() {
               Actualizar
             </Button>
           </div>
+
+          <p className="text-sm leading-6 text-slate-600">
+            Si aún no tienes la autenticación de doble factor (MFA) activa,
+            consulta su disponibilidad y configuración en{" "}
+            <Link href="/dashboard/profile" className="font-semibold text-blue-700 underline underline-offset-4">
+              Mi perfil
+            </Link>. La creación del sello sigue sujeta a tu plan, rol y estado
+            de la operación.
+          </p>
 
           {availableModules.length > 1 && (
             <div
@@ -305,12 +315,13 @@ export default function IntegritySignaturesPage() {
               role="status"
             >
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-              Consultando candidatos autorizados…
+              Consultando documentos disponibles…
             </div>
           ) : candidates.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm leading-6 text-slate-600 min-w-0">
               No hay documentos propios pendientes o firmados en este módulo.
-              Primero carga y vincula la evidencia desde Finanzas o War Room.
+              Primero carga y vincula la evidencia desde Finanzas o el módulo
+              de actas E-14, según tu rol. Después vuelve y pulsa Actualizar.
             </div>
           ) : (
             <form onSubmit={handleSign} className="space-y-5 min-w-0">
@@ -344,8 +355,9 @@ export default function IntegritySignaturesPage() {
                         {formatDate(candidate.consumedAt)}
                       </span>
                       {candidate.signature && (
-                        <span className="mt-2 block font-mono text-xs text-emerald-800">
-                          Sellado: {candidate.signature.id}
+                        <span className="mt-2 block break-all text-xs leading-6 text-emerald-800">
+                          Identificador del sello: <span className="font-mono">{candidate.signature.id}</span>
+                          <span className="block">Identificador del registro: <span className="font-mono">{candidate.resourceId}</span></span>
                         </span>
                       )}
                     </span>
@@ -356,7 +368,7 @@ export default function IntegritySignaturesPage() {
               <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end min-w-0">
                 <div className="space-y-2 min-w-0">
                   <Label htmlFor="signatureOtp">
-                    Código MFA de seis dígitos
+                    Código de tu aplicación de autenticación
                   </Label>
                   <Input
                     id="signatureOtp"
@@ -387,7 +399,7 @@ export default function IntegritySignaturesPage() {
                   ) : (
                     <FileSignature className="h-4 w-4" aria-hidden="true" />
                   )}
-                  Sellar vínculo
+                  Crear sello
                 </Button>
               </div>
             </form>
@@ -401,9 +413,11 @@ export default function IntegritySignaturesPage() {
             Comprobar un sello
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            La comprobación exige el identificador y el recurso exacto; un ID
-            aislado no prueba el contenido de los bytes ni la autenticidad del
-            documento.
+            Al crear un sello aquí, estos campos se completan automáticamente.
+            Para consultar uno anterior, copia el identificador del sello y el
+            del registro asociado: ambos aparecen junto a los documentos ya
+            sellados de la lista, cuando tienes acceso. Esta consulta no dispone
+            de un buscador de documentos.
           </p>
         </div>
 
@@ -431,7 +445,7 @@ export default function IntegritySignaturesPage() {
             </select>
           </div>
           <div className="space-y-2 min-w-0">
-            <Label htmlFor="verifySignatureId">ID del sello</Label>
+            <Label htmlFor="verifySignatureId">Identificador del sello</Label>
             <Input
               id="verifySignatureId"
               value={verificationInput.id}
@@ -446,7 +460,7 @@ export default function IntegritySignaturesPage() {
             />
           </div>
           <div className="space-y-2 min-w-0">
-            <Label htmlFor="verifyResourceId">ID del recurso</Label>
+            <Label htmlFor="verifyResourceId">Identificador del registro asociado</Label>
             <Input
               id="verifyResourceId"
               value={verificationInput.resourceId}

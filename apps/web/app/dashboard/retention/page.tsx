@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -53,7 +54,7 @@ const SCOPE_LABELS: Record<RetentionDataScope, string> = {
 };
 
 const STATUS_LABELS: Record<RetentionDispositionRequest["status"], string> = {
-  PENDING: "Pendiente de cuatro ojos",
+  PENDING: "Pendiente de revisión independiente",
   APPROVED_NOT_EXECUTED: "Aprobada, no ejecutada",
   REJECTED: "Rechazada",
   CANCELLED: "Cancelada",
@@ -352,21 +353,17 @@ export default function RetentionGovernancePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 pb-28 lg:pb-8 min-w-0">
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between min-w-0">
-          <div className="max-w-3xl min-w-0">
-            <p className="text-xs font-semibold text-blue-300">
-              Después de las elecciones
-            </p>
-            <h1 className="mt-3 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Gobierno de retención y conservación legal
-            </h1>
-            <p className="mt-4 text-sm font-semibold leading-6 text-slate-300">
-              Cuenta vencimientos, documenta decisiones con cuatro ojos y
-              protege expedientes con retenciones legales. Este módulo no
-              elimina datos, no programa purgas y no toca archivos.
-            </p>
-          </div>
+      <PageHeader
+        title="Gobierno de retención y conservación legal"
+        icon={FileClock}
+        description={
+          <>
+            Consulta vencimientos, documenta decisiones con revisión
+            independiente y protege expedientes con retenciones legales. Este
+            módulo no elimina datos, no programa purgas y no toca archivos.
+          </>
+        }
+        actions={
           <Button
             type="button"
             variant="outline"
@@ -380,12 +377,12 @@ export default function RetentionGovernancePage() {
                 )
                 .finally(() => setBusy(null));
             }}
-            className="min-h-11 border-slate-600 bg-slate-900 text-white hover:bg-slate-800 max-w-full whitespace-normal"
+            className="min-h-11 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
           >
             <RefreshCw aria-hidden="true" size={17} /> Actualizar
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <div ref={feedbackRef} tabIndex={-1} className="outline-none min-w-0">
         {error && (
@@ -443,13 +440,13 @@ export default function RetentionGovernancePage() {
           <ShieldAlert aria-hidden="true" className="shrink-0" size={26} />
           <div>
             <h2 className="text-xl font-semibold">
-              Ejecución deliberadamente bloqueada
+              La eliminación de datos no está habilitada
             </h2>
             <p className="mt-2 text-sm font-semibold leading-6">
               Incluso una aprobación queda como “aprobada, no ejecutada”. Antes
-              de construir un ejecutor se necesita política jurídica validada,
-              prueba real de restauración, worker BullMQ revisado y disposición
-              coordinada de Storage.
+              de habilitar la eliminación se necesita una política jurídica
+              validada, una restauración probada y un proceso revisado que
+              abarque tanto los registros como sus archivos.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm font-semibold min-w-0">
               {overview?.executionCapability.blockers.map((blocker) => (
@@ -694,9 +691,14 @@ export default function RetentionGovernancePage() {
                   <p className="mt-3 text-sm leading-6 text-slate-700">
                     {request.justification}
                   </p>
-                  <p className="mt-2 font-mono text-xs text-slate-500">
-                    SHA-256 {request.payloadSha256}
-                  </p>
+                  <details className="mt-2 text-sm text-slate-600">
+                    <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+                      Ver huella de verificación
+                    </summary>
+                    <p className="mt-2 break-all font-mono text-xs">
+                      SHA-256 {request.payloadSha256}
+                    </p>
+                  </details>
                 </article>
               ))
             ) : (
@@ -811,7 +813,7 @@ function DispositionRequestForm({
         {[
           "La política jurídica aún debe ser validada antes de cualquier ejecución.",
           "Debe existir evidencia real y vigente de backup y restauración.",
-          "No existe ejecutor BullMQ/Storage y esta solicitud no crea uno.",
+          "Esta solicitud no elimina registros ni archivos; la eliminación no está habilitada.",
         ].map((label, index) => (
           <label
             key={label}
@@ -927,7 +929,7 @@ function ReviewPanel({
       <div className="flex items-start justify-between gap-4 min-w-0 flex-wrap">
         <div>
           <h2 id="review-title" className="text-xl font-semibold">
-            Revisión con cuatro ojos
+            Revisión por otra persona
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             {SCOPE_LABELS[request.scope]} · corte {formatDate(request.cutoffAt)}

@@ -16,6 +16,10 @@ export function ExportButton({
   const [error, setError] = useState<string | null>(null);
   const capability = usePlanCapability("export");
   const capabilityMessageId = useId();
+  const exportErrorId = `${capabilityMessageId}-export-error`;
+  const showCapabilityReason = Boolean(
+    capability.reason && capability.status !== "checking",
+  );
 
   async function handleExport() {
     if (!capability.enabled) return;
@@ -34,18 +38,23 @@ export function ExportButton({
   }
 
   return (
-    <>
+    <div
+      role="group"
+      aria-label={label}
+      className={`inline-flex min-w-0 max-w-full flex-col items-stretch gap-1.5 sm:max-w-xs ${showCapabilityReason || error ? "w-full sm:w-auto" : "w-auto"}`}
+    >
       <button
         type="button"
         onClick={handleExport}
         disabled={loading || !capability.enabled}
         aria-busy={loading || capability.status === "checking"}
-        aria-describedby={
-          capability.reason ? capabilityMessageId : undefined
-        }
+        aria-describedby={[
+          showCapabilityReason ? capabilityMessageId : null,
+          error ? exportErrorId : null,
+        ].filter(Boolean).join(" ") || undefined}
         aria-label={label}
         title={capability.reason ?? undefined}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 focus-ring"
+        className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 whitespace-normal rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed focus-ring [&_svg]:shrink-0"
       >
         {loading || capability.status === "checking" ? (
           <Loader2
@@ -66,13 +75,13 @@ export function ExportButton({
                 ? "Exportando…"
                 : label}
       </button>
-      {capability.reason && capability.status !== "checking" && (
+      {showCapabilityReason && (
         <p
           id={capabilityMessageId}
           className={
             capability.status === "error"
-              ? "mt-1 text-xs font-semibold text-red-700"
-              : "mt-1 text-xs font-semibold text-amber-800"
+              ? "min-w-0 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-900"
+              : "min-w-0 break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
           }
           role={capability.status === "error" ? "alert" : "status"}
         >
@@ -82,7 +91,7 @@ export function ExportButton({
               type="button"
               onClick={capability.refresh}
               aria-label="Reintentar validación del plan de exportación"
-              className="font-black underline underline-offset-2"
+              className="mt-1 inline-flex min-h-11 items-center rounded-lg px-2 font-semibold underline underline-offset-2 focus-ring"
             >
               Reintentar
             </button>
@@ -90,10 +99,10 @@ export function ExportButton({
         </p>
       )}
       {error && (
-        <p className="mt-1 text-xs text-red-600" role="alert">
+        <p id={exportErrorId} className="min-w-0 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-900" role="alert">
           {error}
         </p>
       )}
-    </>
+    </div>
   );
 }

@@ -366,9 +366,9 @@ export default function ProfilePage() {
           </h2>
           <ul className="mt-4 space-y-3 text-sm font-medium leading-6 text-emerald-950/75 min-w-0">
             <li>Se verifica tu contraseña vigente.</li>
-            <li>La nueva clave se almacena con bcrypt.</li>
+            <li>Tu contraseña se guarda protegida.</li>
             <li>El evento queda registrado para auditoría.</li>
-            <li>El tenant se obtiene de tu sesión, nunca del formulario.</li>
+            <li>El cambio sólo afecta a tu cuenta en esta organización.</li>
           </ul>
         </aside>
       </div>

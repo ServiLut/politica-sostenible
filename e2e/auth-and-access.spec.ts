@@ -890,7 +890,7 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
 
   await expect(page).toHaveURL(/\/dashboard\/executive$/);
   await expect(
-    page.getByRole("heading", { name: "Cuadro de Mando" }),
+    page.getByRole("heading", { name: "Cuadro de mando" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Cumplimiento de Metas" }),

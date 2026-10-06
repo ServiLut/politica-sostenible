@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -525,30 +526,26 @@ export default function SignatureCollectionPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8 min-w-0">
-        <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
-          <div>
-            <p className="text-sm font-bold text-blue-300">
-              Antes de campaña · cadena de custodia
-            </p>
-            <h1 className="mt-2 font-semibold text-2xl sm:text-3xl break-words">
-              Recolección de firmas y apoyos
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              Controla lotes físicos y totales agregados. No sustituye los
-              formularios, la radicación ni la certificación de la autoridad.
-            </p>
-          </div>
+      <PageHeader
+        title="Recolección de firmas y apoyos"
+        icon={ClipboardCheck}
+        description={
+          <>
+            Controla lotes físicos y totales agregados. No sustituye los
+            formularios, la radicación ni la certificación de la autoridad.
+          </>
+        }
+        actions={
           <button
             type="button"
             onClick={() => setReloadVersion((value) => value + 1)}
             disabled={loading || mutationKey !== null}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 font-semibold hover:bg-slate-800 disabled:opacity-50 max-w-full whitespace-normal"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw size={16} aria-hidden="true" /> Actualizar
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <section
         className="grid gap-3 md:grid-cols-2 min-w-0"

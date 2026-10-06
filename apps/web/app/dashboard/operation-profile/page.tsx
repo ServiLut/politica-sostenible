@@ -10,6 +10,7 @@ import {
 import { OperationTerminationPanel } from "@/components/operation-profile/OperationTermination";
 import { Button, Input, Label } from "@/components/ui";
 import { Select } from "@/components/ui/select";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   canAccessNavigationItem,
   dashboardConfig,
@@ -636,7 +637,7 @@ const READINESS_SECTIONS: ReadonlyArray<{
 }> = [
   {
     key: "BEFORE_CAMPAIGN",
-    name: "Antes",
+    name: "Preparar la operación",
     description: "Perfil, cumplimiento, equipo y base territorial",
   },
   {
@@ -651,7 +652,7 @@ const READINESS_SECTIONS: ReadonlyArray<{
   },
   {
     key: "POST_ELECTION",
-    name: "Después",
+    name: "Después de la elección",
     description: "Obligaciones financieras y cierre operativo",
   },
 ];
@@ -860,9 +861,9 @@ function ReadinessPanel({
             Alistamiento por ciclo
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Controles calculados por el servidor con datos agregados de esta
-            organización. Una advertencia no se presenta como certificación ni
-            como dato electoral validado.
+            Revisa qué falta en cada etapa. Abre un grupo para consultar sus
+            requisitos y las acciones disponibles para tu rol. Estos controles
+            no sustituyen una certificación electoral.
           </p>
           <p className="mt-2 text-xs font-semibold text-slate-500">
             Etapa:{" "}
@@ -944,25 +945,38 @@ function ReadinessPanel({
       <div className="mt-6 grid gap-5 xl:grid-cols-2 min-w-0">
         {READINESS_SECTIONS.map((section) => {
           const headingId = `readiness-${section.key.toLowerCase()}`;
+          const checks = readiness.sections[section.key];
+          const sectionBlocked = checks.filter(
+            (item) => item.status === "BLOCK",
+          ).length;
+          const sectionWarnings = checks.filter(
+            (item) => item.status === "WARN",
+          ).length;
+          const sectionPassed = checks.filter(
+            (item) => item.status === "PASS",
+          ).length;
           return (
-            <section
+            <details
               key={section.key}
               aria-labelledby={headingId}
               className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 min-w-0"
             >
-              <div className="border-b border-slate-200 pb-3 min-w-0">
-                <h3
+              <summary className="cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 min-w-0">
+                <span
                   id={headingId}
-                  className="text-lg font-semibold text-slate-950"
+                  className="text-base font-semibold text-slate-950"
                 >
                   {section.name}
-                </h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
+                </span>
+                <span className="mt-2 block text-sm leading-5 text-slate-600">
+                  {sectionBlocked} bloqueos · {sectionWarnings} advertencias · {sectionPassed} cumplidos
+                </span>
+                <span className="mt-1 block text-sm leading-5 text-slate-600">
                   {section.description}
-                </p>
-              </div>
+                </span>
+              </summary>
               <ul className="mt-4 space-y-3 min-w-0">
-                {readiness.sections[section.key].map((item) => {
+                {checks.map((item) => {
                   const status = READINESS_STATUS[item.status];
                   const StatusIcon = status.icon;
                   const actionHref =
@@ -1000,7 +1014,7 @@ function ReadinessPanel({
                               className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-1 text-xs font-semibold text-blue-800 underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 max-w-full whitespace-normal"
                               aria-label={`Revisar: ${item.label}`}
                             >
-                              Revisar acción
+                              Revisar: {item.label}
                               <ExternalLink aria-hidden="true" size={14} />
                             </Link>
                           ) : item.status !== "PASS" ? (
@@ -1014,7 +1028,7 @@ function ReadinessPanel({
                   );
                 })}
               </ul>
-            </section>
+            </details>
           );
         })}
       </div>
@@ -1573,57 +1587,57 @@ export default function OperationProfilePage() {
     }
   }
 
+  const readinessPanel = user && tenant && (
+    <ReadinessPanel
+      readiness={readiness}
+      loading={readinessLoading}
+      error={readinessError}
+      onReload={() => setReload((value) => value + 1)}
+      user={user}
+      tenant={tenant}
+    />
+  );
+
   return (
     <div className="mx-auto max-w-6xl space-y-7 min-w-0">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0">
-        <div className="max-w-3xl min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-800">
-            <Settings2 aria-hidden="true" size={14} /> Configuración estratégica
-          </span>
-          <h1 className="mt-4 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Perfil de operación
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Define el tipo de organización electoral, su etapa, alcance, escala,
-            presupuesto y gobierno de datos. El sistema usa este perfil para
-            habilitar el espacio de trabajo adecuado.
-          </p>
-          {canEdit && context && form && (
-            <a
-              href="#operation-profile-form"
-              className="mt-4 inline-flex min-h-11 max-w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      <PageHeader
+        title="Perfil de operación"
+        eyebrow="Configuración de la organización"
+        icon={Settings2}
+        description="Define el tipo de organización, la etapa y las personas responsables. Después revisa los requisitos para avanzar."
+        actions={
+          <>
+            {canEdit && context && form && (
+              <a
+                href="#operation-profile-form"
+                onClick={() =>
+                  document.getElementById("operation-profile-form")?.focus()
+                }
+                className="inline-flex min-h-11 max-w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                {currentProfile ? "Editar perfil" : "Configurar perfil"}
+              </a>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setReload((value) => value + 1)}
+              disabled={loading || readinessLoading || saving}
+              className="gap-2 max-w-full whitespace-normal"
             >
-              Configurar perfil
-            </a>
-          )}
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setReload((value) => value + 1)}
-          disabled={loading || readinessLoading || saving}
-          className="w-full gap-2 sm:w-auto max-w-full whitespace-normal"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            size={15}
-            className={loading ? "animate-spin" : undefined}
-          />
-          Recargar perfil y alistamiento
-        </Button>
-      </header>
+              <RefreshCw
+                aria-hidden="true"
+                size={15}
+                className={loading ? "animate-spin" : undefined}
+              />
+              Actualizar
+            </Button>
+          </>
+        }
+      />
 
-      {user && tenant && (
-        <ReadinessPanel
-          readiness={readiness}
-          loading={readinessLoading}
-          error={readinessError}
-          onReload={() => setReload((value) => value + 1)}
-          user={user}
-          tenant={tenant}
-        />
-      )}
+      {currentProfile && readinessPanel}
 
       {notice && (
         <div
@@ -1635,50 +1649,6 @@ export default function OperationProfilePage() {
           {notice}
         </div>
       )}
-
-      {user &&
-        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
-          user.backendRole,
-        ) && (
-          <OperationAdoptionStatusPanel
-            role={user.backendRole}
-            userId={user.id}
-            reloadKey={adoptionReload}
-            onApproved={(stage) => {
-              const synchronized = tenant
-                ? synchronizeTenant({ ...tenant, operationStage: stage })
-                : false;
-              setNotice(
-                synchronized
-                  ? "Adopción aprobada: perfil, etapa y alistamiento se están recargando."
-                  : "La adopción fue aprobada y el perfil se recargará, pero la sesión local no pudo sincronizar la navegación; vuelve a ingresar.",
-              );
-              setReload((value) => value + 1);
-            }}
-          />
-        )}
-
-      {user &&
-        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
-          user.backendRole,
-        ) && (
-          <OperationTerminationPanel
-            role={user.backendRole}
-            userId={user.id}
-            profile={currentProfile}
-            onApproved={() => {
-              const synchronized = tenant
-                ? synchronizeTenant({ ...tenant, operationStage: "CLOSED" })
-                : false;
-              setNotice(
-                synchronized
-                  ? "Cierre excepcional confirmado: la operación quedó en modo de solo lectura y el expediente se está recargando."
-                  : "El cierre excepcional fue confirmado, pero la navegación local no pudo sincronizarse; vuelve a ingresar.",
-              );
-              setReload((value) => value + 1);
-            }}
-          />
-        )}
 
       {error && context && (
         <div
@@ -1744,18 +1714,18 @@ export default function OperationProfilePage() {
             <form
               id="operation-profile-form"
               tabIndex={-1}
-              aria-label="Parámetros de la operación"
+              aria-label="Datos de la operación"
               onSubmit={handleSubmit}
               className="min-w-0 scroll-mt-4 space-y-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:p-8"
             >
               <div>
                 <h2 className="flex items-center gap-3 text-xl font-semibold text-slate-950">
                   <Gauge aria-hidden="true" className="text-blue-700" />
-                  Parámetros de la operación
+                  Datos de la operación
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Todos los cambios se validan en el servidor y quedan ligados
-                  exclusivamente a esta organización.
+                  Completa los datos de esta organización. Después podrás revisar
+                  sus requisitos y avanzar de etapa cuando corresponda.
                 </p>
                 {!currentProfile && (
                   <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-2 sm:grid-cols-2 min-w-0">
@@ -1765,7 +1735,7 @@ export default function OperationProfilePage() {
                       onClick={() => selectCreationMode(false)}
                       className={`rounded-xl px-4 py-3 text-left text-sm font-semibold ${!adoptionMode ? "bg-white text-blue-900 shadow-sm ring-2 ring-blue-700" : "text-slate-600"}`}
                     >
-                      Alta segura
+                      Empezar una operación nueva
                       <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
                         Inicia en exploración o precampaña.
                       </span>
@@ -1776,7 +1746,7 @@ export default function OperationProfilePage() {
                       onClick={() => selectCreationMode(true)}
                       className={`rounded-xl px-4 py-3 text-left text-sm font-semibold ${adoptionMode ? "bg-amber-50 text-amber-950 shadow-sm ring-2 ring-amber-600" : "text-slate-600"}`}
                     >
-                      Adopción excepcional
+                      Registrar una campaña ya iniciada
                       <span className="mt-1 block text-xs font-semibold leading-5 opacity-75">
                         Para una campaña que ya inició fuera del sistema.
                       </span>
@@ -1839,7 +1809,7 @@ export default function OperationProfilePage() {
                               )}. No se permiten retrocesos ni saltos de control.`
                           : "La operación está cerrada y no admite reapertura desde este perfil."
                         : adoptionMode
-                          ? "Solo se ofrecen las seis etapas adoptables autorizadas por el servidor; exige evidencia y cuatro ojos."
+                          ? "Esta opción requiere soportes y la aprobación de otra persona autorizada. Solo puedes solicitar las etapas disponibles."
                           : "Un perfil nuevo inicia en exploración o precampaña; después avanza con trazabilidad."}
                     </p>
                   </div>
@@ -2275,7 +2245,7 @@ export default function OperationProfilePage() {
                 <p className="max-w-md text-xs font-semibold leading-5 text-slate-500">
                   {adoptionMode && !currentProfile
                     ? "La solicitud no activa la etapa: una persona de cumplimiento o auditoría debe revisar la evidencia y decidir."
-                    : "La versión abierta se envía al servidor para evitar que un cambio simultáneo sobrescriba el trabajo de otra persona."}
+                    : "Si otra persona actualiza este perfil mientras lo editas, deberás recargarlo antes de guardar."}
                 </p>
                 <Button
                   type="submit"
@@ -2338,6 +2308,52 @@ export default function OperationProfilePage() {
           </aside>
         </div>
       ) : null}
+
+      {!currentProfile && readinessPanel}
+
+      {user &&
+        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
+          user.backendRole,
+        ) && (
+          <OperationAdoptionStatusPanel
+            role={user.backendRole}
+            userId={user.id}
+            reloadKey={adoptionReload}
+            onApproved={(stage) => {
+              const synchronized = tenant
+                ? synchronizeTenant({ ...tenant, operationStage: stage })
+                : false;
+              setNotice(
+                synchronized
+                  ? "Adopción aprobada: perfil, etapa y alistamiento se están recargando."
+                  : "La adopción fue aprobada y el perfil se recargará, pero la sesión local no pudo sincronizar la navegación; vuelve a ingresar.",
+              );
+              setReload((value) => value + 1);
+            }}
+          />
+        )}
+
+      {user &&
+        ["ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"].includes(
+          user.backendRole,
+        ) && (
+          <OperationTerminationPanel
+            role={user.backendRole}
+            userId={user.id}
+            profile={currentProfile}
+            onApproved={() => {
+              const synchronized = tenant
+                ? synchronizeTenant({ ...tenant, operationStage: "CLOSED" })
+                : false;
+              setNotice(
+                synchronized
+                  ? "Cierre excepcional confirmado: la operación quedó en modo de solo lectura y el expediente se está recargando."
+                  : "El cierre excepcional fue confirmado, pero la navegación local no pudo sincronizarse; vuelve a ingresar.",
+              );
+              setReload((value) => value + 1);
+            }}
+          />
+        )}
     </div>
   );
 }

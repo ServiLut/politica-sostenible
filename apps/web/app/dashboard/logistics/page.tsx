@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 import { isOperationProfileRequired } from "@/lib/operation-profile-required";
@@ -602,35 +603,34 @@ function LogisticsPanel() {
       className="mx-auto max-w-7xl space-y-6 pb-24 min-w-0"
       data-testid="inventory-page"
     >
-      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between min-w-0">
-        <div>
-          <p className="text-xs font-bold text-blue-700">
-            Operación electoral · {STAGE_LABELS[stage]}
-          </p>
-          <h1 className="mt-1 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Inventario, despacho y custodia
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+      <PageHeader
+        title="Inventario, despacho y custodia"
+        icon={Boxes}
+        description={
+          <>
             Saldos por bodega, lotes y seriales, entrega a puesto o mesa,
             recepción, devolución, incidencias y conciliación con rastro
             inmutable.
-          </p>
-        </div>
-        <button
-          type="button"
-          data-testid="inventory-refresh"
-          disabled={loading}
-          onClick={() => setReloadVersion((version) => version + 1)}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 disabled:opacity-50 max-w-full whitespace-normal"
-        >
-          <RefreshCw
-            className={loading ? "animate-spin" : ""}
-            size={17}
-            aria-hidden="true"
-          />
-          Recargar saldos
-        </button>
-      </header>
+          </>
+        }
+        actions={
+          <button
+            type="button"
+            data-testid="inventory-refresh"
+            disabled={loading}
+            onClick={() => setReloadVersion((version) => version + 1)}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 disabled:opacity-50 max-w-full whitespace-normal"
+          >
+            <RefreshCw
+              className={loading ? "animate-spin" : ""}
+              size={17}
+              aria-hidden="true"
+            />
+            Recargar saldos
+          </button>
+        }
+        meta={STAGE_LABELS[stage]}
+      />
 
       {loadError ? (
         <div

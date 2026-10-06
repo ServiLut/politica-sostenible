@@ -21,7 +21,6 @@ import {
   PackageCheck,
   ShieldCheck,
   Scroll,
-  Search,
   SlidersHorizontal,
   Siren,
   UserCog,
@@ -32,7 +31,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
 import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
-import { openGlobalSearch } from "@/lib/global-search";
 import { MOBILE_NAVIGATION_OPEN_EVENT } from "@/lib/mobile-navigation";
 import {
   getNavigationGroupsForRole,
@@ -134,15 +132,15 @@ function NavigationLink({
       href={item.href}
       aria-current={item.isActive ? "page" : undefined}
       onClick={onNavigate}
-      className={`group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+      className={`group relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
         item.isActive
-          ? "bg-blue-600 text-white shadow-lg shadow-blue-950/20"
-          : "text-slate-300 hover:bg-slate-800 hover:text-white"
+          ? "bg-white/10 text-white ring-1 ring-inset ring-white/10 before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-blue-300"
+          : "text-slate-300 hover:bg-white/5 hover:text-white"
       }`}
     >
       <Icon
         aria-hidden="true"
-        className={item.isActive ? "text-white" : "text-slate-500"}
+        className={item.isActive ? "text-blue-200" : "text-slate-400"}
         size={18}
       />
       <span className="min-w-0 flex-1 break-words">{item.title}</span>
@@ -160,8 +158,12 @@ export function Sidebar() {
   const restoreDrawerFocusRef = useRef(true);
 
   const stage = tenant?.operationStage;
-  const visibleNavigation = user && tenant ? getVisibleNavigationItems(user, tenant, stage) : [];
-  const activeHref = getMatchingNavigationItem(pathname, visibleNavigation)?.href;
+  const visibleNavigation =
+    user && tenant ? getVisibleNavigationItems(user, tenant, stage) : [];
+  const activeHref = getMatchingNavigationItem(
+    pathname,
+    visibleNavigation,
+  )?.href;
   const navigation: ActiveNavItem[] = visibleNavigation.map((item) => ({
     ...item,
     isActive: item.href === activeHref,
@@ -214,12 +216,17 @@ export function Sidebar() {
 
   useEffect(() => {
     function openFromHeader() {
-      if (window.matchMedia("(min-width: 1024px)").matches || document.querySelector('[aria-modal="true"]')) return;
+      if (
+        window.matchMedia("(min-width: 1024px)").matches ||
+        document.querySelector('[aria-modal="true"]')
+      )
+        return;
       restoreDrawerFocusRef.current = true;
       setMobileMenuOpen(true);
     }
     window.addEventListener(MOBILE_NAVIGATION_OPEN_EVENT, openFromHeader);
-    return () => window.removeEventListener(MOBILE_NAVIGATION_OPEN_EVENT, openFromHeader);
+    return () =>
+      window.removeEventListener(MOBILE_NAVIGATION_OPEN_EVENT, openFromHeader);
   }, []);
 
   useEffect(() => {
@@ -234,14 +241,14 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="hidden h-full min-h-0 w-64 shrink-0 flex-col bg-slate-950 text-white lg:flex xl:w-[17rem]">
-        <div className="border-b border-slate-800 p-5">
+      <aside className="workspace-sidebar hidden h-full min-h-0 w-64 shrink-0 flex-col text-white lg:flex xl:w-[17rem]">
+        <div className="border-b border-white/10 p-5">
           <Link
             href="/dashboard"
             aria-label="Ir al panel principal"
             className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-950/30">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-blue-200">
               <ShieldCheck aria-hidden="true" size={21} />
             </span>
             <span>
@@ -249,13 +256,13 @@ export function Sidebar() {
                 Política Sostenible
               </span>
               <span className="block text-xs font-medium text-slate-400">
-                Operación verificable
+                Tu equipo, conectado
               </span>
             </span>
           </Link>
 
           {tenant && (
-            <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-3.5">
               <p className="text-xs font-medium text-slate-400">
                 Organización activa
               </p>
@@ -265,40 +272,21 @@ export function Sidebar() {
               <p className="mt-1 text-xs font-medium text-blue-300">
                 {getTenantTypeLabel(tenant.type)}
               </p>
-              {roleNavigationGroups[0] && (
-                <p className="mt-3 border-t border-slate-800 pt-3 text-xs font-medium text-slate-400">
-                  Tu espacio · {roleNavigationGroups[0].title}
-                </p>
-              )}
             </div>
           )}
         </div>
 
         <nav
           aria-label="Navegación principal"
-          className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4"
+          className="workspace-scroll min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-5"
         >
-          <button
-            type="button"
-            onClick={openGlobalSearch}
-            aria-label="Buscar en la organización"
-            aria-haspopup="dialog"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 bg-slate-900 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <Search size={18} />
-            <span className="flex-1 text-left">Buscar...</span>
-            <span className="text-[10px] uppercase tracking-widest font-semibold opacity-50 border border-slate-700 px-1.5 py-0.5 rounded">
-              Ctrl/⌘ K
-            </span>
-          </button>
-
           {groupedNavigation.map((group) => {
             const headingId = `desktop-navigation-${group.id.toLowerCase()}`;
             return (
               <section key={group.id} aria-labelledby={headingId}>
                 <h2
                   id={headingId}
-                  className="mb-2 px-3 text-xs font-medium text-slate-400"
+                  className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400"
                 >
                   {group.title}
                 </h2>
@@ -313,9 +301,9 @@ export function Sidebar() {
         </nav>
 
         {user && (
-          <div className="border-t border-slate-800 p-4">
+          <div className="border-t border-white/10 px-4 py-3">
             <p className="px-3 text-xs font-medium text-slate-400">
-              Acceso según rol
+              Tu espacio de trabajo
             </p>
             <p className="mt-1 px-3 text-xs font-semibold text-slate-300">
               {getRoleLabel(user.backendRole)}

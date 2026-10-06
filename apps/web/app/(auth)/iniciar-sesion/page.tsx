@@ -123,7 +123,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-600 min-w-0">
+        <div className="relative z-10 flex items-center gap-8 text-sm font-bold text-slate-400 min-w-0">
           <span>© {new Date().getFullYear()} POLITICA SOSTENIBLE</span>
           <div className="flex gap-6 min-w-0">
             <Link

@@ -33,6 +33,7 @@ import {
   validateCatalogRelease,
 } from "@/lib/electoral-catalog-api";
 import { ElectoralCatalogImportPanel } from "@/components/electoral-catalog/ElectoralCatalogImportPanel";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const STATUS_LABELS: Record<ElectoralCatalogStatus, string> = {
   STAGED: "En preparación",
@@ -109,7 +110,7 @@ function Definition({
   );
 }
 
-function IntegrityPanel({ integrity }: { integrity: CatalogIntegrityReport }) {
+function IntegrityPanel({ integrity, type }: { integrity: CatalogIntegrityReport; type: ElectoralCatalogType }) {
   const gapRows = [
     [
       "Departamentos sin municipios",
@@ -160,7 +161,18 @@ function IntegrityPanel({ integrity }: { integrity: CatalogIntegrityReport }) {
         </div>
       </div>
 
-      <dl className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {type === "ADMINISTRATIVE_DANE" && (
+        <p className="mt-4 text-sm leading-6 text-slate-700">
+          Esta fuente describe divisiones administrativas. Los campos de zonas,
+          puestos y mesas electorales no son requisitos de cobertura de DANE.
+          El diagnóstico completo conserva los valores que informó el servidor.
+        </p>
+      )}
+      <details className="mt-5" open={type === "ELECTORAL_RNEC"}>
+        <summary className="cursor-pointer py-2 text-sm font-semibold text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+          Ver diagnóstico completo y conteos de cobertura
+        </summary>
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {gapRows.map(([label, value]) => (
           <Definition key={label} label={label} value={count(value)} />
         ))}
@@ -185,6 +197,7 @@ function IntegrityPanel({ integrity }: { integrity: CatalogIntegrityReport }) {
           )}
         />
       </dl>
+      </details>
 
       {integrity.blockingIssues.length > 0 && (
         <div className="mt-5">
@@ -471,22 +484,12 @@ export function ElectoralCatalogConsole() {
 
   return (
     <div className="space-y-7">
-      <header className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-800">
-            <ShieldCheck size={13} aria-hidden="true" /> Control de fuente
-            electoral
-          </div>
-          <h1 className="mt-3 break-words text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-            Catálogo electoral verificable
-          </h1>
-          <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-600">
-            Revisa procedencia, integridad, brechas y cambios de cada snapshot
-            antes de habilitar zonas y puestos. Solo un release{" "}
-            <strong>Activo</strong> es operativo; preparar o validar datos no
-            los convierte en oficiales.
-          </p>
-        </div>
+      <PageHeader
+        title="Catálogos territoriales y electorales"
+        eyebrow="Fuentes y versiones"
+        icon={Database}
+        description="Consulta la base administrativa DANE y el catálogo electoral RNEC por separado. Selecciona una versión para revisar su procedencia, contenido y estado."
+        actions={
         <button
           type="button"
           onClick={() => void loadReleases()}
@@ -496,27 +499,39 @@ export function ElectoralCatalogConsole() {
           <RefreshCw className={loadingList ? "animate-spin" : ""} size={16} />
           Actualizar
         </button>
-      </header>
+        }
+      />
 
       <section>
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-800">
           <div className="flex items-start gap-3">
             <TriangleAlert className="shrink-0" aria-hidden="true" />
             <div>
               <h2 className="font-black">
-                La autorización de RNEC es obligatoria
+                Dos fuentes, usos diferentes
               </h2>
               <p className="mt-2 text-sm font-semibold leading-6">
-                Verifica por escrito autorización, licencia, fecha de corte y
-                URL declarada de RNEC. Esta pantalla no acredita por sí sola
-                permiso para reproducir o almacenar DIVIPOLE.
+                <strong>DANE · DIVIPOLA:</strong> departamentos, municipios y
+                otras divisiones administrativas. <strong>RNEC · DIVIPOLE:</strong>{" "}
+                zonas, puestos y mesas para una elección. Una base DANE no
+                habilita puestos de votación ni sustituye un catálogo RNEC.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <ElectoralCatalogImportPanel onReleaseAvailable={loadReleases} />
+      <details className="rounded-2xl border border-slate-200 bg-white p-4">
+        <summary className="cursor-pointer py-2 text-sm font-semibold text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+          Incorporar un archivo electoral de RNEC · opciones avanzadas
+        </summary>
+        <p className="my-3 text-sm leading-6 text-slate-600">
+          Requiere un archivo preparado, autorización de uso, licencia y fecha
+          de corte verificables. La carga conserva los controles de revisión y
+          activación; no convierte por sí sola el archivo en un catálogo operativo.
+        </p>
+        <ElectoralCatalogImportPanel onReleaseAvailable={loadReleases} />
+      </details>
 
       {listError && (
         <div
@@ -545,7 +560,7 @@ export function ElectoralCatalogConsole() {
       )}
 
       <section className="grid min-w-0 gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4" aria-label="Releases electorales">
+        <aside className="min-w-0 space-y-4" aria-label="Versiones de catálogos">
           <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-black text-slate-950">Versiones disponibles</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -603,7 +618,7 @@ export function ElectoralCatalogConsole() {
                 aria-hidden="true"
               />
               <h3 className="mt-3 font-black text-slate-950">
-                No hay releases
+                No hay versiones disponibles
               </h3>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
                 No se generan zonas ni puestos de ejemplo. Confirma filtros o
@@ -638,22 +653,15 @@ export function ElectoralCatalogConsole() {
                   <span className="mt-3 grid gap-1 text-[11px] font-semibold leading-5 text-slate-600">
                     <span>Fuente: {item.sourceOrganization}</span>
                     <span>Corte: {formatDate(item.sourceCutoffAt)}</span>
-                    <span>Elección: {formatDate(item.electionDate)}</span>
+                    {item.type === "ELECTORAL_RNEC" && (
+                      <span>Elección: {formatDate(item.electionDate)}</span>
+                    )}
                     <span>
                       Autorización:{" "}
                       {item.authorizationReference ?? "No registrada"}
                     </span>
                     <span>
                       Licencia: {item.licenseDeclaration ?? "No registrada"}
-                    </span>
-                    <span className="break-all">
-                      Creador: {item.createdById}
-                    </span>
-                    <span className="break-all">
-                      Revisor: {item.validatedById ?? "Pendiente"}
-                    </span>
-                    <span className="break-all">
-                      Aprobador: {item.approvedById ?? "Pendiente"}
                     </span>
                   </span>
                   <span className="mt-3 block font-mono text-[11px] text-slate-600">
@@ -680,7 +688,7 @@ export function ElectoralCatalogConsole() {
               className="flex min-h-96 items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white font-bold text-slate-500"
             >
               <Loader2 className="animate-spin" aria-hidden="true" />{" "}
-              Verificando snapshot…
+              Consultando la versión…
             </div>
           ) : !release ? (
             <div className="flex min-h-96 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
@@ -724,17 +732,34 @@ export function ElectoralCatalogConsole() {
                   </a>
                 </div>
 
-                {release.status !== "ACTIVE" && (
+                {release.type === "ADMINISTRATIVE_DANE" ? (
+                  <p className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                    Base administrativa DANE. La activación de esta fuente no
+                    está habilitada desde esta pantalla. Su estado no acredita
+                    zonas, puestos ni mesas electorales.
+                  </p>
+                ) : (
+                  <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                    Para RNEC, verifica autorización, licencia, fecha de corte y
+                    fuente declarada. Esta pantalla no acredita por sí sola
+                    permiso para reproducir o almacenar DIVIPOLE.
+                  </p>
+                )}
+                {release.type === "ELECTORAL_RNEC" && release.status !== "ACTIVE" && (
                   <div
                     role="status"
                     className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-black text-amber-950"
                   >
-                    No operativo: este snapshot no puede respaldar zonas,
+                    No operativo: esta versión no puede respaldar zonas,
                     puestos ni decisiones de jornada hasta quedar Activo.
                   </div>
                 )}
 
-                <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <details className="mt-5">
+                <summary className="cursor-pointer py-2 text-sm font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+                  Ver procedencia, responsables y huella del archivo
+                </summary>
+                <dl className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   <Definition
                     label="Organización fuente"
                     value={release.sourceOrganization}
@@ -795,6 +820,7 @@ export function ElectoralCatalogConsole() {
                     {release.contentSha256}
                   </code>
                 </div>
+                </details>
 
                 {release.rejectionReason && (
                   <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-950">
@@ -804,7 +830,7 @@ export function ElectoralCatalogConsole() {
                 )}
               </section>
 
-              {gaps && <IntegrityPanel integrity={gaps.integrity} />}
+              {gaps && <IntegrityPanel integrity={gaps.integrity} type={release.type} />}
 
               <section
                 className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
@@ -824,8 +850,9 @@ export function ElectoralCatalogConsole() {
                     </h3>
                     <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
                       Revisa altas, retiros y cambios antes de aprobar. Los
-                      retiros con datos relacionados requieren crosswalk y el
-                      servidor los bloqueará.
+                      retiros con datos relacionados requieren una equivalencia
+                      entre divisiones y la reasignación de sus registros; el
+                      servidor los bloqueará mientras esto no se resuelva.
                     </p>
                   </div>
                 </div>
@@ -909,7 +936,7 @@ export function ElectoralCatalogConsole() {
               </section>
 
               {(release.status === "STAGED" ||
-                release.status === "VALIDATED") && (
+                (release.type === "ELECTORAL_RNEC" && release.status === "VALIDATED")) && (
                 <section
                   className="rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-6"
                   aria-labelledby="catalog-review-title"
@@ -924,10 +951,10 @@ export function ElectoralCatalogConsole() {
                         id="catalog-review-title"
                         className="font-black text-blue-950"
                       >
-                        Control humano irreversible
+                        {release.status === "STAGED" ? "Revisar antes de validar" : "Revisar antes de activar"}
                       </h3>
                       <p className="mt-1 text-sm font-semibold leading-6 text-blue-950/75">
-                        Copia la huella mostrada arriba. El backend rechazará
+                        Copia la huella completa desde los detalles de procedencia. El servidor rechazará
                         una huella desactualizada, otra organización, una cuenta
                         inactiva o una activación sin segunda persona.
                       </p>
@@ -957,10 +984,9 @@ export function ElectoralCatalogConsole() {
                       className="mt-1 h-4 w-4 shrink-0 accent-blue-700"
                     />
                     <span>
-                      Confirmo que comparé la huella completa, la URL declarada
-                      de RNEC, la fecha electoral, la fecha de corte, la
-                      autorización, la licencia, las brechas y el diff del
-                      release seleccionado.
+                      {release.type === "ELECTORAL_RNEC"
+                        ? "Confirmo que comparé la huella completa, la URL declarada de RNEC, la fecha electoral, la fecha de corte, la autorización, la licencia, los faltantes y las diferencias de esta versión."
+                        : "Confirmo que comparé la huella completa, la fuente DANE declarada, la fecha de corte, la autorización, la licencia y el diagnóstico de esta versión administrativa."}
                     </span>
                   </label>
 
@@ -1036,7 +1062,7 @@ export function ElectoralCatalogConsole() {
                       id="catalog-entries-title"
                       className="font-black text-slate-950"
                     >
-                      Entradas del snapshot
+                      Registros de esta versión
                     </h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       {count(detail?.entries.length ?? 0)} cargadas de{" "}
@@ -1045,13 +1071,14 @@ export function ElectoralCatalogConsole() {
                   </div>
                   <p className="text-xs font-bold text-slate-500">
                     {count(release.departmentCount)} dptos. ·{" "}
-                    {count(release.municipalityCount)} municipios ·{" "}
+                    {count(release.municipalityCount)} municipios
+                    {release.type === "ELECTORAL_RNEC" && <> ·{" "}
                     {count(release.zoneCount)} zonas ·{" "}
                     {count(release.pollingPlaceCount)} registros de
                     puesto/jornada ·{" "}
                     {verifiableCount(release.physicalPollingPlaceCount)}{" "}
                     ubicaciones físicas · {count(release.expectedTableCount)}{" "}
-                    mesas
+                    mesas</>}
                   </p>
                 </div>
                 <div className="mt-5">

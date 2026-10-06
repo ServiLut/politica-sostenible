@@ -40,7 +40,7 @@ export function ActivationChecklist({
     return (
       <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex items-center gap-3 py-8 text-sm text-slate-500">
-          <LoaderCircle className="animate-spin" size={18} /> Cargando ruta…
+          <LoaderCircle className="animate-spin" size={18} /> Consultando los primeros pasos…
         </div>
       </article>
     );
@@ -50,7 +50,7 @@ export function ActivationChecklist({
     return (
       <article className="border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <p className="py-6 text-sm text-slate-500">
-          La ruta de activación no está disponible. Reintenta la consulta.
+          No pudimos consultar los primeros pasos. Actualiza esta pantalla para reintentar.
         </p>
       </article>
     );
@@ -61,6 +61,75 @@ export function ActivationChecklist({
   const progress =
     totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
+  function renderStep(step: ActivationStep) {
+    const index = steps.indexOf(step);
+    const guidance = getActivationStepGuidance(
+      step.code,
+      step.complete,
+      user?.backendRole,
+    );
+    const content = (
+      <>
+        <span
+          className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-semibold ${
+            step.complete
+              ? isCampaign
+                ? "bg-emerald-600 text-white"
+                : "bg-blue-700 text-white"
+              : "border border-slate-300 text-slate-500"
+          }`}
+        >
+          {step.complete ? <Check size={15} /> : index + 1}
+        </span>
+        <span className="min-w-0 [overflow-wrap:anywhere]">
+          <span className="block text-sm font-semibold text-slate-900">
+            {step.title}
+          </span>
+          <span className="mt-1 block text-sm leading-6 text-slate-500">
+            {step.detail}
+          </span>
+        </span>
+        {guidance.linkLabel ? (
+          <div className="col-start-2 flex min-w-0 items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 transition-colors group-hover:text-slate-900">
+              {step.complete ? "Completado · " : ""}
+              {guidance.linkLabel}
+            </span>
+            <ArrowRight
+              aria-hidden="true"
+              className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
+              size={16}
+            />
+          </div>
+        ) : (
+          <span className="col-start-2 text-xs font-medium leading-5 text-amber-800">
+            {guidance.advice}
+          </span>
+        )}
+      </>
+    );
+
+    return (
+      <li
+        key={step.code}
+        className="border-b border-slate-100 last:border-0"
+      >
+        {guidance.linkLabel ? (
+          <Link
+            href={step.href}
+            className="group grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg py-4 focus-ring"
+          >
+            {content}
+          </Link>
+        ) : (
+          <div className="grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 py-4">
+            {content}
+          </div>
+        )}
+      </li>
+    );
+  }
+
   return (
     <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-6">
@@ -69,12 +138,12 @@ export function ActivationChecklist({
             isCampaign ? "text-emerald-700" : "text-blue-700"
           }`}
         >
-          Ruta de activación
+          Primeros pasos
         </p>
         <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
           {isCampaign
-            ? "De cero a una operación útil"
-            : "Del primer caso a la rendición"}
+            ? "Prepara tu campaña"
+            : "Prepara tu despacho"}
         </h2>
       </div>
 
@@ -111,7 +180,7 @@ export function ActivationChecklist({
         <>
           <div className="mb-6">
             <div className="mb-2 flex justify-between text-sm">
-              <span className="font-semibold text-slate-700">Progreso</span>
+              <span className="font-semibold text-slate-700">Configuración inicial</span>
               <span className="font-bold text-slate-900">
                 {completedSteps} de {totalSteps} pasos
               </span>
@@ -134,75 +203,19 @@ export function ActivationChecklist({
           </div>
 
           <ul className="space-y-1">
-            {steps.map((step, index) => {
-              const guidance = getActivationStepGuidance(
-                step.code,
-                step.complete,
-                user?.backendRole,
-              );
-              const content = (
-                <>
-                  <span
-                    className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-semibold ${
-                      step.complete
-                        ? isCampaign
-                          ? "bg-emerald-600 text-white"
-                          : "bg-blue-700 text-white"
-                        : "border border-slate-300 text-slate-500"
-                    }`}
-                  >
-                    {step.complete ? <Check size={15} /> : index + 1}
-                  </span>
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                    <span className="block text-sm font-semibold text-slate-900">
-                      {step.title}
-                    </span>
-                    <span className="mt-1 block text-sm leading-6 text-slate-500">
-                      {step.detail}
-                    </span>
-                  </span>
-                  {guidance.linkLabel ? (
-                    <div className="col-start-2 flex min-w-0 items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-500 transition-colors group-hover:text-slate-900">
-                        {step.complete ? "Completado · " : ""}
-                        {guidance.linkLabel}
-                      </span>
-                      <ArrowRight
-                        aria-hidden="true"
-                        className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700"
-                        size={16}
-                      />
-                    </div>
-                  ) : (
-                    <span className="col-start-2 text-xs font-medium leading-5 text-amber-800">
-                      {guidance.advice}
-                    </span>
-                  )}
-                </>
-              );
-
-              return (
-                <li
-                  key={step.code}
-                  className="border-b border-slate-100 last:border-0"
-                >
-                  {guidance.linkLabel ? (
-                    <Link
-                      href={step.href}
-                      className="group grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg py-4 focus-ring"
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div className="grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-2 py-4">
-                      {content}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
+            {steps.filter((step) => !step.complete).map(renderStep)}
           </ul>
         </>
+      )}
+      {steps.some((step) => step.complete) && (
+        <details className="mt-4 border-t border-slate-200 pt-4">
+          <summary className="cursor-pointer rounded-lg text-sm font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+            Ver pasos completados ({steps.filter((step) => step.complete).length})
+          </summary>
+          <ul className="mt-2 space-y-1">
+            {steps.filter((step) => step.complete).map(renderStep)}
+          </ul>
+        </details>
       )}
     </article>
   );

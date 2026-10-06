@@ -3,6 +3,7 @@
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { getRoleLabel } from "@/config/navigation";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ApiError } from "@/lib/api-client";
 import {
   AuditEvent,
@@ -54,6 +55,9 @@ const OUTCOME_STYLES: Record<AuditOutcome, string> = {
 
 const ACTION_LABELS: Record<string, string> = {
   ACCOUNT_PASSWORD_CHANGED: "Contraseña de cuenta actualizada",
+  ACCOUNT_SESSIONS_REVOKED: "Sesiones de la cuenta cerradas",
+  PROPOSAL_CREATED: "Propuesta creada",
+  MFA_VERIFICATION_FAILED: "Verificación de doble factor rechazada",
   ORGANIZATION_NAME_CHANGED: "Nombre de organización actualizado",
   ACCOUNT_TERMS_ACCEPTED: "Términos de cuenta aceptados",
   CAMPAIGN_EVENT_CREATED: "Evento creado",
@@ -79,12 +83,19 @@ const ACTION_LABELS: Record<string, string> = {
   E14_REPORT_SUPERSEDED: "Reporte E-14 reemplazado",
   INTERACTION_RECORDED: "Gestión de contacto registrada",
   ISSUE_CASE_CREATED: "Caso creado",
-  ISSUE_CASE_UPDATED: "Caso actualizado",
-  CASE_UPDATED: "Caso actualizado",
+  ISSUE_CASE_UPDATED: "Caso de atención actualizado",
+  CASE_UPDATED: "Caso actualizado (CASE_UPDATED)",
+  PERSON_IMPORT_REQUESTED: "Archivo de personas recibido para revisión",
+  PERSON_IMPORT_VALIDATED: "Revisión del archivo de personas terminada",
+  PERSON_IMPORT_EXECUTION_REQUESTED: "Importación de personas solicitada",
+  PERSON_IMPORT_BATCH_COMMITTED: "Grupo de personas importado",
+  PERSON_IMPORT_COMPLETED: "Importación de personas terminada",
+  PERSON_IMPORT_ERRORS_EXPORTED: "Errores de importación descargados",
   POLITICAL_DIVISION_CREATED: "División territorial creada",
   POLITICAL_GEOGRAPHY_SYNCHRONIZED: "Geografía oficial sincronizada",
   STORAGE_DOWNLOAD_AUTHORIZED: "Descarga de soporte autorizada",
   STORAGE_UPLOAD_CONFIRMED: "Carga de soporte confirmada",
+  STORAGE_CONTENT_INTEGRITY_VERIFIED: "Integridad del archivo verificada",
   TEAM_INVITATION_ACCEPTED: "Invitación de equipo aceptada",
   TEAM_INVITATION_CREATED: "Invitación de equipo creada",
   TEAM_MEMBER_ACTIVATED: "Integrante activado",
@@ -113,7 +124,9 @@ const RESOURCE_LABELS: Record<string, string> = {
   ConsentNotice: "Aviso de privacidad",
   FinancialEntry: "Movimiento financiero",
   IssueCase: "Caso",
+  PersonImportJob: "Importación de personas",
   PoliticalDivision: "División territorial",
+  PoliticalProposal: "Propuesta",
   StorageObject: "Archivo",
   TeamInvitation: "Invitación",
   Task: "Tarea",
@@ -123,7 +136,39 @@ const RESOURCE_LABELS: Record<string, string> = {
 };
 
 function actionLabel(action: string) {
-  return ACTION_LABELS[action] ?? action.replaceAll("_", " ").toLowerCase();
+  return Object.hasOwn(ACTION_LABELS, action) ? ACTION_LABELS[action] : action;
+}
+
+function resourceTypeLabel(resourceType: string) {
+  return Object.hasOwn(RESOURCE_LABELS, resourceType)
+    ? RESOURCE_LABELS[resourceType]
+    : resourceType;
+}
+
+function TechnicalDetails({ event }: { event: AuditEvent }) {
+  return (
+    <details className="mt-2 text-xs text-slate-600">
+      <summary className="cursor-pointer py-2 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+        Ver códigos del registro
+      </summary>
+      <dl className="mt-1 space-y-2 break-all">
+        <div>
+          <dt>Acción</dt>
+          <dd className="font-mono">{event.action}</dd>
+        </div>
+        <div>
+          <dt>Tipo de registro</dt>
+          <dd className="font-mono">{event.resourceType}</dd>
+        </div>
+        {event.resourceId && (
+          <div>
+            <dt>Identificador del registro</dt>
+            <dd className="font-mono">{event.resourceId}</dd>
+          </div>
+        )}
+      </dl>
+    </details>
+  );
 }
 
 function readableError(error: unknown) {
@@ -163,13 +208,10 @@ function AuditRow({ event }: { event: AuditEvent }) {
         <p className="text-sm font-semibold text-slate-950">
           {actionLabel(event.action)}
         </p>
-        <p className="mt-1 font-mono text-xs font-bold text-slate-400">
-          {event.action}
-        </p>
         <p className="mt-1 text-xs font-semibold text-slate-500">
-          {RESOURCE_LABELS[event.resourceType] ?? event.resourceType}
-          {event.resourceId ? ` · ${event.resourceId}` : ""}
+          {resourceTypeLabel(event.resourceType)}
         </p>
+        <TechnicalDetails event={event} />
       </td>
       <td className="px-4 py-4">
         {event.actor ? (
@@ -206,8 +248,7 @@ function AuditRow({ event }: { event: AuditEvent }) {
 }
 
 function AuditCard({ event }: { event: AuditEvent }) {
-  const resourceLabel =
-    RESOURCE_LABELS[event.resourceType] ?? event.resourceType;
+  const resourceLabel = resourceTypeLabel(event.resourceType);
 
   return (
     <li data-testid={`audit-card-${event.id}`} className="px-4 py-5 min-w-0">
@@ -217,9 +258,6 @@ function AuditCard({ event }: { event: AuditEvent }) {
             <h3 className="text-sm font-semibold leading-5 text-slate-950">
               {actionLabel(event.action)}
             </h3>
-            <p className="mt-1 break-all font-mono text-xs font-bold text-slate-500">
-              {event.action}
-            </p>
           </div>
           <span
             className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${OUTCOME_STYLES[event.outcome]}`}
@@ -238,18 +276,17 @@ function AuditCard({ event }: { event: AuditEvent }) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold text-slate-500">Recurso</dt>
+            <dt className="text-xs font-semibold text-slate-500">
+              Tipo de registro
+            </dt>
             <dd className="mt-0.5 font-semibold text-slate-700">
               {resourceLabel}
-              {event.resourceId ? (
-                <span className="block break-all text-xs text-slate-500">
-                  {event.resourceId}
-                </span>
-              ) : null}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold text-slate-500">Actor</dt>
+            <dt className="text-xs font-semibold text-slate-500">
+              Realizado por
+            </dt>
             <dd className="mt-1 flex items-start gap-2 text-slate-700">
               <UserRound
                 aria-hidden="true"
@@ -271,6 +308,7 @@ function AuditCard({ event }: { event: AuditEvent }) {
             </dd>
           </div>
         </dl>
+        <TechnicalDetails event={event} />
       </article>
     </li>
   );
@@ -333,26 +371,17 @@ export default function AuditPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 min-w-0">
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8 min-w-0">
-        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-blue-300 min-w-0">
-              <ShieldCheck aria-hidden="true" size={18} /> Control interno
-            </div>
-            <h1 className="font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Bitácora de auditoría
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300">
-              Consulta eventos del modo operativo activo. Esta vista excluye
-              datos técnicos, direcciones de red y contenido anterior o
-              posterior de los registros.
-            </p>
-          </div>
+      <PageHeader
+        title="Historial de actividad"
+        eyebrow="Auditoría"
+        icon={ShieldCheck}
+        description="Consulta quién hizo cada acción, cuándo ocurrió y qué resultado quedó registrado. Los códigos e identificadores se conservan en el detalle de cada evento."
+        actions={
           <button
             type="button"
             onClick={() => void loadEvents()}
             disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-950 disabled:opacity-50 max-w-full whitespace-normal"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-50 max-w-full whitespace-normal"
           >
             <RefreshCw
               aria-hidden="true"
@@ -361,8 +390,8 @@ export default function AuditPage() {
             />
             Actualizar
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <form
         onSubmit={applyFilters}
@@ -375,7 +404,7 @@ export default function AuditPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 min-w-0">
           <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Acción
-            <input
+            <select
               value={draftFilters.action}
               onChange={(event) =>
                 setDraftFilters((current) => ({
@@ -383,14 +412,27 @@ export default function AuditPage() {
                   action: event.target.value,
                 }))
               }
-              maxLength={120}
-              placeholder="Ej. CASE_UPDATED"
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
-            />
+              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
+            >
+              <option value="">Todas las acciones</option>
+              {Object.entries(ACTION_LABELS)
+                .sort((a, b) => a[1].localeCompare(b[1], "es"))
+                .map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              {draftFilters.action &&
+                !Object.hasOwn(ACTION_LABELS, draftFilters.action) && (
+                  <option value={draftFilters.action}>
+                    {draftFilters.action}
+                  </option>
+                )}
+            </select>
           </label>
           <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
-            Tipo de recurso
-            <input
+            Tipo de registro
+            <select
               value={draftFilters.resourceType}
               onChange={(event) =>
                 setDraftFilters((current) => ({
@@ -398,10 +440,23 @@ export default function AuditPage() {
                   resourceType: event.target.value,
                 }))
               }
-              maxLength={120}
-              placeholder="Ej. IssueCase"
-              className="min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
-            />
+              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 min-w-0 max-w-full"
+            >
+              <option value="">Todos los registros</option>
+              {Object.entries(RESOURCE_LABELS)
+                .sort((a, b) => a[1].localeCompare(b[1], "es"))
+                .map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              {draftFilters.resourceType &&
+                !Object.hasOwn(RESOURCE_LABELS, draftFilters.resourceType) && (
+                  <option value={draftFilters.resourceType}>
+                    {draftFilters.resourceType}
+                  </option>
+                )}
+            </select>
           </label>
           <label className="space-y-1 text-sm font-semibold text-slate-600 min-w-0">
             Resultado
@@ -450,6 +505,47 @@ export default function AuditPage() {
             />
           </label>
         </div>
+        <details className="mt-4 rounded-xl border border-slate-200 p-3 text-sm text-slate-600">
+          <summary className="cursor-pointer py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            Buscar por un código que no aparece en la lista
+          </summary>
+          <p className="mt-2">
+            Copia el código exacto desde «Ver códigos del registro». Los códigos
+            desconocidos se muestran sin traducir.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1">
+              Código exacto de la acción
+              <input
+                value={draftFilters.action}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    action: event.target.value,
+                  }))
+                }
+                maxLength={120}
+                placeholder="Ej. CASE_UPDATED"
+                className="min-h-11 w-full min-w-0 rounded-xl border border-slate-200 px-3 text-sm text-slate-900"
+              />
+            </label>
+            <label className="space-y-1">
+              Código exacto del tipo de registro
+              <input
+                value={draftFilters.resourceType}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    resourceType: event.target.value,
+                  }))
+                }
+                maxLength={120}
+                placeholder="Ej. IssueCase"
+                className="min-h-11 w-full min-w-0 rounded-xl border border-slate-200 px-3 text-sm text-slate-900"
+              />
+            </label>
+          </div>
+        </details>
         <div className="mt-4 flex flex-wrap justify-end gap-3 min-w-0">
           <button
             type="button"
@@ -536,10 +632,10 @@ export default function AuditPage() {
                       Fecha
                     </th>
                     <th scope="col" className="px-4 py-3">
-                      Evento y recurso
+                      Acción y registro
                     </th>
                     <th scope="col" className="px-4 py-3">
-                      Actor
+                      Realizado por
                     </th>
                     <th scope="col" className="px-4 py-3">
                       Resultado

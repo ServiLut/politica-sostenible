@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -26,17 +27,6 @@ import {
   type OperationalInboxItem,
   type OperationalInboxResponse,
 } from "@/lib/operational-inbox-api";
-
-const FILTERS: ReadonlyArray<{
-  value: OperationalInboxFilter;
-  label: string;
-}> = [
-  { value: "ALL", label: "Todo abierto" },
-  { value: "OVERDUE", label: "Vencido" },
-  { value: "BLOCKED", label: "Bloqueado" },
-  { value: "UNASSIGNED", label: "Sin responsable" },
-  { value: "APPROVALS", label: "Por aprobar" },
-];
 
 const EMPTY_INBOX_FLOW_HREFS = new Set([
   "/dashboard/incidents",
@@ -99,15 +89,15 @@ function SummaryButton({
       type="button"
       aria-pressed={active}
       onClick={() => onSelect(filter)}
-      className={`min-h-24 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+      className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
         active
           ? "border-blue-700 bg-blue-700 text-white shadow-lg shadow-blue-950/10"
           : "border-slate-200 bg-white text-slate-950 hover:border-blue-300"
       }`}
     >
-      <span className="block text-2xl font-semibold tabular-nums">{value}</span>
+      <span className="text-base font-semibold tabular-nums">{value}</span>
       <span
-        className={`mt-1 block text-xs font-semibold ${
+        className={`text-sm font-medium ${
           active ? "text-blue-100" : "text-slate-500"
         }`}
       >
@@ -126,16 +116,16 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
       }`}
     >
       <div className="flex flex-wrap items-center gap-2 min-w-0">
-        <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[9px] font-semibold text-white">
+        <span className="rounded-full bg-slate-950 px-2.5 py-1 text-xs font-semibold text-white">
           {item.kindLabel}
         </span>
         <span
-          className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${priorityStyle(item.priority, item.overdue)}`}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityStyle(item.priority, item.overdue)}`}
         >
           {PRIORITY_LABELS[item.priority]}
         </span>
         {item.overdue && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-1 text-[9px] font-semibold text-white">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-1 text-xs font-semibold text-white">
             <AlertTriangle aria-hidden="true" size={12} /> Vencido
           </span>
         )}
@@ -143,7 +133,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
 
       <div className="mt-4 min-w-0">
         {item.reference && (
-          <p className="text-xs font-semibold text-slate-400">
+          <p className="text-xs font-semibold text-slate-600">
             {item.reference}
           </p>
         )}
@@ -157,7 +147,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
 
       <dl className="mt-4 grid gap-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-2 min-w-0">
         <div>
-          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
             <CircleUserRound aria-hidden="true" size={14} /> Responsable
           </dt>
           <dd
@@ -174,7 +164,7 @@ function WorkItemCard({ item }: { item: OperationalInboxItem }) {
           </dd>
         </div>
         <div>
-          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+          <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
             <CalendarClock aria-hidden="true" size={14} /> Plazo
           </dt>
           <dd
@@ -274,28 +264,16 @@ export default function OperationalInboxPage() {
       data-testid="operational-inbox"
       className="mx-auto max-w-7xl space-y-6 min-w-0"
     >
-      <header className="overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-8 min-w-0">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between min-w-0">
-          <div className="max-w-3xl min-w-0">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 min-w-0">
-              <Inbox aria-hidden="true" size={22} />
-            </div>
-            <p className="mt-5 text-xs font-semibold text-blue-300">
-              Coordinación diaria
-            </p>
-            <h1 className="mt-1 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Bandeja operativa
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-              Un solo lugar para saber qué ocurrió, quién responde, qué está
-              vencido y cuál es la siguiente acción.
-            </p>
-          </div>
+      <PageHeader
+        title="Bandeja operativa"
+        description="Qué está pendiente, quién responde y cuál es la siguiente acción."
+        icon={Inbox}
+        actions={
           <button
             type="button"
             onClick={requestReload}
             disabled={loading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:border-blue-400 disabled:opacity-60 max-w-full whitespace-normal"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-blue-300 disabled:opacity-60 max-w-full whitespace-normal"
           >
             <RefreshCw
               aria-hidden="true"
@@ -304,8 +282,8 @@ export default function OperationalInboxPage() {
             />
             Actualizar corte
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {loading && !result ? (
         <div
@@ -343,7 +321,7 @@ export default function OperationalInboxPage() {
         <>
           <section
             aria-label="Resumen de trabajo"
-            className="grid gap-3 lg:grid-cols-5 min-w-0 grid-cols-1 sm:grid-cols-2"
+            className="flex flex-wrap gap-2 min-w-0"
           >
             <SummaryButton
               label="Todo abierto"
@@ -384,31 +362,13 @@ export default function OperationalInboxPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 min-w-0">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
-              <div
-                className="flex flex-wrap gap-2 min-w-0"
-                aria-label="Filtros de bandeja"
-              >
-                {FILTERS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={filter === option.value}
-                    onClick={() => setFilter(option.value)}
-                    className={`min-h-10 rounded-full px-4 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
-                      filter === option.value
-                        ? "bg-slate-950 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
               <label className="relative block w-full lg:max-w-sm min-w-0">
-                <span className="sr-only">Buscar entre las acciones cargadas</span>
+                <span className="sr-only">
+                  Buscar entre las acciones cargadas
+                </span>
                 <Search
                   aria-hidden="true"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
                   size={17}
                 />
                 <input
@@ -435,12 +395,19 @@ export default function OperationalInboxPage() {
                 <p>
                   Se muestran las {result.summary.visible} acciones más críticas
                   de {result.summary.total}. Los filtros y la búsqueda solo
-                  consultan estas acciones cargadas. Para encontrar otras,
-                  abre el módulo correspondiente.
+                  consultan estas acciones cargadas. Para encontrar otras, abre
+                  el módulo correspondiente.
                 </p>
-                <nav aria-label="Consultar todos los registros por módulo" className="mt-3 flex flex-wrap gap-2">
+                <nav
+                  aria-label="Consultar todos los registros por módulo"
+                  className="mt-3 flex flex-wrap gap-2"
+                >
                   {emptyStateFlows.map((item) => (
-                    <Link key={item.href} href={item.href} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100">
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100"
+                    >
                       Abrir {item.title}
                     </Link>
                   ))}

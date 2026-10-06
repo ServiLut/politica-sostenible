@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -237,8 +238,8 @@ function ResultForm({
         />
       </label>
       <p className="text-xs leading-5 text-slate-600">
-        El archivo se envía directamente al almacenamiento privado mediante URL
-        firmada; la API sólo vincula su ruta opaca y SHA-256.
+        El archivo se guarda de forma privada y queda vinculado a este registro
+        para su verificación.
       </p>
       <button
         type="submit"
@@ -568,31 +569,27 @@ export default function ElectoralCalendarPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 pb-24 min-w-0">
-      <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8 min-w-0">
-        <p className="text-xs font-semibold text-cyan-300">
-          Ciclo electoral completo
-        </p>
-        <h1 className="mt-2 font-semibold text-2xl sm:text-3xl break-words">
-          Calendario electoral versionado
-        </h1>
-        <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-200">
-          {overview.disclaimer}
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold min-w-0">
-          <span className="rounded-full bg-white/10 px-3 py-2">
-            {overview.profile.electionType}
-          </span>
-          <span className="rounded-full bg-white/10 px-3 py-2">
-            {overview.profile.circumscriptionName}
-          </span>
-          <span className="rounded-full bg-white/10 px-3 py-2">
-            Elección {dateLabel(overview.profile.electionDate)}
-          </span>
-          <span className="rounded-full bg-white/10 px-3 py-2">
-            Etapa {overview.profile.stage}
-          </span>
-        </div>
-      </header>
+      <PageHeader
+        title="Calendario electoral versionado"
+        icon={FileClock}
+        description={<>{overview.disclaimer}</>}
+        meta={
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold min-w-0">
+            <span className="rounded-full bg-slate-100 px-3 py-2">
+              {overview.profile.electionType}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-2">
+              {overview.profile.circumscriptionName}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-2">
+              Elección {dateLabel(overview.profile.electionDate)}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-2">
+              Etapa {overview.profile.stage}
+            </span>
+          </div>
+        }
+      />
 
       {error && (
         <p
@@ -794,7 +791,7 @@ export default function ElectoralCalendarPage() {
               />
             </label>
             <label className="grid gap-1 text-sm font-semibold min-w-0">
-              Zona IANA
+              Zona horaria (ej. America/Bogota)
               <input
                 name="timeZone"
                 required

@@ -331,8 +331,11 @@ export function MfaSetup() {
 
                 <div className="border-t border-slate-200 pt-6">
                   <h3 className="text-sm font-bold text-slate-900 mb-3">2. Ingresa el código</h3>
-                  <form onSubmit={handleVerify} className="flex flex-col sm:flex-row gap-3">
+                  <form onSubmit={handleVerify} className="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div className="min-w-0 space-y-1">
+                    <label htmlFor="mfa-activation-code" className="block text-sm font-semibold text-slate-700">Código de autenticación</label>
                     <Input
+                      id="mfa-activation-code"
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
@@ -343,6 +346,7 @@ export function MfaSetup() {
                       className="w-full sm:w-48 text-center tracking-widest font-mono text-lg"
                       required
                     />
+                    </div>
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isSubmitting || code.length !== 6}>
                         {isSubmitting ? "Verificando..." : "Verificar y activar"}
@@ -380,8 +384,11 @@ export function MfaSetup() {
                   </div>
                 </div>
                 
-                <form onSubmit={handleDisable} className="flex flex-col sm:flex-row gap-3">
+                <form onSubmit={handleDisable} className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <div className="min-w-0 space-y-1">
+                  <label htmlFor="mfa-deactivation-code" className="block text-sm font-semibold text-slate-700">Código para confirmar la desactivación</label>
                   <Input
+                    id="mfa-deactivation-code"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -392,6 +399,7 @@ export function MfaSetup() {
                     className="w-full sm:w-48 text-center tracking-widest font-mono text-lg bg-white"
                     required
                   />
+                  </div>
                   <div className="flex gap-2">
                     <Button type="submit" variant="destructive" disabled={isSubmitting || code.length !== 6}>
                       {isSubmitting ? "Procesando..." : "Confirmar desactivación"}

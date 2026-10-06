@@ -253,7 +253,7 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
   await page.goto("/dashboard/events");
 
   await expect(
-    page.getByRole("heading", { name: "Eventos y territorio" }),
+    page.getByRole("heading", { name: "Agenda y eventos" }),
   ).toBeVisible();
   await expect(page.getByText("Campaña", { exact: true })).toBeVisible();
   await expect(page.getByTestId("event-card-event-draft")).toContainText(
@@ -417,7 +417,7 @@ test("muestra agenda pública vacía en modo de sólo lectura", async ({
   await page.goto("/dashboard/events");
 
   await expect(
-    page.getByRole("heading", { name: "Eventos y territorio" }),
+    page.getByRole("heading", { name: "Agenda y eventos" }),
   ).toBeVisible();
   await expect(
     page.getByText("Gestión pública", { exact: true }),

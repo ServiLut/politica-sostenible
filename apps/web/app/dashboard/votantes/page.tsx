@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { useSearchParams } from "next/navigation";
@@ -515,63 +517,11 @@ export default function VotantesPage() {
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
-        <div className="space-y-2 min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 min-w-0">
-            <ShieldCheck size={13} /> Relacionamiento autorizado
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-900 text-2xl sm:text-3xl break-words">
-            Personas
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Gestiona únicamente datos entregados y autorizados por cada persona.
-            Este espacio no clasifica intención de voto, ideología ni
-            características sensibles.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 min-w-0">
-          {canImportInCurrentMode && (
-            <VoterImportDialog
-              key={tenant?.id}
-              enabled={Boolean(consentContext?.notice)}
-              noticeActivatedAt={consentContext?.notice?.activatedAt ?? null}
-              noticeVersion={consentContext?.notice?.version ?? null}
-              onCompleted={(importResult) => {
-                setNotice(
-                  `${importResult.imported} ${importResult.imported === 1 ? "persona importada" : "personas importadas"} correctamente.`,
-                );
-                void refreshVoters();
-              }}
-            />
-          )}
-          {canExport && <ExportButton moduleName="personas" />}
-          <button
-            type="button"
-            onClick={() => setReload((value) => value + 1)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 max-w-full whitespace-normal"
-          >
-            <RefreshCw size={15} /> Actualizar
-          </button>
-          {canCreate && (
-            <button
-              type="button"
-              disabled={!consentContext?.notice}
-              onClick={openCreate}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
-            >
-              <UserPlus size={16} /> Registrar una persona
-            </button>
-          )}
-          {usesTerritorialCapture && (
-            <Link
-              href="/dashboard/captura-territorial"
-              className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 text-xs font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
-            >
-              <UserPlus size={16} /> Jornada territorial
-            </Link>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title="Personas"
+        description="Gestiona los datos autorizados por cada persona, sin clasificar intención de voto, ideología ni características sensibles."
+        icon={ShieldCheck}
+      />
 
       {!consentContext?.notice && (
         <div
@@ -586,7 +536,7 @@ export default function VotantesPage() {
             />
             <p>
               {consentConfigError ??
-                "No hay un aviso de privacidad activo. Los nuevos registros y las reautorizaciones permanecen bloqueados para no guardar un consentimiento sin información verificable."}
+                "Activa el aviso de privacidad para registrar, importar o reautorizar personas. Cada persona debe conocer y autorizar el uso de sus datos."}
             </p>
           </div>
           {user?.backendRole === "ADMIN" && (
@@ -599,6 +549,49 @@ export default function VotantesPage() {
           )}
         </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-3 min-w-0">
+        {canImportInCurrentMode && (
+          <VoterImportDialog
+            key={tenant?.id}
+            enabled={Boolean(consentContext?.notice)}
+            noticeActivatedAt={consentContext?.notice?.activatedAt ?? null}
+            noticeVersion={consentContext?.notice?.version ?? null}
+            onCompleted={(importResult) => {
+              setNotice(
+                `${importResult.imported} ${importResult.imported === 1 ? "persona importada" : "personas importadas"} correctamente.`,
+              );
+              void refreshVoters();
+            }}
+          />
+        )}
+        {canExport && <ExportButton moduleName="personas" />}
+        <button
+          type="button"
+          onClick={() => setReload((value) => value + 1)}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 max-w-full whitespace-normal"
+        >
+          <RefreshCw size={15} /> Actualizar
+        </button>
+        {canCreate && (
+          <button
+            type="button"
+            disabled={!consentContext?.notice}
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
+          >
+            <UserPlus size={16} /> Registrar una persona
+          </button>
+        )}
+        {usesTerritorialCapture && (
+          <Link
+            href="/dashboard/captura-territorial"
+            className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 text-xs font-semibold text-white hover:bg-blue-800 max-w-full whitespace-normal"
+          >
+            <UserPlus size={16} /> Jornada territorial
+          </Link>
+        )}
+      </div>
 
       {deepLinkVoterId && !loading && result?.items.length === 0 && (
         <p
@@ -675,7 +668,7 @@ export default function VotantesPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-3 p-20 text-sm font-semibold text-slate-600 min-w-0">
             <Loader2 className="animate-spin text-slate-400" size={24} />
-            Consultando la API segura...
+            Cargando personas…
           </div>
         ) : listError && !result ? (
           <div className="px-6 py-20 text-center text-sm font-semibold text-slate-500 min-w-0">

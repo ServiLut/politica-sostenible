@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { CaseInteractionsPanel } from "@/components/cases/CaseInteractionsPanel";
 import { IncidentMunicipalitySelector } from "@/components/territory/IncidentMunicipalitySelector";
 import { UserCombobox } from "@/components/ui/UserCombobox";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -349,7 +350,12 @@ function IncidentCard({
       </button>
 
       {canMutate && (
-        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 min-w-0">
+        <details className="mt-5 min-w-0 border-t border-slate-200 pt-2">
+          <summary className="min-h-11 cursor-pointer rounded-lg py-3 text-sm font-semibold text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            {saving ? "Guardando cambios…" : "Gestionar incidente"}
+            {hasChanges && !saving && <span className="ml-2 text-xs text-amber-800">Cambios sin guardar</span>}
+          </summary>
+          <div className="mt-3 min-w-0 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2 min-w-0">
             <div className="min-w-0 sm:col-span-2">
               <p className="mb-1 text-sm font-semibold text-slate-500">
@@ -453,6 +459,7 @@ function IncidentCard({
             Guardar respuesta
           </button>
         </div>
+        </details>
       )}
     </article>
   );
@@ -632,45 +639,43 @@ export default function IncidentsPage() {
       {notice && (
         <div
           role="status"
-          className="fixed right-4 top-4 z-[90] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl sm:right-6 sm:top-6 min-w-0 flex-wrap"
+          className="fixed right-4 top-4 z-[90] grid max-w-[calc(100vw-2rem)] grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-lg sm:right-6 sm:top-6 sm:max-w-lg"
         >
-          <CheckCircle2 size={18} /> {notice}
+          <CheckCircle2 aria-hidden="true" size={20} className="mt-3 shrink-0 text-emerald-700" />
+          <p className="min-w-0 break-words py-3 leading-5">{notice}</p>
           <button
             type="button"
             aria-label="Cerrar aviso"
             onClick={() => setNotice(null)}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-emerald-950 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-800 focus-visible:ring-offset-2"
           >
-            <X size={16} />
+            <X aria-hidden="true" size={20} />
           </button>
         </div>
       )}
 
-      <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end min-w-0">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 min-w-0">
-            <ShieldCheck size={13} /> Operación de campaña
-          </div>
-          <h1 className="mt-3 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Incidentes y respuesta de crisis
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Registra hechos, asigna un responsable, fija vencimientos y conserva
-            el historial de seguimiento de tu organización.
-          </p>
-        </div>
-        {canMutate && (
-          <button
-            type="button"
-            onClick={() => {
-              setMutationError(null);
-              setIsCreateOpen(true);
-            }}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 text-sm font-semibold text-white transition hover:bg-slate-950 max-w-full whitespace-normal"
-          >
-            <Plus size={17} /> Reportar incidente
-          </button>
-        )}
-      </header>
+      <PageHeader
+        title="Incidentes y respuesta de crisis"
+        eyebrow="Operación de campaña"
+        icon={ShieldCheck}
+        description="Registra hechos, asigna un responsable y conserva el historial de seguimiento de tu organización."
+        actions={
+          <>
+            {canMutate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMutationError(null);
+                  setIsCreateOpen(true);
+                }}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 text-sm font-semibold text-white transition hover:bg-slate-950 max-w-full whitespace-normal"
+              >
+                <Plus size={17} /> Reportar incidente
+              </button>
+            )}
+          </>
+        }
+      />
 
       <section
         aria-label="Alcance del módulo"
@@ -862,21 +867,21 @@ export default function IncidentsPage() {
       )}
 
       {isCreateOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/70 p-3 backdrop-blur-sm sm:p-4">
           <div
             ref={createDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-incident-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
           >
-            <div className="flex items-start justify-between border-b border-slate-100 p-5 sm:p-7 min-w-0 flex-wrap gap-3">
-              <div>
+            <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-5 sm:px-7">
+              <div className="min-w-0">
                 <h2
                   ref={createDialogTitleRef}
                   tabIndex={-1}
                   id="new-incident-title"
-                  className="text-2xl font-semibold text-slate-950"
+                  className="break-words text-xl font-semibold leading-tight text-slate-950 sm:text-2xl"
                 >
                   Reportar incidente
                 </h2>
@@ -886,187 +891,189 @@ export default function IncidentsPage() {
               </div>
               <button
                 type="button"
-                aria-label="Cerrar"
+                aria-label="Cerrar formulario de incidente"
                 disabled={saving === "create"}
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 max-w-full whitespace-normal"
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:opacity-50"
               >
-                <X />
+                <X aria-hidden="true" size={22} />
               </button>
             </div>
             <form
               onSubmit={handleCreate}
-              className="space-y-5 p-5 sm:p-7 min-w-0"
+              className="flex min-h-0 flex-col"
             >
-              {mutationError && (
-                <div
-                  role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
-                >
-                  {mutationError}
-                </div>
-              )}
-              <div className="grid gap-5 md:grid-cols-2 min-w-0">
-                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
-                  Hecho reportado
-                  <input
-                    required
-                    maxLength={200}
-                    value={form.title}
-                    onChange={(event) =>
-                      setForm({ ...form, title: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
-                  Descripción verificable
-                  <textarea
-                    required
-                    maxLength={5000}
-                    rows={5}
-                    value={form.description}
-                    onChange={(event) =>
-                      setForm({ ...form, description: event.target.value })
-                    }
-                    placeholder="Qué ocurrió, dónde, cuándo y qué evidencia conoce el equipo. Evita datos personales innecesarios."
-                    className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Categoría
-                  <select
-                    value={form.category}
-                    onChange={(event) =>
-                      setForm({ ...form, category: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+              <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain p-5 sm:px-7">
+                {mutationError && (
+                  <div
+                    role="alert"
+                    className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 min-w-0"
                   >
-                    {INCIDENT_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Canal del reporte
-                  <select
-                    value={form.sourceChannel}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        sourceChannel: event.target
-                          .value as CommunicationChannel,
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  >
-                    {CHANNEL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Severidad / prioridad
-                  <select
-                    value={form.priority}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        priority: event.target.value as WorkPriority,
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  >
-                    {PRIORITY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Responsable
-                  <UserCombobox
-                    ariaLabel="Responsable del nuevo incidente"
-                    value={form.assigneeId}
-                    onChange={(assigneeId) =>
-                      setForm({ ...form, assigneeId })
-                    }
-                    fetchItems={searchIncidentAssignees}
-                    disabled={saving === "create"}
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
-                  Vencimiento
-                  <input
-                    type="date"
-                    value={form.dueDate}
-                    onChange={(event) =>
-                      setForm({ ...form, dueDate: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
-                  Fuente o folio mínimo (opcional)
-                  <input
-                    maxLength={200}
-                    value={form.externalContactRef}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        externalContactRef: event.target.value,
-                      })
-                    }
-                    placeholder="Código de reporte; no copies datos sensibles innecesarios"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
-                  />
-                </label>
-                <div className="min-w-0 space-y-2 md:col-span-2">
-                  <p className="text-sm font-semibold text-slate-600">
-                    Municipio (opcional)
-                  </p>
-                  <IncidentMunicipalitySelector
-                    ariaLabel="Municipio del nuevo incidente"
-                    value={form.municipality}
-                    onChange={(municipality) => setForm((current) => ({ ...current, municipality }))}
-                    disabled={saving === "create"}
-                  />
-                  <p className="text-xs leading-5 text-slate-600">
-                    Vincula el incidente con un municipio de la organización para consultarlo en el mapa territorial.
-                  </p>
-                </div>
-                <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={form.confidential}
-                    onChange={(event) =>
-                      setForm({ ...form, confidential: event.target.checked })
-                    }
-                    className="mt-0.5 h-4 w-4 shrink-0 min-w-0 max-w-full"
-                  />
-                  <FileLock2
-                    aria-hidden="true"
-                    className="mt-0.5 shrink-0"
-                    size={18}
-                  />
-                  <span>
-                    <span className="block">
-                      Aplicar etiqueta de manejo especial
+                    {mutationError}
+                  </div>
+                )}
+                <div className="grid gap-5 md:grid-cols-2 min-w-0">
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
+                    Hecho reportado
+                    <input
+                      required
+                      maxLength={200}
+                      value={form.title}
+                      onChange={(event) =>
+                        setForm({ ...form, title: event.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
+                    Descripción verificable
+                    <textarea
+                      required
+                      maxLength={5000}
+                      rows={5}
+                      value={form.description}
+                      onChange={(event) =>
+                        setForm({ ...form, description: event.target.value })
+                      }
+                      placeholder="Qué ocurrió, dónde, cuándo y qué evidencia conoce el equipo. Evita datos personales innecesarios."
+                      className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Categoría
+                    <select
+                      value={form.category}
+                      onChange={(event) =>
+                        setForm({ ...form, category: event.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    >
+                      {INCIDENT_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Canal del reporte
+                    <select
+                      value={form.sourceChannel}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          sourceChannel: event.target
+                            .value as CommunicationChannel,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    >
+                      {CHANNEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Severidad / prioridad
+                    <select
+                      value={form.priority}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          priority: event.target.value as WorkPriority,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    >
+                      {PRIORITY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Responsable
+                    <UserCombobox
+                      ariaLabel="Responsable del nuevo incidente"
+                      value={form.assigneeId}
+                      onChange={(assigneeId) =>
+                        setForm({ ...form, assigneeId })
+                      }
+                      fetchItems={searchIncidentAssignees}
+                      disabled={saving === "create"}
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
+                    Vencimiento
+                    <input
+                      type="date"
+                      value={form.dueDate}
+                      onChange={(event) =>
+                        setForm({ ...form, dueDate: event.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
+                    Fuente o folio mínimo (opcional)
+                    <input
+                      maxLength={200}
+                      value={form.externalContactRef}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          externalContactRef: event.target.value,
+                        })
+                      }
+                      placeholder="Código de reporte; no copies datos sensibles innecesarios"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <div className="min-w-0 space-y-2 md:col-span-2">
+                    <p className="text-sm font-semibold text-slate-600">
+                      Municipio (opcional)
+                    </p>
+                    <IncidentMunicipalitySelector
+                      ariaLabel="Municipio del nuevo incidente"
+                      value={form.municipality}
+                      onChange={(municipality) => setForm((current) => ({ ...current, municipality }))}
+                      disabled={saving === "create"}
+                    />
+                    <p className="text-xs leading-5 text-slate-600">
+                      Vincula el incidente con un municipio de la organización para consultarlo en el mapa territorial.
+                    </p>
+                  </div>
+                  <label className="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm font-bold text-violet-900 md:col-span-2 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={form.confidential}
+                      onChange={(event) =>
+                        setForm({ ...form, confidential: event.target.checked })
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0 min-w-0 max-w-full"
+                    />
+                    <FileLock2
+                      aria-hidden="true"
+                      className="mt-0.5 shrink-0"
+                      size={18}
+                    />
+                    <span>
+                      <span className="block">
+                        Aplicar etiqueta de manejo especial
+                      </span>
+                      <span className="mt-1 block text-xs font-semibold normal-case leading-5 tracking-normal text-violet-700">
+                        Es una clasificación operativa. No restringe el acceso: la
+                        visibilidad sigue los permisos generales del rol y la
+                        asignación del incidente.
+                      </span>
                     </span>
-                    <span className="mt-1 block text-xs font-semibold normal-case leading-5 tracking-normal text-violet-700">
-                      Es una clasificación operativa. No restringe el acceso: la
-                      visibilidad sigue los permisos generales del rol y la
-                      asignación del incidente.
-                    </span>
-                  </span>
-                </label>
+                  </label>
+                </div>
               </div>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
+              <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 sm:flex-row sm:justify-end sm:px-7">
                 <button
                   type="button"
                   disabled={saving === "create"}

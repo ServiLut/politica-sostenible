@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -207,27 +208,16 @@ export default function CapturaTerritorialPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7 min-w-0">
-      <header className="overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-xl sm:px-9 min-w-0">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between min-w-0">
-          <div className="max-w-2xl min-w-0">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
-              <ShieldCheck aria-hidden="true" size={14} /> Captura autorizada
-            </span>
-            <h1 className="mt-4 font-semibold tracking-tight text-2xl sm:text-3xl break-words">
-              Vinculación en territorio
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">
-              Registra únicamente información entregada por la persona y
-              confirma su autorización. El sistema fija la organización, el
-              responsable y el alcance territorial desde tu sesión.
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-xs font-bold text-slate-200 min-w-0">
-            <MapPin aria-hidden="true" className="text-emerald-400" size={19} />
-            Puestos verificados por la API
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Vinculación en territorio"
+        icon={ShieldCheck}
+        description={
+          <>
+            Registra la información que cada persona entregue y autorice. El
+            acceso queda limitado a tu organización y territorio.
+          </>
+        }
+      />
 
       {tenant?.type === "GSC" && (
         <div

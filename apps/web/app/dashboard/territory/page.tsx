@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/PageHeader";
+
 import { usePageRequest } from "@/lib/use-page-request";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
@@ -273,46 +275,42 @@ export default function TerritoryPage() {
 
   return (
     <div className="space-y-7 min-w-0">
-      <header className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end min-w-0">
-        <div className="space-y-2 min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 min-w-0">
-            <MapPin size={13} /> Base territorial verificable
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Organización territorial
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-slate-500">
-            Consulta la estructura operativa del tenant. DANE aporta DIVIPOLA
-            administrativa para departamentos y municipios; las zonas y puestos
-            electorales pertenecen a DIVIPOLE de Registraduría y sólo aparecen
-            desde un catálogo electoral autorizado y verificable.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 min-w-0">
-          <button
-            type="button"
-            onClick={() => void loadDivisions()}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
-          >
-            <RefreshCw size={16} /> Actualizar
-          </button>
-          {canSynchronize && (
+      <PageHeader
+        title="Organización territorial"
+        description="Consulta departamentos, municipios y la estructura de trabajo de tu organización."
+        icon={MapPin}
+        actions={
+          <div className="flex flex-wrap gap-3 min-w-0">
             <button
               type="button"
-              disabled={syncing}
-              onClick={() => void synchronizeOfficialGeography()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 max-w-full whitespace-normal"
+              onClick={() => void loadDivisions()}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 max-w-full whitespace-normal"
             >
-              {syncing ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <DatabaseZap size={16} />
-              )}
-              Sincronizar geografía DANE
+              <RefreshCw size={16} /> Actualizar
             </button>
-          )}
-        </div>
-      </header>
+            {canSynchronize && (
+              <button
+                type="button"
+                disabled={syncing}
+                onClick={() => void synchronizeOfficialGeography()}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 max-w-full whitespace-normal"
+              >
+                {syncing ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <DatabaseZap size={16} />
+                )}
+                Sincronizar geografía DANE
+              </button>
+            )}
+          </div>
+        }
+      />
+      <p className="text-sm leading-6 text-slate-600">
+        Departamentos y municipios provienen del DANE (DIVIPOLA). Las zonas y
+        puestos electorales requieren un catálogo autorizado de Registraduría
+        (DIVIPOLE).
+      </p>
 
       {notice && (
         <div
@@ -360,107 +358,119 @@ export default function TerritoryPage() {
       )}
 
       {canSynchronize && (
-        <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-950 via-slate-950 to-slate-900 p-6 text-white shadow-xl shadow-blue-950/10 min-w-0">
-          <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)] xl:items-end min-w-0">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-300 min-w-0">
-                <Plus size={15} aria-hidden="true" /> Estructura operativa
+        <details className="rounded-2xl border border-slate-200 bg-white">
+          <summary className="min-h-14 cursor-pointer px-5 py-4 text-sm font-semibold text-blue-800">
+            Crear una zona o un puesto
+          </summary>
+          <section className="border-t border-slate-100 p-4 text-slate-900 sm:p-6 min-w-0">
+            <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)] xl:items-end min-w-0">
+              <div>
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-700 min-w-0">
+                  <Plus size={15} aria-hidden="true" /> Estructura operativa
+                </div>
+                <h2 className="mt-3 text-2xl font-semibold">
+                  Crear zona o puesto
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Construye la jerarquía real y luego asigna cada miembro desde
+                  Equipo y accesos.
+                </p>
               </div>
-              <h2 className="mt-3 text-2xl font-semibold">
-                Crear zona o puesto
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Construye la jerarquía real y luego asigna cada miembro desde
-                Equipo y accesos.
-              </p>
-            </div>
-            <form
-              onSubmit={createOperationalDivision}
-              className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-[10rem_11rem_minmax(0,1fr)_minmax(0,1.3fr)_auto]"
-            >
-              <label className="space-y-2 text-sm font-semibold text-slate-300 min-w-0">
-                Nivel
-                <select
-                  value={createType}
-                  onChange={(event) => {
-                    setCreateType(event.target.value as "ZONA" | "PUESTO");
-                    setParentId("");
-                  }}
-                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white min-w-0 max-w-full"
-                >
-                  <option value="ZONA">Zona</option>
-                  <option value="PUESTO">Puesto</option>
-                </select>
-              </label>
-              <label className="space-y-2 text-sm font-semibold text-slate-300 min-w-0">
-                Código
-                <input
-                  required
-                  maxLength={50}
-                  value={divisionCode}
-                  onChange={(event) => setDivisionCode(event.target.value)}
-                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white min-w-0 max-w-full"
-                />
-              </label>
-              <label className="space-y-2 text-sm font-semibold text-slate-300 min-w-0">
-                Nombre
-                <input
-                  required
-                  maxLength={160}
-                  value={divisionName}
-                  onChange={(event) => setDivisionName(event.target.value)}
-                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white min-w-0 max-w-full"
-                />
-              </label>
-              <div className="space-y-2 min-w-0">
-                <label className="block text-sm font-semibold text-slate-300 min-w-0">
-                  Buscar territorio padre
+              <form
+                onSubmit={createOperationalDivision}
+                className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-[10rem_11rem_minmax(0,1fr)_minmax(0,1.3fr)_auto]"
+              >
+                <label className="space-y-2 text-sm font-semibold text-slate-600 min-w-0">
+                  Nivel
+                  <select
+                    value={createType}
+                    onChange={(event) => {
+                      setCreateType(event.target.value as "ZONA" | "PUESTO");
+                      setParentId("");
+                    }}
+                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                  >
+                    <option value="ZONA">Zona</option>
+                    <option value="PUESTO">Puesto</option>
+                  </select>
+                </label>
+                <label className="space-y-2 text-sm font-semibold text-slate-600 min-w-0">
+                  Código
                   <input
-                    maxLength={100}
-                    value={parentSearch}
-                    onChange={(event) => setParentSearch(event.target.value)}
-                    placeholder="Municipio o zona"
-                    className="mt-2 min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold normal-case tracking-normal text-white min-w-0 max-w-full"
+                    required
+                    maxLength={50}
+                    value={divisionCode}
+                    onChange={(event) => setDivisionCode(event.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                   />
                 </label>
-                <label className="sr-only min-w-0" htmlFor="division-parent">
-                  Territorio padre
+                <label className="space-y-2 text-sm font-semibold text-slate-600 min-w-0">
+                  Nombre
+                  <input
+                    required
+                    maxLength={160}
+                    value={divisionName}
+                    onChange={(event) => setDivisionName(event.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                  />
                 </label>
-                <select
-                  id="division-parent"
-                  required
-                  value={parentId}
-                  onChange={(event) => setParentId(event.target.value)}
-                  disabled={loadingParents}
-                  className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold text-white disabled:opacity-60 min-w-0 max-w-full"
-                >
-                  <option value="">
-                    {loadingParents
-                      ? "Consultando…"
-                      : parentOptions.length
-                        ? "Selecciona el padre"
-                        : "Sin resultados"}
-                  </option>
-                  {parentOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.type} · {option.name} · {option.code}
+                <div className="space-y-2 min-w-0">
+                  <label className="block text-sm font-semibold text-slate-600 min-w-0">
+                    Buscar territorio padre
+                    <input
+                      maxLength={100}
+                      value={parentSearch}
+                      onChange={(event) => setParentSearch(event.target.value)}
+                      placeholder="Municipio o zona"
+                      className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="sr-only min-w-0" htmlFor="division-parent">
+                    Territorio padre
+                  </label>
+                  <select
+                    id="division-parent"
+                    required
+                    value={parentId}
+                    onChange={(event) => setParentId(event.target.value)}
+                    disabled={loadingParents}
+                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 disabled:opacity-60 min-w-0 max-w-full"
+                  >
+                    <option value="">
+                      {loadingParents
+                        ? "Consultando…"
+                        : parentOptions.length
+                          ? "Selecciona el padre"
+                          : "Sin resultados"}
                     </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={creating || loadingParents || !parentId}
-                className="min-h-12 self-end rounded-xl bg-blue-500 px-5 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:opacity-50 max-w-full whitespace-normal"
-              >
-                {creating ? "Creando…" : "Crear"}
-              </button>
-            </form>
-          </div>
-        </section>
+                    {parentOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.type} · {option.name} · {option.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  disabled={creating || loadingParents || !parentId}
+                  className="min-h-12 self-end rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-50 max-w-full whitespace-normal"
+                >
+                  {creating ? "Creando…" : "Crear"}
+                </button>
+              </form>
+            </div>
+          </section>
+        </details>
       )}
 
-      <TerritoryHeatmap reloadKey={geographyRevision} />
+      <details className="rounded-2xl border border-slate-200 bg-white">
+        <summary className="min-h-14 cursor-pointer px-5 py-4 text-sm font-semibold text-blue-800">
+          Ver el mapa del territorio
+        </summary>
+        <div className="p-3 sm:p-5">
+          <TerritoryHeatmap reloadKey={geographyRevision} />
+        </div>
+      </details>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
@@ -678,7 +688,7 @@ export default function TerritoryPage() {
         </>
       )}
 
-      <p className="text-xs leading-5 text-slate-400">
+      <p className="text-xs leading-5 text-slate-600">
         Fuente administrativa municipal: DANE, servicio DIVIPOLA MGN 2025. No
         equivale a DIVIPOLE ni certifica zonas, puestos o mesas electorales. La
         sincronización conserva los registros existentes y nunca elimina

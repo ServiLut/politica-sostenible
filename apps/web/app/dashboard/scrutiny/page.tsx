@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
 
@@ -396,7 +397,7 @@ export default function ScrutinyPage() {
               }),
         });
       },
-      "Archivo subido directamente a Storage e incorporado como evidencia pendiente de segunda revisión.",
+      "Documento cargado como soporte. Está pendiente de revisión por otra persona.",
     ).then((succeeded) => {
       if (succeeded) formElement.reset();
     });
@@ -419,33 +420,31 @@ export default function ScrutinyPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="flex flex-wrap items-start justify-between gap-4 min-w-0">
-        <div>
-          <p className="text-sm font-bold text-blue-700">
-            Control poselectoral
-          </p>
-          <h1 className="mt-1 font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Escrutinios, reclamaciones y declaración
-          </h1>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+      <PageHeader
+        title="Escrutinios, reclamaciones y declaración"
+        icon={Scale}
+        description={
+          <>
             Expediente operativo con trazabilidad de comisiones, cobertura E-16,
             custodia, diferencias y términos. Una captura interna nunca se
             presenta como decisión ni como resultado oficial.
-          </p>
-        </div>
-        <button
-          type="button"
-          className={secondaryButtonClass}
-          disabled={loading}
-          onClick={() => setRevision((current) => current + 1)}
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            aria-hidden="true"
-          />
-          Actualizar expediente
-        </button>
-      </header>
+          </>
+        }
+        actions={
+          <button
+            type="button"
+            className={secondaryButtonClass}
+            disabled={loading}
+            onClick={() => setRevision((current) => current + 1)}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            Actualizar expediente
+          </button>
+        }
+      />
 
       {error ? (
         <section
@@ -712,7 +711,7 @@ export default function ScrutinyPage() {
                     required
                   />
                 </Field>
-                <Field label="Zona horaria IANA">
+                <Field label="Zona horaria (ej. America/Bogota)">
                   <input
                     className={inputClass}
                     name="timeZone"
@@ -1166,7 +1165,7 @@ export default function ScrutinyPage() {
               {canLegal ? (
                 <Workflow
                   title="4. Incorporar documento"
-                  description="Calcula SHA-256 local, sube el binario directo a Supabase y notifica a Nest sólo con ruta y metadatos."
+                  description="Carga el documento de soporte. El sistema verifica el archivo y lo deja pendiente de revisión por otra persona."
                 >
                   <form
                     className="grid gap-4 md:grid-cols-2 min-w-0"
@@ -2449,7 +2448,7 @@ function ActionProgressForms({
           );
         }}
       >
-        <h3 className="font-semibold">Aprobar borrador por cuatro ojos</h3>
+        <h3 className="font-semibold">Revisión independiente del borrador</h3>
         <ActionSelect name="actionId" actions={drafts} />
         <Field label="Nota jurídica">
           <textarea

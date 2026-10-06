@@ -1,6 +1,7 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { useSearchParams } from "next/navigation";
 
@@ -629,32 +630,28 @@ export default function CommunicationsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 min-w-0">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between min-w-0">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-blue-700 min-w-0">
-            <ShieldCheck size={16} aria-hidden="true" /> Control editorial
-          </div>
-          <h1 className="font-semibold tracking-tight text-slate-950 text-2xl sm:text-3xl break-words">
-            Aprobación de comunicaciones
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
-            Solicita la revisión de una comunicación y consulta la decisión
-            de otra persona autorizada. La aprobación no envía el mensaje.
-          </p>
-        </div>
-        {canRequest && (
-          <button
-            type="button"
-            onClick={() => {
-              setMutationError(null);
-              setRequestOpen(true);
-            }}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 max-w-full whitespace-normal"
-          >
-            <Plus size={18} aria-hidden="true" /> Nueva solicitud
-          </button>
-        )}
-      </header>
+      <PageHeader
+        title="Aprobación de comunicaciones"
+        eyebrow="Control editorial"
+        icon={ShieldCheck}
+        description="Solicita la revisión de una comunicación y consulta la decisión de otra persona autorizada. La aprobación no envía el mensaje."
+        actions={
+          <>
+            {canRequest && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMutationError(null);
+                  setRequestOpen(true);
+                }}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800 max-w-full whitespace-normal"
+              >
+                <Plus size={18} aria-hidden="true" /> Nueva solicitud
+              </button>
+            )}
+          </>
+        }
+      />
 
       <section
         aria-label="Límite del flujo"
@@ -1058,21 +1055,21 @@ export default function CommunicationsPage() {
       )}
 
       {requestOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 min-w-0 z-[150] overflow-y-auto flex-wrap">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 p-3 sm:p-4">
           <div
             ref={requestDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="request-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
           >
-            <div className="mb-5 flex items-start justify-between gap-4 min-w-0 flex-wrap">
-              <div>
+            <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-5 sm:px-6">
+              <div className="min-w-0">
                 <h2
                   ref={requestTitleRef}
                   tabIndex={-1}
                   id="request-title"
-                  className="text-2xl font-semibold text-slate-950"
+                  className="break-words text-xl font-semibold leading-tight text-slate-950 sm:text-2xl"
                 >
                   Solicitar revisión
                 </h2>
@@ -1084,435 +1081,437 @@ export default function CommunicationsPage() {
                 type="button"
                 aria-label="Cerrar solicitud"
                 onClick={() => setRequestOpen(false)}
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
               >
                 <X aria-hidden="true" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-4 min-w-0">
-              {mutationError && (
-                <p
-                  role="alert"
-                  className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800"
-                >
-                  {mutationError}
-                </p>
-              )}
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Título
-                <input
-                  required
-                  minLength={3}
-                  maxLength={180}
-                  value={requestForm.title}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      title: event.target.value,
-                    }))
-                  }
-                  className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold min-w-0 max-w-full"
-                />
-              </label>
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Mensaje a revisar
-                <textarea
-                  required
-                  maxLength={5000}
-                  rows={8}
-                  value={requestForm.message}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      message: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                />
-                <span className="block text-right text-xs font-semibold text-slate-400">
-                  {requestForm.message.length}/5000
-                </span>
-              </label>
-              <div className="grid gap-4 md:grid-cols-2 min-w-0">
-                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                  Canal
-                  <select
-                    required
-                    value={requestForm.channel}
-                    onChange={(event) =>
-                      setRequestForm((current) => ({
-                        ...current,
-                        channel: event.target.value as CommunicationChannel,
-                        ...(event.target.value === "INTERNAL"
-                          ? { recipientBasis: "INTERNAL" }
-                          : current.channel === "INTERNAL"
-                            ? { recipientBasis: "PUBLIC_AUDIENCE" }
-                            : {}),
-                      }))
-                    }
-                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold min-w-0 max-w-full"
+            <form onSubmit={handleCreate} className="flex min-h-0 flex-col">
+              <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain p-5 sm:px-6">
+                {mutationError && (
+                  <p
+                    role="alert"
+                    className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800"
                   >
-                    {CHANNELS.map((channel) => (
-                      <option key={channel.value} value={channel.value}>
-                        {channel.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                  Base de destinatarios
-                  <select
-                    required
-                    value={requestForm.recipientBasis}
-                    onChange={(event) =>
-                      setRequestForm((current) => ({
-                        ...current,
-                        recipientBasis: event.target
-                          .value as CommunicationRecipientBasis,
-                      }))
-                    }
-                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold min-w-0 max-w-full"
-                  >
-                    {RECIPIENT_BASES.filter((basis) => {
-                      if (basis.value === "PARTY_MEMBERSHIP") {
-                        return tenant?.type === "PARTY";
-                      }
-                      if (basis.value === "CASE_RESPONSE") {
-                        return tenant?.type === "PUBLIC_OFFICE";
-                      }
-                      return true;
-                    }).map((basis) => (
-                      <option key={basis.value} value={basis.value}>
-                        {basis.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 min-w-0">
-                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                  Audiencia prevista
-                  <textarea
-                    required
-                    minLength={3}
-                    maxLength={500}
-                    rows={3}
-                    value={requestForm.audienceDescription}
-                    onChange={(event) =>
-                      setRequestForm((current) => ({
-                        ...current,
-                        audienceDescription: event.target.value,
-                      }))
-                    }
-                    placeholder="A quiénes se dirige, sin cargar una lista de personas"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                  />
-                </label>
-                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                  Fuente de los datos o audiencia
-                  <textarea
-                    required
-                    minLength={3}
-                    maxLength={500}
-                    rows={3}
-                    value={requestForm.dataSource}
-                    onChange={(event) =>
-                      setRequestForm((current) => ({
-                        ...current,
-                        dataSource: event.target.value,
-                      }))
-                    }
-                    placeholder="Ej. inscripción voluntaria con aviso vigente"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                  />
-                </label>
-              </div>
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Criterios de segmentación
-                <textarea
-                  required
-                  minLength={3}
-                  maxLength={1000}
-                  rows={3}
-                  value={requestForm.segmentationCriteria}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      segmentationCriteria: event.target.value,
-                    }))
-                  }
-                  placeholder="Describe los criterios o indica por qué no aplica"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                />
-              </label>
-              {canLinkCase && (
-                <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
-                  <legend className="px-1 text-sm font-semibold text-slate-800">
-                    Caso relacionado{" "}
-                    {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
-                  </legend>
-                  <p className="text-xs leading-5 text-slate-500">
-                    Busca por referencia o asunto entre los casos que puedes
-                    consultar en tu organización.
+                    {mutationError}
                   </p>
-
-                  {selectedCase && (
-                    <div
-                      data-testid="selected-communication-case"
-                      className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:flex-row sm:items-center sm:justify-between min-w-0"
+                )}
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Título
+                  <input
+                    required
+                    minLength={3}
+                    maxLength={180}
+                    value={requestForm.title}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold min-w-0 max-w-full"
+                  />
+                </label>
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Mensaje a revisar
+                  <textarea
+                    required
+                    maxLength={5000}
+                    rows={8}
+                    value={requestForm.message}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        message: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
+                  />
+                  <span className="block text-right text-xs font-semibold text-slate-400">
+                    {requestForm.message.length}/5000
+                  </span>
+                </label>
+                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                  <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                    Canal
+                    <select
+                      required
+                      value={requestForm.channel}
+                      onChange={(event) =>
+                        setRequestForm((current) => ({
+                          ...current,
+                          channel: event.target.value as CommunicationChannel,
+                          ...(event.target.value === "INTERNAL"
+                            ? { recipientBasis: "INTERNAL" }
+                            : current.channel === "INTERNAL"
+                              ? { recipientBasis: "PUBLIC_AUDIENCE" }
+                              : {}),
+                        }))
+                      }
+                      className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold min-w-0 max-w-full"
                     >
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-emerald-800">
-                          {selectedCase.reference}
-                        </p>
-                        <p className="mt-1 truncate text-sm font-bold text-slate-900">
-                          {selectedCase.title}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={clearSelectedCase}
-                        className="min-h-9 shrink-0 rounded-lg border border-emerald-300 bg-white px-3 text-sm font-semibold text-emerald-900 max-w-full whitespace-normal"
-                      >
-                        Quitar caso
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2 sm:flex-row min-w-0">
-                    <label className="flex-1 min-w-0">
-                      <span className="sr-only">Buscar caso autorizado</span>
-                      <input
-                        type="search"
-                        value={caseSearchDraft}
-                        onChange={(event) =>
-                          setCaseSearchDraft(event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            submitCaseSearch();
-                          }
-                        }}
-                        placeholder="Referencia o asunto del caso"
-                        className="min-h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold min-w-0 max-w-full"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={submitCaseSearch}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white max-w-full whitespace-normal"
-                    >
-                      <Search size={16} aria-hidden="true" /> Buscar casos
-                    </button>
-                  </div>
-
-                  {casesLoading ? (
-                    <div
-                      role="status"
-                      className="flex min-h-20 items-center justify-center gap-2 text-sm font-semibold text-slate-500 min-w-0"
-                    >
-                      <Loader2
-                        className="animate-spin"
-                        size={17}
-                        aria-hidden="true"
-                      />
-                      Consultando casos autorizados…
-                    </div>
-                  ) : casesError ? (
-                    <div
-                      role="alert"
-                      className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between min-w-0"
-                    >
-                      <span>
-                        No fue posible consultar los casos: {casesError}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCasesReload((value) => value + 1)}
-                        className="min-h-9 shrink-0 rounded-lg bg-red-700 px-3 text-sm font-semibold text-white max-w-full whitespace-normal"
-                      >
-                        Reintentar
-                      </button>
-                    </div>
-                  ) : caseResult?.items.length ? (
-                    <div
-                      className="space-y-2 min-w-0"
-                      role="radiogroup"
-                      aria-label="Casos autorizados"
-                    >
-                      {caseResult.items.map((issueCase) => (
-                        <label
-                          key={issueCase.id}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
-                            selectedCase?.id === issueCase.id
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-slate-200 hover:border-blue-300"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="communication-case"
-                            checked={selectedCase?.id === issueCase.id}
-                            onChange={() => selectCase(issueCase)}
-                            className="mt-1 h-4 w-4 min-w-0 max-w-full"
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-xs font-semibold text-blue-700">
-                              {issueCase.reference}
-                            </span>
-                            <span className="mt-1 block text-sm font-semibold text-slate-800">
-                              {issueCase.title}
-                            </span>
-                          </span>
-                        </label>
+                      {CHANNELS.map((channel) => (
+                        <option key={channel.value} value={channel.value}>
+                          {channel.label}
+                        </option>
                       ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">
-                      No hay casos autorizados con esta búsqueda.
+                    </select>
+                  </label>
+                  <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                    Base de destinatarios
+                    <select
+                      required
+                      value={requestForm.recipientBasis}
+                      onChange={(event) =>
+                        setRequestForm((current) => ({
+                          ...current,
+                          recipientBasis: event.target
+                            .value as CommunicationRecipientBasis,
+                        }))
+                      }
+                      className="min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold min-w-0 max-w-full"
+                    >
+                      {RECIPIENT_BASES.filter((basis) => {
+                        if (basis.value === "PARTY_MEMBERSHIP") {
+                          return tenant?.type === "PARTY";
+                        }
+                        if (basis.value === "CASE_RESPONSE") {
+                          return tenant?.type === "PUBLIC_OFFICE";
+                        }
+                        return true;
+                      }).map((basis) => (
+                        <option key={basis.value} value={basis.value}>
+                          {basis.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                  <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                    Audiencia prevista
+                    <textarea
+                      required
+                      minLength={3}
+                      maxLength={500}
+                      rows={3}
+                      value={requestForm.audienceDescription}
+                      onChange={(event) =>
+                        setRequestForm((current) => ({
+                          ...current,
+                          audienceDescription: event.target.value,
+                        }))
+                      }
+                      placeholder="A quiénes se dirige, sin cargar una lista de personas"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
+                    />
+                  </label>
+                  <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                    Fuente de los datos o audiencia
+                    <textarea
+                      required
+                      minLength={3}
+                      maxLength={500}
+                      rows={3}
+                      value={requestForm.dataSource}
+                      onChange={(event) =>
+                        setRequestForm((current) => ({
+                          ...current,
+                          dataSource: event.target.value,
+                        }))
+                      }
+                      placeholder="Ej. inscripción voluntaria con aviso vigente"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
+                    />
+                  </label>
+                </div>
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Criterios de segmentación
+                  <textarea
+                    required
+                    minLength={3}
+                    maxLength={1000}
+                    rows={3}
+                    value={requestForm.segmentationCriteria}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        segmentationCriteria: event.target.value,
+                      }))
+                    }
+                    placeholder="Describe los criterios o indica por qué no aplica"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
+                  />
+                </label>
+                {canLinkCase && (
+                  <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
+                    <legend className="px-1 text-sm font-semibold text-slate-800">
+                      Caso relacionado{" "}
+                      {caseLinkRequired ? "(obligatorio)" : "(opcional)"}
+                    </legend>
+                    <p className="text-xs leading-5 text-slate-500">
+                      Busca por referencia o asunto entre los casos que puedes
+                      consultar en tu organización.
                     </p>
-                  )}
 
-                  {!casesLoading &&
-                    !casesError &&
-                    caseResult &&
-                    caseResult.pagination.totalPages > 1 && (
-                      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600 min-w-0 flex-wrap">
+                    {selectedCase && (
+                      <div
+                        data-testid="selected-communication-case"
+                        className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:flex-row sm:items-center sm:justify-between min-w-0"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-emerald-800">
+                            {selectedCase.reference}
+                          </p>
+                          <p className="mt-1 truncate text-sm font-bold text-slate-900">
+                            {selectedCase.title}
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          disabled={casePage <= 1}
-                          onClick={() => setCasePage((value) => value - 1)}
-                          className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40 max-w-full whitespace-normal"
+                          onClick={clearSelectedCase}
+                          className="min-h-9 shrink-0 rounded-lg border border-emerald-300 bg-white px-3 text-sm font-semibold text-emerald-900 max-w-full whitespace-normal"
                         >
-                          Casos anteriores
-                        </button>
-                        <span>
-                          Página {casePage} de{" "}
-                          {caseResult.pagination.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={
-                            casePage >= caseResult.pagination.totalPages
-                          }
-                          onClick={() => setCasePage((value) => value + 1)}
-                          className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40 max-w-full whitespace-normal"
-                        >
-                          Más casos
+                          Quitar caso
                         </button>
                       </div>
                     )}
-                </fieldset>
-              )}
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Finalidad legítima
-                <textarea
-                  required
-                  minLength={3}
-                  maxLength={500}
-                  rows={3}
-                  value={requestForm.purpose}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      purpose: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                />
-              </label>
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Mecanismo HTTPS para ejercer derechos o retirarse
-                <input
-                  required={DIRECT_CHANNELS.has(requestForm.channel)}
-                  type="url"
-                  inputMode="url"
-                  maxLength={2048}
-                  pattern="https://.*"
-                  value={requestForm.rightsMechanismUrl}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      rightsMechanismUrl: event.target.value,
-                    }))
-                  }
-                  placeholder="https://ejemplo.co/privacidad-o-retiro"
-                  className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold min-w-0 max-w-full"
-                />
-                <span className="block text-xs font-medium leading-5 text-slate-500">
-                  Obligatorio para llamadas, SMS, WhatsApp, correo y cartas.
-                  Este módulo no gestiona el retiro por sí mismo.
-                </span>
-              </label>
-              <label className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-950 min-w-0">
-                <input
-                  type="checkbox"
-                  checked={requestForm.usesArtificialIntelligence}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      usesArtificialIntelligence: event.target.checked,
-                    }))
-                  }
-                  className="mt-0.5 h-4 w-4 min-w-0 max-w-full"
-                />
-                <span>
-                  Se utilizó inteligencia artificial para crear, seleccionar o
-                  segmentar este mensaje. Esta declaración quedará unida a la
-                  versión revisada.
-                </span>
-              </label>
-              <label className="flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-bold text-violet-950 min-w-0">
-                <input
-                  type="checkbox"
-                  checked={requestForm.containsSensitiveData}
-                  onChange={(event) =>
-                    setRequestForm((current) => ({
-                      ...current,
-                      containsSensitiveData: event.target.checked,
-                    }))
-                  }
-                  className="mt-0.5 h-4 w-4 min-w-0 max-w-full"
-                />
-                <span>
-                  El mensaje contiene datos personales sensibles y requiere
-                  revisión reforzada.
-                </span>
-              </label>
-              {consentEvidenceRequired && (
-                <label className="block space-y-2 text-sm font-semibold text-violet-950 min-w-0">
-                  {requestForm.recipientBasis === "DIRECT_OPT_IN"
-                    ? "Referencia verificable de la autorización directa"
-                    : "Referencia de autorización expresa o soporte jurídico"}
-                  <input
+
+                    <div className="flex flex-col gap-2 sm:flex-row min-w-0">
+                      <label className="flex-1 min-w-0">
+                        <span className="sr-only">Buscar caso autorizado</span>
+                        <input
+                          type="search"
+                          value={caseSearchDraft}
+                          onChange={(event) =>
+                            setCaseSearchDraft(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              submitCaseSearch();
+                            }
+                          }}
+                          placeholder="Referencia o asunto del caso"
+                          className="min-h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold min-w-0 max-w-full"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={submitCaseSearch}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white max-w-full whitespace-normal"
+                      >
+                        <Search size={16} aria-hidden="true" /> Buscar casos
+                      </button>
+                    </div>
+
+                    {casesLoading ? (
+                      <div
+                        role="status"
+                        className="flex min-h-20 items-center justify-center gap-2 text-sm font-semibold text-slate-500 min-w-0"
+                      >
+                        <Loader2
+                          className="animate-spin"
+                          size={17}
+                          aria-hidden="true"
+                        />
+                        Consultando casos autorizados…
+                      </div>
+                    ) : casesError ? (
+                      <div
+                        role="alert"
+                        className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 sm:flex-row sm:items-center sm:justify-between min-w-0"
+                      >
+                        <span>
+                          No fue posible consultar los casos: {casesError}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCasesReload((value) => value + 1)}
+                          className="min-h-9 shrink-0 rounded-lg bg-red-700 px-3 text-sm font-semibold text-white max-w-full whitespace-normal"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : caseResult?.items.length ? (
+                      <div
+                        className="space-y-2 min-w-0"
+                        role="radiogroup"
+                        aria-label="Casos autorizados"
+                      >
+                        {caseResult.items.map((issueCase) => (
+                          <label
+                            key={issueCase.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                              selectedCase?.id === issueCase.id
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-slate-200 hover:border-blue-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="communication-case"
+                              checked={selectedCase?.id === issueCase.id}
+                              onChange={() => selectCase(issueCase)}
+                              className="mt-1 h-4 w-4 min-w-0 max-w-full"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-xs font-semibold text-blue-700">
+                                {issueCase.reference}
+                              </span>
+                              <span className="mt-1 block text-sm font-semibold text-slate-800">
+                                {issueCase.title}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">
+                        No hay casos autorizados con esta búsqueda.
+                      </p>
+                    )}
+
+                    {!casesLoading &&
+                      !casesError &&
+                      caseResult &&
+                      caseResult.pagination.totalPages > 1 && (
+                        <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600 min-w-0 flex-wrap">
+                          <button
+                            type="button"
+                            disabled={casePage <= 1}
+                            onClick={() => setCasePage((value) => value - 1)}
+                            className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40 max-w-full whitespace-normal"
+                          >
+                            Casos anteriores
+                          </button>
+                          <span>
+                            Página {casePage} de{" "}
+                            {caseResult.pagination.totalPages}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={
+                              casePage >= caseResult.pagination.totalPages
+                            }
+                            onClick={() => setCasePage((value) => value + 1)}
+                            className="min-h-9 rounded-lg border border-slate-200 px-3 disabled:opacity-40 max-w-full whitespace-normal"
+                          >
+                            Más casos
+                          </button>
+                        </div>
+                      )}
+                  </fieldset>
+                )}
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Finalidad legítima
+                  <textarea
                     required
-                    minLength={5}
-                    maxLength={180}
-                    value={requestForm.consentEvidenceReference}
+                    minLength={3}
+                    maxLength={500}
+                    rows={3}
+                    value={requestForm.purpose}
                     onChange={(event) =>
                       setRequestForm((current) => ({
                         ...current,
-                        consentEvidenceReference: event.target.value,
+                        purpose: event.target.value,
                       }))
                     }
-                    placeholder="Ej. CONS-2026-00142"
-                    className="min-h-11 w-full rounded-xl border border-violet-200 px-4 font-semibold text-slate-900 min-w-0 max-w-full"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
                   />
-                  <span className="block text-xs font-medium leading-5 text-violet-800">
-                    No escribas aquí datos personales ni adjuntes la prueba;
-                    registra solamente su referencia verificable. La persona
-                    revisora debe comprobarla antes de aprobar.
+                </label>
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Mecanismo HTTPS para ejercer derechos o retirarse
+                  <input
+                    required={DIRECT_CHANNELS.has(requestForm.channel)}
+                    type="url"
+                    inputMode="url"
+                    maxLength={2048}
+                    pattern="https://.*"
+                    value={requestForm.rightsMechanismUrl}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        rightsMechanismUrl: event.target.value,
+                      }))
+                    }
+                    placeholder="https://ejemplo.co/privacidad-o-retiro"
+                    className="min-h-11 w-full rounded-xl border border-slate-200 px-4 font-semibold min-w-0 max-w-full"
+                  />
+                  <span className="block text-xs font-medium leading-5 text-slate-500">
+                    Obligatorio para llamadas, SMS, WhatsApp, correo y cartas.
+                    Este módulo no gestiona el retiro por sí mismo.
                   </span>
                 </label>
-              )}
-              <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-950">
-                La clasificación de datos sensibles es una declaración del
-                solicitante, no una detección automática. La revisión humana
-                debe comprobar contenido, audiencia, base y evidencia antes de
-                aprobar.
-              </p>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
+                <label className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-950 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={requestForm.usesArtificialIntelligence}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        usesArtificialIntelligence: event.target.checked,
+                      }))
+                    }
+                    className="mt-0.5 h-4 w-4 min-w-0 max-w-full"
+                  />
+                  <span>
+                    Se utilizó inteligencia artificial para crear, seleccionar o
+                    segmentar este mensaje. Esta declaración quedará unida a la
+                    versión revisada.
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-bold text-violet-950 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={requestForm.containsSensitiveData}
+                    onChange={(event) =>
+                      setRequestForm((current) => ({
+                        ...current,
+                        containsSensitiveData: event.target.checked,
+                      }))
+                    }
+                    className="mt-0.5 h-4 w-4 min-w-0 max-w-full"
+                  />
+                  <span>
+                    El mensaje contiene datos personales sensibles y requiere
+                    revisión reforzada.
+                  </span>
+                </label>
+                {consentEvidenceRequired && (
+                  <label className="block space-y-2 text-sm font-semibold text-violet-950 min-w-0">
+                    {requestForm.recipientBasis === "DIRECT_OPT_IN"
+                      ? "Referencia verificable de la autorización directa"
+                      : "Referencia de autorización expresa o soporte jurídico"}
+                    <input
+                      required
+                      minLength={5}
+                      maxLength={180}
+                      value={requestForm.consentEvidenceReference}
+                      onChange={(event) =>
+                        setRequestForm((current) => ({
+                          ...current,
+                          consentEvidenceReference: event.target.value,
+                        }))
+                      }
+                      placeholder="Ej. CONS-2026-00142"
+                      className="min-h-11 w-full rounded-xl border border-violet-200 px-4 font-semibold text-slate-900 min-w-0 max-w-full"
+                    />
+                    <span className="block text-xs font-medium leading-5 text-violet-800">
+                      No escribas aquí datos personales ni adjuntes la prueba;
+                      registra solamente su referencia verificable. La persona
+                      revisora debe comprobarla antes de aprobar.
+                    </span>
+                  </label>
+                )}
+                <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-950">
+                  La clasificación de datos sensibles es una declaración del
+                  solicitante, no una detección automática. La revisión humana
+                  debe comprobar contenido, audiencia, base y evidencia antes de
+                  aprobar.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 sm:flex-row sm:justify-end sm:px-6">
                 <button
                   type="button"
                   onClick={() => setRequestOpen(false)}
@@ -1539,27 +1538,27 @@ export default function CommunicationsPage() {
       )}
 
       {decision && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 min-w-0 z-[150] overflow-y-auto flex-wrap">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 p-3 sm:p-4">
           <div
             ref={decisionDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-title"
-            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl min-w-0"
+            className="flex max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
           >
-            <div className="mb-5 flex items-start justify-between gap-4 min-w-0 flex-wrap">
-              <div>
+            <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 p-5 sm:px-6">
+              <div className="min-w-0">
                 <h2
                   ref={decisionTitleRef}
                   tabIndex={-1}
                   id="decision-title"
-                  className="text-2xl font-semibold text-slate-950"
+                  className="break-words text-xl font-semibold leading-tight text-slate-950 sm:text-2xl"
                 >
                   {decision.status === "APPROVED"
                     ? "Aprobar comunicación"
                     : "Rechazar comunicación"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 break-words text-sm text-slate-500">
                   {decision.approval.title}
                 </p>
               </div>
@@ -1570,57 +1569,59 @@ export default function CommunicationsPage() {
                   setDecision(null);
                   setDecisionReason("");
                 }}
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 max-w-full whitespace-normal"
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
               >
                 <X aria-hidden="true" />
               </button>
             </div>
-            <form onSubmit={handleDecision} className="space-y-4 min-w-0">
-              {mutationError && (
-                <p
-                  role="alert"
-                  className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800"
-                >
-                  {mutationError}
-                </p>
-              )}
-              {decision.status === "APPROVED" &&
-                (decision.approval.content.recipientBasis === "DIRECT_OPT_IN" ||
-                  decision.approval.containsSensitiveData) && (
-                  <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950 min-w-0">
-                    <p className="font-semibold">
-                      Evidencia que debes comprobar
-                    </p>
-                    <p className="mt-1 break-all font-semibold">
-                      {contentText(
-                        decision.approval.content,
-                        "consentEvidenceReference",
-                      )}
-                    </p>
-                    <p className="mt-2 text-xs font-medium leading-5">
-                      Confirma en el expediente fuente que la autorización cubre
-                      esta audiencia, finalidad y canal. La declaración del
-                      solicitante no reemplaza esta revisión humana.
-                    </p>
-                  </div>
+            <form onSubmit={handleDecision} className="flex min-h-0 flex-col">
+              <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain p-5 sm:px-6">
+                {mutationError && (
+                  <p
+                    role="alert"
+                    className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800"
+                  >
+                    {mutationError}
+                  </p>
                 )}
-              <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
-                Motivo de la decisión
-                <textarea
-                  required
-                  minLength={3}
-                  maxLength={1000}
-                  rows={5}
-                  value={decisionReason}
-                  onChange={(event) => setDecisionReason(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
-                />
-              </label>
-              <p className="rounded-2xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
-                La decisión queda auditada sin copiar el mensaje ni el motivo al
-                evento de auditoría. Aprobar tampoco publica el contenido.
-              </p>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end min-w-0 flex-wrap">
+                {decision.status === "APPROVED" &&
+                  (decision.approval.content.recipientBasis === "DIRECT_OPT_IN" ||
+                    decision.approval.containsSensitiveData) && (
+                    <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950 min-w-0">
+                      <p className="font-semibold">
+                        Evidencia que debes comprobar
+                      </p>
+                      <p className="mt-1 break-all font-semibold">
+                        {contentText(
+                          decision.approval.content,
+                          "consentEvidenceReference",
+                        )}
+                      </p>
+                      <p className="mt-2 text-xs font-medium leading-5">
+                        Confirma en el expediente fuente que la autorización cubre
+                        esta audiencia, finalidad y canal. La declaración del
+                        solicitante no reemplaza esta revisión humana.
+                      </p>
+                    </div>
+                  )}
+                <label className="block space-y-2 text-sm font-semibold text-slate-700 min-w-0">
+                  Motivo de la decisión
+                  <textarea
+                    required
+                    minLength={3}
+                    maxLength={1000}
+                    rows={5}
+                    value={decisionReason}
+                    onChange={(event) => setDecisionReason(event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 font-medium min-w-0 max-w-full"
+                  />
+                </label>
+                <p className="rounded-2xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
+                  La decisión queda auditada sin copiar el mensaje ni el motivo al
+                  evento de auditoría. Aprobar tampoco publica el contenido.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 sm:flex-row sm:justify-end sm:px-6">
                 <button
                   type="button"
                   onClick={() => {
