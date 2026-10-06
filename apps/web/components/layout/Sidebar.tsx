@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   ArchiveRestore,
   CalendarDays,
+  ChevronDown,
   ClipboardList,
   CreditCard,
   FileCheck2,
@@ -97,6 +98,13 @@ const MOBILE_ROUTES_BY_WORKSPACE = {
   ],
 } as const;
 
+const DESKTOP_COORDINATION_PRIORITY = [
+  "/dashboard/tasks",
+  "/dashboard/events",
+  "/dashboard/votantes",
+  "/dashboard/inbox",
+];
+
 type ActiveNavItem = NavItem & { isActive: boolean };
 
 function selectMobilePrimaryNavigation(
@@ -134,13 +142,13 @@ function NavigationLink({
       onClick={onNavigate}
       className={`group relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
         item.isActive
-          ? "bg-white/10 text-white ring-1 ring-inset ring-white/10 before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-blue-300"
+          ? "bg-blue-700 text-white ring-1 ring-inset ring-blue-500/50"
           : "text-slate-300 hover:bg-white/5 hover:text-white"
       }`}
     >
       <Icon
         aria-hidden="true"
-        className={item.isActive ? "text-blue-200" : "text-slate-400"}
+        className={item.isActive ? "text-white" : "text-slate-400"}
         size={18}
       />
       <span className="min-w-0 flex-1 break-words">{item.title}</span>
@@ -173,10 +181,23 @@ export function Sidebar() {
     ? getNavigationGroupsForRole(user.backendRole)
     : [];
   const groupedNavigation = roleNavigationGroups
-    .map((group) => ({
-      ...group,
-      items: navigation.filter((item) => item.group === group.id),
-    }))
+    .map((group) => {
+      const items = navigation.filter((item) => item.group === group.id);
+      return {
+        ...group,
+        items:
+          group.id === "COORDINATION"
+            ? [
+                ...DESKTOP_COORDINATION_PRIORITY.flatMap((href) =>
+                  items.filter((item) => item.href === href),
+                ),
+                ...items.filter(
+                  (item) => !DESKTOP_COORDINATION_PRIORITY.includes(item.href),
+                ),
+              ]
+            : items,
+      };
+    })
     .filter((group) => group.items.length > 0);
   const mobilePrimary = selectMobilePrimaryNavigation(
     navigation,
@@ -242,7 +263,7 @@ export function Sidebar() {
   return (
     <>
       <aside className="workspace-sidebar hidden h-full min-h-0 w-64 shrink-0 flex-col text-white lg:flex xl:w-[17rem]">
-        <div className="border-b border-white/10 p-5">
+        <div className="border-b border-white/10 px-5 py-4">
           <Link
             href="/dashboard"
             aria-label="Ir al panel principal"
@@ -262,15 +283,18 @@ export function Sidebar() {
           </Link>
 
           {tenant && (
-            <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-3.5">
-              <p className="text-xs font-medium text-slate-400">
-                Organización activa
-              </p>
-              <p className="mt-1 truncate text-sm font-bold text-slate-100">
+            <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-medium">
+                <span className="text-slate-400">Organización activa</span>
+                <span className="text-blue-200">
+                  {getTenantTypeLabel(tenant.type)}
+                </span>
+              </div>
+              <p
+                title={tenant.name}
+                className="mt-1 truncate text-sm font-semibold text-slate-100"
+              >
                 {tenant.name}
-              </p>
-              <p className="mt-1 text-xs font-medium text-blue-300">
-                {getTenantTypeLabel(tenant.type)}
               </p>
             </div>
           )}
@@ -282,6 +306,40 @@ export function Sidebar() {
         >
           {groupedNavigation.map((group) => {
             const headingId = `desktop-navigation-${group.id.toLowerCase()}`;
+            const canCollapse =
+              group.id === "REVIEW" &&
+              roleNavigationGroups[0]?.id !== "REVIEW" &&
+              !group.items.some((item) => item.isActive);
+            const links = (
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <NavigationLink key={item.href} item={item} />
+                ))}
+              </div>
+            );
+
+            if (canCollapse) {
+              return (
+                <details key={group.id} className="group/review">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 [&::-webkit-details-marker]:hidden">
+                    <span className="min-w-0 flex-1">{group.title}</span>
+                    <span
+                      aria-label={`${group.items.length} secciones`}
+                      className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs tabular-nums text-slate-300"
+                    >
+                      {group.items.length}
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      size={16}
+                      className="shrink-0 transition-transform group-open/review:rotate-180 motion-reduce:transition-none"
+                    />
+                  </summary>
+                  <div className="mt-1">{links}</div>
+                </details>
+              );
+            }
+
             return (
               <section key={group.id} aria-labelledby={headingId}>
                 <h2
@@ -290,11 +348,7 @@ export function Sidebar() {
                 >
                   {group.title}
                 </h2>
-                <div className="space-y-1">
-                  {group.items.map((item) => (
-                    <NavigationLink key={item.href} item={item} />
-                  ))}
-                </div>
+                {links}
               </section>
             );
           })}

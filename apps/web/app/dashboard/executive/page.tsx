@@ -8,6 +8,11 @@ import { ActivationChecklist } from "@/components/onboarding/ActivationChecklist
 import { getVisibleNavigationItems } from "@/config/navigation";
 import { useAuth } from "@/context/auth";
 import { apiRequest } from "@/lib/api-client";
+import {
+  briefingAlertCopy,
+  canOpenBriefingLink,
+  orderBriefingAlerts,
+} from "@/lib/command-center-presentation";
 import type { PoliticalOperationStage } from "@/types/saas-schema";
 import {
   Activity,
@@ -344,8 +349,8 @@ function budgetMetric(
 
   const percentage = (expenses / income) * 100;
   return {
-    value: `${percentage.toFixed(1)}%`,
-    subtitle: `${formatCop(expenses)} gastados de ${formatCop(income)}`,
+    value: `${percentage.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`,
+    subtitle: `${formatCop(expenses)} en gastos · ${formatCop(income)} en ingresos`,
     status: percentage > 100 ? "red" : percentage > 90 ? "yellow" : "green",
   };
 }
@@ -381,7 +386,7 @@ function territoryMetric(
   const percentage = (totalVoters / totalGoal) * 100;
 
   return {
-    value: `${percentage.toFixed(1)}%`,
+    value: `${percentage.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`,
     subtitle: `${totalVoters.toLocaleString("es-CO")} de ${totalGoal.toLocaleString("es-CO")} vínculos en ${configured.length} territorios con meta`,
     status: percentage < 50 ? "red" : percentage <= 80 ? "yellow" : "green",
   };
@@ -420,8 +425,8 @@ function teamMetric(value: number): TrafficMetric {
 
   const percentage = Math.max(0, activationRate);
   return {
-    value: `${percentage.toFixed(1)}%`,
-    subtitle: "Integrantes activos sobre el equipo registrado",
+    value: `${percentage.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`,
+    subtitle: "Cuentas activas sobre las cuentas del equipo",
     status: percentage < 50 ? "red" : percentage <= 80 ? "yellow" : "green",
   };
 }
@@ -521,13 +526,48 @@ export default function ExecutivePage() {
     tenant?.type !== "CANDIDACY"
       ? "Disponible solo para una candidatura."
       : "Se habilita desde la preparación electoral, según la etapa configurada.";
+  const visibleHrefs =
+    user && tenant
+      ? getVisibleNavigationItems(
+          user,
+          tenant,
+          tenant.operationStage ?? null,
+        ).map((item) => item.href)
+      : [];
+  const orderedAlerts = orderBriefingAlerts(briefing.alerts);
+  const attentionAlerts = orderedAlerts.filter(
+    (alert) => alert.severity !== "ok",
+  );
+  const featuredAlert = attentionAlerts[0];
+  const featuredCopy = featuredAlert ? briefingAlertCopy(featuredAlert) : null;
+  const shortcuts = [
+    {
+      href: "/dashboard/tasks",
+      label: "Tareas y compromisos",
+      detail: "Organiza el trabajo",
+      icon: ListChecks,
+    },
+    {
+      href: "/dashboard/events",
+      label: "Agenda del equipo",
+      detail: "Consulta y programa",
+      icon: CalendarClock,
+    },
+    {
+      href: "/dashboard/votantes",
+      label: "Personas e importación",
+      detail: "Abre tu base de contactos",
+      icon: Users,
+    },
+  ].filter((item) => visibleHrefs.includes(item.href));
 
   return (
     <div className="mx-auto min-w-0 max-w-[1440px] space-y-6">
       <PageHeader
         title="Cuadro de mando"
-        icon={Activity}
-        description={briefing.tenant.name}
+        className="command-heading"
+        eyebrow="Tu espacio de dirección"
+        description="Lo que necesita atención y el trabajo de tu equipo."
         meta={generatedAt ? `Actualizado el ${generatedAt}` : undefined}
         actions={
           <button
@@ -568,16 +608,104 @@ export default function ExecutivePage() {
       <OperationLifecycle currentStage={tenant?.operationStage ?? null} />
 
       <section
+        aria-label="Atención y accesos de trabajo"
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]"
+      >
+        <article className="command-focus min-w-0 rounded-[20px] p-5 text-white sm:p-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-100">
+            <span className="inline-flex items-center gap-2">
+              <Activity aria-hidden="true" size={16} /> Atención de la operación
+            </span>
+            {featuredAlert?.severity === "critical" && (
+              <span className="rounded-full bg-red-100 px-2.5 py-1 font-semibold text-red-900">
+                Alerta crítica
+              </span>
+            )}
+            {attentionAlerts.length > 0 && (
+              <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5">
+                {attentionAlerts.length}{" "}
+                {attentionAlerts.length === 1 ? "asunto" : "asuntos"}
+              </span>
+            )}
+          </div>
+          <h2 className="mt-3 max-w-2xl text-xl font-semibold tracking-tight sm:text-2xl">
+            {featuredCopy?.title ?? "Consulta el trabajo de tu equipo"}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
+            {featuredCopy?.detail ??
+              "No hay alertas pendientes en este corte. Consulta la agenda y las tareas para continuar."}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {featuredAlert &&
+            canOpenBriefingLink(featuredAlert.href, visibleHrefs) ? (
+              <Link
+                href={featuredAlert.href}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              >
+                Revisar ahora <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            ) : featuredAlert ? (
+              <p className="text-sm text-blue-100">
+                Consulta este asunto con el responsable de la sección.
+              </p>
+            ) : visibleHrefs.includes("/dashboard/tasks") ? (
+              <Link
+                href="/dashboard/tasks"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              >
+                Abrir tareas <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            ) : null}
+            {attentionAlerts.length > 1 && (
+              <a
+                href="#command-attention"
+                className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-white underline decoration-white/40 underline-offset-4 hover:decoration-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Ver todos los asuntos
+              </a>
+            )}
+          </div>
+        </article>
+        <div className="workspace-panel min-w-0 px-5 py-2">
+          {shortcuts.map(({ href, label, detail, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group flex min-h-[68px] items-center gap-3 rounded-lg border-b border-slate-100 py-3 last:border-0 focus-ring"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-50 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-700">
+                <Icon aria-hidden="true" size={18} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-slate-900 group-hover:text-blue-700">
+                  {label}
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  {detail}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                size={16}
+                className="shrink-0 text-slate-400 group-hover:text-blue-700"
+              />
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section
         aria-label="Resumen de la operación"
         className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         <TrafficCard
-          title="Ejecución presupuestal"
+          title="Gastos sobre ingresos"
           value={budget.value}
           subtitle={budget.subtitle}
           status={budget.status}
           icon={CircleDollarSign}
           href="/dashboard/finance"
+          action="Ver movimientos"
         />
         <TrafficCard
           title="Cobertura de metas"
@@ -586,6 +714,7 @@ export default function ExecutivePage() {
           status={territoryCoverage.status}
           icon={Users}
           href="/dashboard/territory"
+          action="Revisar metas"
         />
         <TrafficCard
           title="Pendientes vencidos"
@@ -594,9 +723,10 @@ export default function ExecutivePage() {
           status={overdue.status}
           icon={ListChecks}
           href="/dashboard/tasks"
+          action="Ver pendientes"
         />
         <TrafficCard
-          title="Equipo activo"
+          title="Cuentas activas"
           value={team.value}
           subtitle={
             canManageTeam
@@ -606,7 +736,141 @@ export default function ExecutivePage() {
           status={team.status}
           icon={Activity}
           href={canManageTeam ? "/dashboard/team" : undefined}
+          action="Ver equipo"
         />
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <CampaignAgendaPanel
+          title="Agenda próxima"
+          href="/dashboard/events"
+          linkLabel="Ver agenda"
+          icon={CalendarClock}
+          empty="No hay actividades programadas para las próximas dos semanas."
+        >
+          {briefing.agenda.upcomingEvents.map((event) => (
+            <Link
+              key={event.id}
+              href="/dashboard/events"
+              className="group flex items-center justify-between gap-4 rounded-lg border-t border-slate-100 py-4 first:border-0 focus-ring"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-slate-900 group-hover:text-blue-700">
+                  {event.name}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {formatOperationalDate(event.startsAt)}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                className="shrink-0 text-slate-300"
+                size={16}
+              />
+            </Link>
+          ))}
+        </CampaignAgendaPanel>
+
+        <CampaignAgendaPanel
+          title="Tareas de alta prioridad"
+          href="/dashboard/tasks"
+          linkLabel="Ver tareas"
+          icon={ListChecks}
+          empty="No hay tareas urgentes o de alta prioridad abiertas."
+        >
+          {briefing.agenda.priorityTasks.map((task) => (
+            <Link
+              key={task.id}
+              href={`/dashboard/tasks?view=tasks&entityId=${encodeURIComponent(task.id)}`}
+              className="group flex items-center justify-between gap-4 rounded-lg border-t border-slate-100 py-4 first:border-0 focus-ring"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-slate-900 group-hover:text-blue-700">
+                  {task.title}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {task.priority === "URGENT" ? "Urgente" : "Alta"} ·{" "}
+                  {formatOperationalDate(task.dueAt)}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                className="shrink-0 text-slate-300"
+                size={16}
+              />
+            </Link>
+          ))}
+        </CampaignAgendaPanel>
+      </section>
+
+      <section className="grid min-w-0 gap-5 xl:grid-cols-2">
+        <article
+          id="command-attention"
+          tabIndex={-1}
+          className="workspace-panel min-w-0 scroll-mt-6 p-5 outline-none focus-visible:ring-2 focus-visible:ring-blue-700 sm:p-6"
+        >
+          <p className="text-xs font-semibold text-slate-500">Seguimiento</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+            Todos los asuntos del corte
+          </h2>
+          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+            {orderedAlerts.map((alert) => {
+              const copy = briefingAlertCopy(alert);
+              const canOpen = canOpenBriefingLink(alert.href, visibleHrefs);
+              const content = (
+                <>
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${alert.severity === "critical" ? "bg-red-50 text-red-700" : alert.severity === "attention" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-700"}`}
+                  >
+                    {alert.severity === "ok" ? (
+                      <CheckCircle2 aria-hidden="true" size={18} />
+                    ) : (
+                      <AlertTriangle aria-hidden="true" size={18} />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {copy.title}
+                    </span>
+                    <span className="mt-1 block text-sm leading-6 text-slate-600">
+                      {copy.detail}
+                    </span>
+                    {!canOpen && (
+                      <span className="mt-1 block text-xs text-slate-500">
+                        Consulta con el responsable de la sección.
+                      </span>
+                    )}
+                  </span>
+                  {canOpen && (
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="mt-2 text-slate-400 group-hover:text-blue-700"
+                      size={16}
+                    />
+                  )}
+                </>
+              );
+              return canOpen ? (
+                <Link
+                  key={alert.code}
+                  href={alert.href}
+                  className="group grid min-w-0 grid-cols-[36px_minmax(0,1fr)_16px] gap-3 rounded-lg py-4 focus-ring"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div
+                  key={alert.code}
+                  className="grid min-w-0 grid-cols-[36px_minmax(0,1fr)] gap-3 py-4"
+                >
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </article>
+
+        <ActivationChecklist briefing={briefing} loading={loading} />
       </section>
 
       <section
@@ -648,116 +912,6 @@ export default function ExecutivePage() {
         />
       </section>
 
-      <section className="grid min-w-0 gap-5 xl:grid-cols-2">
-        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-semibold text-slate-500">
-            Decisiones del corte
-          </p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-            Riesgos que necesitan responsable
-          </h2>
-          <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
-            {briefing.alerts.map((alert) => (
-              <Link
-                key={alert.code}
-                href={alert.href}
-                className="group grid min-w-0 grid-cols-[36px_minmax(0,1fr)_16px] gap-3 rounded-lg py-4 focus-ring"
-              >
-                <span
-                  className={`grid h-10 w-10 place-items-center rounded-xl ${
-                    alert.severity === "critical"
-                      ? "bg-red-50 text-red-700"
-                      : alert.severity === "attention"
-                        ? "bg-amber-50 text-amber-700"
-                        : "bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  {alert.severity === "ok" ? (
-                    <CheckCircle2 aria-hidden="true" size={19} />
-                  ) : (
-                    <AlertTriangle aria-hidden="true" size={19} />
-                  )}
-                </span>
-                <span>
-                  <span className="block text-sm font-black text-slate-900">
-                    {alert.title}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    {alert.detail}
-                  </span>
-                </span>
-                <ArrowRight
-                  aria-hidden="true"
-                  className="mt-3 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-800"
-                  size={17}
-                />
-              </Link>
-            ))}
-          </div>
-        </article>
-
-        <ActivationChecklist briefing={briefing} loading={loading} />
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <CampaignAgendaPanel
-          title="Agenda próxima"
-          icon={CalendarClock}
-          empty="No hay actividades programadas para las próximas dos semanas."
-        >
-          {briefing.agenda.upcomingEvents.map((event) => (
-            <Link
-              key={event.id}
-              href="/dashboard/events"
-              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
-            >
-              <span>
-                <span className="block text-sm font-black text-slate-900">
-                  {event.name}
-                </span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  {formatOperationalDate(event.startsAt)}
-                </span>
-              </span>
-              <ArrowRight
-                aria-hidden="true"
-                className="shrink-0 text-slate-300"
-                size={16}
-              />
-            </Link>
-          ))}
-        </CampaignAgendaPanel>
-
-        <CampaignAgendaPanel
-          title="Tareas de alta prioridad"
-          icon={ListChecks}
-          empty="No hay tareas urgentes o de alta prioridad abiertas."
-        >
-          {briefing.agenda.priorityTasks.map((task) => (
-            <Link
-              key={task.id}
-              href={`/dashboard/tasks?view=tasks&entityId=${encodeURIComponent(task.id)}`}
-              className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-0"
-            >
-              <span>
-                <span className="block text-sm font-black text-slate-900">
-                  {task.title}
-                </span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  {task.priority === "URGENT" ? "Urgente" : "Alta"} ·{" "}
-                  {formatOperationalDate(task.dueAt)}
-                </span>
-              </span>
-              <ArrowRight
-                aria-hidden="true"
-                className="shrink-0 text-slate-300"
-                size={16}
-              />
-            </Link>
-          ))}
-        </CampaignAgendaPanel>
-      </section>
-
       <p className="text-xs leading-5 text-slate-500">
         Este corte es operativo e interno; no equivale a una certificación de
         autoridad electoral, contable o de protección de datos.
@@ -774,75 +928,76 @@ function OperationLifecycle({
   const currentIndex = currentStage
     ? OPERATION_STAGES.findIndex(({ value }) => value === currentStage)
     : -1;
-
   return (
     <section
       aria-label="Ciclo de la operación política"
-      className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+      className="flex min-w-0 flex-col items-stretch gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-1 sm:flex-row sm:items-start sm:gap-4"
     >
-      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-blue-700">
-            Etapas de la operación
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">
+      <details className="group/steps min-w-0 flex-1">
+        <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-2 py-2 focus-ring [&::-webkit-details-marker]:hidden">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full bg-blue-600"
+            aria-hidden="true"
+          />
+          <span className="text-xs text-slate-500">Etapa actual</span>
+          <h2 className="text-sm font-semibold text-slate-800">
             {currentIndex >= 0
-              ? `Etapa actual: ${OPERATION_STAGES[currentIndex].label}`
-              : "Perfil operativo pendiente"}
+              ? OPERATION_STAGES[currentIndex].label
+              : "Perfil pendiente"}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-slate-600">
+            Ver etapas{" "}
+            <ChevronDown
+              aria-hidden="true"
+              size={16}
+              className="transition-transform group-open/steps:rotate-180"
+            />
+          </span>
+        </summary>
+        <div className="px-2 pb-2">
+          <p className="pb-2 pt-1 text-sm leading-6 text-slate-600">
             {currentIndex < 0
               ? "Completa el perfil para organizar las etapas y consultar los requisitos de la operación."
               : "Consulta los requisitos y el historial antes de avanzar de etapa."}
           </p>
+          <ol className="grid min-w-0 grid-cols-3 gap-2 pb-3 pt-2 xl:grid-cols-9">
+            {OPERATION_STAGES.map((stage, index) => {
+              const status =
+                currentIndex < 0
+                  ? "pending"
+                  : index < currentIndex
+                    ? "previous"
+                    : index === currentIndex
+                      ? "current"
+                      : "pending";
+              return (
+                <li
+                  key={stage.value}
+                  aria-current={status === "current" ? "step" : undefined}
+                  className={`min-w-0 rounded-lg border px-1 py-2.5 text-center text-[11px] leading-4 font-semibold [overflow-wrap:anywhere] sm:text-xs ${
+                    status === "current"
+                      ? "border-blue-700 bg-blue-700 text-white"
+                      : status === "previous"
+                        ? "border-slate-300 bg-slate-100 text-slate-700"
+                        : "border-slate-200 bg-slate-50 text-slate-500"
+                  }`}
+                >
+                  <span className="mb-1 block text-xs opacity-70">
+                    {index + 1}
+                  </span>
+                  {stage.label}
+                </li>
+              );
+            })}
+          </ol>
         </div>
-        <Link
-          href="/dashboard/operation-profile"
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 focus-ring"
-        >
-          Revisar alistamiento <ArrowRight aria-hidden="true" size={16} />
-        </Link>
-      </div>
-      <details className="group/steps mt-4 rounded-xl bg-slate-50 px-3 py-1">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-sm font-medium text-slate-700 focus-ring [&::-webkit-details-marker]:hidden">
-          Ver etapas del ciclo
-          <ChevronDown
-            aria-hidden="true"
-            size={17}
-            className="shrink-0 transition-transform group-open/steps:rotate-180"
-          />
-        </summary>
-        <ol className="grid min-w-0 grid-cols-3 gap-2 pb-3 pt-2 xl:grid-cols-9">
-          {OPERATION_STAGES.map((stage, index) => {
-            const status =
-              currentIndex < 0
-                ? "pending"
-                : index < currentIndex
-                  ? "previous"
-                  : index === currentIndex
-                    ? "current"
-                    : "pending";
-            return (
-              <li
-                key={stage.value}
-                aria-current={status === "current" ? "step" : undefined}
-                className={`min-w-0 rounded-lg border px-1 py-2.5 text-center text-[11px] leading-4 font-semibold [overflow-wrap:anywhere] sm:text-xs ${
-                  status === "current"
-                    ? "border-blue-700 bg-blue-700 text-white"
-                    : status === "previous"
-                      ? "border-slate-300 bg-slate-100 text-slate-700"
-                      : "border-slate-200 bg-slate-50 text-slate-500"
-                }`}
-              >
-                <span className="mb-1 block text-xs opacity-70">
-                  {index + 1}
-                </span>
-                {stage.label}
-              </li>
-            );
-          })}
-        </ol>
       </details>
+      <Link
+        href="/dashboard/operation-profile"
+        className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 focus-ring sm:my-0.5"
+      >
+        Revisar alistamiento <ArrowRight aria-hidden="true" size={15} />
+      </Link>
     </section>
   );
 }
@@ -895,11 +1050,15 @@ function OperationalMetric({
 
 function CampaignAgendaPanel({
   title,
+  href,
+  linkLabel,
   icon: Icon,
   empty,
   children,
 }: {
   title: string;
+  href: string;
+  linkLabel: string;
   icon: typeof CalendarClock;
   empty: string;
   children: React.ReactNode;
@@ -907,16 +1066,29 @@ function CampaignAgendaPanel({
   const items = Array.isArray(children) ? children : children ? [children] : [];
 
   return (
-    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex items-center gap-3">
-        <Icon aria-hidden="true" className="text-blue-700" size={20} />
-        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+    <article className="workspace-panel min-w-0 p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon
+            aria-hidden="true"
+            className="shrink-0 text-slate-500"
+            size={18}
+          />
+          <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+        </div>
+        <Link
+          href={href}
+          className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-ring"
+        >
+          {linkLabel}
+          <ArrowRight aria-hidden="true" size={14} />
+        </Link>
       </div>
       <div className="mt-4">
         {items.length > 0 ? (
           children
         ) : (
-          <p className="border-t border-slate-100 py-5 text-sm leading-6 text-slate-500">
+          <p className="rounded-xl bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
             {empty}
           </p>
         )}
@@ -932,6 +1104,7 @@ function TrafficCard({
   status,
   icon: Icon,
   href,
+  action,
 }: {
   title: string;
   value: string;
@@ -939,49 +1112,56 @@ function TrafficCard({
   status: TrafficStatus;
   icon: typeof CircleDollarSign;
   href?: string;
+  action: string;
 }) {
   const statusColors: Record<TrafficStatus, string> = {
     red: "border-red-200 bg-red-50 text-red-800",
     yellow: "border-amber-200 bg-amber-50 text-amber-800",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    green: "border-slate-200 bg-slate-50 text-slate-600",
     neutral: "border-slate-200 bg-slate-50 text-slate-600",
   };
 
   const statusLabels: Record<TrafficStatus, string> = {
     red: "Requiere atención",
     yellow: "Por revisar",
-    green: "Dentro del rango",
-    neutral: "Sin base de cálculo",
+    green: "",
+    neutral: "",
   };
 
   const card = (
-    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors group-hover:border-blue-300">
+    <article className="command-metric flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 transition-colors group-hover:border-blue-300 sm:p-5">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <h2 className="min-w-0 text-sm leading-5 font-medium text-slate-600">
           {title}
         </h2>
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${statusColors[status]}`}
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${statusColors[status]}`}
         >
-          <Icon aria-hidden="true" size={20} />
+          <Icon aria-hidden="true" size={17} />
         </div>
       </div>
       <p
-        className={`mt-4 break-words font-semibold leading-tight tracking-tight text-slate-950 tabular-nums ${value.length > 9 ? "text-2xl" : "text-3xl sm:text-4xl"}`}
+        className={`mt-2 break-words font-semibold leading-tight tracking-tight tabular-nums ${status === "neutral" ? "text-xl text-slate-500" : "text-3xl text-slate-950"}`}
       >
         {value}
       </p>
-      <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{subtitle}</p>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusColors[status]}`}
-        >
+      <p className="mt-2 flex-1 text-xs leading-5 text-slate-600">{subtitle}</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-1">
+        {statusLabels[status] ? (
           <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 rounded-full bg-current"
-          />
-          {statusLabels[status]}
-        </span>
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusColors[status]}`}
+          >
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full bg-current"
+            />
+            {statusLabels[status]}
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-slate-500 group-hover:text-blue-700">
+            {href ? action : "Solo consulta"}
+          </span>
+        )}
         {href && (
           <ArrowRight
             aria-hidden="true"

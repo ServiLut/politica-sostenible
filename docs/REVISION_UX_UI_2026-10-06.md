@@ -101,3 +101,34 @@ La publicación debe identificar una imagen nueva, verificar los tres procesos
 del servicio conjunto y conservar como reversa la versión B426c, compatible
 con el mismo esquema de 46 migraciones. Los recibos de una publicación anterior
 no autorizan ni prueban este candidato.
+
+## Segunda pasada: atención y trabajo diario
+
+Después de la observación de la usuaria sobre la presentación, se revisó la
+jerarquía del cuadro de mando. Un asunto real del corte ocupa ahora el área
+principal, con acceso a su sección; las alertas críticas preceden a las de
+atención sin cambiar su gravedad ni eliminar información del servidor. Los
+accesos nuevos respetan las rutas visibles del rol y la etapa, incluidas las
+rutas normalizadas para impedir atajos hacia secciones ocultas.
+
+La etapa pasó a una franja desplegable; agenda y tareas preceden a los
+indicadores secundarios. Las tarjetas principales son más compactas. El
+indicador financiero se llama **Gastos sobre ingresos**, que es la relación
+que ya calculaba; **Cuentas activas** aclara que no se mide productividad.
+Los estados favorables dejan de repetir la etiqueta genérica «Dentro del rango».
+
+La navegación de escritorio prioriza tareas, agenda, personas y bandeja dentro
+de Coordinación. Revisión especializada se puede plegar cuando no es el grupo
+principal del rol ni contiene la ruta activa. No se alteraron los permisos ni
+la navegación primaria móvil. La instalación de la aplicación es secundaria;
+una actualización disponible conserva su acción principal. La configuración
+inicial completa ocupa un resumen compacto con sus pasos consultables.
+
+Evidencia de esta pasada: `.artifacts/ux-polish-20261006`. La suite del frontend
+aprobó **450 pruebas**; el análisis de tipos y el lint de los archivos afectados
+aprobaron. Se actualizaron expectativas antiguas del archivo E2E, pero eso no
+equivale a haber ejecutado dicha suite de navegador. Las capturas previas se
+conservan para comparar y no representan el nuevo estado final.
+
+La imagen 365eec3 preparada en la pasada anterior no contiene estos cambios.
+Esta segunda revisión requiere una nueva compilación antes de publicarse.

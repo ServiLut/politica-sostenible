@@ -893,10 +893,10 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
     page.getByRole("heading", { name: "Cuadro de mando" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Cumplimiento de Metas" }),
+    page.getByRole("heading", { name: "Cobertura de metas" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Abrir Cumplimiento de Metas" }),
+    page.getByRole("link", { name: "Abrir cobertura de metas" }),
   ).toHaveAttribute("href", "/dashboard/territory");
   await expect(
     page.getByRole("link", { name: "Abrir actas aceptadas" }),
@@ -907,11 +907,12 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Riesgos que necesitan responsable" }),
+    page.getByRole("heading", { name: "Todos los asuntos del corte" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Etapa actual: Campaña" }),
+    page.getByRole("heading", { name: "Campaña", exact: true }),
   ).toBeVisible();
+  await page.locator("summary").filter({ hasText: "Ver etapas" }).click();
   const currentStage = page
     .locator('li[aria-current="step"]')
     .filter({ hasText: "Campaña" });
