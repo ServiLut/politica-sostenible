@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CommonModule } from '../common/common.module';
+import { IdentityService } from '../common/services/identity.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StorageModule } from '../storage/storage.module';
 import { ImportService } from './import.service';
@@ -9,9 +9,16 @@ import { PersonImportService } from './person-import.service';
 import { PersonImportArtifactService } from './person-import-artifact.service';
 import { PersonImportQueueModule } from './person-import-queue.module';
 @Module({
-  imports: [PrismaModule, CommonModule, StorageModule, PersonImportQueueModule],
+  imports: [PrismaModule, StorageModule, PersonImportQueueModule],
   controllers: [PersonImportController, ImportController],
-  providers: [ImportService, PersonImportService, PersonImportArtifactService],
+  // This module also runs in the isolated worker. It needs only the pure
+  // identity validator, not API-only consent hashing or offline-signing keys.
+  providers: [
+    IdentityService,
+    ImportService,
+    PersonImportService,
+    PersonImportArtifactService,
+  ],
   exports: [PersonImportService, PersonImportQueueModule],
 })
 export class ImportModule {}
