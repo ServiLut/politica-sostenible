@@ -65,6 +65,7 @@ describe('StorageService durable private-file authorization', () => {
     createSignedDownloadUrl: jest.Mock;
     getObjectInfo: jest.Mock;
     removeObject: jest.Mock;
+    getUploadPolicy: jest.Mock;
   };
   type StoredObjectDelegateMock = {
     create: jest.Mock;
@@ -76,6 +77,7 @@ describe('StorageService durable private-file authorization', () => {
     aggregate: jest.Mock;
   };
   type TransactionMock = {
+    $queryRaw: jest.Mock;
     tenant: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
     politicalDivision: { findMany: jest.Mock };
@@ -96,6 +98,10 @@ describe('StorageService durable private-file authorization', () => {
     tenantType = TenantType.CANDIDACY;
     gateway = {
       bucketName: 'private-campaign-files',
+      getUploadPolicy: jest.fn().mockResolvedValue({
+        maxBytes: 10 * 1024 * 1024,
+        allowedMimeTypes: ['text/csv', 'application/pdf', 'image/*'],
+      }),
       createSignedUploadUrl: jest.fn().mockResolvedValue({
         signedUrl: 'https://storage.example/upload?token=signed',
         token: 'signed',
@@ -136,6 +142,9 @@ describe('StorageService durable private-file authorization', () => {
       }),
     };
     transaction = {
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValue([{ locked: true, protected: false }]),
       tenant: {
         findUnique: jest.fn().mockImplementation(() =>
           Promise.resolve({
@@ -174,6 +183,64 @@ describe('StorageService durable private-file authorization', () => {
       prisma as unknown as PrismaService,
       integrityQueue,
     );
+  });
+  it('rejects person CSV above the actual private bucket limit before inserting an upload', async () => {
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.PERSON_IMPORT,
+        fileName: 'PRUEBA.csv',
+        contentType: 'text/csv',
+        size: 11 * 1024 * 1024,
+        contentSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toThrow('bucket privado');
+    expect(prisma.storedObject.create).not.toHaveBeenCalled();
+    expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+  it('rejects consent evidence above the real 10 MiB bucket before writing metadata or issuing a URL', async () => {
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        fileName: 'PRUEBA.pdf',
+        contentType: 'application/pdf',
+        size: 11 * 1024 * 1024,
+        contentSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toThrow('bucket privado');
+    expect(prisma.storedObject.create).not.toHaveBeenCalled();
+    expect(gateway.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+  it('checks the actual consent MIME against the bucket instead of using the CSV MIME', async () => {
+    gateway.getUploadPolicy.mockResolvedValue({
+      maxBytes: 10 * 1024 * 1024,
+      allowedMimeTypes: ['text/csv'],
+    });
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.CONSENT,
+        fileName: 'PRUEBA.pdf',
+        contentType: 'application/pdf',
+        size: 100,
+        contentSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toThrow('bucket privado');
+    expect(prisma.storedObject.create).not.toHaveBeenCalled();
+  });
+  it('rejects a bucket that disallows CSV without changing its configuration', async () => {
+    gateway.getUploadPolicy.mockResolvedValue({
+      maxBytes: 10 * 1024 * 1024,
+      allowedMimeTypes: ['application/pdf'],
+    });
+    await expect(
+      service.createUploadUrl(user, {
+        module: StorageModuleName.PERSON_IMPORT,
+        fileName: 'PRUEBA.csv',
+        contentType: 'text/csv',
+        size: 100,
+        contentSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toThrow('bucket privado');
+    expect(prisma.storedObject.create).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -316,9 +383,9 @@ describe('StorageService durable private-file authorization', () => {
   it('does not accept client hash metadata for modules outside the integrity allowlist', async () => {
     await expect(
       service.createUploadUrl(user, {
-        module: StorageModuleName.CONSENT,
-        fileName: 'soporte.pdf',
-        contentType: 'application/pdf',
+        module: StorageModuleName.ELECTORAL_CATALOG,
+        fileName: 'catalogo.json',
+        contentType: 'application/json',
         size: 100,
         contentSha256: 'a'.repeat(64),
       }),
@@ -500,6 +567,10 @@ describe('StorageService durable private-file authorization', () => {
   ])(
     'accepts consent MIME $contentType with its matching extension',
     async ({ fileName, contentType, size }) => {
+      gateway.getUploadPolicy.mockResolvedValue({
+        maxBytes: 15 * 1024 * 1024,
+        allowedMimeTypes: ['application/pdf', 'image/*'],
+      });
       const result = await service.createUploadUrl(user, {
         module: StorageModuleName.CONSENT,
         fileName,
@@ -558,6 +629,7 @@ describe('StorageService durable private-file authorization', () => {
         id: 'orphan-a',
         status: StoredObjectStatus.CONFIRMED,
         path: orphanPath,
+        module: StorageObjectModule.E14,
       },
     ]);
     prisma.storedObject.updateMany.mockResolvedValueOnce({ count: 1 });
@@ -589,19 +661,7 @@ describe('StorageService durable private-file authorization', () => {
         }) as object,
         data: {
           status: StoredObjectStatus.EXPIRED,
-          integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
-          actualSize: null,
-          etag: null,
           confirmedAt: null,
-          calculatedSha256: null,
-          observedSize: null,
-          observedContentType: null,
-          integrityCheckedAt: null,
-          integrityVerifiedAt: null,
-          integrityFailureCode: null,
-          integrityVerificationAttempts: 0,
-          integrityVerificationStartedAt: null,
-          integrityVerificationLeaseId: null,
         },
       }),
     );
@@ -614,6 +674,33 @@ describe('StorageService durable private-file authorization', () => {
         consumedAt: null,
       },
     });
+  });
+
+  it('does not delete bytes of an old consent proof protected by an active import', async () => {
+    prisma.storedObject.findMany.mockResolvedValue([
+      {
+        id: 'proof-a',
+        status: StoredObjectStatus.CONFIRMED,
+        module: StorageObjectModule.CONSENT,
+        path: consentPath,
+      },
+    ]);
+    transaction.$queryRaw
+      .mockResolvedValueOnce([{ locked: true }])
+      .mockResolvedValueOnce([{ protected: true }]);
+    await service.createUploadUrl(user, {
+      module: StorageModuleName.CONSENT,
+      fileName: 'PRUEBA.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+    });
+    expect(gateway.removeObject).not.toHaveBeenCalled();
+    expect(prisma.storedObject.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.storedObject.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'proof-a' }),
+      }),
+    );
   });
 
   it('uses the active database role rather than a forged JWT role', async () => {
@@ -856,6 +943,128 @@ describe('StorageService durable private-file authorization', () => {
         }) as object,
       }),
     );
+  });
+  it('supports declared consent hashes and queues independent byte verification without claiming verification at confirmation', async () => {
+    const contentSha256 = 'a'.repeat(64);
+    await service.createUploadUrl(user, {
+      module: StorageModuleName.CONSENT,
+      fileName: 'PRUEBA.pdf',
+      contentType: 'application/pdf',
+      size: 100,
+      contentSha256,
+    });
+    expect(transaction.storedObject.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          module: StorageObjectModule.CONSENT,
+          expectedSha256: contentSha256,
+        }),
+      }),
+    );
+    prisma.storedObject.findFirst.mockResolvedValue({
+      id: 'stored-a',
+      contentType: 'application/pdf',
+      expectedSize: 100,
+      expectedSha256: contentSha256,
+      expiresAt: new Date(Date.now() + 60_000),
+      status: StoredObjectStatus.ISSUED,
+    });
+    gateway.getObjectInfo.mockResolvedValue({
+      name: consentPath,
+      size: 100,
+      contentType: 'application/pdf',
+      etag: 'qa-consent',
+      metadata: { contentSha256 },
+    });
+    const result = await service.completeUpload(user, {
+      module: StorageModuleName.CONSENT,
+      path: consentPath,
+      metadata: {
+        fileName: 'PRUEBA.pdf',
+        contentType: 'application/pdf',
+        size: 100,
+        contentSha256,
+      },
+    });
+    expect(result.contentIntegrity).toBe('PENDING');
+    expect(integrityQueue.enqueue).toHaveBeenCalledWith({
+      tenantId: user.tenantId,
+      storedObjectId: 'stored-a',
+    });
+    expect(transaction.storedObject.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          integrityStatus: StorageIntegrityStatus.PENDING,
+          reportedSha256: contentSha256,
+        }),
+      }),
+    );
+  });
+  it('rejects a changed declared consent hash before confirming or queuing the file', async () => {
+    prisma.storedObject.findFirst.mockResolvedValue({
+      id: 'stored-a',
+      contentType: 'application/pdf',
+      expectedSize: 100,
+      expectedSha256: 'a'.repeat(64),
+      expiresAt: new Date(Date.now() + 60_000),
+      status: StoredObjectStatus.ISSUED,
+    });
+    gateway.getObjectInfo.mockResolvedValue({
+      name: consentPath,
+      size: 100,
+      contentType: 'application/pdf',
+      metadata: { contentSha256: 'b'.repeat(64) },
+    });
+    await expect(
+      service.completeUpload(user, {
+        module: StorageModuleName.CONSENT,
+        path: consentPath,
+        metadata: {
+          fileName: 'PRUEBA.pdf',
+          contentType: 'application/pdf',
+          size: 100,
+          contentSha256: 'a'.repeat(64),
+        },
+      }),
+    ).rejects.toThrow('no coincide');
+    expect(integrityQueue.enqueue).not.toHaveBeenCalled();
+    expect(transaction.storedObject.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([StorageIntegrityStatus.PENDING, StorageIntegrityStatus.VERIFIED])(
+    'returns the persisted %s state only to the same tenant and uploader',
+    async (status) => {
+      const verifiedAt =
+        status === StorageIntegrityStatus.VERIFIED ? new Date() : null;
+      prisma.storedObject.findFirst.mockResolvedValue({
+        id: 'stored-a',
+        integrityStatus: status,
+        integrityVerifiedAt: verifiedAt,
+        integrityFailureCode: null,
+      });
+      expect(await service.getIntegrityStatus(user, 'stored-a')).toEqual({
+        objectId: 'stored-a',
+        status,
+        verifiedAt,
+        failureCode: null,
+      });
+      expect(prisma.storedObject.findFirst).toHaveBeenCalledWith({
+        where: { id: 'stored-a', tenantId: 'tenant-a', uploaderId: 'user-a' },
+        select: {
+          id: true,
+          integrityStatus: true,
+          integrityVerifiedAt: true,
+          integrityFailureCode: true,
+        },
+      });
+    },
+  );
+
+  it('does not disclose another uploader or tenant integrity state', async () => {
+    prisma.storedObject.findFirst.mockResolvedValue(null);
+    await expect(
+      service.getIntegrityStatus(user, 'other-upload'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('expires a stale authorization without contacting Storage', async () => {

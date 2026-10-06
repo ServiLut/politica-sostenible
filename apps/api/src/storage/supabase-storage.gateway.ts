@@ -163,7 +163,24 @@ export class SupabaseStorageGateway {
     await this.assertPrivateBucket();
   }
 
-  private async assertPrivateBucket(): Promise<void> {
+  async getUploadPolicy(): Promise<{
+    maxBytes: number | null;
+    allowedMimeTypes: string[] | null;
+  }> {
+    const bucket = await this.assertPrivateBucket();
+    const limit = bucket.file_size_limit;
+    if (limit != null && (!Number.isSafeInteger(limit) || limit < 1)) {
+      throw new ServiceUnavailableException(
+        'El límite del almacenamiento no es verificable',
+      );
+    }
+    return {
+      maxBytes: limit ?? null,
+      allowedMimeTypes: bucket.allowed_mime_types ?? null,
+    };
+  }
+
+  private async assertPrivateBucket() {
     const { data, error } = await this.client.storage.getBucket(
       this.bucketName,
     );
@@ -185,6 +202,7 @@ export class SupabaseStorageGateway {
         'El bucket de archivos debe estar configurado como privado',
       );
     }
+    return data;
   }
 
   private requiredConfig(configService: ConfigService, key: string): string {

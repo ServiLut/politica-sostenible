@@ -160,6 +160,8 @@ function makeHarness(actorId = USER.userId, actorRole: Role = Role.ADMIN) {
     },
     voter: { count: jest.fn().mockResolvedValue(3) },
     consentRecord: { count: jest.fn().mockResolvedValue(4) },
+    personImportJob: { count: jest.fn().mockResolvedValue(2) },
+    personImportRowResult: { count: jest.fn().mockResolvedValue(100) },
     interaction: { count: jest.fn().mockResolvedValue(5) },
     storedObject: { count: jest.fn().mockResolvedValue(6) },
     financialEntry: { count: jest.fn().mockResolvedValue(7) },
@@ -217,8 +219,10 @@ describe('RetentionGovernanceService', () => {
     expect(result.counts).toMatchObject({
       voters: 3,
       consentRecords: 4,
+      personImportJobs: 2,
+      personImportRows: 100,
       interactions: null,
-      total: 7,
+      total: 109,
     });
     expect(tx.voter.count).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-1', createdAt: { lte: NOW } },
@@ -227,12 +231,49 @@ describe('RetentionGovernanceService', () => {
       where: { tenantId: 'tenant-1', createdAt: { lte: NOW } },
     });
     expect(tx.interaction.count).not.toHaveBeenCalled();
+    expect(tx.personImportJob.count).toHaveBeenCalledWith({
+      where: { tenantId: USER.tenantId, createdAt: { lte: NOW } },
+    });
+    expect(tx.personImportRowResult.count).toHaveBeenCalledWith({
+      where: {
+        tenantId: USER.tenantId,
+        job: { tenantId: USER.tenantId, createdAt: { lte: NOW } },
+      },
+    });
     expect(tx.storedObject.count).not.toHaveBeenCalled();
     expect(result.executionCapability).toMatchObject({
       status: 'NOT_IMPLEMENTED',
       canExecute: false,
       destructiveActionsAvailable: false,
     });
+  });
+  it('includes durable import copies in ALL but exposes counts only and refuses unauthorized roles', async () => {
+    const h = makeHarness();
+    const result = await h.service.preview(
+      USER,
+      RetentionDataScope.ALL_TENANT_RECORDS,
+      NOW.toISOString(),
+      NOW,
+    );
+    expect(result.counts).toMatchObject({
+      personImportJobs: 2,
+      personImportRows: 100,
+      storedObjects: 6,
+      total: 144,
+    });
+    expect(result.executionCapability.canExecute).toBe(false);
+    const denied = makeHarness(USER.userId, Role.VOLUNTEER);
+    denied.tx.$queryRaw.mockResolvedValueOnce([]);
+    await expect(
+      denied.service.preview(
+        { ...USER, role: Role.VOLUNTEER },
+        RetentionDataScope.ALL_TENANT_RECORDS,
+        NOW.toISOString(),
+        NOW,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(denied.tx.personImportJob.count).not.toHaveBeenCalled();
+    expect(denied.tx.personImportRowResult.count).not.toHaveBeenCalled();
   });
 
   it('blocks ordinary disposition for exceptional closure and active legal holds', async () => {

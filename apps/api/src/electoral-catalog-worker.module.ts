@@ -1,3 +1,6 @@
+import { ImportModule } from './import/import.module';
+import { PersonImportProcessor } from './import/person-import.processor';
+import { PersonImportRecoveryService } from './import/person-import-recovery.service';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ElectoralCatalogImportProcessor } from './electoral-catalog/electoral-catalog-import.processor';
@@ -12,10 +15,13 @@ import { StorageModule } from './storage/storage.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ElectoralCatalogModule,
+    ImportModule,
     StorageModule,
   ],
   providers: [
     ElectoralCatalogImportProcessor,
+    PersonImportProcessor,
+    PersonImportRecoveryService,
     ElectoralCatalogImportRecoveryService,
     ElectoralCatalogWorkerHeartbeatService,
     StorageIntegrityProcessor,

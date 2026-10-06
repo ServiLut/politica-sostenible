@@ -748,6 +748,8 @@ export default function RetentionGovernancePage() {
 const COUNT_LABELS: Record<string, string> = {
   voters: "Personas",
   consentRecords: "Consentimientos",
+  personImportJobs: "Importaciones de personas",
+  personImportRows: "Filas conservadas de importación",
   interactions: "Interacciones",
   storedObjects: "Archivos",
   financialEntries: "Registros financieros",

@@ -3,6 +3,7 @@ import { ElectoralCatalogImportProcessor } from './electoral-catalog-import.proc
 
 import { ElectoralCatalogWorkerHeartbeatService } from './electoral-catalog-worker-heartbeat.service';
 import { StorageIntegrityProcessor } from '../storage/storage-integrity.processor';
+import { PersonImportProcessor } from '../import/person-import.processor';
 
 jest.mock('node:fs/promises', () => ({
   rm: jest.fn().mockResolvedValue(undefined),
@@ -16,6 +17,8 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
   let queue: { enqueue: jest.Mock; checkReady: jest.Mock };
   let integrityProcessor: { worker: { waitUntilReady: jest.Mock } };
   let integrityQueue: { enqueue: jest.Mock; checkReady: jest.Mock };
+  let personImportProcessor: { worker: { waitUntilReady: jest.Mock } };
+  let personImportQueue: { enqueue: jest.Mock; checkReady: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,6 +36,13 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
       enqueue: jest.fn(),
       checkReady: jest.fn().mockResolvedValue(undefined),
     };
+    personImportProcessor = {
+      worker: { waitUntilReady: jest.fn().mockResolvedValue(undefined) },
+    };
+    personImportQueue = {
+      enqueue: jest.fn(),
+      checkReady: jest.fn().mockResolvedValue(undefined),
+    };
   });
 
   it('writes a restrictive heartbeat only after both worker and Redis answer', async () => {
@@ -41,6 +51,8 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
       queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
       integrityQueue,
+      personImportProcessor as unknown as PersonImportProcessor,
+      personImportQueue,
     );
 
     await service.onApplicationBootstrap();
@@ -50,6 +62,8 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
     expect(queue.checkReady).toHaveBeenCalled();
     expect(integrityProcessor.worker.waitUntilReady).toHaveBeenCalled();
     expect(integrityQueue.checkReady).toHaveBeenCalled();
+    expect(personImportProcessor.worker.waitUntilReady).toHaveBeenCalled();
+    expect(personImportQueue.checkReady).toHaveBeenCalled();
     expect(mockedWriteFile).toHaveBeenCalledWith(
       '/tmp/electoral-catalog-worker.ready',
       expect.any(String),
@@ -68,6 +82,8 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
       queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
       integrityQueue,
+      personImportProcessor as unknown as PersonImportProcessor,
+      personImportQueue,
     );
 
     await service.onApplicationBootstrap();
@@ -84,6 +100,8 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
       queue,
       integrityProcessor as unknown as StorageIntegrityProcessor,
       integrityQueue,
+      personImportProcessor as unknown as PersonImportProcessor,
+      personImportQueue,
     );
 
     await service.onApplicationBootstrap();
@@ -92,4 +110,29 @@ describe('ElectoralCatalogWorkerHeartbeatService', () => {
     expect(mockedWriteFile).not.toHaveBeenCalled();
     expect(mockedRm).toHaveBeenCalled();
   });
+  it.each(['consumer', 'queue'])(
+    'removes readiness when the person import %s is unavailable',
+    async (kind) => {
+      if (kind === 'consumer')
+        personImportProcessor.worker.waitUntilReady.mockRejectedValueOnce(
+          new Error('unavailable'),
+        );
+      else
+        personImportQueue.checkReady.mockRejectedValueOnce(
+          new Error('unavailable'),
+        );
+      const service = new ElectoralCatalogWorkerHeartbeatService(
+        processor as unknown as ElectoralCatalogImportProcessor,
+        queue,
+        integrityProcessor as unknown as StorageIntegrityProcessor,
+        integrityQueue,
+        personImportProcessor as unknown as PersonImportProcessor,
+        personImportQueue,
+      );
+      await service.onApplicationBootstrap();
+      await service.onModuleDestroy();
+      expect(mockedWriteFile).not.toHaveBeenCalled();
+      expect(mockedRm).toHaveBeenCalled();
+    },
+  );
 });

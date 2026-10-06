@@ -56,6 +56,7 @@ import {
   STORAGE_INTEGRITY_QUEUE_PORT,
   type StorageIntegrityQueuePort,
 } from './storage-integrity-queue.constants';
+import { claimStorageOrphan } from './storage-orphan-claim';
 
 interface NormalizedUploadMetadata {
   readonly fileName: string;
@@ -86,6 +87,7 @@ const STORAGE_MODULE_ROLES: Partial<
     Role.COMPLIANCE_OFFICER,
   ],
   [StorageModuleName.ELECTORAL_CATALOG]: [Role.ADMIN],
+  [StorageModuleName.PERSON_IMPORT]: [Role.ADMIN, Role.CAMPAIGN_MANAGER],
   [StorageModuleName.SCRUTINY]: [
     Role.ADMIN,
     Role.CAMPAIGN_MANAGER,
@@ -199,6 +201,27 @@ export class StorageService {
     const expiresAt = new Date(Date.now() + STORAGE_AUTHORIZATION_TTL_MS);
 
     await this.assertModuleAccess(user, dto.module, tenantId);
+    if (
+      dto.module === StorageModuleName.PERSON_IMPORT ||
+      dto.module === StorageModuleName.CONSENT
+    ) {
+      const policy = await this.storageGateway.getUploadPolicy();
+      if (
+        (policy.maxBytes !== null && metadata.size > policy.maxBytes) ||
+        (policy.allowedMimeTypes?.length &&
+          !policy.allowedMimeTypes.some((mime) =>
+            [
+              metadata.contentType,
+              `${metadata.contentType.split('/')[0]}/*`,
+              '*/*',
+            ].includes(mime),
+          ))
+      ) {
+        throw new BadRequestException(
+          'El archivo excede el tamaño o tipo permitido por el bucket privado actual',
+        );
+      }
+    }
     await ensureTenantSubscription(this.prisma, tenantId);
     await this.cleanupOrphanedObjects(tenantId);
 
@@ -734,7 +757,11 @@ export class StorageService {
     const requiresIndependentIntegrity = (
       STORAGE_INTEGRITY_REQUIRED_MODULES as readonly StorageModuleName[]
     ).includes(module);
-    if (contentSha256 && !requiresIndependentIntegrity) {
+    if (
+      contentSha256 &&
+      !requiresIndependentIntegrity &&
+      module !== StorageModuleName.CONSENT
+    ) {
       throw new BadRequestException(
         'La huella de contenido solo esta habilitada para evidencia electoral',
       );
@@ -889,43 +916,17 @@ export class StorageService {
           },
         ],
       },
-      select: { id: true, status: true, path: true },
+      select: { id: true, status: true, path: true, module: true },
       orderBy: { createdAt: 'asc' },
       take: ORPHAN_CLEANUP_BATCH_SIZE,
     });
 
     for (const candidate of candidates) {
-      let claimed = candidate.status === StoredObjectStatus.EXPIRED;
-      if (!claimed) {
-        const transition = await this.prisma.storedObject.updateMany({
-          where: {
-            id: candidate.id,
-            tenantId,
-            status: candidate.status,
-            consumedAt: null,
-            ...(candidate.status === StoredObjectStatus.ISSUED
-              ? { expiresAt: { lte: now } }
-              : { confirmedAt: { lte: confirmedBefore } }),
-          },
-          data: {
-            status: StoredObjectStatus.EXPIRED,
-            integrityStatus: StorageIntegrityStatus.NOT_PROVIDED,
-            actualSize: null,
-            etag: null,
-            confirmedAt: null,
-            calculatedSha256: null,
-            observedSize: null,
-            observedContentType: null,
-            integrityCheckedAt: null,
-            integrityVerifiedAt: null,
-            integrityFailureCode: null,
-            integrityVerificationAttempts: 0,
-            integrityVerificationStartedAt: null,
-            integrityVerificationLeaseId: null,
-          },
-        });
-        claimed = transition.count === 1;
-      }
+      const claimed = await this.prisma.$transaction(
+        (tx) =>
+          claimStorageOrphan(tx, tenantId, candidate, now, confirmedBefore),
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      );
       if (!claimed) continue;
 
       try {
@@ -981,6 +982,7 @@ export class StorageService {
 
   private toStoredModule(module: StorageModuleName): StorageObjectModule {
     const mapping: Record<StorageModuleName, StorageObjectModule> = {
+      [StorageModuleName.PERSON_IMPORT]: StorageObjectModule.PERSON_IMPORT,
       [StorageModuleName.FINANCE]: StorageObjectModule.FINANCE,
       [StorageModuleName.E14]: StorageObjectModule.E14,
       [StorageModuleName.CONSENT]: StorageObjectModule.CONSENT,

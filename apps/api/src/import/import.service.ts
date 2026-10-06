@@ -32,7 +32,7 @@ import {
 } from '../common/utils/phone-normalization.util';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface ParsedCsvRow {
+export interface ParsedCsvRow {
   lineNumber: number;
   fields: Record<string, string>;
 }
@@ -42,7 +42,7 @@ interface ParsedCsvRecord {
   values: string[];
 }
 
-interface ImportContext {
+export interface ImportContext {
   noticeVersion: string;
   noticeActivatedAt: Date;
 }
@@ -66,7 +66,7 @@ export interface VoterImportPreviewRow {
 
 const IMPORT_ROLES = [Role.ADMIN, Role.CAMPAIGN_MANAGER] as const;
 const MAX_IMPORT_ROWS = 500;
-const REQUIRED_HEADERS = [
+export const REQUIRED_HEADERS = [
   'Documento',
   'Nombre',
   'Apellido',
@@ -298,7 +298,7 @@ export class ImportService {
     }
   }
 
-  private async loadImportContext(
+  async loadImportContext(
     client: ImportContextClient,
     user: AuthenticatedUser,
   ): Promise<ImportContext> {
@@ -551,7 +551,7 @@ export class ImportService {
     return { status: nameMatches.length > 1 ? 'ambiguous' : 'missing' };
   }
 
-  private async validateVoters(
+  async validateVoters(
     rows: ParsedCsvRow[],
     tenantId: string,
     context: ImportContext,
@@ -766,7 +766,7 @@ export class ImportService {
     };
   }
 
-  private async validateAvailableEvidence(
+  async validateAvailableEvidence(
     rows: ParsedCsvRow[],
     preview: VoterImportPreviewRow[],
     tenantId: string,

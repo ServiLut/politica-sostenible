@@ -220,6 +220,7 @@ export default function VotantesPage() {
     loading,
     error: requestError,
     setData: setResult,
+    refresh: refreshVoters,
   } = usePageRequest(loadVoters, { reloadKey: reload });
   const listError = requestError
     ? readableError(
@@ -531,14 +532,15 @@ export default function VotantesPage() {
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           {canImportInCurrentMode && (
             <VoterImportDialog
+              key={tenant?.id}
               enabled={Boolean(consentContext?.notice)}
               noticeActivatedAt={consentContext?.notice?.activatedAt ?? null}
               noticeVersion={consentContext?.notice?.version ?? null}
               onCompleted={(importResult) => {
                 setNotice(
-                  `${importResult.imported} persona(s) importada(s) correctamente.`,
+                  `${importResult.imported} ${importResult.imported === 1 ? "persona importada" : "personas importadas"} correctamente.`,
                 );
-                setReload((value) => value + 1);
+                void refreshVoters();
               }}
             />
           )}
@@ -555,9 +557,9 @@ export default function VotantesPage() {
               type="button"
               disabled={!consentContext?.notice}
               onClick={openCreate}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
             >
-              <UserPlus size={16} /> Registrar persona
+              <UserPlus size={16} /> Registrar una persona
             </button>
           )}
           {usesTerritorialCapture && (

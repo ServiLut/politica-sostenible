@@ -7,26 +7,21 @@ const source = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
-test("no sondea la plantilla de importación antes de confirmar el plan", () => {
+test("no consulta opciones, historial ni trabajos sin abrir y confirmar acceso", () => {
   expect(source).toContain('usePlanCapability("import")');
-  const accessFunction = source.match(
-    /const checkAccess = useCallback\([\s\S]*?\n  \);\n\n  useEffect/,
-  )?.[0];
-
-  expect(accessFunction).toBeTruthy();
-  expect(
-    accessFunction?.indexOf("if (!importCapability.enabled) return;"),
-  ).toBeLessThan(
-    accessFunction?.indexOf("getVoterImportTemplate(signal)") ?? -1,
-  );
   expect(source).toContain(
-    "if (!enabled || !importCapability.enabled) return;",
+    "const allowed = open && enabled && importCapability.enabled;",
   );
+  expect(source.match(/enabled: allowed/gu)).toHaveLength(3);
+  expect(source).not.toContain("localStorage");
+  expect(source).not.toContain("sessionStorage");
 });
 
 test("distingue plan no incluido de error reintentable", () => {
   expect(source).toContain("Tu plan no incluye importación");
-  expect(source).toContain("Reintentar validación del");
+  expect(source).toContain("Reintentar validación del plan");
   expect(source).toContain("onClick={importCapability.refresh}");
-  expect(source).toContain("!importCapability.enabled ||");
+  expect(source).toContain('importCapability.status === "error"');
+  expect(source).toContain('id="voter-import-plan-status"');
+  expect(source).toContain("importCapability.reason");
 });

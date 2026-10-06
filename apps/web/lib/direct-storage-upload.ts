@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { ApiError, apiRequest, type ApiRequestOptions } from "./api-client";
 
 export type StorageModule =
+  | "person-import"
   | "finance"
   | "e14"
   | "consent"

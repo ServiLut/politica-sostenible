@@ -11,6 +11,11 @@ import {
   type ElectoralCatalogQueuePort,
 } from './electoral-catalog-queue.constants';
 import { StorageIntegrityProcessor } from '../storage/storage-integrity.processor';
+import { PersonImportProcessor } from '../import/person-import.processor';
+import {
+  PERSON_IMPORT_QUEUE_PORT,
+  type PersonImportQueuePort,
+} from '../import/person-import.constants';
 import {
   STORAGE_INTEGRITY_QUEUE_PORT,
   type StorageIntegrityQueuePort,
@@ -33,6 +38,9 @@ export class ElectoralCatalogWorkerHeartbeatService
     private readonly integrityProcessor: StorageIntegrityProcessor,
     @Inject(STORAGE_INTEGRITY_QUEUE_PORT)
     private readonly integrityQueue: StorageIntegrityQueuePort,
+    private readonly personImportProcessor: PersonImportProcessor,
+    @Inject(PERSON_IMPORT_QUEUE_PORT)
+    private readonly personImportQueue: PersonImportQueuePort,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -58,6 +66,8 @@ export class ElectoralCatalogWorkerHeartbeatService
         this.queue.checkReady(),
         this.integrityProcessor.worker.waitUntilReady(),
         this.integrityQueue.checkReady(),
+        this.personImportProcessor.worker.waitUntilReady(),
+        this.personImportQueue.checkReady(),
       ]);
       await writeFile(HEALTH_FILE, new Date().toISOString(), {
         encoding: 'utf8',

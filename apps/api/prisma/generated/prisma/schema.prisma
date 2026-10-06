@@ -56,6 +56,8 @@ model Tenant {
   offlineSyncReceipts               OfflineSyncReceipt[]
   electoralCatalogReleases          ElectoralCatalogRelease[]
   electoralCatalogEntries           ElectoralCatalogEntry[]
+  personImports                     PersonImportJob[]
+  personImportRows                  PersonImportRowResult[]
   electoralCatalogImports           ElectoralCatalogImportJob[]
   operationStageAdoptions           OperationStageAdoptionRequest[]
   operationTerminations             OperationTerminationRequest[]
@@ -197,6 +199,7 @@ model StoredObject {
   tenant                         Tenant                            @relation(fields: [tenantId], references: [id])
   uploader                       User                              @relation("StoredObjectUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
   signatures                     ElectronicSignature[]
+  personImportJob                PersonImportJob?                  @relation("PersonImportArtifact")
   catalogImportJob               ElectoralCatalogImportJob?        @relation("ElectoralCatalogImportArtifact")
   scrutinyDocument               ScrutinyDocument?
   financeBankStatement           FinanceBankStatement?
@@ -288,6 +291,7 @@ model User {
   electoralCatalogsValidated         ElectoralCatalogRelease[]             @relation("ElectoralCatalogValidatedBy")
   electoralCatalogsActivated         ElectoralCatalogRelease[]             @relation("ElectoralCatalogActivatedBy")
   electoralCatalogsApproved          ElectoralCatalogRelease[]             @relation("ElectoralCatalogApprovedBy")
+  personImports                      PersonImportJob[]                     @relation("PersonImportRequester")
   electoralCatalogImports            ElectoralCatalogImportJob[]           @relation("ElectoralCatalogImportRequester")
   operationAdoptionsRequested        OperationStageAdoptionRequest[]       @relation("OperationAdoptionRequestedBy")
   operationAdoptionsReviewed         OperationStageAdoptionRequest[]       @relation("OperationAdoptionReviewedBy")
@@ -2108,6 +2112,7 @@ enum InventoryCommandType {
 }
 
 enum StorageObjectModule {
+  PERSON_IMPORT
   FINANCE
   E14
   CONSENT
@@ -4885,4 +4890,79 @@ enum VotingStatus {
   VOTED
   NEEDS_TRANSPORT
   NO_SHOW
+}
+
+/// CSV privado. Redis transporta IDs; esta tabla conserva el progreso y el replay.
+model PersonImportJob {
+  fileName              String                  @db.VarChar(180)
+  id                    String                  @id @default(cuid())
+  tenantId              String
+  requestedById         String
+  clientRequestId       String                  @db.Uuid
+  payloadSha256         String                  @db.Char(64)
+  sourceArtifactPath    String                  @db.VarChar(512)
+  expectedContentSha256 String                  @db.Char(64)
+  noticeVersion         String                  @db.VarChar(160)
+  status                PersonImportStatus      @default(QUEUED)
+  importRequestedAt     DateTime?
+  totalRows             Int                     @default(0)
+  validRows             Int                     @default(0)
+  errorRows             Int                     @default(0)
+  skippedRows           Int                     @default(0)
+  importedRows          Int                     @default(0)
+  validatedThrough      Int                     @default(0)
+  attempts              Int                     @default(0)
+  leaseToken            String?                 @db.Uuid
+  leaseExpiresAt        DateTime?
+  lastErrorCode         String?                 @db.VarChar(80)
+  lastErrorMessage      String?                 @db.VarChar(500)
+  completedAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  tenant                Tenant                  @relation(fields: [tenantId], references: [id])
+  requestedBy           User                    @relation("PersonImportRequester", fields: [requestedById, tenantId], references: [id, tenantId])
+  sourceObject          StoredObject            @relation("PersonImportArtifact", fields: [tenantId, sourceArtifactPath], references: [tenantId, path])
+  rows                  PersonImportRowResult[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, clientRequestId])
+  @@unique([tenantId, sourceArtifactPath])
+  @@index([tenantId, status, createdAt, id])
+}
+
+model PersonImportRowResult {
+  id         String                @id @default(cuid())
+  tenantId   String
+  jobId      String
+  rowNumber  Int
+  documentId String?               @db.VarChar(100)
+  proofPath  String?               @db.VarChar(512)
+  values     Json
+  errors     Json
+  status     PersonImportRowStatus
+  voterId    String?
+  tenant     Tenant                @relation(fields: [tenantId], references: [id])
+  job        PersonImportJob       @relation(fields: [jobId, tenantId], references: [id, tenantId])
+
+  @@unique([tenantId, jobId, rowNumber])
+  @@index([tenantId, jobId, status, rowNumber])
+  @@index([tenantId, jobId, documentId])
+  @@index([tenantId, jobId, proofPath])
+}
+
+enum PersonImportStatus {
+  QUEUED
+  VALIDATING
+  READY
+  IMPORT_QUEUED
+  IMPORTING
+  COMPLETED
+  FAILED
+}
+
+enum PersonImportRowStatus {
+  READY
+  INVALID
+  SKIPPED
+  IMPORTED
 }

@@ -1,4 +1,5 @@
 export enum StorageModuleName {
+  PERSON_IMPORT = 'person-import',
   FINANCE = 'finance',
   E14 = 'e14',
   CONSENT = 'consent',
@@ -10,6 +11,7 @@ export enum StorageModuleName {
 }
 
 export const STORAGE_INTEGRITY_REQUIRED_MODULES = [
+  StorageModuleName.PERSON_IMPORT,
   StorageModuleName.FINANCE,
   StorageModuleName.E14,
   StorageModuleName.SCRUTINY,
@@ -36,6 +38,10 @@ const DOCUMENT_MIME_TYPES = {
 export const STORAGE_UPLOAD_POLICIES: Readonly<
   Record<StorageModuleName, StorageUploadPolicy>
 > = {
+  [StorageModuleName.PERSON_IMPORT]: {
+    maxBytes: 20 * 1024 * 1024,
+    mimeTypes: { 'text/csv': ['csv'] },
+  },
   [StorageModuleName.FINANCE]: {
     maxBytes: 20 * 1024 * 1024,
     mimeTypes: {

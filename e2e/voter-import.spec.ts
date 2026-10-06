@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { VoterImportJob } from "../apps/web/lib/import-api";
 
+// Interface tests with simulated HTTP/Storage. These do not prove a real worker,
+// real authorization or persistence in PostgreSQL; those have separate tests.
 const jwt = [
   Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
     "base64url",
@@ -7,97 +10,115 @@ const jwt = [
   Buffer.from(JSON.stringify({ exp: 1_893_456_000 })).toString("base64url"),
   "test-signature",
 ].join(".");
-
 const session = {
   accessToken: jwt,
   expiresAt: null,
   tenant: {
     id: "tenant-e2e",
-    name: "Campaña importadora",
-    slug: "campana-importadora",
+    name: "PRUEBA importación",
+    slug: "prueba-importacion",
     type: "CANDIDACY",
   },
   user: {
     id: "admin-e2e",
     email: "admin@example.test",
-    name: "Administración territorial",
+    name: "Administración QA",
     role: "AdminCampana",
     backendRole: "ADMIN",
   },
 };
-
 const notice = {
   id: "notice-e2e",
   mode: "CAMPAIGN",
   purpose: "POLITICAL_COMMUNICATION",
-  version: "campaign-2026-09-v3",
-  title: "Autorización para comunicaciones políticas",
-  content: "Aviso activo verificable.",
-  controllerName: "Campaña importadora",
+  version: "prueba-v1",
+  title: "Aviso de prueba",
+  content: "SIMULACIÓN sin validez",
+  controllerName: "PRUEBA",
   contactEmail: "privacidad@example.test",
   privacyPolicyUrl: "https://example.test/privacidad",
   activatedAt: "2026-09-06T12:00:00.000Z",
 };
-
-const header =
-  "Documento,Nombre,Apellido,Teléfono,Correo,Puesto,Mesa,Consentimiento,Version aviso,Fecha consentimiento,Ruta evidencia";
-const sourceCsv = [
-  header,
-  `1012345678,Ana,Pérez,3001234567,ana@example.test,,,SI,${notice.version},2026-09-07T12:00:00.000Z,consentimiento-ana.pdf`,
-].join("\n");
-const evidenceBytes = Buffer.from("%PDF-1.4 evidencia consentimiento e2e");
-const confirmedPath =
+const requiredHeaders = [
+  "Documento",
+  "Nombre",
+  "Apellido",
+  "Consentimiento",
+  "Version aviso",
+  "Fecha consentimiento",
+  "Ruta evidencia",
+];
+const header = requiredHeaders.join(";");
+const sourceCsv = `${header}\n1012345678;Ana;Prueba;SI;prueba-v1;2026-09-07T12:00:00.000Z;ana.pdf\n1098765432;Luis;Prueba;;prueba-v1;2026-09-07T12:00:00.000Z;falta.pdf`;
+const consentPath =
   "tenant-e2e/consent/123e4567-e89b-42d3-a456-426614174000.pdf";
-
-function successful<T>(data: T, statusCode = 200) {
-  return { statusCode, message: "Success", data };
-}
+const csvPath =
+  "tenant-e2e/person-import/223e4567-e89b-42d3-a456-426614174000.csv";
+const jobId = "c1111111111111111111111111";
+const pageOf = <T>(items: T[]) => ({
+  items,
+  pagination: {
+    page: 1,
+    limit: 10,
+    total: items.length,
+    totalPages: items.length ? 1 : 0,
+  },
+});
+const jobBase: VoterImportJob = {
+  id: jobId,
+  fileName: "personas.csv",
+  status: "READY",
+  totalRows: 2,
+  validRows: 1,
+  errorRows: 1,
+  skippedRows: 0,
+  importedRows: 0,
+  attempts: 1,
+  createdAt: "2026-10-06T00:00:00.000Z",
+  updatedAt: "2026-10-06T00:00:00.000Z",
+  completedAt: null,
+  lastErrorCode: null,
+  lastErrorMessage: null,
+  canExecute: true,
+  canRetry: false,
+  progress: { phase: "validation", processed: 2, total: 2 },
+};
 
 async function storeSession(page: Page) {
   await page.addInitScript(
-    ({ storageKey, authSession }) => {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(authSession));
-    },
-    {
-      storageKey: "politica-sostenible.auth-session",
-      authSession: session,
-    },
+    (authSession) =>
+      window.sessionStorage.setItem(
+        "politica-sostenible.auth-session",
+        JSON.stringify(authSession),
+      ),
+    session,
   );
 }
 
-function votersPage() {
-  return {
-    items: [],
-    pagination: { page: 1, limit: 25, total: 0, totalPages: 0 },
-  };
-}
-
-test("importa con evidencia directa y reutiliza exactamente el CSV validado", async ({
-  page,
-}) => {
-  test.setTimeout(60_000);
-  await storeSession(page);
-  const apiRequests: Array<{
-    method: string;
-    pathname: string;
-    search: string;
-    body?: Record<string, unknown>;
+async function mockApplication(page: Page, importEnabled = true) {
+  const mutations: Array<{
+    path: string;
+    body: Record<string, unknown> | undefined;
   }> = [];
-  const storageUploads: Array<{ method: string; body: Buffer | null }> = [];
-  let previewAttempts = 0;
-
+  const uploads: Array<{ path: string; method: string; bytes: Buffer | null }> =
+    [];
+  const creates: Array<Record<string, unknown>> = [];
+  let job: VoterImportJob | null = null;
+  let queuedReads = 0;
+  let createAttempts = 0;
+  const importReads: string[] = [];
   await page.route("**/storage/v1/object/upload/sign/**", async (route) => {
-    storageUploads.push({
+    uploads.push({
+      path: new URL(route.request().url()).pathname,
       method: route.request().method(),
-      body: route.request().postDataBuffer(),
+      bytes: route.request().postDataBuffer(),
     });
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ Key: `private-files/${confirmedPath}` }),
+      body: JSON.stringify({ Key: "private-files/confirmed" }),
     });
   });
-
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -105,331 +126,257 @@ test("importa con evidencia directa y reutiliza exactamente el CSV validado", as
     const body = request.postData()
       ? (request.postDataJSON() as Record<string, unknown>)
       : undefined;
-    apiRequests.push({ method, pathname: url.pathname, search: url.search, body });
-
-    if (url.pathname === "/api/auth/me") {
-      await route.fulfill({ status: 503, body: "{}" });
-      return;
-    }
-    if (url.pathname === "/api/billing/capabilities" && method === "GET") {
-      await route.fulfill({
-        status: 200,
+    const respond = (data: unknown, status = 200) =>
+      route.fulfill({
+        status,
         contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            plan: { code: "PRO", name: "Profesional" },
-            features: { export: true, import: true, mfa: true },
-          }),
-        ),
+        body: JSON.stringify({ statusCode: status, data }),
       });
-      return;
-    }
-    if (url.pathname === "/api/consent-notices/current" && method === "GET") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            configured: true,
-            mode: "CAMPAIGN",
-            purpose: "POLITICAL_COMMUNICATION",
-            notice,
-          }),
-        ),
+    if (method !== "GET") mutations.push({ path: url.pathname, body });
+    if (url.pathname.startsWith("/api/import/")) importReads.push(url.pathname);
+    if (url.pathname === "/api/auth/me")
+      return route.fulfill({ status: 503, body: "{}" });
+    if (url.pathname === "/api/billing/capabilities")
+      return respond({
+        plan: { code: importEnabled ? "PRO" : "BASIC", name: "Plan QA" },
+        features: { export: false, import: importEnabled, mfa: true },
       });
-      return;
-    }
-    if (url.pathname === "/api/voters" && method === "GET") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(successful(votersPage())),
+    if (url.pathname === "/api/consent-notices/current")
+      return respond({
+        configured: true,
+        mode: "CAMPAIGN",
+        purpose: "POLITICAL_COMMUNICATION",
+        notice,
       });
-      return;
-    }
-    if (
-      url.pathname === "/api/import/personas/template" &&
-      method === "GET"
-    ) {
-      const serverTemplate = [
-        header,
-        `1234567890,Juan,García,3001234567,juan@ejemplo.com,,,SI,VERSION_AVISO_ACTIVA,2026-09-07T11:00:00.000Z,tenant-e2e/consent/UUID.pdf`,
-      ].join("\n");
-      await route.fulfill({
-        status: 200,
-        contentType: "text/csv; charset=utf-8",
-        body: `\uFEFF${serverTemplate}`,
+    if (url.pathname === "/api/voters") return respond(pageOf([]));
+    if (url.pathname === "/api/import/personas/options")
+      return respond({
+        limits: { maxRows: 50_000, maxBytes: 20 * 1024 * 1024 },
+        notice,
+        requiredHeaders,
+        optionalHeaders: ["Teléfono", "Correo", "Puesto", "Mesa"],
       });
-      return;
-    }
-    if (url.pathname === "/api/storage/upload-url" && method === "POST") {
-      expect(body).toEqual({
-        module: "consent",
-        fileName: "consentimiento-ana.pdf",
-        contentType: "application/pdf",
-        size: evidenceBytes.length,
-      });
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful(
-            {
-              bucket: "private-files",
-              path: confirmedPath,
-              uploadUrl: `http://127.0.0.1:3000/mock-supabase/storage/v1/object/upload/sign/private-files/${confirmedPath}`,
-              uploadToken: "signed-consent-token",
-              method: "PUT",
-              headers: { "Content-Type": "application/pdf" },
-              metadata: {
-                fileName: "consentimiento-ana.pdf",
-                contentType: "application/pdf",
-                size: evidenceBytes.length,
-              },
-            },
-            201,
-          ),
-        ),
-      });
-      return;
-    }
-    if (url.pathname === "/api/storage/complete" && method === "POST") {
-      expect(body).toEqual({
-        module: "consent",
-        path: confirmedPath,
-        metadata: {
-          fileName: "consentimiento-ana.pdf",
-          contentType: "application/pdf",
-          size: evidenceBytes.length,
+    if (url.pathname === "/api/storage/upload-url") {
+      expect(body?.contentSha256).toMatch(/^[a-f0-9]{64}$/u);
+      const module = body?.module;
+      expect(["consent", "person-import"]).toContain(module);
+      const path = module === "consent" ? consentPath : csvPath;
+      return respond(
+        {
+          bucket: "private-files",
+          path,
+          uploadUrl: `http://127.0.0.1:3000/mock-supabase/storage/v1/object/upload/sign/private-files/${path}`,
+          uploadToken: "test-only-upload-token",
+          method: "PUT",
+          headers: { "Content-Type": body?.contentType },
+          metadata: {
+            fileName: body?.fileName,
+            contentType: body?.contentType,
+            size: body?.size,
+            contentSha256: body?.contentSha256,
+          },
         },
-      });
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({ confirmed: true, path: confirmedPath, module: "consent" }),
-        ),
-      });
-      return;
+        201,
+      );
     }
-    if (url.pathname === "/api/import/personas/preview" && method === "POST") {
-      previewAttempts += 1;
-      const csv = String(body?.csv);
-      expect(Object.keys(body ?? {})).toEqual(["csv"]);
-      expect(csv).toContain(confirmedPath);
-      expect(csv).not.toContain("consentimiento-ana.pdf");
-      if (previewAttempts === 1) {
-        await route.fulfill({
+    if (url.pathname === "/api/storage/complete")
+      return respond({
+        confirmed: true,
+        objectId: "c2222222222222222222222222",
+        path: body?.path,
+        module: body?.module,
+        contentIntegrity: "VERIFIED",
+      });
+    if (url.pathname === "/api/import/personas/jobs" && method === "POST") {
+      creates.push(body!);
+      expect(Object.keys(body!).sort()).toEqual([
+        "clientRequestId",
+        "expectedContentSha256",
+        "fileName",
+        "sourceArtifactPath",
+      ]);
+      expect(body?.sourceArtifactPath).toBe(csvPath);
+      job = { ...jobBase };
+      if (++createAttempts === 1)
+        return route.fulfill({
           status: 503,
           contentType: "application/json",
           body: JSON.stringify({
-            statusCode: 503,
-            message: "Error temporal al validar la importación.",
+            message: "Respuesta temporalmente no disponible",
           }),
         });
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            totalRows: 1,
-            validRows: 1,
-            errorRows: [],
-            duplicatesInFile: 0,
-            duplicatesInDatabase: 0,
-            preview: [
+      return respond(job);
+    }
+    if (url.pathname === "/api/import/personas/jobs" && method === "GET")
+      return respond(pageOf(job ? [job] : []));
+    if (url.pathname === `/api/import/personas/jobs/${jobId}`) {
+      if (job?.status === "IMPORT_QUEUED" && ++queuedReads >= 2)
+        job = {
+          ...job,
+          status: "COMPLETED",
+          validRows: 0,
+          importedRows: 1,
+          canExecute: false,
+          completedAt: "2026-10-06T00:01:00Z",
+          progress: { phase: "complete", processed: 2, total: 2 },
+        };
+      return respond(job);
+    }
+    if (url.pathname === `/api/import/personas/jobs/${jobId}/errors`)
+      return respond({
+        items: [
+          {
+            row: 3,
+            errors: [
               {
-                documentId: "1012345678",
-                firstName: "Ana",
-                lastName: "Pérez",
-                status: "new",
+                field: "Consentimiento",
+                message: "Se requiere autorización expresa",
               },
+              { field: "Ruta evidencia", message: "Falta evidencia válida" },
             ],
-          }),
-        ),
+          },
+        ],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
       });
-      return;
-    }
-    if (url.pathname === "/api/import/personas/execute" && method === "POST") {
-      const previewRequest = apiRequests.find(
-        (item) => item.pathname === "/api/import/personas/preview",
-      );
-      expect(Object.keys(body ?? {})).toEqual(["csv"]);
-      expect(body?.csv).toBe(previewRequest?.body?.csv);
-      await route.fulfill({
+    if (url.pathname === `/api/import/personas/jobs/${jobId}/errors.csv`)
+      return route.fulfill({
         status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({ success: true, imported: 1, skipped: 0 }),
-        ),
+        contentType: "text/csv",
+        body: `\uFEFF${header};Fila;Motivo\n1098765432;Luis;Prueba;;prueba-v1;2026-09-07T12:00:00Z;falta.pdf;3;Falta autorización\n`,
       });
-      return;
+    if (url.pathname === `/api/import/personas/jobs/${jobId}/execute`) {
+      expect(method).toBe("POST");
+      expect(body).toBeUndefined();
+      job = {
+        ...job!,
+        status: "IMPORT_QUEUED",
+        canExecute: false,
+        progress: { phase: "import", processed: 1, total: 2 },
+      };
+      return respond(job);
     }
-
-    await route.fulfill({
+    return route.fulfill({
       status: 404,
       contentType: "application/json",
-      body: JSON.stringify({ message: `Ruta no simulada: ${method} ${url.pathname}` }),
+      body: JSON.stringify({ message: "Ruta no simulada" }),
     });
   });
+  return { mutations, uploads, creates, importReads };
+}
 
-  await page.goto("/dashboard/votantes");
-  const openButton = page.getByRole("button", { name: "Importar CSV" });
-  await expect(openButton).toBeEnabled();
-  await openButton.click();
-
-  let dialog = page.getByRole("dialog", {
-    name: "Importar personas autorizadas",
-  });
-  const closeButton = dialog.getByRole("button", {
-    name: "Cerrar importación",
-  });
-  await expect(closeButton).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-  await expect(openButton).toBeFocused();
-
-  await openButton.click();
-  dialog = page.getByRole("dialog", {
-    name: "Importar personas autorizadas",
-  });
-  await expect(
-    dialog.getByRole("button", { name: "Cerrar importación" }),
-  ).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  await expect(dialog.getByRole("button", { name: "Cancelar" })).toBeFocused();
-  const fileInputs = dialog.locator('input[type="file"]');
-  await fileInputs.nth(0).setInputFiles({
-    name: "personas.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(sourceCsv, "utf8"),
-  });
-  await fileInputs.nth(1).setInputFiles({
-    name: "consentimiento-ana.pdf",
-    mimeType: "application/pdf",
-    buffer: evidenceBytes,
-  });
-  await dialog.getByRole("button", { name: "Subir y validar" }).click();
-  await expect(dialog.getByRole("alert")).toContainText(
-    "Error temporal al validar la importación.",
-  );
-  await dialog.getByRole("button", { name: "Subir y validar" }).click();
-
-  await expect(
-    dialog.getByRole("region", { name: "Vista previa de importación" }),
-  ).toBeVisible();
-  await expect(dialog.getByText("Ana Pérez")).toBeVisible();
-  await expect(dialog.getByText("••••••5678")).toBeVisible();
-  await expect(dialog.getByText("Nueva", { exact: true })).toBeVisible();
-  await expect(
-    dialog.getByRole("button", { name: "Confirmar e importar" }),
-  ).toBeDisabled();
-
-  await dialog
-    .getByRole("checkbox", { name: /Confirmo que las 1 persona/u })
-    .check();
-  await dialog.getByRole("button", { name: "Confirmar e importar" }).click();
-  await expect(dialog.getByText("Importación completada")).toBeVisible();
-  await expect(dialog.getByText(/1 persona\(s\) importada\(s\)/u)).toBeVisible();
-
-  expect(storageUploads).toHaveLength(1);
-  expect(storageUploads[0].method).toBe("PUT");
-  expect(storageUploads[0].body?.includes(evidenceBytes)).toBe(true);
-  const mutationRequests = apiRequests.filter((item) => item.body !== undefined);
-  expect(
-    mutationRequests.every(
-      (item) =>
-        !("tenantId" in (item.body ?? {})) &&
-        !("mode" in (item.body ?? {})) &&
-        !JSON.stringify(item.body).includes("%PDF-1.4"),
-    ),
-  ).toBe(true);
-  const templateRequest = apiRequests.find(
-    (item) => item.pathname === "/api/import/personas/template",
-  );
-  expect(templateRequest?.search).toBe("");
-  expect(templateRequest?.body).toBeUndefined();
-  const previewRequests = apiRequests.filter(
-    (item) => item.pathname === "/api/import/personas/preview",
-  );
-  expect(previewRequests).toHaveLength(2);
-  expect(previewRequests[1].body?.csv).toBe(previewRequests[0].body?.csv);
-  expect(
-    apiRequests.filter((item) => item.pathname === "/api/storage/upload-url"),
-  ).toHaveLength(1);
-});
-
-test("el plan sin importación queda bloqueado antes de cualquier mutación", async ({
+test("interfaz simulada: recupera respuesta perdida, revisa errores y retoma tras volver a la página", async ({
   page,
 }) => {
   await storeSession(page);
-  const mutations: string[] = [];
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    if (request.method() !== "GET") mutations.push(url.pathname);
-
-    if (url.pathname === "/api/auth/me") {
-      await route.fulfill({ status: 503, body: "{}" });
-      return;
-    }
-    if (url.pathname === "/api/billing/capabilities") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            plan: { code: "BASIC", name: "Básico" },
-            features: { export: false, import: false, mfa: false },
-          }),
-        ),
-      });
-      return;
-    }
-    if (url.pathname === "/api/consent-notices/current") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            configured: true,
-            mode: "CAMPAIGN",
-            purpose: "POLITICAL_COMMUNICATION",
-            notice,
-          }),
-        ),
-      });
-      return;
-    }
-    if (url.pathname === "/api/voters") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(successful(votersPage())),
-      });
-      return;
-    }
-    if (url.pathname === "/api/import/personas/template") {
-      await route.fulfill({
-        status: 403,
-        contentType: "application/json",
-        body: JSON.stringify({
-          statusCode: 403,
-          message: "El plan actual no incluye la importación de datos.",
-        }),
-      });
-      return;
-    }
-    await route.fulfill({ status: 404, body: "{}" });
-  });
-
+  const observed = await mockApplication(page);
   await page.goto("/dashboard/votantes");
-  const unavailable = page.getByRole("button", {
-    name: "Tu plan no incluye importación",
+  const open = page.getByRole("button", {
+    name: "Importar personas",
+    exact: true,
   });
-  await expect(unavailable).toBeVisible();
-  await expect(unavailable).toBeDisabled();
-  expect(mutations).toEqual([]);
+  await expect(open).toBeEnabled();
+  expect(observed.importReads).toEqual([]);
+  await open.click();
+  let dialog = page.getByRole("dialog", {
+    name: "Importar personas",
+    exact: true,
+  });
+  await expect(
+    dialog.getByRole("heading", { name: "Importar personas", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(open).toBeFocused();
+  await open.click();
+  dialog = page.getByRole("dialog", { name: "Importar personas", exact: true });
+  await dialog
+    .getByLabel("Archivo de personas (.csv)")
+    .setInputFiles({
+      name: "personas.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(sourceCsv),
+    });
+  await dialog
+    .getByLabel("Adjuntar evidencias nuevas (opcional)")
+    .setInputFiles({
+      name: "ana.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 PRUEBA sin validez"),
+    });
+  await dialog
+    .getByRole("button", { name: "Revisar archivo", exact: true })
+    .click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "Respuesta temporalmente no disponible",
+  );
+  await dialog.getByRole("button", { name: "Recuperar revisión" }).click();
+  await expect(
+    dialog.getByRole("region", { name: "Revisión de la importación" }),
+  ).toBeVisible();
+  await expect(dialog.getByText("Fila 3", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("Filas con errores", { exact: true }),
+  ).toBeVisible();
+  expect(observed.creates).toHaveLength(2);
+  expect(observed.creates[0]).toEqual(observed.creates[1]);
+  expect(observed.uploads).toHaveLength(2);
+  expect(observed.uploads.every((upload) => upload.method === "PUT")).toBe(
+    true,
+  );
+  expect(observed.uploads[1].bytes?.includes(Buffer.from(consentPath))).toBe(
+    true,
+  );
+  const download = page.waitForEvent("download");
+  await dialog
+    .getByRole("button", { name: "Descargar filas con errores" })
+    .click();
+  expect((await download).suggestedFilename()).toBe(
+    "personas_por_corregir.csv",
+  );
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  await dialog
+    .getByRole("button", { name: "Importar sólo 1 persona lista" })
+    .click();
+  await expect(
+    dialog.getByText("En espera para importar", { exact: true }).first(),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Cerrar y volver después" }).click();
+  await page.reload();
+  await open.click();
+  await page.getByRole("button", { name: "Ver resultado" }).click();
+  await expect(
+    page.getByText("Importación terminada", { exact: true }).first(),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByText("Se guardó 1 persona.", { exact: false }),
+  ).toBeVisible();
+  expect(
+    observed.mutations.filter((request) => request.path.endsWith("/execute")),
+  ).toHaveLength(1);
+  expect(
+    observed.mutations.every(
+      ({ body }) =>
+        !body ||
+        (!("tenantId" in body) && !("mode" in body) && !("csv" in body)),
+    ),
+  ).toBe(true);
+});
+
+test("interfaz simulada: plan sin importación no dispara lecturas ni escrituras del asistente", async ({
+  page,
+}) => {
+  await storeSession(page);
+  const observed = await mockApplication(page, false);
+  await page.goto("/dashboard/votantes");
+  const button = page.getByRole("button", {
+    name: "Importar personas",
+    exact: true,
+  });
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveAttribute(
+    "title",
+    "Tu plan no incluye importación",
+  );
+  expect(observed.importReads).toEqual([]);
+  expect(observed.mutations).toEqual([]);
 });

@@ -11,6 +11,7 @@ export const STORAGE_UPLOAD_CONFIRMED_ACTION = 'STORAGE_UPLOAD_CONFIRMED';
 export const STORAGE_OBJECT_RESOURCE_TYPE = 'StorageObject';
 
 const BYTE_VERIFIED_EVIDENCE_MODULES = new Set<StorageObjectModule>([
+  StorageObjectModule.PERSON_IMPORT,
   StorageObjectModule.FINANCE,
   StorageObjectModule.E14,
   StorageObjectModule.SCRUTINY,

@@ -1,10 +1,14 @@
 import { expect, test } from "@playwright/test";
 import {
   adaptVoterImportTemplate,
+  applyBulkVoterImportEvidencePaths,
   applyVoterImportEvidencePaths,
   canAccessVoterImport,
+  createBlankVoterImportTemplate,
   inspectVoterImportCsv,
   matchVoterImportEvidence,
+  mergeVoterImportEvidenceFiles,
+  planBulkVoterImportEvidence,
 } from "./voter-import";
 
 const HEADER =
@@ -56,6 +60,93 @@ test("inspecciona CSV con comillas y reemplaza solo las evidencias por rutas con
   expect(prepared).toContain(
     ",tenant-from-api/consent/123e4567-e89b-42d3-a456-426614174000.pdf",
   );
+});
+
+test("la carga masiva permite 50.000 filas y deja errores y duplicados a la revisión del servidor", () => {
+  const rows = Array.from(
+    { length: 50_000 },
+    (_, index) =>
+      `${index},Persona,Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,`,
+  );
+  rows[3] = rows[2];
+  const csv = [HEADER, ...rows].join("\n");
+  const plan = planBulkVoterImportEvidence(csv, []);
+  expect(plan).toEqual({ totalRows: 50_000, matches: [], unusedFileNames: [] });
+  expect(() => planBulkVoterImportEvidence(`${csv}\n${rows[0]}`, [])).toThrow(
+    /50.000/u,
+  );
+});
+
+test("límites masivos se miden en bytes UTF-8, no sólo caracteres", () => {
+  const csv = `${HEADER}\n1,José,Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,autorización.pdf`;
+  expect(new Blob([csv]).size).toBeGreaterThan(csv.length);
+  expect(() =>
+    planBulkVoterImportEvidence(csv, [], {
+      maxRows: 50_000,
+      maxBytes: csv.length,
+    }),
+  ).toThrow(/tamaño|máximo/u);
+});
+
+test("adjunta sólo referencias exactas y permite conservar rutas ya cargadas", () => {
+  const csv = [
+    HEADER,
+    "1,Ana,Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,ana.pdf",
+    "2,Luz,Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,tenant/consent/luz.pdf",
+    "3,Leo,Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,falta.pdf",
+  ].join("\n");
+  const selected = new File(["pdf"], "ana.pdf", { type: "application/pdf" });
+  const extra = new File(["pdf"], "luz.pdf", { type: "application/pdf" });
+  expect(planBulkVoterImportEvidence(csv, [selected, extra])).toEqual({
+    totalRows: 3,
+    matches: [{ reference: "ana.pdf", file: selected }],
+    unusedFileNames: ["luz.pdf"],
+  });
+  const prepared = applyBulkVoterImportEvidencePaths(
+    csv,
+    new Map([["ana.pdf", "tenant/consent/confirmed.pdf"]]),
+  );
+  expect(prepared).toContain("tenant/consent/confirmed.pdf");
+  expect(prepared).toContain("tenant/consent/luz.pdf");
+  expect(prepared).toContain("falta.pdf");
+  // A missing or existing reference is never assumed to be authorized locally.
+  expect(prepared.split("\n")).toHaveLength(4);
+});
+
+test("corregir CSV de errores conserva columnas y comillas sin importar la explicación como persona", () => {
+  const csv = [
+    HEADER + ",Fila,Motivo",
+    '1,"Ana, Luz",Prueba,,,,,SI,v1,2026-10-06T09:00:00-05:00,ana.pdf,2,"Nombre, incompleto"',
+  ].join("\n");
+  const prepared = applyBulkVoterImportEvidencePaths(
+    csv,
+    new Map([["ana.pdf", "tenant/consent/confirmed.pdf"]]),
+  );
+  expect(planBulkVoterImportEvidence(prepared, []).totalRows).toBe(1);
+  expect(prepared).toContain('"Ana, Luz"');
+  expect(prepared).toContain('2,"Nombre, incompleto"');
+});
+
+test("plantilla masiva real está vacía, con BOM y encabezados únicos", () => {
+  const template = createBlankVoterImportTemplate(
+    ["Documento", "Nombre"],
+    ["Nombre", "Correo"],
+  );
+  expect(template).toBe("\uFEFFDocumento;Nombre;Correo\r\n");
+  expect(template).not.toContain("SI");
+  expect(template).not.toContain("2026");
+});
+
+test("no elige silenciosamente entre evidencias homónimas y distingue reemplazos", () => {
+  const first = new File(["a"], "a.pdf");
+  const corrected = new File(["b"], "a.pdf");
+  expect(() => mergeVoterImportEvidenceFiles([], [first, corrected])).toThrow(
+    /dos archivos llamados/u,
+  );
+  expect(mergeVoterImportEvidenceFiles([first], [corrected])).toEqual({
+    files: [corrected],
+    replaced: 1,
+  });
 });
 
 test("rechaza localmente documentos o evidencias repetidos antes de subir archivos", () => {

@@ -4,11 +4,10 @@ export const MAX_VOTER_IMPORT_ROWS = 500;
 export const MAX_DIRECT_CONSENT_FILES = 30;
 export const MAX_VOTER_IMPORT_CSV_CHARACTERS = 100_000;
 export const MAX_CONSENT_EVIDENCE_BYTES = 15 * 1024 * 1024;
+export const MAX_BULK_VOTER_IMPORT_ROWS = 50_000;
+export const MAX_BULK_VOTER_IMPORT_BYTES = 20 * 1024 * 1024;
 
-const IMPORT_ROLES = new Set<BackendUserRole>([
-  "ADMIN",
-  "CAMPAIGN_MANAGER",
-]);
+const IMPORT_ROLES = new Set<BackendUserRole>(["ADMIN", "CAMPAIGN_MANAGER"]);
 const REQUIRED_HEADERS = [
   "Documento",
   "Nombre",
@@ -45,8 +44,7 @@ export interface VoterImportEvidenceRequirement {
   fileName: string;
 }
 
-export interface VoterImportEvidenceMatch
-  extends VoterImportEvidenceRequirement {
+export interface VoterImportEvidenceMatch extends VoterImportEvidenceRequirement {
   file: File;
 }
 
@@ -172,14 +170,22 @@ function parseRecords(csv: string, delimiter: "," | ";"): ParsedRecord[] {
   return records;
 }
 
-function parseImportCsv(csv: string): ParsedImportCsv {
+function parseImportCsv(
+  csv: string,
+  limits = {
+    maxRows: MAX_VOTER_IMPORT_ROWS,
+    maxCharacters: MAX_VOTER_IMPORT_CSV_CHARACTERS,
+  },
+): ParsedImportCsv {
   const normalized = csv
     .replace(/^\uFEFF/u, "")
     .replace(/\r\n/gu, "\n")
     .replace(/\r/gu, "\n");
   if (!normalized.trim()) throw new Error("El CSV no contiene registros.");
-  if (normalized.length > MAX_VOTER_IMPORT_CSV_CHARACTERS) {
-    throw new Error("El CSV supera el tamaño permitido de 100.000 caracteres.");
+  if (normalized.length > limits.maxCharacters) {
+    throw new Error(
+      `El CSV supera el tamaño permitido de ${limits.maxCharacters.toLocaleString("es-CO")} caracteres.`,
+    );
   }
 
   const delimiter = detectDelimiter(normalized);
@@ -191,9 +197,9 @@ function parseImportCsv(csv: string): ParsedImportCsv {
   }
 
   const rows = records.slice(1);
-  if (rows.length > MAX_VOTER_IMPORT_ROWS) {
+  if (rows.length > limits.maxRows) {
     throw new Error(
-      `El CSV supera el máximo de ${MAX_VOTER_IMPORT_ROWS} registros por lote.`,
+      `El CSV supera el máximo de ${limits.maxRows.toLocaleString("es-CO")} registros por lote.`,
     );
   }
 
@@ -232,9 +238,7 @@ function evidenceFileName(reference: string): string {
   return reference.split(/[\\/]/u).at(-1)?.trim() ?? "";
 }
 
-export function inspectVoterImportCsv(
-  csv: string,
-): VoterImportCsvInspection {
+export function inspectVoterImportCsv(csv: string): VoterImportCsvInspection {
   const parsed = parseImportCsv(csv);
   const evidence = parsed.rows.map((row) => {
     const documentId = row.values[parsed.documentIndex]?.trim() ?? "";
@@ -346,7 +350,10 @@ export function applyVoterImportEvidencePaths(
   pathsByReference: ReadonlyMap<string, string>,
 ): string {
   const parsed = parseImportCsv(csv);
-  const records = [parsed.headers, ...parsed.rows.map((row) => [...row.values])];
+  const records = [
+    parsed.headers,
+    ...parsed.rows.map((row) => [...row.values]),
+  ];
 
   for (let index = 1; index < records.length; index += 1) {
     const reference = records[index][parsed.evidenceIndex]?.trim() ?? "";
@@ -376,7 +383,10 @@ export function adaptVoterImportTemplate(
   const parsed = parseImportCsv(serverTemplate);
   const versionIndex = parsed.headers.indexOf("Version aviso");
   const consentDateIndex = parsed.headers.indexOf("Fecha consentimiento");
-  const records = [parsed.headers, ...parsed.rows.map((row) => [...row.values])];
+  const records = [
+    parsed.headers,
+    ...parsed.rows.map((row) => [...row.values]),
+  ];
 
   for (let index = 1; index < records.length; index += 1) {
     const documentId = records[index][parsed.documentIndex]
@@ -398,3 +408,162 @@ export function adaptVoterImportTemplate(
     )
     .join("\n")}`;
 }
+
+export interface BulkVoterImportLimits {
+  maxRows: number;
+  maxBytes: number;
+  maxEvidenceBytes?: number;
+}
+
+const BULK_LIMITS: BulkVoterImportLimits = {
+  maxRows: MAX_BULK_VOTER_IMPORT_ROWS,
+  maxBytes: MAX_BULK_VOTER_IMPORT_BYTES,
+};
+
+export function formatVoterImportSize(bytes: number): string {
+  if (bytes >= 1024 * 1024)
+    return `${(bytes / 1024 / 1024).toLocaleString("es-CO", { maximumFractionDigits: 1 })} MB`;
+  if (bytes >= 1024)
+    return `${(bytes / 1024).toLocaleString("es-CO", { maximumFractionDigits: 1 })} KB`;
+  return `${bytes.toLocaleString("es-CO")} bytes`;
+}
+
+function parseBulkCsv(
+  csv: string,
+  limits: BulkVoterImportLimits,
+): ParsedImportCsv {
+  if (new Blob([csv]).size > limits.maxBytes) {
+    throw new Error(
+      `El archivo supera el máximo de ${formatVoterImportSize(limits.maxBytes)}. Divide el archivo antes de continuar.`,
+    );
+  }
+  return parseImportCsv(csv, {
+    maxRows: limits.maxRows,
+    maxCharacters: limits.maxBytes,
+  });
+}
+
+/** Only plan files explicitly selected by the user. The server validates every row,
+ * existing evidence path, duplicate, notice and permission; this is not authorization. */
+export function planBulkVoterImportEvidence(
+  csv: string,
+  files: readonly File[],
+  limits: BulkVoterImportLimits = BULK_LIMITS,
+): {
+  totalRows: number;
+  matches: Array<{ reference: string; file: File }>;
+  unusedFileNames: string[];
+} {
+  const parsed = parseBulkCsv(csv, limits);
+  const references = new Set(
+    parsed.rows.map((row) => row.values[parsed.evidenceIndex]),
+  );
+  const selected = new Set<string>();
+  const matches: Array<{ reference: string; file: File }> = [];
+  const unusedFileNames: string[] = [];
+  for (const file of files) {
+    if (selected.has(file.name))
+      throw new Error(
+        `Hay dos archivos llamados ${file.name}. Asigna nombres distintos para poder reconocerlos.`,
+      );
+    selected.add(file.name);
+    if (!references.has(file.name)) {
+      unusedFileNames.push(file.name);
+      continue;
+    }
+    validateEvidenceFile(file);
+    matches.push({ reference: file.name, file });
+  }
+  return { totalRows: parsed.rows.length, matches, unusedFileNames };
+}
+
+export function applyBulkVoterImportEvidencePaths(
+  csv: string,
+  confirmedPaths: ReadonlyMap<string, string>,
+  limits: BulkVoterImportLimits = BULK_LIMITS,
+): string {
+  const parsed = parseBulkCsv(csv, limits);
+  const records = [
+    parsed.headers,
+    ...parsed.rows.map(({ values }) => {
+      const next = [...values];
+      const replacement = confirmedPaths.get(next[parsed.evidenceIndex]);
+      if (replacement) next[parsed.evidenceIndex] = replacement;
+      return next;
+    }),
+  ];
+  const prepared = records
+    .map((record) =>
+      record
+        .map((value) => serializeValue(value, parsed.delimiter))
+        .join(parsed.delimiter),
+    )
+    .join("\n");
+  if (new Blob([prepared]).size > limits.maxBytes) {
+    throw new Error(
+      "El archivo con sus evidencias supera el tamaño permitido. Divídelo en archivos más pequeños; las evidencias ya cargadas se conservan en esta ventana.",
+    );
+  }
+  return prepared;
+}
+
+/** A usable, empty template avoids importing an example person or fabricated consent. */
+export function createBlankVoterImportTemplate(
+  requiredHeaders: string[],
+  optionalHeaders: string[],
+): string {
+  const headers = [...new Set([...requiredHeaders, ...optionalHeaders])];
+  return `\uFEFF${headers.map((header) => serializeValue(header, ";")).join(";")}\r\n`;
+}
+
+export function mergeVoterImportEvidenceFiles(
+  previous: readonly File[],
+  incoming: readonly File[],
+): { files: File[]; replaced: number } {
+  const seen = new Set<string>();
+  for (const file of incoming) {
+    if (seen.has(file.name))
+      throw new Error(
+        `Seleccionaste dos archivos llamados ${file.name}. Ponles nombres distintos y actualiza el CSV para identificar la evidencia correcta.`,
+      );
+    seen.add(file.name);
+  }
+  const combined = new Map(previous.map((file) => [file.name, file]));
+  let replaced = 0;
+  for (const file of incoming) {
+    if (combined.has(file.name)) replaced += 1;
+    combined.set(file.name, file);
+  }
+  return { files: [...combined.values()], replaced };
+}
+
+export const VOTER_IMPORT_COLUMN_HELP = [
+  {
+    column: "Documento",
+    help: "Número de identificación, como texto para conservar ceros iniciales.",
+  },
+  {
+    column: "Nombre / Apellido",
+    help: "Nombres y apellidos en sus dos columnas.",
+  },
+  {
+    column: "Consentimiento",
+    help: "SI sólo cuando existe autorización expresa de esa persona.",
+  },
+  {
+    column: "Version aviso",
+    help: "Versión del aviso que la persona aceptó; debe coincidir con el aviso vigente.",
+  },
+  {
+    column: "Fecha consentimiento",
+    help: "Fecha y hora reales de la autorización, con zona horaria. Ejemplo de formato: 2026-10-06T09:30:00-05:00.",
+  },
+  {
+    column: "Ruta evidencia",
+    help: "Nombre exacto del PDF o imagen que adjuntes (por ejemplo, autorizacion_001.pdf), o referencia de una evidencia ya cargada en esta organización.",
+  },
+  {
+    column: "Teléfono / Correo / Puesto / Mesa",
+    help: "Opcionales. Usa códigos oficiales para puesto y mesa cuando correspondan; no inventes ubicaciones.",
+  },
+] as const;

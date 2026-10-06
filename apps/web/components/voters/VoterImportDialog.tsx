@@ -1,37 +1,41 @@
 "use client";
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  Download,
-  FileSpreadsheet,
-  FileUp,
-  Loader2,
-  RotateCcw,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError } from "@/lib/api-client";
-import { uploadFileDirectly } from "@/lib/direct-storage-upload";
-import {
-  executeVoterImport,
-  getVoterImportTemplate,
-  previewVoterImport,
-  type VoterImportExecutionResult,
-  type VoterImportPreview,
-  type VoterImportPreviewStatus,
-} from "@/lib/import-api";
 import { usePlanCapability } from "@/context/auth";
-import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { ApiError } from "@/lib/api-client";
+import { uploadFileDirectlyWithClientDeclaredHash } from "@/lib/direct-storage-upload";
 import {
-  adaptVoterImportTemplate,
-  applyVoterImportEvidencePaths,
-  inspectVoterImportCsv,
-  matchVoterImportEvidence,
+  createVoterImportJob,
+  executeVoterImportJob,
+  getVoterImportJob,
+  getVoterImportOptions,
+  listVoterImportJobs,
+  retryVoterImportJob,
+  type CreateVoterImportJobInput,
+  type VoterImportExecutionResult,
+  type VoterImportJob,
+} from "@/lib/import-api";
+import { useAccessibleDialog } from "@/lib/use-accessible-dialog";
+import { usePageRequest } from "@/lib/use-page-request";
+import {
+  createBlankVoterImportTemplate,
+  formatVoterImportSize,
+  MAX_CONSENT_EVIDENCE_BYTES,
+  mergeVoterImportEvidenceFiles,
+  VOTER_IMPORT_COLUMN_HELP,
 } from "@/lib/voter-import";
-
-type AccessState = "checking" | "available" | "unavailable" | "error";
+import { createVoterImportUploadSession } from "@/lib/voter-import-upload";
+import {
+  canExecuteVoterImport,
+  isVoterImportJobRunning,
+  voterImportStep,
+  VOTER_IMPORT_STATUS_LABELS,
+} from "@/lib/voter-import-job";
+import {
+  saveVoterImportDownload,
+  VoterImportJobReview,
+} from "./VoterImportJobReview";
 
 interface VoterImportDialogProps {
   enabled: boolean;
@@ -40,675 +44,739 @@ interface VoterImportDialogProps {
   onCompleted(result: VoterImportExecutionResult): void;
 }
 
-const STATUS_LABELS: Record<VoterImportPreviewStatus, string> = {
-  new: "Nueva",
-  duplicate_file: "Duplicada en archivo",
-  duplicate_db: "Ya existe",
-};
+const secondary =
+  "min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50";
+const primary =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50";
+const fileClass =
+  "block w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-700 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:font-semibold";
 
-function readableError(error: unknown, fallback: string): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error && error.message) return error.message;
-  return fallback;
-}
-
-function maskedDocument(documentId: string): string {
-  const visible = documentId.slice(-4);
-  return `${"•".repeat(Math.max(0, documentId.length - visible.length))}${visible}`;
+function errorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "No se pudo completar la consulta. Intenta de nuevo.";
 }
 
 export function VoterImportDialog({
   enabled,
-  noticeActivatedAt,
   noticeVersion,
+  noticeActivatedAt,
   onCompleted,
 }: VoterImportDialogProps) {
   const importCapability = usePlanCapability("import");
-  const [accessResponse, setAccessResponse] = useState<{
-    noticeVersion: string | null;
-    noticeActivatedAt: string | null;
-    state: AccessState;
-    error: string | null;
-    template: Blob | null;
-  } | null>(null);
-  const currentAccess =
-    accessResponse?.noticeVersion === noticeVersion &&
-    accessResponse?.noticeActivatedAt === noticeActivatedAt
-      ? accessResponse
-      : null;
-  const accessState = currentAccess?.state ?? "checking";
-  const accessError = currentAccess?.error ?? null;
-  const template = currentAccess?.template ?? null;
   const [open, setOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  const [preview, setPreview] = useState<VoterImportPreview | null>(null);
-  const [preparedCsv, setPreparedCsv] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
-  const [preparing, setPreparing] = useState(false);
-  const [executing, setExecuting] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const [completed, setCompleted] = useState<VoterImportExecutionResult | null>(
-    null,
-  );
-  const csvInputRef = useRef<HTMLInputElement>(null);
-  const evidenceInputRef = useRef<HTMLInputElement>(null);
+  const [pendingCreate, setPendingCreate] =
+    useState<CreateVoterImportJobInput | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyRevision, setHistoryRevision] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const busyRef = useRef(false);
-  const uploadedPathsRef = useRef(new Map<string, string>());
-
-  const checkAccess = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!importCapability.enabled) return;
-      await getVoterImportTemplate(signal)
-        .then(async (downloadedTemplate) => {
-          if (signal?.aborted) return;
-          if (!noticeVersion) {
-            throw new Error(
-              "No hay una versión activa del aviso de privacidad.",
-            );
-          }
-          const compatibleTemplate = adaptVoterImportTemplate(
-            await downloadedTemplate.text(),
-            noticeVersion,
-            noticeActivatedAt ?? undefined,
-          );
-          if (signal?.aborted) return;
-          setAccessResponse({
-            noticeVersion,
-            noticeActivatedAt,
-            state: "available",
-            error: null,
-            template: new Blob([compatibleTemplate], {
-              type: "text/csv;charset=utf-8",
-            }),
-          });
-        })
-        .catch((requestError: unknown) => {
-          if (
-            signal?.aborted ||
-            (requestError instanceof DOMException &&
-              requestError.name === "AbortError")
-          ) {
-            return;
-          }
-          setAccessResponse({
-            noticeVersion,
-            noticeActivatedAt,
-            state:
-              requestError instanceof ApiError && requestError.status === 403
-                ? "unavailable"
-                : "error",
-            template: null,
-            error: readableError(
-              requestError,
-              "No fue posible validar el acceso a la importación.",
-            ),
-          });
-        });
-    },
-    [importCapability.enabled, noticeActivatedAt, noticeVersion],
+  const operationRef = useRef<AbortController | null>(null);
+  const [uploadSession] = useState(() =>
+    createVoterImportUploadSession({
+      upload: (file, module, signal) =>
+        uploadFileDirectlyWithClientDeclaredHash(file, module, { signal }),
+      requestId: () => crypto.randomUUID(),
+    }),
   );
+  const reportedJobs = useRef(new Set<string>());
+  const allowed = open && enabled && importCapability.enabled;
+  const requestOptions = useCallback(
+    (signal: AbortSignal) => getVoterImportOptions(signal),
+    [],
+  );
+  const options = usePageRequest(requestOptions, {
+    enabled: allowed,
+    reloadKey: `${noticeVersion ?? ""}:${noticeActivatedAt ?? ""}`,
+  });
+  const requestHistory = useCallback(
+    (signal: AbortSignal) => listVoterImportJobs(historyPage, signal),
+    [historyPage],
+  );
+  const history = usePageRequest(requestHistory, {
+    enabled: allowed,
+    reloadKey: historyRevision,
+  });
+  const requestJob = useCallback(
+    (signal: AbortSignal) => getVoterImportJob(jobId!, signal),
+    [jobId],
+  );
+  const {
+    data: job,
+    loading: jobLoading,
+    error: jobError,
+    refresh: refreshJob,
+    setData: setJob,
+  } = usePageRequest(requestJob, {
+    enabled: allowed && Boolean(jobId),
+    retainDataOnRefresh: true,
+  });
 
-  useEffect(() => {
-    if (!enabled || !importCapability.enabled) return;
-    const controller = new AbortController();
-    void checkAccess(controller.signal);
-    return () => controller.abort();
-  }, [checkAccess, enabled, importCapability.enabled]);
-
+  const closeDialog = useCallback(() => {
+    if (!busyRef.current) setOpen(false);
+  }, []);
   useAccessibleDialog({
     open,
     containerRef: dialogRef,
-    initialFocusRef: closeButtonRef,
+    initialFocusRef: titleRef,
     returnFocusRef: triggerRef,
-    closeOnEscape: !preparing && !executing,
+    closeOnEscape: !busy,
     onClose: closeDialog,
   });
-
-  function clearWorkflow(clearInputs = true) {
-    setPreview(null);
-    setPreparedCsv(null);
-    setConfirmed(false);
-    setProgress(null);
-    setError(null);
-    setWarning(null);
-    setCompleted(null);
-    uploadedPathsRef.current.clear();
-    if (clearInputs) {
-      setCsvFile(null);
-      setEvidenceFiles([]);
-      if (csvInputRef.current) csvInputRef.current.value = "";
-      if (evidenceInputRef.current) evidenceInputRef.current.value = "";
-    }
-  }
-
-  function closeDialog() {
-    if (busyRef.current) return;
-    setOpen(false);
-    clearWorkflow();
-  }
-
-  function handleCsvChange(file: File | null) {
-    clearWorkflow(false);
-    setCsvFile(file);
-  }
-
-  function handleEvidenceChange(files: File[]) {
-    clearWorkflow(false);
-    setEvidenceFiles(files);
-  }
-
-  function downloadTemplate() {
-    if (!template) return;
-    const url = URL.createObjectURL(template);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "plantilla_personas.csv";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
-
-  async function generatePreview() {
-    if (busyRef.current) return;
-    if (!csvFile) {
-      setError("Selecciona primero el archivo CSV diligenciado.");
-      return;
-    }
-    if (evidenceFiles.length === 0) {
-      setError("Selecciona las evidencias referenciadas por el CSV.");
-      return;
-    }
-
-    busyRef.current = true;
-    setPreparing(true);
-    setError(null);
-    setWarning(null);
-    setPreview(null);
-    setPreparedCsv(null);
-    setConfirmed(false);
-    setCompleted(null);
-
-    try {
-      setProgress("Leyendo y validando la estructura del CSV…");
-      const sourceCsv = await csvFile.text();
-      const inspection = inspectVoterImportCsv(sourceCsv);
-      const evidencePlan = matchVoterImportEvidence(inspection, evidenceFiles);
-      if (evidencePlan.unusedFileNames.length > 0) {
-        setWarning(
-          `${evidencePlan.unusedFileNames.length} archivo(s) no están referenciados en el CSV y no se subirán.`,
-        );
-      }
-
-      for (let index = 0; index < evidencePlan.matches.length; index += 1) {
-        const match = evidencePlan.matches[index];
-        if (uploadedPathsRef.current.has(match.reference)) continue;
-        setProgress(
-          `Subiendo evidencia ${index + 1} de ${evidencePlan.matches.length}: ${match.file.name}`,
-        );
-        const confirmation = await uploadFileDirectly(match.file, "consent");
-        uploadedPathsRef.current.set(match.reference, confirmation.path);
-      }
-
-      setProgress("Validando personas y evidencias con el servidor…");
-      const nextPreparedCsv = applyVoterImportEvidencePaths(
-        sourceCsv,
-        uploadedPathsRef.current,
-      );
-      const nextPreview = await previewVoterImport(nextPreparedCsv);
-      setPreparedCsv(nextPreparedCsv);
-      setPreview(nextPreview);
-    } catch (requestError: unknown) {
-      setPreview(null);
-      setPreparedCsv(null);
-      setConfirmed(false);
-      setError(
-        readableError(
-          requestError,
-          "No fue posible generar la vista previa de importación.",
-        ),
-      );
-    } finally {
-      setProgress(null);
-      busyRef.current = false;
-      setPreparing(false);
-    }
-  }
-
-  async function executeImport() {
+  useEffect(() => () => operationRef.current?.abort(), []);
+  useEffect(() => {
     if (
-      busyRef.current ||
-      !preparedCsv ||
-      !preview ||
-      preview.errorRows.length > 0 ||
-      !confirmed
-    ) {
+      !open ||
+      !job ||
+      !isVoterImportJobRunning(job) ||
+      jobLoading ||
+      jobError ||
+      busy
+    )
       return;
-    }
-    busyRef.current = true;
-    setExecuting(true);
+    const timer = window.setTimeout(() => void refreshJob(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [open, job, jobLoading, jobError, busy, refreshJob]);
+  useEffect(() => {
+    if (job?.status !== "COMPLETED" || reportedJobs.current.has(job.id)) return;
+    reportedJobs.current.add(job.id);
+    onCompleted({
+      success: true,
+      imported: job.importedRows,
+      skipped: job.skippedRows,
+    });
+  }, [job, onCompleted]);
+
+  function selectJob(next: VoterImportJob) {
+    if (next.status === "COMPLETED") reportedJobs.current.add(next.id);
+    setJobId(next.id);
     setError(null);
+    setWarning(null);
+    setPendingCreate(null);
+  }
+  function chooseCorrectedFile() {
+    setJobId(null);
+    setPendingCreate(null);
+    setCsvFile(null);
+    setError(null);
+    setWarning(
+      "Las evidencias seleccionadas y las cargas confirmadas de esta ventana se conservan. Elige el CSV corregido para crear otra revisión.",
+    );
+    setHistoryRevision((value) => value + 1);
+  }
+  function cancelPreparation() {
+    const operation = operationRef.current;
+    if (!operation) return;
+    operation.abort();
+    operationRef.current = null;
+    busyRef.current = false;
+    setBusy(false);
+    setProgress(null);
+    setWarning(
+      "Se detuvo la preparación. Las evidencias ya confirmadas se conservan. Si se estaba guardando la revisión, consulta Importaciones recientes o usa Recuperar revisión antes de volver a cargar.",
+    );
+    setHistoryRevision((value) => value + 1);
+  }
+  async function prepare() {
+    if (busyRef.current || !csvFile || !options.data) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    setWarning(null);
+    const controller = new AbortController();
+    operationRef.current = controller;
     try {
-      const result = await executeVoterImport(preparedCsv);
-      setCompleted(result);
-      setConfirmed(false);
-      onCompleted(result);
-    } catch (requestError: unknown) {
-      setPreview(null);
-      setPreparedCsv(null);
-      setConfirmed(false);
-      setError(
-        readableError(
-          requestError,
-          "No fue posible ejecutar la importación. Genera una vista previa nueva antes de reintentar.",
-        ),
-      );
+      let input = pendingCreate;
+      if (!input) {
+        input = await uploadSession.prepare({
+          file: csvFile,
+          evidenceFiles,
+          limits: options.data.limits,
+          signal: controller.signal,
+          onProgress: setProgress,
+          onUnused: (count) =>
+            setWarning(
+              count
+                ? `${count} archivos adjuntos no aparecen en el CSV y no se cargarán.`
+                : null,
+            ),
+        });
+        // Preserve the ID after a lost response; retries address the same job.
+        setPendingCreate(input);
+      }
+      controller.signal.throwIfAborted();
+      setProgress("Guardando la revisión…");
+      const created = await createVoterImportJob(input);
+      if (controller.signal.aborted) return;
+      selectJob(created);
+      setHistoryRevision((value) => value + 1);
+    } catch (cause) {
+      if (
+        !controller.signal.aborted &&
+        cause instanceof ApiError &&
+        [400, 403, 404, 422].includes(cause.status)
+      )
+        setPendingCreate(null);
+      if (!controller.signal.aborted)
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "No se pudo preparar el archivo. Los archivos seleccionados se conservan.",
+        );
     } finally {
-      busyRef.current = false;
-      setExecuting(false);
+      if (operationRef.current === controller) {
+        busyRef.current = false;
+        operationRef.current = null;
+      }
+      if (!controller.signal.aborted) {
+        setBusy(false);
+        setProgress(null);
+      }
     }
   }
-
-  const busy = preparing || executing;
-  const canExecute = Boolean(
-    preview &&
-    preparedCsv &&
-    preview.validRows > 0 &&
-    preview.errorRows.length === 0 &&
-    confirmed &&
-    !busy &&
-    !completed,
+  async function actOnJob(action: "execute" | "retry") {
+    if (!job || busyRef.current) return;
+    if (action === "execute" && !canExecuteVoterImport(job, false)) return;
+    if (action === "retry" && !job.canRetry) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await (action === "execute"
+        ? executeVoterImportJob(job.id)
+        : retryVoterImportJob(job.id));
+      setJob(result);
+      setHistoryRevision((value) => value + 1);
+    } catch (cause) {
+      setError(
+        `${cause instanceof Error ? cause.message : "No se recibió confirmación."} Actualiza el estado antes de intentarlo otra vez; el proceso podría haber comenzado.`,
+      );
+      await refreshJob();
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+  const currentStep = jobId && !job ? 2 : voterImportStep(job);
+  const canExecute = canExecuteVoterImport(
+    job,
+    busy || jobLoading || Boolean(jobError),
   );
 
   return (
     <>
-      {importCapability.status === "error" && enabled ? (
+      {importCapability.status === "error" ? (
         <button
-          ref={triggerRef}
           type="button"
+          className={secondary}
           onClick={importCapability.refresh}
-          title={importCapability.reason ?? undefined}
-          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900"
         >
-          <RotateCcw aria-hidden="true" size={15} /> Reintentar validación del
-          plan
-        </button>
-      ) : accessState === "error" && enabled && importCapability.enabled ? (
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => {
-            setAccessResponse(null);
-            void checkAccess();
-          }}
-          title={accessError ?? undefined}
-          className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900"
-        >
-          <RotateCcw aria-hidden="true" size={15} /> Reintentar importación
+          Reintentar validación del plan
         </button>
       ) : (
         <button
           ref={triggerRef}
           type="button"
-          disabled={
-            !enabled ||
-            !importCapability.enabled ||
-            accessState === "checking" ||
-            accessState === "unavailable"
+          className={primary}
+          disabled={!enabled || !importCapability.enabled}
+          aria-describedby={
+            !importCapability.enabled ? "voter-import-plan-status" : undefined
           }
           title={
             !enabled
-              ? "Se requiere un aviso de privacidad activo."
-              : (importCapability.reason ?? accessError ?? undefined)
+              ? "Configura primero el aviso de privacidad"
+              : !importCapability.enabled
+                ? importCapability.status === "checking"
+                  ? "Comprobando funciones del plan"
+                  : "Tu plan no incluye importación"
+                : undefined
           }
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => {
+            setOpen(true);
+            setHistoryRevision((value) => value + 1);
+          }}
         >
-          {(importCapability.status === "checking" ||
-            (accessState === "checking" && importCapability.enabled)) &&
-          enabled ? (
-            <Loader2 aria-hidden="true" className="animate-spin" size={15} />
-          ) : (
-            <FileUp aria-hidden="true" size={15} />
-          )}
-          {importCapability.status === "checking" && enabled
-            ? "Validando plan…"
-            : importCapability.status === "unavailable" && enabled
-              ? "Tu plan no incluye importación"
-              : accessState === "unavailable"
-                ? "Importación no incluida"
-                : "Importar CSV"}
+          <FileSpreadsheet size={18} aria-hidden="true" />
+          Importar personas
         </button>
       )}
-
+      {!importCapability.enabled && (
+        <p
+          id="voter-import-plan-status"
+          role="status"
+          className="w-full text-sm text-slate-600"
+        >
+          {importCapability.reason ??
+            "No se pudo comprobar si tu plan permite importar. Intenta de nuevo."}
+        </p>
+      )}
       {open && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/55 p-2 sm:p-4">
           <div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="voter-import-title"
-            aria-describedby="voter-import-description"
             aria-busy={busy}
-            tabIndex={-1}
-            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[calc(100dvh-2.5rem)]"
+            className="flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
           >
-            <header className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white px-5 py-5 sm:px-7">
-              <div>
-                <div className="mb-3 inline-flex rounded-xl bg-blue-50 p-2 text-blue-700">
-                  <FileSpreadsheet aria-hidden="true" size={21} />
-                </div>
+            <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 p-4 sm:px-6">
+              <div className="min-w-0">
                 <h2
+                  ref={titleRef}
+                  tabIndex={-1}
                   id="voter-import-title"
-                  className="text-xl font-semibold sm:text-2xl text-slate-950"
+                  className="text-xl font-semibold text-slate-900 outline-none"
                 >
-                  Importar personas autorizadas
+                  Importar personas
                 </h2>
-                <p
-                  id="voter-import-description"
-                  className="mt-2 max-w-2xl text-sm leading-6 text-slate-500"
-                >
-                  Carga la plantilla y las evidencias de autorización. Revisa
-                  los resultados antes de confirmar la importación.
+                <p className="mt-1 text-sm text-slate-600">
+                  Carga muchas personas desde un archivo de Excel guardado como
+                  CSV.
                 </p>
               </div>
               <button
-                ref={closeButtonRef}
                 type="button"
                 aria-label="Cerrar importación"
                 disabled={busy}
                 onClick={closeDialog}
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
-                <X aria-hidden="true" />
+                <X size={20} />
               </button>
             </header>
-
-            <div className="space-y-6 p-5 sm:p-7">
-              <section className="grid gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950 md:grid-cols-[1fr_auto] md:items-center">
-                <div>
-                  <p className="font-semibold">
-                    1. Descarga y completa la plantilla
-                  </p>
-                  <p className="mt-1">
-                    Usa la versión de aviso <strong>{noticeVersion}</strong>. En
-                    “Ruta evidencia” escribe el nombre exacto de cada PDF o
-                    imagen; no escribas rutas del servidor ni identificadores de
-                    organización. Sustituye la fecha de ejemplo por la fecha
-                    real de autorización en formato ISO 8601 UTC. Si asignas un
-                    puesto, usa su código electoral completo: los nombres que
-                    coincidan con más de un puesto se rechazan para evitar
-                    asignaciones al municipio equivocado.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={downloadTemplate}
-                  disabled={!template || busy}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white disabled:opacity-50"
+            <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
+              <ol
+                aria-label="Pasos de la importación"
+                className="grid grid-cols-3 gap-2 text-center text-xs font-semibold sm:text-sm"
+              >
+                {["Elegir archivo", "Revisar", "Importar"].map(
+                  (label, index) => (
+                    <li
+                      key={label}
+                      aria-current={
+                        currentStep === index + 1 ? "step" : undefined
+                      }
+                      className={`rounded-xl px-2 py-3 ${currentStep === index + 1 ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-600"}`}
+                    >
+                      {index + 1}. {label}
+                    </li>
+                  ),
+                )}
+              </ol>
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"
                 >
-                  <Download aria-hidden="true" size={16} /> Descargar plantilla
-                </button>
-              </section>
-
-              {!completed && (
-                <section className="grid gap-5 md:grid-cols-2">
-                  <label className="space-y-2 text-sm font-semibold text-slate-500">
-                    2. Archivo CSV
-                    <input
-                      ref={csvInputRef}
-                      type="file"
-                      accept=".csv,text/csv"
-                      disabled={busy || preview !== null}
-                      onChange={(event) =>
-                        handleCsvChange(event.target.files?.[0] ?? null)
-                      }
-                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
-                    />
-                    <span className="block text-[11px] font-semibold normal-case tracking-normal text-slate-500">
-                      {csvFile?.name ??
-                        "Máximo 500 filas y 100.000 caracteres."}
-                    </span>
-                  </label>
-
-                  <label className="space-y-2 text-sm font-semibold text-slate-500">
-                    3. Evidencias de consentimiento
-                    <input
-                      ref={evidenceInputRef}
-                      type="file"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-                      disabled={busy || preview !== null}
-                      onChange={(event) =>
-                        handleEvidenceChange(
-                          Array.from(event.target.files ?? []),
-                        )
-                      }
-                      className="block min-h-12 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
-                    />
-                    <span className="block text-[11px] font-semibold normal-case tracking-normal text-slate-500">
-                      {evidenceFiles.length > 0
-                        ? `${evidenceFiles.length} archivo(s) seleccionado(s).`
-                        : "PDF, JPG, PNG o WEBP; 15 MB por archivo, máximo 30 por lote."}
-                    </span>
-                  </label>
-                </section>
+                  {error}
+                </p>
               )}
-
               {warning && (
-                <div
+                <p
                   role="status"
-                  className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900"
+                  className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
                 >
                   {warning}
-                </div>
-              )}
-              {error && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
-                >
-                  <AlertCircle
-                    aria-hidden="true"
-                    className="mt-0.5 shrink-0"
-                    size={18}
-                  />
-                  <p>{error}</p>
-                </div>
+                </p>
               )}
               {progress && (
-                <div
+                <p
                   role="status"
-                  aria-live="polite"
-                  className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-900"
+                  className="flex items-start gap-2 rounded-xl bg-blue-50 p-4 text-sm text-blue-950"
                 >
                   <Loader2
                     aria-hidden="true"
-                    className="animate-spin"
+                    className="mt-0.5 shrink-0 animate-spin"
                     size={18}
                   />
                   {progress}
+                </p>
+              )}
+              {Boolean(options.error) && (
+                <div
+                  role="alert"
+                  className="space-y-2 rounded-xl bg-red-50 p-4 text-sm text-red-900"
+                >
+                  <p>{errorMessage(options.error)}</p>
+                  <button
+                    type="button"
+                    className={secondary}
+                    onClick={() => void options.refresh()}
+                  >
+                    Reintentar preparación
+                  </button>
                 </div>
               )}
-
-              {completed && (
-                <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950">
-                  <CheckCircle2 aria-hidden="true" size={28} />
-                  <h3 className="mt-3 text-xl font-semibold">
-                    Importación completada
-                  </h3>
-                  <p className="mt-2 text-sm font-semibold">
-                    {completed.imported} persona(s) importada(s) y{" "}
-                    {completed.skipped} registro(s) omitido(s).
-                  </p>
+              {options.loading && !options.data && (
+                <p role="status" className="text-sm text-slate-600">
+                  Cargando límites y aviso de privacidad…
+                </p>
+              )}
+              {!jobId && options.data && (
+                <section
+                  className="space-y-4"
+                  aria-label="Archivo y evidencias"
+                >
+                  <div className="flex flex-col items-start gap-3 rounded-xl bg-slate-50 p-4 sm:flex-row sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-slate-900">
+                        Empieza con la plantilla
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        Hasta{" "}
+                        {options.data.limits.maxRows.toLocaleString("es-CO")}{" "}
+                        filas y{" "}
+                        {formatVoterImportSize(options.data.limits.maxBytes)}.
+                        En Excel: Guardar como → CSV UTF-8. Se aceptan coma o
+                        punto y coma; los archivos .xlsx deben guardarse como
+                        CSV primero.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className={`${secondary} inline-flex w-full shrink-0 items-center justify-center gap-2 sm:w-auto`}
+                      onClick={() =>
+                        saveVoterImportDownload(
+                          new Blob(
+                            [
+                              createBlankVoterImportTemplate(
+                                options.data!.requiredHeaders,
+                                options.data!.optionalHeaders,
+                              ),
+                            ],
+                            { type: "text/csv;charset=utf-8" },
+                          ),
+                          "plantilla_personas.csv",
+                        )
+                      }
+                    >
+                      <Download size={16} aria-hidden="true" />
+                      Descargar plantilla
+                    </button>
+                  </div>
+                  <details className="rounded-xl border border-slate-200 p-4">
+                    <summary className="min-h-8 cursor-pointer text-sm font-semibold text-slate-900">
+                      Qué va en cada columna
+                    </summary>
+                    <p className="my-3 text-sm text-slate-700">
+                      Aviso vigente:{" "}
+                      <strong>{options.data.notice.version}</strong>. Usa la
+                      fecha real de cada autorización. La plantilla está vacía
+                      para que ningún dato de ejemplo se importe por accidente.
+                    </p>
+                    <dl className="space-y-3 text-sm">
+                      {VOTER_IMPORT_COLUMN_HELP.map(({ column, help }) => (
+                        <div key={column}>
+                          <dt className="font-semibold text-slate-900">
+                            {column}
+                          </dt>
+                          <dd className="mt-1 leading-6 text-slate-600">
+                            {help}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                  <label className="block space-y-2 text-sm font-semibold text-slate-900">
+                    Archivo de personas (.csv)
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      disabled={busy || Boolean(pendingCreate)}
+                      className={fileClass}
+                      onChange={(event) => {
+                        setCsvFile(event.target.files?.[0] ?? null);
+                        setError(null);
+                        setWarning(null);
+                      }}
+                    />
+                    {csvFile && (
+                      <span className="block break-all font-normal text-slate-600">
+                        Seleccionado: {csvFile.name}
+                      </span>
+                    )}
+                  </label>
+                  <label className="block space-y-2 text-sm font-semibold text-slate-900">
+                    Adjuntar evidencias nuevas (opcional)
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                      disabled={busy || Boolean(pendingCreate)}
+                      className={fileClass}
+                      onChange={(event) => {
+                        const files = Array.from(event.target.files ?? []);
+                        try {
+                          const merged = mergeVoterImportEvidenceFiles(
+                            evidenceFiles,
+                            files,
+                          );
+                          setEvidenceFiles(merged.files);
+                          setError(null);
+                          setWarning(
+                            merged.replaced
+                              ? `Reemplazaste ${merged.replaced} evidencias seleccionadas. Sus archivos nuevos se comprobarán otra vez antes de revisar el CSV.`
+                              : null,
+                          );
+                        } catch (cause) {
+                          setError(errorMessage(cause));
+                        }
+                      }}
+                    />
+                    <span className="block font-normal leading-6 text-slate-600">
+                      Selecciona todos los archivos de autorización de una vez.
+                      PDF o imagen, máximo {formatVoterImportSize(Math.min(MAX_CONSENT_EVIDENCE_BYTES, options.data.limits.maxEvidenceBytes ?? options.data.limits.maxBytes))} cada uno. El nombre debe
+                      coincidir con «Ruta evidencia». Si el CSV ya tiene
+                      referencias válidas de evidencias cargadas, no necesitas
+                      adjuntarlas de nuevo.
+                    </span>
+                  </label>
+                  {evidenceFiles.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+                      <p>
+                        {evidenceFiles.length.toLocaleString("es-CO")}{" "}
+                        evidencias seleccionadas; se cargarán sólo las usadas en
+                        el archivo.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={busy || Boolean(pendingCreate)}
+                        className={secondary}
+                        onClick={() => setEvidenceFiles([])}
+                      >
+                        Quitar selección de evidencias
+                      </button>
+                    </div>
+                  )}
+                  {pendingCreate && (
+                    <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
+                      El CSV ya está cargado. «Recuperar revisión» vuelve a
+                      consultar con la misma solicitud para evitar duplicar la
+                      importación.
+                    </p>
+                  )}
                 </section>
               )}
-
-              {preview && !completed && (
-                <section
-                  className="space-y-5"
-                  aria-label="Vista previa de importación"
-                >
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                    {[
-                      ["Filas", preview.totalRows],
-                      ["Listas", preview.validRows],
-                      ["Errores", preview.errorRows.length],
-                      ["Duplicadas archivo", preview.duplicatesInFile],
-                      ["Ya existentes", preview.duplicatesInDatabase],
-                    ].map(([label, value]) => (
-                      <div
-                        key={String(label)}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              {jobId && (
+                <>
+                  {jobLoading && !job && (
+                    <p role="status" className="text-sm text-slate-600">
+                      Cargando importación…
+                    </p>
+                  )}
+                  {Boolean(jobError) && (
+                    <div
+                      role="alert"
+                      className="space-y-2 rounded-xl bg-red-50 p-4 text-sm text-red-900"
+                    >
+                      <p>
+                        No se pudo actualizar el estado:{" "}
+                        {errorMessage(jobError)}
+                      </p>
+                      <button
+                        type="button"
+                        className={secondary}
+                        onClick={() => void refreshJob()}
                       >
-                        <p className="text-xs font-semibold text-slate-500">
-                          {label}
-                        </p>
-                        <p className="mt-1 text-xl font-semibold sm:text-2xl text-slate-900">
-                          {value}
-                        </p>
-                      </div>
-                    ))}
+                        Actualizar estado
+                      </button>
+                    </div>
+                  )}
+                  {job && <VoterImportJobReview job={job} />}
+                  {job?.status === "READY" && job.validRows > 0 && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                      <span>
+                        Al continuar se importarán sólo las{" "}
+                        {job.validRows.toLocaleString("es-CO")} personas nuevas
+                        listas; las filas con errores y las ya existentes no se
+                        importarán. Cada nueva persona debe tener su
+                        autorización y evidencia verificadas.
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              <details
+                className="rounded-xl border border-slate-200 p-4"
+                open={!jobId && !csvFile}
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                  Importaciones recientes · volver a una carga
+                </summary>
+                <p className="my-3 text-sm leading-6 text-slate-600">
+                  Las revisiones y las importaciones continúan aunque cierres la
+                  ventana. Elige una para consultar su resultado.
+                </p>
+                {history.loading && (
+                  <p role="status" className="text-sm text-slate-600">
+                    Cargando importaciones…
+                  </p>
+                )}
+                {Boolean(history.error) && (
+                  <div role="alert" className="space-y-2 text-sm text-red-900">
+                    <p>{errorMessage(history.error)}</p>
+                    <button
+                      type="button"
+                      className={secondary}
+                      onClick={() => void history.refresh()}
+                    >
+                      Reintentar historial
+                    </button>
                   </div>
-
-                  {preview.errorRows.length > 0 && (
-                    <div className="overflow-hidden rounded-2xl border border-red-200">
-                      <div className="bg-red-50 px-5 py-3 text-sm font-semibold text-red-900">
-                        Corrige estos errores y genera otra vista previa
-                      </div>
-                      <ul className="max-h-52 divide-y divide-red-100 overflow-y-auto bg-white">
-                        {preview.errorRows.map((item, index) => (
+                )}
+                {history.data && (
+                  <>
+                    {history.data.items.length === 0 ? (
+                      <p className="text-sm text-slate-600">
+                        Todavía no hay importaciones.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-slate-200">
+                        {history.data.items.map((item) => (
                           <li
-                            key={`${item.row}-${item.field}-${index}`}
-                            className="px-5 py-3 text-sm text-red-800"
+                            key={item.id}
+                            className="flex flex-col items-start gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <strong>
-                              Fila {item.row} · {item.field}:
-                            </strong>{" "}
-                            {item.message}
+                            <div className="min-w-0 flex-1">
+                              <p className="break-all text-sm font-semibold text-slate-900">
+                                {item.fileName}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-600">
+                                {new Date(item.createdAt).toLocaleString(
+                                  "es-CO",
+                                )}{" "}
+                                · {VOTER_IMPORT_STATUS_LABELS[item.status]} ·{" "}
+                                {item.importedRows.toLocaleString("es-CO")}{" "}
+                                {item.importedRows === 1 ? "importada" : "importadas"}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className={`${secondary} w-full shrink-0 sm:w-auto`}
+                              aria-label={`Ver resultado de ${item.fileName}`}
+                              onClick={() => selectJob(item)}
+                            >
+                              Ver resultado
+                            </button>
                           </li>
                         ))}
                       </ul>
-                    </div>
-                  )}
-
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">Persona</th>
-                          <th className="px-4 py-3">Documento</th>
-                          <th className="px-4 py-3">Resultado</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {preview.preview.slice(0, 50).map((item, index) => (
-                          <tr key={`${item.documentId}-${index}`}>
-                            <td className="px-4 py-3 font-bold text-slate-900">
-                              {item.firstName} {item.lastName}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-xs text-slate-600">
-                              {maskedDocument(item.documentId)}
-                            </td>
-                            <td className="px-4 py-3 font-bold text-slate-700">
-                              {STATUS_LABELS[item.status]}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {preview.preview.length > 50 && (
-                      <p className="border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
-                        Se muestran 50 de {preview.preview.length} resultados.
-                      </p>
                     )}
-                  </div>
-
-                  {preview.errorRows.length === 0 && preview.validRows > 0 && (
-                    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold leading-6 text-emerald-950">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        disabled={busy}
-                        onChange={(event) => setConfirmed(event.target.checked)}
-                        className="mt-1 h-5 w-5 shrink-0 accent-emerald-700"
-                      />
-                      <span>
-                        Confirmo que las {preview.validRows} persona(s)
-                        otorgaron autorización expresa bajo el aviso{" "}
-                        {noticeVersion}, y que cada evidencia corresponde a su
-                        fila.
-                      </span>
-                    </label>
-                  )}
-                </section>
-              )}
-
-              <footer className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-                {preview && !completed && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => clearWorkflow()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    <RotateCcw aria-hidden="true" size={15} /> Cambiar archivos
-                  </button>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        className={secondary}
+                        disabled={busy || history.loading || historyPage <= 1}
+                        onClick={() => setHistoryPage((value) => value - 1)}
+                      >
+                        Más recientes
+                      </button>
+                      <p className="text-xs text-slate-600">
+                        Página {history.data.pagination.page} de{" "}
+                        {Math.max(1, history.data.pagination.totalPages)}
+                      </p>
+                      <button
+                        type="button"
+                        className={secondary}
+                        disabled={
+                          busy ||
+                          history.loading ||
+                          historyPage >= history.data.pagination.totalPages
+                        }
+                        onClick={() => setHistoryPage((value) => value + 1)}
+                      >
+                        Anteriores
+                      </button>
+                    </div>
+                  </>
                 )}
+              </details>
+            </div>
+            <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white p-3 sm:px-6">
+              {job && !isVoterImportJobRunning(job) && (
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={closeDialog}
-                  className="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 disabled:opacity-50"
+                  className={secondary}
+                  onClick={chooseCorrectedFile}
                 >
-                  {completed ? "Cerrar" : "Cancelar"}
+                  {job.errorRows > 0
+                    ? "Revisar archivo corregido"
+                    : "Elegir otro archivo"}
                 </button>
-                {!preview && !completed && (
-                  <button
-                    type="button"
-                    disabled={busy || !csvFile || evidenceFiles.length === 0}
-                    onClick={() => void generatePreview()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-800 px-6 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    {preparing ? (
-                      <Loader2
-                        aria-hidden="true"
-                        className="animate-spin"
-                        size={16}
-                      />
-                    ) : (
-                      <ShieldCheck aria-hidden="true" size={16} />
-                    )}
-                    Subir y validar
-                  </button>
-                )}
-                {preview && !completed && (
-                  <button
-                    type="button"
-                    disabled={!canExecute}
-                    onClick={() => void executeImport()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {executing ? (
-                      <Loader2
-                        aria-hidden="true"
-                        className="animate-spin"
-                        size={16}
-                      />
-                    ) : (
-                      <CheckCircle2 aria-hidden="true" size={16} />
-                    )}
-                    Confirmar e importar
-                  </button>
-                )}
-              </footer>
-            </div>
+              )}
+              {busy && progress && (
+                <button
+                  type="button"
+                  className={secondary}
+                  onClick={cancelPreparation}
+                >
+                  Detener preparación
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                className={secondary}
+                onClick={closeDialog}
+              >
+                {job && isVoterImportJobRunning(job)
+                  ? "Cerrar y volver después"
+                  : "Cerrar"}
+              </button>
+              {!jobId && (
+                <button
+                  type="button"
+                  disabled={
+                    busy || !csvFile || !options.data || Boolean(options.error)
+                  }
+                  className={primary}
+                  onClick={() => void prepare()}
+                >
+                  {busy && (
+                    <Loader2
+                      size={16}
+                      aria-hidden="true"
+                      className="animate-spin"
+                    />
+                  )}
+                  {pendingCreate ? "Recuperar revisión" : "Revisar archivo"}
+                </button>
+              )}
+              {job?.status === "READY" && job.validRows > 0 && (
+                <button
+                  type="button"
+                  disabled={!canExecute}
+                  className={primary}
+                  onClick={() => void actOnJob("execute")}
+                >
+                  Importar sólo {job.validRows.toLocaleString("es-CO")}{" "}
+                  {job.validRows === 1 ? "persona lista" : "personas listas"}
+                </button>
+              )}
+              {job?.status === "FAILED" && job.canRetry && (
+                <button
+                  type="button"
+                  disabled={busy || jobLoading || Boolean(jobError)}
+                  className={primary}
+                  onClick={() => void actOnJob("retry")}
+                >
+                  Retomar importación
+                </button>
+              )}
+            </footer>
           </div>
         </div>
       )}

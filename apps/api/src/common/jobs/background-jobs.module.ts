@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ELECTORAL_CATALOG_QUEUE } from '../../electoral-catalog/electoral-catalog-queue.constants';
+import { PERSON_IMPORT_QUEUE } from '../../import/person-import.constants';
 import { STORAGE_INTEGRITY_QUEUE } from '../../storage/storage-integrity-queue.constants';
 
 const queuesDisabledForTests = process.env.NODE_ENV === 'test';
@@ -23,6 +24,7 @@ const queueImports = queuesDisabledForTests
       }),
       BullModule.registerQueue(
         { name: ELECTORAL_CATALOG_QUEUE },
+        { name: PERSON_IMPORT_QUEUE },
         { name: STORAGE_INTEGRITY_QUEUE },
       ),
     ];
