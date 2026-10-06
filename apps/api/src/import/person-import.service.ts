@@ -505,7 +505,7 @@ export class PersonImportService {
             },
           ]);
           await tx.$executeRaw(
-            Prisma.sql`UPDATE "PersonImportRowResult" r SET "status"='INVALID', "errors"=(SELECT COALESCE(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r."errors") e WHERE NOT (e->>'field'=${errorField} AND e->>'message' IN (${localDuplicateMessage},${duplicateMessage}))) || ${errors}::jsonb FROM (SELECT ${column} AS value FROM "PersonImportRowResult" WHERE "tenantId"=${job.tenantId} AND "jobId"=${job.id} AND ${column} IS NOT NULL GROUP BY ${column} HAVING count(*)>1) duplicates WHERE r."tenantId"=${job.tenantId} AND r."jobId"=${job.id} AND r.${column}=duplicates.value`,
+            Prisma.sql`UPDATE "PersonImportRowResult" r SET "status"='INVALID', "errors"=(SELECT COALESCE(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r."errors") e WHERE NOT (e->>'field'=${errorField} AND e->>'message' IN (${localDuplicateMessage},${duplicateMessage}))) || ${errors}::jsonb FROM (SELECT ${column} AS value FROM "PersonImportRowResult" WHERE "tenant_id"=${job.tenantId} AND "jobId"=${job.id} AND ${column} IS NOT NULL GROUP BY ${column} HAVING count(*)>1) duplicates WHERE r."tenant_id"=${job.tenantId} AND r."jobId"=${job.id} AND r.${column}=duplicates.value`,
           );
         }
         await this.recount(tx, job, {
@@ -861,7 +861,7 @@ export class PersonImportService {
               ),
             );
             await tx.$executeRaw(
-              Prisma.sql`UPDATE "PersonImportRowResult" r SET "status"=v.status, "voterId"=v.voter_id, "errors"=v.errors FROM (VALUES ${values}) v(id,status,voter_id,errors) WHERE r."tenantId"=${job.tenantId} AND r."jobId"=${job.id} AND r.id=v.id`,
+              Prisma.sql`UPDATE "PersonImportRowResult" r SET "status"=v.status, "voterId"=v.voter_id, "errors"=v.errors FROM (VALUES ${values}) v(id,status,voter_id,errors) WHERE r."tenant_id"=${job.tenantId} AND r."jobId"=${job.id} AND r.id=v.id`,
             );
           }
           await tx.personImportJob.updateMany({

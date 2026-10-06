@@ -92,6 +92,40 @@ physical(
       await client?.$disconnect();
     });
 
+    it('uses mandatory physical tenant_id columns while keeping Prisma tenantId and existing foreign keys', async () => {
+      const columns = await pool.query(
+        `SELECT table_name, column_name, is_nullable FROM information_schema.columns WHERE table_schema=$1 AND table_name IN ('PersonImportJob','PersonImportRowResult') AND column_name IN ('tenantId','tenant_id') ORDER BY table_name`,
+        [schema],
+      );
+      expect(columns.rows).toEqual([
+        {
+          table_name: 'PersonImportJob',
+          column_name: 'tenant_id',
+          is_nullable: 'NO',
+        },
+        {
+          table_name: 'PersonImportRowResult',
+          column_name: 'tenant_id',
+          is_nullable: 'NO',
+        },
+      ]);
+      const constraints = await pool.query<{
+        conname: string;
+        convalidated: boolean;
+      }>(
+        `SELECT conname, convalidated FROM pg_constraint WHERE connamespace=$1::regnamespace AND conrelid IN ('"PersonImportJob"'::regclass,'"PersonImportRowResult"'::regclass) AND contype='f' ORDER BY conname`,
+        [schema],
+      );
+      expect(constraints.rows).toHaveLength(5);
+      expect(constraints.rows.every((row) => row.convalidated)).toBe(true);
+      expect(constraints.rows.map((row) => row.conname)).toEqual(
+        expect.arrayContaining([
+          'PersonImportJob_tenantId_sourceArtifactPath_fkey',
+          'PersonImportRowResult_jobId_tenantId_fkey',
+        ]),
+      );
+    });
+
     async function actor(noticeVersion = 'QA-SIMULACION-v1') {
       const tenant = await client.tenant.create({
         data: {

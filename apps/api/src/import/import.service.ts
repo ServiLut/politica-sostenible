@@ -671,7 +671,7 @@ export class ImportService {
       ) {
         addError(
           'Fecha consentimiento',
-          'La fecha de consentimiento debe ser ISO 8601',
+          'Escribe la fecha y hora de la autorización, por ejemplo 2026-10-06T15:30:00Z (10:30 a. m. en Colombia).',
         );
       } else if (
         grantedAt.getTime() < context.noticeActivatedAt.getTime() ||
@@ -686,7 +686,7 @@ export class ImportService {
       if (!this.isCanonicalConsentPath(tenantId, proofPath)) {
         addError(
           'Ruta evidencia',
-          'La ruta debe ser una evidencia confirmada del módulo consent y del tenant activo',
+          'Carga la autorización de esta persona desde este formulario o usa una evidencia ya guardada en esta organización.',
         );
       } else if (evidencePaths.has(proofPath)) {
         addError(

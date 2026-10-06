@@ -32,7 +32,7 @@ export async function claimStorageOrphan(
       Prisma.sql`
         SELECT EXISTS (
           SELECT 1 FROM "PersonImportJob" j
-          WHERE j."tenantId" = ${tenantId}
+          WHERE j."tenant_id" = ${tenantId}
           AND (
             j."sourceArtifactPath" = ${candidate.path}
             OR (
@@ -48,7 +48,7 @@ export async function claimStorageOrphan(
                        AND j."lastErrorCode" IS DISTINCT FROM 'INVALID_FILE'))
                   AND EXISTS (
                     SELECT 1 FROM "PersonImportRowResult" r
-                    WHERE r."tenantId" = ${tenantId}
+                    WHERE r."tenant_id" = ${tenantId}
                     AND r."jobId" = j."id"
                     AND r."proofPath" = ${candidate.path}
                   )

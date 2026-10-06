@@ -376,6 +376,52 @@ describe('ImportService privacy and tenant isolation', () => {
     ).resolves.toMatchObject({ validRows: 0, errorRows: expect.any(Array) });
   });
 
+  it('gives actionable date and evidence instructions without turning NO into consent', async () => {
+    const { service, transaction } = createHarness();
+    const result = await service.preview(
+      'personas',
+      csv(csvRow({ consent: 'NO', grantedAt: '', proofPath: '' })),
+      user,
+    );
+    expect(result.validRows).toBe(0);
+    expect(result.errorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: 'Consentimiento',
+          message: expect.stringContaining('autorización expresa'),
+        }),
+        expect.objectContaining({
+          field: 'Fecha consentimiento',
+          message:
+            'Escribe la fecha y hora de la autorización, por ejemplo 2026-10-06T15:30:00Z (10:30 a. m. en Colombia).',
+        }),
+        expect.objectContaining({
+          field: 'Ruta evidencia',
+          message:
+            'Carga la autorización de esta persona desde este formulario o usa una evidencia ya guardada en esta organización.',
+        }),
+      ]),
+    );
+    expect(transaction.voter.create).not.toHaveBeenCalled();
+    expect(transaction.consentRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts the exact date example shown to the user without changing the UTC contract', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-07T00:00:00Z'));
+    try {
+      const { service } = createHarness();
+      await expect(
+        service.preview(
+          'personas',
+          csv(csvRow({ grantedAt: '2026-10-06T15:30:00Z' })),
+          user,
+        ),
+      ).resolves.toMatchObject({ validRows: 1, errorRows: [] });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('scopes voting-place validation to the active tenant', async () => {
     const { prisma, service } = createHarness();
     prisma.politicalDivision.findMany.mockResolvedValue([
