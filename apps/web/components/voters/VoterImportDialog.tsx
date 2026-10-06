@@ -78,6 +78,7 @@ export function VoterImportDialog({
   const [historyRevision, setHistoryRevision] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const busyRef = useRef(false);
   const operationRef = useRef<AbortController | null>(null);
@@ -156,12 +157,17 @@ export function VoterImportDialog({
     });
   }, [job, onCompleted]);
 
+  function showCurrentStep() {
+    bodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    titleRef.current?.focus({ preventScroll: true });
+  }
   function selectJob(next: VoterImportJob) {
     if (next.status === "COMPLETED") reportedJobs.current.add(next.id);
     setJobId(next.id);
     setError(null);
     setWarning(null);
     setPendingCreate(null);
+    showCurrentStep();
   }
   function chooseCorrectedFile() {
     setJobId(null);
@@ -172,6 +178,7 @@ export function VoterImportDialog({
       "Las evidencias seleccionadas y las cargas confirmadas de esta ventana se conservan. Elige el CSV corregido para crear otra revisión.",
     );
     setHistoryRevision((value) => value + 1);
+    showCurrentStep();
   }
   function cancelPreparation() {
     const operation = operationRef.current;
@@ -255,6 +262,7 @@ export function VoterImportDialog({
         ? executeVoterImportJob(job.id)
         : retryVoterImportJob(job.id));
       setJob(result);
+      showCurrentStep();
       setHistoryRevision((value) => value + 1);
     } catch (cause) {
       setError(
@@ -354,7 +362,7 @@ export function VoterImportDialog({
                 <X size={20} />
               </button>
             </header>
-            <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
+            <div ref={bodyRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
               <ol
                 aria-label="Pasos de la importación"
                 className="grid grid-cols-3 gap-2 text-center text-xs font-semibold sm:text-sm"
