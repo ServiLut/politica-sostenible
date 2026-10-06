@@ -136,8 +136,12 @@ function splitRecord(text: string, delimiter: string): string[] {
   return fields;
 }
 
+export function csvCellNeedsProtection(value: string): boolean {
+  return /^[\s]*[=+@-]/u.test(value);
+}
+
 export function safeCsvCell(value: string): string {
   // Prevent spreadsheet formula injection when a user opens a correction report.
-  const safe = /^[\s]*[=+@-]/u.test(value) ? `'${value}` : value;
+  const safe = csvCellNeedsProtection(value) ? `'${value}` : value;
   return `"${safe.replaceAll('"', '""')}"`;
 }

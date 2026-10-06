@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ImportService } from './import.service';
 import { PersonImportService } from './person-import.service';
 import { PersonImportArtifactService } from './person-import-artifact.service';
+import { personCsvRows } from './person-import-csv';
 
 jest.mock('../auth/guards/plan-limits.guard', () => ({
   assertPlanQuotaInTransaction: jest.fn().mockResolvedValue(undefined),
@@ -86,6 +87,7 @@ function harness() {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     auditEvent: { create: jest.fn().mockResolvedValue({ id: 'audit' }) },
+    personImportRowResult: { findMany: jest.fn().mockResolvedValue([]) },
   };
   const prisma = {
     ...tx,
@@ -121,6 +123,76 @@ function harness() {
 
 describe('Durable person import authorization and replay', () => {
   beforeEach(() => jest.clearAllMocks());
+  it('exports formula-safe correction values with exact per-row prefix metadata', async () => {
+    const h = harness();
+    h.tx.personImportJob.findFirst.mockResolvedValue(h.job);
+    h.tx.personImportRowResult.findMany
+      .mockResolvedValueOnce([
+        {
+          rowNumber: 2,
+          values: {
+            Documento: '12345',
+            Nombre: '-PRUEBA',
+            Apellido: ' \t@SUM(A1)',
+            Teléfono: '+573001234567',
+            Correo: "'literal@example.invalid",
+          },
+          errors: [
+            { field: 'Consentimiento', message: 'Adjunta la autorización' },
+          ],
+        },
+        {
+          rowNumber: 3,
+          values: {
+            Documento: '54321',
+            Nombre: "'-PRUEBA",
+            Teléfono: "'+573001234567",
+          },
+          errors: [
+            { field: 'Consentimiento', message: 'Adjunta la autorización' },
+          ],
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    let csv = '';
+    for await (const chunk of h.service.errorCsv(user, h.job.id)) csv += chunk;
+    async function* bytes() {
+      yield await Promise.resolve(Buffer.from(csv));
+    }
+    const rows: Record<string, string>[] = [];
+    for await (const row of personCsvRows(bytes())) rows.push(row.fields);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      Nombre: "'-PRUEBA",
+      Apellido: "' \t@SUM(A1)",
+      Teléfono: "'+573001234567",
+      Correo: "'literal@example.invalid",
+      'Columnas protegidas': 'Nombre|Apellido|Teléfono',
+      Fila: '2',
+    });
+    expect(rows[1]).toMatchObject({
+      Nombre: "'-PRUEBA",
+      Teléfono: "'+573001234567",
+      'Columnas protegidas': '',
+    });
+    expect(h.tx.personImportRowResult.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: user.tenantId,
+          jobId: h.job.id,
+        }),
+      }),
+    );
+    expect(h.tx.auditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'PERSON_IMPORT_ERRORS_EXPORTED',
+          actorUserId: user.userId,
+          tenantId: user.tenantId,
+        }),
+      }),
+    );
+  });
   it('returns effective file and consent-evidence limits from the private Storage policy', async () => {
     const h = harness();
     expect((await h.service.options(user)).limits).toEqual({

@@ -9,10 +9,65 @@ import {
   matchVoterImportEvidence,
   mergeVoterImportEvidenceFiles,
   planBulkVoterImportEvidence,
+  prepareVoterImportCorrectionCsv,
 } from "./voter-import";
 
 const HEADER =
   "Documento,Nombre,Apellido,Teléfono,Correo,Puesto,Mesa,Consentimiento,Version aviso,Fecha consentimiento,Ruta evidencia";
+
+test("recupera signos protegidos por Excel sin cambiar consentimiento ni apóstrofos literales", () => {
+  const limits = { maxRows: 50_000, maxBytes: 10 * 1024 * 1024 };
+  const original = [
+    "1",
+    "-PRUEBA",
+    "Prueba",
+    "+573001234567",
+    "+etiqueta@example.invalid",
+    "",
+    "",
+    "NO",
+    "v1",
+    "2026-10-06T10:30:00-05:00",
+    "tenant/consent/confirmed",
+  ];
+  const escaped = original.map((value) =>
+    /^[\s]*[=+@-]/u.test(value) ? `'${value}` : value,
+  );
+  const reportHeader = `${HEADER},Fila,Motivo,Columnas protegidas`;
+  const report = `${reportHeader}\n${[...escaped, "2", "Revisar", "Nombre|Teléfono|Correo"].join(",")}`;
+  expect(prepareVoterImportCorrectionCsv(report, limits)).toBe(
+    `${HEADER}\n${original.join(",")}`,
+  );
+  const alreadyRestored = `${reportHeader}\n${[...original, "2", "Revisar", "Nombre|Teléfono|Correo"].join(",")}`;
+  expect(prepareVoterImportCorrectionCsv(alreadyRestored, limits)).toBe(
+    `${HEADER}\n${original.join(",")}`,
+  );
+  const literal = [...original];
+  literal[1] = "'-PRUEBA";
+  const literalReport = `${reportHeader}\n${[...literal, "2", "Revisar", ""].join(",")}`;
+  expect(prepareVoterImportCorrectionCsv(literalReport, limits)).toBe(
+    `${HEADER}\n${literal.join(",")}`,
+  );
+});
+
+test("un informe antiguo ambiguo pide una descarga nueva y no altera el nombre", () => {
+  const legacy = `${HEADER},Fila,Motivo\n1,'-PRUEBA,Prueba,'+573001234567,,,,NO,v1,2026-10-06T15:30:00Z,tenant/consent/confirmed,2,Revisar`;
+  const limits = { maxRows: 50_000, maxBytes: 10 * 1024 * 1024 };
+  expect(() => prepareVoterImportCorrectionCsv(legacy, limits)).toThrow(
+    /informe antiguo/u,
+  );
+  const phoneOnly = legacy.replace("'-PRUEBA", "PRUEBA");
+  expect(prepareVoterImportCorrectionCsv(phoneOnly, limits)).toContain(
+    "Prueba,+573001234567",
+  );
+  const malformed = `${legacy},Nombre|No existe`.replace(
+    "Fila,Motivo\n",
+    "Fila,Motivo,Columnas protegidas\n",
+  );
+  expect(() => prepareVoterImportCorrectionCsv(malformed, limits)).toThrow(
+    /columnas de ayuda/u,
+  );
+});
 
 test("inspecciona CSV con comillas y reemplaza solo las evidencias por rutas confirmadas", () => {
   const csv = [

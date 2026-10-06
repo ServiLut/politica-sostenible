@@ -173,8 +173,8 @@ function ImportErrors({ job }: { job: VoterImportJob }) {
       </div>
       <p className="text-sm text-slate-600">
         Corrige este CSV en Excel y elige «Revisar archivo corregido». No tienes
-        que borrar las columnas «Fila» y «Motivo» ni adjuntar otra vez las
-        evidencias ya guardadas. El resultado anterior se conserva.
+        que borrar las columnas de ayuda ni adjuntar otra vez las evidencias ya
+        guardadas. El resultado anterior se conserva.
       </p>
       {downloadError && (
         <p role="alert" className="text-sm text-red-800">

@@ -437,8 +437,8 @@ export function voterImportReadLimit(limits: BulkVoterImportLimits): number {
   );
 }
 
-/** Fila/Motivo are report annotations, never person data or authorization.
- * Remove them automatically before applying the original upload limit. */
+/** Report annotations are never person data or authorization. Restore only
+ * formula escaping explicitly recorded by the exporter, then drop annotations. */
 export function prepareVoterImportCorrectionCsv(
   csv: string,
   limits: BulkVoterImportLimits,
@@ -457,10 +457,47 @@ export function prepareVoterImportCorrectionCsv(
     parseBulkCsv(csv, limits);
     return csv;
   }
+  const annotations = new Set(["Fila", "Motivo", "Columnas protegidas"]);
   const keep = parsed.headers.flatMap((header, index) =>
-    header === "Fila" || header === "Motivo" ? [] : [index],
+    annotations.has(header) ? [] : [index],
   );
-  const prepared = [parsed.headers, ...parsed.rows.map((row) => row.values)]
+  const protectionIndex = parsed.headers.indexOf("Columnas protegidas");
+  const restored = parsed.rows.map((row) => {
+    const values = [...row.values];
+    const protectedHeaders =
+      protectionIndex >= 0 && values[protectionIndex]
+        ? values[protectionIndex].split("|")
+        : [];
+    if (
+      new Set(protectedHeaders).size !== protectedHeaders.length ||
+      protectedHeaders.some(
+        (header) => !parsed.headers.includes(header) || annotations.has(header),
+      )
+    ) {
+      throw new Error(
+        "Las columnas de ayuda del archivo cambiaron. Vuelve a descargar las filas con errores desde Importaciones recientes.",
+      );
+    }
+    for (const index of keep) {
+      if (!/^'\s*[=+@-]/u.test(values[index])) continue;
+      if (protectionIndex >= 0) {
+        if (protectedHeaders.includes(parsed.headers[index]))
+          values[index] = values[index].slice(1);
+      } else if (
+        parsed.headers[index] === "Teléfono" &&
+        /^'\+[1-9]\d{6,14}$/u.test(values[index])
+      ) {
+        // A leading apostrophe cannot be part of a valid canonical phone.
+        values[index] = values[index].slice(1);
+      } else {
+        throw new Error(
+          "Este informe antiguo no permite recuperar algunos signos iniciales con seguridad. Vuelve a descargar las filas con errores desde Importaciones recientes.",
+        );
+      }
+    }
+    return values;
+  });
+  const prepared = [parsed.headers, ...restored]
     .map((record) =>
       keep
         .map((index) => serializeValue(record[index], parsed.delimiter))

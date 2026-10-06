@@ -44,7 +44,11 @@ import {
   REQUIRED_HEADERS,
 } from './import.service';
 import { PersonImportArtifactService } from './person-import-artifact.service';
-import { personCsvRows, safeCsvCell } from './person-import-csv';
+import {
+  csvCellNeedsProtection,
+  personCsvRows,
+  safeCsvCell,
+} from './person-import-csv';
 import {
   PERSON_IMPORT_BATCH,
   PERSON_IMPORT_LEASE_MS,
@@ -345,7 +349,9 @@ export class PersonImportService {
     );
     const headers = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
     yield '\uFEFF' +
-      [...headers, 'Fila', 'Motivo'].map(safeCsvCell).join(',') +
+      [...headers, 'Fila', 'Motivo', 'Columnas protegidas']
+        .map(safeCsvCell)
+        .join(',') +
       '\r\n';
     let after = 0;
     while (true) {
@@ -369,6 +375,11 @@ export class PersonImportService {
           ...headers.map((h) => fields[h] ?? ''),
           String(row.rowNumber),
           errors.map((e) => `${e.field}: ${e.message}`).join(' | '),
+          // Record only prefixes introduced by this export. A literal leading
+          // apostrophe in source data must never be removed during correction.
+          headers
+            .filter((header) => csvCellNeedsProtection(fields[header] ?? ''))
+            .join('|'),
         ]
           .map(safeCsvCell)
           .join(',') + '\r\n';

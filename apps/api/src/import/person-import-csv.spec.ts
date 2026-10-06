@@ -1,5 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
-import { personCsvRows, safeCsvCell } from './person-import-csv';
+import {
+  csvCellNeedsProtection,
+  personCsvRows,
+  safeCsvCell,
+} from './person-import-csv';
 import { REQUIRED_HEADERS, type ParsedCsvRow } from './import.service';
 
 async function parse(csv: string, chunkSize = 7) {
@@ -70,6 +74,20 @@ describe('Person CSV streaming contract', () => {
     expect(safeCsvCell(' \t@SUM(A1)')).toBe('"\' \t@SUM(A1)"');
     expect(safeCsvCell('PRUEBA "A"')).toBe('"PRUEBA ""A"""');
   });
+  it.each(['=1+2', '+573001234567', '-PRUEBA', ' \t@SUM(A1)'])(
+    'marks exactly the values for which the export adds an apostrophe: %s',
+    (value) => {
+      expect(csvCellNeedsProtection(value)).toBe(true);
+      expect(safeCsvCell(value)).toBe(`"'${value}"`);
+    },
+  );
+  it.each(["'+573001234567", "'-PRUEBA", "'literal", 'PRUEBA', ''])(
+    'preserves existing literal apostrophes without marking them: %s',
+    (value) => {
+      expect(csvCellNeedsProtection(value)).toBe(false);
+      expect(safeCsvCell(value)).toBe(`"${value}"`);
+    },
+  );
   it('rejects invalid UTF-8 rather than replacing person data', async () => {
     async function* bytes() {
       yield await Promise.resolve(Buffer.from([0xff]));
