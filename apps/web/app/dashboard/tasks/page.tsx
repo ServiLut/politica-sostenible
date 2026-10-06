@@ -3,7 +3,8 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { ExportButton } from "@/components/ui/ExportButton";
 import { UserCombobox } from "@/components/ui/UserCombobox";
@@ -58,9 +59,11 @@ import {
 } from "react";
 import {
   canEditTaskDetails,
+  createdTaskHref,
   taskEditInput,
   taskEditorDraft,
   taskFiltersAfterMutation,
+  workListHref,
   type TaskDraft,
 } from "./task-editor";
 
@@ -296,6 +299,7 @@ export default function TasksPage() {
 }
 
 function TasksWorkspace({ search }: { search: string }) {
+  const router = useRouter();
   const params = new URLSearchParams(search);
   const requestedView = params.get("view");
   const entityId = params.get("entityId")?.trim() ?? "";
@@ -341,6 +345,7 @@ function TasksWorkspace({ search }: { search: string }) {
   const [mutation, setMutation] = useState<string | null>(null);
   const [actionError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [createdTask, setCreatedTask] = useState<Task | null>(null);
   const [progressDrafts, setProgressDrafts] = useState<Record<string, number>>(
     {},
   );
@@ -529,9 +534,18 @@ function TasksWorkspace({ search }: { search: string }) {
       : Boolean(commitmentResult?.permissions.canCreate);
   const exportModuleName = view === "tasks" ? "tareas" : "compromisos";
 
-  function showNotice(message: string) {
+  function showNotice(message: string, task: Task | null = null) {
     setNotice(message);
+    setCreatedTask(task);
     setMutationError(null);
+  }
+
+  function openCreatedTask() {
+    if (!createdTask) return;
+    setTaskFilters(INITIAL_TASK_FILTERS);
+    setTaskSearch("");
+    setView("tasks");
+    router.push(createdTaskHref(createdTask), { scroll: false });
   }
 
   function refreshTasksAfterMutation() {
@@ -616,7 +630,7 @@ function TasksWorkspace({ search }: { search: string }) {
     };
 
     try {
-      await createTask(input);
+      const created = await createTask(input);
       setNewTask({
         title: "",
         description: "",
@@ -629,8 +643,9 @@ function TasksWorkspace({ search }: { search: string }) {
       refreshTasksAfterMutation();
       showNotice(
         linkedCase
-          ? `Tarea creada y vinculada al caso ${linkedCase.reference}.`
-          : "Tarea creada correctamente.",
+          ? `Tarea “${created.title}” creada y vinculada al caso ${linkedCase.reference}.`
+          : `Tarea “${created.title}” creada correctamente.`,
+        created,
       );
     } catch (error) {
       setMutationError(readableError(error));
@@ -905,16 +920,66 @@ function TasksWorkspace({ search }: { search: string }) {
         </section>
       )}
 
+      {deepLinkTarget && view === deepLinkTarget.view && (
+        <section
+          aria-label="Selección actual"
+          className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950"
+        >
+          <p>
+            {deepLinkTarget.view === "tasks"
+              ? "Estás viendo una tarea seleccionada."
+              : "Estás viendo un compromiso seleccionado."}
+          </p>
+          <Link
+            href={workListHref(deepLinkTarget.view, linkedCaseRequestId)}
+            className="inline-flex min-h-11 max-w-full items-center justify-center rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 focus-ring"
+          >
+            {deepLinkTarget.view === "tasks"
+              ? linkedCaseRequestId
+                ? "Ver todas las tareas del caso"
+                : "Ver todas las tareas"
+              : linkedCaseRequestId
+                ? "Ver todos los compromisos del caso"
+                : "Ver todos los compromisos"}
+          </Link>
+        </section>
+      )}
+
       <div aria-live="polite" className="space-y-3 min-w-0">
         {notice && (
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 min-w-0 flex-wrap">
-            <span className="inline-flex items-center gap-2">
-              <CheckCircle2 aria-hidden="true" size={18} /> {notice}
-            </span>
+            <div className="min-w-0 flex-1 space-y-2 break-words">
+              <p className="flex items-start gap-2">
+                <CheckCircle2
+                  aria-hidden="true"
+                  size={18}
+                  className="shrink-0"
+                />
+                <span className="min-w-0">{notice}</span>
+              </p>
+              {createdTask && (
+                <div className="space-y-2">
+                  <p className="text-sm font-normal">
+                    Responsable: {createdTask.assignee?.name ?? "Sin asignar"}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openCreatedTask}
+                    className="min-h-11 max-w-full rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100 focus-ring"
+                  >
+                    Ver tarea creada
+                  </button>
+                  <p className="text-xs font-normal leading-5">
+                    Al abrirla se quitan los filtros de la lista para mostrarla.
+                  </p>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setNotice(null)}
               aria-label="Cerrar confirmación"
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg focus-ring"
             >
               <X aria-hidden="true" size={17} />
             </button>

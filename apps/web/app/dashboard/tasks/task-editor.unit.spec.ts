@@ -1,12 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 import { createPageRequestState } from "../../../lib/use-page-request-state";
 import { updateTask, type Task } from "../../../lib/work-api";
 import type { BackendUserRole } from "../../../types/saas-schema";
 import {
   canEditTaskDetails,
+  createdTaskHref,
   taskEditInput,
   taskEditorDraft,
   taskFiltersAfterMutation,
+  workListHref,
 } from "./task-editor";
 
 const task: Task = {
@@ -207,4 +213,212 @@ test("el readback nuevo sustituye el total filtrado y una respuesta anterior tar
     pagination: { page: 1, total: 0, totalPages: 0 },
   });
   current.stop();
+});
+
+const creationSource = ts.createSourceFile(
+  "page.tsx",
+  readFileSync(join(__dirname, "page.tsx"), "utf8"),
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TSX,
+);
+const creationHandlerNames = new Set([
+  "handleCreateTask",
+  "refreshTasksAfterMutation",
+  "showNotice",
+  "openCreatedTask",
+]);
+const creationHandlers: string[] = [];
+function collectCreationHandlers(node: ts.Node) {
+  if (
+    ts.isFunctionDeclaration(node) &&
+    node.name &&
+    creationHandlerNames.has(node.name.text)
+  ) {
+    creationHandlers.push(node.getText(creationSource));
+  }
+  ts.forEachChild(node, collectCreationHandlers);
+}
+collectCreationHandlers(creationSource);
+expect(creationHandlers).toHaveLength(creationHandlerNames.size);
+const creationCode = ts.transpileModule(creationHandlers.join("\n"), {
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.None,
+  },
+}).outputText;
+
+function creationHarness(create: () => Promise<Task>) {
+  const state = {
+    filters: {
+      page: 3,
+      search: "otro título",
+      status: "DONE",
+      priority: "LOW",
+    },
+    search: "otro título",
+    reload: 0,
+    notice: null as string | null,
+    createdTask: null as Task | null,
+    mutation: null as string | null,
+    error: null as string | null,
+    dialog: "task" as string | null,
+    view: "tasks",
+    paths: [] as string[],
+    draftsReset: 0,
+  };
+  const setFilters = (
+    value:
+      | typeof state.filters
+      | ((current: typeof state.filters) => typeof state.filters),
+  ) => {
+    state.filters = typeof value === "function" ? value(state.filters) : value;
+  };
+  const actions = runInNewContext(
+    `${creationCode}\n({handleCreateTask,openCreatedTask,showNotice})`,
+    {
+      get mutation() {
+        return state.mutation;
+      },
+      get createdTask() {
+        return state.createdTask;
+      },
+      newTask: {
+        title: "Borrador del usuario",
+        description: "",
+        priority: "MEDIUM",
+        dueDate: "",
+        assigneeId: "assigned-real",
+      },
+      ownId: "admin-current",
+      user: { name: "Administración" },
+      linkedCase: null,
+      createTask: create,
+      createdTaskHref,
+      INITIAL_TASK_FILTERS: { page: 1, search: "", status: "", priority: "" },
+      taskFiltersAfterMutation,
+      setTaskFilters: setFilters,
+      setTaskSearch: (value: string) => {
+        state.search = value;
+      },
+      setTaskReload: (value: (current: number) => number) => {
+        state.reload = value(state.reload);
+      },
+      setNewTask: () => {
+        state.draftsReset += 1;
+      },
+      setCreatedTask: (value: Task | null) => {
+        state.createdTask = value;
+      },
+      setNotice: (value: string) => {
+        state.notice = value;
+      },
+      setMutation: (value: string | null) => {
+        state.mutation = value;
+      },
+      setMutationError: (value: string | null) => {
+        state.error = value;
+      },
+      setDialog: (value: string | null) => {
+        state.dialog = value;
+      },
+      setView: (value: string) => {
+        state.view = value;
+      },
+      readableError: (error: Error) => error.message,
+      router: {
+        push: (path: string) => {
+          state.paths.push(path);
+        },
+      },
+    },
+  ) as {
+    handleCreateTask: (event: { preventDefault: () => void }) => Promise<void>;
+    openCreatedTask: () => void;
+    showNotice: (message: string) => void;
+  };
+  return { state, ...actions };
+}
+
+test("crear conserva filtros y respuesta real; sólo Ver tarea creada los limpia y abre el ID devuelto", async () => {
+  const created = {
+    ...task,
+    id: "server-id&safe",
+    title: "Título confirmado",
+    status: "TODO" as const,
+  };
+  let calls = 0;
+  const model = creationHarness(async () => {
+    calls += 1;
+    return created;
+  });
+  await model.handleCreateTask({ preventDefault() {} });
+  expect(calls).toBe(1);
+  expect(model.state.createdTask).toBe(created);
+  expect(model.state.notice).toContain("Título confirmado");
+  expect(model.state.filters).toEqual({
+    page: 1,
+    search: "otro título",
+    status: "DONE",
+    priority: "LOW",
+  });
+  expect(model.state.paths).toEqual([]);
+  expect(model.state.dialog).toBeNull();
+  model.openCreatedTask();
+  expect(calls).toBe(1);
+  expect(model.state.filters).toEqual({
+    page: 1,
+    search: "",
+    status: "",
+    priority: "",
+  });
+  expect(model.state.search).toBe("");
+  expect(model.state.paths).toEqual([
+    "/dashboard/tasks?view=tasks&entityId=server-id%26safe&issueCaseId=case-linked",
+  ]);
+  model.showNotice("Otra operación completada");
+  expect(model.state.createdTask).toBeNull();
+});
+
+test("alta rechazada conserva borrador y filtros sin inventar confirmación ni vínculo", async () => {
+  const model = creationHarness(async () => {
+    throw new Error("Permiso revocado");
+  });
+  await model.handleCreateTask({ preventDefault() {} });
+  expect(model.state.error).toBe("Permiso revocado");
+  expect(model.state.createdTask).toBeNull();
+  expect(model.state.notice).toBeNull();
+  expect(model.state.draftsReset).toBe(0);
+  expect(model.state.dialog).toBe("task");
+  expect(model.state.filters.page).toBe(3);
+  expect(model.state.reload).toBe(0);
+  model.openCreatedTask();
+  expect(model.state.paths).toEqual([]);
+});
+
+test("el enlace de creación usa el ID persistido y sólo añade caso si existe", () => {
+  expect(createdTaskHref({ id: "real-id", issueCaseId: null })).toBe(
+    "/dashboard/tasks?view=tasks&entityId=real-id",
+  );
+  const href = new URL(
+    createdTaskHref({ id: "id&safe", issueCaseId: "case?private" }),
+    "https://app.test",
+  );
+  expect(href.searchParams.get("entityId")).toBe("id&safe");
+  expect(href.searchParams.get("issueCaseId")).toBe("case?private");
+  expect(href.searchParams.has("create")).toBe(false);
+});
+
+test("Ver todas sale del detalle sin perder el caso ni abrir de nuevo el formulario", () => {
+  for (const view of ["tasks", "commitments"] as const) {
+    for (const issueCaseId of [null, "authorized-case"]) {
+      const href = new URL(workListHref(view, issueCaseId), "https://app.test");
+      expect(href.pathname).toBe("/dashboard/tasks");
+      expect(href.searchParams.get("view")).toBe(view);
+      expect(href.searchParams.get("issueCaseId")).toBe(issueCaseId);
+      expect([...href.searchParams.keys()].sort()).toEqual(
+        issueCaseId ? ["issueCaseId", "view"] : ["view"],
+      );
+    }
+  }
 });

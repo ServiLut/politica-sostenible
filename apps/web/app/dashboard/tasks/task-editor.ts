@@ -72,3 +72,21 @@ export function taskFiltersAfterMutation<T extends { page: number }>(
 ): T {
   return { ...current, page: 1 };
 }
+
+/** Use the persisted identity, retaining an authorized case context when present. */
+export function createdTaskHref(
+  task: Pick<Task, "id" | "issueCaseId">,
+): string {
+  const query = new URLSearchParams({ view: "tasks", entityId: task.id });
+  if (task.issueCaseId) query.set("issueCaseId", task.issueCaseId);
+  return `/dashboard/tasks?${query}`;
+}
+
+export function workListHref(
+  view: "tasks" | "commitments",
+  issueCaseId: string | null,
+): string {
+  const query = new URLSearchParams({ view });
+  if (issueCaseId) query.set("issueCaseId", issueCaseId);
+  return `/dashboard/tasks?${query}`;
+}

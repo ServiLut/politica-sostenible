@@ -539,7 +539,21 @@ export default function ExecutivePage() {
     (alert) => alert.severity !== "ok",
   );
   const featuredAlert = attentionAlerts[0];
-  const featuredCopy = featuredAlert ? briefingAlertCopy(featuredAlert) : null;
+  const showProfileSetup = shouldPrioritizeProfileSetup(
+    user?.backendRole,
+    tenant?.operationStage,
+    visibleHrefs,
+    briefing.alerts,
+  );
+  const featuredCopy = showProfileSetup
+    ? {
+        title: "Configura el perfil de tu operación",
+        detail:
+          "Define el tipo de operación y su etapa para consultar los requisitos que corresponden.",
+      }
+    : featuredAlert
+      ? briefingAlertCopy(featuredAlert)
+      : null;
   const shortcuts = [
     {
       href: "/dashboard/tasks",
@@ -614,7 +628,8 @@ export default function ExecutivePage() {
         <article className="command-focus min-w-0 rounded-[20px] p-5 text-white sm:p-6">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-100">
             <span className="inline-flex items-center gap-2">
-              <Activity aria-hidden="true" size={16} /> Atención de la operación
+              <Activity aria-hidden="true" size={16} />{" "}
+              {showProfileSetup ? "Primer paso" : "Atención de la operación"}
             </span>
             {featuredAlert?.severity === "critical" && (
               <span className="rounded-full bg-red-100 px-2.5 py-1 font-semibold text-red-900">
@@ -636,8 +651,15 @@ export default function ExecutivePage() {
               "No hay alertas pendientes en este corte. Consulta la agenda y las tareas para continuar."}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {featuredAlert &&
-            canOpenBriefingLink(featuredAlert.href, visibleHrefs) ? (
+            {showProfileSetup ? (
+              <Link
+                href="/dashboard/operation-profile#operation-profile-form"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              >
+                Configurar perfil <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            ) : featuredAlert &&
+              canOpenBriefingLink(featuredAlert.href, visibleHrefs) ? (
               <Link
                 href={featuredAlert.href}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -917,6 +939,20 @@ export default function ExecutivePage() {
         autoridad electoral, contable o de protección de datos.
       </p>
     </div>
+  );
+}
+
+function shouldPrioritizeProfileSetup(
+  role: string | undefined,
+  stage: PoliticalOperationStage | null | undefined,
+  visibleHrefs: string[],
+  alerts: CommandCenterBriefing["alerts"],
+): boolean {
+  return (
+    role === "ADMIN" &&
+    stage === null &&
+    visibleHrefs.includes("/dashboard/operation-profile") &&
+    !alerts.some((alert) => alert.severity === "critical")
   );
 }
 

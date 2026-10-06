@@ -59,6 +59,13 @@ const STATUSES: ReadonlyArray<{
   { value: "CANCELLED", label: "Cancelado" },
 ];
 
+const STATUS_ACTIONS: Readonly<Partial<Record<CampaignEventStatus, string>>> = {
+  SCHEDULED: "Programar",
+  IN_PROGRESS: "Iniciar",
+  COMPLETED: "Finalizar",
+  CANCELLED: "Cancelar",
+};
+
 const TRANSITIONS: Readonly<
   Record<CampaignEventStatus, readonly CampaignEventStatus[]>
 > = {
@@ -616,6 +623,7 @@ export default function EventsPage() {
                       <span className="relative mt-1 block">
                         <select
                           aria-label={`Siguiente estado de ${event.name}`}
+                          aria-describedby={`event-state-help-${event.id}`}
                           defaultValue=""
                           disabled={Boolean(mutation)}
                           onChange={(change) => {
@@ -626,10 +634,10 @@ export default function EventsPage() {
                           }}
                           className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:opacity-60 min-w-0 max-w-full"
                         >
-                          <option value="">Seleccionar transición</option>
+                          <option value="">Cambiar estado…</option>
                           {transitions.map((status) => (
                             <option key={status} value={status}>
-                              {statusLabel(status)}
+                              {STATUS_ACTIONS[status] ?? statusLabel(status)}
                             </option>
                           ))}
                         </select>
@@ -640,6 +648,12 @@ export default function EventsPage() {
                             size={17}
                           />
                         )}
+                      </span>
+                      <span
+                        id={`event-state-help-${event.id}`}
+                        className="mt-2 block text-sm font-normal text-slate-600"
+                      >
+                        Al elegir una acción se aplica el cambio de estado.
                       </span>
                     </label>
                   )}
@@ -707,7 +721,7 @@ export default function EventsPage() {
                 <p className="mt-1 text-sm text-slate-500">
                   {dialogEvent === "new"
                     ? "Guarda el borrador y luego selecciona Programar para confirmar el evento."
-                    : "Actualiza los detalles. El estado del evento se mantiene hasta que selecciones una transición en la agenda."}
+                    : "Actualiza los detalles. Para cambiar el estado, elige una acción en la tarjeta del evento en la agenda."}
                 </p>
               </div>
               <button

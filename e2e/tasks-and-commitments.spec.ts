@@ -547,7 +547,12 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   ).toHaveAccessibleDescription("Andrea Territorio");
   await taskDialog.getByRole("button", { name: "Crear tarea" }).click();
 
-  await expect(page.getByText("Tarea creada correctamente.")).toBeVisible();
+  await expect(
+    page.getByText("Tarea “Publicar informe de avance” creada correctamente."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Ver tarea creada" }),
+  ).toBeVisible();
   await expect(page.getByTestId("task-card-task-2")).toContainText(
     "Publicar informe de avance",
   );
@@ -973,7 +978,9 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
   await taskDialog.getByRole("button", { name: "Crear tarea" }).click();
 
   await expect(
-    page.getByText("Tarea creada y vinculada al caso PQRS-2026-041."),
+    page.getByText(
+      "Tarea “Confirmar reparación en terreno” creada y vinculada al caso PQRS-2026-041.",
+    ),
   ).toBeVisible();
   expect(taskBodies).toEqual([
     expect.objectContaining({
