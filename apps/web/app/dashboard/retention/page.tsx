@@ -38,6 +38,30 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import type { PoliticalOperationStage } from "@/types/saas-schema";
+
+const STAGE_LABELS: Record<PoliticalOperationStage, string> = {
+  EXPLORATION: "Exploración",
+  PRE_CAMPAIGN: "Precandidatura",
+  SIGNATURE_COLLECTION: "Recolección de firmas",
+  CAMPAIGN: "Campaña",
+  ELECTION_PREPARATION: "Preparación electoral",
+  SIMULATION: "Simulacro",
+  ELECTION_DAY: "Jornada electoral",
+  POST_ELECTION: "Poselección",
+  CLOSED: "Cierre",
+};
+
+const EXECUTION_BLOCKER_LABELS: Record<string, string> = {
+  VALIDATED_LEGAL_POLICY_REQUIRED:
+    "Falta aprobar la política de conservación para cada categoría de datos.",
+  BACKUP_RESTORE_DRILL_REQUIRED:
+    "Falta una copia de respaldo vigente cuya recuperación se haya comprobado.",
+  BULLMQ_EXECUTOR_NOT_IMPLEMENTED:
+    "El proceso automático de eliminación aún no está desarrollado y probado.",
+  STORAGE_DISPOSITION_NOT_IMPLEMENTED:
+    "La eliminación coordinada de los archivos adjuntos aún no está desarrollada y probada.",
+};
 
 const MUTATION_ROLES = new Set(["ADMIN", "COMPLIANCE_OFFICER"]);
 const INPUT_CLASS =
@@ -411,7 +435,11 @@ export default function RetentionGovernancePage() {
       >
         <Metric
           label="Etapa"
-          value={overview?.profile?.stage ?? "Sin perfil"}
+          value={
+            overview?.profile?.stage
+              ? STAGE_LABELS[overview.profile.stage]
+              : "Sin perfil"
+          }
         />
         <Metric
           label="Tipo de cierre"
@@ -450,7 +478,11 @@ export default function RetentionGovernancePage() {
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm font-semibold min-w-0">
               {overview?.executionCapability.blockers.map((blocker) => (
-                <li key={blocker.code}>{blocker.message}</li>
+                <li key={blocker.code}>
+                  {Object.hasOwn(EXECUTION_BLOCKER_LABELS, blocker.code)
+                    ? EXECUTION_BLOCKER_LABELS[blocker.code]
+                    : blocker.message}
+                </li>
               ))}
             </ul>
           </div>
@@ -465,8 +497,8 @@ export default function RetentionGovernancePage() {
               Vista previa de vencimientos
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Solo ejecuta conteos tenant-scoped; no expone nombres, documentos
-              ni contenido.
+              Cuenta únicamente los registros de tu organización. No muestra
+              nombres, documentos ni contenido de archivos.
             </p>
           </div>
         </div>
@@ -655,10 +687,12 @@ export default function RetentionGovernancePage() {
               size={25}
             />
             <div>
-              <h2 className="text-xl font-semibold">Solicitudes durables</h2>
+              <h2 className="text-xl font-semibold">
+                Historial de solicitudes
+              </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Historial tenant-scoped; los resultados terminales son
-                inmutables.
+                Consulta las solicitudes de tu organización. Las decisiones
+                finales quedan registradas y no se pueden modificar.
               </p>
             </div>
           </div>
@@ -797,7 +831,7 @@ function DispositionRequestForm({
         />
         <Field
           id="evidenceReference"
-          label="URL HTTPS de evidencia durable"
+          label="Enlace permanente de la evidencia (HTTPS)"
           type="url"
         />
         <Field
@@ -812,7 +846,7 @@ function DispositionRequestForm({
         </legend>
         {[
           "La política jurídica aún debe ser validada antes de cualquier ejecución.",
-          "Debe existir evidencia real y vigente de backup y restauración.",
+          "Debe existir una copia de respaldo vigente y una prueba de recuperación.",
           "Esta solicitud no elimina registros ni archivos; la eliminación no está habilitada.",
         ].map((label, index) => (
           <label

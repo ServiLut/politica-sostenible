@@ -42,6 +42,10 @@ interface BillingUsage {
   current: BillingUsageValues;
 }
 
+const usageNumber = new Intl.NumberFormat("es-CO", {
+  maximumFractionDigits: 2,
+});
+
 function readableError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -199,7 +203,8 @@ export default function BillingPage() {
                     <Users size={16} /> Usuarios
                   </span>
                   <span className="text-slate-900">
-                    {usage.current.users} / {usage.limits.users}
+                    {usageNumber.format(usage.current.users)} /{" "}
+                    {usageNumber.format(usage.limits.users)}
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 min-w-0">
@@ -215,10 +220,11 @@ export default function BillingPage() {
               <div>
                 <div className="mb-2 flex items-center justify-between text-sm font-semibold min-w-0 flex-wrap gap-3">
                   <span className="flex items-center gap-2 text-slate-700">
-                    <Users size={16} /> Votantes
+                    <Users size={16} /> Personas
                   </span>
                   <span className="text-slate-900">
-                    {usage.current.voters} / {usage.limits.voters}
+                    {usageNumber.format(usage.current.voters)} /{" "}
+                    {usageNumber.format(usage.limits.voters)}
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 min-w-0">
@@ -237,7 +243,8 @@ export default function BillingPage() {
                     <HardDrive size={16} /> Almacenamiento (MB)
                   </span>
                   <span className="text-slate-900">
-                    {usage.current.storageMb} / {usage.limits.storageMb}
+                    {usageNumber.format(usage.current.storageMb)} /{" "}
+                    {usageNumber.format(usage.limits.storageMb)}
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 min-w-0">

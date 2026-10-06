@@ -31,7 +31,7 @@ export function TerritoryPageMap({ items, onSelect }: { items: TerritoryHeatmapI
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-4">
       <div className="min-w-0">
         <p className="text-sm font-semibold text-slate-900">Ubicación de esta página</p>
-        <p className="mt-1 text-xs leading-5 text-slate-600">{items.length} lugares. Cada círculo muestra la cifra del lugar. El signo «&lt;» significa «menos de»; el icono de capas agrupa lugares cercanos.</p>
+        <p className="mt-1 text-xs leading-5 text-slate-600">{items.length} {items.length === 1 ? "lugar" : "lugares"}. Cada círculo muestra la cifra del lugar. El signo «&lt;» significa «menos de»; el icono de capas agrupa lugares cercanos.</p>
       </div>
       <div role="group" aria-label="Ampliación del mapa" className="flex max-w-full flex-wrap items-center gap-1">
         <button type="button" aria-label="Reducir mapa" disabled={zoom === 1} onClick={() => changeZoom(zoom / 2)} className="flex h-11 w-11 items-center justify-center rounded-lg border bg-white disabled:opacity-40"><ZoomOut size={18} /></button>
@@ -55,9 +55,9 @@ export function TerritoryPageMap({ items, onSelect }: { items: TerritoryHeatmapI
       </div> : <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center"><MapPin size={24} className="text-slate-400" /><p className="text-sm text-slate-600">Estos lugares todavía no tienen una ubicación disponible. Puedes consultarlos en la lista.</p></div>}
     </div>
     {selectedGroup.length > 0 && <div role="region" aria-label="Lugares del grupo seleccionado" className="border-t bg-white p-4">
-      <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">{selectedGroup.length} lugares cercanos</p><button type="button" onClick={() => setGroupIds(null)} className="min-h-11 px-3 text-sm text-slate-600">Cerrar grupo</button></div>
+      <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">{selectedGroup.length} {selectedGroup.length === 1 ? "lugar cercano" : "lugares cercanos"}</p><button type="button" onClick={() => setGroupIds(null)} className="min-h-11 px-3 text-sm text-slate-600">Cerrar grupo</button></div>
       <ul className="mt-2 grid gap-2 sm:grid-cols-2">{selectedGroup.map(item => <li key={item.id}><button type="button" onClick={() => onSelect(item)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm hover:bg-blue-50"><span className="min-w-0 break-words">{item.name}</span><strong className="shrink-0">{item.displayValue}</strong></button></li>)}</ul>
     </div>}
-    <p className="border-t p-3 text-xs leading-5 text-slate-500">{projection.scope === "COLOMBIA" ? "Referencia cartográfica: DANE 2025. " : "Posiciones relativas de los lugares de esta página. "}La ubicación administrativa no es una dirección de personas ni un puesto de votación. {projection.missingCoordinates > 0 ? `${projection.missingCoordinates} lugares sin coordenadas siguen disponibles en la lista.` : ""}</p>
+    <p className="border-t p-3 text-xs leading-5 text-slate-500">{projection.scope === "COLOMBIA" ? "Referencia cartográfica: DANE 2025. " : "Posiciones relativas de los lugares de esta página. "}La ubicación administrativa no es una dirección de personas ni un puesto de votación. {projection.missingCoordinates > 0 ? `${projection.missingCoordinates} ${projection.missingCoordinates === 1 ? "lugar sin coordenadas sigue disponible" : "lugares sin coordenadas siguen disponibles"} en la lista.` : ""}</p>
   </div>;
 }

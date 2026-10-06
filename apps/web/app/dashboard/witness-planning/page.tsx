@@ -22,7 +22,10 @@ import {
   type WitnessAssignment,
   type WitnessCaptureContext,
 } from "@/lib/witness-planning-api";
-import type { BackendUserRole } from "@/types/saas-schema";
+import type {
+  BackendUserRole,
+  PoliticalOperationStage,
+} from "@/types/saas-schema";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -32,6 +35,18 @@ import {
   Users,
 } from "lucide-react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
+
+const STAGE_LABELS: Record<PoliticalOperationStage, string> = {
+  EXPLORATION: "Exploración",
+  PRE_CAMPAIGN: "Precandidatura",
+  SIGNATURE_COLLECTION: "Recolección de firmas",
+  CAMPAIGN: "Campaña",
+  ELECTION_PREPARATION: "Preparación electoral",
+  SIMULATION: "Simulacro",
+  ELECTION_DAY: "Jornada electoral",
+  POST_ELECTION: "Poselección",
+  CLOSED: "Cierre",
+};
 
 const PLANNER_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -94,7 +109,7 @@ function SummaryCard({
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
       <p className="text-xs font-semibold text-slate-500">{label}</p>
       <p
-        className={`mt-2 text-2xl font-semibold ${alert ? "text-amber-700" : "text-slate-950"}`}
+        className={`mt-2 font-semibold ${typeof value === "number" ? "text-2xl" : "text-base"} ${alert ? "text-amber-700" : "text-slate-950"}`}
       >
         {value}
       </p>
@@ -336,7 +351,10 @@ export default function WitnessPlanningPage() {
           <option value="SIMULATION">Simulacro</option>
         </select>
         <span className="text-sm text-slate-600">
-          Etapa: {coverage?.operationStage ?? "sin dato"}
+          Etapa:{" "}
+          {coverage?.operationStage
+            ? STAGE_LABELS[coverage.operationStage]
+            : "Sin dato"}
         </span>
       </div>
 
@@ -395,7 +413,7 @@ export default function WitnessPlanningPage() {
             />
             <SummaryCard
               label="Resultado"
-              value={coverage.summary.fullyConfirmed ? "LISTO" : "BLOQUEADO"}
+              value={coverage.summary.fullyConfirmed ? "Listo" : "Bloqueado"}
               alert={!coverage.summary.fullyConfirmed}
             />
           </div>
@@ -684,7 +702,7 @@ export default function WitnessPlanningPage() {
         aria-labelledby="assignments-title"
       >
         <h2 id="assignments-title" className="text-xl font-bold">
-          Asignaciones durables
+          Asignaciones registradas
         </h2>
         {assignments.length === 0 && (
           <p className="rounded-xl border bg-white p-5 text-slate-600">
