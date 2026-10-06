@@ -428,6 +428,49 @@ export function formatVoterImportSize(bytes: number): string {
   return `${bytes.toLocaleString("es-CO")} bytes`;
 }
 
+/** Downloaded correction reports can be larger than their source because each
+ * row includes an explanation. Bound local reading without increasing uploads. */
+export function voterImportReadLimit(limits: BulkVoterImportLimits): number {
+  return Math.max(
+    limits.maxBytes,
+    Math.min(64 * 1024 * 1024, limits.maxBytes * 6),
+  );
+}
+
+/** Fila/Motivo are report annotations, never person data or authorization.
+ * Remove them automatically before applying the original upload limit. */
+export function prepareVoterImportCorrectionCsv(
+  csv: string,
+  limits: BulkVoterImportLimits,
+): string {
+  const readLimit = voterImportReadLimit(limits);
+  if (new Blob([csv]).size > readLimit) {
+    throw new Error(
+      `El archivo supera el máximo de lectura de ${formatVoterImportSize(readLimit)}.`,
+    );
+  }
+  const parsed = parseImportCsv(csv, {
+    maxRows: limits.maxRows,
+    maxCharacters: readLimit,
+  });
+  if (!parsed.headers.includes("Fila") || !parsed.headers.includes("Motivo")) {
+    parseBulkCsv(csv, limits);
+    return csv;
+  }
+  const keep = parsed.headers.flatMap((header, index) =>
+    header === "Fila" || header === "Motivo" ? [] : [index],
+  );
+  const prepared = [parsed.headers, ...parsed.rows.map((row) => row.values)]
+    .map((record) =>
+      keep
+        .map((index) => serializeValue(record[index], parsed.delimiter))
+        .join(parsed.delimiter),
+    )
+    .join("\n");
+  parseBulkCsv(prepared, limits);
+  return prepared;
+}
+
 function parseBulkCsv(
   csv: string,
   limits: BulkVoterImportLimits,

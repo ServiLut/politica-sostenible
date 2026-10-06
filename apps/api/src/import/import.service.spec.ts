@@ -393,7 +393,7 @@ describe('ImportService privacy and tenant isolation', () => {
         expect.objectContaining({
           field: 'Fecha consentimiento',
           message:
-            'Escribe la fecha y hora de la autorización, por ejemplo 2026-10-06T15:30:00Z (10:30 a. m. en Colombia).',
+            'Escribe una fecha y hora válidas con su zona horaria, por ejemplo 2026-10-06T10:30:00-05:00 (hora de Colombia).',
         }),
         expect.objectContaining({
           field: 'Ruta evidencia',
@@ -406,17 +406,55 @@ describe('ImportService privacy and tenant isolation', () => {
     expect(transaction.consentRecord.create).not.toHaveBeenCalled();
   });
 
-  it('accepts the exact date example shown to the user without changing the UTC contract', async () => {
+  it.each(['2026-10-06T10:30:00-05:00', '2026-10-06T15:30:00Z'])(
+    'accepts %s and persists the same authorization instant',
+    async (grantedAt) => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-10-07T00:00:00Z'));
+      try {
+        const { service, transaction } = createHarness();
+        await expect(
+          service.preview('personas', csv(csvRow({ grantedAt })), user),
+        ).resolves.toMatchObject({ validRows: 1, errorRows: [] });
+        await service.execute('personas', csv(csvRow({ grantedAt })), user);
+        expect(transaction.consentRecord.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            grantedAt: new Date('2026-10-06T15:30:00Z'),
+          }) as object,
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  it.each([
+    ['impossible calendar date', '2026-02-30T10:30:00-05:00'],
+    ['non leap day', '2026-02-29T10:30:00Z'],
+    ['missing time zone', '2026-10-06T10:30:00'],
+    ['date only', '2026-10-06'],
+    ['invalid zone hour', '2026-10-06T10:30:00+25:00'],
+    ['invalid zone minute', '2026-10-06T10:30:00-05:60'],
+    ['instant after now in offset', '2026-10-07T01:00:00-05:00'],
+    ['instant before notice activation', '2025-12-31T18:59:59-05:00'],
+  ])('rejects %s without creating consent', async (_label, grantedAt) => {
     jest.useFakeTimers().setSystemTime(new Date('2026-10-07T00:00:00Z'));
     try {
-      const { service } = createHarness();
+      const { service, transaction } = createHarness();
+      const result = await service.preview(
+        'personas',
+        csv(csvRow({ grantedAt })),
+        user,
+      );
+      expect(result.validRows).toBe(0);
+      expect(result.errorRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ field: 'Fecha consentimiento' }),
+        ]),
+      );
       await expect(
-        service.preview(
-          'personas',
-          csv(csvRow({ grantedAt: '2026-10-06T15:30:00Z' })),
-          user,
-        ),
-      ).resolves.toMatchObject({ validRows: 1, errorRows: [] });
+        service.execute('personas', csv(csvRow({ grantedAt })), user),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(transaction.consentRecord.create).not.toHaveBeenCalled();
     } finally {
       jest.useRealTimers();
     }

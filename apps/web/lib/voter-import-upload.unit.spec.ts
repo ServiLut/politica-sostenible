@@ -21,6 +21,56 @@ const base = {
   onUnused: () => {},
 };
 
+test("un informe grande de errores se vuelve a cargar sin sus columnas auxiliares", async () => {
+  const source = `${header};Fila;Motivo\n1;Ana;Prueba;NO;v1;2026-10-06T14:00:00Z;tenant/consent/confirmed;2;${"Explicación extensa ".repeat(180)}`;
+  const correction = new File([source], "personas_por_corregir.csv", {
+    type: "text/csv",
+  });
+  const correctionLimits = { maxRows: 50_000, maxBytes: 1024 };
+  expect(correction.size).toBeGreaterThan(correctionLimits.maxBytes);
+  const uploaded: File[] = [];
+  const session = createVoterImportUploadSession({
+    upload: async (file, module) => {
+      expect(module).toBe("person-import");
+      uploaded.push(file);
+      return { path: "tenant/person-import/corrected", sha256: "c".repeat(64) };
+    },
+    requestId: () => "correction-id",
+  });
+  await session.prepare({
+    ...base,
+    file: correction,
+    evidenceFiles: [],
+    limits: correctionLimits,
+  });
+  expect(uploaded).toHaveLength(1);
+  expect(uploaded[0].size).toBeLessThanOrEqual(correctionLimits.maxBytes);
+  expect(await uploaded[0].text()).toBe(
+    `${header}\n1;Ana;Prueba;NO;v1;2026-10-06T14:00:00Z;tenant/consent/confirmed`,
+  );
+});
+
+test("las columnas de errores no permiten subir datos reales por encima del límite", async () => {
+  let uploads = 0;
+  const session = createVoterImportUploadSession({
+    upload: async () => {
+      uploads++;
+      throw new Error("No debe cargarse");
+    },
+    requestId: () => "never",
+  });
+  const oversized = `${header};Fila;Motivo\n1;${"Ana ".repeat(400)};Prueba;NO;v1;2026-10-06T14:00:00Z;tenant/consent/confirmed;2;Revisar`;
+  await expect(
+    session.prepare({
+      ...base,
+      file: new File([oversized], "corregido.csv"),
+      evidenceFiles: [],
+      limits: { maxRows: 50_000, maxBytes: 1024 },
+    }),
+  ).rejects.toThrow(/máximo/u);
+  expect(uploads).toBe(0);
+});
+
 test("sube evidencia antes del CSV y reintenta la misma revisión sin duplicar cargas ni ID", async () => {
   const calls: Array<{ file: File; module: string }> = [];
   let ids = 0;
@@ -130,10 +180,18 @@ test("archivo Excel binario o tamaño excedido falla antes de cualquier subida",
 test("el límite real de evidencia se comprueba antes de subir ningún archivo", async () => {
   let uploads = 0;
   const session = createVoterImportUploadSession({
-    upload: async () => { uploads++; throw new Error("No debe iniciarse una carga"); },
+    upload: async () => {
+      uploads++;
+      throw new Error("No debe iniciarse una carga");
+    },
     requestId: () => "never",
   });
-  await expect(session.prepare({ ...base, limits: { ...limits, maxEvidenceBytes: pdf.size - 1 } })).rejects.toThrow(/autorización ana.pdf.*almacenamiento/u);
+  await expect(
+    session.prepare({
+      ...base,
+      limits: { ...limits, maxEvidenceBytes: pdf.size - 1 },
+    }),
+  ).rejects.toThrow(/autorización ana.pdf.*almacenamiento/u);
   expect(uploads).toBe(0);
 });
 

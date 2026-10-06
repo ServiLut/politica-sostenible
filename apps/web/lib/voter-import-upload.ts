@@ -4,6 +4,8 @@ import {
   formatVoterImportSize,
   MAX_CONSENT_EVIDENCE_BYTES,
   planBulkVoterImportEvidence,
+  prepareVoterImportCorrectionCsv,
+  voterImportReadLimit,
   type BulkVoterImportLimits,
 } from "./voter-import";
 
@@ -55,13 +57,15 @@ export function createVoterImportUploadSession(
           "Elige un archivo .csv con un nombre de hasta 180 caracteres. En Excel, usa Guardar como → CSV UTF-8.",
         );
       }
-      if (file.size > limits.maxBytes)
+      if (file.size > voterImportReadLimit(limits))
         throw new Error(
-          `El archivo supera el máximo de ${formatVoterImportSize(limits.maxBytes)}.`,
+          `El archivo supera el máximo de lectura de ${formatVoterImportSize(voterImportReadLimit(limits))}.`,
         );
       signal.throwIfAborted();
       onProgress("Leyendo el archivo…");
-      const csv = await file.text();
+      const contents = await file.text();
+      signal.throwIfAborted();
+      const csv = prepareVoterImportCorrectionCsv(contents, limits);
       signal.throwIfAborted();
       const plan = planBulkVoterImportEvidence(csv, evidenceFiles, limits);
       const maximumEvidenceBytes = Math.min(

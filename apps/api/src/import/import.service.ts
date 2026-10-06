@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { isEmail } from 'class-validator';
+import { isEmail, isISO8601 } from 'class-validator';
 import {
   AuditActorType,
   ConsentCollectionChannel,
@@ -77,8 +77,8 @@ export const REQUIRED_HEADERS = [
 ] as const;
 const CONSENT_PATH_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp|pdf)$/i;
-const ISO_UTC_DATE_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/u;
+const ISO_DATE_WITH_ZONE_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/u;
 
 @Injectable()
 export class ImportService {
@@ -666,12 +666,16 @@ export class ImportService {
 
       const grantedAt = new Date(grantedAtValue);
       if (
-        !ISO_UTC_DATE_PATTERN.test(grantedAtValue) ||
+        !ISO_DATE_WITH_ZONE_PATTERN.test(grantedAtValue) ||
+        !isISO8601(grantedAtValue, {
+          strict: true,
+          strictSeparator: true,
+        }) ||
         Number.isNaN(grantedAt.getTime())
       ) {
         addError(
           'Fecha consentimiento',
-          'Escribe la fecha y hora de la autorización, por ejemplo 2026-10-06T15:30:00Z (10:30 a. m. en Colombia).',
+          'Escribe una fecha y hora válidas con su zona horaria, por ejemplo 2026-10-06T10:30:00-05:00 (hora de Colombia).',
         );
       } else if (
         grantedAt.getTime() < context.noticeActivatedAt.getTime() ||
