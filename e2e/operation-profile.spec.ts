@@ -568,10 +568,10 @@ test("cumplimiento consulta el resumen sin cargar equipo ni exponer escritura", 
   await expect(
     readinessPanel.getByRole("heading", { name: "Alistamiento por ciclo" }),
   ).toBeVisible();
-  for (const sectionName of ["Antes", "Campaña", "Elección", "Después"]) {
-    await expect(
-      readinessPanel.getByRole("heading", { name: sectionName, exact: true }),
-    ).toBeVisible();
+  for (const sectionName of ["Preparar la operación", "Campaña", "Elección", "Después de la elección"]) {
+    const summary = readinessPanel.locator("summary").filter({ has: page.getByText(sectionName, { exact: true }) });
+    await expect(summary).toBeVisible();
+    await summary.click();
   }
   await expect(
     readinessPanel.getByRole("status", {

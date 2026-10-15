@@ -88,6 +88,14 @@ export function listEvents(
   return apiRequest(withQuery("events", { ...params }), { signal });
 }
 
+export function getEvent(id: string, signal?: AbortSignal): Promise<CampaignEvent> {
+  // Match the API's CuidIdParamsDto before constructing a resource path.
+  if (!/^c[a-z0-9]{24}$/.test(id)) {
+    throw new Error("El enlace del evento no es válido. Abre la agenda para elegirlo de nuevo.");
+  }
+  return apiRequest(`events/${encodeURIComponent(id)}`, { signal });
+}
+
 export interface ListResponsiblesParams {
   search?: string;
   page?: number;

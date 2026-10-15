@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createHash } from "node:crypto";
 
 const jwt = [
   Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
@@ -43,6 +44,7 @@ test("completa el expediente financiero y descarga el borrador interno para revi
   const storageBodies: Record<string, unknown>[] = [];
   const authorizationHeaders: string[] = [];
   const filingReceipt = Buffer.from("%PDF-1.4 constancia de radicación");
+  const filingReceiptSha256 = createHash("sha256").update(filingReceipt).digest("hex");
   const filingReceiptPath =
     "tenant-e2e/finance/7c8f80d8-66c5-4f3a-9745-b66219c13f74.pdf";
   let financialEntries = [
@@ -115,6 +117,7 @@ test("completa el expediente financiero y descarga el borrador interno para revi
                 fileName: "constancia-radicacion.pdf",
                 contentType: "application/pdf",
                 size: filingReceipt.length,
+                contentSha256: body.contentSha256,
               },
             },
             201,
@@ -132,8 +135,10 @@ test("completa el expediente financiero y descarga el borrador interno para revi
         body: JSON.stringify(
           successful({
             confirmed: true,
+            objectId: "c2222222222222222222222222",
             path: filingReceiptPath,
             module: "finance",
+            contentIntegrity: "VERIFIED",
           }),
         ),
       });
@@ -455,7 +460,11 @@ test("completa el expediente financiero y descarga el borrador interno para revi
   await expect(
     page.getByText("Referencia declarada CC-2026/004219"),
   ).toBeVisible();
-  await expect(page.getByText("Soporte privado adjunto")).toBeVisible();
+  const financeEvidenceLabels = page.getByRole("row", { name: /Transporte territorial/ }).getByText("Soporte privado adjunto", { exact: true });
+  // Original movement evidence and the external-reference receipt are separate.
+  await expect(financeEvidenceLabels).toHaveCount(2);
+  await expect(financeEvidenceLabels.nth(0)).toBeVisible();
+  await expect(financeEvidenceLabels.nth(1)).toBeVisible();
   expect(cneReportBodies).toEqual([
     {
       externalReference: "CC-2026/004219",
@@ -468,6 +477,7 @@ test("completa el expediente financiero y descarga el borrador interno para revi
       fileName: "constancia-radicacion.pdf",
       contentType: "application/pdf",
       size: filingReceipt.length,
+      contentSha256: filingReceiptSha256,
     },
     {
       module: "finance",
@@ -476,6 +486,7 @@ test("completa el expediente financiero y descarga el borrador interno para revi
         fileName: "constancia-radicacion.pdf",
         contentType: "application/pdf",
         size: filingReceipt.length,
+        contentSha256: filingReceiptSha256,
       },
     },
   ]);

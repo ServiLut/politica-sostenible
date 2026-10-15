@@ -439,9 +439,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
   await expectRawPiiAbsentFromDom(page, Object.values(existingRawPii));
   expect(detailRequests).toEqual([]);
 
-  const searchInput = page.getByPlaceholder(
-    "Buscar por nombre, documento o celular",
-  );
+  const searchInput = page.getByLabel("Buscar personas", { exact: true });
   await searchInput.fill(existingRawPii.documentId);
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect.poll(() => searchRequests.length).toBe(1);
@@ -544,14 +542,14 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
     "carlos.corregido@example.test",
   ]);
 
-  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("button", { name: "Siguiente", exact: true }).click();
   await expect(page.getByText("Diana Torres")).toBeVisible();
   await expect(page.getByText("Pagina 2 de 2")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Siguiente" })).toBeDisabled();
-  await page.getByRole("button", { name: "Anterior" }).click();
+  await expect(page.getByRole("button", { name: "Siguiente", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Anterior", exact: true }).click();
   await expect(page.getByText("Carlos Rojas")).toBeVisible();
 
-  await page.getByRole("button", { name: "Registrar persona" }).click();
+  await page.getByRole("button", { name: "Registrar una persona" }).click();
   const createDialog = page.getByRole("dialog", {
     name: "Registrar persona autorizada",
   });
@@ -584,7 +582,7 @@ test("pagina, minimiza, revoca y reautoriza sin identificadores internos", async
     .getByRole("button", { name: "Cerrar registro de persona" })
     .click();
   await expect(createDialog).toHaveCount(0);
-  await page.getByRole("button", { name: "Registrar persona" }).click();
+  await page.getByRole("button", { name: "Registrar una persona" }).click();
   await expect(createChannel).toHaveValue("");
   await expect(createConfirmation).not.toBeChecked();
   await expect(createButton).toBeDisabled();
@@ -917,7 +915,7 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
   await page.goto("/dashboard/votantes");
   await expectRawPiiAbsentFromDom(page, Object.values(existingRawPii));
   await expect(
-    page.getByRole("button", { name: "Registrar persona" }),
+    page.getByRole("button", { name: "Registrar una persona" }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: /Ver datos protegidos de Carlos Rojas/ })
@@ -949,7 +947,7 @@ test("cumplimiento abre el detalle protegido sin adquirir permisos de creación"
     .click();
   await detailDialog
     .getByRole("navigation", { name: "Paginación de puestos autorizados" })
-    .getByRole("button", { name: "Siguiente" })
+    .getByRole("button", { name: "Siguiente", exact: true })
     .click();
   await expect(puestoSelect).toHaveValue("puesto-central");
   expect(divisionAttempts).toBe(4);

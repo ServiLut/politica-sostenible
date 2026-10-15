@@ -9,11 +9,14 @@ import { UserCombobox } from "@/components/ui/UserCombobox";
 import { useAuth } from "@/context/auth";
 import { useConfirmation } from "@/context/confirmation";
 import { ApiError } from "@/lib/api-client";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CampaignEvent,
   CampaignEventStatus,
   createEvent,
   deleteEvent,
+  getEvent,
   listEventResponsibles,
   listEvents,
   transitionEvent,
@@ -47,6 +50,9 @@ import {
 } from "react";
 
 const PAGE_SIZE = 9;
+
+const fetchEventResponsibles = (search: string, signal: AbortSignal, page = 1) =>
+  listEventResponsibles({ search, page, limit: 10 }, signal);
 
 const STATUSES: ReadonlyArray<{
   value: CampaignEventStatus;
@@ -158,11 +164,17 @@ function formatSchedule(startsAt: string, endsAt: string): string {
     month: "short",
     year: "numeric",
   }).format(start);
+  const endDate = new Intl.DateTimeFormat("es-CO", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(end);
   const time = new Intl.DateTimeFormat("es-CO", {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `${date}, ${time.format(start)} – ${time.format(end)}`;
+  return `${date}, ${time.format(start)} – ${endDate === date ? "" : `${endDate}, `}${time.format(end)}`;
 }
 
 function toLocalInput(value: string): string {
@@ -178,6 +190,10 @@ function toIso(value: string): string {
 
 export default function EventsPage() {
   const confirm = useConfirmation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedEventId = searchParams.has("entityId") ? searchParams.get("entityId") || "invalid" : null;
+  const hasRepeatedEventId = searchParams.getAll("entityId").length > 1;
   const { tenant, user } = useAuth();
   const [filters, setFilters] = useState<Filters>({
     page: 1,
@@ -192,6 +208,7 @@ export default function EventsPage() {
   const [mutation, setMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [savedEventId, setSavedEventId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -209,9 +226,21 @@ export default function EventsPage() {
   );
   const canExport = canExportData(user?.backendRole);
 
-  const request = useCallback(
-    (signal: AbortSignal) =>
-      listEvents(
+  const requestSelectedEvent = useCallback(
+    async (signal: AbortSignal) => {
+      if (!selectedEventId || hasRepeatedEventId) {
+        throw new Error("El enlace del evento no es válido. Abre la agenda para elegirlo de nuevo.");
+      }
+      const event = await getEvent(selectedEventId, signal);
+      return {
+        items: [event],
+        pagination: { page: 1, limit: 1, total: 1, totalPages: 1 },
+      };
+    },
+    [selectedEventId, hasRepeatedEventId],
+  );
+  const requestEventList = useCallback(
+    (signal: AbortSignal) => listEvents(
         {
           page: filters.page,
           limit: PAGE_SIZE,
@@ -222,11 +251,12 @@ export default function EventsPage() {
       ),
     [filters],
   );
+  // Resetting list filters must not re-fetch a selected event that was deleted.
+  const request = selectedEventId ? requestSelectedEvent : requestEventList;
   const {
     data: result,
     loading,
     error: requestError,
-    setData: setResult,
   } = usePageRequest(request, { reloadKey });
   const loadError = requestError ? readableError(requestError) : null;
 
@@ -286,6 +316,15 @@ export default function EventsPage() {
     setMutationError(null);
     setNotice(null);
 
+    if (form.name.trim().length < 3) {
+      setMutationError("Escribe un nombre de al menos 3 caracteres, sin contar espacios al inicio o al final.");
+      return;
+    }
+    if (!Number.isFinite(new Date(form.startsAt).getTime()) || !Number.isFinite(new Date(form.endsAt).getTime())) {
+      setMutationError("Completa las fechas y horas de inicio y fin.");
+      return;
+    }
+
     const startsAt = toIso(form.startsAt);
     const endsAt = toIso(form.endsAt);
     if (new Date(endsAt) <= new Date(startsAt)) {
@@ -306,20 +345,23 @@ export default function EventsPage() {
     try {
       if (dialogEvent === "new") {
         setMutation("create");
-        await createEvent(payload);
+        const created = await createEvent(payload);
+        setSavedEventId(created.id);
         setNotice("Evento creado como borrador.");
       } else {
         setMutation(`edit-${dialogEvent.id}`);
-        await updateEvent(dialogEvent.id, {
+        const updated = await updateEvent(dialogEvent.id, {
           ...payload,
           description: payload.description ?? null,
           location: payload.location ?? null,
           capacity: payload.capacity ?? null,
           responsibleId: payload.responsibleId ?? null,
         });
+        setSavedEventId(updated.id);
         setNotice(`“${form.name.trim()}” fue actualizado.`);
       }
       setDialogEvent(null);
+      setFilters((current) => ({ ...current, page: 1 }));
       setReloadKey((current) => current + 1);
     } catch (error) {
       setMutationError(readableError(error));
@@ -336,18 +378,16 @@ export default function EventsPage() {
     setMutation(`status-${event.id}`);
     setMutationError(null);
     setNotice(null);
+    setSavedEventId(null);
     try {
-      const updated = await transitionEvent(event.id, status);
+      await transitionEvent(event.id, status);
       setNotice(
         `Estado de “${event.name}” actualizado a ${statusLabel(status)}.`,
       );
-      setResult((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          items: current.items.map((i) => (i.id === updated.id ? updated : i)),
-        };
-      });
+      // The server owns the filtered list and its count. A transition can remove
+      // the last item on a page, so return to the first page of the same filters.
+      setFilters((current) => ({ ...current, page: 1 }));
+      setReloadKey((current) => current + 1);
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -371,7 +411,15 @@ export default function EventsPage() {
     try {
       await deleteEvent(event.id);
       setNotice(`Borrador “${event.name}” eliminado.`);
-      setReloadKey((current) => current + 1);
+      setSavedEventId((current) => current === event.id ? null : current);
+      setFilters((current) => ({ ...current, page: 1 }));
+      if (selectedEventId === event.id) {
+        setSearchDraft("");
+        setFilters({ page: 1, search: "", status: "" });
+        router.replace("/dashboard/events");
+      } else {
+        setReloadKey((current) => current + 1);
+      }
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
@@ -407,7 +455,22 @@ export default function EventsPage() {
         }
       />
 
-      <section
+      {selectedEventId && (
+        <section aria-label="Evento seleccionado" className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          <div className="min-w-0">
+            <h2 className="font-semibold">Evento seleccionado</h2>
+            <p className="mt-1">Abriste un evento específico. Consulta su horario, responsable y estado aquí.</p>
+          </div>
+          <Link href="/dashboard/events" onClick={() => {
+            setSearchDraft("");
+            setFilters({ page: 1, search: "", status: "" });
+          }} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-white px-4 font-semibold text-blue-800 hover:bg-blue-100">
+            Ver toda la agenda
+          </Link>
+        </section>
+      )}
+
+      {!selectedEventId && <section
         aria-label="Filtros de agenda"
         className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem] min-w-0"
       >
@@ -444,15 +507,26 @@ export default function EventsPage() {
             ))}
           </select>
         </label>
-      </section>
+      </section>}
 
       {notice && (
-        <p
+        <div
           role="status"
-          className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900"
+          className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900"
         >
-          {notice}
-        </p>
+          <p className="min-w-0 break-words">{notice}</p>
+          {savedEventId && (
+            <button
+              type="button"
+              onClick={() => {
+                router.push(`/dashboard/events?entityId=${encodeURIComponent(savedEventId)}`);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 text-emerald-900 hover:bg-emerald-100"
+            >
+              Ver evento guardado
+            </button>
+          )}
+        </div>
       )}
       {mutationError && !dialogEvent && (
         <p
@@ -481,7 +555,7 @@ export default function EventsPage() {
           <AlertCircle className="text-red-600" size={34} />
           <div>
             <h2 className="font-semibold text-slate-950">
-              No pudimos cargar la agenda
+              {selectedEventId ? "No pudimos abrir este evento" : "No pudimos cargar la agenda"}
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-600">{loadError}</p>
           </div>
@@ -490,7 +564,7 @@ export default function EventsPage() {
             onClick={() => setReloadKey((current) => current + 1)}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-blue-700 max-w-full whitespace-normal"
           >
-            <RefreshCw size={17} aria-hidden="true" /> Reintentar agenda
+            <RefreshCw size={17} aria-hidden="true" /> {selectedEventId ? "Reintentar evento" : "Reintentar agenda"}
           </button>
         </div>
       )}
@@ -502,10 +576,24 @@ export default function EventsPage() {
             No hay eventos para estos filtros
           </h2>
           <p className="mt-1 max-w-lg text-sm text-slate-500">
-            {canManage
+            {filters.search || filters.status
+              ? "Prueba otro nombre o quita los filtros para volver a ver la agenda."
+              : canManage
               ? "Crea un borrador para definir horario, responsable y capacidad antes de programarlo."
               : "Cuando el equipo programe actividades aparecerán aquí."}
           </p>
+          {(filters.search || filters.status) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchDraft("");
+                setFilters({ page: 1, search: "", status: "" });
+              }}
+              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-50"
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
       )}
 
@@ -537,7 +625,7 @@ export default function EventsPage() {
                           onClick={() => openEdit(event)}
                           disabled={Boolean(mutation)}
                           aria-label={`Editar ${event.name}`}
-                          className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50 max-w-full whitespace-normal"
+                          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
                         >
                           <Pencil size={17} />
                         </button>
@@ -547,7 +635,7 @@ export default function EventsPage() {
                             onClick={() => void removeDraft(event)}
                             disabled={Boolean(mutation)}
                             aria-label={`Eliminar ${event.name}`}
-                            className="rounded-xl p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 max-w-full whitespace-normal"
+                            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                           >
                             {mutation === `delete-${event.id}` ? (
                               <Loader2 className="animate-spin" size={17} />
@@ -563,9 +651,10 @@ export default function EventsPage() {
                     {event.name}
                   </h2>
                   {event.description && (
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
-                      {event.description}
-                    </p>
+                    <details className="mt-2 min-w-0 text-sm leading-6 text-slate-600">
+                      <summary className="min-h-11 cursor-pointer rounded-lg py-2 font-medium text-blue-800 focus-visible:outline-offset-2">Ver descripción</summary>
+                      <p className="whitespace-pre-wrap break-words">{event.description}</p>
+                    </details>
                   )}
                   <dl className="mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm text-slate-700 min-w-0">
                     <div className="flex gap-3 min-w-0">
@@ -662,7 +751,7 @@ export default function EventsPage() {
             })}
           </section>
 
-          <nav
+          {!selectedEventId && <nav
             aria-label="Paginación"
             className="flex items-center justify-end gap-3 min-w-0 flex-wrap"
           >
@@ -695,7 +784,7 @@ export default function EventsPage() {
             >
               Siguiente <ChevronRight size={16} />
             </button>
-          </nav>
+          </nav>}
         </>
       )}
 
@@ -828,16 +917,17 @@ export default function EventsPage() {
                     </span>
                     <div className="mt-2 min-w-0">
                       <UserCombobox
+                        ariaLabel="Responsable del evento"
                         value={form.responsibleId}
+                        selectedLabel={dialogEvent !== "new" && dialogEvent?.responsible?.id === form.responsibleId ? dialogEvent.responsible.name : undefined}
                         onChange={(val) =>
                           setForm((current) => ({
                             ...current,
                             responsibleId: val,
                           }))
                         }
-                        fetchItems={(search, signal) =>
-                          listEventResponsibles({ search, limit: 10 }, signal)
-                        }
+                        paginated
+                        fetchItems={fetchEventResponsibles}
                       />
                     </div>
                   </label>

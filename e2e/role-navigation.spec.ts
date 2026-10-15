@@ -102,7 +102,14 @@ function mobileNavigation(page: Page) {
 
 async function visibleNavigationPaths(page: Page) {
   if ((page.viewportSize()?.width ?? 1280) >= 1024) {
-    return desktopNavigation(page)
+    const navigation = desktopNavigation(page);
+    // Wait for the authenticated sidebar, rather than sampling before hydration.
+    await expect(navigation.getByRole("link").first()).toBeVisible();
+    const collapsedGroups = navigation.locator("details:not([open]) > summary");
+    for (const summary of await collapsedGroups.all()) {
+      await summary.click();
+    }
+    return navigation
       .getByRole("link")
       .evaluateAll((links) =>
         links
@@ -111,7 +118,9 @@ async function visibleNavigationPaths(page: Page) {
       );
   }
 
-  const primaryPaths = await mobileNavigation(page)
+  const navigation = mobileNavigation(page);
+  await expect(navigation.getByRole("link").first()).toBeVisible();
+  const primaryPaths = await navigation
     .getByRole("link")
     .evaluateAll((links) =>
       links
@@ -131,18 +140,41 @@ async function visibleNavigationPaths(page: Page) {
   return [...primaryPaths, ...secondaryPaths];
 }
 
-function workspaceLabel(page: Page, label: string) {
-  const labels = page.getByText(`Tu espacio · ${label}`, { exact: true });
-  return (page.viewportSize()?.width ?? 1280) < 1024
-    ? labels.last()
-    : labels.first();
+async function expectRoleWorkspace(page: Page, workspace: string, label: string) {
+  if ((page.viewportSize()?.width ?? 1280) < 1024) {
+    const drawer = page.getByRole("dialog", { name: "Más opciones" });
+    await expect(
+      drawer.getByText(`Tu espacio · ${workspace}`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      drawer.getByRole("paragraph").filter({ hasText: new RegExp(`^${label}$`) }),
+    ).toBeVisible();
+    return;
+  }
+
+  await expect(desktopNavigation(page).getByRole("heading").first()).toHaveText(
+    workspace,
+  );
+  await expect(
+    page
+      .getByRole("complementary")
+      .getByRole("paragraph")
+      .filter({ hasText: new RegExp(`^${label}$`) }),
+  ).toBeVisible();
 }
 
-function roleLabel(page: Page, label: string) {
-  const labels = page.getByText(label, { exact: true });
-  return (page.viewportSize()?.width ?? 1280) < 1024
-    ? labels.last()
-    : labels.first();
+async function expectDashboardLandmarks(page: Page) {
+  await expect(page.getByRole("main")).toHaveCount(1);
+  await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.locator('[id="dashboard-content"]')).toHaveCount(1);
+  const duplicateIds = await page.locator("[id]").evaluateAll((elements) => {
+    const ids = elements.map((element) => element.id).filter(Boolean);
+    return [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+  });
+  expect(
+    duplicateIds,
+    "Cada etiqueta y destino de foco debe tener un ID único",
+  ).toEqual([]);
 }
 
 assertRoleMatrixFixtureIsComplete();
@@ -155,30 +187,35 @@ for (const scenario of ROLE_MATRIX_SCENARIOS) {
     await prepareSession(page, {
       backendRole: scenario.backendRole,
       frontendRole: FRONTEND_ROLE_BY_BACKEND_ROLE[scenario.backendRole],
-      name: roleLabelText,
+      name: `Persona de prueba · ${roleLabelText}`,
       tenantType: scenario.tenantType,
       operationStage: scenario.operationStage,
     });
 
     await page.goto("/dashboard/profile");
     const actualPaths = await visibleNavigationPaths(page);
+    // The mobile dialog hides the underlying page while it is open; landmarks
+    // are asserted after navigation when the dialog has been closed.
 
-    expect([...new Set(actualPaths)].sort()).toEqual(
+    // Duplicated or unexpected module links are failures too.
+    expect(actualPaths.length).toBe(new Set(actualPaths).size);
+    expect([...actualPaths].sort()).toEqual(
       [...scenario.visiblePaths].sort(),
     );
-    await expect(workspaceLabel(page, scenario.workspace)).toBeVisible();
-    await expect(roleLabel(page, roleLabelText)).toBeVisible();
+    await expectRoleWorkspace(page, scenario.workspace, roleLabelText);
 
     await page.goto("/dashboard");
     await expect(page).toHaveURL(new RegExp(`${scenario.defaultPath}$`));
-    await expect(page.locator("header")).toBeVisible();
+    await expect(page.getByRole("banner")).toBeVisible();
+    await expectDashboardLandmarks(page);
     await expect(
       page.getByRole("heading", { name: "Acceso restringido" }),
     ).toHaveCount(0);
 
     await page.goto(scenario.allowedProbe);
     await expect(page).toHaveURL(new RegExp(`${scenario.allowedProbe}$`));
-    await expect(page.locator("header")).toBeVisible();
+    await expect(page.getByRole("banner")).toBeVisible();
+    await expectDashboardLandmarks(page);
     await expect(
       page.getByRole("heading", { name: "Acceso restringido" }),
     ).toHaveCount(0);
@@ -188,7 +225,11 @@ for (const scenario of ROLE_MATRIX_SCENARIOS) {
     await expect(
       page.getByRole("heading", { name: "Acceso restringido" }),
     ).toBeVisible();
+    await expectDashboardLandmarks(page);
     await expect(page.locator("main")).toContainText(roleLabelText);
+    await expect(page.locator("main")).not.toContainText(
+      "no está habilitada durante la etapa operativa actual",
+    );
   });
 }
 
@@ -205,12 +246,18 @@ test("una etapa no habilitada niega el acceso aunque el rol sí esté autorizado
 
   await page.goto("/dashboard/war-room");
   await expect(
-    page.getByRole("heading", { name: "Acceso restringido" }),
+    page.getByRole("heading", { name: "Esta sección se habilita más adelante" }),
   ).toBeVisible();
+  await expectDashboardLandmarks(page);
   await expect(page.locator("main")).toContainText(
     "no está habilitada durante la etapa operativa actual",
   );
   await expect(page.locator("main")).not.toContainText(
     "no tiene permiso para consultar esta sección",
   );
+  await expect(
+    page.getByRole("link", { name: "Consultar etapas y requisitos" }),
+  ).toHaveAttribute("href", "/dashboard/operation-profile");
+  await page.getByRole("button", { name: "Volver al panel" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/executive$/);
 });

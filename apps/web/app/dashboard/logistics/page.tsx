@@ -1,4 +1,6 @@
 "use client";
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
@@ -1289,12 +1291,7 @@ function LogisticsPanel() {
             físico.
           </p>
         ) : (
-          <div
-            className="mt-4 overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            role="region"
-            aria-label="Inventario logístico: tabla con desplazamiento horizontal"
-            tabIndex={0}
-          >
+          <TableViewport label="Inventario logístico" className="mt-4">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b text-xs text-slate-500">
@@ -1346,7 +1343,7 @@ function LogisticsPanel() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         )}
       </section>
 

@@ -347,7 +347,7 @@ test("shows fail-closed configuration and submits a four-eyes decision over HTTP
 
   await page.goto("/dashboard/pqrsd");
   await expect(
-    page.getByRole("heading", { name: "Expediente PQRSD con control probatorio" }),
+    page.getByRole("heading", { name: "Expedientes PQRSD" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", {
@@ -355,7 +355,7 @@ test("shows fail-closed configuration and submits a four-eyes decision over HTTP
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("No existen plazos 10/15/30 por defecto", { exact: false }),
+    page.getByText("no se aplican plazos por defecto", { exact: false }),
   ).toBeVisible();
 
   await page

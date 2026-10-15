@@ -512,6 +512,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await expect(taskDialog.getByRole("alert")).toContainText(
     "La selección se conserva",
   );
+  await expect(taskDialog.getByRole("textbox", { name: "Buscar usuario para asignar" })).toBeFocused();
   await expect(
     taskDialog.getByRole("button", { name: "Responsable de la tarea" }),
   ).toContainText("Dirección operativa");
@@ -520,6 +521,12 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await taskDialog
     .getByRole("button", { name: "Siguiente", exact: true })
     .click();
+  await expect(taskDialog.getByText("Página 3 · 42 resultados")).toBeVisible();
+  await expect(taskDialog.getByRole("textbox", { name: "Buscar usuario para asignar" })).toBeFocused();
+  await taskDialog.getByRole("button", { name: "Anterior", exact: true }).click();
+  await expect(taskDialog.getByText("Página 2 · 42 resultados")).toBeVisible();
+  await expect(taskDialog.getByRole("textbox", { name: "Buscar usuario para asignar" })).toBeFocused();
+  await taskDialog.getByRole("button", { name: "Siguiente", exact: true }).click();
   await expect(taskDialog.getByText("Página 3 · 42 resultados")).toBeVisible();
   await taskDialog.getByRole("button", { name: /^Andrea Territorio/ }).click();
   await taskDialog
@@ -577,7 +584,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await commitmentCard
     .getByRole("combobox", { name: "Estado de Iluminación segura" })
     .selectOption("AT_RISK");
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
     "No se guardó el cambio del compromiso.",
   );
   await expect(commitmentCard).toBeVisible();
@@ -938,7 +945,7 @@ test("crea trabajo desde un caso y conserva el vínculo autorizado", async ({
     .getByRole("button", { name: "Registrar solicitud interna" })
     .click();
   const caseDialog = page.getByRole("dialog", {
-    name: "Registrar solicitud ciudadana",
+    name: "Registrar solicitud interna",
   });
   await expect(caseDialog).toContainText(
     "Es una clasificación operativa. No restringe el acceso:",

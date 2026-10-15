@@ -80,6 +80,20 @@ export default function CapturaTerritorialPage() {
     !isOnline ||
     (remote.error instanceof ApiError && remote.error.status === 0);
   const context = useProvisioned ? offlineCaptureContext : remote.data;
+  const authorizationContextKey = JSON.stringify([
+    isOnline,
+    reload,
+    context?.consentNotice ?? null,
+  ]);
+  const [formAuthorizationContextKey, setFormAuthorizationContextKey] =
+    useState(authorizationContextKey);
+  if (formAuthorizationContextKey !== authorizationContextKey) {
+    // An updated notice invalidates only the authorization, never the person's
+    // typed data. Reset before displaying a confirmation for the new context.
+    setFormAuthorizationContextKey(authorizationContextKey);
+    setForm((current) => ({ ...current, collectionChannel: "", consentAccepted: false }));
+    setAcceptedNoticeKey(null);
+  }
   const loadingContext = isOnline && remote.loading;
   const contextError = useProvisioned
     ? context

@@ -115,7 +115,7 @@ test("una zona creada queda visible inmediatamente sin actualización manual", a
     }
 
     if (
-      url.pathname === "/api/campaigns/territory-heatmap" &&
+      url.pathname === "/api/campaigns/territory-overview" &&
       request.method() === "GET"
     ) {
       const level = url.searchParams.get("level");
@@ -189,9 +189,9 @@ test("una zona creada queda visible inmediatamente sin actualización manual", a
             generatedAt: "2026-09-09T12:00:00.000Z",
             level: drilled ? "MUNICIPIO" : "DEPARTAMENTO",
             metric: {
-              code: "E14_COVERAGE",
-              label: "Cobertura E-14",
-              unit: "PERCENT",
+              code: url.searchParams.get("metric"),
+              label: url.searchParams.get("metric") === "E14_COVERAGE" ? "Cobertura E-14" : "Casos por resolver",
+              unit: url.searchParams.get("metric") === "E14_COVERAGE" ? "PERCENT" : "COUNT",
             },
             parent: drilled
               ? {
@@ -215,7 +215,9 @@ test("una zona creada queda visible inmediatamente sin actualización manual", a
               minimumReportableCount: null,
               rule: "Solo se presentan agregados operativos autorizados.",
             },
-            items,
+            items: items.map(item => ({ ...item, displayValue: url.searchParams.get("metric") === "E14_COVERAGE" ? item.displayValue : String(item.value) })),
+            pageInfo: { page: 1, limit: 20, totalItems: items.length, totalPages: 1 },
+            summary: { totalTerritories: items.length, reportedTerritories: items.length, zeroTerritories: 0, protectedTerritories: 0, unavailableTerritories: 0 },
           }),
         ),
       });
@@ -281,15 +283,27 @@ test("una zona creada queda visible inmediatamente sin actualización manual", a
     page.getByRole("heading", { name: "Organización territorial" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Mapa de calor operativo" }),
+    page.getByText("Ver el mapa del territorio", { exact: true }),
   ).toBeVisible();
+  await page.getByText("Ver el mapa del territorio", { exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Territorio y actividad" })).toBeVisible();
+  await page.getByRole("combobox", { name: "¿Qué quieres consultar?" }).selectOption("E14_COVERAGE");
+  await expect(page.getByRole("button", { name: "Antioquia: 65 %. Ver municipios" })).toBeVisible();
+  await page.getByRole("button", { name: /Ver estos lugares en el mapa/ }).click();
+  const geographicMap = page.getByRole("region", { name: "Ubicación geográfica de los lugares de esta página" });
+  await expect(geographicMap.getByRole("button", { name: "Antioquia: 65 %. Ver detalle" })).toBeVisible();
+  await page.getByRole("button", { name: "Ampliar mapa", exact: true }).click();
+  await expect(page.getByLabel("Nivel de ampliación")).toHaveText("200%");
+  await page.getByRole("button", { name: "Restablecer", exact: true }).click();
+  await expect(page.getByLabel("Nivel de ampliación")).toHaveText("100%");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page
     .getByRole("button", {
-      name: /^Antioquia: 65 %;.*abrir siguiente nivel$/,
+      name: "Antioquia: 65 %. Ver municipios",
     })
     .click();
   await expect(
-    page.getByRole("img", { name: /^Medellín: 50 %;/ }),
+    page.getByRole("button", { name: "Medellín: 50 %. Ver detalle" }),
   ).toBeVisible();
   expect(heatmapRequests).toEqual(
     expect.arrayContaining([
@@ -323,6 +337,7 @@ test("una zona creada queda visible inmediatamente sin actualización manual", a
     page.getByText(/No corresponde al día local 2026-09-09/),
   ).toBeVisible();
 
+  await page.getByText("Crear una zona o un puesto", { exact: true }).click();
   await page.getByLabel("Código", { exact: true }).fill("ZC-01");
   await page.getByLabel("Nombre", { exact: true }).fill("Zona Centro");
   await page

@@ -50,11 +50,11 @@ export function createVoterImportUploadSession(
       onUnused(count: number): void;
     }): Promise<CreateVoterImportJobInput> {
       if (
-        !/^[^\x00-\x1f\x7f/\\]+\.csv$/iu.test(file.name) ||
+        !/^[\p{L}\p{N} _.()+-]+\.csv$/iu.test(file.name) ||
         file.name.length > 180
       ) {
         throw new Error(
-          "Elige un archivo .csv con un nombre de hasta 180 caracteres. En Excel, usa Guardar como → CSV UTF-8.",
+          "Elige un archivo .csv con un nombre de hasta 180 caracteres. Usa letras, números, espacios, guion, guion bajo, puntos, paréntesis o el signo +. En Excel, usa Guardar como → CSV UTF-8.",
         );
       }
       if (file.size > voterImportReadLimit(limits))
@@ -63,8 +63,16 @@ export function createVoterImportUploadSession(
         );
       signal.throwIfAborted();
       onProgress("Leyendo el archivo…");
-      const contents = await file.text();
+      const bytes = await file.arrayBuffer();
       signal.throwIfAborted();
+      let contents: string;
+      try {
+        contents = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      } catch {
+        throw new Error(
+          "No se pudo leer el archivo como UTF-8. En Excel, usa Guardar como → CSV UTF-8 y vuelve a seleccionarlo.",
+        );
+      }
       const csv = prepareVoterImportCorrectionCsv(contents, limits);
       signal.throwIfAborted();
       const plan = planBulkVoterImportEvidence(csv, evidenceFiles, limits);

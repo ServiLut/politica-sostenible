@@ -260,18 +260,21 @@ test("coordinación territorial usa automáticamente su único puesto asignado",
   expect(posts[0]).not.toHaveProperty("tenantId");
 });
 
-test("una recarga con otro aviso invalida la confirmación y el canal anteriores", async ({
+for (const change of ["versión", "contenido"] as const) {
+test(`una recarga con cambio de ${change} del aviso invalida confirmación y canal sin borrar datos`, async ({
   page,
 }) => {
   await installSession(page, "ZONE_COORDINATOR");
   const updatedNotice = {
     ...consentNotice,
-    id: "notice-e2e-v2",
-    version: "campaign-2026-09-v2",
+    id: change === "versión" ? "notice-e2e-v2" : consentNotice.id,
+    version: change === "versión" ? "campaign-2026-09-v2" : consentNotice.version,
     title: "Autorización actualizada de tratamiento de datos",
+    content: `${consentNotice.content} Texto actualizado para esta prueba.`,
   };
   const posts: Array<Record<string, unknown>> = [];
   let contextReads = 0;
+  let noticeChanged = false;
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -303,7 +306,7 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
             puestos: [
               { id: "puesto-central", code: "P-10", name: "Puesto Central" },
             ],
-            consentNotice: contextReads === 1 ? consentNotice : updatedNotice,
+            consentNotice: noticeChanged ? updatedNotice : consentNotice,
           }),
         ),
       });
@@ -335,11 +338,17 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
   });
   await expect(submit).toBeEnabled();
 
+  noticeChanged = true;
+  const readsBeforeRefresh = contextReads;
   await page.getByRole("button", { name: /Actualizar asignaci/ }).click();
-  await expect(page.getByText(new RegExp(updatedNotice.version))).toBeVisible();
+  await expect(page.getByText(updatedNotice.content, { exact: true })).toBeVisible();
+  expect(contextReads).toBeGreaterThan(readsBeforeRefresh);
   await expect(channel).toHaveValue("");
   await expect(confirmation).not.toBeChecked();
   await expect(submit).toBeDisabled();
+  await expect(page.getByLabel("Nombres", { exact: true })).toHaveValue("Laura");
+  await expect(page.getByLabel("Documento", { exact: true })).toHaveValue("1012345678");
+  await expect(page.getByLabel("Celular opcional", { exact: true })).toHaveValue("3204447788");
   expect(posts).toHaveLength(0);
 
   await channel.selectOption("PHONE");
@@ -365,6 +374,7 @@ test("una recarga con otro aviso invalida la confirmación y el canal anteriores
     consentAccepted: true,
   });
 });
+}
 
 test("una captura repetida recibe un resultado indistinguible y no enumera personas", async ({
   page,

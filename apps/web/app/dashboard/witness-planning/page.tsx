@@ -308,7 +308,7 @@ export default function WitnessPlanningPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 min-w-0">
+    <section className="mx-auto max-w-7xl space-y-6 min-w-0">
       <PageHeader
         title="Planificación de testigos"
         icon={Users}
@@ -842,7 +842,7 @@ export default function WitnessPlanningPage() {
       <p className="text-xs text-slate-500">
         Necesitas conexión para guardar y confirmar cambios en la planificación.
       </p>
-    </main>
+    </section>
   );
 }
 

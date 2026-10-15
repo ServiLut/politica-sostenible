@@ -323,6 +323,7 @@ test("gerencia propone diez valores absolutos con evidencia directa y sin tenant
   await installSession(page, "CAMPAIGN_MANAGER");
   let registered = false;
   let proposalBody: Record<string, unknown> | null = null;
+  let integrityVerified = false;
   const storagePath =
     "tenant-signature-correction-e2e/signature-collection/33333333-3333-4333-8333-333333333333.pdf";
   await page.route("**/mock-supabase/**", (route) =>
@@ -353,8 +354,21 @@ test("gerencia propone diez valores absolutos con evidencia directa y sin tenant
       if (path === "/api/storage/complete") {
         await fulfill(route, {
           confirmed: true,
+          objectId: "storage-signature-correction",
           path: storagePath,
           module: "signature-collection",
+          contentIntegrity: "PENDING",
+        });
+        return true;
+      }
+      if (path === "/api/storage/storage-signature-correction/integrity") {
+        expect(proposalBody).toBeNull();
+        integrityVerified = true;
+        await fulfill(route, {
+          objectId: "storage-signature-correction",
+          status: "VERIFIED",
+          verifiedAt: new Date().toISOString(),
+          failureCode: null,
         });
         return true;
       }
@@ -362,6 +376,7 @@ test("gerencia propone diez valores absolutos con evidencia directa y sin tenant
         path ===
         `/api/signature-collection/batches/${quarantinedBatch.id}/count-corrections`
       ) {
+        expect(integrityVerified).toBe(true);
         proposalBody = body;
         registered = true;
         await fulfill(route, {
@@ -473,6 +488,10 @@ test("cumplimiento decide con cuatro ojos y la interfaz conserva QUARANTINED", a
   );
   await expect(page.getByTestId(`signature-correction-${proposal(false).id}`)).toContainText(
     "Versión 4 → 5. Estado actual: QUARANTINED",
+  );
+  // The parent's refreshed overview must not unmount the confirmation panel.
+  await expect(page.getByRole("status")).toContainText(
+    "El lote permanece en cuarentena",
   );
   expect(decisionBody).not.toHaveProperty("tenantId");
   expect(decisionBody).toMatchObject({

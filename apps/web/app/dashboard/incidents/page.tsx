@@ -54,8 +54,11 @@ import {
 } from "react";
 
 const PAGE_SIZE = 12;
-const searchIncidentAssignees = (search: string, signal: AbortSignal) =>
-  listCaseAssignees({ search, limit: 20 }, signal);
+const searchIncidentAssignees = (
+  search: string,
+  signal: AbortSignal,
+  page = 1,
+) => listCaseAssignees({ search, page, limit: 10 }, signal);
 
 const INCIDENT_WRITE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -423,6 +426,7 @@ function IncidentCard({
                 selectedLabel={assigneeId === incident.assignee?.id ? incident.assignee.name : undefined}
                 onChange={setAssigneeId}
                 fetchItems={searchIncidentAssignees}
+                paginated
                 disabled={saving}
                 className="mt-1"
               />
@@ -625,6 +629,8 @@ export default function IncidentsPage() {
       );
       setNotice(`${updated.reference} actualizado y auditado.`);
       setSelectedIncident((current) => current?.id === updated.id ? updated : current);
+      setFilters((current) => ({ ...current, page: 1 }));
+      setReload((value) => value + 1);
     } catch (requestError: unknown) {
       setMutationError(readableError(requestError));
     } finally {
@@ -805,9 +811,13 @@ export default function IncidentsPage() {
             No hay incidentes para estos filtros
           </h2>
           <p className="mt-2 max-w-xl text-sm text-slate-500">
-            No se agregan datos ficticios. Ajusta los filtros o registra el
-            primer hecho verificado por el equipo.
+            Ajusta los filtros o registra el primer hecho verificado por el equipo.
           </p>
+          {(filters.search || filters.status || filters.priority) && (
+            <button type="button" onClick={() => { setSearchDraft(""); setFilters(INITIAL_FILTERS); }} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+              Limpiar filtros
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -1003,6 +1013,7 @@ export default function IncidentsPage() {
                         setForm({ ...form, assigneeId })
                       }
                       fetchItems={searchIncidentAssignees}
+                      paginated
                       disabled={saving === "create"}
                     />
                   </label>

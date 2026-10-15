@@ -83,6 +83,9 @@ async function installSession(
   currentTenant = tenant,
   currentUser = backendUser,
 ): Promise<void> {
+  // Fix business time so the active subscription fixture does not expire as
+  // the test suite is run on later calendar dates; timers keep running normally.
+  await page.clock.setFixedTime(new Date("2026-09-15T12:00:00.000Z"));
   await page.addInitScript(
     ({ storageKey, accessToken, currentTenant, currentUser }) => {
       window.sessionStorage.setItem(
@@ -117,7 +120,7 @@ async function fulfillCurrentSession(
   await fulfillJson(route, { user: currentUser });
 }
 
-test("muestra el plan, las métricas reales y el contacto comercial", async ({
+test("muestra el plan y las métricas reales sin ofrecer una compra no conectada", async ({
   page,
 }) => {
   const billingRequests: Array<{
@@ -168,14 +171,13 @@ test("muestra el plan, las métricas reales y el contacto comercial", async ({
   await expect(page.getByText(subscription.plan.description)).toBeVisible();
   await expect(page.getByText(/299\.000/)).toBeVisible();
   await expect(page.getByText("7 / 50", { exact: true })).toBeVisible();
-  await expect(page.getByText("1275 / 10000", { exact: true })).toBeVisible();
-  await expect(page.getByText("384.5 / 2048", { exact: true })).toBeVisible();
+  await expect(page.getByText("1.275 / 10.000", { exact: true })).toBeVisible();
+  await expect(page.getByText("384,5 / 2.048", { exact: true })).toBeVisible();
   await expect(page.getByText("Exportación de datos")).toBeVisible();
   await expect(page.getByText("Importación segura de personas")).toBeVisible();
   await expect(page.getByText("Acceso a API")).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: "Contactar ventas" }),
-  ).toHaveAttribute("href", "mailto:ventas@abogadosencolombiasas.com");
+  await expect(page.getByRole("link", { name: "Contactar ventas" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Pagar|Comprar|Cambiar plan/ })).toHaveCount(0);
 
   expect(billingRequests.length).toBeGreaterThanOrEqual(2);
   expect(new Set(billingRequests.map(({ pathname }) => pathname))).toEqual(
@@ -655,9 +657,9 @@ test("filtra, busca, enlaza y actualiza la bandeja operativa", async ({
     page.getByTestId("inbox-item-commitment-environment"),
   ).toHaveCount(0);
 
-  const filters = page.getByLabel("Filtros de bandeja");
-  await filters.getByRole("button", { name: "Todo abierto" }).click();
-  const search = page.getByRole("searchbox", { name: "Buscar en la bandeja" });
+  const filters = summary;
+  await filters.getByRole("button", { name: /Todo abierto/ }).click();
+  const search = page.getByRole("searchbox", { name: "Buscar entre las acciones cargadas" });
   await search.fill("ambiental");
   const commitmentCard = page.getByTestId("inbox-item-commitment-environment");
   await expect(commitmentCard).toBeVisible();
@@ -670,7 +672,7 @@ test("filtra, busca, enlaza y actualiza la bandeja operativa", async ({
   );
 
   await search.fill("");
-  await filters.getByRole("button", { name: "Por aprobar" }).click();
+  await filters.getByRole("button", { name: /Por aprobar/ }).click();
   const approvalCard = page.getByTestId("inbox-item-approval-weekly");
   await expect(approvalCard).toBeVisible();
   await expect(
@@ -680,7 +682,7 @@ test("filtra, busca, enlaza y actualiza la bandeja operativa", async ({
     "/dashboard/communications?view=review&entityId=approval-weekly",
   );
 
-  await filters.getByRole("button", { name: "Todo abierto" }).click();
+  await filters.getByRole("button", { name: /Todo abierto/ }).click();
   const requestsBeforeReload = inboxRequests;
   inboxRefreshed = true;
   await page.getByRole("button", { name: "Actualizar corte" }).click();

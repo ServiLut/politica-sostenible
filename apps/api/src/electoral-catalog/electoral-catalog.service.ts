@@ -1090,8 +1090,17 @@ export class ElectoralCatalogService {
       }
     }
 
+    // DANE administrative snapshots contain no polling places. Their nullable
+    // physical-location metrics mean "not applicable", rather than a declared
+    // electoral count of zero. Keep all RNEC and declared-count checks intact.
+    const administrativeWithoutPollingPlaces =
+      release.type === ElectoralCatalogType.ADMINISTRATIVE_DANE &&
+      pollingPlaces === 0 &&
+      release.physicalPollingPlaceCount === null;
     const observedPhysicalPollingPlaces =
-      incompletePhysicalIdentity === 0 ? physicalPollingPlaces.size : null;
+      !administrativeWithoutPollingPlaces && incompletePhysicalIdentity === 0
+        ? physicalPollingPlaces.size
+        : null;
     const additionalVotingDayRepresentations =
       observedPhysicalPollingPlaces === null
         ? null

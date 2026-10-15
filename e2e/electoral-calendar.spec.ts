@@ -317,7 +317,7 @@ test("dirección ve alertas, diff y lenguaje estrictamente interno", async ({
   await expect(
     page.getByText("no certifica oficialidad", { exact: false }),
   ).toBeVisible();
-  await expect(page.getByLabel("Zona IANA")).toHaveValue("America/Bogota");
+  await expect(page.getByLabel("Zona horaria (ej. America/Bogota)")).toHaveValue("America/Bogota");
 
   const calendarNavigation = page.getByRole("link", {
     name: "Calendario electoral",

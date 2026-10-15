@@ -11,7 +11,6 @@ import { UserCombobox } from "@/components/ui/UserCombobox";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api-client";
 import {
-  CaseUserSummary,
   CommunicationChannel,
   createIssueCase,
   getIssueCase,
@@ -53,6 +52,11 @@ import {
 } from "react";
 
 const PAGE_SIZE = 12;
+const searchCaseAssignees = (
+  search: string,
+  signal: AbortSignal,
+  page = 1,
+) => listCaseAssignees({ page, limit: 10, search }, signal);
 
 const CASE_WRITE_ROLES = new Set<BackendUserRole>([
   "ADMIN",
@@ -189,7 +193,6 @@ function CaseCard({
   onOpenInteractions,
 }: {
   issueCase: IssueCase;
-  assignees: CaseUserSummary[];
   canMutate: boolean;
   canManageAssignments: boolean;
   saving: boolean;
@@ -373,11 +376,17 @@ function CaseCard({
             <label className="block text-sm font-semibold text-slate-500 min-w-0">
               Responsable
               <UserCombobox
+                ariaLabel={`Responsable de ${issueCase.reference}`}
                 value={assigneeId}
-                onChange={(value) => setAssigneeId(value)}
-                fetchItems={async (search, signal) =>
-                  listCaseAssignees({ page: 1, limit: 10, search }, signal)
+                selectedLabel={
+                  assigneeId === issueCase.assignee?.id
+                    ? issueCase.assignee.name
+                    : undefined
                 }
+                onChange={(value) => setAssigneeId(value)}
+                fetchItems={searchCaseAssignees}
+                paginated
+                disabled={saving}
                 className="mt-1"
               />
             </label>
@@ -419,7 +428,6 @@ export default function CasesPage() {
   const canExport = canExportData(user?.backendRole);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searchDraft, setSearchDraft] = useState("");
-  const [assignees, setAssignees] = useState<CaseUserSummary[]>([]);
   const [reload, setReload] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
@@ -500,23 +508,6 @@ export default function CasesPage() {
     setData: setResult,
   } = usePageRequest(loadCases, { reloadKey: reload });
   const error = requestError ? readableError(requestError) : null;
-
-  useEffect(() => {
-    if (!canManageAssignments) return;
-    const controller = new AbortController();
-
-    void listCaseAssignees({}, controller.signal)
-      .then((response) => {
-        if (!controller.signal.aborted) setAssignees(response.items);
-      })
-      .catch((requestError: unknown) => {
-        if (!controller.signal.aborted) {
-          setMutationError(readableError(requestError));
-        }
-      });
-
-    return () => controller.abort();
-  }, [canManageAssignments]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -611,6 +602,8 @@ export default function CasesPage() {
           : current,
       );
       setNotice(`${updated.reference} actualizado y auditado.`);
+      setFilters((current) => ({ ...current, page: 1 }));
+      setReload((value) => value + 1);
     } catch (requestError: unknown) {
       setResult(previousResult);
       setMutationError(readableError(requestError));
@@ -626,13 +619,15 @@ export default function CasesPage() {
       {notice && (
         <div
           role="status"
-          className="fixed right-6 top-6 z-[90] flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-2xl min-w-0 flex-wrap"
+          className="fixed right-4 top-4 z-[90] grid max-w-[calc(100vw-2rem)] grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-lg sm:right-6 sm:top-6 sm:max-w-lg"
         >
-          <CheckCircle2 size={18} /> {notice}
+          <CheckCircle2 aria-hidden="true" size={20} className="mt-3 shrink-0 text-emerald-700" />
+          <p className="min-w-0 break-words py-3 leading-5">{notice}</p>
           <button
             type="button"
             aria-label="Cerrar aviso"
             onClick={() => setNotice(null)}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-emerald-950 hover:bg-emerald-100 focus-visible:ring-2 focus-visible:ring-emerald-800"
           >
             <X size={16} />
           </button>
@@ -767,9 +762,13 @@ export default function CasesPage() {
             No hay casos para estos filtros
           </h2>
           <p className="mt-2 max-w-xl text-sm text-slate-500">
-            La plataforma no agrega datos de ejemplo. Ajusta los filtros o
-            radica la primera solicitud real.
+            Ajusta los filtros o registra una solicitud para asignar su seguimiento al equipo.
           </p>
+          {(filters.search || filters.status || filters.priority) && (
+            <button type="button" onClick={() => { setSearchDraft(""); setFilters(INITIAL_FILTERS); }} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+              Limpiar filtros
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -784,7 +783,6 @@ export default function CasesPage() {
               <CaseCard
                 key={`${issueCase.id}:${issueCase.updatedAt}`}
                 issueCase={issueCase}
-                assignees={assignees}
                 canMutate={canMutate}
                 canManageAssignments={canManageAssignments}
                 saving={saving === issueCase.id}
@@ -952,16 +950,14 @@ export default function CasesPage() {
                     <label className="space-y-2 text-sm font-semibold text-slate-500 min-w-0">
                       Responsable
                       <UserCombobox
+                        ariaLabel="Responsable del nuevo caso"
                         value={form.assigneeId}
                         onChange={(value) =>
                           setForm({ ...form, assigneeId: value })
                         }
-                        fetchItems={async (search, signal) =>
-                          listCaseAssignees(
-                            { page: 1, limit: 10, search },
-                            signal,
-                          )
-                        }
+                        fetchItems={searchCaseAssignees}
+                        paginated
+                        disabled={saving === "create"}
                         className="mt-2"
                       />
                     </label>

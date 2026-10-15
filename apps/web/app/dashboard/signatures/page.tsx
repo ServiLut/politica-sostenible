@@ -192,6 +192,7 @@ export default function SignatureCollectionPage() {
     refresh: load,
   } = usePageRequest(getSignatureCollectionOverview, {
     reloadKey: reloadVersion,
+    retainDataOnRefresh: true,
   });
   const loadError = requestError ? readableError(requestError) : null;
 
@@ -487,7 +488,7 @@ export default function SignatureCollectionPage() {
 
   if (loading && !overview) {
     return (
-      <main
+      <section
         className="flex min-h-[50vh] items-center justify-center min-w-0"
         aria-live="polite"
       >
@@ -495,13 +496,13 @@ export default function SignatureCollectionPage() {
         <span className="ml-3 font-medium text-slate-700">
           Cargando expediente de firmas…
         </span>
-      </main>
+      </section>
     );
   }
 
   if (loadError || !overview) {
     return (
-      <main className="mx-auto max-w-3xl min-w-0">
+      <section className="mx-auto max-w-3xl min-w-0">
         <div
           role="alert"
           className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 min-w-0"
@@ -518,14 +519,14 @@ export default function SignatureCollectionPage() {
             <RefreshCw size={16} aria-hidden="true" /> Reintentar
           </button>
         </div>
-      </main>
+      </section>
     );
   }
 
   const { plan, summary } = overview;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 min-w-0">
+    <section className="mx-auto max-w-7xl space-y-6 min-w-0">
       <PageHeader
         title="Recolección de firmas y apoyos"
         icon={ClipboardCheck}
@@ -937,7 +938,7 @@ export default function SignatureCollectionPage() {
             batches={overview.batches}
             role={role}
             readOnly={overview.readOnly}
-            onChanged={() => setReloadVersion((value) => value + 1)}
+            onChanged={() => void load()}
           />
 
           {collecting && canManage ? (
@@ -1703,6 +1704,6 @@ export default function SignatureCollectionPage() {
           </section>
         </>
       )}
-    </main>
+    </section>
   );
 }

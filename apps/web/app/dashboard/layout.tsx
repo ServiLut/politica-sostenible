@@ -42,14 +42,16 @@ export default function DashboardLayout({
   const isCurrentStageAllowed =
     !currentRouteConfig?.allowedStages ||
     Boolean(stage && currentRouteConfig.allowedStages.includes(stage));
+  const isCurrentContextAllowed = Boolean(
+    user && tenant && currentRouteConfig &&
+    canAccessNavigationItem(currentRouteConfig, user, tenant),
+  );
   const hasPermission = Boolean(
     user &&
     tenant &&
     (!requiresPasswordChange || isPersonalAccountRoute) &&
     (isPersonalAccountRoute ||
-      (currentRouteConfig &&
-        isCurrentStageAllowed &&
-        canAccessNavigationItem(currentRouteConfig, user, tenant))),
+      (isCurrentContextAllowed && isCurrentStageAllowed)),
   );
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function DashboardLayout({
       dashboardConfig,
     );
     const canReviewStage = Boolean(
-      !isCurrentStageAllowed &&
+      isCurrentContextAllowed && !isCurrentStageAllowed &&
       tenant &&
       profileRoute &&
       canAccessNavigationItem(profileRoute, user, tenant),
@@ -157,7 +159,7 @@ export default function DashboardLayout({
                   : "Acceso restringido"}
               </h1>
               <p className="mt-3 font-medium leading-relaxed text-slate-600">
-                {currentRouteConfig?.allowedStages && !isCurrentStageAllowed ? (
+                {isCurrentContextAllowed && currentRouteConfig?.allowedStages && !isCurrentStageAllowed ? (
                   <>
                     Esta sección no está habilitada durante la etapa operativa
                     actual. Usa el perfil operativo para consultar el avance

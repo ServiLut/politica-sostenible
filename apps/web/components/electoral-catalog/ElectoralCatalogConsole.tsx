@@ -33,6 +33,7 @@ import {
   validateCatalogRelease,
 } from "@/lib/electoral-catalog-api";
 import { ElectoralCatalogImportPanel } from "@/components/electoral-catalog/ElectoralCatalogImportPanel";
+import { TableViewport } from "@/components/ui/TableViewport";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 const STATUS_LABELS: Record<ElectoralCatalogStatus, string> = {
@@ -217,12 +218,7 @@ function IntegrityPanel({ integrity, type }: { integrity: CatalogIntegrityReport
 
 function EntryTable({ entries }: { entries: ElectoralCatalogEntry[] }) {
   return (
-    <div
-      role="region"
-      aria-label="Entradas del catálogo: tabla con desplazamiento horizontal"
-      tabIndex={0}
-      className="min-w-0 max-w-full overflow-x-auto rounded-2xl border border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-    >
+    <TableViewport label="Entradas del catálogo">
       <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
         <thead className="bg-slate-950 text-xs uppercase tracking-wider text-white">
           <tr>
@@ -288,7 +284,7 @@ function EntryTable({ entries }: { entries: ElectoralCatalogEntry[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </TableViewport>
   );
 }
 

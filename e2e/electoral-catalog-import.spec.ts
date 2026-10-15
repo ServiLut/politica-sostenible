@@ -262,6 +262,7 @@ test("Administración calcula la huella, hace PUT directo y sigue el trabajo has
   });
 
   await page.goto("/dashboard/electoral-catalog");
+  await page.getByText("Incorporar un archivo electoral de RNEC · opciones avanzadas", { exact: true }).click();
   await page.getByLabel("Artefacto JSON").setInputFiles({
     name: "rnec.json",
     // Algunos navegadores no infieren el MIME de un archivo local .json.
@@ -331,6 +332,11 @@ test("Administración calcula la huella, hace PUT directo y sigue el trabajo has
   ).toBeVisible({ timeout: 14_000 });
   await expect(
     page.getByText(/Aún debe revisarse, validarse y activarse/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /Snapshot preparado.*DIVIPOLE Presidencia 2026/,
+    }),
   ).toBeVisible();
   expect(detailCalls).toBeGreaterThanOrEqual(3);
   const callsAtCompletion = detailCalls;
@@ -488,6 +494,7 @@ test("Administración arma el paquete público desde dos JSON locales sin consul
   ];
 
   await page.goto("/dashboard/electoral-catalog");
+  await page.getByText("Incorporar un archivo electoral de RNEC · opciones avanzadas", { exact: true }).click();
   await page.getByLabel(/Paquete público RNEC/).check();
   await page.getByLabel(/departmentsTree oficial/).setInputFiles({
     name: "departmentsTree.json",
@@ -636,6 +643,7 @@ test("un fallo exige confirmación y se reencola sin volver a subir el artefacto
   });
 
   await page.goto("/dashboard/electoral-catalog");
+  await page.getByText("Incorporar un archivo electoral de RNEC · opciones avanzadas", { exact: true }).click();
   await expect(
     page.getByText("El JSON no contiene la jerarquía RNEC esperada."),
   ).toBeVisible();

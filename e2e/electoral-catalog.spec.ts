@@ -247,11 +247,12 @@ test("auditoría consulta procedencia, brechas, entradas y diff sin activar dato
 
   await page.goto("/dashboard/electoral-catalog");
   await expect(
-    page.getByRole("heading", { name: "Catálogo electoral verificable" }),
+    page.getByRole("heading", { name: "Catálogos territoriales y electorales" }),
   ).toBeVisible();
   await expect(
     page.getByText("DIVIPOLE Presidencia 2026").first(),
   ).toBeVisible();
+  await page.getByText("Ver procedencia, responsables y huella del archivo", { exact: true }).click();
   await expect(page.getByText(sha256)).toBeVisible();
   await expect(
     page.getByText("RNEC-AUT-2026-001", { exact: true }),
@@ -263,6 +264,11 @@ test("auditoría consulta procedencia, brechas, entradas y diff sin activar dato
   await expect(page.getByText("America/Bogota", { exact: true })).toBeVisible();
   await expect(page.getByText(/1 ubicaciones físicas/)).toBeVisible();
   await expect(page.getByText(/No operativo:/)).toBeVisible();
+  await page
+    .getByText("Incorporar un archivo electoral de RNEC · opciones avanzadas", {
+      exact: true,
+    })
+    .click();
   await expect(page.getByText(/Modo de observación:/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Subir y encolar ingesta" }),

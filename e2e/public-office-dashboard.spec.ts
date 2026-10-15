@@ -194,7 +194,7 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
     page.getByRole("heading", { name: "Centro de gestión pública" }),
   ).toBeVisible();
   await expect(
-    page.getByText(/Seguimiento de Alcaldía verificable/),
+    page.getByText("Alcaldía verificable", { exact: true }).last(),
   ).toBeVisible();
   await expect(page.getByTestId("open-cases-metric")).toHaveText("12");
   await expect(page.getByTestId("open-pqrsd-metric")).toHaveText("7");
@@ -207,6 +207,7 @@ test("muestra un briefing de gestión pública agregado, aislado y con Bearer", 
   await expect(
     page.getByText("Compromisos visibles para el equipo"),
   ).toBeVisible();
+  await page.getByText("Ver pasos completados (3)", { exact: true }).click();
   await expect(
     page.getByText("Compartir el primer compromiso con el equipo"),
   ).toBeVisible();

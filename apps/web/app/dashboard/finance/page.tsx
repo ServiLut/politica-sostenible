@@ -1,5 +1,7 @@
 "use client";
 
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
@@ -748,7 +750,7 @@ export default function FinancePage() {
                   setError(null);
                   openSettings();
                 }}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white max-w-full whitespace-normal"
+                className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white max-w-full whitespace-normal"
               >
                 <SlidersHorizontal size={15} /> Configurar expediente
               </button>
@@ -889,12 +891,7 @@ export default function FinancePage() {
             </p>
           </div>
         ) : (
-          <div
-            className="overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            role="region"
-            aria-label="Movimientos financieros: tabla con desplazamiento horizontal"
-            tabIndex={0}
-          >
+          <TableViewport label="Movimientos financieros">
             <table className="w-full min-w-[980px] text-left">
               <thead className="text-xs font-semibold text-slate-500">
                 <tr>
@@ -1019,7 +1016,7 @@ export default function FinancePage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         )}
       </section>
 

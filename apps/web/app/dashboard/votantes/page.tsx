@@ -1,5 +1,7 @@
 "use client";
 
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
@@ -500,7 +502,7 @@ export default function VotantesPage() {
   const totalPages = Math.max(1, result?.pagination.totalPages ?? 1);
 
   return (
-    <main id="main-content" className="space-y-8 min-w-0">
+    <section id="main-content" className="space-y-8 min-w-0">
       {notice && (
         <div
           role="status"
@@ -519,7 +521,7 @@ export default function VotantesPage() {
 
       <PageHeader
         title="Personas"
-        description="Gestiona los datos autorizados por cada persona, sin clasificar intención de voto, ideología ni características sensibles."
+        description="Consulta y organiza los contactos que autorizaron el uso de sus datos."
         icon={ShieldCheck}
       />
 
@@ -611,21 +613,25 @@ export default function VotantesPage() {
         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 p-5 md:flex-row md:items-center md:justify-between min-w-0">
           <form
             onSubmit={submitSearch}
-            className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row min-w-0"
+            className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:items-end min-w-0"
           >
-            <label className="relative flex-1 min-w-0">
-              <span className="sr-only">Buscar personas</span>
+            <label className="block flex-1 min-w-0">
+              <span className="mb-1.5 block text-sm font-semibold text-slate-700">Buscar personas</span>
+              <span className="relative block">
               <Search
+                aria-hidden="true"
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 size={18}
               />
               <input
+                type="search"
                 value={searchDraft}
                 maxLength={100}
                 onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Buscar por nombre, documento o celular"
+                placeholder="Nombre, documento o celular"
                 className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 min-w-0 max-w-full"
               />
+              </span>
             </label>
             <button
               type="submit"
@@ -635,8 +641,8 @@ export default function VotantesPage() {
             </button>
           </form>
           <p className="shrink-0 text-xs font-bold text-slate-500">
-            {result ? result.pagination.total : "—"} personas · datos
-            minimizados
+            {result ? result.pagination.total.toLocaleString("es-CO") : "—"}{" "}
+            {result?.pagination.total === 1 ? "persona" : "personas"} · datos minimizados
           </p>
         </div>
 
@@ -675,7 +681,7 @@ export default function VotantesPage() {
             Consulta no disponible. Usa Reintentar para recuperar el listado.
           </div>
         ) : !result?.items.length ? (
-          <div className="m-5 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center min-w-0">
+          <div className="m-4 rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center min-w-0 sm:m-5 sm:p-10">
             <ShieldCheck className="mx-auto mb-4 text-slate-300" size={42} />
             <h2 className="font-semibold text-slate-900">
               No hay registros para mostrar
@@ -684,14 +690,14 @@ export default function VotantesPage() {
               Ajusta la búsqueda o registra una persona después de obtener su
               autorización correspondiente.
             </p>
+            {search && (
+              <button type="button" onClick={() => { setSearchDraft(""); setSearch(""); setPage(1); }} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+                Limpiar búsqueda
+              </button>
+            )}
           </div>
         ) : (
-          <div
-            className="overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            role="region"
-            aria-label="Personas registradas: tabla con desplazamiento horizontal"
-            tabIndex={0}
-          >
+          <TableViewport label="Personas registradas">
             <table className="w-full min-w-[900px] text-left">
               <thead className="text-xs font-semibold text-slate-400">
                 <tr>
@@ -807,7 +813,7 @@ export default function VotantesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         )}
 
         {!loading && result && result.pagination.total > 0 && (
@@ -1322,6 +1328,6 @@ export default function VotantesPage() {
           onUpdated={() => setReload((value) => value + 1)}
         />
       )}
-    </main>
+    </section>
   );
 }

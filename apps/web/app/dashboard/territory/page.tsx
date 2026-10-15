@@ -655,10 +655,11 @@ export default function TerritoryPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedDivisionForLeader(division)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-100 max-w-full whitespace-normal"
+                    aria-label={`Crear líder en ${division.name}`}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 max-w-full whitespace-normal"
                   >
                     <UserPlus size={14} />
-                    Crear Líder
+                    Crear líder
                   </button>
                 </div>
               </article>

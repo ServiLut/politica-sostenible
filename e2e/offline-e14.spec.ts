@@ -146,6 +146,7 @@ test("E-14 SIMULACRO: provision → offline/reload → direct PUT → durable re
   const directUploads: Array<{ method: string; body: Buffer | null }> = [];
   let operationId = "";
   let capturedAt = "";
+  let integrityVerified = false;
 
   await page.route("**/storage/v1/object/upload/sign/**", async (route) => {
     directUploads.push({
@@ -253,14 +254,36 @@ test("E-14 SIMULACRO: provision → offline/reload → direct PUT → durable re
         contentType: "application/json",
         body: JSON.stringify(
           successful(
-            { confirmed: true, path: confirmedPath, module: "e14" },
+            {
+              confirmed: true,
+              objectId: "storage-offline-e14",
+              path: confirmedPath,
+              module: "e14",
+              contentIntegrity: "PENDING",
+            },
             201,
           ),
         ),
       });
       return;
     }
+    if (path === "/api/storage/storage-offline-e14/integrity" && method === "GET") {
+      expect(directUploads).toHaveLength(1);
+      integrityVerified = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful({
+          objectId: "storage-offline-e14",
+          status: "VERIFIED",
+          verifiedAt: new Date().toISOString(),
+          failureCode: null,
+        })),
+      });
+      return;
+    }
     if (path === "/api/logistics/sync/e14" && method === "POST") {
+      expect(integrityVerified).toBe(true);
       operationId = String(body?.clientOperationId);
       capturedAt = String(body?.capturedAt);
       expect(body).toMatchObject({

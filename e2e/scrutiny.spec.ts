@@ -361,6 +361,9 @@ test("opera aplicabilidad con hash canónico y sin tenant enviado por la UI", as
   await page
     .getByText("5. Revisión y cadena de custodia", { exact: true })
     .click();
+  const documentReview = page.locator("details").filter({
+    has: page.getByText("5. Revisión y cadena de custodia", { exact: true }),
+  });
   await page
     .getByRole("button", { name: "Preparar copia privada" })
     .first()
@@ -371,6 +374,10 @@ test("opera aplicabilidad con hash canónico y sin tenant enviado por la UI", as
     "href",
     "https://storage.example.test/signed-scrutiny-document",
   );
+  await expect(documentReview).toHaveAttribute("open", "");
+  await expect(
+    page.getByRole("link", { name: "Descargar archivo autorizado" }).first(),
+  ).toBeVisible();
 
   expect(mutations).toHaveLength(1);
   expect(mutations[0].path).toBe(

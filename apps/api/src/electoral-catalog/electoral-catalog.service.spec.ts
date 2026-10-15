@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AuditActorType,
+  type ElectoralCatalogEntry,
   ElectoralCatalogEntryType,
   ElectoralCatalogStatus,
   ElectoralCatalogType,
@@ -117,7 +118,7 @@ function savedRelease(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function savedEntries() {
+function savedEntries(): ElectoralCatalogEntry[] {
   return [
     {
       id: 'entry-department',
@@ -1119,7 +1120,7 @@ describe('ElectoralCatalogService', () => {
       latitude: null,
       longitude: null,
       commune: null,
-    } as (typeof entries)[number];
+    };
     transaction.electoralCatalogEntry.findMany.mockResolvedValue(entries);
     const { service } = buildService(transaction);
 
@@ -1134,6 +1135,133 @@ describe('ElectoralCatalogService', () => {
         },
       },
     });
+  });
+
+  it('treats physical polling-place metrics as not applicable to an administrative DANE snapshot', async () => {
+    const transaction = buildTransaction();
+    transaction.electoralCatalogRelease.findFirst.mockResolvedValue(
+      savedRelease({
+        type: ElectoralCatalogType.ADMINISTRATIVE_DANE,
+        status: ElectoralCatalogStatus.VALIDATED,
+        recordCount: 2,
+        zoneCount: 0,
+        pollingPlaceCount: 0,
+        expectedTableCount: 0,
+      }),
+    );
+    transaction.electoralCatalogEntry.findMany.mockResolvedValue(
+      savedEntries()
+        .slice(0, 2)
+        .map((entry) => ({
+          ...entry,
+          namespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+        })),
+    );
+    const { service } = buildService(transaction);
+
+    await expect(
+      service.getReleaseGaps(admin, 'release-a'),
+    ).resolves.toMatchObject({
+      integrity: {
+        valid: true,
+        blockingIssues: [],
+        counts: {
+          records: 2,
+          departments: 1,
+          municipalities: 1,
+          pollingPlaces: 0,
+          physicalPollingPlaces: null,
+          additionalVotingDayRepresentations: null,
+        },
+        gaps: {
+          physicalPollingPlacesWithoutAddress: null,
+          physicalPollingPlacesWithoutTimeZone: null,
+        },
+      },
+    });
+    expect(transaction.electoralCatalogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: admin.tenantId, releaseId: 'release-a' },
+      }),
+    );
+    expect(transaction.electoralCatalogRelease.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ municipalityCount: 2 }, 'municipalities'],
+    [{ physicalPollingPlaceCount: 1 }, 'physicalPollingPlaces'],
+  ])(
+    'still rejects incorrect administrative DANE counts %j',
+    async (override, count) => {
+      const transaction = buildTransaction();
+      transaction.electoralCatalogRelease.findFirst.mockResolvedValue(
+        savedRelease({
+          type: ElectoralCatalogType.ADMINISTRATIVE_DANE,
+          recordCount: 2,
+          zoneCount: 0,
+          pollingPlaceCount: 0,
+          expectedTableCount: 0,
+          ...override,
+        }),
+      );
+      transaction.electoralCatalogEntry.findMany.mockResolvedValue(
+        savedEntries()
+          .slice(0, 2)
+          .map((entry) => ({
+            ...entry,
+            namespace: ElectoralCodeNamespace.DANE_DIVIPOLA,
+          })),
+      );
+      const { service } = buildService(transaction);
+
+      const result = await service.getReleaseGaps(admin, 'release-a');
+      expect(result.integrity.valid).toBe(false);
+      expect(result.integrity.blockingIssues).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(`Conteo ${count} no coincide`),
+        ]),
+      );
+    },
+  );
+
+  it('does not reinterpret a missing RNEC physical count as zero or as not applicable', async () => {
+    const transaction = buildTransaction();
+    transaction.electoralCatalogRelease.findFirst.mockResolvedValue(
+      savedRelease(),
+    );
+    const entries = savedEntries();
+    entries[3] = {
+      ...entries[3],
+      sourceLocationCode: 'RNEC-LOCATION-01',
+      votingDate: new Date('2026-03-08T00:00:00.000Z'),
+    };
+    transaction.electoralCatalogEntry.findMany.mockResolvedValue(entries);
+    const { service } = buildService(transaction);
+
+    const result = await service.getReleaseGaps(admin, 'release-a');
+    expect(result.integrity.valid).toBe(false);
+    expect(result.integrity.counts.physicalPollingPlaces).toBe(1);
+    expect(result.integrity.blockingIssues).toEqual(
+      expect.arrayContaining([
+        'Conteo physicalPollingPlaces no coincide: declarado null, observado 1',
+        'Conteo additionalVotingDayRepresentations no coincide: declarado null, observado 0',
+      ]),
+    );
+  });
+
+  it('still blocks an RNEC physical count when polling-place identity is incomplete', async () => {
+    const transaction = buildTransaction();
+    transaction.electoralCatalogRelease.findFirst.mockResolvedValue(
+      savedRelease({ physicalPollingPlaceCount: 1 }),
+    );
+    const { service } = buildService(transaction);
+
+    const result = await service.getReleaseGaps(admin, 'release-a');
+    expect(result.integrity.valid).toBe(false);
+    expect(result.integrity.counts.physicalPollingPlaces).toBeNull();
+    expect(result.integrity.blockingIssues).toContain(
+      '1 puestos no conservan codigo fisico o jornada',
+    );
   });
 
   it('diffs only releases from the same tenant and catalog', async () => {
@@ -1151,7 +1279,7 @@ describe('ElectoralCatalogService', () => {
     baseEntries[3] = {
       ...baseEntries[3],
       expectedTables: 10,
-    } as (typeof baseEntries)[number];
+    };
     transaction.electoralCatalogEntry.findMany
       .mockResolvedValueOnce(targetEntries)
       .mockResolvedValueOnce(baseEntries);

@@ -195,6 +195,84 @@ test("el límite real de evidencia se comprueba antes de subir ningún archivo",
   expect(uploads).toBe(0);
 });
 
+test("rechaza nombres incompatibles con la API antes de leer o subir archivos", async () => {
+  let uploads = 0;
+  let ids = 0;
+  let reads = 0;
+  const session = createVoterImportUploadSession({
+    upload: async () => {
+      uploads++;
+      throw new Error("No debe cargarse");
+    },
+    requestId: () => String(++ids),
+  });
+  for (const name of [
+    "contactos#1.csv",
+    "contactos&equipo.csv",
+    'contactos"nuevos".csv',
+    `${"a".repeat(177)}.csv`,
+  ]) {
+    const invalid = new File([csv], name, { type: "text/csv" });
+    Object.defineProperty(invalid, "arrayBuffer", {
+      value: async () => {
+        reads++;
+        throw new Error("No debe leerse");
+      },
+    });
+    await expect(session.prepare({ ...base, file: invalid })).rejects.toThrow(
+      /Usa letras, números/u,
+    );
+  }
+  expect({ reads, uploads, ids }).toEqual({ reads: 0, uploads: 0, ids: 0 });
+});
+
+test("rechaza bytes que no son UTF-8 antes de subir evidencias o crear una revisión", async () => {
+  let uploads = 0;
+  let ids = 0;
+  const session = createVoterImportUploadSession({
+    upload: async () => {
+      uploads++;
+      throw new Error("No debe cargarse");
+    },
+    requestId: () => String(++ids),
+  });
+  for (const invalidBytes of [
+    new Uint8Array([0xe9]), // An accented character encoded as Windows-1252.
+    new Uint8Array([0xc3]), // An incomplete UTF-8 sequence.
+    new Uint8Array([0xff, 0xfe, 0x44, 0x00]), // UTF-16 is not CSV UTF-8.
+  ]) {
+    await expect(
+      session.prepare({
+        ...base,
+        file: new File([csv, invalidBytes], "personas.csv", { type: "text/csv" }),
+      }),
+    ).rejects.toThrow(/CSV UTF-8 y vuelve a seleccionarlo/u);
+  }
+  expect({ uploads, ids }).toEqual({ uploads: 0, ids: 0 });
+});
+
+test("conserva nombres y valores Unicode válidos al leer CSV UTF-8 con BOM", async () => {
+  const uploaded: File[] = [];
+  const session = createVoterImportUploadSession({
+    upload: async (file, module) => {
+      uploaded.push(file);
+      return { path: `tenant/${module}/confirmed`, sha256: "a".repeat(64) };
+    },
+    requestId: () => "valid-utf8",
+  });
+  const name = "Personas María (2) + equipo_2026.CSV";
+  const input = await session.prepare({
+    ...base,
+    file: new File([`\uFEFF${csv.replace("Ana", "María José")}`], name, {
+      type: "text/csv",
+    }),
+  });
+  expect(input.fileName).toBe(name);
+  expect(uploaded).toHaveLength(2);
+  expect(await uploaded[1].text()).toContain(";María José;Prueba;SI;v1;");
+  expect(await uploaded[1].text()).not.toContain("\uFFFD");
+});
+
 test("sustituir evidencia con mismo nombre obliga a comprobar sus nuevos bytes", async () => {
   const calls: string[] = [];
   const session = createVoterImportUploadSession({

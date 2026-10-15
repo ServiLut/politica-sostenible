@@ -15,7 +15,11 @@ test("la portada comunica capacidades verificables y enlaza las políticas", asy
   await page.waitForLoadState("networkidle");
 
   await expect(
-    page.getByRole("heading", { name: "Política Sostenible" }),
+    page.getByRole("heading", {
+      name: "Política Sostenible",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
   await expect(
     page.getByText("Campaña y ejercicio del cargo separados"),
@@ -654,7 +658,11 @@ test("las rutas públicas de demostración quedaron fuera de producción", async
   await page.goto("/crm-demo");
   await expect(page).toHaveURL(/\/$/);
   await expect(
-    page.getByRole("heading", { name: "Política Sostenible" }),
+    page.getByRole("heading", {
+      name: "Política Sostenible",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
 });
 
@@ -709,7 +717,9 @@ test("el registro permite omitir el documento y evidencia términos versionados"
   ).not.toHaveAttribute("required", "");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await page.getByLabel("Correo corporativo").fill("ana@example.test");
+  await page
+    .getByLabel("Correo electrónico", { exact: true })
+    .fill("ana@example.test");
   await page
     .getByLabel("Contraseña", { exact: true })
     .fill("clave-segura-2026");
@@ -920,7 +930,7 @@ test("el inicio de sesión conserva el contrato y envía Bearer a la API", async
   await expect(page.getByText("Controles críticos al día")).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Consejo territorial/ }),
-  ).toHaveAttribute("href", "/dashboard/events");
+  ).toHaveAttribute("href", "/dashboard/events?entityId=event-e2e");
   await expect(
     page.getByRole("link", { name: /Cerrar cobertura de testigos/ }),
   ).toHaveAttribute("href", "/dashboard/tasks?view=tasks&entityId=task-e2e");

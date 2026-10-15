@@ -91,6 +91,9 @@ type RoleMatrixScenario = {
   visiblePaths: readonly string[];
 };
 
+// Kept independent from getVisibleNavigationItems so these tests detect leaks.
+// Territory read routes match CampaignController/CAMPAIGN_DIVISION_READ_ROLES.
+// Día D matches VoterController's three roles; privacy is read-only for auditors.
 export const ROLE_MATRIX_SCENARIOS = [
   {
     id: "admin-candidacy",
@@ -106,6 +109,8 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/incidents",
       "/dashboard/inbox",
       "/dashboard/territory",
+      "/dashboard/territory/heatmap",
+      "/dashboard/territory/leaders",
       "/dashboard/electoral-calendar",
       "/dashboard/signatures",
       "/dashboard/logistics",
@@ -124,6 +129,7 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/finance",
       "/dashboard/integrity-signatures",
       "/dashboard/war-room",
+      "/dashboard/dia-d",
       "/dashboard/proposals",
       "/dashboard/billing",
     ],
@@ -165,6 +171,8 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/incidents",
       "/dashboard/inbox",
       "/dashboard/territory",
+      "/dashboard/territory/heatmap",
+      "/dashboard/territory/leaders",
       "/dashboard/electoral-calendar",
       "/dashboard/signatures",
       "/dashboard/logistics",
@@ -178,6 +186,7 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/finance",
       "/dashboard/integrity-signatures",
       "/dashboard/war-room",
+      "/dashboard/dia-d",
       "/dashboard/proposals",
     ],
   },
@@ -283,6 +292,8 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/incidents",
       "/dashboard/inbox",
       "/dashboard/territory",
+      "/dashboard/territory/heatmap",
+      "/dashboard/territory/leaders",
       "/dashboard/electoral-calendar",
       "/dashboard/signatures",
       "/dashboard/logistics",
@@ -337,6 +348,8 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/incidents",
       "/dashboard/inbox",
       "/dashboard/territory",
+      "/dashboard/territory/heatmap",
+      "/dashboard/territory/leaders",
       "/dashboard/electoral-calendar",
       "/dashboard/signatures",
       "/dashboard/logistics",
@@ -348,6 +361,7 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/events",
       "/dashboard/operation-profile",
       "/dashboard/retention",
+      "/dashboard/settings",
       "/dashboard/communications",
       "/dashboard/audit",
       "/dashboard/finance",
@@ -372,6 +386,7 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/pqrsd",
       "/dashboard/tasks",
       "/dashboard/events",
+      "/dashboard/settings",
       "/dashboard/communications",
       "/dashboard/audit",
     ],
@@ -389,6 +404,8 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/captura-territorial",
       "/dashboard/inbox",
       "/dashboard/territory",
+      "/dashboard/territory/heatmap",
+      "/dashboard/territory/leaders",
       "/dashboard/electoral-calendar",
       "/dashboard/signatures",
       "/dashboard/logistics",
@@ -400,6 +417,7 @@ export const ROLE_MATRIX_SCENARIOS = [
       "/dashboard/operation-profile",
       "/dashboard/integrity-signatures",
       "/dashboard/war-room",
+      "/dashboard/dia-d",
     ],
   },
   {
@@ -455,5 +473,19 @@ export function assertRoleMatrixFixtureIsComplete() {
     throw new Error(
       `Matriz de roles inválida: faltantes=${missingRoles.join(",") || "ninguno"}; idsDuplicados=${duplicatedScenarioIds.join(",") || "ninguno"}`,
     );
+  }
+
+  for (const scenario of ROLE_MATRIX_SCENARIOS) {
+    const paths: readonly string[] = scenario.visiblePaths;
+    if (
+      new Set(paths).size !== paths.length ||
+      !paths.includes(scenario.defaultPath) ||
+      !paths.includes(scenario.allowedProbe) ||
+      paths.includes(scenario.forbiddenProbe)
+    ) {
+      throw new Error(
+        `Rutas de la matriz de roles inconsistentes: ${scenario.id}`,
+      );
+    }
   }
 }

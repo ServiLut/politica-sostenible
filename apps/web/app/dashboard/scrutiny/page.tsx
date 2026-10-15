@@ -1,4 +1,6 @@
 "use client";
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
@@ -306,6 +308,7 @@ export default function ScrutinyPage() {
     operation: () => Promise<T>,
     success: string,
     updater?: (current: ScrutinyOverview, result: T) => ScrutinyOverview,
+    options: { refreshOverview?: boolean } = {},
   ) {
     setBusy(key);
     setError(null);
@@ -317,7 +320,7 @@ export default function ScrutinyPage() {
         setOverview((current) =>
           current ? updater(current, result) : current,
         );
-      } else {
+      } else if (options.refreshOverview !== false) {
         setRevision((current) => current + 1);
       }
       return true;
@@ -419,7 +422,7 @@ export default function ScrutinyPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 min-w-0">
+    <section className="mx-auto max-w-7xl space-y-6 min-w-0">
       <PageHeader
         title="Escrutinios, reclamaciones y declaración"
         icon={Scale}
@@ -798,12 +801,7 @@ export default function ScrutinyPage() {
                     <h3 className="font-semibold text-slate-950">
                       Matriz de documentos esenciales
                     </h3>
-                    <div
-                      className="mt-3 overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                      role="region"
-                      aria-label="Resultados de escrutinio: tabla con desplazamiento horizontal"
-                      tabIndex={0}
-                    >
+                    <TableViewport label="Resultados de escrutinio" className="mt-3">
                       <table className="w-full min-w-[520px] text-left text-sm">
                         <thead>
                           <tr className="border-b text-xs text-slate-500">
@@ -835,7 +833,7 @@ export default function ScrutinyPage() {
                           )}
                         </tbody>
                       </table>
-                    </div>
+                    </TableViewport>
                     {canLegal ? (
                       <form
                         className="mt-4 grid gap-3 min-w-0"
@@ -1328,6 +1326,8 @@ export default function ScrutinyPage() {
                                   });
                                 },
                                 "URL privada preparada. Ábrela desde el enlace que aparece junto al documento.",
+                                undefined,
+                                { refreshOverview: false },
                               )
                             }
                           >
@@ -2363,7 +2363,7 @@ export default function ScrutinyPage() {
           ) : null}
         </>
       ) : null}
-    </main>
+    </section>
   );
 }
 

@@ -265,12 +265,12 @@ export function UserCombobox({
                     value === item.id ? "opacity-100" : "opacity-0",
                   )}
                 />
-                <span className="min-w-0 flex-1 break-words text-left">
-                  {item.name}
-                </span>
-                <span className="ml-auto max-w-[44%] shrink-0 break-words text-right text-xs text-slate-500">
-                  {getRoleLabel(item.role as BackendUserRole) ||
-                    "Rol no disponible"}
+                <span className="min-w-0 flex-1 space-y-1 break-words text-left">
+                  <span className="block font-medium leading-5">{item.name}</span>
+                  <span className="block text-xs leading-4 text-slate-500">
+                    {getRoleLabel(item.role as BackendUserRole) ||
+                      "Rol no disponible"}
+                  </span>
                 </span>
               </button>
             ))}
@@ -284,15 +284,18 @@ export function UserCombobox({
                 type="button"
                 className="min-h-11 rounded-lg px-3 py-2 font-semibold hover:bg-slate-100 disabled:opacity-50"
                 disabled={loading || page <= 1}
-                onClick={() =>
+                onClick={() => {
+                  // The page buttons disappear while the next request loads.
+                  // Keep focus inside the picker before removing the clicked node.
+                  searchRef.current?.focus({ preventScroll: true });
                   dispatchQuery({
                     type: "page",
                     value: Math.max(
                       1,
                       Math.min(page - 1, pagination.totalPages),
                     ),
-                  })
-                }
+                  });
+                }}
               >
                 Anterior
               </button>
@@ -300,7 +303,10 @@ export function UserCombobox({
                 type="button"
                 className="min-h-11 rounded-lg px-3 py-2 font-semibold hover:bg-slate-100 disabled:opacity-50"
                 disabled={loading || page >= pagination.totalPages}
-                onClick={() => dispatchQuery({ type: "page", value: page + 1 })}
+                onClick={() => {
+                  searchRef.current?.focus({ preventScroll: true });
+                  dispatchQuery({ type: "page", value: page + 1 });
+                }}
               >
                 Siguiente
               </button>

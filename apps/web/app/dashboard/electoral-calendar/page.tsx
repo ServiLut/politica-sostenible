@@ -532,7 +532,7 @@ export default function ElectoralCalendarPage() {
 
   if (loading && !overview) {
     return (
-      <main
+      <section
         className="flex min-h-[50vh] items-center justify-center min-w-0"
         aria-busy="true"
       >
@@ -540,13 +540,13 @@ export default function ElectoralCalendarPage() {
           <Loader2 className="animate-spin" aria-hidden="true" /> Cargando
           calendario versionado…
         </p>
-      </main>
+      </section>
     );
   }
 
   if (!overview) {
     return (
-      <main className="mx-auto max-w-4xl min-w-0">
+      <section className="mx-auto max-w-4xl min-w-0">
         <div
           role="alert"
           className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 min-w-0"
@@ -563,12 +563,12 @@ export default function ElectoralCalendarPage() {
             <RefreshCw size={16} aria-hidden="true" /> Reintentar
           </button>
         </div>
-      </main>
+      </section>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 pb-24 min-w-0">
+    <section className="mx-auto max-w-7xl space-y-6 pb-24 min-w-0">
       <PageHeader
         title="Calendario electoral versionado"
         icon={FileClock}
@@ -1446,6 +1446,6 @@ export default function ElectoralCalendarPage() {
           ; cerrarlos allí no cierra automáticamente un hito.
         </p>
       </footer>
-    </main>
+    </section>
   );
 }

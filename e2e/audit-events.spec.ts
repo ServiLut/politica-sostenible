@@ -193,16 +193,17 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
 
   await page.goto("/dashboard/audit");
   await expect(
-    page.getByRole("heading", { name: "Bitácora de auditoría" }),
+    page.getByRole("heading", { name: "Historial de actividad" }),
   ).toBeVisible();
   const isMobile = (page.viewportSize()?.width ?? 0) < 768;
   const auditRow = page.getByTestId(
     `${isMobile ? "audit-card" : "audit-row"}-audit-1`,
   );
   await expect(
-    auditRow.getByText("Caso actualizado", { exact: true }),
+    auditRow.getByText("Caso actualizado (CASE_UPDATED)", { exact: true }),
   ).toBeVisible();
-  await expect(auditRow.getByText("CASE_UPDATED")).toBeVisible();
+  await auditRow.getByText("Ver códigos del registro", { exact: true }).click();
+  await expect(auditRow.getByText("CASE_UPDATED", { exact: true })).toBeVisible();
   await expect(
     auditRow.getByText("Control interno", { exact: true }),
   ).toBeVisible();
@@ -219,8 +220,8 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
   await expect(page.getByText("contenido privado")).toHaveCount(0);
   await expect(page.getByText("hash privado")).toHaveCount(0);
 
-  await page.getByLabel("Acción").fill("CASE_");
-  await page.getByLabel("Tipo de recurso").fill("IssueCase");
+  await page.getByRole("combobox", { name: "Acción", exact: true }).selectOption("CASE_UPDATED");
+  await page.getByRole("combobox", { name: "Tipo de registro", exact: true }).selectOption("IssueCase");
   await page.getByLabel("Resultado").selectOption("SUCCESS");
   await page.getByLabel("Desde").fill("2026-08-01");
   await page.getByLabel("Hasta").fill("2026-08-31");
@@ -228,7 +229,7 @@ test("auditoría consulta, filtra y pagina una vista minimizada", async ({
 
   await expect.poll(() => requests.length).toBeGreaterThanOrEqual(2);
   const filtered = requests.at(-1);
-  expect(filtered?.searchParams.get("action")).toBe("CASE_");
+  expect(filtered?.searchParams.get("action")).toBe("CASE_UPDATED");
   expect(filtered?.searchParams.get("resourceType")).toBe("IssueCase");
   expect(filtered?.searchParams.get("outcome")).toBe("SUCCESS");
   expect(filtered?.searchParams.get("occurredFrom")).toBe(

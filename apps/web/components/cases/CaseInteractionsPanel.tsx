@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { CommunicationChannel, IssueCase } from "@/lib/cases-api";
 import { usePageRequest } from "@/lib/use-page-request";
+import { useKeyedState } from "@/hooks/use-keyed-state";
 import { ApiError } from "@/lib/api-client";
 import {
   getCaseConsentAcceptanceKey,
@@ -267,13 +268,6 @@ export function CaseInteractionsPanel({
     string | null
   >(null);
   const [consentNotice, setConsentNotice] = useState<string | null>(null);
-  const [consentAccepted, setConsentAccepted] = useState(false);
-  const [acceptedConsentNoticeKey, setAcceptedConsentNoticeKey] = useState<
-    string | null
-  >(null);
-  const [consentChannel, setConsentChannel] = useState<
-    "" | CapturableConsentCollectionChannel
-  >("");
   const [revocationReason, setRevocationReason] = useState("");
   const canCaptureSentiment =
     allowSentiment ?? issueCase.mode === "PUBLIC_OFFICE";
@@ -301,6 +295,16 @@ export function CaseInteractionsPanel({
     notice: consent?.currentNotice,
   };
   const currentConsentNoticeKey = getCaseConsentAcceptanceKey(consentPresentation);
+  // Reset the channel and confirmation together, including a corrected notice
+  // whose id/version stayed the same. Keep the interaction draft untouched.
+  const consentDraftKey = JSON.stringify([
+    issueCase.id,
+    reloadVersion,
+    consent?.currentNotice ?? null,
+  ]);
+  const [consentAccepted, setConsentAccepted] = useKeyedState(consentDraftKey, false);
+  const [acceptedConsentNoticeKey, setAcceptedConsentNoticeKey] = useKeyedState<string | null>(consentDraftKey, null);
+  const [consentChannel, setConsentChannel] = useKeyedState<"" | CapturableConsentCollectionChannel>(consentDraftKey, "");
   const consentAcceptedForCurrentNotice =
     hasCurrentCaseConsentAcceptance({
       ...consentPresentation,
@@ -314,7 +318,7 @@ export function CaseInteractionsPanel({
     setAcceptedConsentNoticeKey(null);
     setConsentChannel("");
     onClose();
-  }, [onClose]);
+  }, [onClose, setAcceptedConsentNoticeKey, setConsentAccepted, setConsentChannel]);
 
   useEffect(() => {
     closePanelRef.current = closePanel;

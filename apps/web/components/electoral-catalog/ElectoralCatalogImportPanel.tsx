@@ -232,7 +232,16 @@ export function ElectoralCatalogImportPanel({
       ])
         .then(([loadedJobs, loadedJob]) => {
           if (controller.signal.aborted) return;
-          setJobs(loadedJobs);
+          // The list and detail are read concurrently. A newer detail must also
+          // update its list row, otherwise a completed job keeps polling.
+          setJobs(
+            loadedJobs.map((job) =>
+              loadedJob?.id === job.id &&
+              Date.parse(loadedJob.updatedAt) >= Date.parse(job.updatedAt)
+                ? loadedJob
+                : job,
+            ),
+          );
           if (loadedJob) setSelectedJob(loadedJob);
           setPollError(null);
         })

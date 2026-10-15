@@ -214,9 +214,9 @@ test("online → offline → captura cifrada → reload → unlock → sync fore
   await expect(page.getByRole("status")).toContainText(
     "Captura guardada cifrada en este dispositivo",
   );
-  await expect(
-    page.getByRole("button", { name: "Bóveda offline · 1" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Bóveda offline", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Bóveda offline" }).getByText("Operaciones locales (1)")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar bóveda offline" }).click();
 
   const storedSnapshot = await page.evaluate(async () => {
     const databases = await indexedDB.databases();
@@ -489,7 +489,7 @@ test("un 4xx jamás se encola y una falla de red exige una segunda acción expl�
     name: "Guardar cifrado para sincronizar",
   });
   await explicitEncryptedSave.click();
-  await expect(
-    page.getByRole("button", { name: "Bóveda offline · 1" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Bóveda offline", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Bóveda offline" }).getByText("Operaciones locales (1)")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar bóveda offline" }).click();
 });

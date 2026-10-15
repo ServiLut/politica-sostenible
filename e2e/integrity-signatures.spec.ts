@@ -157,14 +157,14 @@ test("firma un candidato resuelto por el servidor sin enviar tenant", async ({
   await page.goto("/dashboard/integrity-signatures");
   await expect(
     page.getByRole("heading", {
-      name: "Sellos de vínculo y metadatos con MFA",
+      name: "Sellos de documentos",
     }),
   ).toBeVisible();
   await page.getByRole("radio").check();
-  await page.getByLabel("Código MFA de seis dígitos").fill("123456");
-  await page.getByRole("button", { name: "Firmar documento" }).click();
+  await page.getByLabel("Código de tu aplicación de autenticación").fill("123456");
+  await page.getByRole("button", { name: "Crear sello" }).click();
 
-  await expect(page.getByRole("status")).toContainText("signature-a");
+  await expect(page.getByRole("status").filter({ hasText: "Sello signature-a registrado" })).toBeVisible();
   expect(mutations).toEqual([
     {
       documentId: "document-a",
@@ -190,16 +190,16 @@ test("en CLOSED conserva verificación y no solicita candidatos de firma", async
 
   await page.goto("/dashboard/integrity-signatures");
   await expect(page.getByText("La operación está cerrada:")).toBeVisible();
-  await page.getByLabel("ID de firma").fill("signature-a");
-  await page.getByLabel("ID del recurso").fill("finance-a");
-  await page.getByRole("button", { name: "Verificar integridad" }).click();
+  await page.getByLabel("Identificador del sello").fill("signature-a");
+  await page.getByLabel("Identificador del registro asociado").fill("finance-a");
+  await page.getByRole("button", { name: "Comprobar vínculo" }).click();
 
   await expect(
     page.getByText("Vínculo y metadatos coinciden"),
   ).toBeVisible();
   await expect(
     page.getByText(
-      "Integridad de contenido: no verificada independientemente.",
+      "El servidor no confirmó la verificación independiente del contenido del archivo.",
     ),
   ).toBeVisible();
   expect(candidateRequests).toBe(0);

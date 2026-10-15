@@ -268,7 +268,7 @@ test("ADMIN evalúa y registra una solicitud sin tenant ni capacidad destructiva
       name: "Gobierno de retención y conservación legal",
     }),
   ).toBeVisible();
-  await expect(page.getByText("Ejecución deliberadamente bloqueada")).toBeVisible();
+  await expect(page.getByText("La eliminación de datos no está habilitada")).toBeVisible();
 
   await page.getByLabel("Fecha y hora de corte").fill("2026-09-09T10:00");
   await page.getByRole("button", { name: "Evaluar corte" }).click();
@@ -284,7 +284,7 @@ test("ADMIN evalúa y registra una solicitud sin tenant ni capacidad destructiva
     .getByLabel("Referencia jurídica aplicable")
     .fill("Política jurídica interna 2026-01");
   await page
-    .getByLabel("URL HTTPS de evidencia durable")
+    .getByLabel("Enlace permanente de la evidencia (HTTPS)")
     .fill("https://evidence.example.test/retention/1");
   await page.getByLabel("SHA-256 de la evidencia").fill("d".repeat(64));
   for (const acknowledgement of await page
@@ -370,7 +370,7 @@ test("AUDITOR en móvil revisa con cuatro ojos y solo aprueba como no ejecutada"
   await page.goto("/dashboard/retention");
   await page.getByRole("button", { name: "Revisar solicitud" }).click();
   await expect(
-    page.getByRole("heading", { name: "Revisión con cuatro ojos" }),
+    page.getByRole("heading", { name: "Revisión por otra persona" }),
   ).toBeVisible();
   await page
     .getByText(/Reconozco que el estado final será/)

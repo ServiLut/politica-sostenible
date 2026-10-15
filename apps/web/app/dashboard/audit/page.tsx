@@ -4,6 +4,7 @@ import { usePageRequest } from "@/lib/use-page-request";
 
 import { getRoleLabel } from "@/config/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableViewport } from "@/components/ui/TableViewport";
 import { ApiError } from "@/lib/api-client";
 import {
   AuditEvent,
@@ -619,12 +620,7 @@ export default function AuditPage() {
                 <AuditCard key={event.id} event={event} />
               ))}
             </ul>
-            <div
-              className="hidden overflow-x-auto md:block min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              role="region"
-              aria-label="Registro de auditoría: tabla con desplazamiento horizontal"
-              tabIndex={0}
-            >
+            <TableViewport label="Registro de auditoría" className="hidden md:block">
               <table className="min-w-full text-left">
                 <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
                   <tr>
@@ -648,7 +644,7 @@ export default function AuditPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableViewport>
           </>
         )}
 

@@ -111,9 +111,9 @@ test("muestra déficit temporal y crea una asignación real sin enviar tenantId"
   });
 
   await page.goto("/dashboard/witness-planning");
-  await expect(page.getByRole("heading", { name: "Planificación exacta de testigos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Planificación de testigos" })).toBeVisible();
   await expect(page.getByText("BLOQUEADO")).toBeVisible();
-  await expect(page.getByText(/1\.200 minutos-mesa PRIMARY/)).toBeVisible();
+  await expect(page.getByText(/1\.200 minutos-mesa sin principal/)).toBeVisible();
 
   await page.getByLabel("Ventana").selectOption("window-a");
   await page.getByLabel("Testigo activo").selectOption("witness-a");

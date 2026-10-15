@@ -255,6 +255,7 @@ test("un testigo ejecuta el flujo E-14 de simulacro sin enviar contexto al backe
   const apiBodies: Record<string, unknown>[] = [];
   const storageMethods: string[] = [];
   const requestedPlacePages: string[] = [];
+  let integrityVerified = false;
   const fileBuffer = Buffer.from("%PDF-1.4 acta e2e verificable");
   const confirmedPath =
     "tenant-e2e/e14/123e4567-e89b-42d3-a456-426614174000.pdf";
@@ -330,6 +331,7 @@ test("un testigo ejecuta el flujo E-14 de simulacro sin enviar contexto al backe
                 fileName: "e14-mesa-12.pdf",
                 contentType: "application/pdf",
                 size: fileBuffer.length,
+                contentSha256: body.contentSha256,
               },
             },
             201,
@@ -345,13 +347,36 @@ test("un testigo ejecuta el flujo E-14 de simulacro sin enviar contexto al backe
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(
-          successful({ confirmed: true, path: confirmedPath }),
+          successful({
+            confirmed: true,
+            objectId: "storage-war-room-e2e",
+            path: confirmedPath,
+            module: "e14",
+            contentIntegrity: "PENDING",
+          }),
         ),
       });
       return;
     }
 
+    if (pathname === "/api/storage/storage-war-room-e2e/integrity" && method === "GET") {
+      expect(storageMethods).toEqual(["PUT"]);
+      integrityVerified = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successful({
+          objectId: "storage-war-room-e2e",
+          status: "VERIFIED",
+          verifiedAt: new Date().toISOString(),
+          failureCode: null,
+        })),
+      });
+      return;
+    }
+
     if (pathname === "/api/witnesses" && method === "POST") {
+      expect(integrityVerified).toBe(true);
       const body = request.postDataJSON() as Record<string, unknown>;
       apiBodies.push(body);
       const created = report({

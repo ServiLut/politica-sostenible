@@ -195,6 +195,7 @@ test("administración invita un rol operativo sin poder delegar ADMIN ni enviar 
     page.locator("main").getByText("Dirección de equipo").first(),
   ).toBeVisible();
 
+  await page.getByText("Invitar una persona al equipo", { exact: true }).click();
   await page.getByLabel("Correo electrónico").fill("voluntaria@example.test");
   const invitationRole = page.getByLabel("Rol para la invitación");
   await expect(invitationRole.locator('option[value="ADMIN"]')).toHaveCount(0);

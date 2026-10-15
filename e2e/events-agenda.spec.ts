@@ -143,23 +143,27 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(
-          successful([
+          successful({ items: [
             {
               id: "leader-1",
               name: "Laura Coordinadora",
               role: "ZONE_COORDINATOR",
             },
-          ]),
+          ], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } }),
         ),
       });
       return;
     }
 
     if (pathname === "/api/events" && method === "GET") {
+      const url = new URL(request.url());
+      const status = url.searchParams.get("status");
+      const search = (url.searchParams.get("search") ?? "").toLocaleLowerCase("es-CO");
+      const visible = events.filter(event => (!status || event.status === status) && event.name.toLocaleLowerCase("es-CO").includes(search));
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(paginated(events)),
+        body: JSON.stringify(paginated(visible)),
       });
       return;
     }
@@ -293,16 +297,22 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
     "Capacidad: 140",
   );
 
+  await page.getByRole("combobox", { name: "Estado", exact: true }).selectOption("SCHEDULED");
+  await expect(page.getByTestId("event-card-event-scheduled")).toBeVisible();
   await page
     .getByRole("combobox", { name: "Siguiente estado de Encuentro ciudadano" })
     .selectOption("IN_PROGRESS");
   await expect(
     page.getByText("Estado de “Encuentro ciudadano” actualizado a En curso."),
   ).toBeVisible();
+  await expect(page.getByTestId("event-card-event-scheduled")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "No hay eventos para estos filtros" })).toBeVisible();
+  await page.getByRole("combobox", { name: "Estado", exact: true }).selectOption("IN_PROGRESS");
   await expect(page.getByTestId("event-card-event-scheduled")).toContainText(
     "En curso",
   );
 
+  await page.getByRole("combobox", { name: "Estado", exact: true }).selectOption("");
   await page.getByRole("button", { name: "Nuevo evento" }).click();
   const createDialog = page.getByRole("dialog", { name: "Crear evento" });
   await createDialog.getByLabel("Nombre").fill("Foro de propuestas");
@@ -312,9 +322,8 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
   await createDialog.getByLabel("Inicio").fill("2026-10-05T09:00");
   await createDialog.getByLabel("Fin").fill("2026-10-05T11:00");
   await createDialog.getByLabel("Lugar (opcional)").fill("Biblioteca central");
-  await createDialog
-    .getByLabel("Responsable (opcional)")
-    .selectOption("leader-1");
+  await createDialog.getByRole("button", { name: "Responsable del evento" }).click();
+  await createDialog.getByRole("button", { name: /^Laura Coordinadora/ }).click();
   await createDialog.getByLabel("Capacidad (opcional)").fill("220");
   await createDialog.getByRole("button", { name: "Crear borrador" }).click();
 

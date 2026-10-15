@@ -267,7 +267,7 @@ test("administra un incidente real con filtros, responsable y transición audita
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(assignees)),
+        body: JSON.stringify(successful({ items: assignees, pagination: { page: 1, limit: 20, total: assignees.length, totalPages: 1 } })),
       });
       return;
     }
@@ -369,10 +369,18 @@ test("administra un incidente real con filtros, responsable y transición audita
 
     if (url.pathname === "/api/cases" && method === "GET") {
       requestedCaseUrls.push(url);
+      const status = url.searchParams.get("status");
+      const search = (url.searchParams.get("search") ?? "").toLocaleLowerCase("es-CO");
+      const priority = url.searchParams.get("priority");
+      const visible = incidents.filter(incident =>
+        (!status || incident.status === status) &&
+        (!priority || incident.priority === priority) &&
+        `${incident.reference} ${incident.title} ${incident.description}`.toLocaleLowerCase("es-CO").includes(search),
+      );
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(pageOf(incidents))),
+        body: JSON.stringify(successful(pageOf(visible))),
       });
       return;
     }
@@ -431,7 +439,7 @@ test("administra un incidente real con filtros, responsable y transición audita
     page.getByRole("heading", { name: "Incidentes y respuesta de crisis" }),
   ).toBeVisible();
   await expect(
-    page.getByText(/no inventa análisis de sentimiento/i),
+    page.getByText("Registra hechos, asigna un responsable y conserva el historial de seguimiento de tu organización."),
   ).toBeVisible();
   const moreNavigation = page.getByRole("button", {
     name: /Abrir .* opciones/i,
@@ -506,6 +514,20 @@ test("administra un incidente real con filtros, responsable y transición audita
 
   await consentChannel.selectOption("PHONE");
   await consentConfirmation.check();
+  // Content corrections also invalidate the draft if a backend response keeps
+  // the same notice id/version. The actual interaction text must survive.
+  const draftSummary = "Borrador de seguimiento que debe conservarse";
+  await timelineDialog.getByLabel("Resumen de la gestión").fill(draftSummary);
+  servedConsentNotice = { ...renewedConsentNotice, content: `${renewedConsentNotice.content} Texto corregido.` };
+  await timelineDialog.getByRole("button", { name: "Actualizar historial" }).click();
+  await expect(timelineDialog.getByText(servedConsentNotice.content, { exact: true })).toBeVisible();
+  await expect(consentChannel).toHaveValue("");
+  await expect(consentConfirmation).not.toBeChecked();
+  await expect(grantConsentButton).toBeDisabled();
+  await expect(timelineDialog.getByLabel("Resumen de la gestión")).toHaveValue(draftSummary);
+
+  await consentChannel.selectOption("PHONE");
+  await consentConfirmation.check();
   await grantConsentButton.click();
   await expect(timelineDialog).toContainText("Autorización vigente");
   await expect(
@@ -573,7 +595,8 @@ test("administra un incidente real con filtros, responsable y transición audita
     );
   await dialog.getByLabel("Categoría").selectOption("Seguridad");
   await dialog.getByLabel("Severidad / prioridad").selectOption("URGENT");
-  await dialog.getByLabel("Responsable").selectOption("legal-team");
+  await dialog.getByRole("button", { name: "Responsable del nuevo incidente" }).click();
+  await dialog.getByRole("button", { name: /^Equipo jurídico/ }).click();
   await dialog.getByLabel("Vencimiento").fill("2026-08-22");
   await expect(
     dialog.getByText(
@@ -587,6 +610,9 @@ test("administra un incidente real con filtros, responsable y transición audita
     page.getByText("Incidente registrado con trazabilidad de auditoría."),
   ).toBeVisible();
   const createdCard = page.getByTestId("incident-card-incident-2");
+  await expect(createdCard).toHaveCount(0);
+  await page.getByPlaceholder(/Referencia, hecho/).fill("");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect(createdCard).toContainText("Amenaza al equipo territorial");
   await expect(createdCard).toContainText("Severidad Crítica");
   await expect(createdCard.getByText("Manejo especial")).toBeVisible();
@@ -596,6 +622,9 @@ test("administra un incidente real con filtros, responsable y transición audita
     ),
   ).toBeVisible();
 
+  await page.getByRole("combobox", { name: "Filtrar incidentes por estado" }).selectOption("OPEN");
+  await expect(createdCard).toBeVisible();
+  await createdCard.getByText("Gestionar incidente", { exact: true }).click();
   await createdCard
     .getByRole("combobox", { name: /Estado operativo/ })
     .selectOption("IN_PROGRESS");
@@ -603,6 +632,8 @@ test("administra un incidente real con filtros, responsable y transición audita
   await expect(
     page.getByText("INC-CAM-2026-BBB222 actualizado y auditado."),
   ).toBeVisible();
+  await expect(createdCard).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Filtrar incidentes por estado" }).selectOption("IN_PROGRESS");
   await expect(createdCard).toContainText("Respuesta en curso");
 
   expect(mutationBodies).toEqual(

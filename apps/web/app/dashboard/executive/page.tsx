@@ -773,7 +773,7 @@ export default function ExecutivePage() {
           {briefing.agenda.upcomingEvents.map((event) => (
             <Link
               key={event.id}
-              href="/dashboard/events"
+              href={`/dashboard/events?entityId=${encodeURIComponent(event.id)}`}
               className="group flex items-center justify-between gap-4 rounded-lg border-t border-slate-100 py-4 first:border-0 focus-ring"
             >
               <span>

@@ -149,7 +149,7 @@ test("administración solicita adopción con todos los datos, hash e idempotenci
   });
 
   await page.goto("/dashboard/operation-profile");
-  await page.getByRole("button", { name: /Adopción excepcional/ }).click();
+  await page.getByRole("button", { name: /Registrar una campaña ya iniciada/ }).click();
   const stageSelect = page.getByLabel("Etapa operativa");
   await expect(stageSelect.getByRole("option", { name: "Exploración" })).toHaveCount(0);
   for (const stage of ["Recolección de firmas", "Campaña", "Preparación electoral", "Simulación", "Jornada electoral", "Poselectoral"]) {

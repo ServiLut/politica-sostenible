@@ -1,4 +1,6 @@
 "use client";
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { usePageRequest } from "@/lib/use-page-request";
@@ -1486,12 +1488,7 @@ export default function WarRoomPage() {
                 </p>
               </div>
             ) : (
-              <div
-                className="overflow-x-auto min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                role="region"
-                aria-label="Operación electoral: tabla con desplazamiento horizontal"
-                tabIndex={0}
-              >
+              <TableViewport label="Operación electoral">
                 <table className="w-full min-w-[1480px] text-left text-sm">
                   <thead className="bg-white text-xs font-semibold text-slate-400">
                     <tr>
@@ -1660,7 +1657,7 @@ export default function WarRoomPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableViewport>
             )}
             {reportPage.pagination.totalPages > 1 && (
               <nav

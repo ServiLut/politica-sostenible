@@ -117,7 +117,7 @@ async function storeSession(page: Page, role: ProposalRole) {
   );
 }
 
-test("administra propuestas con el enum y contrato reales sin enviar tenant ni owner", async ({
+test("administra propuestas con el enum y contrato reales sin enviar tenant y con responsables elegibles", async ({
   page,
 }) => {
   let proposals = [proposal()];
@@ -310,6 +310,7 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant ni o
         progressPercent: 100,
         estimatedCost: 125000.5,
         isPublic: true,
+        ownerId: "owner-a",
       },
     },
     {
@@ -322,6 +323,7 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant ni o
         progressPercent: 0,
         estimatedCost: 75000.25,
         isPublic: true,
+        ownerId: "admin-e2e",
       },
     },
     { method: "DELETE", body: null },
@@ -331,8 +333,7 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant ni o
       ({ body }) =>
         body === null ||
         (!("tenantId" in body) &&
-          !("tenant_id" in body) &&
-          !("ownerId" in body)),
+          !("tenant_id" in body)),
     ),
   ).toBe(true);
   expect(authorizationHeaders.length).toBeGreaterThanOrEqual(7);

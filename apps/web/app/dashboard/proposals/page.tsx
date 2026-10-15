@@ -50,6 +50,12 @@ const PROPOSAL_MANAGER_ROLES = new Set<BackendUserRole>([
   "CAMPAIGN_MANAGER",
 ]);
 
+const searchProposalResponsibles = (
+  search: string,
+  signal: AbortSignal,
+  page = 1,
+) => listProposalResponsibles({ search, page, limit: 10 }, signal);
+
 const CATEGORY_LABELS: Record<ProposalCategory, string> = {
   EDUCATION: "Educación",
   HEALTH: "Salud",
@@ -494,7 +500,7 @@ export default function ProposalsPage() {
             placeholder="Buscar propuestas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
+            className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
           />
         </div>
 
@@ -526,7 +532,7 @@ export default function ProposalsPage() {
           onChange={(event) =>
             setCategoryFilter(event.target.value as ProposalCategory | "ALL")
           }
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
+          className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
         >
           <option value="ALL">Todas las categorías</option>
           {PROPOSAL_CATEGORIES.map((category) => (
@@ -622,7 +628,7 @@ export default function ProposalsPage() {
                             event.stopPropagation();
                             setDeleteTarget(proposal);
                           }}
-                          className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 max-w-full whitespace-normal"
+                          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -797,14 +803,14 @@ export default function ProposalsPage() {
                   Responsable
                   <div className="mt-2 min-w-0">
                     <UserCombobox
+                      ariaLabel="Responsable de la propuesta"
                       value={form.ownerId}
                       allowUnassigned={false}
+                      paginated
                       disabled={submitting || terminalProposal}
                       selectedLabel={form.ownerId === user.id ? user.name : form.ownerId === editedProposal?.ownerId ? editedProposal.owner.name : undefined}
                       onChange={(val) => setForm({ ...form, ownerId: val })}
-                      fetchItems={(search, signal) =>
-                        listProposalResponsibles({ search, limit: 10 }, signal)
-                      }
+                      fetchItems={searchProposalResponsibles}
                     />
                   </div>
                 </label>

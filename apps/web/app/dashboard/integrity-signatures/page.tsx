@@ -197,9 +197,7 @@ export default function IntegritySignaturesPage() {
   }
 
   return (
-    <main
-      id="dashboard-content"
-      tabIndex={-1}
+    <section
       className="space-y-8 outline-none min-w-0"
     >
       <PageHeader
@@ -525,6 +523,6 @@ export default function IntegritySignaturesPage() {
           </div>
         )}
       </section>
-    </main>
+    </section>
   );
 }

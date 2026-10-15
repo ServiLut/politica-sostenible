@@ -134,17 +134,29 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
       return;
     }
     if (
-      url.pathname === "/api/campaigns/territory-heatmap" &&
+      ["/api/campaigns/territory-heatmap", "/api/campaigns/territory-overview"].includes(url.pathname) &&
       request.method() === "GET"
     ) {
       heatmapRequests += 1;
       expect(url.searchParams.get("level")).toBe("DEPARTAMENTO");
-      expect(url.searchParams.get("metric")).toBe("E14_COVERAGE");
+      const metric = url.searchParams.get("metric");
+      expect(["OPEN_CASES", "E14_COVERAGE"]).toContain(metric);
       expect(url.searchParams.has("parentId")).toBe(false);
+      const overview = url.pathname.endsWith("territory-overview");
+      if (!overview) expect(metric).toBe("E14_COVERAGE");
+      const response = {
+        ...heatmap,
+        metric: metric === "E14_COVERAGE" ? heatmap.metric : { code: "OPEN_CASES", label: "Casos por resolver", unit: "COUNT" },
+        items: heatmap.items.map(item => ({ ...item, displayValue: metric === "E14_COVERAGE" ? item.displayValue : String(item.value) })),
+        ...(overview ? {
+          pageInfo: { page: 1, limit: 20, totalItems: 1, totalPages: 1 },
+          summary: { totalTerritories: 1, reportedTerritories: 1, zeroTerritories: 0, protectedTerritories: 0, unavailableTerritories: 0 },
+        } : {}),
+      };
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(heatmap)),
+        body: JSON.stringify(successful(response)),
       });
       return;
     }
@@ -178,26 +190,26 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
   });
 
   try {
-    await page.goto("/dashboard/territory");
+    await page.goto("/dashboard/territory/heatmap");
     await expect(
-      page.getByRole("heading", { name: "Mapa de calor operativo" }),
+      page.getByRole("heading", { name: "Territorio y actividad" }),
     ).toBeVisible();
+    await page.getByRole("combobox", { name: "¿Qué quieres consultar?" }).selectOption("E14_COVERAGE");
     await expect(
-      page.getByRole("img", { name: /Antioquia offline: 65 %/ }),
+      page.getByRole("button", { name: "Antioquia offline: 65 %. Ver detalle" }),
     ).toBeVisible();
-    await expect(page.getByText("Corte del servidor:")).toBeVisible();
+    await expect(page.getByText(/1 departamentos disponibles · actualizado/)).toBeVisible();
+    await page.getByText("Guardar una copia para consultar sin conexión", { exact: true }).click();
     await expect(
-      page.getByText(/nombres, códigos e identificadores de territorios/),
+      page.getByText(/Guarda este nivel completo, hasta 500 lugares, cifrado/),
     ).toBeVisible();
 
     await page
-      .getByRole("button", { name: "Guardar esta vista offline" })
+      .getByRole("button", { name: "Abrir bóveda para guardar" })
       .click();
     const dialog = page.getByRole("dialog", { name: "Bóveda offline" });
     await expect(dialog).toBeVisible();
-    await expect(
-      page.getByText(/Desbloquea o crea la bóveda cifrada/),
-    ).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Crear bóveda cifrada" })).toBeVisible();
     await dialog.getByLabel("Frase operativa").fill(passphrase);
     await dialog.getByLabel("Confirmar frase").fill(passphrase);
     await dialog.getByRole("button", { name: "Crear bóveda cifrada" }).click();
@@ -205,13 +217,15 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
     await dialog.getByRole("button", { name: "Cerrar bóveda offline" }).click();
 
     await expect(
-      page.getByRole("img", { name: /Antioquia offline: 65 %/ }),
+      page.getByRole("button", { name: "Antioquia offline: 65 %. Ver detalle" }),
     ).toBeVisible();
+    // Unlocking reloads the level and its disclosure returns to its closed state.
+    await page.getByText("Guardar una copia para consultar sin conexión", { exact: true }).click();
     await page
-      .getByRole("button", { name: "Guardar esta vista offline" })
+      .getByRole("button", { name: "Guardar este nivel" })
       .click();
     await expect(
-      page.getByText(/Vista cifrada guardada en este dispositivo/),
+      page.getByText(/1 lugar guardado en este dispositivo/),
     ).toBeVisible();
 
     const localStorageSnapshot = await page.evaluate(async () => {
@@ -272,32 +286,32 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
     const onlineRequests = heatmapRequests;
     apiAvailable = false;
     await context.setOffline(true);
-    await page.getByRole("button", { name: "Actualizar vista" }).click();
-    await expect(page.getByText("Modo offline", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await expect(page.getByText("Sin conexión: estás viendo una copia guardada.", { exact: true })).toBeVisible();
     await expect(
-      page.getByText(/Puede estar desactualizada y no se actualizará/),
+      page.getByText(/Los cambios posteriores no aparecen aquí/),
     ).toBeVisible();
     await expect(
-      page.getByRole("img", { name: /Antioquia offline: 65 %/ }),
+      page.getByRole("button", { name: "Antioquia offline: 65 %. Ver detalle" }),
     ).toBeVisible();
-    await expect(page.getByText("Corte del servidor:")).toBeVisible();
+    await expect(page.getByText(/1 departamentos disponibles · actualizado/)).toBeVisible();
     expect(heatmapRequests).toBeGreaterThanOrEqual(onlineRequests);
 
     await page.getByRole("button", { name: /^Bóveda offline/ }).click();
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Bloquear" }).click();
     await dialog.getByRole("button", { name: "Cerrar bóveda offline" }).click();
-    await page.getByRole("button", { name: "Actualizar vista" }).click();
+    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
     await expect(
       page.getByText(
         "No fue posible conectar con el servidor. Intenta nuevamente.",
       ),
     ).toBeVisible();
-    await expect(page.getByText("Modo offline", { exact: true })).toHaveCount(
+    await expect(page.getByText("Sin conexión: estás viendo una copia guardada.", { exact: true })).toHaveCount(
       0,
     );
     await expect(
-      page.getByRole("img", { name: /Antioquia offline: 65 %/ }),
+      page.getByRole("button", { name: "Antioquia offline: 65 %. Ver detalle" }),
     ).toHaveCount(0);
 
     const requestsBeforeColdStart = heatmapRequests;
@@ -306,7 +320,7 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
     try {
       await coldPage.goto("/aplicacion", { waitUntil: "domcontentloaded" });
       await expect(
-        coldPage.getByRole("heading", { name: "Política Sostenible" }),
+        coldPage.getByRole("heading", { name: "Política Sostenible", exact: true }),
       ).toBeVisible();
       await coldPage
         .getByRole("button", { name: "Bóveda offline", exact: true })
@@ -352,7 +366,7 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
       await expect(openedSnapshot).toBeVisible();
       await expect(openedSnapshot.getByText("Antioquia offline")).toBeVisible();
       await expect(openedSnapshot.getByText("65 %")).toBeVisible();
-      await expect(openedSnapshot.getByText("Copia local")).toBeVisible();
+      await expect(openedSnapshot.getByText("Sin conexión", { exact: true })).toBeVisible();
       await expect(
         openedSnapshot.getByText("Corte del servidor:", { exact: false }),
       ).toBeVisible();
@@ -372,6 +386,6 @@ test("guarda opt-in cifrado y usa solo el snapshot exacto con la bóveda desbloq
     }
   } finally {
     apiAvailable = true;
-    await context.setOffline(false);
+    if (!page.isClosed()) await context.setOffline(false);
   }
 });

@@ -1,6 +1,8 @@
 "use client";
 
 import { usePageRequest } from "@/lib/use-page-request";
+import { TableViewport } from "@/components/ui/TableViewport";
+
 import { PageHeader } from "@/components/ui/PageHeader";
 
 import { useSearchParams } from "next/navigation";
@@ -384,7 +386,7 @@ export default function PqrsdPage() {
   );
   if (!canRead) {
     return (
-      <main className="p-6 min-w-0" aria-label="Expedientes PQRSD">
+      <section className="p-6 min-w-0" aria-label="Expedientes PQRSD">
         <h1
           id="pqrsd-title"
           className="font-semibold text-slate-950 text-2xl sm:text-3xl break-words"
@@ -394,12 +396,12 @@ export default function PqrsdPage() {
         <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
           Tu rol no tiene acceso al expediente PQRSD sensible.
         </p>
-      </main>
+      </section>
     );
   }
 
   return (
-    <main className="space-y-6 min-w-0" aria-labelledby="pqrsd-title">
+    <section className="space-y-6 min-w-0" aria-labelledby="pqrsd-title">
       <PageHeader
         title="Expedientes PQRSD"
         eyebrow="Atención formal en el despacho"
@@ -658,12 +660,7 @@ export default function PqrsdPage() {
                 vencimientos ni certifica cumplimiento.
               </div>
             ) : (
-              <div
-                className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-0 max-w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                role="region"
-                aria-label="Peticiones y solicitudes: tabla con desplazamiento horizontal"
-                tabIndex={0}
-              >
+              <TableViewport label="Peticiones y solicitudes">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-slate-100 text-slate-700">
                     <tr>
@@ -739,7 +736,7 @@ export default function PqrsdPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableViewport>
             )}
           </section>
 
@@ -804,7 +801,7 @@ export default function PqrsdPage() {
           ) : null}
         </>
       ) : null}
-    </main>
+    </section>
   );
 }
 
