@@ -56,6 +56,7 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-CO", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "America/Bogota",
   }).format(date);
 }
 
@@ -331,21 +332,21 @@ export default function OperationalInboxPage() {
               onSelect={setFilter}
             />
             <SummaryButton
-              label="Vencido"
+              label={result.summary.truncated ? "Vencido en esta vista" : "Vencido"}
               value={result.summary.overdue}
               filter="OVERDUE"
               active={filter === "OVERDUE"}
               onSelect={setFilter}
             />
             <SummaryButton
-              label="Bloqueado"
+              label={result.summary.truncated ? "Bloqueado en esta vista" : "Bloqueado"}
               value={result.summary.blocked}
               filter="BLOCKED"
               active={filter === "BLOCKED"}
               onSelect={setFilter}
             />
             <SummaryButton
-              label="Sin responsable"
+              label={result.summary.truncated ? "Sin responsable en esta vista" : "Sin responsable"}
               value={result.summary.unassigned}
               filter="UNASSIGNED"
               active={filter === "UNASSIGNED"}
@@ -397,6 +398,12 @@ export default function OperationalInboxPage() {
                   de {result.summary.total}. Los filtros y la búsqueda solo
                   consultan estas acciones cargadas. Para encontrar otras, abre
                   el módulo correspondiente.
+                </p>
+                <p className="mt-2">
+                  Todo abierto y Por aprobar cuentan todos los registros de tu
+                  alcance. Vencido, Bloqueado y Sin responsable cuentan únicamente
+                  los registros de esta vista. Los horarios se muestran en hora
+                  de Colombia.
                 </p>
                 <nav
                   aria-label="Consultar todos los registros por módulo"

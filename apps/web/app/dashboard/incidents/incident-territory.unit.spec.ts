@@ -35,6 +35,33 @@ test("alta real incluye sólo el ID municipal seleccionado y limpia borrador des
   expect(reset).toMatchObject({ municipality: null, title: "" });
 });
 
+test("el alta envía el día elegido sin convertirlo a mediodía del navegador", async () => {
+  let sent: unknown;
+  const scope = {
+    form: { title: "PRUEBA", description: "Detalle", category: "Tecnología", sourceChannel: "INTERNAL", dueDate: "2026-10-16", municipality: null },
+    createIssueCase: async (input: unknown) => { sent = input; },
+    setSaving: () => {}, setMutationError: () => {}, setIsCreateOpen: () => {}, setNotice: () => {}, setFilters: () => {}, setReload: () => {}, setForm: () => {},
+    INCIDENT_CATEGORIES: ["Seguridad"], readableError: String,
+  };
+  const create = runInNewContext(`${codeFor("handleCreate")} handleCreate;`, scope) as (event: { preventDefault: () => void }) => Promise<void>;
+  await create({ preventDefault() {} });
+  expect(sent).toMatchObject({ dueAt: "2026-10-16" });
+});
+
+test("la fecha editada de un incidente conserva el día Colombia y no reescribe un instante sin cambios", () => {
+  const parse = runInNewContext(`${codeFor("toDateInput")} toDateInput;`) as (value: string | null) => string;
+  const format = runInNewContext(`${codeFor("formatDate")} formatDate;`) as (value: string | null) => string;
+  expect(parse("2026-10-17T04:59:59.999Z")).toBe("2026-10-16");
+  expect(format("2026-10-17T04:59:59.999Z")).toMatch(/^16.*oct.*2026$/u);
+  const incident = { status: "OPEN", priority: "LOW", assigneeId: null, divisionId: null, dueAt: "2026-10-17T04:59:59.999Z" };
+  for (const [dueDate, expected] of [["2026-10-16", {}], ["2026-10-18", { dueAt: "2026-10-18" }], ["", { dueAt: null }]] as const) {
+    let sent: unknown;
+    const scope = { incident, status: "OPEN", priority: "LOW", assigneeId: "", dueDate, municipality: null, toDateInput: parse, onSave: (_record: unknown, input: unknown) => { sent = input; } };
+    (runInNewContext(`${codeFor("save")} save;`, scope) as () => void)();
+    expect(sent).toEqual(expected);
+  }
+});
+
 test("una falla al guardar no borra el municipio elegido ni cierra el formulario", async () => {
   let cleared = false; let closed = false; let error: unknown;
   const scope = {

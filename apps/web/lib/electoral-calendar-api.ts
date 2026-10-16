@@ -1,4 +1,5 @@
 import { apiRequest } from "./api-client";
+import { requestPrivateDownload } from "./private-storage";
 import type {
   BackendUserRole,
   PoliticalOperationStage,
@@ -387,12 +388,6 @@ export async function sha256File(file: File) {
 }
 
 export function getCalendarEvidenceDownload(resultId: string) {
-  return apiRequest<{ url: string; expiresAt: string }>("storage/download-url", {
-    method: "POST",
-    body: JSON.stringify({
-      module: "electoral-calendar",
-      resourceId: resultId,
-    }),
-  });
+  return requestPrivateDownload("electoral-calendar", resultId);
 }
 

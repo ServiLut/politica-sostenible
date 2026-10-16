@@ -1,5 +1,4 @@
 import {
-  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -7,6 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { TaskStatus, WorkPriority } from '../../../prisma/generated/prisma';
+import { IsOperationalDeadline } from '../../common/utils/operational-deadline';
 
 export class CreateTaskDto {
   @IsString()
@@ -46,6 +46,6 @@ export class CreateTaskDto {
   commitmentId?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsOperationalDeadline()
   dueAt?: string;
 }

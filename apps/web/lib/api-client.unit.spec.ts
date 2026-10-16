@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { apiRequest } from "./api-client";
+import { apiDownload, apiRequest } from "./api-client";
 
 const storageKey = "politica-sostenible.auth-session";
 
@@ -111,4 +111,83 @@ test("un 401 del JWT que sigue activo limpia la sesion local", async () => {
     globalThis.fetch = originalFetch;
     restoreWindow();
   }
+});
+
+for (const [name, request] of [["JSON", apiRequest], ["descarga", apiDownload]] as const) {
+  test(`${name}: los fallos 5xx no exponen diagnóstico interno en el mensaje ni en el payload`, async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      message: "TRACE_INTERNA_SINTETICA", stack: "RUTA_INTERNA_SINTETICA", debug: "DETALLE_RESERVADO_SINTETICO",
+    }), { status: 500, headers: { "Content-Type": "application/json" } });
+    try {
+      const error = await request("test", { auth: false }).catch(value => value);
+      expect(error).toMatchObject({
+        status: 500,
+        message: "El servidor no pudo completar la solicitud. Intenta nuevamente más tarde.",
+      });
+      expect(error.payload).toEqual({ statusCode: 500, message: "El servidor no pudo completar la solicitud. Intenta nuevamente más tarde." });
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  test(`${name}: no muestra cuerpos HTML o texto de proxies como errores de negocio`, async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response("<html>DIAGNOSTICO_PROXY_SINTETICO</html>", {
+      status: 403, headers: { "Content-Type": "text/html" },
+    });
+    try {
+      const error = await request("test", { auth: false }).catch(value => value);
+      expect(error).toMatchObject({
+        status: 403, message: "No se pudo completar la solicitud (estado 403).",
+      });
+      expect(error.payload).toEqual({ statusCode: 403, message: "No se pudo completar la solicitud (estado 403)." });
+    } finally { globalThis.fetch = originalFetch; }
+  });
+}
+
+test("conserva validaciones funcionales 4xx y código de perfil, pero descarta campos internos", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    message: ["Configura el perfil.", "Selecciona una etapa."],
+    code: "OPERATION_STAGE_NOT_CONFIGURED", stack: "TRAZA_SINTETICA",
+  }), { status: 409, headers: { "Content-Type": "application/json" } });
+  try {
+    await expect(apiRequest("test", { auth: false })).rejects.toMatchObject({
+      status: 409, message: "Configura el perfil. Selecciona una etapa.",
+      payload: { statusCode: 409, message: "Configura el perfil. Selecciona una etapa.", code: "OPERATION_STAGE_NOT_CONFIGURED" },
+    });
+    const error = await apiRequest("test", { auth: false }).catch(value => value);
+    expect(error.payload).not.toHaveProperty("stack");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("un JSON malformado no filtra fragmentos de respuesta y un 401 sigue cerrando la sesión", async () => {
+  const originalFetch = globalThis.fetch;
+  const storage = createStorage("current.header.signature");
+  const restoreWindow = installWindow(storage);
+  globalThis.fetch = async () => new Response('{"diagnostic":"FRAGMENTO_PRIVADO_SINTETICO"', {
+    status: 401, headers: { "Content-Type": "application/json" },
+  });
+  try {
+    await expect(apiRequest("test")).rejects.toMatchObject({ status: 401, message: "No se pudo completar la solicitud (estado 401)." });
+    expect(storage.getItem(storageKey)).toBeNull();
+    globalThis.fetch = async () => new Response('{"diagnostic":"FRAGMENTO_PRIVADO_SINTETICO"', {
+      status: 200, headers: { "Content-Type": "application/json" },
+    });
+    await expect(apiRequest("test", { auth: false })).rejects.toMatchObject({ status: 502, message: "El servidor devolvió una respuesta no válida. Intenta nuevamente." });
+  } finally { globalThis.fetch = originalFetch; restoreWindow(); }
+});
+
+test("limita la longitud de las validaciones y no propaga excepciones de red", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ message: "x".repeat(20_000) }), {
+      status: 400, headers: { "Content-Type": "application/json" },
+    });
+    const error = await apiRequest("test", { auth: false }).catch(value => value);
+    expect(error.message).toHaveLength(1_000);
+    globalThis.fetch = async () => { throw new Error("RUTA_DE_RED_PRIVADA_SINTETICA"); };
+    const networkError = await apiRequest("test", { auth: false }).catch(value => value);
+    expect(networkError.message).toBe("No fue posible conectar con el servidor. Intenta nuevamente.");
+    expect(networkError.payload).toBeUndefined();
+  } finally { globalThis.fetch = originalFetch; }
 });

@@ -21,6 +21,7 @@ import {
 } from './decorators/requires-plan-feature.decorator';
 import { AllowSaasAdminMfaEnrollment } from './decorators/allow-saas-admin-mfa-enrollment.decorator';
 import { AllowAnyAuthenticatedRole } from './decorators/allow-any-authenticated.decorator';
+import { LoginIdentityRateLimit } from '../common/throttling/login-identity-rate-limit';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +32,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
+  @LoginIdentityRateLimit()
   @Throttle({ default: { limit: 8, ttl: 60_000, blockDuration: 120_000 } })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

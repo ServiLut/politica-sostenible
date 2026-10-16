@@ -242,14 +242,37 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
     page.getByRole("button", { name: "Eliminar borrador Agua segura rural" }),
   ).toHaveCount(0);
 
-  await initialCard.click();
+  await initialCard.getByLabel("Cambiar estado de Agua segura rural").selectOption("COMPLETED");
   const editDialog = page.getByRole("dialog", { name: "Editar propuesta" });
+  await expect(editDialog.getByRole("combobox", { name: "Estado", exact: true })).toHaveValue("COMPLETED");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("100");
+  await expect(editDialog.getByLabel("Progreso (%)")).toBeDisabled();
+  await expect(editDialog.getByLabel(/Confirmo que la propuesta alcanzó el 100/)).not.toBeChecked();
+  expect(mutations).toHaveLength(0);
+  await editDialog.getByRole("combobox", { name: "Estado", exact: true }).selectOption("IN_PROGRESS");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("42");
+  await editDialog.getByRole("combobox", { name: "Estado", exact: true }).selectOption("COMPLETED");
+  await editDialog.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(editDialog).toBeVisible();
+  expect(mutations).toHaveLength(0);
+  await editDialog.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(initialCard).toContainText("42%");
+  await expect(initialCard).toContainText("En ejecución");
+
+  // The regular editor uses the same explicit final-state confirmation.
+  await initialCard.click();
   await expect(editDialog.getByLabel("Título")).toBeDisabled();
   await expect(
     editDialog.getByLabel("Costo estimado (opcional)"),
   ).toBeDisabled();
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("42");
+  await editDialog.getByLabel("Progreso (%)").fill("70");
   await editDialog.getByLabel("Estado").selectOption("COMPLETED");
-  await editDialog.getByLabel("Progreso (%)").fill("100");
+  await editDialog.getByLabel("Estado").selectOption("IN_PROGRESS");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("70");
+  await editDialog.getByLabel("Estado").selectOption("COMPLETED");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("100");
+  await editDialog.getByLabel(/Confirmo que la propuesta alcanzó el 100/).check();
   await editDialog.getByRole("button", { name: "Guardar" }).click();
 
   const updatedCard = page.getByRole("button", {
@@ -259,6 +282,10 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
   await expect(updatedCard).toContainText("100%");
   await expect(updatedCard).toContainText(/125\.000,5/);
 
+  await page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Completada/ }).click();
+  await page.getByLabel("Buscar propuestas", { exact: true }).fill("Agua");
+  await page.getByLabel("Filtrar por categoría", { exact: true }).selectOption("INFRASTRUCTURE");
   await page.getByRole("button", { name: "Nueva propuesta" }).click();
   const createDialog = page.getByRole("dialog", { name: "Nueva propuesta" });
   await createDialog.getByLabel("Título").fill("Salud preventiva");
@@ -283,10 +310,26 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
   const createdCard = page.getByRole("button", {
     name: "Editar propuesta Salud preventiva",
   });
+  await expect(page.getByRole("status")).toContainText("Propuesta guardada:");
+  await expect(createdCard).toHaveCount(0);
+  await page.getByRole("button", { name: "Ver propuesta guardada", exact: true }).click();
+  await expect(page).toHaveURL(/view=detail&entityId=proposal-created/);
   await expect(createdCard).toContainText("Borrador");
   await expect(createdCard).toContainText("Dirección programática");
   await expect(createdCard).toContainText("0%");
   await expect(createdCard).toContainText(/75\.000,25/);
+  await expect(updatedCard).toHaveCount(0);
+  await page.getByRole("button", { name: "Volver al listado", exact: true }).click();
+  await expect(page.getByLabel("Buscar propuestas", { exact: true })).toHaveValue("Agua");
+  await expect(page.getByLabel("Filtrar por categoría", { exact: true })).toHaveValue("INFRASTRUCTURE");
+  await expect(page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Completada/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(createdCard).toHaveCount(0);
+  await expect(updatedCard).toBeVisible();
+  await page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Todas/ }).click();
+  await page.getByLabel("Buscar propuestas", { exact: true }).fill("");
+  await page.getByLabel("Filtrar por categoría", { exact: true }).selectOption("ALL");
 
   await page
     .getByRole("button", { name: "Eliminar borrador Salud preventiva" })

@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import {
   InjectThrottlerStorage,
   ThrottlerException,
@@ -6,6 +7,11 @@ import {
 } from '@nestjs/throttler';
 import type { AuthenticatedUser } from '../../auth/interfaces/authenticated-user.interface';
 import { opaqueThrottleKey } from './redis-throttler-storage';
+import {
+  OPERATION_RATE_LIMIT_KEY,
+  OPERATION_RATE_LIMITS,
+  type RateLimitedOperation,
+} from './operation-rate-limit';
 
 const WINDOW_MS = 60_000;
 const BLOCK_MS = 60_000;
@@ -29,6 +35,7 @@ export class AuthenticatedScopeRateLimitGuard implements CanActivate {
   constructor(
     @InjectThrottlerStorage()
     private readonly storage: ThrottlerStorage,
+    private readonly reflector: Reflector = new Reflector(),
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -38,46 +45,84 @@ export class AuthenticatedScopeRateLimitGuard implements CanActivate {
     const user = request.user;
     if (!user?.userId || !user.tenantId) return true;
 
-    const [account, tenant] = await Promise.all([
-      this.storage.increment(
-        scopedKey('account', user.userId),
-        WINDOW_MS,
-        ACCOUNT_LIMIT,
-        BLOCK_MS,
-        'account',
-      ),
-      this.storage.increment(
-        scopedKey('tenant', user.tenantId),
-        WINDOW_MS,
-        TENANT_LIMIT,
-        BLOCK_MS,
-        'tenant',
-      ),
-    ]);
-
-    response.header('X-RateLimit-Limit-Account', ACCOUNT_LIMIT);
-    response.header(
-      'X-RateLimit-Remaining-Account',
-      Math.max(0, ACCOUNT_LIMIT - account.totalHits),
+    // Reject a blocked account before charging any shared tenant quota. A
+    // noisy account must not keep exhausting its colleagues' budget.
+    await this.consume(
+      response,
+      'Account',
+      scopedKey('account', user.userId),
+      ACCOUNT_LIMIT,
+      WINDOW_MS,
+      BLOCK_MS,
+      'account',
     );
-    response.header('X-RateLimit-Reset-Account', account.timeToExpire);
-    response.header('X-RateLimit-Limit-Tenant', TENANT_LIMIT);
-    response.header(
-      'X-RateLimit-Remaining-Tenant',
-      Math.max(0, TENANT_LIMIT - tenant.totalHits),
-    );
-    response.header('X-RateLimit-Reset-Tenant', tenant.timeToExpire);
 
-    if (account.isBlocked || tenant.isBlocked) {
-      response.header(
-        'Retry-After',
-        Math.max(account.timeToBlockExpire, tenant.timeToBlockExpire, 1),
+    const operation = this.reflector.getAllAndOverride<RateLimitedOperation>(
+      OPERATION_RATE_LIMIT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (operation) {
+      const policy = OPERATION_RATE_LIMITS[operation];
+      await this.consume(
+        response,
+        'Operation-Account',
+        opaqueThrottleKey(`operation-${operation}-account`, user.userId),
+        policy.account,
+        policy.windowMs,
+        policy.windowMs,
+        'operation-account',
       );
+      await this.consume(
+        response,
+        'Operation-Tenant',
+        opaqueThrottleKey(`operation-${operation}-tenant`, user.tenantId),
+        policy.tenant,
+        policy.windowMs,
+        policy.windowMs,
+        'operation-tenant',
+      );
+    }
+
+    await this.consume(
+      response,
+      'Tenant',
+      scopedKey('tenant', user.tenantId),
+      TENANT_LIMIT,
+      WINDOW_MS,
+      BLOCK_MS,
+      'tenant',
+    );
+    return true;
+  }
+
+  private async consume(
+    response: HeaderResponse,
+    headerScope: string,
+    key: string,
+    limit: number,
+    ttl: number,
+    blockDuration: number,
+    throttlerName: string,
+  ): Promise<void> {
+    const record = await this.storage.increment(
+      key,
+      ttl,
+      limit,
+      blockDuration,
+      throttlerName,
+    );
+    response.header(`X-RateLimit-Limit-${headerScope}`, limit);
+    response.header(
+      `X-RateLimit-Remaining-${headerScope}`,
+      Math.max(0, limit - record.totalHits),
+    );
+    response.header(`X-RateLimit-Reset-${headerScope}`, record.timeToExpire);
+    if (record.isBlocked) {
+      response.header('Retry-After', Math.max(record.timeToBlockExpire, 1));
       throw new ThrottlerException(
         'Demasiadas solicitudes para esta cuenta u organizacion',
       );
     }
-    return true;
   }
 }
 

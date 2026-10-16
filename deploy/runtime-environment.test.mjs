@@ -551,6 +551,32 @@ test("produccion rechaza TLS cifrado sin verificacion de hostname", () => {
   }
 });
 
+test("runtime y migrador rechazan TLS ambiguo antes de abrir conexiones o lanzar Prisma", () => {
+  const base = "postgresql://fixture@database.internal:5432/politica?schema=politica-sostenible";
+  const environment = {
+    ...validEnvironment(), NODE_ENV: "production", DATABASE_URL: `${base}&sslmode=verify-full`,
+    DIRECT_URL: `${base}&sslmode=verify-full`, DATABASE_SSL: "true", DATABASE_SSL_REJECT_UNAUTHORIZED: "true",
+  };
+  assert.deepEqual(runtimeEnvironmentIssues(environment), []);
+  assert.deepEqual(migrationEnvironmentIssues(environment), []);
+  for (const name of ["DATABASE_URL", "DIRECT_URL"]) {
+    for (const query of [
+      "sslmode=verify-full&sslmode=disable", "sslmode=disable&sslmode=verify-full",
+      "sslmode=verify-full&sslmode=verify-full", "sslmode=verify-full&ssl=0",
+      "sslmode=verify-full&ssl=no-verify", "sslmode=verify-full&uselibpqcompat=true",
+      "sslmode=verify-full&sslrootcert=unread-fixture.pem", "sslmode=verify-full&sslcert=unread-fixture.pem",
+      "sslmode=verify-full&sslkey=unread-fixture.pem", "sslmode=verify-full&sslnegotiation=direct",
+      "sslmode=verify-full&%73slmode=disable", "SSLMODE=verify-full", "sslmode=VERIFY-FULL",
+      "uselibpqcompat=true&sslmode=require", "uselibpqcompat=true&sslmode=prefer",
+    ]) {
+      const invalid = { ...environment, [name]: `${base}&${query}` };
+      assert.ok(runtimeEnvironmentIssues(invalid).some((issue) => issue.startsWith(`${name} no permite opciones TLS`)), `${name}: ${query}`);
+      assert.ok(migrationEnvironmentIssues(invalid).some((issue) => issue.startsWith(`${name} no permite opciones TLS`)), `${name}: ${query}`);
+      assert.throws(() => requireMigrationEnvironment(invalid), /opciones TLS ambiguas/u);
+    }
+  }
+});
+
 test("rechaza los secretos publicos del archivo de ejemplo", () => {
   const environment = {
     ...validEnvironment(),

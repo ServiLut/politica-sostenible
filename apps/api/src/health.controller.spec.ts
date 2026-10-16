@@ -241,6 +241,16 @@ describe('HealthController', () => {
     );
   });
 
+  it('requires the new final marker even when the previous marker was valid', async () => {
+    identityFindUnique.mockResolvedValueOnce({
+      fingerprint: 'a'.repeat(64),
+      schemaVersion: '20260921182000_schema_contract_marker',
+    });
+    await expect(controller.ready()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
   it('reports unavailable when the plan catalog is missing or incoherent', async () => {
     plansFindMany.mockResolvedValue([
       {

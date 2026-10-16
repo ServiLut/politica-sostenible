@@ -83,6 +83,7 @@ describe('JwtAuthGuard', () => {
       tenantId: 'tenant-from-token',
       email: 'current@example.test',
       role: 'VOLUNTEER',
+      authVersion: 0,
       mustChangePassword: false,
       temporaryPasswordExpiresAt: null,
     });

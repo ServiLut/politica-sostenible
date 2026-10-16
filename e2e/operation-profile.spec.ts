@@ -709,7 +709,8 @@ test("conserva el perfil y permite reintentar si falla el alistamiento", async (
     page
       .locator('section[aria-labelledby="operation-readiness-title"]')
       .getByRole("alert"),
-  ).toContainText("Falla temporal al calcular el alistamiento.");
+  ).toContainText("El servidor no pudo completar la solicitud. Intenta nuevamente más tarde.");
+  await expect(page.getByText("Falla temporal al calcular el alistamiento.")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Reintentar alistamiento" }).click();
 

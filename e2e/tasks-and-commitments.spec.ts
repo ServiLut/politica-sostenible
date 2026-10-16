@@ -88,6 +88,179 @@ function planCapabilities() {
   });
 }
 
+async function installCommitmentTaskJourney(page: import("@playwright/test").Page, coordinator = false) {
+  const journeySession = coordinator ? {
+    ...session,
+    tenant: { ...session.tenant, type: "CANDIDACY" },
+    user: { ...session.user, role: "Coordinador", backendRole: "ZONE_COORDINATOR" },
+  } : session;
+  const mode = coordinator ? "CAMPAIGN" : "PUBLIC_OFFICE";
+  const commitmentPermissions = { canCreate: !coordinator, canReadInternal: !coordinator };
+  const linkedCase = { id: "linked-case", reference: "CAS-LINK", title: "Caso autorizado", mode: "PUBLIC_OFFICE", status: "OPEN" };
+  const commitment = {
+    id: "linked-commitment", mode, reference: "CMP-LINK", title: "Compromiso con ejecución",
+    description: "Compromiso verificable", status: "PROPOSED",
+    ...(coordinator ? {} : { ownerId: session.user.id, issueCaseId: linkedCase.id, issueCase: linkedCase }),
+    targetDate: null, progress: 0, isPublic: coordinator,
+    completedAt: null, createdAt: "2026-10-16T15:00:00.000Z", updatedAt: "2026-10-16T15:00:00.000Z",
+    _count: { tasks: 0 }, canUpdate: !coordinator,
+  };
+  const state = {
+    contextAvailable: true,
+    rejectFirstPost: false,
+    contextRequests: [] as URL[],
+    caseRequests: [] as URL[],
+    taskRequests: [] as URL[],
+    posts: [] as Record<string, unknown>[],
+    tasks: [] as Record<string, unknown>[],
+  };
+  await page.addInitScript((value) => sessionStorage.setItem("politica-sostenible.auth-session", JSON.stringify(value)), journeySession);
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const method = request.method();
+    const respond = (data: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
+    expect(request.headers().authorization).toBe(`Bearer ${jwt}`);
+    if (url.pathname === "/api/auth/me") return respond(successful({ user: { ...journeySession.user, role: journeySession.user.backendRole, tenant: journeySession.tenant } }));
+    if (url.pathname === "/api/billing/capabilities") return respond(planCapabilities());
+    if (url.pathname === "/api/cases/linked-case" || url.pathname === "/api/cases/other-case") {
+      state.caseRequests.push(url);
+      return coordinator ? respond({ message: "No autorizado para casos" }, 403) : respond(successful(
+        url.pathname.endsWith("/other-case") ? { ...linkedCase, id: "other-case", reference: "CAS-OTHER", title: "Otro caso autorizado" } : linkedCase,
+      ));
+    }
+    if (url.pathname === "/api/tasks/assignees/search") return respond(assigneePage([{ id: session.user.id, name: session.user.name }], url));
+    if (url.pathname === "/api/commitments") {
+      if (url.searchParams.has("entityId")) {
+        state.contextRequests.push(url);
+        if (!state.contextAvailable || url.searchParams.get("issueCaseId") === "other-case") return respond(commitmentPage([], commitmentPermissions));
+        expect(url.searchParams.get("entityId")).toBe(commitment.id);
+        expect(url.searchParams.get("issueCaseId")).toBe(coordinator ? null : linkedCase.id);
+      }
+      return respond(commitmentPage([commitment], commitmentPermissions));
+    }
+    if (url.pathname === "/api/tasks" && method === "GET") {
+      state.taskRequests.push(url);
+      return respond(paginated(state.tasks.filter((task) =>
+        (!url.searchParams.has("entityId") || task.id === url.searchParams.get("entityId")) &&
+        (!url.searchParams.has("commitmentId") || task.commitmentId === url.searchParams.get("commitmentId")),
+      )));
+    }
+    if (url.pathname === "/api/tasks" && method === "POST") {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.posts.push(body);
+      expect(body.commitmentId).toBe(commitment.id);
+      if (coordinator) expect(body).not.toHaveProperty("issueCaseId");
+      else expect(body.issueCaseId).toBe(linkedCase.id);
+      expect(body).not.toHaveProperty("tenantId");
+      if (state.rejectFirstPost) {
+        state.rejectFirstPost = false;
+        return respond({ message: "El acceso cambió. No se guardó la tarea." }, 403);
+      }
+      const task = { ...body, id: "linked-task", mode, status: "TODO", description: null, dueAt: null,
+        completedAt: null, assignee: { id: session.user.id, name: session.user.name }, createdBy: { id: session.user.id, name: session.user.name },
+        createdById: session.user.id, issueCase: coordinator ? null : linkedCase, commitment, createdAt: "2026-10-16T15:00:00Z", updatedAt: "2026-10-16T15:00:00Z" };
+      state.tasks = [task];
+      commitment._count.tasks = 1;
+      return respond(successful(task), 201);
+    }
+    return respond({ message: "Ruta no simulada" }, 404);
+  });
+  return { state, commitment, linkedCase };
+}
+
+test("vincula tareas desde un compromiso y conserva la relación al consultar y recargar", async ({ page }) => {
+  const { state } = await installCommitmentTaskJourney(page);
+  await page.goto("/dashboard/tasks?view=commitments&issueCaseId=linked-case");
+  const card = page.getByTestId("commitment-card-linked-commitment");
+  await card.getByRole("link", { name: "Ver tareas", exact: true }).click();
+  await expect(page.getByTestId("linked-commitment-context")).toContainText("CMP-LINK");
+  await expect.poll(() => state.taskRequests.some((url) => url.searchParams.get("commitmentId") === "linked-commitment" && url.searchParams.get("issueCaseId") === "linked-case")).toBe(true);
+  await page.getByRole("link", { name: "Volver a compromisos", exact: true }).click();
+  await expect(page).toHaveURL(/view=commitments&issueCaseId=linked-case/);
+  await card.getByRole("link", { name: "Crear tarea vinculada", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Crear tarea", exact: true });
+  await expect(dialog.getByTestId("linked-commitment-dialog-context")).toContainText("CMP-LINK");
+  await expect(dialog.getByTestId("linked-case-dialog-context")).toContainText("CAS-LINK");
+  await dialog.getByLabel("Título", { exact: true }).fill("Ejecución vinculada verificable");
+  state.rejectFirstPost = true;
+  await dialog.getByRole("button", { name: "Crear tarea", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("No se guardó la tarea");
+  await expect(dialog.getByLabel("Título", { exact: true })).toHaveValue("Ejecución vinculada verificable");
+  expect(state.tasks).toHaveLength(0);
+  await dialog.getByRole("button", { name: "Crear tarea", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/creada y vinculada al compromiso CMP-LINK/)).toBeVisible();
+  await page.getByRole("button", { name: "Ver tarea creada", exact: true }).click();
+  await expect(page).toHaveURL(/entityId=linked-task.*issueCaseId=linked-case.*commitmentId=linked-commitment/);
+  await page.reload();
+  await expect(page.getByTestId("task-card-linked-task")).toContainText("Ejecución vinculada verificable");
+  await expect(page.getByTestId("linked-commitment-context")).toContainText("Compromiso con ejecución");
+  await page.getByRole("link", { name: "Ver todas las tareas del compromiso", exact: true }).click();
+  await expect(page).not.toHaveURL(/entityId=/);
+  await expect(page).toHaveURL(/commitmentId=linked-commitment/);
+  await expect(page.getByTestId("task-card-linked-task")).toBeVisible();
+});
+
+test("impide guardar y consultar tareas cuando el compromiso solicitado no es visible", async ({ page }) => {
+  const { state } = await installCommitmentTaskJourney(page);
+  state.contextAvailable = false;
+  await page.goto("/dashboard/tasks?view=tasks&commitmentId=linked-commitment&issueCaseId=linked-case&create=task");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("no está disponible para tu acceso");
+  await expect(page.getByRole("button", { name: "Nueva tarea", exact: true })).toBeDisabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(state.taskRequests).toHaveLength(0);
+  expect(state.posts).toHaveLength(0);
+  state.contextAvailable = true;
+  await page.getByRole("button", { name: "Reintentar compromiso" }).click();
+  await expect(page.getByRole("dialog", { name: "Crear tarea", exact: true })).toBeVisible();
+  expect(state.posts).toHaveLength(0);
+});
+
+test("coordinación crea una tarea de un compromiso público sin solicitar casos", async ({ page }) => {
+  const { state } = await installCommitmentTaskJourney(page, true);
+  await page.goto("/dashboard/tasks?view=commitments");
+  const card = page.getByTestId("commitment-card-linked-commitment");
+  await expect(card.getByRole("link", { name: "Ver tareas", exact: true })).toHaveAttribute("href", "/dashboard/tasks?view=tasks&commitmentId=linked-commitment");
+  await card.getByRole("link", { name: "Crear tarea vinculada", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Crear tarea", exact: true });
+  await expect(dialog.getByTestId("linked-commitment-dialog-context")).toContainText("CMP-LINK");
+  await expect(page.getByTestId("linked-case-context")).toHaveCount(0);
+  await dialog.getByLabel("Título", { exact: true }).fill("Revisión territorial del compromiso");
+  await dialog.getByRole("button", { name: "Crear tarea", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/creada y vinculada al compromiso CMP-LINK/)).toBeVisible();
+  expect(state.caseRequests).toHaveLength(0);
+  expect(state.posts).toHaveLength(1);
+  expect(state.posts[0]).toMatchObject({ commitmentId: "linked-commitment" });
+  expect(state.posts[0]).not.toHaveProperty("issueCaseId");
+});
+
+test("rechaza un vínculo que mezcla un compromiso con otro caso autorizado", async ({ page }) => {
+  const { state } = await installCommitmentTaskJourney(page);
+  await page.goto("/dashboard/tasks?view=tasks&commitmentId=linked-commitment&issueCaseId=other-case&create=task");
+  await expect(page.getByTestId("linked-case-context")).toContainText("CAS-OTHER");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("para el caso seleccionado");
+  await expect(page.getByRole("button", { name: "Nueva tarea", exact: true })).toBeDisabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(state.contextRequests.some((url) => url.searchParams.get("entityId") === "linked-commitment" && url.searchParams.get("issueCaseId") === "other-case")).toBe(true);
+  expect(state.taskRequests).toHaveLength(0);
+  expect(state.posts).toHaveLength(0);
+});
+
+test("un identificador de compromiso vacío o duplicado no abre una creación sin vínculo", async ({ page }) => {
+  const { state } = await installCommitmentTaskJourney(page);
+  for (const query of ["commitmentId=", "commitmentId=linked-commitment&commitmentId=other"] ) {
+    await page.goto(`/dashboard/tasks?view=tasks&create=task&${query}`);
+    await expect(page.getByRole("main").getByRole("alert")).toContainText("identificador de compromiso válido");
+    await expect(page.getByRole("button", { name: "Nueva tarea", exact: true })).toBeDisabled();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  expect(state.contextRequests).toHaveLength(0);
+  expect(state.taskRequests).toHaveLength(0);
+  expect(state.posts).toHaveLength(0);
+});
+
 test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   page,
 }) => {
@@ -238,9 +411,11 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     if (pathname === "/api/tasks" && method === "POST") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      expect(body.dueAt).toBe("2026-10-16");
       const created = {
         ...tasks[0],
         id: "task-2",
+        dueAt: "2026-10-17T04:59:59.999Z",
         title: String(body.title),
         description:
           typeof body.description === "string" ? body.description : null,
@@ -275,8 +450,17 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
         });
         return;
       }
+      if (body.dueAt !== undefined) expect(body.dueAt).toBe("2026-11-20");
       tasks = tasks.map((task) =>
-        task.id === "task-1" ? { ...task, ...body } : task,
+        task.id === "task-1"
+          ? {
+              ...task,
+              ...body,
+              ...(body.dueAt !== undefined
+                ? { dueAt: "2026-11-21T04:59:59.999Z" }
+                : {}),
+            }
+          : task,
       );
       await route.fulfill({
         status: 200,
@@ -309,14 +493,14 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     if (pathname === "/api/commitments" && method === "POST") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      expect(body.targetDate).toBe("2026-12-20");
       const created = {
         ...commitments[0],
         id: "commitment-2",
         reference: String(body.reference),
         title: String(body.title),
         description: String(body.description),
-        targetDate:
-          typeof body.targetDate === "string" ? body.targetDate : null,
+        targetDate: "2026-12-21T04:59:59.999Z",
         isPublic: Boolean(body.isPublic),
         ownerId: String(body.ownerId),
         owner:
@@ -470,6 +654,18 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     { title: "Verificar luminarias corregidas", assigneeId: "team-member-e2e" },
   ]);
 
+  await page.getByRole("button", { name: "Editar tarea Verificar luminarias corregidas" }).click();
+  await expect(editDialog.getByLabel(/^Fecha límite/)).toHaveValue("2026-09-15");
+  await expect(editDialog.getByText(/hora de Colombia/)).toBeVisible();
+  await editDialog.getByLabel(/^Fecha límite/).fill("2026-11-20");
+  await editDialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(editDialog).toBeHidden();
+  await expect(page.getByTestId("task-card-task-1")).toContainText(/20.*nov.*2026/);
+  expect(mutationBodies.at(-1)).toEqual({ dueAt: "2026-11-20" });
+  await page.getByRole("button", { name: "Editar tarea Verificar luminarias corregidas" }).click();
+  await expect(editDialog.getByLabel(/^Fecha límite/)).toHaveValue("2026-11-20");
+  await editDialog.getByRole("button", { name: "Cancelar", exact: true }).click();
+
   await page
     .getByRole("combobox", { name: "Estado de la tarea", exact: true })
     .selectOption("DONE");
@@ -493,6 +689,8 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await page.getByRole("button", { name: "Nueva tarea" }).click();
   const taskDialog = page.getByRole("dialog", { name: "Crear tarea" });
   await taskDialog.getByLabel("Título").fill("Publicar informe de avance");
+  await taskDialog.getByLabel(/^Fecha límite/).fill("2026-10-16");
+  await expect(taskDialog.getByText(/hasta el final de ese día, hora de Colombia/)).toBeVisible();
   await taskDialog
     .getByLabel(/Descripción/)
     .fill("Consolidar y publicar los resultados del mes.");
@@ -566,6 +764,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await expect(page.getByTestId("task-card-task-2")).toContainText(
     "Andrea Territorio",
   );
+  await expect(page.getByTestId("task-card-task-2")).toContainText(/16.*oct.*2026/);
 
   await page.getByRole("tab", { name: /Compromisos/ }).click();
   await page.getByRole("button", { name: "Exportar CSV" }).click();
@@ -635,6 +834,8 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
     name: "Registrar compromiso",
   });
   await commitmentDialog.getByLabel("Referencia").fill("CMP-002");
+  await commitmentDialog.getByLabel(/^Fecha objetivo/).fill("2026-12-20");
+  await expect(commitmentDialog.getByText(/hasta el final de ese día, hora de Colombia/)).toBeVisible();
   await commitmentDialog
     .getByLabel("Título")
     .fill("Recuperación del parque vecinal");
@@ -680,6 +881,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
   await expect(page.getByTestId("commitment-card-commitment-2")).toContainText(
     "Andrea Territorio",
   );
+  await expect(page.getByTestId("commitment-card-commitment-2")).toContainText(/20.*dic.*2026/);
 
   expect(mutationBodies).toEqual(
     expect.arrayContaining([
@@ -689,6 +891,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
         description: "Consolidar y publicar los resultados del mes.",
         priority: "MEDIUM",
         assigneeId: "team-member-e2e",
+        dueAt: "2026-10-16",
       },
       { status: "AT_RISK" },
       { progress: 70 },
@@ -699,6 +902,7 @@ test("gestiona tareas y compromisos sin enviar el tenant ni el modo", async ({
           "Coordinar y verificar la recuperación del espacio público.",
         isPublic: false,
         ownerId: "team-member-e2e",
+        targetDate: "2026-12-20",
       },
     ]),
   );

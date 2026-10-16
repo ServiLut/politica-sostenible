@@ -134,7 +134,7 @@ test("todas las imagenes publican revision y origen OCI verificables", async () 
   assert.match(env, /^APP_REVISION=replace-with-full-40-character-git-sha$/m);
   assert.match(workflow, /--build-arg APP_REVISION="\$GITHUB_SHA"/);
   assert.match(workflow, /APP_REVISION: \$\{\{ github\.sha \}\}/);
-  assert.match(workflow, /branches: \[main, "release\/\*\*"\]/);
+  assert.match(workflow, /branches: \[main, "release\/\*\*", "codex\/\*\*"\]/);
   assert.match(workflow, /org\.opencontainers\.image\.revision/);
 });
 

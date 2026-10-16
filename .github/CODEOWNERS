@@ -1,0 +1,26 @@
+# Active only when GitHub requires code-owner approval on protected branches.
+# Repository owner reviews changes to the controls that authorize a release.
+/.github/ @ServiLut
+/security/ @ServiLut
+/patches/ @ServiLut
+/deploy/ @ServiLut
+/Dockerfile @ServiLut
+/compose*.yml @ServiLut
+/.dockerignore @ServiLut
+/.gitignore @ServiLut
+/apps/api/Dockerfile @ServiLut
+/apps/web/Dockerfile @ServiLut
+/apps/api/src/auth/ @ServiLut
+/apps/api/src/common/ @ServiLut
+/apps/api/src/prisma/ @ServiLut
+/apps/api/prisma/ @ServiLut
+/apps/api/src/saas-admin/ @ServiLut
+/apps/api/src/storage/ @ServiLut
+/apps/api/src/main.ts @ServiLut
+/apps/api/src/app.module.ts @ServiLut
+/apps/web/next.config.ts @ServiLut
+/apps/web/proxy.ts @ServiLut
+/apps/web/lib/auth-session.ts @ServiLut
+/package.json @ServiLut
+/pnpm-lock.yaml @ServiLut
+/pnpm-workspace.yaml @ServiLut

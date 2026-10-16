@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import test from "node:test";
 
 import {
@@ -12,6 +13,8 @@ import {
   databaseInvariantIssues,
   findMigrationChecksumMismatches,
   normalizeDirectUrl,
+  postgresClientOptions,
+  prismaMigrationConnectionString,
   planCatalogMatches,
   pendingPlanSeedCatalogMatches,
   proveSameDatabase,
@@ -27,6 +30,35 @@ const direct =
   "postgresql://user:password@database.internal:5432/politica?schema=campaign";
 const pooled =
   "postgresql://user:password@pool.internal:6543/politica?pgbouncer=true&schema=campaign";
+
+test("pg efectivo verifica el certificado sin permitir que la URL sustituya sus opciones TLS", () => {
+  const { Client } = createRequire(new URL("../apps/api/package.json", import.meta.url))("pg");
+  const environment = { NODE_ENV: "production", DATABASE_SSL: "true", DATABASE_SSL_REJECT_UNAUTHORIZED: "true" };
+  const parsed = new URL(`${direct}&sslmode=verify-full`);
+  const options = postgresClientOptions(parsed, environment);
+  assert.deepEqual(new Client(options).connectionParameters.ssl, { rejectUnauthorized: true });
+  assert.equal(new URL(options.connectionString).searchParams.get("sslmode"), null);
+  assert.equal(parsed.searchParams.get("sslmode"), "verify-full", "la URL externa conserva el contrato canónico");
+  const nativeUrl = new URL(prismaMigrationConnectionString(parsed, environment));
+  assert.equal(nativeUrl.searchParams.get("sslmode"), "require");
+  assert.equal(nativeUrl.searchParams.get("sslaccept"), "strict");
+  assert.equal(nativeUrl.searchParams.get("schema"), "campaign");
+  for (const query of [
+    "sslmode=disable", "sslmode=no-verify", "ssl=0", "ssl=no-verify",
+    "sslmode=verify-full&sslmode=disable", "sslmode=disable&sslmode=verify-full",
+    "sslmode=verify-full&sslmode=verify-full", "sslmode=verify-full&ssl=0",
+    "sslmode=verify-full&sslrootcert=unread-fixture.pem", "sslmode=verify-full&sslcert=unread-fixture.pem",
+    "sslmode=verify-full&sslkey=unread-fixture.pem", "sslmode=verify-full&uselibpqcompat=true",
+    "sslmode=verify-full&%73slmode=disable", "SSLMODE=verify-full", "sslmode=VERIFY-FULL",
+    "sslmode=verify-full&sslnegotiation=direct", "uselibpqcompat=true&sslmode=require",
+  ]) {
+    assert.throws(() => postgresClientOptions(new URL(`${direct}&${query}`), environment), /cannot override verified TLS/u);
+    assert.throws(() => prismaMigrationConnectionString(new URL(`${direct}&${query}`), environment), /cannot override verified TLS/u);
+  }
+  const evaluation = { NODE_ENV: "production", DEPLOYMENT_PROFILE: "evaluation", ALLOW_INSECURE_DATABASE_CONNECTION: "true", DATABASE_SSL: "false", DATABASE_SSL_REJECT_UNAUTHORIZED: "false" };
+  assert.equal(new Client(postgresClientOptions(new URL(`${direct}&sslmode=disable`), evaluation)).connectionParameters.ssl, false);
+  assert.equal(new URL(prismaMigrationConnectionString(new URL(`${direct}&sslmode=disable`), evaluation)).searchParams.get("sslmode"), "disable");
+});
 
 function completed(migrationName) {
   return {

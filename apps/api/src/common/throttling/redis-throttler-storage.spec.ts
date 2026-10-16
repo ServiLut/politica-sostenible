@@ -155,4 +155,44 @@ describe('RedisThrottlerStorage', () => {
     expect(redis.eval).not.toHaveBeenCalled();
     storage.onApplicationShutdown();
   });
+
+  it.each([null, [1, 1], [1, 1, 2, 1], [-1, 1, 0, 0], [1, NaN, 0, 0]])(
+    'fails closed for a malformed distributed record %p',
+    async (record) => {
+      const redis = redisClient(record);
+      const storage = new RedisThrottlerStorage(
+        config('redis://unused.invalid', 'production'),
+        redis,
+      );
+      await expect(
+        storage.increment('key', 60_000, 1, 60_000, 'default'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      storage.onApplicationShutdown();
+    },
+  );
+
+  it('shares one connection attempt under concurrent cold-start requests', async () => {
+    const redis = redisClient([1, 60, 0, 0]);
+    redis.status = 'wait';
+    let finishConnection!: () => void;
+    redis.connect.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishConnection = resolve;
+        }),
+    );
+    const storage = new RedisThrottlerStorage(
+      config('redis://unused.invalid', 'production'),
+      redis,
+    );
+    const calls = Array.from({ length: 10 }, () =>
+      storage.increment('key', 60_000, 120, 60_000, 'default'),
+    );
+    expect(redis.connect).toHaveBeenCalledTimes(1);
+    redis.status = 'ready';
+    finishConnection();
+    await expect(Promise.all(calls)).resolves.toHaveLength(10);
+    expect(redis.eval).toHaveBeenCalledTimes(10);
+    storage.onApplicationShutdown();
+  });
 });

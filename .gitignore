@@ -40,6 +40,7 @@ dist/
 coverage/
 **/coverage/
 *.old.prisma
+apps/api/prisma/generated/
 
 .turbo/
 

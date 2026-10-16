@@ -1,5 +1,9 @@
 # Candidate only: validate the repaired image and explicit environment before
 # assigning the existing production domains in Dokploy. No host ports exposed.
+# Initial resource budget: 2026-10-16 21:11 UTC idle app sample was about 449 MiB
+# current / 530 MiB peak and 53 PIDs on a shared 16 GiB / 4 CPU host. This is not
+# a load-capacity certification. The app cap is shared by API, web, catalog
+# worker and supervisor; Redis persistence/fork peaks need load validation too.
 services:
   app:
     image: politica-recovery:${APP_REVISION:?exact repair commit is required}
@@ -14,6 +18,9 @@ services:
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?existing public key is required}
     environment:
       NODE_ENV: production
+      # Preserve existing defaults: closed registration, invitation acceptance enabled.
+      PUBLIC_REGISTRATION_ENABLED: ${PUBLIC_REGISTRATION_ENABLED:-false}
+      TEAM_INVITATION_ACCEPTANCE_ENABLED: ${TEAM_INVITATION_ACCEPTANCE_ENABLED:-true}
       DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:?}
       DATABASE_URL: ${DATABASE_URL:?preserve existing database URL}
       DIRECT_URL: ${DIRECT_URL:?preserve existing direct database URL}
@@ -65,6 +72,9 @@ services:
     labels:
       - traefik.docker.network=dokploy-network
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 256
     stop_grace_period: 40s
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health/ready"]
@@ -88,7 +98,7 @@ services:
         case "$${REDIS_PASSWORD}" in *[!a-fA-F0-9]*|'') exit 64;; esac
         test "$${#REDIS_PASSWORD}" -eq 64
         umask 077
-        printf 'bind 0.0.0.0\nprotected-mode yes\nport 6379\ndir /data\nappendonly yes\nmaxmemory-policy noeviction\nrequirepass %s\n' "$${REDIS_PASSWORD}" > /tmp/redis.conf
+        printf 'bind 0.0.0.0\nprotected-mode yes\nport 6379\ndir /data\nappendonly yes\nmaxmemory 256mb\nmaxmemory-policy noeviction\nrequirepass %s\n' "$${REDIS_PASSWORD}" > /tmp/redis.conf
         exec redis-server /tmp/redis.conf
     user: "999:1000"
     read_only: true
@@ -103,6 +113,9 @@ services:
     networks:
       - private
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 384m
+    pids_limit: 64
     healthcheck:
       test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q '^PONG$'"]
       interval: 10s

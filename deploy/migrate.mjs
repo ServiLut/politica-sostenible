@@ -26,11 +26,12 @@ const SUBSCRIPTION_PLAN_TABLE_MIGRATION = "20260905130000_subscription_plans";
 const PLAN_SEED_GUARD_FUNCTION = "protect_pending_subscription_plan_seed";
 const PLAN_SEED_GUARD_TRIGGER = "SubscriptionPlan_pending_seed_guard";
 const PLAN_SEED_TRUNCATE_TRIGGER = "SubscriptionPlan_pending_seed_no_truncate";
-export const EXPECTED_SCHEMA_VERSION = "20260921182000_schema_contract_marker";
+export const EXPECTED_SCHEMA_VERSION = "20261016213000_schema_contract_marker";
 const FIRST_SCHEMA_CONTRACT_MARKER = "20260909310000_schema_contract_marker";
 const SUPPORTED_SCHEMA_CONTRACT_MARKERS = new Set([
   FIRST_SCHEMA_CONTRACT_MARKER,
   "20260909340000_schema_contract_marker",
+  "20260921182000_schema_contract_marker",
   EXPECTED_SCHEMA_VERSION,
 ]);
 export const HISTORICAL_MIGRATIONS = Object.freeze([
@@ -542,6 +543,44 @@ function sslOptions(environment, parsedUrl) {
     };
   }
   return false;
+}
+
+export function postgresClientConnectionString(parsedUrl, environment) {
+  const parsed = new URL(parsedUrl);
+  if (environment.NODE_ENV === "production" &&
+      !(environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === "evaluation" &&
+        environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true")) {
+    const tlsParameters = [...parsed.searchParams].filter(([key]) =>
+      key.toLowerCase().startsWith("ssl") || key.toLowerCase() === "uselibpqcompat");
+    if (tlsParameters.length !== 1 || tlsParameters[0][0] !== "sslmode" || tlsParameters[0][1] !== "verify-full") {
+      throw new Error("PostgreSQL URL cannot override verified TLS");
+    }
+    parsed.searchParams.delete("sslmode");
+  }
+  return parsed.toString();
+}
+
+export function postgresClientOptions(parsedUrl, environment) {
+  return {
+    connectionString: postgresClientConnectionString(parsedUrl, environment),
+    connectionTimeoutMillis: 15_000,
+    ssl: sslOptions(environment, parsedUrl),
+  };
+}
+
+export function prismaMigrationConnectionString(parsedUrl, environment) {
+  const parsed = new URL(parsedUrl);
+  if (environment.NODE_ENV === "production" &&
+      !(environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === "evaluation" &&
+        environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true")) {
+    // Validate the external contract first. Prisma's native connector does not
+    // implement pg/libpq's verify-full mode: unknown modes can allow plaintext.
+    // Its strict equivalent is require + sslaccept=strict, used only internally.
+    postgresClientConnectionString(parsed, environment);
+    parsed.searchParams.set("sslmode", "require");
+    parsed.searchParams.set("sslaccept", "strict");
+  }
+  return parsed.toString();
 }
 
 function quotedIdentifier(value) {
@@ -1246,23 +1285,16 @@ export async function runSafeMigrations(environment = process.env) {
   const migrationTimeouts = resolveMigrationTimeouts(environment);
   const prismaEnvironment = {
     ...environment,
-    DIRECT_URL: directUrl,
+    DIRECT_URL: prismaMigrationConnectionString(normalizedDirect, environment),
+    DATABASE_URL: prismaMigrationConnectionString(normalizedRuntime, environment),
     PGOPTIONS: migrationTimeouts.pgOptions,
   };
   const requireFromApi = createRequire(
     join(APPLICATION_DIRECTORY, "package.json"),
   );
   const { Client } = requireFromApi("pg");
-  const client = new Client({
-    connectionString: directUrl,
-    connectionTimeoutMillis: 15_000,
-    ssl: sslOptions(environment, normalizedDirect),
-  });
-  const runtimeClient = new Client({
-    connectionString: runtimeUrl,
-    connectionTimeoutMillis: 15_000,
-    ssl: sslOptions(environment, normalizedRuntime),
-  });
+  const client = new Client(postgresClientOptions(normalizedDirect, environment));
+  const runtimeClient = new Client(postgresClientOptions(normalizedRuntime, environment));
 
   console.log(
     `Verificando migraciones con ${source} directa (schema: ${schema})...`,

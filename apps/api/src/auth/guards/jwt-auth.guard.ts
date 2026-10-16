@@ -115,6 +115,7 @@ export class JwtAuthGuard implements CanActivate {
         ...identity,
         email: currentUser.email,
         role: currentUser.role,
+        authVersion: currentUser.authVersion,
         mustChangePassword: currentUser.mustChangePassword,
         temporaryPasswordExpiresAt: currentUser.mustChangePassword
           ? currentUser.temporaryPasswordExpiresAt

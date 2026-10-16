@@ -15,7 +15,7 @@ import {
   type StorageIntegrityQueuePort,
 } from './storage/storage-integrity-queue.constants';
 
-export const EXPECTED_SCHEMA_VERSION = '20260921182000_schema_contract_marker';
+export const EXPECTED_SCHEMA_VERSION = '20261016213000_schema_contract_marker';
 
 const REQUIRED_PLAN_CATALOG = new Map([
   [

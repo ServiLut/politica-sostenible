@@ -1,6 +1,5 @@
 import {
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -12,6 +11,7 @@ import {
   CommunicationChannel,
   WorkPriority,
 } from '../../../prisma/generated/prisma';
+import { IsOperationalDeadline } from '../../common/utils/operational-deadline';
 
 export class CreateIssueCaseDto {
   @IsOptional()
@@ -70,6 +70,6 @@ export class CreateIssueCaseDto {
   confidential?: boolean;
 
   @IsOptional()
-  @IsDateString()
+  @IsOperationalDeadline()
   dueAt?: string;
 }

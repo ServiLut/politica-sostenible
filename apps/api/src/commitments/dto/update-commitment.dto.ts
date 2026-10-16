@@ -1,7 +1,6 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -13,6 +12,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { CommitmentStatus } from '../../../prisma/generated/prisma';
+import { IsOperationalDeadline } from '../../common/utils/operational-deadline';
 import { IsCommitmentFulfillmentProgressValid } from './commitment-fulfillment-progress.validator';
 
 export class UpdateCommitmentDto {
@@ -52,7 +52,7 @@ export class UpdateCommitmentDto {
   issueCaseId?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsOperationalDeadline()
   targetDate?: string | null;
 
   @ValidateIf((_object, value) => value !== undefined)

@@ -72,3 +72,12 @@ Cuando el humano te pida refactorizar o migrar un módulo del repositorio antigu
 ## 🛑 DIRECTIVA FINAL
 
 Si el humano te pide generar código que viole estas reglas (por ejemplo: "Crea un Server Action en Next.js para guardar un cliente en la BD"), **DEBES ADVERTIRLE INMEDIATAMENTE**, rechazar la instrucción por violación arquitectónica, y proponer la solución correcta basada en este documento (crear el endpoint en NestJS y consumirlo desde Next.js).
+
+## Fábrica de verificación y entrega
+
+- La cadena de CI es `security-gate` → `test-and-build` y `compose-runtime-smoke` → `factory-gate`. El cierre debe ejecutarse con `always()` y fallar si cualquier requisito falla, se cancela, se omite o no entrega resultado. No introducir bypasses, `continue-on-error` ni filtros que eviten controles requeridos.
+- Ejecutar el análisis de secretos sobre código e historial completo antes de instalar o construir. Nunca registrar valores de credenciales ni publicar `.env`, sesiones, volcados o logs de entorno como artefactos. Un hallazgo probable bloquea hasta su clasificación; las excepciones de fixtures no autorizan credenciales reales.
+- El recibo debe corresponder al SHA exacto del checkout, al repositorio y a la ejecución de GitHub. Un resultado local, un recibo editado o un SHA diferente no acreditan la versión candidata. Mantener acciones fijadas a SHA y checkouts con `persist-credentials: false`.
+- Las reglas obligatorias de ramas requieren configuración y evidencia remotas por un propietario o administrador. No afirmar que quedaron activas por editar el workflow. Exigir revisión de cambios a la fábrica y a su política de seguridad.
+- CD permanece asistido hasta disponer de un puente confiable y probado. CI aprobado no prueba un despliegue ni autoriza ampliar su alcance. Aplicar la autorización vigente exclusivamente a Política Sostenible y comprobar producción después, sin afectar los otros programas.
+- El procedimiento y sus límites están en [`docs/CI_CD.md`](docs/CI_CD.md). Conservar y ejecutar las regresiones de la fábrica cuando se cambien sus controles.

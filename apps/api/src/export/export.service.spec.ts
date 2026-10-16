@@ -16,6 +16,7 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
     tenantId: 'tenant-a',
     email: 'admin@example.test',
     role: Role.ADMIN,
+    authVersion: 0,
   };
 
   let prisma: {
@@ -100,7 +101,13 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
       select: { name: true, defaultMode: true, type: true },
     });
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { id: 'admin-a', tenantId: 'tenant-a' },
+      where: {
+        id: 'admin-a',
+        tenantId: 'tenant-a',
+        isActive: true,
+        role: Role.ADMIN,
+        authVersion: 0,
+      },
       select: { name: true },
     });
     expect(prisma.task.findMany).toHaveBeenCalledWith(
@@ -118,15 +125,20 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
       expect.objectContaining({ id: true, title: true, createdAt: true }),
     );
     expect(prisma.auditEvent.create).toHaveBeenCalledWith({
-      data: {
+      data: expect.objectContaining({
         tenantId: 'tenant-a',
         mode: PoliticalOperationMode.PUBLIC_OFFICE,
         actorType: 'USER',
         actorUserId: 'admin-a',
         action: 'DATA_EXPORTED',
         resourceType: 'tareas',
-        resourceId: 'ALL',
-      },
+        resourceId: expect.any(String),
+        metadata: expect.objectContaining({
+          rowsProduced: 1,
+          reason: 'COMPLETED',
+          completionScope: 'SERVER_STREAM',
+        }),
+      }),
     });
     expect(result.fileName).toMatch(/^export-tareas-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(result.csv.startsWith('\uFEFF')).toBe(true);
@@ -298,14 +310,21 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
     );
   });
 
-  it('does not audit a download that the client cancels before completion', async () => {
+  it('audits a cancelled stream without claiming a completed download', async () => {
     const opened = await service.openExport('tareas', currentUser);
 
     await opened.chunks.next();
     await opened.chunks.return(undefined);
 
     expect(prisma.task.findMany).not.toHaveBeenCalled();
-    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+    expect(
+      prisma.auditEvent.create.mock.calls.map(
+        ([arg]) => (arg as { data: { action: string } }).data.action,
+      ),
+    ).toEqual(['DATA_EXPORT_STARTED', 'DATA_EXPORT_INTERRUPTED']);
+    expect(prisma.auditEvent.create.mock.calls[1][0].data.metadata).toEqual(
+      expect.objectContaining({ rowsProduced: 0, reason: 'CONSUMER_CLOSED' }),
+    );
   });
 
   it('honors an already-aborted request before reading export data', async () => {
@@ -322,5 +341,207 @@ describe('ExportService tenant isolation, privacy and bounded streaming', () => 
     });
     expect(prisma.task.findMany).not.toHaveBeenCalled();
     expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('does not disclose any bytes or read rows when the initial audit cannot persist', async () => {
+    prisma.auditEvent.create.mockRejectedValueOnce(
+      new Error('audit unavailable'),
+    );
+    const opened = await service.openExport('tareas', currentUser);
+
+    await expect(opened.chunks.next()).rejects.toThrow('audit unavailable');
+
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).toHaveBeenCalledTimes(1);
+    expect(prisma.auditEvent.create.mock.calls[0][0].data.action).toBe(
+      'DATA_EXPORT_STARTED',
+    );
+  });
+
+  it('rejects an unbound credential version and low-privilege service callers', async () => {
+    for (const user of [
+      { ...currentUser, authVersion: undefined },
+      { ...currentUser, authVersion: -1 },
+      { ...currentUser, role: Role.VOLUNTEER },
+    ]) {
+      await expect(service.openExport('tareas', user)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    }
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps the version validated by the guard when a logout races with opening the stream', async () => {
+    prisma.user.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.openExport('tareas', currentUser),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          authVersion: 0,
+          tenantId: 'tenant-a',
+        }),
+      }),
+    );
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['deactivation', 'role', 'credential', 'tenant-mode'] as const)(
+    'stops before another batch after %s revocation and records the partial export',
+    async (revocation) => {
+      const batch = Array.from({ length: 250 }, (_, index) => ({
+        id: `task-${index}`,
+        title: `Tarea ${index}`,
+        description: null,
+        status: 'OPEN',
+        priority: 'MEDIUM',
+        assignee: null,
+        dueAt: null,
+        completedAt: null,
+        createdAt: new Date('2026-09-01T00:00:00.000Z'),
+      }));
+      prisma.task.findMany.mockResolvedValueOnce(batch).mockResolvedValue([]);
+      const opened = await service.openExport('tareas', currentUser);
+      // Three framing chunks, followed by precisely the first bounded batch.
+      for (let index = 0; index < 253; index += 1) await opened.chunks.next();
+      const stored = {
+        id: 'admin-a',
+        tenantId: 'tenant-a',
+        isActive: revocation !== 'deactivation',
+        role: revocation === 'role' ? Role.VOLUNTEER : Role.ADMIN,
+        authVersion: revocation === 'credential' ? 1 : 0,
+        defaultMode:
+          revocation === 'tenant-mode'
+            ? PoliticalOperationMode.PUBLIC_OFFICE
+            : PoliticalOperationMode.CAMPAIGN,
+        type: TenantType.CANDIDACY,
+      };
+      prisma.user.findFirst.mockImplementation(
+        ({
+          where,
+        }: {
+          where: Partial<typeof stored> & {
+            tenant?: { defaultMode?: string; type?: string };
+          };
+        }) => {
+          const keys = [
+            'id',
+            'tenantId',
+            'isActive',
+            'role',
+            'authVersion',
+          ] as const;
+          const matches =
+            keys.every(
+              (key) => where[key] === undefined || where[key] === stored[key],
+            ) &&
+            (!where.tenant?.defaultMode ||
+              where.tenant.defaultMode === stored.defaultMode) &&
+            (!where.tenant?.type || where.tenant.type === stored.type);
+          return Promise.resolve(matches ? { id: stored.id } : null);
+        },
+      );
+
+      await expect(opened.chunks.next()).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+
+      expect(prisma.task.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.user.findFirst).toHaveBeenLastCalledWith({
+        where: {
+          id: 'admin-a',
+          tenantId: 'tenant-a',
+          isActive: true,
+          role: Role.ADMIN,
+          authVersion: 0,
+          tenant: {
+            defaultMode: PoliticalOperationMode.CAMPAIGN,
+            type: TenantType.CANDIDACY,
+          },
+        },
+        select: { id: true },
+      });
+      expect(
+        prisma.auditEvent.create.mock.calls.map(
+          ([arg]) => (arg as { data: { action: string } }).data.action,
+        ),
+      ).toEqual(['DATA_EXPORT_STARTED', 'DATA_EXPORT_INTERRUPTED']);
+      expect(prisma.auditEvent.create.mock.calls[1][0].data).toEqual(
+        expect.objectContaining({
+          outcome: 'DENIED',
+          metadata: expect.objectContaining({
+            rowsProduced: 250,
+            reason: 'ACCESS_REVOKED',
+          }),
+        }),
+      );
+    },
+  );
+
+  it('records disclosed rows when the consumer disconnects and keeps audit metadata free of private contents', async () => {
+    prisma.task.findMany.mockResolvedValueOnce([
+      {
+        id: 'private-task',
+        title: 'Private client matter',
+        description: 'Private details',
+        status: 'OPEN',
+        priority: 'MEDIUM',
+        assignee: null,
+        dueAt: null,
+        completedAt: null,
+        createdAt: new Date('2026-09-01T00:00:00.000Z'),
+      },
+    ]);
+    const abort = new AbortController();
+    const opened = await service.openExport(
+      'tareas',
+      currentUser,
+      abort.signal,
+    );
+    for (let index = 0; index < 4; index += 1) await opened.chunks.next();
+    abort.abort();
+    await opened.chunks.return(undefined);
+
+    const start = prisma.auditEvent.create.mock.calls[0][0].data;
+    const interrupted = prisma.auditEvent.create.mock.calls[1][0].data;
+    expect(interrupted.resourceId).toBe(start.resourceId);
+    expect(interrupted.metadata).toEqual(
+      expect.objectContaining({
+        rowsProduced: 1,
+        reason: 'CLIENT_ABORTED',
+        completionScope: 'SERVER_STREAM',
+      }),
+    );
+    expect(JSON.stringify(interrupted.metadata)).not.toMatch(
+      /Private|admin@example|Administradora/,
+    );
+    expect(prisma.auditEvent.create.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.task.findMany.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('never marks a broken batch as completed', async () => {
+    prisma.task.findMany.mockRejectedValueOnce(
+      new Error('database unavailable'),
+    );
+
+    await expect(collectExport('tareas')).rejects.toThrow(
+      'database unavailable',
+    );
+
+    expect(
+      prisma.auditEvent.create.mock.calls.map(
+        ([arg]) => (arg as { data: { action: string } }).data.action,
+      ),
+    ).toEqual(['DATA_EXPORT_STARTED', 'DATA_EXPORT_INTERRUPTED']);
+    expect(prisma.auditEvent.create.mock.calls[1][0].data.metadata).toEqual(
+      expect.objectContaining({
+        rowsProduced: 0,
+        reason: 'PROCESSING_FAILED',
+      }),
+    );
   });
 });

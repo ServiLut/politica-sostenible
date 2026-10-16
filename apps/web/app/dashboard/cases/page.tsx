@@ -172,6 +172,7 @@ function formatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
   return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -538,9 +539,7 @@ export default function CasesPage() {
         externalContactRef: form.externalContactRef || undefined,
         assigneeId: form.assigneeId || undefined,
         confidential: form.confidential,
-        dueAt: form.dueDate
-          ? new Date(`${form.dueDate}T12:00:00`).toISOString()
-          : undefined,
+        dueAt: form.dueDate || undefined,
       });
       setForm({
         title: "",
@@ -773,7 +772,7 @@ export default function CasesPage() {
       ) : (
         <>
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 min-w-0 flex-wrap gap-3">
-            <span>{result.pagination.total} casos encontrados</span>
+            <span>{result.pagination.total} {result.pagination.total === 1 ? "caso encontrado" : "casos encontrados"}</span>
             <span>
               Página {filters.page} de {totalPages}
             </span>
@@ -970,13 +969,15 @@ export default function CasesPage() {
                     Fecha objetivo de seguimiento (interna)
                     <input
                       type="date"
+                      aria-describedby="case-deadline-help"
                       value={form.dueDate}
                       onChange={(event) =>
                         setForm({ ...form, dueDate: event.target.value })
                       }
                       className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
-                    <span className="block text-sm font-normal leading-5 text-slate-500">
+                    <span id="case-deadline-help" className="block text-sm font-normal leading-5 text-slate-500">
+                      Tienes hasta el final de ese día, hora de Colombia.
                       Organiza el trabajo del equipo; no calcula un plazo legal.
                     </span>
                   </label>

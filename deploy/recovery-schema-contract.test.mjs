@@ -3,7 +3,7 @@ import test from "node:test";
 import { EXPECTED_SCHEMA_VERSION, validateDatabaseIdentity } from "./migrate.mjs";
 
 test("known prior schema markers may migrate but cannot pass final readiness", () => {
-  for (const schemaVersion of ["20260909310000_schema_contract_marker", "20260909340000_schema_contract_marker"]) {
+  for (const schemaVersion of ["20260909310000_schema_contract_marker", "20260909340000_schema_contract_marker", "20260921182000_schema_contract_marker"]) {
     const rows = [{ fingerprint: "a".repeat(64), schemaVersion }];
     assert.deepEqual(validateDatabaseIdentity(rows), rows[0]);
     assert.throws(() => validateDatabaseIdentity(rows, { requireCurrent: true }), /invalida/);

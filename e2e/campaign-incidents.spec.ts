@@ -388,9 +388,11 @@ test("administra un incidente real con filtros, responsable y transición audita
     if (url.pathname === "/api/cases" && method === "POST") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      expect(body.dueAt).toBe("2026-08-22");
       const created = {
         ...initialIncident,
         ...body,
+        dueAt: "2026-08-23T04:59:59.999Z",
         id: "incident-2",
         reference: "INC-CAM-2026-BBB222",
         assigneeId: String(body.assigneeId),
@@ -410,9 +412,11 @@ test("administra un incidente real con filtros, responsable y transición audita
     if (url.pathname === "/api/cases/incident-2" && method === "PATCH") {
       const body = request.postDataJSON() as Record<string, unknown>;
       mutationBodies.push(body);
+      if (body.dueAt !== undefined) expect(body.dueAt).toBe("2026-08-24");
       const updated = {
         ...incidents[0],
         ...body,
+        ...(body.dueAt !== undefined ? { dueAt: "2026-08-25T04:59:59.999Z" } : {}),
         updatedAt: "2026-08-21T16:00:00.000Z",
       } as typeof initialIncident;
       incidents = [updated, ...incidents.slice(1)];
@@ -598,6 +602,7 @@ test("administra un incidente real con filtros, responsable y transición audita
   await dialog.getByRole("button", { name: "Responsable del nuevo incidente" }).click();
   await dialog.getByRole("button", { name: /^Equipo jurídico/ }).click();
   await dialog.getByLabel("Vencimiento").fill("2026-08-22");
+  await expect(dialog.getByText(/hasta el final de ese día, hora de Colombia/)).toBeVisible();
   await expect(
     dialog.getByText(
       /Es una clasificación operativa\. No restringe el acceso: la visibilidad sigue los permisos generales del rol y la asignación del incidente\./,
@@ -615,6 +620,7 @@ test("administra un incidente real con filtros, responsable y transición audita
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect(createdCard).toContainText("Amenaza al equipo territorial");
   await expect(createdCard).toContainText("Severidad Crítica");
+  await expect(createdCard).toContainText(/22.*ago.*2026/);
   await expect(createdCard.getByText("Manejo especial")).toBeVisible();
   await expect(
     createdCard.getByTitle(
@@ -625,6 +631,7 @@ test("administra un incidente real con filtros, responsable y transición audita
   await page.getByRole("combobox", { name: "Filtrar incidentes por estado" }).selectOption("OPEN");
   await expect(createdCard).toBeVisible();
   await createdCard.getByText("Gestionar incidente", { exact: true }).click();
+  await expect(createdCard.getByLabel("Vencimiento de INC-CAM-2026-BBB222")).toHaveValue("2026-08-22");
   await createdCard
     .getByRole("combobox", { name: /Estado operativo/ })
     .selectOption("IN_PROGRESS");
@@ -635,6 +642,11 @@ test("administra un incidente real con filtros, responsable y transición audita
   await expect(createdCard).toHaveCount(0);
   await page.getByRole("combobox", { name: "Filtrar incidentes por estado" }).selectOption("IN_PROGRESS");
   await expect(createdCard).toContainText("Respuesta en curso");
+  await createdCard.getByText("Gestionar incidente", { exact: true }).click();
+  await createdCard.getByLabel("Vencimiento de INC-CAM-2026-BBB222").fill("2026-08-24");
+  await createdCard.getByRole("button", { name: "Guardar respuesta" }).click();
+  await expect(createdCard).toContainText(/24.*ago.*2026/);
+  expect(mutationBodies.at(-1)).toEqual({ dueAt: "2026-08-24" });
 
   expect(mutationBodies).toEqual(
     expect.arrayContaining([
@@ -644,6 +656,7 @@ test("administra un incidente real con filtros, responsable y transición audita
         priority: "URGENT",
         assigneeId: "legal-team",
         confidential: true,
+        dueAt: "2026-08-22",
       }),
       { status: "IN_PROGRESS" },
     ]),

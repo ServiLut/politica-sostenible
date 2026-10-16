@@ -2,7 +2,7 @@
 
 import { usePageRequest } from "@/lib/use-page-request";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   type FormEvent,
@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
-import { readEntityDeepLink } from "@/lib/entity-deep-links";
+import { buildSearchResultHref, readEntityDeepLink } from "@/lib/entity-deep-links";
 import {
   allowedProposalStatuses,
   createProposal,
@@ -132,6 +132,7 @@ function statusTone(status: ProposalStatus): string {
 
 export default function ProposalsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const canMutate =
     user !== null && PROPOSAL_MANAGER_ROLES.has(user.backendRole);
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">(
@@ -155,6 +156,9 @@ export default function ProposalsPage() {
   const [form, setForm] = useState<ProposalForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [completionConfirmed, setCompletionConfirmed] = useState(false);
+  const [savedProposal, setSavedProposal] = useState<PoliticalProposal | null>(null);
+  const progressBeforeCompletion = useRef("0");
   const statusRequests = useRef(new Set<string>());
   const [savingStatuses, setSavingStatuses] = useState<Set<string>>(new Set());
   const [statusFeedback, setStatusFeedback] = useState<
@@ -219,27 +223,50 @@ export default function ProposalsPage() {
 
   const openCreate = () => {
     if (!canMutate) return;
+    progressBeforeCompletion.current = EMPTY_FORM.progressPercent;
     setForm({ ...EMPTY_FORM, ownerId: user.id });
     setMutationError(null);
+    setCompletionConfirmed(false);
     setDialogProposal("new");
   };
 
-  const openEdit = (proposal: PoliticalProposal) => {
+  const openEdit = (proposal: PoliticalProposal, status = proposal.status) => {
     if (!canMutate || statusRequests.current.has(proposal.id)) return;
+    progressBeforeCompletion.current = String(proposal.progressPercent);
     setForm({
       title: proposal.title,
       description: proposal.description,
       category: proposal.category,
-      status: proposal.status,
-      progressPercent: String(proposal.progressPercent),
+      status,
+      progressPercent: status === "COMPLETED" ? "100" : String(proposal.progressPercent),
       estimatedCost:
         proposal.estimatedCost === null ? "" : String(proposal.estimatedCost),
       internalDistributionFlag: proposal.isPublic,
       ownerId: proposal.ownerId,
     });
     setMutationError(null);
+    setCompletionConfirmed(false);
     setDialogProposal(proposal);
   };
+
+  function changeFormStatus(status: ProposalStatus) {
+    if (status === "COMPLETED" && form.status !== "COMPLETED") {
+      progressBeforeCompletion.current = form.progressPercent;
+    }
+    setCompletionConfirmed(false);
+    setForm({
+      ...form,
+      status,
+      progressPercent:
+        status === "DRAFT" || status === "PROPOSED"
+          ? "0"
+          : status === "COMPLETED"
+            ? "100"
+            : form.status === "COMPLETED"
+              ? progressBeforeCompletion.current
+              : form.progressPercent,
+    });
+  }
 
   const handleCardKeyDown = (
     event: KeyboardEvent<HTMLElement>,
@@ -262,6 +289,13 @@ export default function ProposalsPage() {
       status === proposal.status ||
       !allowedProposalStatuses(proposal.status).includes(status)
     ) {
+      return;
+    }
+
+    // Completing is a final declaration of 100% progress. Review and confirm
+    // it in the editor instead of sending a status-only PATCH that the API rejects.
+    if (status === "COMPLETED") {
+      openEdit(proposal, status);
       return;
     }
 
@@ -308,6 +342,8 @@ export default function ProposalsPage() {
     setDeleting(true);
     try {
       await deleteProposal(deleteTarget.id);
+      if (savedProposal?.id === deleteTarget.id) setSavedProposal(null);
+      if (deepLinkProposalId === deleteTarget.id) router.replace("/dashboard/proposals");
       setDeleteTarget(null);
       await loadProposals();
     } catch (error: unknown) {
@@ -333,6 +369,11 @@ export default function ProposalsPage() {
       setMutationError("Selecciona el responsable de la propuesta.");
       return;
     }
+    if (form.status === "COMPLETED" && dialogProposal !== "new" &&
+        dialogProposal.status !== "COMPLETED" && !completionConfirmed) {
+      setMutationError("Confirma que la propuesta alcanzó el 100 % antes de completarla.");
+      return;
+    }
 
     const progressPercent = Number(form.progressPercent);
     const estimatedCost = form.estimatedCost.trim()
@@ -352,11 +393,14 @@ export default function ProposalsPage() {
     setSubmitting(true);
     setMutationError(null);
     try {
-      if (dialogProposal === "new") {
-        await createProposal(payload);
-      } else {
-        await updateProposal(dialogProposal.id, payload);
-      }
+      const confirmed = dialogProposal === "new"
+        ? await createProposal(payload)
+        : await updateProposal(dialogProposal.id, payload);
+      setProposals((current) => [
+        confirmed,
+        ...(current ?? []).filter((item) => item.id !== confirmed.id),
+      ]);
+      setSavedProposal(confirmed);
       setDialogProposal(null);
       await loadProposals();
     } catch (error: unknown) {
@@ -369,6 +413,7 @@ export default function ProposalsPage() {
   const filteredProposals = useMemo(
     () =>
       proposals.filter((proposal) => {
+        if (deepLinkProposalId) return proposal.id === deepLinkProposalId;
         if (
           debouncedSearch &&
           !proposal.title.toLowerCase().includes(debouncedSearch.toLowerCase())
@@ -379,7 +424,7 @@ export default function ProposalsPage() {
         }
         return categoryFilter === "ALL" || proposal.category === categoryFilter;
       }),
-    [categoryFilter, proposals, statusFilter, debouncedSearch],
+    [categoryFilter, proposals, statusFilter, debouncedSearch, deepLinkProposalId],
   );
 
   const statusCounts = useMemo(() => {
@@ -412,6 +457,7 @@ export default function ProposalsPage() {
     dialogProposal === "new" ||
     form.status === "DRAFT" ||
     form.status === "PROPOSED" ||
+    form.status === "COMPLETED" ||
     editedProposal?.status === "COMPLETED" ||
     editedProposal?.status === "WITHDRAWN";
 
@@ -461,6 +507,18 @@ export default function ProposalsPage() {
       {mutationError && !dialogProposal && (
         <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">{mutationError}</p>
       )}
+      {savedProposal && (
+        <div role="status" className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="min-w-0 break-words">
+            <strong>Propuesta guardada:</strong> «{savedProposal.title}» · {STATUS_LABELS[savedProposal.status]}.
+            {" "}Puedes abrirla aunque no coincida con tus filtros.
+          </p>
+          <button type="button" onClick={() => router.push(buildSearchResultHref("Proposals", savedProposal.id))}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 font-semibold hover:bg-emerald-100">
+            Ver propuesta guardada
+          </button>
+        </div>
+      )}
       {Object.entries(statusFeedback).map(([id, feedback]) => (
         <div
           key={id}
@@ -491,7 +549,15 @@ export default function ProposalsPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
+      {deepLinkProposalId ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          <p>Estás viendo una propuesta específica. Tu búsqueda y tus filtros se conservan al volver al listado.</p>
+          <button type="button" onClick={() => router.push("/dashboard/proposals")}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-300 bg-white px-4 font-semibold hover:bg-blue-100">
+            Volver al listado
+          </button>
+        </div>
+      ) : <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
         <div className="flex-1 max-w-sm min-w-0">
           <label htmlFor="proposal-search" className="mb-1 block text-sm font-semibold text-slate-700">Buscar propuestas</label>
           <input
@@ -542,14 +608,14 @@ export default function ProposalsPage() {
           ))}
         </select>
         </div>
-      </div>
+      </div>}
 
       {loading && proposalsData === null ? (
         <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 min-w-0">
           <Loader2 className="animate-spin text-slate-400" size={24} />
           Cargando propuestas...
         </div>
-      ) : fetchError && proposalsData === null ? null : filteredProposals.length === 0 ? (
+      ) : (fetchError && proposalsData === null) || deepLinkedProposalIsMissing ? null : filteredProposals.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center min-w-0">
           <FileText className="text-slate-400" size={48} />
           <p className="text-sm font-medium text-slate-500">
@@ -839,19 +905,7 @@ export default function ProposalsPage() {
                   Estado
                   <select
                     value={form.status}
-                    onChange={(event) => {
-                      const status = event.target.value as ProposalStatus;
-                      setForm({
-                        ...form,
-                        status,
-                        progressPercent:
-                          status === "DRAFT" || status === "PROPOSED"
-                            ? "0"
-                            : status === "COMPLETED"
-                              ? "100"
-                              : form.progressPercent,
-                      });
-                    }}
+                    onChange={(event) => changeFormStatus(event.target.value as ProposalStatus)}
                     className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     {(dialogProposal === "new"
@@ -898,6 +952,17 @@ export default function ProposalsPage() {
                   />
                 </label>
               </div>
+              {form.status === "COMPLETED" && editedProposal?.status !== "COMPLETED" && (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p>Completar registra el progreso en 100 %. Este estado es final: después no podrás cambiar el contenido, responsable ni progreso.</p>
+                  <label className="flex items-start gap-3 font-semibold">
+                    <input type="checkbox" required checked={completionConfirmed}
+                      onChange={(event) => setCompletionConfirmed(event.target.checked)}
+                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-amber-400" />
+                    Confirmo que la propuesta alcanzó el 100 % y puede darse por completada.
+                  </label>
+                </div>
+              )}
               <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800 min-w-0">
                 <input
                   type="checkbox"

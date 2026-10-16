@@ -305,6 +305,7 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
   await expect(
     page.getByText("Estado de “Encuentro ciudadano” actualizado a En curso."),
   ).toBeVisible();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(page.getByTestId("event-card-event-scheduled")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "No hay eventos para estos filtros" })).toBeVisible();
   await page.getByRole("combobox", { name: "Estado", exact: true }).selectOption("IN_PROGRESS");
@@ -373,6 +374,81 @@ test("administra agenda real sin enviar tenant ni modo desde el navegador", asyn
     true,
   );
 });
+
+for (const target of [
+  { status: "CANCELLED", action: "cancelar", title: "¿Cancelar evento?", label: "Cancelado" },
+  { status: "COMPLETED", action: "finalizar", title: "¿Finalizar evento?", label: "Finalizado" },
+]) {
+  test(`${target.status}: confirma el estado final, permite volver sin cambios y conserva el evento ante rechazo`, async ({ page }) => {
+    const authSession = session("CANDIDACY", "ADMIN");
+    await installSession(page, authSession);
+    let current = {
+      id: "event-terminal", name: "Encuentro de prueba terminal", mode: "CAMPAIGN",
+      description: null, startsAt: "2026-10-20T14:00:00.000Z", endsAt: "2026-10-20T15:00:00.000Z",
+      status: "IN_PROGRESS", location: "Sede de prueba", capacity: 20,
+      responsibleId: null, responsible: null,
+      createdAt: "2026-10-16T12:00:00.000Z", updatedAt: "2026-10-16T12:00:00.000Z",
+    };
+    let rejectNext = true;
+    const patches: unknown[] = [];
+    await page.route("**/api/**", async (route) => {
+      const request = route.request();
+      const pathname = new URL(request.url()).pathname;
+      if (pathname === "/api/auth/me") {
+        await route.fulfill({ json: successful({ user: {
+          ...authSession.user, role: "ADMIN", tenant: authSession.tenant,
+        } }) });
+      } else if (pathname === "/api/events" && request.method() === "GET") {
+        await route.fulfill({ json: paginated([current]) });
+      } else if (pathname === "/api/events/event-terminal/status" && request.method() === "PATCH") {
+        const body = request.postDataJSON();
+        patches.push(body);
+        if (rejectNext) {
+          rejectNext = false;
+          await route.fulfill({ status: 409, json: { message: "El estado del evento cambió. Actualiza antes de volver a intentarlo." } });
+        } else {
+          current = { ...current, status: body.status };
+          await route.fulfill({ json: successful(current) });
+        }
+      } else if (pathname === "/api/billing/capabilities") {
+        await route.fulfill({ json: planCapabilities() });
+      } else {
+        await route.fulfill({ status: 404, json: { message: "Ruta no definida" } });
+      }
+    });
+    await page.goto("/dashboard/events");
+    const card = page.getByTestId("event-card-event-terminal");
+    const selector = page.getByRole("combobox", { name: `Siguiente estado de ${current.name}` });
+    const dialog = page.getByRole("alertdialog", { name: target.title });
+    await selector.selectOption(target.status);
+    await expect(dialog).toContainText(current.name);
+    await expect(dialog).toContainText("No podrás editarlo ni reabrirlo");
+    await expect(dialog.getByRole("button", { name: "Volver sin cambios" })).toBeFocused();
+    expect(patches).toEqual([]);
+    await dialog.getByRole("button", { name: "Volver sin cambios" }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(card).toContainText("En curso");
+    await expect(selector).toBeEnabled();
+    expect(patches).toEqual([]);
+
+    await selector.selectOption(target.status);
+    await dialog.getByRole("button", { name: `Sí, ${target.action} evento` }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "El estado del evento cambió" })).toBeVisible();
+    await expect(card).toContainText("En curso");
+    await expect(selector).toBeEnabled();
+    expect(patches).toEqual([{ status: target.status }]);
+
+    await page.reload();
+    await expect(card).toContainText("En curso");
+    await selector.selectOption(target.status);
+    expect(patches).toHaveLength(1);
+    await dialog.getByRole("button", { name: `Sí, ${target.action} evento` }).click();
+    await expect(card).toContainText(target.label);
+    await expect(selector).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `Editar ${current.name}` })).toHaveCount(0);
+    expect(patches).toEqual([{ status: target.status }, { status: target.status }]);
+  });
+}
 
 test("muestra agenda pública vacía en modo de sólo lectura", async ({
   page,
@@ -544,8 +620,9 @@ test("expone el error de carga y permite reintentar sin recargar la página", as
     page.getByRole("heading", { name: "No pudimos cargar la agenda" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Agenda temporalmente no disponible"),
+    page.getByText("El servidor no pudo completar la solicitud. Intenta nuevamente más tarde."),
   ).toBeVisible();
+  await expect(page.getByText("Agenda temporalmente no disponible")).toHaveCount(0);
   backendAvailable = true;
   await page.getByRole("button", { name: "Reintentar agenda" }).click();
   await expect(

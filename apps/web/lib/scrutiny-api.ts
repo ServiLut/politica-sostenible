@@ -1,4 +1,5 @@
 import { apiRequest } from "./api-client";
+import { requestPrivateDownload } from "./private-storage";
 
 export type ScrutinyEvidenceState =
   | "INTERNAL"
@@ -312,13 +313,7 @@ export function getScrutinyOverview(signal?: AbortSignal) {
 }
 
 export function getScrutinyDocumentDownload(resourceId: string) {
-  return apiRequest<{ url: string; expiresAt: string }>(
-    "storage/download-url",
-    {
-      method: "POST",
-      body: JSON.stringify({ module: "scrutiny", resourceId }),
-    },
-  );
+  return requestPrivateDownload("scrutiny", resourceId);
 }
 
 export const createScrutinyCommission = (input: CommandInput) =>
