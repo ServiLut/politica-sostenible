@@ -95,6 +95,8 @@ jobs:
           pnpm list deepmerge-ts -r --depth 20 --json > "$RUNNER_TEMP/deepmerge-tree.json"
           node -e 'const fs = require("node:fs"); const tree = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const versions = []; const walk = (value) => { if (!value || typeof value !== "object") return; if (value.from === "deepmerge-ts" && typeof value.version === "string") versions.push(value.version); for (const child of Object.values(value)) walk(child); }; walk(tree); const unsafe = versions.some((version) => { const major = Number.parseInt(version, 10); return !Number.isInteger(major) || major < 8; }); if (versions.length === 0 || unsafe) { console.error(`Resolución insegura de deepmerge-ts: ${versions.join(", ") || "ausente"}`); process.exit(1); } console.log(`deepmerge-ts mitigado: ${[...new Set(versions)].join(", ")}`);' "$RUNNER_TEMP/deepmerge-tree.json"
       - run: pnpm --filter api generate
+      - name: Exigir TLS real con CA y nombre verificados en pg y Prisma
+        run: node deploy/run-postgres-tls-tests.mjs
       - name: Aplicar migraciones con el mismo guard de producción
         run: node deploy/migrate-entrypoint.mjs
         env:

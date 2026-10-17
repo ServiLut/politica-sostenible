@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, basename, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
-import { EXPECTED_SCHEMA_VERSION, prismaMigrationConnectionString } from "./migrate.mjs";
+import { EXPECTED_SCHEMA_VERSION, databaseInspectionsMatch, inspectDatabase, prismaMigrationConnectionString } from "./migrate.mjs";
 import { prepareRuntimeRolePlan, prismaRoleInventory } from "./prepare-runtime-db-role.mjs";
 
 const apiRequire = createRequire(new URL("../apps/api/package.json", import.meta.url));
@@ -40,6 +40,14 @@ async function fixture(run) {
         ? '("id" TEXT PRIMARY KEY, "fingerprint" TEXT, "schemaVersion" TEXT)'
         : '("id" TEXT PRIMARY KEY, "value" TEXT)'}`);
     }
+    await client.query(`CREATE TABLE ${quote(schema)}."_prisma_migrations" (
+      id TEXT PRIMARY KEY, migration_name TEXT NOT NULL, checksum TEXT NOT NULL,
+      finished_at TIMESTAMPTZ, rolled_back_at TIMESTAMPTZ,
+      applied_steps_count INTEGER NOT NULL, started_at TIMESTAMPTZ NOT NULL, logs TEXT)`);
+    await client.query(`INSERT INTO ${quote(schema)}."_prisma_migrations" VALUES
+      ('second', $1, $2, '2026-10-16T21:30:01Z', NULL, 1, '2026-10-16T21:30:00Z', 'private fixture log'),
+      ('first', '20260921182000_schema_contract_marker', $2, '2026-09-21T18:20:01Z', NULL, 1, '2026-09-21T18:20:00Z', 'private fixture log')`,
+      [EXPECTED_SCHEMA_VERSION, "b".repeat(64)]);
     await client.query(`INSERT INTO ${quote(schema)}."SystemDatabaseIdentity" VALUES ('primary', $1, $2)`, ["a".repeat(64), EXPECTED_SCHEMA_VERSION]);
     await client.query(`CREATE TABLE ${quote(other)}.canary (id INTEGER)`);
     const manifest = { database: context.db, schema, fingerprint: "a".repeat(64), schemaVersion: EXPECTED_SCHEMA_VERSION, runtimeRole, migrationRole: context.role };
@@ -86,12 +94,53 @@ test("PostgreSQL: runtime NOLOGIN permite CRUD previsto y deniega identidad, DDL
   });
 });
 
-for (const fault of ["fingerprint", "schema", "missing-table", "public-canary", "public-column", "identity-column", "public-sequence", "security-definer"]) {
+test("PostgreSQL: el inspector real compara ambas identidades y runtime sólo lee seis columnas del historial", options, async () => {
+  await fixture(async ({ client, manifest, schema, runtimeRole }) => {
+    await client.query(prepareRuntimeRolePlan(manifest, source).sql);
+    const directInspection = await inspectDatabase(client, schema);
+    await client.query(`SET ROLE ${quote(runtimeRole)}`);
+    const runtimeInspection = await inspectDatabase(client, schema);
+    assert.equal(databaseInspectionsMatch(directInspection, runtimeInspection), true);
+    assert.equal(runtimeInspection.applicationObjectCount, 120);
+    assert.deepEqual(runtimeInspection.rows.map((row) => row.migration_name), [
+      "20260921182000_schema_contract_marker", EXPECTED_SCHEMA_VERSION,
+    ]);
+    assert.deepEqual(Object.keys(runtimeInspection.rows[0]).sort(), [
+      "applied_steps_count", "checksum", "finished_at", "migration_name", "rolled_back_at",
+    ]);
+    for (const sql of [
+      `SELECT * FROM ${quote(schema)}."_prisma_migrations"`,
+      `SELECT logs FROM ${quote(schema)}."_prisma_migrations"`,
+      `SELECT id FROM ${quote(schema)}."_prisma_migrations"`,
+      `UPDATE ${quote(schema)}."_prisma_migrations" SET checksum='changed'`,
+      `INSERT INTO ${quote(schema)}."_prisma_migrations" (migration_name) VALUES ('fake')`,
+      `DELETE FROM ${quote(schema)}."_prisma_migrations"`,
+      `TRUNCATE ${quote(schema)}."_prisma_migrations"`,
+    ]) await assert.rejects(client.query(sql), { code: "42501" });
+    await client.query("RESET ROLE");
+    assert.deepEqual(await inspectDatabase(client, schema), directInspection);
+  });
+});
+
+for (const fault of ["fingerprint", "schema", "missing-table", "public-canary", "public-column", "identity-column", "public-sequence", "security-definer",
+  "missing-history", "missing-history-column", "history-log-select", "history-table-select", "history-column-update", "history-table-update", "history-column-insert", "history-column-reference", "history-future-column"]) {
   test(`PostgreSQL: preparación rechaza ${fault} sin crear rol ni cambiar permisos existentes`, options, async () => {
     await fixture(async ({ client, manifest, schema, other, runtimeRole }) => {
       if (fault === "fingerprint") manifest.fingerprint = "b".repeat(64);
       if (fault === "schema") manifest.schema = other;
       if (fault === "missing-table") await client.query(`DROP TABLE ${quote(schema)}."Voter"`);
+      if (fault === "missing-history") await client.query(`DROP TABLE ${quote(schema)}."_prisma_migrations"`);
+      if (fault === "missing-history-column") await client.query(`ALTER TABLE ${quote(schema)}."_prisma_migrations" DROP COLUMN started_at`);
+      if (fault === "history-log-select") await client.query(`GRANT SELECT(logs) ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-table-select") await client.query(`GRANT SELECT ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-column-update") await client.query(`GRANT UPDATE(checksum) ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-table-update") await client.query(`GRANT UPDATE ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-column-insert") await client.query(`GRANT INSERT(migration_name) ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-column-reference") await client.query(`GRANT REFERENCES(migration_name) ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      if (fault === "history-future-column") {
+        await client.query(`ALTER TABLE ${quote(schema)}."_prisma_migrations" ADD COLUMN future_private TEXT`);
+        await client.query(`GRANT SELECT(future_private) ON ${quote(schema)}."_prisma_migrations" TO PUBLIC`);
+      }
       if (fault === "public-canary") await client.query(`GRANT SELECT ON ${quote(other)}.canary TO PUBLIC`);
       if (fault === "public-column") {
         await client.query(`GRANT USAGE ON SCHEMA ${quote(other)} TO PUBLIC`);
@@ -104,11 +153,15 @@ for (const fault of ["fingerprint", "schema", "missing-table", "public-canary", 
       }
       if (fault === "security-definer") await client.query(`CREATE FUNCTION ${quote(other)}.dangerous() RETURNS INTEGER
         LANGUAGE SQL SECURITY DEFINER AS 'SELECT 1'`);
-      const before = (await client.query("SELECT relacl::text FROM pg_class WHERE oid=$1::regclass", [`${quote(other)}.canary`])).rows;
+      const permissions = () => client.query(`SELECT n.nspname, c.relname, c.relacl::text, a.attname, a.attacl::text
+        FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+        JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
+        WHERE n.nspname IN ($1,$2) ORDER BY n.nspname,c.relname,a.attnum`, [schema, other]);
+      const before = (await permissions()).rows;
       await assert.rejects(client.query(prepareRuntimeRolePlan(manifest, source).sql), { code: "23514" });
       await client.query("ROLLBACK");
       assert.equal((await client.query("SELECT 1 FROM pg_roles WHERE rolname=$1", [runtimeRole])).rowCount, 0);
-      assert.deepEqual((await client.query("SELECT relacl::text FROM pg_class WHERE oid=$1::regclass", [`${quote(other)}.canary`])).rows, before);
+      assert.deepEqual((await permissions()).rows, before);
     });
   });
 }

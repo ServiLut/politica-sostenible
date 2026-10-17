@@ -6,6 +6,7 @@ import {
   resolveDatabaseSsl,
 } from './prisma.service';
 import pg from 'pg';
+import type { PeerCertificate } from 'node:tls';
 
 describe('PrismaService lifecycle', () => {
   it('disconnects the pool when Nest receives a shutdown signal', async () => {
@@ -73,6 +74,29 @@ describe('resolveDatabaseSearchPathOptions', () => {
 });
 
 describe('resolveDatabaseSsl', () => {
+  it.each([
+    ['127.0.0.1', 'DNS:localhost', false],
+    ['127.0.0.1', 'IP Address:127.0.0.1', true],
+    ['[::1]', 'DNS:localhost', false],
+    ['[::1]', 'IP Address:0:0:0:0:0:0:0:1', true],
+    ['db.example.test', 'DNS:another.example.test', false],
+    ['db.example.test', 'DNS:db.example.test', true],
+  ])('verifies URL host %s against certificate %s', (host, san, accepted) => {
+    const ssl = resolveDatabaseSsl({
+      NODE_ENV: 'production',
+      DATABASE_SSL: 'true',
+      DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+      DATABASE_URL: `postgresql://fixture@${host}/test?sslmode=verify-full`,
+    });
+    if (!ssl || !ssl.checkServerIdentity) throw new Error('Identity check absent');
+    const result = ssl.checkServerIdentity('localhost', {
+      subjectaltname: san,
+      subject: {},
+    } as PeerCertificate);
+    if (accepted) expect(result).toBeUndefined();
+    else expect(result).toMatchObject({ code: 'ERR_TLS_CERT_ALTNAME_INVALID' });
+  });
+
   it('requires verified TLS in production by default', () => {
     expect(
       resolveDatabaseSsl({

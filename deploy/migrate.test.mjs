@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
+import { resolve } from "node:path";
+import { rootCertificates } from "node:tls";
 import test from "node:test";
 
 import {
@@ -36,13 +39,20 @@ test("pg efectivo verifica el certificado sin permitir que la URL sustituya sus 
   const environment = { NODE_ENV: "production", DATABASE_SSL: "true", DATABASE_SSL_REJECT_UNAUTHORIZED: "true" };
   const parsed = new URL(`${direct}&sslmode=verify-full`);
   const options = postgresClientOptions(parsed, environment);
-  assert.deepEqual(new Client(options).connectionParameters.ssl, { rejectUnauthorized: true });
+  assert.equal(new Client(options).connectionParameters.ssl.rejectUnauthorized, true);
+  assert.equal(typeof options.ssl.checkServerIdentity, "function");
+  assert.equal(options.ssl.checkServerIdentity("ignored", { subjectaltname: "DNS:database.internal", subject: {} }), undefined);
+  assert.equal(options.ssl.checkServerIdentity("database.internal", { subjectaltname: "DNS:other.internal", subject: {} }).code, "ERR_TLS_CERT_ALTNAME_INVALID");
   assert.equal(new URL(options.connectionString).searchParams.get("sslmode"), null);
   assert.equal(parsed.searchParams.get("sslmode"), "verify-full", "la URL externa conserva el contrato canónico");
   const nativeUrl = new URL(prismaMigrationConnectionString(parsed, environment));
   assert.equal(nativeUrl.searchParams.get("sslmode"), "require");
   assert.equal(nativeUrl.searchParams.get("sslaccept"), "strict");
   assert.equal(nativeUrl.searchParams.get("schema"), "campaign");
+  assert.throws(() => prismaMigrationConnectionString(parsed, { ...environment, NODE_EXTRA_CA_CERTS: "./relative-ca.pem" }), /absolute CA file/u);
+  const ipOptions = postgresClientOptions(new URL("postgresql://fixture@127.0.0.1/test?sslmode=verify-full"), environment);
+  assert.equal(ipOptions.ssl.checkServerIdentity("localhost", { subjectaltname: "DNS:localhost", subject: {} }).code, "ERR_TLS_CERT_ALTNAME_INVALID");
+  assert.equal(ipOptions.ssl.checkServerIdentity("localhost", { subjectaltname: "IP Address:127.0.0.1", subject: {} }), undefined);
   for (const query of [
     "sslmode=disable", "sslmode=no-verify", "ssl=0", "ssl=no-verify",
     "sslmode=verify-full&sslmode=disable", "sslmode=disable&sslmode=verify-full",
@@ -58,6 +68,30 @@ test("pg efectivo verifica el certificado sin permitir que la URL sustituya sus 
   const evaluation = { NODE_ENV: "production", DEPLOYMENT_PROFILE: "evaluation", ALLOW_INSECURE_DATABASE_CONNECTION: "true", DATABASE_SSL: "false", DATABASE_SSL_REJECT_UNAUTHORIZED: "false" };
   assert.equal(new Client(postgresClientOptions(new URL(`${direct}&sslmode=disable`), evaluation)).connectionParameters.ssl, false);
   assert.equal(new URL(prismaMigrationConnectionString(new URL(`${direct}&sslmode=disable`), evaluation)).searchParams.get("sslmode"), "disable");
+});
+
+test("native migration accepts one public CA and rejects bundles, missing files and malformed trust without leaking paths", async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), "politica-ca-unit-"));
+  const filename = resolve(directory, "public-ca.pem");
+  const environment = { NODE_ENV: "production", DATABASE_SSL: "true", DATABASE_SSL_REJECT_UNAUTHORIZED: "true", NODE_EXTRA_CA_CERTS: filename };
+  const parsed = new URL(`${direct}&sslmode=verify-full`);
+  const rejected = () => assert.throws(() => prismaMigrationConnectionString(parsed, environment), (error) => {
+    assert.match(error.message, /exactly one readable PEM CA certificate/u);
+    assert.ok(!error.message.includes(directory));
+    assert.ok(!error.message.includes("BEGIN CERTIFICATE"));
+    return true;
+  });
+  try {
+    rejected();
+    await writeFile(filename, rootCertificates[0]);
+    assert.equal(new URL(prismaMigrationConnectionString(parsed, environment)).searchParams.get("sslcert"), filename);
+    for (const contents of [rootCertificates[0] + "\n" + rootCertificates[1], "not-a-certificate", "x".repeat(65_537)]) {
+      await writeFile(filename, contents);
+      rejected();
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 function completed(migrationName) {

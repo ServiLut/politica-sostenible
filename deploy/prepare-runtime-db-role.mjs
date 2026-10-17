@@ -6,6 +6,10 @@ import { EXPECTED_SCHEMA_VERSION } from "./migrate.mjs";
 
 const SOURCE = new URL("../apps/api/prisma/schema.prisma", import.meta.url);
 const TABLE_COUNT = 120;
+// Startup compares migration history using both database identities. This is
+// control metadata, not an operational Prisma model or a table-wide grant.
+const HISTORY_TABLE = "_prisma_migrations";
+const HISTORY_COLUMNS = ["migration_name", "checksum", "finished_at", "rolled_back_at", "applied_steps_count", "started_at"];
 const manifestFields = ["database", "schema", "fingerprint", "schemaVersion", "runtimeRole", "migrationRole"];
 const identifier = (value) => `"${value.replaceAll('"', '""')}"`;
 const literal = (value) => `'${value.replaceAll("'", "''")}'`;
@@ -52,6 +56,8 @@ export function prepareRuntimeRolePlan(manifest, source) {
   const role = identifier(runtimeRole);
   const tableName = (name) => `${identifier(schema)}.${identifier(name)}`;
   const allowed = `ARRAY[${inventory.tables.map(literal).join(", ")}]::text[]`;
+  const historyColumns = HISTORY_COLUMNS.map(identifier).join(", ");
+  const allowedHistoryColumns = `ARRAY[${HISTORY_COLUMNS.map(literal).join(", ")}]::text[]`;
   const grants = inventory.tables.map((table) =>
     `GRANT ${table === "SystemDatabaseIdentity" ? "SELECT" : "SELECT, INSERT, UPDATE, DELETE"} ON TABLE ${tableName(table)} TO ${role};`,
   ).join("\n");
@@ -76,7 +82,7 @@ BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '30s';
 DO $ps_role_preflight$
-DECLARE expected_table TEXT;
+DECLARE expected_table TEXT; expected_column TEXT;
 BEGIN
   IF current_database() <> ${literal(database)} OR current_user <> ${literal(migrationRole)} THEN
     RAISE EXCEPTION 'Wrong database or migration identity' USING ERRCODE = '23514';
@@ -93,9 +99,21 @@ BEGIN
       RAISE EXCEPTION 'Prisma table inventory mismatch' USING ERRCODE = '23514';
     END IF;
   END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = ${literal(schema)} AND c.relname = ${literal(HISTORY_TABLE)} AND c.relkind = 'r') THEN
+    RAISE EXCEPTION 'Migration history table missing' USING ERRCODE = '23514';
+  END IF;
+  FOREACH expected_column IN ARRAY ${allowedHistoryColumns} LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = ${literal(schema)} AND c.relname = ${literal(HISTORY_TABLE)}
+        AND a.attname = expected_column AND a.attnum > 0 AND NOT a.attisdropped) THEN
+      RAISE EXCEPTION 'Migration history column inventory mismatch' USING ERRCODE = '23514';
+    END IF;
+  END LOOP;
 END;
 $ps_role_preflight$;
-LOCK TABLE ${inventory.tables.map(tableName).join(", ")} IN ACCESS SHARE MODE;
+LOCK TABLE ${[...inventory.tables, HISTORY_TABLE].map(tableName).join(", ")} IN ACCESS SHARE MODE;
 DO $ps_role_identity$
 BEGIN
   IF (SELECT count(*) FROM ${tableName("SystemDatabaseIdentity")}) <> 1 OR
@@ -110,6 +128,7 @@ GRANT CONNECT ON DATABASE ${identifier(database)} TO ${role};
 GRANT USAGE ON SCHEMA ${identifier(schema)} TO ${role};
 ALTER ROLE ${role} IN DATABASE ${identifier(database)} SET search_path TO ${identifier(schema)}, pg_catalog;
 ${grants}
+GRANT SELECT (${historyColumns}) ON TABLE ${tableName(HISTORY_TABLE)} TO ${role};
 ${sequences ? `DO $ps_role_sequences$ DECLARE sequence_row RECORD; BEGIN${sequences}\nEND; $ps_role_sequences$;` : "-- No Prisma autoincrement columns: no sequence privileges are required or granted."}
 DO $ps_role_effective_access$
 BEGIN
@@ -122,10 +141,18 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-      AND NOT (n.nspname = ${literal(schema)} AND c.relname = ANY(${allowed}))
+      AND NOT (n.nspname = ${literal(schema)} AND (c.relname = ANY(${allowed}) OR c.relname = ${literal(HISTORY_TABLE)}))
       AND (has_table_privilege(${literal(runtimeRole)}, c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
         OR CASE WHEN c.relkind IN ('r', 'p', 'v', 'm', 'f') THEN has_any_column_privilege(${literal(runtimeRole)}, c.oid, 'SELECT,INSERT,UPDATE,REFERENCES') ELSE FALSE END)
   ) THEN RAISE EXCEPTION 'Inherited access outside explicit Prisma inventory requires review' USING ERRCODE = '23514'; END IF;
+  -- Only the six inspector columns may be read. A table-level SELECT would
+  -- also expose logs and future columns; any inherited extra right aborts.
+  IF has_table_privilege(${literal(runtimeRole)}, ${literal(tableName(HISTORY_TABLE))}, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') OR EXISTS (
+    SELECT 1 FROM pg_attribute a
+    WHERE a.attrelid = ${literal(tableName(HISTORY_TABLE))}::regclass AND a.attnum > 0 AND NOT a.attisdropped
+      AND (has_column_privilege(${literal(runtimeRole)}, a.attrelid, a.attnum, 'INSERT,UPDATE,REFERENCES')
+        OR (has_column_privilege(${literal(runtimeRole)}, a.attrelid, a.attnum, 'SELECT') <> (a.attname = ANY(${allowedHistoryColumns}))))
+  ) THEN RAISE EXCEPTION 'Migration history privileges exceed exact read-only columns' USING ERRCODE = '23514'; END IF;
   IF has_table_privilege(${literal(runtimeRole)}, ${literal(tableName("SystemDatabaseIdentity"))}, 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
     OR has_any_column_privilege(${literal(runtimeRole)}, ${literal(tableName("SystemDatabaseIdentity"))}, 'INSERT,UPDATE,REFERENCES') OR EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -180,6 +207,7 @@ BEGIN
 END;
 $ps_role_rollback_guard$;
 ${inventory.tables.map((table) => `REVOKE ${table === "SystemDatabaseIdentity" ? "SELECT" : "SELECT, INSERT, UPDATE, DELETE"} ON TABLE ${tableName(table)} FROM ${role};`).join("\n")}
+REVOKE SELECT (${historyColumns}) ON TABLE ${tableName(HISTORY_TABLE)} FROM ${role};
 ${sequences ? `DO $ps_role_sequences$ DECLARE sequence_row RECORD; BEGIN${sequences.replaceAll("GRANT USAGE, SELECT ON SEQUENCE %I.%I TO %I", "REVOKE USAGE, SELECT ON SEQUENCE %I.%I FROM %I")}\nEND; $ps_role_sequences$;` : ""}
 REVOKE USAGE ON SCHEMA ${identifier(schema)} FROM ${role};
 REVOKE CONNECT ON DATABASE ${identifier(database)} FROM ${role};
@@ -195,6 +223,7 @@ COMMIT;
       tlsStatus: "TLS_REQUIRED_PENDING", roleProvisioned: false, loginEnabled: false,
       credentialsCreated: false, sourceSha256: inventory.sourceSha256,
       tableCount: inventory.tables.length, sequenceColumnCount: inventory.sequenceColumns.length,
+      migrationHistory: { table: HISTORY_TABLE, selectColumns: [...HISTORY_COLUMNS] },
       schemaVersion,
     },
   };

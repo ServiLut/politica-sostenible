@@ -79,9 +79,17 @@ export class ProposalsService {
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    const search = query.search?.trim();
 
     const where: Prisma.PoliticalProposalWhereInput = {
       tenantId: user.tenantId,
+      ...(search
+        ? {
+            OR: ['title', 'referenceCode', 'description'].map((field) => ({
+              [field]: { contains: search, mode: 'insensitive' as const },
+            })),
+          }
+        : {}),
       ...(query.category ? { category: query.category } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.isPublic !== undefined
@@ -91,16 +99,21 @@ export class ProposalsService {
 
     const orderBy = [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
 
-    const [items, total] = await Promise.all([
-      this.prisma.politicalProposal.findMany({
-        where,
-        select: PROPOSAL_SELECT,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.politicalProposal.count({ where }),
-    ]);
+    // Count and rows must describe the same snapshot, including during edits/deletes.
+    const [items, total] = await this.prisma.$transaction(
+      async (transaction) =>
+        Promise.all([
+          transaction.politicalProposal.findMany({
+            where,
+            select: PROPOSAL_SELECT,
+            orderBy,
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          transaction.politicalProposal.count({ where }),
+        ]),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
 
     return {
       items: items.map((proposal) => this.toResponse(proposal)),

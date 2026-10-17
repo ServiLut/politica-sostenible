@@ -145,6 +145,62 @@ describe('ProposalsService contract and tenant isolation', () => {
     });
   });
 
+  it('combines search and filters inside the JWT tenant and counts the same bounded snapshot', async () => {
+    prisma.politicalProposal.findMany.mockResolvedValue([proposalRecord]);
+    prisma.politicalProposal.count.mockResolvedValue(21);
+    const result = await service.findAll(actor, {
+      page: 2,
+      limit: 20,
+      search: '  PRO-001  ',
+      category: ProposalCategory.INFRASTRUCTURE,
+      status: ProposalStatus.IN_PROGRESS,
+      isPublic: 'false',
+    });
+    const where = {
+      tenantId: actor.tenantId,
+      category: ProposalCategory.INFRASTRUCTURE,
+      status: ProposalStatus.IN_PROGRESS,
+      isPublic: false,
+      OR: ['title', 'referenceCode', 'description'].map((field) => ({
+        [field]: { contains: 'PRO-001', mode: 'insensitive' },
+      })),
+    };
+    expect(prisma.politicalProposal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where,
+        skip: 20,
+        take: 20,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
+    expect(prisma.politicalProposal.count).toHaveBeenCalledWith({ where });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    });
+    expect(result.pagination).toEqual({
+      page: 2,
+      limit: 20,
+      total: 21,
+      totalPages: 2,
+    });
+  });
+
+  it('returns an empty out-of-range page with the correct total for concurrent deletion recovery', async () => {
+    prisma.politicalProposal.count.mockResolvedValue(20);
+    const result = await service.findAll(actor, {
+      page: 2,
+      limit: 20,
+      search: '   ',
+    });
+    expect(result).toEqual({
+      items: [],
+      pagination: { page: 2, limit: 20, total: 20, totalPages: 1 },
+    });
+    expect(prisma.politicalProposal.count).toHaveBeenCalledWith({
+      where: { tenantId: actor.tenantId },
+    });
+  });
+
   it.each([
     ['GSC', TenantType.GSC, PoliticalOperationMode.CAMPAIGN],
     [

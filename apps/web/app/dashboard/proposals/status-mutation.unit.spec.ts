@@ -44,10 +44,12 @@ async function harness({
   update,
   fetch = async () => [proposal, otherProposal],
   canMutate = true,
+  isCurrentScope = () => true,
 }: {
   update: (id: string, input: { status: ProposalStatus }) => Promise<PoliticalProposal>;
   fetch?: (signal: AbortSignal) => Promise<PoliticalProposal[]>;
   canMutate?: boolean;
+  isCurrentScope?: () => boolean;
 }) {
   const query = createPageRequestState(fetch, true, true);
   await query.start();
@@ -57,6 +59,7 @@ async function harness({
   };
   const scope = {
     canMutate,
+    isCurrentProposalScope: isCurrentScope,
     Error,
     allowedProposalStatuses,
     statusRequests: { current: new Set<string>() },
@@ -173,6 +176,20 @@ test("un éxito distinto no borra el error pendiente de otra propuesta", async (
   const error = model.state.feedback[proposal.id];
   await model.handleStatusChange(otherProposal, "PROPOSED");
   expect(model.state.feedback[proposal.id]).toEqual(error);
+  model.query.stop();
+});
+
+test("un PATCH de una sesión anterior no publica su ficha ni su aviso en la sesión nueva", async () => {
+  const pending = Promise.withResolvers<PoliticalProposal>();
+  let isCurrent = true;
+  const model = await harness({ update: () => pending.promise, isCurrentScope: () => isCurrent });
+  const saving = model.handleStatusChange(proposal, "PROPOSED");
+  isCurrent = false;
+  pending.resolve({ ...proposal, status: "PROPOSED" });
+  await saving;
+  expect(model.state.refreshes).toBe(0);
+  expect(model.state.feedback).toEqual({});
+  expect(model.query.getSnapshot().data?.[0].status).toBe("DRAFT");
   model.query.stop();
 });
 

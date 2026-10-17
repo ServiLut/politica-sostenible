@@ -3,6 +3,11 @@ import { PrismaClient } from '../../prisma/generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import {
+  checkServerIdentity,
+  type ConnectionOptions,
+  type PeerCertificate,
+} from 'node:tls';
+import {
   assertRuntimeDatabaseRole,
   runtimeDatabaseRoleGuardRequired,
   runtimeDatabaseRoleQuery,
@@ -55,7 +60,7 @@ export function resolveDatabaseSearchPathOptions(
 
 export function resolveDatabaseSsl(
   environment: NodeJS.ProcessEnv = process.env,
-): false | { rejectUnauthorized: boolean } {
+): false | ConnectionOptions {
   const sslEnabled = environment.DATABASE_SSL === 'true';
   const rejectUnauthorized =
     environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
@@ -85,7 +90,22 @@ export function resolveDatabaseSsl(
     return false;
   }
 
-  return sslEnabled ? { rejectUnauthorized } : false;
+  if (!sslEnabled) return false;
+  const connectionString = environment.DATABASE_URL;
+  const hostname = connectionString
+    ? new URL(connectionString).hostname.replace(/^\[|\]$/gu, '')
+    : undefined;
+  return {
+    rejectUnauthorized,
+    ...(hostname
+      ? {
+          // pg supplies no SNI for IP hosts. Verify the configured identity,
+          // including IP SANs, instead of tls.connect's localhost fallback.
+          checkServerIdentity: (_hostname: string, certificate: PeerCertificate) =>
+            checkServerIdentity(hostname, certificate),
+        }
+      : {}),
+  };
 }
 
 export function resolveDatabaseConnectionString(

@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, X509Certificate } from "node:crypto";
+import { closeSync, openSync, readSync } from "node:fs";
 import {
   copyFile,
   mkdir,
@@ -11,7 +12,8 @@ import {
 } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+import { checkServerIdentity } from "node:tls";
 import { fileURLToPath } from "node:url";
 
 import { requireMigrationEnvironment } from "./runtime-environment.mjs";
@@ -540,6 +542,10 @@ function sslOptions(environment, parsedUrl) {
     return {
       rejectUnauthorized:
         environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+      // pg omits SNI for IP hosts; pin identity verification to the URL rather
+      // than letting tls.connect fall back to its default "localhost" name.
+      checkServerIdentity: (_hostname, certificate) =>
+        checkServerIdentity(parsedUrl.hostname.replace(/^\[|\]$/gu, ""), certificate),
     };
   }
   return false;
@@ -579,15 +585,50 @@ export function prismaMigrationConnectionString(parsedUrl, environment) {
     postgresClientConnectionString(parsed, environment);
     parsed.searchParams.set("sslmode", "require");
     parsed.searchParams.set("sslaccept", "strict");
+    // The native Prisma engine does not consistently inherit Node's CA store.
+    // Reuse the operator-configured public CA file, never a URL-supplied trust
+    // override. Node reads this variable at process startup for pg as well.
+    const extraCa = environment.NODE_EXTRA_CA_CERTS;
+    if (extraCa) {
+      if (!isAbsolute(extraCa) || /[\0\r\n]/u.test(extraCa)) {
+        throw new Error("NODE_EXTRA_CA_CERTS must identify an absolute CA file");
+      }
+      // Prisma's native connector consumes one certificate, unlike Node's
+      // bundle support. Reject ambiguous trust configuration before migration.
+      validateMigrationCaFile(extraCa);
+      parsed.searchParams.set("sslcert", extraCa);
+    }
   }
   return parsed.toString();
+}
+
+function validateMigrationCaFile(filename) {
+  let descriptor;
+  try {
+    descriptor = openSync(filename, "r");
+    const buffer = Buffer.alloc(65_537);
+    let length = 0;
+    while (length < buffer.length) {
+      const read = readSync(descriptor, buffer, length, buffer.length - length, null);
+      if (read === 0) break;
+      length += read;
+    }
+    if (length > 65_536) throw new Error("CA_TOO_LARGE");
+    const text = buffer.subarray(0, length).toString("utf8").trim();
+    if (!/^-----BEGIN CERTIFICATE-----\r?\n[A-Za-z0-9+/=\r\n]+\r?\n-----END CERTIFICATE-----$/u.test(text) ||
+        !new X509Certificate(text).ca) throw new Error("INVALID_SINGLE_CA");
+  } catch {
+    throw new Error("NODE_EXTRA_CA_CERTS must contain exactly one readable PEM CA certificate (maximum 64 KiB); CA bundles are unsupported for migrations");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
 }
 
 function quotedIdentifier(value) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-async function inspectDatabase(client, schema) {
+export async function inspectDatabase(client, schema) {
   const qualifiedHistory = `${quotedIdentifier(schema)}."_prisma_migrations"`;
   const historyLookup = await client.query("SELECT to_regclass($1) AS name", [
     qualifiedHistory,

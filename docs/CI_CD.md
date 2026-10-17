@@ -8,11 +8,15 @@ La configuración de CI está en [`.github/workflows/ci.yml`](../.github/workflo
 | --- | --- | --- |
 | Análisis de secretos y archivos inseguros antes de instalar dependencias | Job `security-gate` preparado | Ejecutar el workflow publicado y resolver sus hallazgos |
 | Pruebas, compilación e integración de contenedores | Jobs existentes conservados, dependientes de seguridad | Obtener una ejecución verde para el SHA que se pretende entregar |
-| Cierre obligatorio y recibo | Job `factory-gate` preparado | Configurarlo como comprobación requerida en GitHub |
-| Protección de ramas y revisión de cambios del workflow | Debe configurarse en GitHub | Acceso de propietario o administrador; no se presume activa |
+| Cierre obligatorio y recibo | Job `factory-gate` exigido por el ruleset remoto 25314659 desde el 17 de octubre de 2026 | Obtener un resultado satisfactorio para el SHA candidato; la regla no convierte un fallo en aprobación |
+| Protección de ramas y revisión de cambios del workflow | Ruleset remoto activo, sin actores de bypass en la configuración verificada | Mantener revisión independiente y verificar nuevamente la regla ante cambios de ramas o de entrega |
 | Despliegue continuo | **Asistido** | No hay un puente automático confiable activado entre CI y producción |
 
-Publicar estos archivos no demuestra que las reglas remotas estén activas. Un administrador debe confirmar la configuración y una ejecución real; hasta entonces no se debe describir la fábrica como obligatoria en GitHub.
+Publicar estos archivos no demuestra que las reglas remotas estén activas. El 17 de octubre de 2026 se configuró y leyó de vuelta el [ruleset 25314659](https://github.com/ServiLut/politica-sostenible/settings/rules/25314659) con la cuenta propietaria. La API remota confirmó `enforcement: active`; la interfaz confirmó la lista de bypass vacía. Esta evidencia corresponde a esa fecha y no sustituye la comprobación del estado remoto antes de una entrega futura.
+
+El ruleset cubre la rama predeterminada (`main`), `release/**/*`, `codex/presentacion-profesional-20261006` y `codex/recuperacion-politica-20260921`. Exige PR, al menos una aprobación, revisión de propietarios del código, aprobación independiente del último push, conversaciones resueltas y descarte de aprobaciones ante cambios. Impide borrado y force-push. El check requerido es `factory-gate` de GitHub Actions (aplicación 15368), con actualización respecto de la base y sin excepción al crear la rama.
+
+El [PR 23](https://github.com/ServiLut/politica-sostenible/pull/23) mostró `factory-gate` fallido y marcado **Required**, además de revisión obligatoria. Sigue en borrador; no se intentó integrarlo ni se utilizó una excepción. Esta comprobación negativa confirma la exigencia del control, pero no acredita una entrega válida: falta resolver los hallazgos históricos y observar una ejecución satisfactoria de la fábrica para el SHA final. `CODEOWNERS` forma parte del candidato; su presencia en cada rama base debe verificarse antes de atribuirle revisión efectiva por rutas.
 
 ## Recorrido de CI
 
@@ -65,7 +69,7 @@ Esta parte necesita acceso de propietario o administrador y debe verificarse en 
 3. Exigir revisión de los cambios en `.github/workflows/`, `deploy/security-gate*`, `deploy/ci-factory*` y la política de excepciones del analizador. Un workflow editable sin revisión no constituye una frontera de seguridad independiente.
 4. Probar con un PR cuyo control falle y con otro válido; confirmar que el primero no puede integrarse. Guardar la evidencia de la regla remota y del resultado, sin copiar secretos.
 
-Estos pasos describen la configuración pendiente. No se han activado mediante la edición del YAML.
+La configuración remota de los pasos 1–3 fue aplicada y contrastada el 17 de octubre de 2026 con el alcance descrito arriba. La ejecución positiva del paso 4 sigue pendiente. Ninguna regla se activó por el mero hecho de editar el YAML.
 
 ## Si el análisis encuentra una credencial
 
@@ -79,7 +83,7 @@ El workflow no tiene acceso al VPS compartido y no ejecuta cambios en Dokploy. U
 
 Tras instalarlo se debe comprobar la revisión publicada, salud, autenticación, aislamiento entre organizaciones y recorridos reales en celular y escritorio. Esas pruebas de producción se registran aparte: un recibo verde de CI no demuestra que el dominio público ya use esa versión ni que otros programas hayan permanecido saludables.
 
-Para automatizar CD en el futuro hace falta un puente con identidad y permisos limitados al proyecto, validación del repositorio/SHA/ejecución, imágenes por digest, entorno de producción protegido y recuperación comprobada. Hasta que ese circuito exista y se pruebe, la descripción correcta es **CI preparada y CD asistido**.
+Para automatizar CD en el futuro hace falta un puente con identidad y permisos limitados al proyecto, validación del repositorio/SHA/ejecución, imágenes por digest, entorno de producción protegido y recuperación comprobada. Hasta que ese circuito exista y se pruebe, la descripción correcta es **CI obligatoria en las ramas protegidas y CD asistido**. La ejecución candidata permanece bloqueada por seguridad; no se ha desplegado por activar estas reglas.
 
 ## Contrato de base preparado el 16 de octubre de 2026
 

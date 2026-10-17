@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { POSTGRES_TLS_IMAGE } from "./run-postgres-tls-tests.mjs";
 import { createFactoryReceipt, RECEIPT_PATH, REQUIRED_JOBS } from "./ci-factory.mjs";
 
 // Reuse the already locked YAML parser from the API's ESLint dependency tree.
@@ -106,6 +107,12 @@ function assertWorkflowContract(config) {
   assert.equal(postgresChecks.env.RUNTIME_ROLE_TEST_DATABASE_URL, postgresChecks.env.MIGRATION_TEST_DATABASE_URL);
   const deployChecks = config.jobs["test-and-build"].steps.find((step) => step.run === "pnpm test:deploy");
   assert.equal(deployChecks.env.DOCKER_CONTEXT_SAFETY_TEST, "1");
+  const tlsChecks = config.jobs["test-and-build"].steps.filter((step) => step.name === "Exigir TLS real con CA y nombre verificados en pg y Prisma");
+  assert.equal(tlsChecks.length, 1);
+  assert.equal(tlsChecks[0].run, "node deploy/run-postgres-tls-tests.mjs");
+  assert.equal(tlsChecks[0].env, undefined);
+  assert.equal(config.jobs["test-and-build"].services.postgres.image, POSTGRES_TLS_IMAGE);
+  assert.ok(config.jobs["test-and-build"].steps.indexOf(tlsChecks[0]) > config.jobs["test-and-build"].steps.findIndex((step) => step.run === "pnpm --filter api generate"));
   const factory = config.jobs["factory-gate"];
   assert.equal(factory.if, "always()");
   assert.deepEqual(factory.needs, REQUIRED_JOBS);
@@ -164,6 +171,11 @@ test("workflow contract rejects bypasses instead of only matching reassuring tex
     (value) => { value.jobs["test-and-build"].steps.find((step) => step.name === "Auditar toda la cadena de dependencias").run = "pnpm audit --audit-level critical"; },
     (value) => { value.jobs["test-and-build"].steps.find((step) => step.name === "Probar rollback histórico y protección de planes con PostgreSQL real").run = value.jobs["test-and-build"].steps.find((step) => step.name === "Probar rollback histórico y protección de planes con PostgreSQL real").run.replace(" --test-concurrency=1", ""); },
     (value) => { delete value.jobs["test-and-build"].steps.find((step) => step.run === "pnpm test:deploy").env.DOCKER_CONTEXT_SAFETY_TEST; },
+    (value) => { value.jobs["test-and-build"].steps = value.jobs["test-and-build"].steps.filter((step) => step.name !== "Exigir TLS real con CA y nombre verificados en pg y Prisma"); },
+    (value) => { value.jobs["test-and-build"].steps.find((step) => step.name === "Exigir TLS real con CA y nombre verificados en pg y Prisma").run = "node --test deploy/postgres-tls.integration.test.mjs"; },
+    (value) => { value.jobs["test-and-build"].steps.find((step) => step.name === "Exigir TLS real con CA y nombre verificados en pg y Prisma").run += " || true"; },
+    (value) => { value.jobs["test-and-build"].steps.find((step) => step.name === "Exigir TLS real con CA y nombre verificados en pg y Prisma").if = "false"; },
+    (value) => { value.jobs["test-and-build"].services.postgres.image = "postgres:16-alpine"; },
   ]) {
     const changed = structuredClone(workflow);
     mutate(changed);

@@ -14,9 +14,15 @@ test("preparación enumera las 120 tablas, sin acceso broad, LOGIN ni contraseñ
   const plan = prepareRuntimeRolePlan(manifest(), source);
   assert.equal(plan.inventory.tables.length, 120);
   assert.deepEqual(plan.inventory.sequenceColumns, []);
-  assert.equal([...plan.sql.matchAll(/^GRANT .* ON TABLE /gmu)].length, 120);
+  assert.equal([...plan.sql.matchAll(/^GRANT .* ON TABLE /gmu)].length, 121);
   assert.equal([...plan.sql.matchAll(/^GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE /gmu)].length, 119);
   assert.match(plan.sql, /GRANT SELECT ON TABLE "audit_politica"\."SystemDatabaseIdentity" TO "ps_runtime_test";/u);
+  assert.match(plan.sql, /GRANT SELECT \("migration_name", "checksum", "finished_at", "rolled_back_at", "applied_steps_count", "started_at"\) ON TABLE "audit_politica"\."_prisma_migrations" TO "ps_runtime_test";/u);
+  assert.doesNotMatch(plan.sql, /GRANT SELECT ON TABLE "audit_politica"\."_prisma_migrations"/u);
+  assert.equal(plan.inventory.tables.includes("_prisma_migrations"), false);
+  assert.deepEqual(plan.status.migrationHistory, { table: "_prisma_migrations", selectColumns: [
+    "migration_name", "checksum", "finished_at", "rolled_back_at", "applied_steps_count", "started_at",
+  ] });
   assert.match(plan.sql, /CREATE ROLE "ps_runtime_test" NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;/u);
   assert.doesNotMatch(plan.sql, /GRANT ALL|ON ALL TABLES|ALTER DEFAULT PRIVILEGES|REVOKE |\bPASSWORD\s+['"]|\bLOGIN;/u);
   assert.match(plan.sql, /current_database\(\).*current_user/u);
@@ -26,6 +32,7 @@ test("preparación enumera las 120 tablas, sin acceso broad, LOGIN ni contraseñ
   assert.equal(plan.status.tlsStatus, "TLS_REQUIRED_PENDING");
   assert.match(plan.rollbackSql, /DROP ROLE "ps_runtime_test";/u);
   assert.match(plan.rollbackSql, /NOT rolcanlogin/u);
+  assert.match(plan.rollbackSql, /REVOKE SELECT \("migration_name", "checksum", "finished_at", "rolled_back_at", "applied_steps_count", "started_at"\) ON TABLE "audit_politica"\."_prisma_migrations" FROM "ps_runtime_test";/u);
   assert.doesNotMatch(plan.rollbackSql, /DROP OWNED|FROM PUBLIC|ALTER ROLE "migration_test"|DROP ROLE "migration_test"/u);
 });
 
