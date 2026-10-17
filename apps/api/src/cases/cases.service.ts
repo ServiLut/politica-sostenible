@@ -1,3 +1,4 @@
+import { parseOperationalDeadline } from '../common/utils/operational-deadline';
 import {
   BadRequestException,
   ConflictException,
@@ -389,7 +390,7 @@ export class CasesService {
             assigneeId,
             createdById: user.userId,
             confidential: dto.confidential,
-            dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
+            dueAt: dto.dueAt ? parseOperationalDeadline(dto.dueAt) : undefined,
           },
           include: CASE_INCLUDE,
         });
@@ -543,7 +544,8 @@ export class CasesService {
             data.confidential = dto.confidential;
           }
           if (dto.dueAt !== undefined) {
-            data.dueAt = dto.dueAt === null ? null : new Date(dto.dueAt);
+            data.dueAt =
+              dto.dueAt === null ? null : parseOperationalDeadline(dto.dueAt);
           }
           if (dto.status !== undefined && dto.status !== existing.status) {
             const transitionAt = new Date();

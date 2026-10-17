@@ -12,6 +12,7 @@ import {
 } from '../auth/decorators/requires-plan-feature.decorator';
 import { ExportModuleParamsDto } from './dto/export-module-params.dto';
 import { ExportService } from './export.service';
+import { RateLimitOperation } from '../common/throttling/operation-rate-limit';
 
 @ApiTags('Export')
 @ApiBearerAuth()
@@ -21,6 +22,7 @@ export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   @Get(':module')
+  @RateLimitOperation('export')
   @Roles(
     Role.ADMIN,
     Role.CAMPAIGN_MANAGER,

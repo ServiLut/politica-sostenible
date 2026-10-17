@@ -15,6 +15,7 @@ import {
   PersonImportPageDto,
 } from './dto/person-import.dto';
 import { PersonImportService } from './person-import.service';
+import { RateLimitOperation } from '../common/throttling/operation-rate-limit';
 
 /** Stop producing private rows when the HTTP consumer disconnects. */
 export function waitForCsvDrain(res: Response): Promise<boolean> {
@@ -61,6 +62,7 @@ export class PersonImportController {
     return this.imports.list(user, query);
   }
   @Post('jobs')
+  @RateLimitOperation('import-preview')
   @BlockWhenOperationClosed()
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -76,6 +78,7 @@ export class PersonImportController {
     return this.imports.get(user, params.id);
   }
   @Post('jobs/:id/execute')
+  @RateLimitOperation('import-execute')
   @BlockWhenOperationClosed()
   execute(
     @CurrentUser() user: AuthenticatedUser,
@@ -84,6 +87,7 @@ export class PersonImportController {
     return this.imports.execute(user, params.id);
   }
   @Post('jobs/:id/retry')
+  @RateLimitOperation('import-execute')
   @BlockWhenOperationClosed()
   retry(
     @CurrentUser() user: AuthenticatedUser,
@@ -100,6 +104,7 @@ export class PersonImportController {
     return this.imports.errors(user, params.id, query);
   }
   @Get('jobs/:id/errors.csv')
+  @RateLimitOperation('export')
   async errorCsv(
     @CurrentUser() user: AuthenticatedUser,
     @Param() params: PersonImportIdDto,

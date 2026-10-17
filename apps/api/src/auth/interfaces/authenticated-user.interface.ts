@@ -16,6 +16,8 @@ export interface AuthenticatedUser {
   tenantId: string;
   email?: string;
   role?: string;
+  /** Server-validated credential version; never copied from request input. */
+  authVersion?: number;
   mustChangePassword?: boolean;
   temporaryPasswordExpiresAt?: Date | null;
 }

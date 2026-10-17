@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api-client";
+import { ApiError, apiRequest } from "@/lib/api-client";
 
 export const PROPOSAL_CATEGORIES = [
   "EDUCATION",
@@ -86,8 +86,17 @@ export interface SaveProposalInput {
   ownerId?: string;
 }
 
-const PROPOSALS_PAGE_SIZE = 100;
-const MAX_PROPOSAL_PAGES = 1_000;
+export const PROPOSALS_PAGE_SIZE = 20;
+const MAX_PROPOSALS_PAGE_SIZE = 100;
+
+export interface ListProposalsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: ProposalCategory;
+  status?: ProposalStatus;
+  isPublic?: boolean;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -96,6 +105,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseProposalPage(
   value: unknown,
   requestedPage: number,
+  requestedLimit: number,
 ): ProposalPage {
   if (!isRecord(value) || !Array.isArray(value.items)) {
     throw new Error("La API devolvió una página de propuestas inválida.");
@@ -108,22 +118,20 @@ function parseProposalPage(
     pagination.page !== requestedPage ||
     !Number.isSafeInteger(pagination.limit) ||
     (pagination.limit as number) < 1 ||
-    (pagination.limit as number) > PROPOSALS_PAGE_SIZE ||
+    (pagination.limit as number) > MAX_PROPOSALS_PAGE_SIZE ||
+    pagination.limit !== requestedLimit ||
     !Number.isSafeInteger(pagination.total) ||
     (pagination.total as number) < 0 ||
     !Number.isSafeInteger(pagination.totalPages) ||
     (pagination.totalPages as number) < 0 ||
-    (pagination.totalPages as number) > MAX_PROPOSAL_PAGES ||
-    ((pagination.totalPages as number) === 0 &&
-      (pagination.total as number) !== 0) ||
-    ((pagination.totalPages as number) > 0 &&
-      requestedPage > (pagination.totalPages as number)) ||
-    value.items.length > (pagination.limit as number)
+    pagination.totalPages !== Math.ceil((pagination.total as number) / requestedLimit) ||
+    value.items.length !== Math.min(requestedLimit, Math.max(0, (pagination.total as number) - (requestedPage - 1) * requestedLimit))
   ) {
     throw new Error("La API devolvió una paginación de propuestas inválida.");
   }
 
   if (
+    new Set(value.items.map((item) => isRecord(item) ? item.id : null)).size !== value.items.length ||
     value.items.some(
       (item) => !isRecord(item) || typeof item.id !== "string" || !item.id,
     )
@@ -134,66 +142,33 @@ function parseProposalPage(
   return value as unknown as ProposalPage;
 }
 
+/** Fetch exactly one page; the UI never downloads the entire program to filter it. */
 export async function listProposals(
+  params: ListProposalsParams = {},
   signal?: AbortSignal,
 ): Promise<ProposalPage> {
-  const items: PoliticalProposal[] = [];
-  const ids = new Set<string>();
-  let page = 1;
-  let expectedPagination: ProposalPage["pagination"] | null = null;
-
-  do {
-    const query = new URLSearchParams({
-      page: String(page),
-      limit: String(PROPOSALS_PAGE_SIZE),
-    });
-    const response = parseProposalPage(
-      await apiRequest<unknown>(`proposals?${query.toString()}`, { signal }),
-      page,
-    );
-
-    if (!expectedPagination) {
-      expectedPagination = response.pagination;
-    } else if (
-      response.pagination.total !== expectedPagination.total ||
-      response.pagination.totalPages !== expectedPagination.totalPages ||
-      response.pagination.limit !== expectedPagination.limit
-    ) {
-      throw new Error(
-        "Las propuestas cambiaron mientras se cargaban. Actualiza para obtener un listado consistente.",
-      );
-    }
-
-    for (const proposal of response.items) {
-      if (ids.has(proposal.id)) {
-        throw new Error(
-          "La API repitió una propuesta entre páginas. Actualiza el listado.",
-        );
-      }
-      ids.add(proposal.id);
-      items.push(proposal);
-    }
-    page += 1;
-  } while (
-    expectedPagination !== null &&
-    page <= expectedPagination.totalPages
+  const page = params.page ?? 1;
+  const limit = params.limit ?? PROPOSALS_PAGE_SIZE;
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (params.search?.trim()) query.set("search", params.search.trim());
+  if (params.category) query.set("category", params.category);
+  if (params.status) query.set("status", params.status);
+  if (params.isPublic !== undefined) query.set("isPublic", String(params.isPublic));
+  return parseProposalPage(
+    await apiRequest<unknown>(`proposals?${query.toString()}`, { signal }),
+    page,
+    limit,
   );
+}
 
-  const pagination =
-    expectedPagination ??
-    ({
-      page: 1,
-      limit: PROPOSALS_PAGE_SIZE,
-      total: 0,
-      totalPages: 0,
-    } satisfies ProposalPage["pagination"]);
-  if (items.length !== pagination.total) {
-    throw new Error(
-      "La API no entregó todas las propuestas anunciadas. Actualiza el listado.",
-    );
+/** Direct links resolve by ID, independently of the current list page or filters. */
+export async function getProposal(id: string, signal?: AbortSignal): Promise<PoliticalProposal | null> {
+  try {
+    return await apiRequest(`proposals/${encodeURIComponent(id)}`, { signal });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
   }
-
-  return { items, pagination };
 }
 
 export function createProposal(

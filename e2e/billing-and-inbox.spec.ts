@@ -251,8 +251,9 @@ test("permite reintentar la facturación después de una falla transitoria", asy
 
   await page.goto("/dashboard/billing");
   await expect(
-    page.getByText("Facturación temporalmente no disponible"),
+    page.getByText("El servidor no pudo completar la solicitud. Intenta nuevamente más tarde."),
   ).toBeVisible();
+  await expect(page.getByText("Facturación temporalmente no disponible")).toHaveCount(0);
 
   const requestsBeforeRetry = {
     subscription: subscriptionRequests,
@@ -724,6 +725,51 @@ test("filtra, busca, enlaza y actualiza la bandeja operativa", async ({
         !url.searchParams.has("mode"),
     ),
   ).toBe(true);
+});
+
+test.describe("alcance y horarios de una bandeja recortada", () => {
+  test.use({ timezoneId: "Asia/Tokyo" });
+
+  test("distingue totales de los registros visibles y conserva la hora de Colombia", async ({ page }) => {
+    await installSession(page);
+    await page.route("**/api/**", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/api/auth/me") {
+        await fulfillCurrentSession(route);
+        return;
+      }
+      if (url.pathname === "/api/operational-inbox") {
+        const response = operationalInboxResponse(false);
+        await fulfillJson(route, {
+          ...response,
+          summary: {
+            ...response.summary,
+            total: 104,
+            pendingApprovals: 11,
+            truncated: true,
+            byKind: { tasks: 70, commitments: 12, cases: 0, incidents: 11, approvals: 11 },
+          },
+        });
+        return;
+      }
+      await fulfillJson(route, { statusCode: 404, message: "Ruta no simulada" }, 404);
+    });
+
+    await page.goto("/dashboard/inbox");
+    const summary = page.getByRole("region", { name: "Resumen de trabajo" });
+    await expect(summary.getByRole("button", { name: /Todo abierto/ })).toContainText("104");
+    await expect(summary.getByRole("button", { name: /Por aprobar/ })).toContainText("11");
+    await expect(summary.getByRole("button", { name: /Vencido en esta vista/ })).toContainText("1");
+    await expect(summary.getByRole("button", { name: /Bloqueado en esta vista/ })).toContainText("3");
+    await expect(summary.getByRole("button", { name: /Sin responsable en esta vista/ })).toContainText("1");
+    await expect(page.getByText(/Se muestran las 4 acciones más críticas de 104/)).toBeVisible();
+    await expect(page.getByText(/cuentan únicamente los registros de esta vista/)).toBeVisible();
+    await expect(page.getByText(/^Corte:/)).toContainText("10:00");
+    await summary.getByRole("button", { name: /Vencido en esta vista/ }).click();
+    await expect(page.getByTestId("inbox-item-task-overdue")).toBeVisible();
+    await expect(page.getByText("1 resultado", { exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Consultar todos los registros por módulo" })).toBeVisible();
+  });
 });
 
 test("una bandeja vacía enlaza los flujos operativos permitidos", async ({

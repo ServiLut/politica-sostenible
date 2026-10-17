@@ -1,0 +1,207 @@
+diff --git a/lib/compile.js b/lib/compile.js
+index dce69beb90ece5c3b0ca234a949418f9f34eedbc..e1429f315cd8b42fc277729befa43327af7bd1e7 100644
+--- a/lib/compile.js
++++ b/lib/compile.js
+@@ -2,8 +2,10 @@
+ 
+ const fill = require('fill-range');
+ const utils = require('./utils');
++const { validateAst } = require('./validate-ast');
+ 
+ const compile = (ast, options = {}) => {
++  validateAst(ast);
+   const walk = (node, parent = {}) => {
+     const invalidBlock = utils.isInvalidBrace(parent);
+     const invalidNode = node.invalid === true && options.escapeInvalid === true;
+diff --git a/lib/expand.js b/lib/expand.js
+index 35b2c41d6afdb8f0197959e26079f266e48370d3..fd600d73f02754bc956ea40e9b6f138bbf344af9 100644
+--- a/lib/expand.js
++++ b/lib/expand.js
+@@ -3,6 +3,7 @@
+ const fill = require('fill-range');
+ const stringify = require('./stringify');
+ const utils = require('./utils');
++const { validateAst } = require('./validate-ast');
+ 
+ const append = (queue = '', stash = '', enclose = false) => {
+   const result = [];
+@@ -31,6 +32,7 @@ const append = (queue = '', stash = '', enclose = false) => {
+ };
+ 
+ const expand = (ast, options = {}) => {
++  validateAst(ast);
+   const rangeLimit = options.rangeLimit === undefined ? 1000 : options.rangeLimit;
+ 
+   const walk = (node, parent = {}) => {
+diff --git a/lib/parse.js b/lib/parse.js
+index 3a6988e629f52aee6609dc5ec290a5e9ff47cecb..953319806c18083e14a00207607bff8df4e2e871 100644
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -1,6 +1,7 @@
+ 'use strict';
+ 
+ const stringify = require('./stringify');
++const { assertDepth } = require('./validate-ast');
+ 
+ /**
+  * Constants
+@@ -143,6 +144,7 @@ const parse = (input, options = {}) => {
+      */
+ 
+     if (value === CHAR_LEFT_PARENTHESES) {
++      assertDepth(stack.length);
+       block = push({ type: 'paren', nodes: [] });
+       stack.push(block);
+       push({ type: 'text', value });
+@@ -195,6 +197,7 @@ const parse = (input, options = {}) => {
+      */
+ 
+     if (value === CHAR_LEFT_CURLY_BRACE) {
++      assertDepth(stack.length);
+       depth++;
+ 
+       const dollar = prev.value && prev.value.slice(-1) === '$' || block.dollar === true;
+@@ -319,6 +322,8 @@ const parse = (input, options = {}) => {
+       // get the location of the block on parent.nodes (block's siblings)
+       const parent = stack[stack.length - 1];
+       const index = parent.nodes.indexOf(block);
++      // Keep parent links consistent when incomplete syntax is flattened.
++      for (const node of block.nodes) node.parent = parent;
+       // replace the (invalid) block with it's nodes
+       parent.nodes.splice(index, 1, ...block.nodes);
+     }
+diff --git a/lib/stringify.js b/lib/stringify.js
+index 8bcf872c31894f81a8c64d9202fd607e4fd7ea2b..d59b6c32eca23d52ce7bee59854333fb87c10c9e 100644
+--- a/lib/stringify.js
++++ b/lib/stringify.js
+@@ -1,8 +1,10 @@
+ 'use strict';
+ 
+ const utils = require('./utils');
++const { validateAst } = require('./validate-ast');
+ 
+ module.exports = (ast, options = {}) => {
++  validateAst(ast);
+   const stringify = (node, parent = {}) => {
+     const invalidBlock = options.escapeInvalid && utils.isInvalidBrace(parent);
+     const invalidNode = node.invalid === true && options.escapeInvalid === true;
+diff --git a/lib/validate-ast.js b/lib/validate-ast.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..f7bd6ac2895db69a8f4aa3b41964cbee8b7a77f2
+--- /dev/null
++++ b/lib/validate-ast.js
+@@ -0,0 +1,114 @@
++'use strict';
++
++// Local defense for GHSA-vfj7-8cjw-p6xm. Keep limits independent of caller
++// options so externally supplied ASTs cannot disable the recursion boundary.
++const MAX_DEPTH = 100;
++const MAX_NODES = 30000;
++
++const invalid = code => {
++  const error = new SyntaxError('Brace pattern exceeds the supported tree limits');
++  error.code = code;
++  return error;
++};
++
++const assertDepth = depth => {
++  if (depth > MAX_DEPTH) throw invalid('BRACES_MAX_DEPTH');
++};
++
++const validateNode = node => {
++  if (!node || typeof node !== 'object' || typeof node.type !== 'string') {
++    throw invalid('BRACES_INVALID_AST');
++  }
++  // Walkers coerce these fields. Arrays can recurse through toString even when
++  // the nodes tree itself is shallow, so accept only parser-produced scalars.
++  if (node.value !== undefined && typeof node.value !== 'string') {
++    throw invalid('BRACES_INVALID_AST');
++  }
++  for (const field of ['commas', 'ranges']) {
++    // Upstream increments an uninitialized comma counter in parentheses.
++    // Preserve its numeric NaN sentinel; it is not recursively coercible.
++    if (node.type === 'paren' && field === 'commas' && Number.isNaN(node[field])) continue;
++    if (node[field] !== undefined && (!Number.isSafeInteger(node[field]) || node[field] < 0)) {
++      throw invalid('BRACES_INVALID_AST');
++    }
++  }
++};
++
++const validateAst = ast => {
++  let scheduled = 1;
++  const reserve = count => {
++    if (scheduled + count > MAX_NODES) throw invalid('BRACES_MAX_NODES');
++    scheduled += count;
++  };
++  const checkedQueues = new WeakSet();
++  const inspectNode = node => {
++    validateNode(node);
++    if (node.queue === undefined || checkedQueues.has(node)) return;
++    checkedQueues.add(node);
++    if (!Array.isArray(node.queue)) throw invalid('BRACES_INVALID_AST');
++    reserve(1);
++    const pending = [{ value: node.queue, depth: 0, exit: false }];
++    const active = new WeakSet();
++    while (pending.length > 0) {
++      const frame = pending.pop();
++      const value = frame.value;
++      if (typeof value === 'string') continue;
++      if (!Array.isArray(value)) throw invalid('BRACES_INVALID_AST');
++      if (frame.exit) {
++        active.delete(value);
++        continue;
++      }
++      if (active.has(value)) throw invalid('BRACES_AST_CYCLE');
++      assertDepth(frame.depth);
++      reserve(value.length);
++      active.add(value);
++      pending.push({ value, depth: frame.depth, exit: true });
++      for (let i = value.length - 1; i >= 0; i--) {
++        pending.push({ value: value[i], depth: frame.depth + 1, exit: false });
++      }
++    }
++  };
++
++  // A subtree may legitimately retain ancestors. Bound the root's parent chain
++  // too, because expand walks it when a node is not a brace/root container.
++  const ancestors = new WeakSet();
++  let ancestor = ast;
++  let parentDepth = 0;
++  while (ancestor && typeof ancestor === 'object') {
++    inspectNode(ancestor);
++    if (ancestors.has(ancestor)) throw invalid('BRACES_AST_CYCLE');
++    ancestors.add(ancestor);
++    if (++parentDepth > MAX_DEPTH + 2) throw invalid('BRACES_MAX_DEPTH');
++    if (ancestor !== ast) reserve(1);
++    ancestor = ancestor.parent;
++  }
++  if (ancestor !== undefined && ancestor !== null) throw invalid('BRACES_INVALID_AST');
++
++  const pending = [{ node: ast, parent: null, depth: 0, exit: false }];
++  const active = new WeakSet();
++
++  while (pending.length > 0) {
++    const frame = pending.pop();
++    const node = frame.node;
++    inspectNode(node);
++    if (frame.exit) {
++      active.delete(node);
++      continue;
++    }
++    if (active.has(node)) throw invalid('BRACES_AST_CYCLE');
++    if (frame.depth > 0 && node.parent !== undefined && node.parent !== frame.parent) {
++      throw invalid('BRACES_INVALID_AST');
++    }
++    if (node.nodes === undefined) continue;
++    if (!Array.isArray(node.nodes)) throw invalid('BRACES_INVALID_AST');
++    assertDepth(frame.depth);
++    reserve(node.nodes.length);
++    active.add(node);
++    pending.push({ node, parent: frame.parent, depth: frame.depth, exit: true });
++    for (let index = node.nodes.length - 1; index >= 0; index--) {
++      pending.push({ node: node.nodes[index], parent: node, depth: frame.depth + 1, exit: false });
++    }
++  }
++};
++
++module.exports = { assertDepth, validateAst };

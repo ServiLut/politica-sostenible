@@ -72,6 +72,69 @@ describe('CasesService tenant and mode isolation', () => {
     service = new CasesService(prisma as unknown as PrismaService);
   });
 
+  it.each([
+    ['2026-10-16', '2026-10-17T04:59:59.999Z'],
+    ['2026-10-16T12:00:00-05:00', '2026-10-16T17:00:00.000Z'],
+  ])(
+    'creates a scoped case/incident with operational deadline %s',
+    async (dueAt, expected) => {
+      prisma.user.findFirst.mockResolvedValue({ id: currentUser.userId });
+      prisma.issueCase.findFirst.mockResolvedValue(null);
+      prisma.issueCase.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'case-date', ...data }),
+      );
+      const result = await service.create(currentUser, {
+        title: 'Incidente',
+        description: 'Detalle',
+        category: 'Tecnología',
+        sourceChannel: CommunicationChannel.INTERNAL,
+        dueAt,
+      });
+      expect(result.dueAt?.toISOString()).toBe(expected);
+      expect(prisma.issueCase.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tenantId: 'tenant-a',
+            dueAt: new Date(expected),
+          }),
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ['2026-10-16', new Date('2026-10-17T04:59:59.999Z')],
+    ['2026-10-16T12:00:00-05:00', new Date('2026-10-16T17:00:00.000Z')],
+    [null, null],
+    [undefined, undefined],
+  ])(
+    'updates only the supplied case/incident deadline: %s',
+    async (dueAt, expected) => {
+      const existing = {
+        id: 'case-date',
+        status: IssueCaseStatus.OPEN,
+        dueAt: new Date('2026-10-16T17:00:00.000Z'),
+        voterId: null,
+        externalContactRef: null,
+      };
+      prisma.issueCase.findFirst.mockResolvedValue(existing);
+      prisma.issueCase.update.mockImplementation(({ data }) =>
+        Promise.resolve({ ...existing, ...data }),
+      );
+      await service.update(currentUser, 'case-date', {
+        title: 'Título editado',
+        dueAt,
+      });
+      const call = prisma.issueCase.update.mock.calls[0][0];
+      expect(call.where).toMatchObject({
+        id: 'case-date',
+        tenantId: 'tenant-a',
+      });
+      if (dueAt === undefined) expect(call.data).not.toHaveProperty('dueAt');
+      else expect(call.data.dueAt).toEqual(expected);
+    },
+  );
+
   it('always scopes paginated reads to the JWT tenant and server-side mode', async () => {
     let capturedFindMany: unknown;
     let capturedCount: unknown;

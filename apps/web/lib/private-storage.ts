@@ -3,21 +3,52 @@ import { apiRequest } from "@/lib/api-client";
 export type ReviewableStorageModule =
   | "finance"
   | "e14"
-  | "signature-collection";
+  | "signature-collection"
+  | "electoral-calendar"
+  | "pqrsd"
+  | "scrutiny";
 
 export interface PrivateDownloadAuthorization {
   url: string;
   expiresAt: string;
 }
 
-export function requestPrivateDownload(
+export function validatePrivateDownloadAuthorization(
+  authorization: PrivateDownloadAuthorization,
+  configuredStorageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
+  now = Date.now(),
+): PrivateDownloadAuthorization {
+  const invalid = () => new Error("La API devolvió un enlace de archivo privado no válido. Solicita el enlace nuevamente.");
+  try {
+    if (!configuredStorageUrl || !authorization || typeof authorization.url !== "string" || typeof authorization.expiresAt !== "string") throw invalid();
+    const storage = new URL(configuredStorageUrl);
+    const url = new URL(authorization.url);
+    const localHttp = storage.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(storage.hostname);
+    if (
+      (storage.protocol !== "https:" && !localHttp) ||
+      storage.username || storage.password || storage.search || storage.hash ||
+      url.origin !== storage.origin || url.username || url.password || url.hash ||
+      !url.pathname.startsWith("/storage/v1/object/sign/") ||
+      url.pathname.slice("/storage/v1/object/sign/".length).split("/").filter(Boolean).length < 2 ||
+      url.searchParams.getAll("token").length !== 1 || !url.searchParams.get("token") ||
+      !Number.isFinite(Date.parse(authorization.expiresAt)) || Date.parse(authorization.expiresAt) <= now
+    ) throw invalid();
+    return { url: url.href, expiresAt: authorization.expiresAt };
+  } catch {
+    // Do not include the signed URL/token in diagnostics.
+    throw invalid();
+  }
+}
+
+export async function requestPrivateDownload(
   module: ReviewableStorageModule,
   resourceId: string,
 ): Promise<PrivateDownloadAuthorization> {
-  return apiRequest("storage/download-url", {
+  const authorization = await apiRequest<PrivateDownloadAuthorization>("storage/download-url", {
     method: "POST",
     body: JSON.stringify({ module, resourceId }),
   });
+  return validatePrivateDownloadAuthorization(authorization);
 }
 
 /**

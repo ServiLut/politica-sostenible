@@ -246,22 +246,7 @@ async function frontendPathBuilders() {
     );
 
     const indexFunction = (name, functionNode) => {
-      const candidates = new Set();
-      const inspectReturns = (node) => {
-        if (node !== functionNode && ts.isFunctionLike(node)) return;
-        if (ts.isReturnStatement(node)) {
-          for (const candidate of literalCandidates(node.expression)) {
-            candidates.add(candidate);
-          }
-        }
-        ts.forEachChild(node, inspectReturns);
-      };
-      if (ts.isBlock(functionNode.body)) inspectReturns(functionNode.body);
-      else {
-        for (const candidate of literalCandidates(functionNode.body)) {
-          candidates.add(candidate);
-        }
-      }
+      const candidates = new Set(functionPathCandidates(functionNode, builders));
       if (candidates.size === 0) return;
       const registered = builders.get(name) ?? new Set();
       for (const candidate of candidates) registered.add(candidate);
@@ -287,20 +272,12 @@ async function frontendPathBuilders() {
   return builders;
 }
 
-function frontendPathCandidates(node, pathBuilders, visited = new Set()) {
-  const direct = literalCandidates(node);
-  if (direct.length > 0 || !node || visited.has(node)) return direct;
-  visited.add(node);
-  if (ts.isCallExpression(node)) {
-    return [...(pathBuilders.get(calledName(node.expression)) ?? [])];
-  }
-  if (!ts.isIdentifier(node)) return [];
-
-  // Resolve immutable local aliases without borrowing a same-named variable
-  // from an unrelated function or pretending a mutable route is constant.
+function lexicalBinding(node) {
   for (let scope = node.parent; scope; scope = scope.parent) {
     if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
       for (const statement of scope.statements) {
+        if (ts.isFunctionDeclaration(statement) && statement.name?.text === node.text)
+          return { found: true, value: statement };
         if (!ts.isVariableStatement(statement)) continue;
         const declaration = statement.declarationList.declarations.find(
           (candidate) =>
@@ -312,12 +289,8 @@ function frontendPathCandidates(node, pathBuilders, visited = new Set()) {
           !(statement.declarationList.flags & ts.NodeFlags.Const) ||
           declaration.pos >= node.pos
         )
-          return [];
-        return frontendPathCandidates(
-          declaration.initializer,
-          pathBuilders,
-          visited,
-        );
+          return { found: true, value: undefined };
+        return { found: true, value: declaration.initializer };
       }
     }
     if (
@@ -327,9 +300,72 @@ function frontendPathCandidates(node, pathBuilders, visited = new Set()) {
           ts.isIdentifier(parameter.name) && parameter.name.text === node.text,
       )
     )
-      return [];
+      return { found: true, value: undefined };
   }
-  return [];
+  return { found: false, value: undefined };
+}
+
+function functionPathCandidates(functionNode, pathBuilders, visited = new Set()) {
+  if (!functionNode.body || visited.has(functionNode)) return [];
+  const branch = new Set(visited).add(functionNode);
+  if (!ts.isBlock(functionNode.body))
+    return frontendPathCandidates(functionNode.body, pathBuilders, branch);
+  const candidates = [];
+  const inspectReturns = (node) => {
+    if (ts.isFunctionLike(node)) return;
+    if (ts.isReturnStatement(node)) {
+      candidates.push(...frontendPathCandidates(node.expression, pathBuilders, branch));
+      return;
+    }
+    ts.forEachChild(node, inspectReturns);
+  };
+  inspectReturns(functionNode.body);
+  return candidates;
+}
+
+function frontendPathCandidates(node, pathBuilders, visited = new Set()) {
+  if (!node || visited.has(node)) return [];
+  const branch = new Set(visited).add(node);
+  if (ts.isStringLiteralLike(node)) return [node.text];
+  if (ts.isParenthesizedExpression(node))
+    return frontendPathCandidates(node.expression, pathBuilders, branch);
+  if (ts.isConditionalExpression(node)) {
+    return [
+      ...frontendPathCandidates(node.whenTrue, pathBuilders, branch),
+      ...frontendPathCandidates(node.whenFalse, pathBuilders, branch),
+    ];
+  }
+  if (ts.isTemplateExpression(node)) {
+    let candidates = [node.head.text];
+    for (const span of node.templateSpans) {
+      const resolved = frontendPathCandidates(span.expression, pathBuilders, branch);
+      const values = resolved.length > 0 ? resolved : [":value"];
+      // Bound static expansion instead of silently omitting alternatives.
+      if (candidates.length * values.length > 256) return [];
+      candidates = candidates.flatMap((prefix) =>
+        values.map((value) => `${prefix}${value}${span.literal.text}`),
+      );
+    }
+    return candidates;
+  }
+  if (ts.isCallExpression(node)) {
+    if (calledName(node.expression) === "withQuery")
+      return frontendPathCandidates(node.arguments[0], pathBuilders, branch);
+    if (ts.isIdentifier(node.expression)) {
+      const binding = lexicalBinding(node.expression);
+      if (binding.found) {
+        return binding.value && ts.isFunctionLike(binding.value)
+          ? functionPathCandidates(binding.value, pathBuilders, branch)
+          : [];
+      }
+    }
+    return [...(pathBuilders.get(calledName(node.expression)) ?? [])];
+  }
+  if (!ts.isIdentifier(node)) return [];
+
+  // Local aliases and functions take precedence over the cross-file index;
+  // mutable variables and shadowing parameters must never borrow its routes.
+  return frontendPathCandidates(lexicalBinding(node).value, pathBuilders, branch);
 }
 
 test("el inventario resuelve alias const sin aceptar rutas mutables ni mezclar funciones", () => {
@@ -365,6 +401,51 @@ test("el inventario resuelve alias const sin aceptar rutas mutables ni mezclar f
     [],
     [],
   ]);
+});
+
+test("el inventario expande prefijos y helpers anidados sin ocultar sufijos incorrectos", () => {
+  const source = ts.createSourceFile(
+    "nested-route-fixture.ts",
+    `
+    const jobsPath = "import/personas/jobs";
+    const jobPath = (id: string) => \`\${jobsPath}/\${encodeURIComponent(id)}\`;
+    function operationPath(id: string) { return \`\${jobPath(id)}/execute\`; }
+    apiRequest(\`\${jobPath(id)}/execute\`, { method: "POST" });
+    apiRequest(\`\${jobPath(id)}/retry\`, { method: "POST" });
+    apiRequest(operationPath(id), { method: "POST" });
+    apiRequest(\`\${jobPath(id)}/does-not-exist\`, { method: "POST" });
+    function shadowed(jobPath: (id: string) => string) { apiRequest(jobPath(id)); }
+    function local() {
+      const jobPath = (id: string) => \`tasks/\${id}\`;
+      apiRequest(jobPath(id));
+    }
+    function mutable() { let jobPath = (id: string) => \`tasks/\${id}\`; apiRequest(jobPath(id)); }
+    `,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const candidates = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && calledName(node.expression) === "apiRequest") {
+      // A same-named imported helper must not override local lexical bindings.
+      const builders = new Map([["jobPath", new Set(["unrelated/:value"])]]);
+      candidates.push(frontendPathCandidates(node.arguments[0], builders).map(normalizePath));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert.deepEqual(candidates, [
+    ["import/personas/jobs/:value/execute"],
+    ["import/personas/jobs/:value/retry"],
+    ["import/personas/jobs/:value/execute"],
+    ["import/personas/jobs/:value/does-not-exist"],
+    [],
+    ["tasks/:value"],
+    [],
+  ]);
+  assert.equal(routeMatches(candidates[0][0], "import/personas/jobs/:id/execute"), true);
+  assert.equal(routeMatches(candidates[3][0], "import/personas/jobs/:id/execute"), false);
 });
 
 async function frontendRequests() {

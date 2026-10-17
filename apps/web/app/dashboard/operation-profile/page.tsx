@@ -872,7 +872,7 @@ function ReadinessPanel({
               ? ` · Elección: ${formatElectionDate(readiness.electionDate)}`
               : " · Fecha electoral sin definir"}
             {readiness.votingStartDate && readiness.votingEndDate
-              ? ` · Ventana Bogotá: ${readiness.votingStartDate} a ${readiness.votingEndDate} (inclusiva)`
+              ? ` · Fechas de la operación: ${formatElectionDate(readiness.votingStartDate)} a ${formatElectionDate(readiness.votingEndDate)} (ambos días incluidos)`
               : ""}
           </p>
         </div>
@@ -1184,8 +1184,8 @@ function OperationSummary({ context }: { context: OperationProfileContext }) {
           value={`${ELECTION_TYPE_LABELS[profile.electionType]} · ${formatElectionDate(profile.electionDate)}`}
         />
         <SummaryItem
-          label="Ventana operativa (America/Bogota)"
-          value={`${profile.votingStartDate} a ${profile.votingEndDate}, ambas fechas incluidas`}
+          label="Fechas de la operación (hora de Colombia)"
+          value={`${formatElectionDate(profile.votingStartDate)} a ${formatElectionDate(profile.votingEndDate)}, ambos días incluidos`}
         />
         {profile.votingWindowSourceUrl && profile.votingWindowReference && (
           <div>

@@ -3,11 +3,14 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import {
+  AuditOutcome,
   ConsentPurpose,
   ConsentSubjectType,
   PoliticalOperationMode,
   Role,
+  TenantType,
 } from '../../prisma/generated/prisma';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { assertCampaignTenant } from '../common/utils/campaign-mode.util';
@@ -21,12 +24,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { ExportModule } from './dto/export-module-params.dto';
 
 const EXPORT_BATCH_SIZE = 250;
+const EXPORT_ROLES: readonly Role[] = [
+  Role.ADMIN,
+  Role.CAMPAIGN_MANAGER,
+  Role.COMPLIANCE_OFFICER,
+  Role.AUDITOR,
+];
 
 interface ExportContext {
   readonly moduleName: ExportModule;
   readonly tenantId: string;
   readonly mode: PoliticalOperationMode;
   readonly actorUserId: string;
+  readonly actorRole: Role;
+  readonly authVersion: number;
+  readonly tenantType: TenantType;
+  readonly exportId: string;
   readonly watermark: string;
   readonly headers: readonly string[];
 }
@@ -45,6 +58,13 @@ export class ExportService {
     user: AuthenticatedUser,
     signal?: AbortSignal,
   ): Promise<OpenedExport> {
+    if (
+      !EXPORT_ROLES.includes(user.role as Role) ||
+      !Number.isSafeInteger(user.authVersion) ||
+      (user.authVersion as number) < 0
+    ) {
+      throw new ForbiddenException('La sesión no permite exportar datos');
+    }
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: user.tenantId },
       select: { name: true, defaultMode: true, type: true },
@@ -66,9 +86,18 @@ export class ExportService {
 
     const headers = this.headersFor(moduleName);
     const actor = await this.prisma.user.findFirst({
-      where: { id: user.userId, tenantId: user.tenantId },
+      where: {
+        id: user.userId,
+        tenantId: user.tenantId,
+        isActive: true,
+        role: user.role as Role,
+        authVersion: user.authVersion,
+      },
       select: { name: true },
     });
+    if (!actor) {
+      throw new ForbiddenException('La sesión cambió. Vuelve a iniciar sesión');
+    }
     const date = new Date().toISOString().split('T')[0];
     const actorName = actor?.name ?? 'Usuario';
     const actorEmail = user.email ?? 'Sin correo';
@@ -77,6 +106,10 @@ export class ExportService {
       tenantId: user.tenantId,
       mode: tenant.defaultMode,
       actorUserId: user.userId,
+      actorRole: user.role as Role,
+      authVersion: user.authVersion as number,
+      tenantType: tenant.type,
+      exportId: randomUUID(),
       watermark: `Exportado por ${actorName} (${actorEmail}) el ${date} — Organización: ${tenant.name} — Datos confidenciales`,
       headers,
     };
@@ -92,25 +125,103 @@ export class ExportService {
     signal?: AbortSignal,
   ): AsyncGenerator<Buffer | string> {
     signal?.throwIfAborted();
-    yield Buffer.from('\uFEFF', 'utf8');
-    yield `${buildCsvRow([context.watermark])}\n`;
-    yield `${buildCsvRow(context.headers)}\n`;
-
-    for await (const row of this.rowsFor(context, signal)) {
+    await this.assertCurrentAccess(context, signal);
+    // Persist the attempt before disclosing even the CSV header/watermark.
+    // Failure here closes the export; no private data has been yielded.
+    await this.auditExport(context, 'DATA_EXPORT_STARTED', 0, 'STARTED');
+    let rowsProduced = 0;
+    let completed = false;
+    let reason = 'CONSUMER_CLOSED';
+    try {
       signal?.throwIfAborted();
-      yield `${buildCsvRow(row)}\n`;
-    }
+      yield Buffer.from('\uFEFF', 'utf8');
+      yield `${buildCsvRow([context.watermark])}\n`;
+      yield `${buildCsvRow(context.headers)}\n`;
 
+      for await (const row of this.rowsFor(context, signal)) {
+        signal?.throwIfAborted();
+        rowsProduced += 1;
+        yield `${buildCsvRow(row)}\n`;
+      }
+
+      signal?.throwIfAborted();
+      await this.auditExport(
+        context,
+        'DATA_EXPORTED',
+        rowsProduced,
+        'COMPLETED',
+      );
+      completed = true;
+    } catch (error: unknown) {
+      reason = signal?.aborted
+        ? 'CLIENT_ABORTED'
+        : error instanceof ForbiddenException
+          ? 'ACCESS_REVOKED'
+          : 'PROCESSING_FAILED';
+      throw error;
+    } finally {
+      if (!completed) {
+        await this.auditExport(
+          context,
+          'DATA_EXPORT_INTERRUPTED',
+          rowsProduced,
+          signal?.aborted ? 'CLIENT_ABORTED' : reason,
+        );
+      }
+    }
+  }
+
+  private async assertCurrentAccess(
+    context: ExportContext,
+    signal?: AbortSignal,
+  ): Promise<void> {
     signal?.throwIfAborted();
+    const actor = await this.prisma.user.findFirst({
+      where: {
+        id: context.actorUserId,
+        tenantId: context.tenantId,
+        isActive: true,
+        role: context.actorRole,
+        authVersion: context.authVersion,
+        tenant: { defaultMode: context.mode, type: context.tenantType },
+      },
+      select: { id: true },
+    });
+    if (!actor) {
+      throw new ForbiddenException('Los permisos de exportación cambiaron');
+    }
+    signal?.throwIfAborted();
+  }
+
+  private async auditExport(
+    context: ExportContext,
+    action: 'DATA_EXPORT_STARTED' | 'DATA_EXPORTED' | 'DATA_EXPORT_INTERRUPTED',
+    rowsProduced: number,
+    reason: string,
+  ): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
         tenantId: context.tenantId,
         mode: context.mode,
         actorType: 'USER',
         actorUserId: context.actorUserId,
-        action: 'DATA_EXPORTED',
+        action,
+        outcome:
+          action === 'DATA_EXPORT_INTERRUPTED'
+            ? reason === 'ACCESS_REVOKED'
+              ? AuditOutcome.DENIED
+              : AuditOutcome.FAILURE
+            : AuditOutcome.SUCCESS,
         resourceType: context.moduleName,
-        resourceId: 'ALL',
+        resourceId: context.exportId,
+        metadata: {
+          exportId: context.exportId,
+          module: context.moduleName,
+          rowsProduced,
+          reason,
+          // Socket delivery/receipt by the client is not proved by yielding.
+          completionScope: 'SERVER_STREAM',
+        },
       },
     });
   }
@@ -121,22 +232,22 @@ export class ExportService {
   ): AsyncGenerator<readonly CsvCellValue[]> {
     switch (context.moduleName) {
       case 'personas':
-        yield* this.exportVoters(context.tenantId, signal);
+        yield* this.exportVoters(context, signal);
         return;
       case 'tareas':
-        yield* this.exportTasks(context.tenantId, context.mode, signal);
+        yield* this.exportTasks(context, signal);
         return;
       case 'casos':
-        yield* this.exportCases(context.tenantId, context.mode, signal);
+        yield* this.exportCases(context, signal);
         return;
       case 'compromisos':
-        yield* this.exportCommitments(context.tenantId, context.mode, signal);
+        yield* this.exportCommitments(context, signal);
         return;
       case 'eventos':
-        yield* this.exportEvents(context.tenantId, context.mode, signal);
+        yield* this.exportEvents(context, signal);
         return;
       case 'equipo':
-        yield* this.exportUsers(context.tenantId, signal);
+        yield* this.exportUsers(context, signal);
         return;
       default:
         throw new BadRequestException(
@@ -243,9 +354,10 @@ export class ExportService {
   }
 
   private async *exportVoters(
-    tenantId: string,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId } = context;
     const checkedAt = new Date();
     const notice = await findActiveConsentNotice(
       this.prisma,
@@ -256,7 +368,7 @@ export class ExportService {
     let cursor: string | undefined;
 
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const voters = await this.prisma.voter.findMany({
         where: { tenantId },
         select: {
@@ -311,13 +423,13 @@ export class ExportService {
   }
 
   private async *exportTasks(
-    tenantId: string,
-    mode: PoliticalOperationMode,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId, mode } = context;
     let cursor: string | undefined;
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const tasks = await this.prisma.task.findMany({
         where: { tenantId, mode },
         select: {
@@ -353,13 +465,13 @@ export class ExportService {
   }
 
   private async *exportCases(
-    tenantId: string,
-    mode: PoliticalOperationMode,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId, mode } = context;
     let cursor: string | undefined;
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const cases = await this.prisma.issueCase.findMany({
         where: { tenantId, mode },
         select: {
@@ -402,13 +514,13 @@ export class ExportService {
   }
 
   private async *exportCommitments(
-    tenantId: string,
-    mode: PoliticalOperationMode,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId, mode } = context;
     let cursor: string | undefined;
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const commitments = await this.prisma.commitment.findMany({
         where: { tenantId, mode },
         select: {
@@ -450,13 +562,13 @@ export class ExportService {
   }
 
   private async *exportEvents(
-    tenantId: string,
-    mode: PoliticalOperationMode,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId, mode } = context;
     let cursor: string | undefined;
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const events = await this.prisma.campaignEvent.findMany({
         where: { tenantId, mode },
         select: {
@@ -494,12 +606,13 @@ export class ExportService {
   }
 
   private async *exportUsers(
-    tenantId: string,
+    context: ExportContext,
     signal?: AbortSignal,
   ): AsyncGenerator<readonly CsvCellValue[]> {
+    const { tenantId } = context;
     let cursor: string | undefined;
     while (true) {
-      signal?.throwIfAborted();
+      await this.assertCurrentAccess(context, signal);
       const users = await this.prisma.user.findMany({
         where: { tenantId },
         select: {

@@ -175,11 +175,18 @@ function readableError(error: unknown) {
 }
 
 function toDateInput(value: string | null) {
-  return value ? value.slice(0, 10) : "";
-}
-
-function toApiDate(value: string) {
-  return new Date(`${value}T12:00:00`).toISOString();
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)!.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function formatDate(value: string | null) {
@@ -187,6 +194,7 @@ function formatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
   return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -251,7 +259,7 @@ function IncidentCard({
       input.assigneeId = assigneeId || null;
     }
     if (dueDate !== toDateInput(incident.dueAt)) {
-      input.dueAt = dueDate ? toApiDate(dueDate) : null;
+      input.dueAt = dueDate || null;
     }
     if ((municipality?.id ?? null) !== incident.divisionId) {
       input.divisionId = municipality?.id ?? null;
@@ -435,11 +443,19 @@ function IncidentCard({
               Vencimiento
               <input
                 aria-label={`Vencimiento de ${incident.reference}`}
+                aria-describedby={`incident-deadline-help-${incident.id}`}
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-800 min-w-0 max-w-full"
               />
+              <span
+                id={`incident-deadline-help-${incident.id}`}
+                className="mt-2 block text-xs font-normal leading-5 text-slate-500"
+              >
+                Si cambias la fecha, tendrás hasta el final de ese día, hora de
+                Colombia. Sin cambios, se conserva el plazo guardado.
+              </span>
             </label>
           </div>
           {!incident.resolutionReady &&
@@ -583,7 +599,7 @@ export default function IncidentsPage() {
         assigneeId: form.assigneeId || undefined,
         divisionId: form.municipality?.id,
         confidential: form.confidential,
-        dueAt: form.dueDate ? toApiDate(form.dueDate) : undefined,
+        dueAt: form.dueDate || undefined,
       });
       setForm({
         title: "",
@@ -822,7 +838,7 @@ export default function IncidentsPage() {
       ) : (
         <>
           <div className="flex flex-col gap-1 text-xs font-bold text-slate-500 sm:flex-row sm:items-center sm:justify-between min-w-0">
-            <span>{result.pagination.total} incidentes encontrados</span>
+            <span>{result.pagination.total} {result.pagination.total === 1 ? "incidente encontrado" : "incidentes encontrados"}</span>
             <span>
               Página {filters.page} de {totalPages}
             </span>
@@ -1021,12 +1037,16 @@ export default function IncidentsPage() {
                     Vencimiento
                     <input
                       type="date"
+                      aria-describedby="new-incident-deadline-help"
                       value={form.dueDate}
                       onChange={(event) =>
                         setForm({ ...form, dueDate: event.target.value })
                       }
                       className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-900 min-w-0 max-w-full"
                     />
+                    <span id="new-incident-deadline-help" className="block text-xs font-normal leading-5 text-slate-500">
+                      Tienes hasta el final de ese día, hora de Colombia.
+                    </span>
                   </label>
                   <label className="space-y-2 text-sm font-semibold text-slate-500 md:col-span-2 min-w-0">
                     Fuente o folio mínimo (opcional)

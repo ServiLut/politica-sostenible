@@ -1,3 +1,4 @@
+import { parseOperationalDeadline } from '../common/utils/operational-deadline';
 import {
   BadRequestException,
   ConflictException,
@@ -258,7 +259,9 @@ export class CommitmentsService {
           status: dto.status,
           ownerId,
           issueCaseId: dto.issueCaseId,
-          targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
+          targetDate: dto.targetDate
+            ? parseOperationalDeadline(dto.targetDate)
+            : undefined,
           progress: dto.progress,
           isPublic: dto.isPublic,
           completedAt:
@@ -362,7 +365,9 @@ export class CommitmentsService {
     if (dto.issueCaseId !== undefined) data.issueCaseId = dto.issueCaseId;
     if (dto.targetDate !== undefined) {
       data.targetDate =
-        dto.targetDate === null ? null : new Date(dto.targetDate);
+        dto.targetDate === null
+          ? null
+          : parseOperationalDeadline(dto.targetDate);
     }
     if (dto.progress !== undefined) data.progress = dto.progress;
     if (dto.isPublic !== undefined) data.isPublic = dto.isPublic;

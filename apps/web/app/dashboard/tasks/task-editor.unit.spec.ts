@@ -4,11 +4,13 @@ import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { createPageRequestState } from "../../../lib/use-page-request-state";
-import { updateTask, type Task } from "../../../lib/work-api";
+import { updateTask, type CreateTaskInput, type Task } from "../../../lib/work-api";
 import type { BackendUserRole } from "../../../types/saas-schema";
 import {
   canEditTaskDetails,
+  commitmentTasksHref,
   createdTaskHref,
+  formatDeadlineDate,
   taskEditInput,
   taskEditorDraft,
   taskFiltersAfterMutation,
@@ -135,13 +137,7 @@ test("fecha editada y responsable paginado se conservan en PATCH; la etiqueta no
     dueDate: "2026-11-19",
   };
   const input = taskEditInput(task, draft);
-  const date = new Date(input.dueAt!);
-  expect([
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-    date.getHours(),
-  ]).toEqual([2026, 10, 19, 12]);
+  expect(input.dueAt).toBe("2026-11-19");
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options) => {
     expect(String(url)).toContain("/tasks/task-edit");
@@ -225,6 +221,7 @@ const creationSource = ts.createSourceFile(
 const creationHandlerNames = new Set([
   "handleCreateTask",
   "refreshTasksAfterMutation",
+  "refreshCommitmentsAfterMutation",
   "showNotice",
   "openCreatedTask",
 ]);
@@ -248,7 +245,11 @@ const creationCode = ts.transpileModule(creationHandlers.join("\n"), {
   },
 }).outputText;
 
-function creationHarness(create: () => Promise<Task>) {
+function creationHarness(
+  create: (input: CreateTaskInput) => Promise<Task>,
+  dueDate = "",
+  context: { ready?: boolean; commitment?: { id: string; reference: string }; case?: { id: string; reference: string } } = {},
+) {
   const state = {
     filters: {
       page: 3,
@@ -287,17 +288,22 @@ function creationHarness(create: () => Promise<Task>) {
         title: "Borrador del usuario",
         description: "",
         priority: "MEDIUM",
-        dueDate: "",
+        dueDate,
         assigneeId: "assigned-real",
       },
       ownId: "admin-current",
       user: { name: "Administración" },
-      linkedCase: null,
+      linkedCase: context.case ?? null,
+      linkedCommitment: context.commitment ?? null,
+      contextReady: context.ready ?? true,
       createTask: create,
       createdTaskHref,
       INITIAL_TASK_FILTERS: { page: 1, search: "", status: "", priority: "" },
       taskFiltersAfterMutation,
       setTaskFilters: setFilters,
+      setCommitmentFilters: () => {},
+      setCommitmentReload: () => {},
+      setLinkedCommitmentReload: () => {},
       setTaskSearch: (value: string) => {
         state.search = value;
       },
@@ -340,6 +346,37 @@ function creationHarness(create: () => Promise<Task>) {
   return { state, ...actions };
 }
 
+test("crear envía la fecha elegida sin inventar una hora; conserva la fecha confirmada por Nest", async () => {
+  const confirmed = { ...task, dueAt: "2026-10-17T04:59:59.999Z" };
+  const model = creationHarness(async (input) => {
+    expect(input.dueAt).toBe("2026-10-16");
+    return confirmed;
+  }, "2026-10-16");
+  await model.handleCreateTask({ preventDefault() {} });
+  expect(model.state.createdTask?.dueAt).toBe("2026-10-17T04:59:59.999Z");
+  expect(taskEditorDraft(model.state.createdTask!).dueDate).toBe("2026-10-16");
+});
+
+for (const timeZone of ["America/Bogota", "UTC", "Asia/Tokyo", "America/Los_Angeles"]) {
+  test(`la fecha visible y de edición usa Colombia aunque el equipo esté en ${timeZone}`, () => {
+    const previous = process.env.TZ;
+    try {
+      process.env.TZ = timeZone;
+      expect(new Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(timeZone);
+      const deadlineTask = { ...task, dueAt: "2026-10-17T04:59:59.999Z" };
+      const draft = taskEditorDraft(deadlineTask);
+      expect(draft.dueDate).toBe("2026-10-16");
+      expect(formatDeadlineDate(deadlineTask.dueAt)).toMatch(/^16\D.*2026$/u);
+      expect(taskEditInput(deadlineTask, draft)).toEqual({});
+      expect(taskEditorDraft(task).dueDate).toBe("2026-10-15");
+      expect(taskEditInput(task, { ...taskEditorDraft(task), title: "Edición" })).toEqual({ title: "Edición" });
+    } finally {
+      if (previous === undefined) delete process.env.TZ;
+      else process.env.TZ = previous;
+    }
+  });
+}
+
 test("crear conserva filtros y respuesta real; sólo Ver tarea creada los limpia y abre el ID devuelto", async () => {
   const created = {
     ...task,
@@ -374,7 +411,7 @@ test("crear conserva filtros y respuesta real; sólo Ver tarea creada los limpia
   });
   expect(model.state.search).toBe("");
   expect(model.state.paths).toEqual([
-    "/dashboard/tasks?view=tasks&entityId=server-id%26safe&issueCaseId=case-linked",
+    "/dashboard/tasks?view=tasks&entityId=server-id%26safe&issueCaseId=case-linked&commitmentId=commitment-linked",
   ]);
   model.showNotice("Otra operación completada");
   expect(model.state.createdTask).toBeNull();
@@ -407,6 +444,46 @@ test("el enlace de creación usa el ID persistido y sólo añade caso si existe"
   expect(href.searchParams.get("entityId")).toBe("id&safe");
   expect(href.searchParams.get("issueCaseId")).toBe("case?private");
   expect(href.searchParams.has("create")).toBe(false);
+});
+
+test("una tarea vinculada conserva caso y compromiso en el POST y en el enlace persistido", async () => {
+  const model = creationHarness(async (input) => {
+    expect(input).toMatchObject({ issueCaseId: "case-linked", commitmentId: "commitment-linked" });
+    expect(input).not.toHaveProperty("tenantId");
+    return task;
+  }, "", { commitment: { id: "commitment-linked", reference: "CMP-1" }, case: { id: "case-linked", reference: "CAS-1" } });
+  await model.handleCreateTask({ preventDefault() {} });
+  expect(model.state.notice).toContain("vinculada al compromiso CMP-1");
+  expect(model.state.filters.search).toBe("otro título");
+  expect(model.state.filters.status).toBe("DONE");
+  const url = new URL(createdTaskHref(model.state.createdTask!), "https://app.test");
+  expect(url.searchParams.get("commitmentId")).toBe("commitment-linked");
+  expect(url.searchParams.get("issueCaseId")).toBe("case-linked");
+});
+
+test("un contexto sin verificar impide POST y conserva el borrador", async () => {
+  let calls = 0;
+  const model = creationHarness(async () => { calls += 1; return task; }, "", { ready: false });
+  await model.handleCreateTask({ preventDefault() {} });
+  expect(calls).toBe(0);
+  expect(model.state.error).toContain("verifique");
+  expect(model.state.draftsReset).toBe(0);
+});
+
+test("los recorridos del compromiso conservan el caso y Ver todas retira solamente la selección", () => {
+  const commitment = { id: "cmp-1", issueCaseId: "case-1" };
+  for (const create of [false, true]) {
+    const url = new URL(commitmentTasksHref(commitment, "case-1", create), "https://app.test");
+    expect(url.searchParams.get("commitmentId")).toBe("cmp-1");
+    expect(url.searchParams.get("issueCaseId")).toBe("case-1");
+    expect(url.searchParams.get("create")).toBe(create ? "task" : null);
+    expect(url.searchParams.has("entityId")).toBe(false);
+  }
+  const list = new URL(workListHref("tasks", "case-1", "cmp-1"), "https://app.test");
+  expect(Object.fromEntries(list.searchParams)).toEqual({ view: "tasks", issueCaseId: "case-1", commitmentId: "cmp-1" });
+  const noCaseAccess = new URL(commitmentTasksHref(commitment, null, true), "https://app.test");
+  expect(noCaseAccess.searchParams.has("issueCaseId")).toBe(false);
+  expect(noCaseAccess.searchParams.get("commitmentId")).toBe("cmp-1");
 });
 
 test("Ver todas sale del detalle sin perder el caso ni abrir de nuevo el formulario", () => {

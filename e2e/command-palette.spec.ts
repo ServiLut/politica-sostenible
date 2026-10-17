@@ -197,32 +197,27 @@ async function preparePalette(
       return;
     }
 
-    if (url.pathname === "/api/proposals" && request.method() === "GET") {
+    if (url.pathname === "/api/proposals/proposal-water" && request.method() === "GET") {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: successful({
-          items: [
-            {
-              id: "proposal-water",
-              referenceCode: "P-01",
-              title: "Agua segura",
-              description: "Acceso verificable a agua segura.",
-              category: "INFRASTRUCTURE",
-              targetGroup: null,
-              status: "PROPOSED",
-              progressPercent: 25,
-              isPublic: true,
-              territory: null,
-              estimatedCost: null,
-              sourceUrl: null,
-              ownerId: backendUser.id,
-              owner: { id: backendUser.id, name: backendUser.name },
-              createdAt: "2026-09-01T12:00:00.000Z",
-              updatedAt: "2026-09-01T12:00:00.000Z",
-            },
-          ],
-          pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+          id: "proposal-water",
+          referenceCode: "P-01",
+          title: "Agua segura",
+          description: "Acceso verificable a agua segura.",
+          category: "INFRASTRUCTURE",
+          targetGroup: null,
+          status: "PROPOSED",
+          progressPercent: 25,
+          isPublic: true,
+          territory: null,
+          estimatedCost: null,
+          sourceUrl: null,
+          ownerId: backendUser.id,
+          owner: { id: backendUser.id, name: backendUser.name },
+          createdAt: "2026-09-01T12:00:00.000Z",
+          updatedAt: "2026-09-01T12:00:00.000Z",
         }),
       });
       return;

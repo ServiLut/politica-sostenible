@@ -308,6 +308,18 @@ function validateUrl(issues, name, value, protocols) {
 function validateProductionDatabaseTls(issues, environment, name, value) {
   if (environment.NODE_ENV !== "production" || !value) return;
 
+  try {
+    const parsed = new URL(value);
+    const tlsParameters = [...parsed.searchParams].filter(([key]) =>
+      key.toLowerCase().startsWith("ssl") || key.toLowerCase() === "uselibpqcompat");
+    const expectedMode = allowsInsecureEvaluationDatabase(environment) ? "disable" : "verify-full";
+    if (tlsParameters.length !== 1 || tlsParameters[0][0] !== "sslmode" || tlsParameters[0][1] !== expectedMode) {
+      issues.push(`${name} no permite opciones TLS ambiguas, duplicadas o alternativas; use un unico sslmode=${expectedMode} y certificados fuera de la URL`);
+    }
+  } catch {
+    // The canonical URL validator reports syntax without exposing credentials.
+  }
+
   if (allowsInsecureEvaluationDatabase(environment)) {
     try {
       const parsed = new URL(value);

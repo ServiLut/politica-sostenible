@@ -1,3 +1,4 @@
+import { parseOperationalDeadline } from '../common/utils/operational-deadline';
 import {
   BadRequestException,
   ConflictException,
@@ -248,7 +249,7 @@ export class TasksService {
           issueCaseId: dto.issueCaseId,
           commitmentId: dto.commitmentId,
           createdById: user.userId,
-          dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
+          dueAt: dto.dueAt ? parseOperationalDeadline(dto.dueAt) : undefined,
           completedAt: dto.status === TaskStatus.DONE ? new Date() : undefined,
         },
         include: TASK_INCLUDE,
@@ -336,7 +337,8 @@ export class TasksService {
     if (dto.issueCaseId !== undefined) data.issueCaseId = dto.issueCaseId;
     if (dto.commitmentId !== undefined) data.commitmentId = dto.commitmentId;
     if (dto.dueAt !== undefined) {
-      data.dueAt = dto.dueAt === null ? null : new Date(dto.dueAt);
+      data.dueAt =
+        dto.dueAt === null ? null : parseOperationalDeadline(dto.dueAt);
     }
 
     return this.prisma.$transaction(async (transaction) => {

@@ -93,15 +93,18 @@ function successful<T>(data: T, statusCode = 200) {
   return { statusCode, message: "Success", data };
 }
 
-function proposalPage(items: MockProposal[]) {
+function proposalPage(items: MockProposal[], url = new URL("http://local.test")) {
+  const page = Number(url.searchParams.get("page") ?? 1);
+  const limit = Number(url.searchParams.get("limit") ?? 20);
+  const search = (url.searchParams.get("search") ?? "").toLowerCase();
+  const filtered = items.filter((item) =>
+    (!search || [item.title, item.referenceCode, item.description].some((value) => value.toLowerCase().includes(search))) &&
+    (!url.searchParams.has("status") || item.status === url.searchParams.get("status")) &&
+    (!url.searchParams.has("category") || item.category === url.searchParams.get("category")),
+  );
   return {
-    items,
-    pagination: {
-      page: 1,
-      limit: 100,
-      total: items.length,
-      totalPages: items.length > 0 ? 1 : 0,
-    },
+    items: filtered.slice((page - 1) * limit, page * limit),
+    pagination: { page, limit, total: filtered.length, totalPages: Math.ceil(filtered.length / limit) },
   };
 }
 
@@ -156,13 +159,19 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
     }
 
     if (pathname === "/api/proposals" && method === "GET") {
-      expect(url.searchParams.get("limit")).toBe("100");
+      expect(url.searchParams.get("limit")).toBe("20");
       expect(url.searchParams.has("tenantId")).toBe(false);
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(successful(proposalPage(proposals))),
+        body: JSON.stringify(successful(proposalPage(proposals, url))),
       });
+      return;
+    }
+
+    if (pathname.startsWith("/api/proposals/") && method === "GET") {
+      const item = proposals.find((value) => value.id === pathname.split("/").at(-1));
+      await route.fulfill({ status: item ? 200 : 404, contentType: "application/json", body: JSON.stringify(item ? successful(item) : { message: "No disponible" }) });
       return;
     }
 
@@ -242,14 +251,37 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
     page.getByRole("button", { name: "Eliminar borrador Agua segura rural" }),
   ).toHaveCount(0);
 
-  await initialCard.click();
+  await initialCard.getByLabel("Cambiar estado de Agua segura rural").selectOption("COMPLETED");
   const editDialog = page.getByRole("dialog", { name: "Editar propuesta" });
+  await expect(editDialog.getByRole("combobox", { name: "Estado", exact: true })).toHaveValue("COMPLETED");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("100");
+  await expect(editDialog.getByLabel("Progreso (%)")).toBeDisabled();
+  await expect(editDialog.getByLabel(/Confirmo que la propuesta alcanzó el 100/)).not.toBeChecked();
+  expect(mutations).toHaveLength(0);
+  await editDialog.getByRole("combobox", { name: "Estado", exact: true }).selectOption("IN_PROGRESS");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("42");
+  await editDialog.getByRole("combobox", { name: "Estado", exact: true }).selectOption("COMPLETED");
+  await editDialog.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(editDialog).toBeVisible();
+  expect(mutations).toHaveLength(0);
+  await editDialog.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(initialCard).toContainText("42%");
+  await expect(initialCard).toContainText("En ejecución");
+
+  // The regular editor uses the same explicit final-state confirmation.
+  await initialCard.click();
   await expect(editDialog.getByLabel("Título")).toBeDisabled();
   await expect(
     editDialog.getByLabel("Costo estimado (opcional)"),
   ).toBeDisabled();
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("42");
+  await editDialog.getByLabel("Progreso (%)").fill("70");
   await editDialog.getByLabel("Estado").selectOption("COMPLETED");
-  await editDialog.getByLabel("Progreso (%)").fill("100");
+  await editDialog.getByLabel("Estado").selectOption("IN_PROGRESS");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("70");
+  await editDialog.getByLabel("Estado").selectOption("COMPLETED");
+  await expect(editDialog.getByLabel("Progreso (%)")).toHaveValue("100");
+  await editDialog.getByLabel(/Confirmo que la propuesta alcanzó el 100/).check();
   await editDialog.getByRole("button", { name: "Guardar" }).click();
 
   const updatedCard = page.getByRole("button", {
@@ -259,6 +291,10 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
   await expect(updatedCard).toContainText("100%");
   await expect(updatedCard).toContainText(/125\.000,5/);
 
+  await page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Completada/ }).click();
+  await page.getByLabel("Buscar propuestas", { exact: true }).fill("Agua");
+  await page.getByLabel("Filtrar por categoría", { exact: true }).selectOption("INFRASTRUCTURE");
   await page.getByRole("button", { name: "Nueva propuesta" }).click();
   const createDialog = page.getByRole("dialog", { name: "Nueva propuesta" });
   await createDialog.getByLabel("Título").fill("Salud preventiva");
@@ -283,10 +319,26 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
   const createdCard = page.getByRole("button", {
     name: "Editar propuesta Salud preventiva",
   });
+  await expect(page.getByRole("status").filter({ hasText: "Propuesta guardada:" })).toBeVisible();
+  await expect(createdCard).toHaveCount(0);
+  await page.getByRole("button", { name: "Ver propuesta guardada", exact: true }).click();
+  await expect(page).toHaveURL(/view=detail&entityId=proposal-created/);
   await expect(createdCard).toContainText("Borrador");
   await expect(createdCard).toContainText("Dirección programática");
   await expect(createdCard).toContainText("0%");
   await expect(createdCard).toContainText(/75\.000,25/);
+  await expect(updatedCard).toHaveCount(0);
+  await page.getByRole("button", { name: "Volver al listado", exact: true }).click();
+  await expect(page.getByLabel("Buscar propuestas", { exact: true })).toHaveValue("Agua");
+  await expect(page.getByLabel("Filtrar por categoría", { exact: true })).toHaveValue("INFRASTRUCTURE");
+  await expect(page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Completada/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(createdCard).toHaveCount(0);
+  await expect(updatedCard).toBeVisible();
+  await page.getByRole("group", { name: "Filtrar propuestas por estado" })
+    .getByRole("button", { name: /Todas/ }).click();
+  await page.getByLabel("Buscar propuestas", { exact: true }).fill("");
+  await page.getByLabel("Filtrar por categoría", { exact: true }).selectOption("ALL");
 
   await page
     .getByRole("button", { name: "Eliminar borrador Salud preventiva" })
@@ -342,74 +394,95 @@ test("administra propuestas con el enum y contrato reales sin enviar tenant y co
   ).toBe(true);
 });
 
-test("muestra propuestas que están después de la primera página de cien", async ({
-  page,
-}) => {
+test("pagina y filtra en servidor; el enlace directo alcanza una propuesta fuera de página", async ({ page }) => {
   const authSession = sessionFor("COMPLIANCE_OFFICER");
-  const proposals = Array.from({ length: 125 }, (_, index) =>
-    proposal({
-      id: `proposal-${index + 1}`,
-      referenceCode: `PRO-${String(index + 1).padStart(3, "0")}`,
-      title: `Propuesta ${index + 1}`,
-    }),
-  );
-  const requestedPages: number[] = [];
+  const proposals = Array.from({ length: 125 }, (_, index) => proposal({
+    id: `proposal-${index + 1}`,
+    referenceCode: `PRO-${String(index + 1).padStart(3, "0")}`,
+    title: `Propuesta ${index + 1}`,
+    category: index === 124 ? "HEALTH" : "INFRASTRUCTURE",
+  }));
+  const requests: URL[] = [];
   await storeSession(page, "COMPLIANCE_OFFICER");
-
   await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-
-    if (request.method() === "GET" && url.pathname === "/api/auth/me") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            user: {
-              id: authSession.user.id,
-              email: authSession.user.email,
-              name: authSession.user.name,
-              role: authSession.user.backendRole,
-              tenant: authSession.tenant,
-            },
-          }),
-        ),
-      });
-      return;
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/auth/me") {
+      await route.fulfill({ json: successful({ user: { ...authSession.user, role: authSession.user.backendRole, tenant: authSession.tenant } }) });
+    } else if (url.pathname === "/api/proposals") {
+      requests.push(url);
+      expect(url.searchParams.get("limit")).toBe("20");
+      await route.fulfill({ json: successful(proposalPage(proposals, url)) });
+    } else if (url.pathname === "/api/proposals/proposal-125") {
+      requests.push(url);
+      await route.fulfill({ json: successful(proposals[124]) });
+    } else {
+      await route.fulfill({ status: 404, json: { message: "No disponible" } });
     }
-
-    if (request.method() === "GET" && url.pathname === "/api/proposals") {
-      const requestedPage = Number(url.searchParams.get("page"));
-      requestedPages.push(requestedPage);
-      const start = (requestedPage - 1) * 100;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successful({
-            items: proposals.slice(start, start + 100),
-            pagination: {
-              page: requestedPage,
-              limit: 100,
-              total: proposals.length,
-              totalPages: 2,
-            },
-          }),
-        ),
-      });
-      return;
-    }
-
-    await route.fulfill({ status: 404, body: "{}" });
   });
-
   await page.goto("/dashboard/proposals");
+  const pagination = page.getByRole("navigation", { name: "Paginación de propuestas" });
+  await expect(pagination).toContainText("1–20 de 125 propuestas");
+  await expect(page.getByRole("heading", { name: "Propuesta 125", exact: true })).toHaveCount(0);
+  expect(requests.every((url) => url.searchParams.get("page") === "1")).toBe(true);
+  await pagination.getByRole("button", { name: "Siguiente" }).click();
+  await expect(pagination).toContainText("21–40 de 125 propuestas");
+  await expect(page.getByRole("heading", { name: "Propuesta 21", exact: true })).toBeVisible();
+  await page.getByLabel("Filtrar por categoría").selectOption("HEALTH");
+  await expect(pagination).toContainText("1–1 de 1 propuesta");
+  await expect(page.getByRole("heading", { name: "Propuesta 125", exact: true })).toBeVisible();
+  expect(requests.at(-1)?.searchParams.get("page")).toBe("1");
+  expect(requests.at(-1)?.searchParams.get("category")).toBe("HEALTH");
+  await page.getByLabel("Buscar propuestas").fill("PRO-125");
+  await expect.poll(() => requests.at(-1)?.searchParams.get("search")).toBe("PRO-125");
+  await expect(pagination).toContainText("1–1 de 1 propuesta");
+  await page.goto("/dashboard/proposals?view=detail&entityId=proposal-125");
+  await expect(page.getByRole("heading", { name: "Propuesta 125", exact: true })).toBeVisible();
+  expect(requests.at(-1)?.pathname).toBe("/api/proposals/proposal-125");
+  await expect(pagination).toHaveCount(0);
+  await page.getByRole("button", { name: "Volver al listado" }).click();
+  await expect(pagination).toContainText("1–20 de 125 propuestas");
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(hasHorizontalOverflow).toBe(false);
+});
 
-  await expect(
-    page.getByRole("heading", { name: "Propuesta 125", exact: true }),
-  ).toBeVisible();
-  expect([...new Set(requestedPages)].sort()).toEqual([1, 2]);
+test("eliminar el último borrador de una página regresa a la última página válida", async ({ page }) => {
+  const authSession = sessionFor("ADMIN");
+  let rows = Array.from({ length: 21 }, (_, index) => proposal({ id: `draft-${index}`, title: `Borrador ${index}`, status: "DRAFT", progressPercent: 0 }));
+  await storeSession(page, "ADMIN");
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/auth/me") await route.fulfill({ json: successful({ user: { ...authSession.user, role: authSession.user.backendRole, tenant: authSession.tenant } }) });
+    else if (url.pathname === "/api/proposals") await route.fulfill({ json: successful(proposalPage(rows, url)) });
+    else if (url.pathname === "/api/proposals/draft-20" && route.request().method() === "DELETE") {
+      rows = rows.filter((item) => item.id !== "draft-20");
+      await route.fulfill({ json: successful({ success: true }) });
+    } else await route.fulfill({ status: 404, json: { message: "No disponible" } });
+  });
+  await page.goto("/dashboard/proposals");
+  const pagination = page.getByRole("navigation", { name: "Paginación de propuestas" });
+  await expect(pagination).toContainText("1–20 de 21 propuestas");
+  await pagination.getByRole("button", { name: "Siguiente" }).click();
+  await expect(pagination).toContainText("21–21 de 21 propuestas");
+  await page.getByRole("button", { name: "Eliminar borrador Borrador 20", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Eliminar", exact: true }).click();
+  await expect(pagination).toContainText("1–20 de 20 propuestas");
+  await expect(pagination.getByRole("button", { name: "Siguiente" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Borrador 20", exact: true })).toHaveCount(0);
+});
+
+test("una ficha ajena o eliminada muestra no disponible sin descargar páginas", async ({ page }) => {
+  const authSession = sessionFor("AUDITOR");
+  let listCalls = 0;
+  await storeSession(page, "AUDITOR");
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/auth/me") await route.fulfill({ json: successful({ user: { ...authSession.user, role: authSession.user.backendRole, tenant: authSession.tenant } }) });
+    else if (url.pathname === "/api/proposals") { listCalls += 1; await route.fulfill({ json: successful(proposalPage([])) }); }
+    else await route.fulfill({ status: 404, json: { message: "No disponible" } });
+  });
+  await page.goto("/dashboard/proposals?view=detail&entityId=proposal-other-tenant");
+  await expect(page.getByRole("alert")).toContainText("fuera de tu alcance autorizado");
+  expect(listCalls).toBe(0);
 });
 
 for (const role of ["AUDITOR", "COMPLIANCE_OFFICER"] as const) {

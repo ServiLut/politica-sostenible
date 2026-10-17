@@ -2,7 +2,7 @@
 
 import { usePageRequest } from "@/lib/use-page-request";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   type FormEvent,
@@ -25,11 +25,14 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
-import { readEntityDeepLink } from "@/lib/entity-deep-links";
+import { buildSearchResultHref, readEntityDeepLink } from "@/lib/entity-deep-links";
 import {
   allowedProposalStatuses,
   createProposal,
   deleteProposal,
+  getProposal,
+  ProposalPage,
+  PROPOSALS_PAGE_SIZE,
   listProposals,
   listProposalResponsibles,
   PoliticalProposal,
@@ -131,19 +134,32 @@ function statusTone(status: ProposalStatus): string {
 }
 
 export default function ProposalsPage() {
+  const { user, tenant } = useAuth();
+  const scopeKey = user && tenant ? `${tenant.id}:${user.id}:${user.backendRole}` : "";
+  // Keep drafts, saved-record notices and pending actions inside the same scope.
+  return <ProposalsWorkspace key={scopeKey} scopeKey={scopeKey} />;
+}
+
+function ProposalsWorkspace({ scopeKey }: { scopeKey: string }) {
   const { user } = useAuth();
+  const router = useRouter();
   const canMutate =
     user !== null && PROPOSAL_MANAGER_ROLES.has(user.backendRole);
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">(
     "ALL",
   );
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    if (searchQuery.trim() === debouncedSearch) return;
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   const [categoryFilter, setCategoryFilter] = useState<
     ProposalCategory | "ALL"
@@ -155,6 +171,9 @@ export default function ProposalsPage() {
   const [form, setForm] = useState<ProposalForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [completionConfirmed, setCompletionConfirmed] = useState(false);
+  const [savedProposal, setSavedProposal] = useState<PoliticalProposal | null>(null);
+  const progressBeforeCompletion = useRef("0");
   const statusRequests = useRef(new Set<string>());
   const [savingStatuses, setSavingStatuses] = useState<Set<string>>(new Set());
   const [statusFeedback, setStatusFeedback] = useState<
@@ -189,17 +208,55 @@ export default function ProposalsPage() {
   });
 
   const request = useCallback(
-    async (signal: AbortSignal) => (await listProposals(signal)).items,
-    [],
+    async (signal: AbortSignal): Promise<ProposalPage> => {
+      if (!scopeKey) throw new Error("Inicia sesión para consultar las propuestas.");
+      if (deepLinkProposalId) {
+        const proposal = await getProposal(deepLinkProposalId, signal);
+        return {
+          items: proposal ? [proposal] : [],
+          pagination: { page: 1, limit: 1, total: proposal ? 1 : 0, totalPages: proposal ? 1 : 0 },
+        };
+      }
+      return listProposals({
+        page, limit: PROPOSALS_PAGE_SIZE, search: debouncedSearch,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        category: categoryFilter === "ALL" ? undefined : categoryFilter,
+      }, signal);
+    },
+    [scopeKey, page, statusFilter, categoryFilter, debouncedSearch, deepLinkProposalId],
   );
   const {
     data: proposalsData,
     loading,
     error: requestError,
-    refresh: loadProposals,
-    setData: setProposals,
-  } = usePageRequest(request, { retainDataOnRefresh: true });
-  const proposals = useMemo(() => proposalsData ?? [], [proposalsData]);
+    refresh,
+    setData,
+  } = usePageRequest(request, { enabled: Boolean(scopeKey), retainDataOnRefresh: true });
+  const proposals = useMemo(() => proposalsData?.items ?? [], [proposalsData]);
+  // A mutation may finish after the user changes page/filters. Reconcile the
+  // active query, never the stale query captured when the PATCH started.
+  const activeList = useRef<{ scopeKey: string; refresh: typeof refresh; setData: typeof setData } | null>(null);
+  useEffect(() => {
+    const current = { scopeKey, refresh, setData };
+    activeList.current = current;
+    return () => { if (activeList.current === current) activeList.current = null; };
+  }, [scopeKey, refresh, setData]);
+  const setProposals = (update: (items: PoliticalProposal[]) => PoliticalProposal[]) => {
+    const current = activeList.current;
+    if (current?.scopeKey !== scopeKey) return;
+    current.setData((snapshot) => snapshot ? { ...snapshot, items: update(snapshot.items) } : null);
+  };
+  const loadProposals = () => {
+    const current = activeList.current;
+    return current?.scopeKey === scopeKey ? current.refresh() : Promise.resolve(undefined);
+  };
+  const isCurrentProposalScope = () => activeList.current?.scopeKey === scopeKey;
+  // A concurrent deletion can empty the last page. Return to the last valid page.
+  useEffect(() => {
+    if (deepLinkProposalId || !proposalsData || loading || requestError) return;
+    const lastPage = Math.max(1, proposalsData.pagination.totalPages);
+    if (page > lastPage) setPage(lastPage);
+  }, [deepLinkProposalId, proposalsData, loading, requestError, page]);
   const fetchError = requestError
     ? errorMessage(
         requestError,
@@ -219,27 +276,50 @@ export default function ProposalsPage() {
 
   const openCreate = () => {
     if (!canMutate) return;
+    progressBeforeCompletion.current = EMPTY_FORM.progressPercent;
     setForm({ ...EMPTY_FORM, ownerId: user.id });
     setMutationError(null);
+    setCompletionConfirmed(false);
     setDialogProposal("new");
   };
 
-  const openEdit = (proposal: PoliticalProposal) => {
+  const openEdit = (proposal: PoliticalProposal, status = proposal.status) => {
     if (!canMutate || statusRequests.current.has(proposal.id)) return;
+    progressBeforeCompletion.current = String(proposal.progressPercent);
     setForm({
       title: proposal.title,
       description: proposal.description,
       category: proposal.category,
-      status: proposal.status,
-      progressPercent: String(proposal.progressPercent),
+      status,
+      progressPercent: status === "COMPLETED" ? "100" : String(proposal.progressPercent),
       estimatedCost:
         proposal.estimatedCost === null ? "" : String(proposal.estimatedCost),
       internalDistributionFlag: proposal.isPublic,
       ownerId: proposal.ownerId,
     });
     setMutationError(null);
+    setCompletionConfirmed(false);
     setDialogProposal(proposal);
   };
+
+  function changeFormStatus(status: ProposalStatus) {
+    if (status === "COMPLETED" && form.status !== "COMPLETED") {
+      progressBeforeCompletion.current = form.progressPercent;
+    }
+    setCompletionConfirmed(false);
+    setForm({
+      ...form,
+      status,
+      progressPercent:
+        status === "DRAFT" || status === "PROPOSED"
+          ? "0"
+          : status === "COMPLETED"
+            ? "100"
+            : form.status === "COMPLETED"
+              ? progressBeforeCompletion.current
+              : form.progressPercent,
+    });
+  }
 
   const handleCardKeyDown = (
     event: KeyboardEvent<HTMLElement>,
@@ -265,6 +345,13 @@ export default function ProposalsPage() {
       return;
     }
 
+    // Completing is a final declaration of 100% progress. Review and confirm
+    // it in the editor instead of sending a status-only PATCH that the API rejects.
+    if (status === "COMPLETED") {
+      openEdit(proposal, status);
+      return;
+    }
+
     statusRequests.current.add(proposal.id);
     setSavingStatuses(new Set(statusRequests.current));
     setStatusFeedback((current) => {
@@ -274,6 +361,7 @@ export default function ProposalsPage() {
     });
     try {
       const confirmed = await updateProposal(proposal.id, { status });
+      if (!isCurrentProposalScope()) return;
       // Only an API-confirmed record replaces the last known state. This also
       // cancels an older GET so it cannot overwrite the confirmed change.
       setProposals((current) =>
@@ -290,6 +378,7 @@ export default function ProposalsPage() {
       }));
       await loadProposals();
     } catch (error: unknown) {
+      if (!isCurrentProposalScope()) return;
       setStatusFeedback((current) => ({
         ...current,
         [proposal.id]: {
@@ -308,9 +397,13 @@ export default function ProposalsPage() {
     setDeleting(true);
     try {
       await deleteProposal(deleteTarget.id);
+      if (!isCurrentProposalScope()) return;
+      if (savedProposal?.id === deleteTarget.id) setSavedProposal(null);
+      if (deepLinkProposalId === deleteTarget.id) router.replace("/dashboard/proposals");
       setDeleteTarget(null);
       await loadProposals();
     } catch (error: unknown) {
+      if (!isCurrentProposalScope()) return;
       setMutationError(
         errorMessage(error, "No se pudo eliminar la propuesta."),
       );
@@ -333,6 +426,11 @@ export default function ProposalsPage() {
       setMutationError("Selecciona el responsable de la propuesta.");
       return;
     }
+    if (form.status === "COMPLETED" && dialogProposal !== "new" &&
+        dialogProposal.status !== "COMPLETED" && !completionConfirmed) {
+      setMutationError("Confirma que la propuesta alcanzó el 100 % antes de completarla.");
+      return;
+    }
 
     const progressPercent = Number(form.progressPercent);
     const estimatedCost = form.estimatedCost.trim()
@@ -352,50 +450,28 @@ export default function ProposalsPage() {
     setSubmitting(true);
     setMutationError(null);
     try {
-      if (dialogProposal === "new") {
-        await createProposal(payload);
-      } else {
-        await updateProposal(dialogProposal.id, payload);
-      }
+      const confirmed = dialogProposal === "new"
+        ? await createProposal(payload)
+        : await updateProposal(dialogProposal.id, payload);
+      if (!isCurrentProposalScope()) return;
+      setProposals((current) => current.map((item) => item.id === confirmed.id ? confirmed : item));
+      setSavedProposal(confirmed);
       setDialogProposal(null);
       await loadProposals();
     } catch (error: unknown) {
+      if (!isCurrentProposalScope()) return;
       setMutationError(errorMessage(error, "No se pudo guardar la propuesta."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredProposals = useMemo(
-    () =>
-      proposals.filter((proposal) => {
-        if (
-          debouncedSearch &&
-          !proposal.title.toLowerCase().includes(debouncedSearch.toLowerCase())
-        )
-          return false;
-        if (statusFilter !== "ALL" && proposal.status !== statusFilter) {
-          return false;
-        }
-        return categoryFilter === "ALL" || proposal.category === categoryFilter;
-      }),
-    [categoryFilter, proposals, statusFilter, debouncedSearch],
-  );
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<ProposalStatus | "ALL", number> = {
-      ALL: proposals.length,
-      DRAFT: 0,
-      PROPOSED: 0,
-      IN_PROGRESS: 0,
-      COMPLETED: 0,
-      WITHDRAWN: 0,
-    };
-    proposals.forEach((proposal) => {
-      counts[proposal.status] += 1;
-    });
-    return counts;
-  }, [proposals]);
+  const hasFilters = Boolean(debouncedSearch || statusFilter !== "ALL" || categoryFilter !== "ALL");
+  const pagination = proposalsData?.pagination;
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    document.getElementById("proposal-list-navigation")?.scrollIntoView({ block: "start" });
+  };
 
   const deepLinkedProposalIsMissing = Boolean(
     deepLinkProposalId &&
@@ -412,6 +488,7 @@ export default function ProposalsPage() {
     dialogProposal === "new" ||
     form.status === "DRAFT" ||
     form.status === "PROPOSED" ||
+    form.status === "COMPLETED" ||
     editedProposal?.status === "COMPLETED" ||
     editedProposal?.status === "WITHDRAWN";
 
@@ -461,6 +538,18 @@ export default function ProposalsPage() {
       {mutationError && !dialogProposal && (
         <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">{mutationError}</p>
       )}
+      {savedProposal && (
+        <div role="status" className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="min-w-0 break-words">
+            <strong>Propuesta guardada:</strong> «{savedProposal.title}» · {STATUS_LABELS[savedProposal.status]}.
+            {" "}Puedes abrirla aunque no coincida con tus filtros.
+          </p>
+          <button type="button" onClick={() => router.push(buildSearchResultHref("Proposals", savedProposal.id))}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 font-semibold hover:bg-emerald-100">
+            Ver propuesta guardada
+          </button>
+        </div>
+      )}
       {Object.entries(statusFeedback).map(([id, feedback]) => (
         <div
           key={id}
@@ -491,14 +580,23 @@ export default function ProposalsPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
+      {deepLinkProposalId ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          <p>Estás viendo una propuesta específica. Tu búsqueda y tus filtros se conservan al volver al listado.</p>
+          <button type="button" onClick={() => router.push("/dashboard/proposals")}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-300 bg-white px-4 font-semibold hover:bg-blue-100">
+            Volver al listado
+          </button>
+        </div>
+      ) : <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between min-w-0">
         <div className="flex-1 max-w-sm min-w-0">
           <label htmlFor="proposal-search" className="mb-1 block text-sm font-semibold text-slate-700">Buscar propuestas</label>
           <input
             id="proposal-search"
             type="search"
-            placeholder="Buscar propuestas..."
+            placeholder="Título, código o descripción"
             value={searchQuery}
+            maxLength={200}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
           />
@@ -510,7 +608,7 @@ export default function ProposalsPage() {
               type="button"
               key={status}
               aria-pressed={statusFilter === status}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => { setStatusFilter(status); setPage(1); }}
               className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                 statusFilter === status
                   ? "border-blue-700 bg-blue-50 text-blue-700"
@@ -518,9 +616,6 @@ export default function ProposalsPage() {
               }`}
             >
               {status === "ALL" ? "Todas" : STATUS_LABELS[status]}
-              <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                {statusCounts[status]}
-              </span>
             </button>
           ))}
         </div>
@@ -529,9 +624,10 @@ export default function ProposalsPage() {
         <select
           id="proposal-category-filter"
           value={categoryFilter}
-          onChange={(event) =>
-            setCategoryFilter(event.target.value as ProposalCategory | "ALL")
-          }
+          onChange={(event) => {
+            setCategoryFilter(event.target.value as ProposalCategory | "ALL");
+            setPage(1);
+          }}
           className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 max-w-full"
         >
           <option value="ALL">Todas las categorías</option>
@@ -542,27 +638,51 @@ export default function ProposalsPage() {
           ))}
         </select>
         </div>
-      </div>
+      </div>}
+
+      {!deepLinkProposalId && pagination && (
+        <nav id="proposal-list-navigation" aria-label="Paginación de propuestas" className="flex min-w-0 scroll-mt-20 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <p role="status" className="text-sm text-slate-700">
+            {loading ? "Actualizando propuestas…" : pagination.total === 0 ? "0 propuestas encontradas" : proposals.length === 0 ? "Actualizando página…" :
+              `${(pagination.page - 1) * pagination.limit + 1}–${Math.min(pagination.page * pagination.limit, pagination.total)} de ${pagination.total} ${pagination.total === 1 ? "propuesta" : "propuestas"}`}
+            {hasFilters && " · filtros aplicados"}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" disabled={loading || page <= 1} onClick={() => changePage(page - 1)}
+              className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold disabled:opacity-50">Anterior</button>
+            <span className="text-sm text-slate-600">Página {pagination.page} de {Math.max(1, pagination.totalPages)}</span>
+            <button type="button" disabled={loading || page >= pagination.totalPages} onClick={() => changePage(page + 1)}
+              className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold disabled:opacity-50">Siguiente</button>
+          </div>
+        </nav>
+      )}
 
       {loading && proposalsData === null ? (
         <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 min-w-0">
           <Loader2 className="animate-spin text-slate-400" size={24} />
           Cargando propuestas...
         </div>
-      ) : fetchError && proposalsData === null ? null : filteredProposals.length === 0 ? (
+      ) : (fetchError && proposalsData === null) || deepLinkedProposalIsMissing ? null : proposals.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center min-w-0">
           <FileText className="text-slate-400" size={48} />
           <p className="text-sm font-medium text-slate-500">
-            {proposals.length === 0
+            {!hasFilters
               ? canMutate
                 ? "No hay propuestas registradas. Comience definiendo su programa político."
                 : "No hay propuestas registradas."
               : "No hay propuestas que coincidan con los filtros."}
           </p>
+          {hasFilters && (
+            <button type="button" onClick={() => {
+              setSearchQuery(""); setDebouncedSearch(""); setStatusFilter("ALL"); setCategoryFilter("ALL"); setPage(1);
+            }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
+              Limpiar filtros
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 min-w-0">
-          {filteredProposals.map((proposal) => (
+          {proposals.map((proposal) => (
             <article
               key={proposal.id}
               id={`proposal-result-${proposal.id}`}
@@ -720,6 +840,16 @@ export default function ProposalsPage() {
         </div>
       )}
 
+      {!deepLinkProposalId && pagination && pagination.totalPages > 1 && proposals.length > 0 && (
+        <nav aria-label="Cambiar página al final de propuestas" className="flex min-w-0 flex-wrap items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <button type="button" disabled={loading || page <= 1} onClick={() => changePage(page - 1)}
+            className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold disabled:opacity-50">Anterior</button>
+          <span className="text-sm text-slate-600">Página {pagination.page} de {pagination.totalPages}</span>
+          <button type="button" disabled={loading || page >= pagination.totalPages} onClick={() => changePage(page + 1)}
+            className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold disabled:opacity-50">Siguiente</button>
+        </nav>
+      )}
+
       {dialogProposal && canMutate && (
         <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm min-w-0 z-[150] overflow-y-auto flex-wrap">
           <section
@@ -839,19 +969,7 @@ export default function ProposalsPage() {
                   Estado
                   <select
                     value={form.status}
-                    onChange={(event) => {
-                      const status = event.target.value as ProposalStatus;
-                      setForm({
-                        ...form,
-                        status,
-                        progressPercent:
-                          status === "DRAFT" || status === "PROPOSED"
-                            ? "0"
-                            : status === "COMPLETED"
-                              ? "100"
-                              : form.progressPercent,
-                      });
-                    }}
+                    onChange={(event) => changeFormStatus(event.target.value as ProposalStatus)}
                     className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                   >
                     {(dialogProposal === "new"
@@ -898,6 +1016,17 @@ export default function ProposalsPage() {
                   />
                 </label>
               </div>
+              {form.status === "COMPLETED" && editedProposal?.status !== "COMPLETED" && (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p>Completar registra el progreso en 100 %. Este estado es final: después no podrás cambiar el contenido, responsable ni progreso.</p>
+                  <label className="flex items-start gap-3 font-semibold">
+                    <input type="checkbox" required checked={completionConfirmed}
+                      onChange={(event) => setCompletionConfirmed(event.target.checked)}
+                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-amber-400" />
+                    Confirmo que la propuesta alcanzó el 100 % y puede darse por completada.
+                  </label>
+                </div>
+              )}
               <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800 min-w-0">
                 <input
                   type="checkbox"

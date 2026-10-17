@@ -82,6 +82,69 @@ describe('CommitmentsService tenant and mode isolation', () => {
     service = new CommitmentsService(prisma as unknown as PrismaService);
   });
 
+  it.each([
+    ['2026-10-16', '2026-10-17T04:59:59.999Z'],
+    ['2026-10-16T12:00:00-05:00', '2026-10-16T17:00:00.000Z'],
+  ])(
+    'creates a tenant-scoped commitment with deadline %s',
+    async (targetDate, expected) => {
+      prisma.commitment.findFirst.mockResolvedValue(null);
+      prisma.commitment.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'commitment-date', ...data }),
+      );
+      const result = await service.create(currentUser, {
+        reference: 'CMP-DATE',
+        title: 'Compromiso',
+        description: 'Detalle',
+        targetDate,
+      });
+      expect(result.targetDate?.toISOString()).toBe(expected);
+      expect(prisma.commitment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tenantId: 'tenant-a',
+            targetDate: new Date(expected),
+          }),
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ['2026-10-16', new Date('2026-10-17T04:59:59.999Z')],
+    ['2026-10-16T12:00:00-05:00', new Date('2026-10-16T17:00:00.000Z')],
+    [null, null],
+    [undefined, undefined],
+  ])(
+    'updates only the supplied commitment deadline: %s',
+    async (targetDate, expected) => {
+      prisma.commitment.findFirst.mockResolvedValue({
+        id: 'commitment-date',
+        status: CommitmentStatus.PROPOSED,
+        progress: 0,
+      });
+      prisma.commitment.update.mockImplementation(({ data }) =>
+        Promise.resolve({
+          id: 'commitment-date',
+          status: CommitmentStatus.PROPOSED,
+          ...data,
+        }),
+      );
+      await service.update(currentUser, 'commitment-date', {
+        title: 'Título editado',
+        targetDate,
+      });
+      const call = prisma.commitment.update.mock.calls[0][0];
+      expect(call.where).toMatchObject({
+        id: 'commitment-date',
+        tenantId: 'tenant-a',
+      });
+      if (targetDate === undefined)
+        expect(call.data).not.toHaveProperty('targetDate');
+      else expect(call.data.targetDate).toEqual(expected);
+    },
+  );
+
   it('rejects an owner that does not belong to the JWT tenant', async () => {
     prisma.commitment.findFirst.mockResolvedValue(null);
     prisma.user.findFirst.mockImplementation(({ select }) =>

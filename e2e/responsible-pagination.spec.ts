@@ -124,7 +124,7 @@ async function prepare(page: Page, scenario: Scenario, role = "ADMIN") {
       }) });
     }
     if (pathname === scenario.endpoint && request.method() === "GET") {
-      return route.fulfill({ json: success({ items: [record], pagination: { page: 1, limit: 12, total: 1, totalPages: 1 } }) });
+      return route.fulfill({ json: success({ items: [record], pagination: { page: 1, limit: scenario.module === "propuestas" ? 20 : 12, total: 1, totalPages: 1 } }) });
     }
     if (pathname === `${scenario.endpoint}/record-1` && request.method() === "PATCH") {
       const body = request.postDataJSON() as Record<string, unknown>;

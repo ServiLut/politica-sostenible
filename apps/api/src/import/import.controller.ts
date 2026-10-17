@@ -14,6 +14,7 @@ import {
   RequiresPlanFeature,
 } from '../auth/decorators/requires-plan-feature.decorator';
 import { BlockWhenOperationClosed } from '../auth/decorators/operation-stage-policy.decorator';
+import { RateLimitOperation } from '../common/throttling/operation-rate-limit';
 
 @Controller('import')
 @RequiresPlanFeature(PlanFeature.IMPORT)
@@ -22,6 +23,7 @@ export class ImportController {
   constructor(private readonly importService: ImportService) {}
 
   @Post(':module/preview')
+  @RateLimitOperation('import-preview')
   @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
   async preview(
     @Param() params: ImportModuleParamDto,
@@ -32,6 +34,7 @@ export class ImportController {
   }
 
   @Post(':module/execute')
+  @RateLimitOperation('import-execute')
   @Roles(Role.ADMIN, Role.CAMPAIGN_MANAGER)
   async execute(
     @Param() params: ImportModuleParamDto,

@@ -7,3 +7,8 @@ apps/api/prisma/migrations/**/migration.sql text eol=lf
 # Prisma genera documentación tipada con espacios finales. El código fuente
 # escrito a mano conserva el chequeo; el artefacto regenerable no lo bloquea.
 apps/api/prisma/generated/** -whitespace
+
+# El control de mitigaciones verifica las huellas de estos bytes en Windows y CI.
+# El espacio de una linea de contexto vacia pertenece al formato unified diff.
+patches/*.patch text eol=lf -whitespace
+deploy/dependency-patches.test.mjs text eol=lf

@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, X509Certificate } from "node:crypto";
+import { closeSync, openSync, readSync } from "node:fs";
 import {
   copyFile,
   mkdir,
@@ -11,7 +12,8 @@ import {
 } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+import { checkServerIdentity } from "node:tls";
 import { fileURLToPath } from "node:url";
 
 import { requireMigrationEnvironment } from "./runtime-environment.mjs";
@@ -26,11 +28,12 @@ const SUBSCRIPTION_PLAN_TABLE_MIGRATION = "20260905130000_subscription_plans";
 const PLAN_SEED_GUARD_FUNCTION = "protect_pending_subscription_plan_seed";
 const PLAN_SEED_GUARD_TRIGGER = "SubscriptionPlan_pending_seed_guard";
 const PLAN_SEED_TRUNCATE_TRIGGER = "SubscriptionPlan_pending_seed_no_truncate";
-export const EXPECTED_SCHEMA_VERSION = "20260921182000_schema_contract_marker";
+export const EXPECTED_SCHEMA_VERSION = "20261016213000_schema_contract_marker";
 const FIRST_SCHEMA_CONTRACT_MARKER = "20260909310000_schema_contract_marker";
 const SUPPORTED_SCHEMA_CONTRACT_MARKERS = new Set([
   FIRST_SCHEMA_CONTRACT_MARKER,
   "20260909340000_schema_contract_marker",
+  "20260921182000_schema_contract_marker",
   EXPECTED_SCHEMA_VERSION,
 ]);
 export const HISTORICAL_MIGRATIONS = Object.freeze([
@@ -539,16 +542,93 @@ function sslOptions(environment, parsedUrl) {
     return {
       rejectUnauthorized:
         environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+      // pg omits SNI for IP hosts; pin identity verification to the URL rather
+      // than letting tls.connect fall back to its default "localhost" name.
+      checkServerIdentity: (_hostname, certificate) =>
+        checkServerIdentity(parsedUrl.hostname.replace(/^\[|\]$/gu, ""), certificate),
     };
   }
   return false;
+}
+
+export function postgresClientConnectionString(parsedUrl, environment) {
+  const parsed = new URL(parsedUrl);
+  if (environment.NODE_ENV === "production" &&
+      !(environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === "evaluation" &&
+        environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true")) {
+    const tlsParameters = [...parsed.searchParams].filter(([key]) =>
+      key.toLowerCase().startsWith("ssl") || key.toLowerCase() === "uselibpqcompat");
+    if (tlsParameters.length !== 1 || tlsParameters[0][0] !== "sslmode" || tlsParameters[0][1] !== "verify-full") {
+      throw new Error("PostgreSQL URL cannot override verified TLS");
+    }
+    parsed.searchParams.delete("sslmode");
+  }
+  return parsed.toString();
+}
+
+export function postgresClientOptions(parsedUrl, environment) {
+  return {
+    connectionString: postgresClientConnectionString(parsedUrl, environment),
+    connectionTimeoutMillis: 15_000,
+    ssl: sslOptions(environment, parsedUrl),
+  };
+}
+
+export function prismaMigrationConnectionString(parsedUrl, environment) {
+  const parsed = new URL(parsedUrl);
+  if (environment.NODE_ENV === "production" &&
+      !(environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === "evaluation" &&
+        environment.ALLOW_INSECURE_DATABASE_CONNECTION === "true")) {
+    // Validate the external contract first. Prisma's native connector does not
+    // implement pg/libpq's verify-full mode: unknown modes can allow plaintext.
+    // Its strict equivalent is require + sslaccept=strict, used only internally.
+    postgresClientConnectionString(parsed, environment);
+    parsed.searchParams.set("sslmode", "require");
+    parsed.searchParams.set("sslaccept", "strict");
+    // The native Prisma engine does not consistently inherit Node's CA store.
+    // Reuse the operator-configured public CA file, never a URL-supplied trust
+    // override. Node reads this variable at process startup for pg as well.
+    const extraCa = environment.NODE_EXTRA_CA_CERTS;
+    if (extraCa) {
+      if (!isAbsolute(extraCa) || /[\0\r\n]/u.test(extraCa)) {
+        throw new Error("NODE_EXTRA_CA_CERTS must identify an absolute CA file");
+      }
+      // Prisma's native connector consumes one certificate, unlike Node's
+      // bundle support. Reject ambiguous trust configuration before migration.
+      validateMigrationCaFile(extraCa);
+      parsed.searchParams.set("sslcert", extraCa);
+    }
+  }
+  return parsed.toString();
+}
+
+function validateMigrationCaFile(filename) {
+  let descriptor;
+  try {
+    descriptor = openSync(filename, "r");
+    const buffer = Buffer.alloc(65_537);
+    let length = 0;
+    while (length < buffer.length) {
+      const read = readSync(descriptor, buffer, length, buffer.length - length, null);
+      if (read === 0) break;
+      length += read;
+    }
+    if (length > 65_536) throw new Error("CA_TOO_LARGE");
+    const text = buffer.subarray(0, length).toString("utf8").trim();
+    if (!/^-----BEGIN CERTIFICATE-----\r?\n[A-Za-z0-9+/=\r\n]+\r?\n-----END CERTIFICATE-----$/u.test(text) ||
+        !new X509Certificate(text).ca) throw new Error("INVALID_SINGLE_CA");
+  } catch {
+    throw new Error("NODE_EXTRA_CA_CERTS must contain exactly one readable PEM CA certificate (maximum 64 KiB); CA bundles are unsupported for migrations");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
 }
 
 function quotedIdentifier(value) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-async function inspectDatabase(client, schema) {
+export async function inspectDatabase(client, schema) {
   const qualifiedHistory = `${quotedIdentifier(schema)}."_prisma_migrations"`;
   const historyLookup = await client.query("SELECT to_regclass($1) AS name", [
     qualifiedHistory,
@@ -1246,23 +1326,16 @@ export async function runSafeMigrations(environment = process.env) {
   const migrationTimeouts = resolveMigrationTimeouts(environment);
   const prismaEnvironment = {
     ...environment,
-    DIRECT_URL: directUrl,
+    DIRECT_URL: prismaMigrationConnectionString(normalizedDirect, environment),
+    DATABASE_URL: prismaMigrationConnectionString(normalizedRuntime, environment),
     PGOPTIONS: migrationTimeouts.pgOptions,
   };
   const requireFromApi = createRequire(
     join(APPLICATION_DIRECTORY, "package.json"),
   );
   const { Client } = requireFromApi("pg");
-  const client = new Client({
-    connectionString: directUrl,
-    connectionTimeoutMillis: 15_000,
-    ssl: sslOptions(environment, normalizedDirect),
-  });
-  const runtimeClient = new Client({
-    connectionString: runtimeUrl,
-    connectionTimeoutMillis: 15_000,
-    ssl: sslOptions(environment, normalizedRuntime),
-  });
+  const client = new Client(postgresClientOptions(normalizedDirect, environment));
+  const runtimeClient = new Client(postgresClientOptions(normalizedRuntime, environment));
 
   console.log(
     `Verificando migraciones con ${source} directa (schema: ${schema})...`,

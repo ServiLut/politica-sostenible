@@ -1,6 +1,7 @@
 import type { BackendUserRole } from "../../../types/saas-schema";
 import type {
   PoliticalOperationMode,
+  Commitment,
   Task,
   UpdateTaskInput,
   WorkPriority,
@@ -28,10 +29,31 @@ export function canEditTaskDetails(
     : role === "CONSTITUENT_SERVICES_MANAGER";
 }
 
-function localDateInput(value: string | null): string {
+function colombiaDateInput(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)!.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export function formatDeadlineDate(value: string | null): string {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Fecha no disponible";
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 export function taskEditorDraft(task: Task): TaskDraft {
@@ -39,7 +61,7 @@ export function taskEditorDraft(task: Task): TaskDraft {
     title: task.title,
     description: task.description ?? "",
     priority: task.priority,
-    dueDate: localDateInput(task.dueAt),
+    dueDate: colombiaDateInput(task.dueAt),
     assigneeId: task.assigneeId ?? "",
     assigneeName: task.assignee?.name ?? "",
   };
@@ -58,10 +80,9 @@ export function taskEditInput(task: Task, draft: TaskDraft): UpdateTaskInput {
   if (draft.assigneeId !== (task.assigneeId ?? "")) {
     input.assigneeId = draft.assigneeId || null;
   }
-  if (draft.dueDate !== localDateInput(task.dueAt)) {
-    input.dueAt = draft.dueDate
-      ? new Date(`${draft.dueDate}T12:00:00`).toISOString()
-      : null;
+  if (draft.dueDate !== colombiaDateInput(task.dueAt)) {
+    // Nest resolves date-only values to the end of the Colombia civil day.
+    input.dueAt = draft.dueDate || null;
   }
   return input;
 }
@@ -75,18 +96,34 @@ export function taskFiltersAfterMutation<T extends { page: number }>(
 
 /** Use the persisted identity, retaining an authorized case context when present. */
 export function createdTaskHref(
-  task: Pick<Task, "id" | "issueCaseId">,
+  task: Pick<Task, "id" | "issueCaseId"> & Partial<Pick<Task, "commitmentId">>,
 ): string {
   const query = new URLSearchParams({ view: "tasks", entityId: task.id });
   if (task.issueCaseId) query.set("issueCaseId", task.issueCaseId);
+  if (task.commitmentId) query.set("commitmentId", task.commitmentId);
   return `/dashboard/tasks?${query}`;
 }
 
 export function workListHref(
   view: "tasks" | "commitments",
   issueCaseId: string | null,
+  commitmentId: string | null = null,
 ): string {
   const query = new URLSearchParams({ view });
   if (issueCaseId) query.set("issueCaseId", issueCaseId);
+  if (view === "tasks" && commitmentId) query.set("commitmentId", commitmentId);
+  return `/dashboard/tasks?${query}`;
+}
+
+export function commitmentTasksHref(
+  commitment: Pick<Commitment, "id" | "issueCaseId">,
+  issueCaseId: string | null,
+  create = false,
+): string {
+  const query = new URLSearchParams({ view: "tasks", commitmentId: commitment.id });
+  // A visible commitment does not grant access to its related case. Only keep
+  // an explicit case context that this workspace has already authorized.
+  if (issueCaseId) query.set("issueCaseId", issueCaseId);
+  if (create) query.set("create", "task");
   return `/dashboard/tasks?${query}`;
 }

@@ -186,7 +186,7 @@ test("el ejecutor protege las dos migraciones históricas antes de Prisma deploy
   const finalDeploy = source.lastIndexOf('await runPrisma(["migrate", "deploy"]');
   assert.ok(guarded >= 0 && finalDeploy > guarded, "El guard debe ejecutarse antes del despliegue final");
   const ci = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-  assert.match(ci, /node --test deploy\/migration-atomicity\.integration\.test\.mjs/);
+  assert.match(ci, /node --test --test-concurrency=1 deploy\/migration-atomicity\.integration\.test\.mjs/);
   assert.match(ci, /MIGRATION_TEST_DATABASE_URL: postgresql:/);
 });
 

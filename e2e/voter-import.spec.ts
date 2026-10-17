@@ -307,8 +307,9 @@ test("interfaz simulada: recupera respuesta perdida, revisa errores y retoma tra
     .getByRole("button", { name: "Revisar archivo", exact: true })
     .click();
   await expect(dialog.getByRole("alert")).toContainText(
-    "Respuesta temporalmente no disponible",
+    "El servidor no pudo completar la solicitud. Intenta nuevamente más tarde.",
   );
+  await expect(dialog.getByText("Respuesta temporalmente no disponible")).toHaveCount(0);
   await dialog.getByRole("button", { name: "Recuperar revisión" }).click();
   await expect(
     dialog.getByRole("region", { name: "Revisión de la importación" }),

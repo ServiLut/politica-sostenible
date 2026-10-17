@@ -1,4 +1,5 @@
 import { apiRequest } from "./api-client";
+import { requestPrivateDownload } from "./private-storage";
 
 export type PqrsdCommandName =
   | "RULE_PACKAGE_CREATE"
@@ -256,13 +257,7 @@ export function getPqrsdDetail(
 }
 
 export function getPqrsdDocumentDownload(resourceId: string) {
-  return apiRequest<{ url: string; expiresAt: string }>(
-    "storage/download-url",
-    {
-      method: "POST",
-      body: JSON.stringify({ module: "pqrsd", resourceId }),
-    },
-  );
+  return requestPrivateDownload("pqrsd", resourceId);
 }
 
 export const createPqrsdRulePackage = (input: CommandInput) =>

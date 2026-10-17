@@ -2,6 +2,17 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '../../prisma/generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import {
+  checkServerIdentity,
+  type ConnectionOptions,
+  type PeerCertificate,
+} from 'node:tls';
+import {
+  assertRuntimeDatabaseRole,
+  runtimeDatabaseRoleGuardRequired,
+  runtimeDatabaseRoleQuery,
+  type RuntimeDatabaseRoleState,
+} from './runtime-database-role';
 
 const POSTGRES_IDENTIFIER = /^[\p{L}_][\p{L}\p{N}_-]{0,62}$/u;
 
@@ -49,7 +60,7 @@ export function resolveDatabaseSearchPathOptions(
 
 export function resolveDatabaseSsl(
   environment: NodeJS.ProcessEnv = process.env,
-): false | { rejectUnauthorized: boolean } {
+): false | ConnectionOptions {
   const sslEnabled = environment.DATABASE_SSL === 'true';
   const rejectUnauthorized =
     environment.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false';
@@ -79,7 +90,60 @@ export function resolveDatabaseSsl(
     return false;
   }
 
-  return sslEnabled ? { rejectUnauthorized } : false;
+  if (!sslEnabled) return false;
+  const connectionString = environment.DATABASE_URL;
+  const hostname = connectionString
+    ? new URL(connectionString).hostname.replace(/^\[|\]$/gu, '')
+    : undefined;
+  return {
+    rejectUnauthorized,
+    ...(hostname
+      ? {
+          // pg supplies no SNI for IP hosts. Verify the configured identity,
+          // including IP SANs, instead of tls.connect's localhost fallback.
+          checkServerIdentity: (_hostname: string, certificate: PeerCertificate) =>
+            checkServerIdentity(hostname, certificate),
+        }
+      : {}),
+  };
+}
+
+export function resolveDatabaseConnectionString(
+  connectionString: string | undefined,
+  environment: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  if (!connectionString) return undefined;
+  const evaluation =
+    environment.DEPLOYMENT_PROFILE?.trim().toLowerCase() === 'evaluation' &&
+    environment.ALLOW_INSECURE_DATABASE_CONNECTION === 'true';
+  if (environment.NODE_ENV !== 'production' || evaluation)
+    return connectionString;
+  let parsed: URL;
+  try {
+    parsed = new URL(connectionString);
+  } catch {
+    throw new Error('DATABASE_URL must be a valid PostgreSQL URL');
+  }
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) {
+    throw new Error('DATABASE_URL must be a valid PostgreSQL URL');
+  }
+  const tlsParameters = [...parsed.searchParams].filter(
+    ([key]) =>
+      key.toLowerCase().startsWith('ssl') ||
+      key.toLowerCase() === 'uselibpqcompat',
+  );
+  if (
+    tlsParameters.length > 1 ||
+    tlsParameters.some(
+      ([key, value]) => key !== 'sslmode' || value !== 'verify-full',
+    )
+  ) {
+    throw new Error('DATABASE_URL cannot override verified PostgreSQL TLS');
+  }
+  // pg connection-string options override the explicit ssl object. Remove the
+  // sole permitted mode so rejectUnauthorized:true remains effective in pg.
+  parsed.searchParams.delete('sslmode');
+  return parsed.toString();
 }
 
 @Injectable()
@@ -100,7 +164,7 @@ export class PrismaService
 
     const schema = resolveDatabaseSchema(connectionString);
     const pool = new pg.Pool({
-      connectionString,
+      connectionString: resolveDatabaseConnectionString(connectionString),
       ssl: resolveDatabaseSsl(),
       max: parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10),
       connectionTimeoutMillis: 10_000,
@@ -121,10 +185,19 @@ export class PrismaService
     try {
       await this.$connect();
       await this.$queryRaw`SELECT 1`;
+      if (runtimeDatabaseRoleGuardRequired()) {
+        const schema = resolveDatabaseSchema(process.env.DATABASE_URL);
+        if (!schema) throw new Error('RUNTIME_DATABASE_SCHEMA_REQUIRED');
+        const rows = await this.$queryRaw<RuntimeDatabaseRoleState[]>(
+          runtimeDatabaseRoleQuery(schema),
+        );
+        assertRuntimeDatabaseRole(rows, schema);
+      }
       console.log('Database connection established.');
     } catch (error) {
       console.error('Database connection failed.');
       if (process.env.NODE_ENV === 'production') {
+        await this.$disconnect().catch(() => undefined);
         throw error;
       }
     }

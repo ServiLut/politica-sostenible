@@ -25,6 +25,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PQRSD_READ_ROLES } from '../pqrsd/pqrsd-access.constants';
 import { ListOperationalInboxQueryDto } from './dto/list-operational-inbox-query.dto';
+import {
+  caseRankingPartitions,
+  commitmentRankingPartitions,
+  rankedPqrsdIdsSql,
+  taskRankingPartitions,
+} from './operational-inbox-ranking';
 
 const OPEN_TASK_STATUSES = [
   TaskStatus.TODO,
@@ -305,66 +311,93 @@ export class OperationalInboxService {
           pqrsdDossiers,
           pqrsdTotal,
         ] = await Promise.all([
-          tx.task.findMany({
-            where: taskWhere,
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              priority: true,
-              dueAt: true,
-              createdAt: true,
-              assignee: { select: { id: true, name: true, role: true } },
-              issueCase: { select: { reference: true } },
-              commitment: { select: { reference: true } },
-            },
-            orderBy: [{ dueAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-            take: limit,
-          }),
-          tx.task.count({ where: taskWhere }),
-          commitmentWhere
-            ? tx.commitment.findMany({
-                where: commitmentWhere,
+          Promise.all(
+            taskRankingPartitions(now).map((partition) =>
+              tx.task.findMany({
+                where: { ...taskWhere, AND: [scopes.task, partition] },
                 select: {
                   id: true,
-                  reference: true,
-                  title: true,
-                  status: true,
-                  targetDate: true,
-                  createdAt: true,
-                  owner: { select: { id: true, name: true, role: true } },
-                },
-                orderBy: [
-                  { targetDate: 'asc' },
-                  { createdAt: 'asc' },
-                  { id: 'asc' },
-                ],
-                take: limit,
-              })
-            : Promise.resolve<InboxCommitmentRecord[]>([]),
-          commitmentWhere
-            ? tx.commitment.count({ where: commitmentWhere })
-            : Promise.resolve(0),
-          issueCaseWhere
-            ? tx.issueCase.findMany({
-                where: issueCaseWhere,
-                select: {
-                  id: true,
-                  reference: true,
                   title: true,
                   status: true,
                   priority: true,
                   dueAt: true,
                   createdAt: true,
                   assignee: { select: { id: true, name: true, role: true } },
+                  issueCase: { select: { reference: true } },
+                  commitment: { select: { reference: true } },
                 },
+                // WorkPriority's PostgreSQL enum is LOW, MEDIUM, HIGH, URGENT.
                 orderBy: [
-                  { dueAt: 'asc' },
+                  { priority: 'desc' },
+                  { dueAt: { sort: 'asc', nulls: 'last' } },
                   { createdAt: 'asc' },
                   { id: 'asc' },
                 ],
                 take: limit,
-              })
+              }),
+            ),
+          ).then((partitions) => partitions.flat()),
+          tx.task.count({ where: taskWhere }),
+          commitmentWhere
+            ? Promise.all(
+                commitmentRankingPartitions(now).map((partition) =>
+                  tx.commitment.findMany({
+                    where: {
+                      ...commitmentWhere,
+                      AND: [scopes.commitment!, partition],
+                    },
+                    select: {
+                      id: true,
+                      reference: true,
+                      title: true,
+                      status: true,
+                      targetDate: true,
+                      createdAt: true,
+                      owner: { select: { id: true, name: true, role: true } },
+                    },
+                    orderBy: [
+                      { targetDate: { sort: 'asc', nulls: 'last' } },
+                      { createdAt: 'asc' },
+                      { id: 'asc' },
+                    ],
+                    take: limit,
+                  }),
+                ),
+              ).then((partitions) => partitions.flat())
+            : Promise.resolve<InboxCommitmentRecord[]>([]),
+          commitmentWhere
+            ? tx.commitment.count({ where: commitmentWhere })
+            : Promise.resolve(0),
+          issueCaseWhere
+            ? Promise.all(
+                caseRankingPartitions(now).map((partition) =>
+                  tx.issueCase.findMany({
+                    where: {
+                      ...issueCaseWhere,
+                      AND: [scopes.issueCase!, partition],
+                    },
+                    select: {
+                      id: true,
+                      reference: true,
+                      title: true,
+                      status: true,
+                      priority: true,
+                      dueAt: true,
+                      createdAt: true,
+                      assignee: {
+                        select: { id: true, name: true, role: true },
+                      },
+                    },
+                    orderBy: [
+                      { priority: 'desc' },
+                      { dueAt: { sort: 'asc', nulls: 'last' } },
+                      { createdAt: 'asc' },
+                      { id: 'asc' },
+                    ],
+                    take: limit,
+                  }),
+                ),
+              ).then((partitions) => partitions.flat())
             : Promise.resolve<InboxIssueCaseRecord[]>([]),
           issueCaseWhere
             ? tx.issueCase.count({ where: issueCaseWhere })
@@ -382,7 +415,13 @@ export class OperationalInboxService {
                     select: { id: true, name: true, role: true },
                   },
                 },
-                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+                // Scheduled approvals are HIGH; unscheduled approvals MEDIUM.
+                // Date order therefore matches overdue, priority, due date.
+                orderBy: [
+                  { scheduledAt: { sort: 'asc', nulls: 'last' } },
+                  { createdAt: 'asc' },
+                  { id: 'asc' },
+                ],
                 take: limit,
               })
             : Promise.resolve<InboxApprovalRecord[]>([]),
@@ -390,43 +429,56 @@ export class OperationalInboxService {
             ? tx.communicationApproval.count({ where: approvalWhere })
             : Promise.resolve(0),
           pqrsdWhere
-            ? tx.pqrsdDossier.findMany({
-                where: pqrsdWhere,
-                select: {
-                  id: true,
-                  reference: true,
-                  subject: true,
-                  status: true,
-                  riskLevel: true,
-                  createdAt: true,
-                  currentPrimaryAssignee: {
+            ? tx
+                .$queryRaw<Array<{ id: string }>>(
+                  rankedPqrsdIdsSql(
+                    user.tenantId,
+                    OPEN_PQRSD_STATUSES,
+                    now,
+                    limit,
+                  ),
+                )
+                .then((ranked) =>
+                  tx.pqrsdDossier.findMany({
+                    where: {
+                      ...pqrsdWhere,
+                      id: { in: ranked.map((row) => row.id) },
+                    },
                     select: {
                       id: true,
-                      name: true,
-                      role: true,
-                      isActive: true,
+                      reference: true,
+                      subject: true,
+                      status: true,
+                      riskLevel: true,
+                      createdAt: true,
+                      currentPrimaryAssignee: {
+                        select: {
+                          id: true,
+                          name: true,
+                          role: true,
+                          isActive: true,
+                        },
+                      },
+                      currentBackupAssignee: {
+                        select: {
+                          id: true,
+                          name: true,
+                          role: true,
+                          isActive: true,
+                        },
+                      },
+                      deadlines: {
+                        orderBy: { versionNumber: 'desc' },
+                        take: 1,
+                        select: {
+                          calculationStatus: true,
+                          dueAt: true,
+                        },
+                      },
                     },
-                  },
-                  currentBackupAssignee: {
-                    select: {
-                      id: true,
-                      name: true,
-                      role: true,
-                      isActive: true,
-                    },
-                  },
-                  deadlines: {
-                    orderBy: { versionNumber: 'desc' },
-                    take: 1,
-                    select: {
-                      calculationStatus: true,
-                      dueAt: true,
-                    },
-                  },
-                },
-                orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-                take: limit,
-              })
+                    take: limit,
+                  }),
+                )
             : Promise.resolve<InboxPqrsdRecord[]>([]),
           pqrsdWhere
             ? tx.pqrsdDossier.count({ where: pqrsdWhere })
@@ -487,6 +539,8 @@ export class OperationalInboxService {
       summary: {
         total,
         visible: result.items.length,
+        // These three counters describe the displayed top-N items. Source
+        // totals, pendingApprovals and byKind cover all authorized open work.
         overdue: result.items.filter((item) => item.overdue).length,
         blocked: result.items.filter((item) => item.blocked).length,
         unassigned: result.items.filter(

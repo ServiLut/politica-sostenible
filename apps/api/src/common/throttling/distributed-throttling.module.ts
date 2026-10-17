@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { RedisThrottlerStorage } from './redis-throttler-storage';
+import { createLoginIdentityThrottler } from './login-identity-rate-limit';
 
 @Module({
   imports: [ConfigModule],
@@ -14,9 +15,9 @@ class RedisThrottlerStorageModule {}
   imports: [
     RedisThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
-      imports: [RedisThrottlerStorageModule],
-      inject: [RedisThrottlerStorage],
-      useFactory: (storage: RedisThrottlerStorage) => ({
+      imports: [ConfigModule, RedisThrottlerStorageModule],
+      inject: [RedisThrottlerStorage, ConfigService],
+      useFactory: (storage: RedisThrottlerStorage, config: ConfigService) => ({
         storage,
         throttlers: [
           {
@@ -25,6 +26,7 @@ class RedisThrottlerStorageModule {}
             limit: 120,
             blockDuration: 60_000,
           },
+          createLoginIdentityThrottler(config.getOrThrow<string>('JWT_SECRET')),
         ],
       }),
     }),

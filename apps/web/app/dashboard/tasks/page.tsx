@@ -59,7 +59,9 @@ import {
 } from "react";
 import {
   canEditTaskDetails,
+  commitmentTasksHref,
   createdTaskHref,
+  formatDeadlineDate as formatDate,
   taskEditInput,
   taskEditorDraft,
   taskFiltersAfterMutation,
@@ -162,23 +164,6 @@ function readableError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error && error.message) return error.message;
   return "Ocurrió un error inesperado. Intenta nuevamente.";
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "Sin fecha";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Fecha no disponible";
-
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function dateInputToIso(value: string): string {
-  return new Date(`${value}T12:00:00`).toISOString();
 }
 
 function Pagination({
@@ -304,6 +289,9 @@ function TasksWorkspace({ search }: { search: string }) {
   const requestedView = params.get("view");
   const entityId = params.get("entityId")?.trim() ?? "";
   const caseId = params.get("issueCaseId")?.trim() ?? "";
+  const commitmentId = params.get("commitmentId")?.trim() ?? "";
+  const invalidCommitmentLink = params.has("commitmentId") &&
+    (params.getAll("commitmentId").length !== 1 || !/^[a-zA-Z0-9_-]{1,128}$/u.test(commitmentId));
   const create = params.get("create");
   const { tenant, user } = useAuth();
   const canCreateTask = Boolean(
@@ -330,7 +318,7 @@ function TasksWorkspace({ search }: { search: string }) {
     caseId && caseId.length <= 128 ? caseId : null,
   );
   const requestedDialog: Dialog =
-    linkedCaseRequestId && (create === "task" || create === "commitment")
+    (linkedCaseRequestId || commitmentId) && (create === "task" || create === "commitment")
       ? create
       : null;
   const [taskFilters, setTaskFilters] =
@@ -391,6 +379,30 @@ function TasksWorkspace({ search }: { search: string }) {
       : linkedQuery.error
         ? `No fue posible vincular el caso solicitado. ${readableError(linkedQuery.error)}`
         : null;
+  const [linkedCommitmentReload, setLinkedCommitmentReload] = useState(0);
+  const linkedCommitmentRequest = useCallback(async (signal: AbortSignal) => {
+    const result = await listCommitments({
+      entityId: commitmentId,
+      issueCaseId: linkedCase?.id,
+      page: 1,
+      limit: 1,
+    }, signal);
+    const commitment = result.items.find((item) => item.id === commitmentId);
+    if (!commitment) throw new Error("El compromiso no está disponible para tu acceso o para el caso seleccionado.");
+    return commitment;
+  }, [commitmentId, linkedCase?.id]);
+  const linkedCommitmentQuery = usePageRequest(linkedCommitmentRequest, {
+    enabled: Boolean(commitmentId) && !invalidCommitmentLink && !linkedCaseError &&
+      (!linkedCaseRequestId || Boolean(linkedCase)),
+    reloadKey: linkedCommitmentReload,
+  });
+  const linkedCommitment = linkedCommitmentQuery.data;
+  const linkedCommitmentError = invalidCommitmentLink
+    ? "El vínculo recibido no tiene un identificador de compromiso válido."
+    : linkedCommitmentQuery.error ? readableError(linkedCommitmentQuery.error) : null;
+  const contextReady = !linkedCaseError && !linkedCommitmentError &&
+    (!linkedCaseRequestId || Boolean(linkedCase)) &&
+    (!commitmentId || Boolean(linkedCommitment));
   const ownId = user?.id ?? "";
   const newTask = {
     ...taskDraft,
@@ -414,14 +426,15 @@ function TasksWorkspace({ search }: { search: string }) {
           status: taskFilters.status || undefined,
           priority: taskFilters.priority || undefined,
           issueCaseId: linkedCase?.id,
+          commitmentId: linkedCommitment?.id,
         },
         signal,
       ),
-    [deepLinkTarget, linkedCase?.id, taskFilters],
+    [deepLinkTarget, linkedCase?.id, linkedCommitment?.id, taskFilters],
   );
   const tasks = usePageRequest(taskRequest, {
     reloadKey: taskReload,
-    enabled: !linkedCaseRequestId || Boolean(linkedCase),
+    enabled: contextReady,
   });
   const taskResult = tasks.data;
   const taskLoading = tasks.loading;
@@ -461,7 +474,7 @@ function TasksWorkspace({ search }: { search: string }) {
         commitmentResult?.permissions.canCreate;
   const dialog =
     dialogSelection === undefined
-      ? linkedCase && requestedDialogAllowed
+      ? contextReady && requestedDialogAllowed
         ? requestedDialog
         : null
       : dialogSelection;
@@ -473,7 +486,7 @@ function TasksWorkspace({ search }: { search: string }) {
       ? "El vínculo recibido no tiene un identificador de trabajo válido."
       : null) ??
     (dialogSelection === undefined &&
-    linkedCase &&
+    contextReady &&
     requestedDialog &&
     !requestedDialogAllowed &&
     !commitmentLoading
@@ -609,6 +622,10 @@ function TasksWorkspace({ search }: { search: string }) {
   async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (mutation) return;
+    if (!contextReady) {
+      setMutationError("Espera a que se verifique el caso o compromiso vinculado antes de crear la tarea.");
+      return;
+    }
     setMutation("create-task");
     setMutationError(null);
 
@@ -625,8 +642,9 @@ function TasksWorkspace({ search }: { search: string }) {
       ...(newTask.description.trim()
         ? { description: newTask.description.trim() }
         : {}),
-      ...(newTask.dueDate ? { dueAt: dateInputToIso(newTask.dueDate) } : {}),
+      ...(newTask.dueDate ? { dueAt: newTask.dueDate } : {}),
       ...(linkedCase ? { issueCaseId: linkedCase.id } : {}),
+      ...(linkedCommitment ? { commitmentId: linkedCommitment.id } : {}),
     };
 
     try {
@@ -641,8 +659,12 @@ function TasksWorkspace({ search }: { search: string }) {
       });
       setDialog(null);
       refreshTasksAfterMutation();
+      refreshCommitmentsAfterMutation();
+      if (linkedCommitment) setLinkedCommitmentReload((current) => current + 1);
       showNotice(
-        linkedCase
+        linkedCommitment
+          ? `Tarea “${created.title}” creada y vinculada al compromiso ${linkedCommitment.reference}.`
+          : linkedCase
           ? `Tarea “${created.title}” creada y vinculada al caso ${linkedCase.reference}.`
           : `Tarea “${created.title}” creada correctamente.`,
         created,
@@ -679,7 +701,7 @@ function TasksWorkspace({ search }: { search: string }) {
       isPublic: newCommitment.isPublic,
       ownerId: newCommitment.ownerId,
       ...(newCommitment.targetDate
-        ? { targetDate: dateInputToIso(newCommitment.targetDate) }
+        ? { targetDate: newCommitment.targetDate }
         : {}),
       ...(linkedCase ? { issueCaseId: linkedCase.id } : {}),
     };
@@ -843,7 +865,8 @@ function TasksWorkspace({ search }: { search: string }) {
                     setMutationError(null);
                     setDialog(view === "tasks" ? "task" : "commitment");
                   }}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700 max-w-full whitespace-normal"
+                  disabled={!contextReady}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-w-full whitespace-normal"
                 >
                   <Plus aria-hidden="true" size={19} />
                   {view === "tasks" ? "Nueva tarea" : "Nuevo compromiso"}
@@ -920,6 +943,37 @@ function TasksWorkspace({ search }: { search: string }) {
         </section>
       )}
 
+      {linkedCommitmentQuery.loading && (
+        <p role="status" className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+          Verificando el compromiso autorizado antes de consultar o crear sus tareas…
+        </p>
+      )}
+      {linkedCommitmentError && (
+        <div role="alert" className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <p className="min-w-0 flex-1">{linkedCommitmentError}</p>
+          {!invalidCommitmentLink && (
+            <button type="button" onClick={() => setLinkedCommitmentReload((value) => value + 1)} className="min-h-11 rounded-xl border border-red-300 px-4 font-semibold">
+              Reintentar compromiso
+            </button>
+          )}
+          <Link href={workListHref("commitments", linkedCaseRequestId)} className="inline-flex min-h-11 items-center rounded-xl border border-red-300 px-4 font-semibold">
+            Volver a compromisos
+          </Link>
+        </div>
+      )}
+      {linkedCommitment && (
+        <section data-testid="linked-commitment-context" aria-label="Compromiso vinculado" className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-blue-800">Tareas del compromiso {linkedCommitment.reference}</p>
+            <h2 className="mt-1 break-words text-sm font-bold text-slate-900">{linkedCommitment.title}</h2>
+            <p className="mt-1 text-xs text-slate-600">Las tareas nuevas quedarán vinculadas a este compromiso. La lista muestra las que puedes consultar con tu acceso.</p>
+          </div>
+          <Link href={workListHref("commitments", linkedCaseRequestId)} className="inline-flex min-h-11 items-center rounded-xl border border-blue-300 bg-white px-4 text-sm font-semibold text-blue-900">
+            Volver a compromisos
+          </Link>
+        </section>
+      )}
+
       {deepLinkTarget && view === deepLinkTarget.view && (
         <section
           aria-label="Selección actual"
@@ -931,11 +985,13 @@ function TasksWorkspace({ search }: { search: string }) {
               : "Estás viendo un compromiso seleccionado."}
           </p>
           <Link
-            href={workListHref(deepLinkTarget.view, linkedCaseRequestId)}
+            href={workListHref(deepLinkTarget.view, linkedCaseRequestId, linkedCommitment?.id ?? null)}
             className="inline-flex min-h-11 max-w-full items-center justify-center rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 focus-ring"
           >
             {deepLinkTarget.view === "tasks"
-              ? linkedCaseRequestId
+              ? linkedCommitment
+                ? "Ver todas las tareas del compromiso"
+                : linkedCaseRequestId
                 ? "Ver todas las tareas del caso"
                 : "Ver todas las tareas"
               : linkedCaseRequestId
@@ -1129,10 +1185,10 @@ function TasksWorkspace({ search }: { search: string }) {
         </div>
 
         <RequestState
-          loading={taskLoading}
+          loading={taskLoading || linkedCommitmentQuery.loading || linkedCaseLoading}
           error={taskError}
           empty={
-            !taskLoading && !taskError && (taskResult?.items.length ?? 0) === 0
+            contextReady && !taskLoading && !taskError && (taskResult?.items.length ?? 0) === 0
           }
           emptyTitle="No hay tareas con estos filtros"
           emptyMessage="Cambia los filtros o crea la primera tarea para comenzar el seguimiento."
@@ -1432,6 +1488,16 @@ function TasksWorkspace({ search }: { search: string }) {
                           <dd className="mt-1">{commitment._count.tasks}</dd>
                         </div>
                       </dl>
+                      <div className="mt-4 flex min-w-0 flex-wrap gap-2">
+                        <Link href={commitmentTasksHref(commitment, linkedCaseRequestId)} className="inline-flex min-h-11 max-w-full items-center justify-center rounded-xl border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+                          Ver tareas
+                        </Link>
+                        {canCreateTask && (
+                          <Link href={commitmentTasksHref(commitment, linkedCaseRequestId, true)} className="inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                            <Plus aria-hidden="true" size={16} /> Crear tarea vinculada
+                          </Link>
+                        )}
+                      </div>
                       <label className="mt-4 block text-sm font-semibold text-slate-700 min-w-0">
                         Estado de {commitment.title}
                         {!commitment.canUpdate && " (solo lectura)"}
@@ -1633,6 +1699,11 @@ function TasksWorkspace({ search }: { search: string }) {
                 className="flex min-h-0 flex-1 flex-col"
               >
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-6">
+                  {!editingTask && linkedCommitment && (
+                    <p data-testid="linked-commitment-dialog-context" className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-900">
+                      Se vinculará al compromiso {linkedCommitment.reference}: {linkedCommitment.title}.
+                    </p>
+                  )}
                   <label className="block text-sm font-semibold text-slate-800 min-w-0">
                     Título
                     <input
@@ -1725,6 +1796,7 @@ function TasksWorkspace({ search }: { search: string }) {
                       </span>
                       <input
                         type="date"
+                        aria-describedby="task-deadline-help"
                         disabled={Boolean(mutation)}
                         value={taskForm.dueDate}
                         onChange={(event) =>
@@ -1735,6 +1807,14 @@ function TasksWorkspace({ search }: { search: string }) {
                         }
                         className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                       />
+                      <span
+                        id="task-deadline-help"
+                        className="mt-2 block text-xs font-normal leading-5 text-slate-500"
+                      >
+                        {editingTask
+                          ? "Si cambias la fecha, tendrás hasta el final de ese día, hora de Colombia. Sin cambios, se conserva el plazo guardado."
+                          : "Tienes hasta el final de ese día, hora de Colombia."}
+                      </span>
                     </label>
                   </div>
                   {mutationError && (
@@ -1759,7 +1839,7 @@ function TasksWorkspace({ search }: { search: string }) {
                     type="submit"
                     disabled={
                       Boolean(mutation) ||
-                      (!editingTask && !taskForm.assigneeId)
+                      (!editingTask && (!taskForm.assigneeId || !contextReady))
                     }
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 max-w-full whitespace-normal"
                   >
@@ -1868,6 +1948,7 @@ function TasksWorkspace({ search }: { search: string }) {
                       </span>
                       <input
                         type="date"
+                        aria-describedby="commitment-deadline-help"
                         value={newCommitment.targetDate}
                         onChange={(event) =>
                           setNewCommitment((current) => ({
@@ -1877,6 +1958,12 @@ function TasksWorkspace({ search }: { search: string }) {
                         }
                         className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-w-0 max-w-full"
                       />
+                      <span
+                        id="commitment-deadline-help"
+                        className="mt-2 block text-xs font-normal leading-5 text-slate-500"
+                      >
+                        Tienes hasta el final de ese día, hora de Colombia.
+                      </span>
                     </label>
                     <label className="mt-7 flex min-h-12 items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 min-w-0">
                       <input

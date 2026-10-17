@@ -597,9 +597,10 @@ export function OperationTerminationPanel({
         className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-950"
       >
         <AlertTriangle aria-hidden="true" className="mr-2 inline" size={18} />
-        El cierre ordinario continúa siendo POST_ELECTION → CLOSED y conserva
-        todos sus bloqueadores. Esta vía excepcional exige acto, evidencia,
-        hash, vigencia del perfil y cuatro ojos.
+        El cierre ordinario pasa de la etapa poselectoral a la etapa cerrada y
+        mantiene todos sus requisitos. Este cierre excepcional exige una decisión
+        documentada, evidencia identificable, el perfil actualizado y la revisión
+        independiente de otra persona autorizada.
       </div>
 
       {effectiveProfile && (

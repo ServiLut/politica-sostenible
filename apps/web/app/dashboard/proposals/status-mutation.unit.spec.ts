@@ -19,7 +19,7 @@ const source = ts.createSourceFile(
 const declarations: string[] = [];
 function collect(node: ts.Node) {
   if (ts.isFunctionDeclaration(node) && node.name &&
-      ["handleStatusChange", "errorMessage"].includes(node.name.text)) {
+      ["handleStatusChange", "changeFormStatus", "errorMessage"].includes(node.name.text)) {
     declarations.push(node.getText(source));
   }
   if (ts.isVariableStatement(node) && node.declarationList.declarations.some(
@@ -28,7 +28,7 @@ function collect(node: ts.Node) {
   ts.forEachChild(node, collect);
 }
 collect(source);
-expect(declarations).toHaveLength(3);
+expect(declarations).toHaveLength(4);
 const code = ts.transpileModule(declarations.join("\n"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
@@ -44,20 +44,29 @@ async function harness({
   update,
   fetch = async () => [proposal, otherProposal],
   canMutate = true,
+  isCurrentScope = () => true,
 }: {
   update: (id: string, input: { status: ProposalStatus }) => Promise<PoliticalProposal>;
   fetch?: (signal: AbortSignal) => Promise<PoliticalProposal[]>;
   canMutate?: boolean;
+  isCurrentScope?: () => boolean;
 }) {
   const query = createPageRequestState(fetch, true, true);
   await query.start();
-  const state = { saving: new Set<string>(), feedback: {} as Feedback, refreshes: 0 };
+  const state = {
+    saving: new Set<string>(), feedback: {} as Feedback, refreshes: 0,
+    openedEditors: [] as Array<{ record: PoliticalProposal; status: ProposalStatus }>,
+  };
   const scope = {
     canMutate,
+    isCurrentProposalScope: isCurrentScope,
     Error,
     allowedProposalStatuses,
     statusRequests: { current: new Set<string>() },
     updateProposal: update,
+    openEdit(record: PoliticalProposal, status: ProposalStatus) {
+      state.openedEditors.push({ record, status });
+    },
     setProposals: query.setData,
     setSavingStatuses(value: Set<string>) { state.saving = value; },
     setStatusFeedback(value: Setter<Feedback>) {
@@ -170,6 +179,20 @@ test("un éxito distinto no borra el error pendiente de otra propuesta", async (
   model.query.stop();
 });
 
+test("un PATCH de una sesión anterior no publica su ficha ni su aviso en la sesión nueva", async () => {
+  const pending = Promise.withResolvers<PoliticalProposal>();
+  let isCurrent = true;
+  const model = await harness({ update: () => pending.promise, isCurrentScope: () => isCurrent });
+  const saving = model.handleStatusChange(proposal, "PROPOSED");
+  isCurrent = false;
+  pending.resolve({ ...proposal, status: "PROPOSED" });
+  await saving;
+  expect(model.state.refreshes).toBe(0);
+  expect(model.state.feedback).toEqual({});
+  expect(model.query.getSnapshot().data?.[0].status).toBe("DRAFT");
+  model.query.stop();
+});
+
 test("consulta, estado idéntico y transición no permitida no envían PATCH", async () => {
   let mutations = 0;
   const update = async () => { mutations += 1; return proposal; };
@@ -184,4 +207,45 @@ test("consulta, estado idéntico y transición no permitida no envían PATCH", a
   expect(editable.state.feedback).toEqual({});
   readOnly.query.stop();
   editable.query.stop();
+});
+
+test("completar desde la tarjeta exige revisión en el editor y no altera el estado confirmado", async () => {
+  let mutations = 0;
+  const ongoing = { ...proposal, status: "IN_PROGRESS" as const, progressPercent: 42 };
+  const model = await harness({
+    update: async () => { mutations += 1; return ongoing; },
+    fetch: async () => [ongoing],
+  });
+  await model.handleStatusChange(ongoing, "COMPLETED");
+  expect(mutations).toBe(0);
+  expect(model.state.openedEditors).toEqual([{ record: ongoing, status: "COMPLETED" }]);
+  expect(model.query.getSnapshot().data).toEqual([ongoing]);
+  expect(model.state.feedback).toEqual({});
+  expect(model.state.refreshes).toBe(0);
+  expect(model.state.saving.size).toBe(0);
+  model.query.stop();
+});
+
+test("volver de Completada recupera el progreso editado en esta sesión sin perder el borrador", () => {
+  type Form = { status: ProposalStatus; progressPercent: string; title: string };
+  const scope = {
+    form: { status: "IN_PROGRESS", progressPercent: "70", title: "Propuesta sin guardar" } as Form,
+    progressBeforeCompletion: { current: "42" },
+    confirmed: true,
+    setCompletionConfirmed(value: boolean) { scope.confirmed = value; },
+    setForm(value: Form) { scope.form = value; },
+  };
+  const change = runInNewContext(`${code}\nchangeFormStatus`, scope) as (status: ProposalStatus) => void;
+  change("COMPLETED");
+  expect(scope.form.progressPercent).toBe("100");
+  expect(scope.progressBeforeCompletion.current).toBe("70");
+  expect(scope.confirmed).toBe(false);
+  // Repeating the selected option must not replace the saved draft with 100.
+  change("COMPLETED");
+  change("IN_PROGRESS");
+  expect(scope.form).toEqual({ status: "IN_PROGRESS", progressPercent: "70", title: "Propuesta sin guardar" });
+  scope.form.progressPercent = "85";
+  change("COMPLETED");
+  change("IN_PROGRESS");
+  expect(scope.form.progressPercent).toBe("85");
 });

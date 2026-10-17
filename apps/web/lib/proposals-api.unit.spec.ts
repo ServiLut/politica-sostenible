@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   allowedProposalStatuses,
   createProposal,
+  getProposal,
   listProposals,
   updateProposal,
 } from "./proposals-api";
@@ -28,68 +29,80 @@ test("el cliente no ofrece retrocesos que reescriban el estado histórico", () =
   expect(allowedProposalStatuses("WITHDRAWN")).toEqual(["WITHDRAWN"]);
 });
 
-test("acumula más de cien propuestas sin enviar contexto de tenant", async () => {
+test("solicita sólo una página acotada con filtros y búsqueda, sin contexto de tenant", async () => {
   const originalFetch = globalThis.fetch;
-  const requestedUrls: string[] = [];
-  const requestInits: Array<RequestInit | undefined> = [];
-  const proposals = Array.from({ length: 125 }, (_, index) => ({
-    id: `proposal-${index + 1}`,
-  }));
-
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const signal = new AbortController().signal;
   globalThis.fetch = async (input, init) => {
-    const requestedUrl = String(input);
-    requestedUrls.push(requestedUrl);
-    requestInits.push(init);
-    const page = Number(
-      new URL(requestedUrl, "http://local.test").searchParams.get("page"),
-    );
-    const start = (page - 1) * 100;
-    return successful({
-      items: proposals.slice(start, start + 100),
-      pagination: { page, limit: 100, total: 125, totalPages: 2 },
-    });
+    calls.push({ url: String(input), init });
+    return successful({ items: [{ id: "proposal-125" }], pagination: { page: 2, limit: 20, total: 21, totalPages: 2 } });
   };
-
   try {
-    const result = await listProposals();
-
-    expect(result.items).toHaveLength(125);
-    expect(result.items.at(-1)?.id).toBe("proposal-125");
-    expect(requestedUrls).toEqual([
-      "/api/proposals?page=1&limit=100",
-      "/api/proposals?page=2&limit=100",
-    ]);
-    expect(requestInits.every((init) => init?.method === undefined)).toBe(true);
-    expect(requestedUrls.every((url) => !url.includes("tenant"))).toBe(true);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+    const result = await listProposals({ page: 2, search: "  agua & salud  ", status: "DRAFT", category: "HEALTH", isPublic: false }, signal);
+    expect(result.items).toHaveLength(1);
+    expect(result.pagination.total).toBe(21);
+    expect(calls).toHaveLength(1);
+    const query = new URL(calls[0].url, "http://local.test").searchParams;
+    expect(Object.fromEntries(query)).toEqual({ page: "2", limit: "20", search: "agua & salud", category: "HEALTH", status: "DRAFT", isPublic: "false" });
+    expect(calls[0].init?.signal).toBe(signal);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
-test("rechaza una paginación inconsistente antes de ocultar propuestas", async () => {
+test("no descarga páginas adicionales aunque el total sea de cien mil propuestas", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input) => {
-    const page = Number(
-      new URL(String(input), "http://local.test").searchParams.get("page"),
-    );
-    return successful({
-      items: [{ id: `proposal-${page}` }],
-      pagination: {
-        page,
-        limit: 100,
-        total: page === 1 ? 101 : 102,
-        totalPages: 2,
-      },
-    });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return successful({ items: Array.from({ length: 20 }, (_, id) => ({ id: String(id) })), pagination: { page: 1, limit: 20, total: 100000, totalPages: 5000 } });
   };
+  try { expect((await listProposals()).items).toHaveLength(20); expect(calls).toBe(1); }
+  finally { globalThis.fetch = originalFetch; }
+});
 
+test("acepta una página vacía que desapareció por una eliminación concurrente", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => successful({ items: [], pagination: { page: 2, limit: 20, total: 20, totalPages: 1 } });
+  try { expect((await listProposals({ page: 2 })).pagination.totalPages).toBe(1); }
+  finally { globalThis.fetch = originalFetch; }
+});
+
+for (const pagination of [
+  { page: 2, limit: 20, total: 1, totalPages: 1 },
+  { page: 1, limit: 100, total: 1, totalPages: 1 },
+  { page: 1, limit: 20, total: 1, totalPages: 2 },
+  { page: 1, limit: 20, total: 20, totalPages: 1 },
+]) {
+  test(`rechaza metadatos inconsistentes ${JSON.stringify(pagination)}`, async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => successful({ items: [{ id: "proposal-a" }], pagination });
+    try { await expect(listProposals()).rejects.toThrow("paginación de propuestas inválida"); }
+    finally { globalThis.fetch = originalFetch; }
+  });
+}
+
+test("resuelve una ficha directamente sin descargar el listado", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
+  globalThis.fetch = async (input) => { urls.push(String(input)); return successful({ id: "proposal/125" }); };
+  try { expect((await getProposal("proposal/125"))?.id).toBe("proposal/125"); expect(urls).toEqual(["/api/proposals/proposal%2F125"]); }
+  finally { globalThis.fetch = originalFetch; }
+});
+
+test("rechaza identificadores duplicados en una misma página", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => successful({ items: [{ id: "same" }, { id: "same" }], pagination: { page: 1, limit: 20, total: 2, totalPages: 1 } });
+  try { await expect(listProposals()).rejects.toThrow("identificador válido"); }
+  finally { globalThis.fetch = originalFetch; }
+});
+
+test("distingue ficha no disponible de fallo del servidor", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ message: "No disponible" }), { status: 404, headers: { "Content-Type": "application/json" } });
   try {
-    await expect(listProposals()).rejects.toThrow(
-      "cambiaron mientras se cargaban",
-    );
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+    expect(await getProposal("missing")).toBeNull();
+    globalThis.fetch = async () => new Response("Unavailable", { status: 503 });
+    await expect(getProposal("missing")).rejects.toThrow("El servidor no pudo");
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test("conserva estado, progreso y costo en las mutaciones sin aceptar tenant ni owner del navegador", async () => {

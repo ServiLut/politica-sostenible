@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -62,6 +63,36 @@ test("separa secretos de API y web en el supervisor combinado", () => {
   assert.equal(web.JWT_SECRET, undefined);
   assert.equal(web.OFFLINE_SYNC_HMAC_SECRET, undefined);
   assert.equal(web.SUPABASE_SERVICE_ROLE_KEY, undefined);
+});
+
+test("conserva las decisiones de registro e invitaciones solo en la API combinada", () => {
+  for (const registration of ["true", "false"]) {
+    for (const invitations of ["true", "false"]) {
+      const source = {
+        NODE_ENV: "production",
+        PUBLIC_REGISTRATION_ENABLED: registration,
+        TEAM_INVITATION_ACCEPTANCE_ENABLED: invitations,
+      };
+      const api = buildChildEnvironment("api", source);
+      assert.equal(api.PUBLIC_REGISTRATION_ENABLED, registration);
+      // Losing "false" would enable invitations again through the API default.
+      assert.equal(api.TEAM_INVITATION_ACCEPTANCE_ENABLED, invitations);
+      for (const service of ["web", "catalog-worker"]) {
+        const selected = buildChildEnvironment(service, source);
+        assert.equal(Object.hasOwn(selected, "PUBLIC_REGISTRATION_ENABLED"), false);
+        assert.equal(Object.hasOwn(selected, "TEAM_INVITATION_ACCEPTANCE_ENABLED"), false);
+      }
+    }
+  }
+  const unset = buildChildEnvironment("api", { NODE_ENV: "production" });
+  assert.equal(Object.hasOwn(unset, "PUBLIC_REGISTRATION_ENABLED"), false);
+  assert.equal(Object.hasOwn(unset, "TEAM_INVITATION_ACCEPTANCE_ENABLED"), false);
+});
+
+test("el compose combinado permite configurar registro e invitaciones conservando sus valores por defecto", async () => {
+  const compose = await readFile(new URL("../compose.recovery.yml", import.meta.url), "utf8");
+  assert.match(compose, /^      PUBLIC_REGISTRATION_ENABLED: \$\{PUBLIC_REGISTRATION_ENABLED:-false\}\r?$/mu);
+  assert.match(compose, /^      TEAM_INVITATION_ACCEPTANCE_ENABLED: \$\{TEAM_INVITATION_ACCEPTANCE_ENABLED:-true\}\r?$/mu);
 });
 
 test("borra secretos del supervisor después de iniciar la API", () => {

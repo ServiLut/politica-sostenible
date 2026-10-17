@@ -16,6 +16,80 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { PrismaService } from '../prisma/prisma.service';
 import { OperationalInboxService } from './operational-inbox.service';
 
+type Fixture = Record<string, unknown>;
+function matchesRankingPartition(row: Fixture, where: Fixture): boolean {
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'AND')
+      return (value as Fixture[]).every((part) =>
+        matchesRankingPartition(row, part),
+      );
+    if (key === 'OR')
+      return (value as Fixture[]).some((part) =>
+        matchesRankingPartition(row, part),
+      );
+    if (key === 'NOT') return !matchesRankingPartition(row, value as Fixture);
+    const actual =
+      key === 'assigneeId'
+        ? ((row.assignee as Fixture | null)?.id ?? null)
+        : key === 'ownerId'
+          ? ((row.owner as Fixture | null)?.id ?? null)
+          : row[key];
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+      return Object.entries(value).every(([operator, expected]) => {
+        if (operator === 'not') return actual !== expected;
+        if (operator === 'in') return (expected as unknown[]).includes(actual);
+        if (operator === 'lt')
+          return actual instanceof Date && actual < (expected as Date);
+        if (operator === 'gte')
+          return actual instanceof Date && actual >= (expected as Date);
+        throw new Error(`Unsupported fixture operator: ${operator}`);
+      });
+    }
+    return actual === value;
+  });
+}
+
+function selectFixtureRows(
+  rows: Fixture[],
+  args: {
+    where: { AND?: Fixture[] };
+    orderBy: Fixture[];
+    take: number;
+  },
+) {
+  const partition = args.where.AND?.[1];
+  const priorities = [
+    WorkPriority.LOW,
+    WorkPriority.MEDIUM,
+    WorkPriority.HIGH,
+    WorkPriority.URGENT,
+  ];
+  return rows
+    .filter((row) => !partition || matchesRankingPartition(row, partition))
+    .sort((a, b) => {
+      for (const order of args.orderBy) {
+        const [field, direction] = Object.entries(order)[0];
+        const av = a[field],
+          bv = b[field];
+        if (av === bv) continue;
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        const comparison =
+          field === 'priority'
+            ? priorities.indexOf(av as WorkPriority) -
+              priorities.indexOf(bv as WorkPriority)
+            : av instanceof Date && bv instanceof Date
+              ? av.getTime() - bv.getTime()
+              : typeof av === 'string' && typeof bv === 'string'
+                ? av.localeCompare(bv)
+                : 0;
+        if (comparison) return direction === 'desc' ? -comparison : comparison;
+      }
+      return 0;
+    })
+    .slice(0, args.take);
+}
+
 describe('OperationalInboxService secure unified read model', () => {
   const leader: AuthenticatedUser = {
     userId: 'leader-a',
@@ -35,6 +109,7 @@ describe('OperationalInboxService secure unified read model', () => {
     issueCase: { findMany: jest.Mock; count: jest.Mock };
     communicationApproval: { findMany: jest.Mock; count: jest.Mock };
     pqrsdDossier: { findMany: jest.Mock; count: jest.Mock };
+    $queryRaw: jest.Mock;
     $transaction: jest.Mock;
   };
   let service: OperationalInboxService;
@@ -118,7 +193,22 @@ describe('OperationalInboxService secure unified read model', () => {
         count: jest.fn().mockResolvedValue(0),
       },
       $transaction: jest.fn(),
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 'pqrsd-a' }]),
     };
+    for (const delegate of [
+      prisma.task,
+      prisma.commitment,
+      prisma.issueCase,
+      prisma.communicationApproval,
+    ]) {
+      const rows = delegate.findMany() as Promise<Fixture[]>;
+      delegate.findMany
+        .mockReset()
+        .mockImplementation(
+          async (args: Parameters<typeof selectFixtureRows>[1]) =>
+            selectFixtureRows(await rows, args),
+        );
+    }
     prisma.$transaction.mockImplementation(
       (callback: (transaction: typeof prisma) => unknown) => callback(prisma),
     );
@@ -206,13 +296,14 @@ describe('OperationalInboxService secure unified read model', () => {
       prisma.communicationApproval.findMany,
       prisma.communicationApproval.count,
     ]) {
-      const [args] = query.mock.calls[0];
-      expect(args.where).toEqual(
-        expect.objectContaining({
-          tenantId: 'tenant-a',
-          mode: PoliticalOperationMode.CAMPAIGN,
-        }),
-      );
+      for (const [args] of query.mock.calls) {
+        expect(args.where).toEqual(
+          expect.objectContaining({
+            tenantId: 'tenant-a',
+            mode: PoliticalOperationMode.CAMPAIGN,
+          }),
+        );
+      }
     }
     expect(prisma.task.findMany.mock.calls[0][0].take).toBe(17);
   });
@@ -249,7 +340,7 @@ describe('OperationalInboxService secure unified read model', () => {
       expect.objectContaining({
         tenantId: 'tenant-a',
         mode: PoliticalOperationMode.PUBLIC_OFFICE,
-        AND: [{ assigneeId: 'worker-a' }],
+        AND: expect.arrayContaining([{ assigneeId: 'worker-a' }]),
       }),
     );
     expect(approvalWhere).toEqual(
@@ -468,7 +559,189 @@ describe('OperationalInboxService secure unified read model', () => {
 
     expect(prisma.pqrsdDossier.findMany).not.toHaveBeenCalled();
     expect(prisma.pqrsdDossier.count).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(result.summary.byKind.pqrsd).toBe(0);
     expect(result.items.some((item) => item.kind === 'PQRSD')).toBe(false);
+  });
+
+  it('keeps global source totals distinct from visible attention counters under truncation', async () => {
+    const result = await service.findAll(leader, { limit: 1 });
+    expect(result.summary).toMatchObject({
+      total: 4,
+      visible: 1,
+      truncated: true,
+      pendingApprovals: 1,
+      overdue: 1,
+      blocked: 0,
+      unassigned: 0,
+    });
+  });
+
+  it.each(['task', 'issueCase'] as const)(
+    'selects the actual top 100 %s records before truncation, including undated urgent work',
+    async (source) => {
+      for (const delegate of [
+        prisma.task,
+        prisma.commitment,
+        prisma.issueCase,
+        prisma.communicationApproval,
+      ]) {
+        delegate.findMany.mockResolvedValue([]);
+        delegate.count.mockResolvedValue(0);
+      }
+      const openStatus =
+        source === 'task' ? TaskStatus.TODO : IssueCaseStatus.OPEN;
+      const blockedStatus =
+        source === 'task'
+          ? TaskStatus.BLOCKED
+          : IssueCaseStatus.WAITING_ON_CITIZEN;
+      const rows: Fixture[] = Array.from({ length: 101 }, (_, index) => ({
+        id: `low-${String(index).padStart(3, '0')}`,
+        title: 'Baja prioridad con fecha',
+        status: openStatus,
+        priority: WorkPriority.LOW,
+        dueAt: futureDate,
+        createdAt: oldDate,
+        assignee: owner,
+        issueCase: null,
+        commitment: null,
+        reference: 'REF',
+      }));
+      const special = [
+        {
+          id: 'urgent-without-date',
+          priority: WorkPriority.URGENT,
+          dueAt: null,
+        },
+        { id: 'urgent-with-date', priority: WorkPriority.URGENT },
+        {
+          id: 'blocked-without-date',
+          priority: WorkPriority.URGENT,
+          status: blockedStatus,
+          dueAt: null,
+        },
+        {
+          id: 'unassigned-without-date',
+          priority: WorkPriority.URGENT,
+          assignee: null,
+          dueAt: null,
+        },
+        { id: 'overdue-low', dueAt: oldDate },
+      ];
+      rows.push(...special.map((overrides) => ({ ...rows[0], ...overrides })));
+      prisma[source].findMany.mockImplementation(
+        (args: Parameters<typeof selectFixtureRows>[1]) =>
+          Promise.resolve(selectFixtureRows(rows, args)),
+      );
+      prisma[source].count.mockResolvedValue(rows.length);
+
+      const result = await service.findAll(leader, { limit: 100 });
+
+      expect(result.items.slice(0, 5).map((item) => item.entityId)).toEqual([
+        'overdue-low',
+        'blocked-without-date',
+        'unassigned-without-date',
+        'urgent-with-date',
+        'urgent-without-date',
+      ]);
+      expect(result.items).toHaveLength(100);
+      expect(new Set(result.items.map((item) => item.id)).size).toBe(100);
+      expect(result.summary).toMatchObject({
+        total: 106,
+        visible: 100,
+        truncated: true,
+      });
+      expect(prisma[source].findMany).toHaveBeenCalledTimes(4);
+      for (const [args] of prisma[source].findMany.mock.calls) {
+        expect(args.where).toMatchObject({
+          tenantId: leader.tenantId,
+          mode: PoliticalOperationMode.CAMPAIGN,
+        });
+        expect(args.take).toBe(100);
+      }
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'RepeatableRead',
+      });
+    },
+  );
+
+  it('does not starve an at-risk or unassigned commitment behind 101 dated planned commitments', async () => {
+    for (const delegate of [
+      prisma.task,
+      prisma.issueCase,
+      prisma.communicationApproval,
+    ]) {
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+    }
+    const rows: Fixture[] = Array.from({ length: 101 }, (_, index) => ({
+      id: `planned-${index}`,
+      reference: `COMP-${index}`,
+      title: 'Compromiso programado',
+      status: CommitmentStatus.PLANNED,
+      targetDate: futureDate,
+      createdAt: oldDate,
+      owner,
+    }));
+    rows.push({
+      ...rows[0],
+      id: 'at-risk-no-date',
+      status: CommitmentStatus.AT_RISK,
+      targetDate: null,
+    });
+    rows.push({
+      ...rows[0],
+      id: 'unassigned-no-date',
+      owner: null,
+      targetDate: null,
+    });
+    prisma.commitment.findMany.mockImplementation(
+      (args: Parameters<typeof selectFixtureRows>[1]) =>
+        Promise.resolve(selectFixtureRows(rows, args)),
+    );
+    prisma.commitment.count.mockResolvedValue(rows.length);
+
+    const result = await service.findAll(leader, { limit: 100 });
+
+    expect(result.items.slice(0, 2).map((item) => item.entityId)).toEqual([
+      'at-risk-no-date',
+      'unassigned-no-date',
+    ]);
+    expect(result.summary.total).toBe(103);
+    expect(result.items).toHaveLength(100);
+    expect(prisma.commitment.findMany).toHaveBeenCalledTimes(6);
+  });
+
+  it('selects an overdue scheduled approval ahead of 101 older unscheduled approvals', async () => {
+    for (const delegate of [prisma.task, prisma.issueCase, prisma.commitment]) {
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+    }
+    const rows: Fixture[] = Array.from({ length: 101 }, (_, index) => ({
+      id: `approval-${index}`,
+      title: 'Revisión sin fecha',
+      status: CommunicationApprovalStatus.PENDING,
+      scheduledAt: null,
+      createdAt: oldDate,
+      requestedBy: owner,
+    }));
+    rows.push({
+      ...rows[0],
+      id: 'scheduled-overdue',
+      scheduledAt: oldDate,
+      createdAt: new Date('2026-01-01'),
+    });
+    prisma.communicationApproval.findMany.mockImplementation(
+      (args: Parameters<typeof selectFixtureRows>[1]) =>
+        Promise.resolve(selectFixtureRows(rows, args)),
+    );
+    prisma.communicationApproval.count.mockResolvedValue(rows.length);
+
+    const result = await service.findAll(leader, { limit: 100 });
+
+    expect(result.items[0].entityId).toBe('scheduled-overdue');
+    expect(result.items[0].overdue).toBe(true);
+    expect(result.summary.total).toBe(102);
+    expect(result.items).toHaveLength(100);
   });
 });

@@ -293,8 +293,9 @@ test("Administración calcula la huella, hace PUT directo y sigue el trabajo has
   await page.getByRole("button", { name: "Subir y encolar ingesta" }).click();
 
   await expect(
-    page.getByText(/El procesador no está disponible temporalmente/),
+    page.getByText("El servidor no pudo completar la solicitud. Intenta nuevamente más tarde."),
   ).toBeVisible();
+  await expect(page.getByText(/El procesador no está disponible temporalmente/)).toHaveCount(0);
   await expect(
     page.getByText(/El archivo ya fue confirmado en Storage/),
   ).toBeVisible();

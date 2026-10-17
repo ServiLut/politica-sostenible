@@ -1,5 +1,14 @@
-import { Type } from 'class-transformer';
-import { IsEnum, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   ProposalCategory,
   ProposalStatus,
@@ -10,6 +19,7 @@ export class ListProposalsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(1_000_000)
   page = 1;
 
   @IsOptional()
@@ -18,6 +28,14 @@ export class ListProposalsQueryDto {
   @Min(1)
   @Max(100)
   limit = 20;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 
   @IsOptional()
   @IsEnum(ProposalCategory)

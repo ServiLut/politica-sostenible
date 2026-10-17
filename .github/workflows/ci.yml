@@ -3,13 +3,39 @@ name: Verificación
 on:
   pull_request:
   push:
-    branches: [main, "release/**"]
+    branches: [main, "release/**", "codex/**"]
+  merge_group:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  security-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Bloquear secretos y archivos inseguros en código e historial
+        run: node deploy/security-gate.mjs --history --tracked-only --redact-locations --report=.artifacts/security-gate.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        name: Conservar únicamente el reporte de seguridad sin valores secretos
+        if: always()
+        with:
+          name: security-gate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/security-gate.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
   test-and-build:
+    needs: [security-gate]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -40,6 +66,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
         with:
           version: 10.28.2
@@ -49,9 +77,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Auditar toda la cadena de dependencias
-        run: pnpm audit --audit-level low
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          audit_status=0
+          pnpm audit --json > .artifacts/dependency-audit.json || audit_status=$?
+          node deploy/dependency-audit.mjs --report .artifacts/dependency-audit.json --audit-exit-code "$audit_status"
       - name: Probar guard de migraciones del contenedor Dokploy
         run: pnpm test:deploy
+        env:
+          DOCKER_CONTEXT_SAFETY_TEST: "1"
       - name: Probar aislamiento y contrato Storage del entorno local
         run: node --test deploy/staging/staging.test.mjs
       - name: Bloquear deepmerge-ts vulnerable en la resolución de Prisma
@@ -60,6 +95,8 @@ jobs:
           pnpm list deepmerge-ts -r --depth 20 --json > "$RUNNER_TEMP/deepmerge-tree.json"
           node -e 'const fs = require("node:fs"); const tree = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const versions = []; const walk = (value) => { if (!value || typeof value !== "object") return; if (value.from === "deepmerge-ts" && typeof value.version === "string") versions.push(value.version); for (const child of Object.values(value)) walk(child); }; walk(tree); const unsafe = versions.some((version) => { const major = Number.parseInt(version, 10); return !Number.isInteger(major) || major < 8; }); if (versions.length === 0 || unsafe) { console.error(`Resolución insegura de deepmerge-ts: ${versions.join(", ") || "ausente"}`); process.exit(1); } console.log(`deepmerge-ts mitigado: ${[...new Set(versions)].join(", ")}`);' "$RUNNER_TEMP/deepmerge-tree.json"
       - run: pnpm --filter api generate
+      - name: Exigir TLS real con CA y nombre verificados en pg y Prisma
+        run: node deploy/run-postgres-tls-tests.mjs
       - name: Aplicar migraciones con el mismo guard de producción
         run: node deploy/migrate-entrypoint.mjs
         env:
@@ -163,9 +200,10 @@ jobs:
           DIRECT_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
           TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
       - name: Probar rollback histórico y protección de planes con PostgreSQL real
-        run: node --test deploy/migration-atomicity.integration.test.mjs deploy/subscription-plan-seed-postgres.test.mjs
+        run: node --test --test-concurrency=1 deploy/migration-atomicity.integration.test.mjs deploy/subscription-plan-seed-postgres.test.mjs deploy/schema-contract-marker.integration.test.mjs deploy/runtime-db-role.integration.test.mjs
         env:
           MIGRATION_TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
+          RUNTIME_ROLE_TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
           TEST_DATABASE_URL: postgresql://politica_test:local_ci_only@localhost:5432/politica_sostenible_test?schema=politica-sostenible
       - name: Probar límites distribuidos con Redis real
         run: pnpm --filter api test --runInBand --testPathPatterns=redis-throttler-storage.integration.spec.ts
@@ -257,6 +295,7 @@ jobs:
       - run: pnpm test:e2e
 
   compose-runtime-smoke:
+    needs: [security-gate]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
@@ -313,6 +352,8 @@ jobs:
       WEB_PORT: "3100"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Construir y arrancar la topología primaria separada
         shell: bash
         run: |
@@ -375,3 +416,29 @@ jobs:
       - name: Limpiar topología primaria
         if: always()
         run: docker compose -f compose.production.yml -f deploy/compose.ci.yml down --volumes --remove-orphans
+
+  factory-gate:
+    if: always()
+    needs: [security-gate, test-and-build, compose-runtime-smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Exigir todos los controles y emitir recibo del commit exacto
+        env:
+          CI_FACTORY_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: node deploy/ci-factory.mjs --report=.artifacts/ci-factory-receipt.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        name: Conservar recibo únicamente cuando todos los controles aprueban
+        if: success()
+        with:
+          name: ci-factory-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/ci-factory-receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

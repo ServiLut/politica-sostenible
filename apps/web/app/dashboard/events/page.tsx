@@ -212,6 +212,7 @@ export default function EventsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const dialogTitleRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const statusTransitionPending = useRef(false);
 
   const isPublicOffice = tenant?.type === "PUBLIC_OFFICE";
   const canManage = Boolean(
@@ -374,12 +375,25 @@ export default function EventsPage() {
     event: CampaignEvent,
     status: CampaignEventStatus,
   ) {
-    if (mutation) return;
-    setMutation(`status-${event.id}`);
-    setMutationError(null);
-    setNotice(null);
-    setSavedEventId(null);
+    if (!canManage || mutation || statusTransitionPending.current || !TRANSITIONS[event.status].includes(status)) return;
+    statusTransitionPending.current = true;
+    setMutation(`confirm-status-${event.id}`);
     try {
+      if (status === "COMPLETED" || status === "CANCELLED") {
+        const cancelling = status === "CANCELLED";
+        const confirmed = await confirm({
+          title: cancelling ? "¿Cancelar evento?" : "¿Finalizar evento?",
+          description: `Vas a ${cancelling ? "cancelar" : "finalizar"} “${event.name}”. No podrás editarlo ni reabrirlo después de guardar este cambio.`,
+          confirmLabel: cancelling ? "Sí, cancelar evento" : "Sí, finalizar evento",
+          cancelLabel: "Volver sin cambios",
+          destructive: true,
+        });
+        if (!confirmed) return;
+      }
+      setMutation(`status-${event.id}`);
+      setMutationError(null);
+      setNotice(null);
+      setSavedEventId(null);
       await transitionEvent(event.id, status);
       setNotice(
         `Estado de “${event.name}” actualizado a ${statusLabel(status)}.`,
@@ -391,6 +405,7 @@ export default function EventsPage() {
     } catch (error) {
       setMutationError(readableError(error));
     } finally {
+      statusTransitionPending.current = false;
       setMutation(null);
     }
   }
@@ -742,7 +757,7 @@ export default function EventsPage() {
                         id={`event-state-help-${event.id}`}
                         className="mt-2 block text-sm font-normal text-slate-600"
                       >
-                        Al elegir una acción se aplica el cambio de estado.
+                        Programar e iniciar aplican el cambio. Para finalizar o cancelar se pedirá confirmación.
                       </span>
                     </label>
                   )}

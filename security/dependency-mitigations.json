@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "mitigations": [
+    {
+      "advisoryId": "GHSA-vfj7-8cjw-p6xm",
+      "registryAdvisoryId": 1240992,
+      "package": "braces",
+      "version": "3.0.3",
+      "upstreamStatus": "open",
+      "patchFile": "patches/braces@3.0.3.patch",
+      "patchSha256": "511f1ed503dbc370d729f1d64331b32d62910ba44b08e675ec684f8d256587f3",
+      "regressionFile": "deploy/dependency-patches.test.mjs",
+      "regressionSha256": "f285f3fa92a149cf51d4205c1e30919c57ac6ae17ebe19dfae0c1a5b5e782b8c",
+      "importerPaths": [
+        "apps__web>eslint-config-next>@next/eslint-plugin-next>fast-glob>micromatch>braces"
+      ],
+      "installedFileSha256": {
+        "index.js": "332ea07c7b006361aad12aa994ca75dc1db8e8382b884909e2f38f10b85c88a4",
+        "lib/compile.js": "b0c1139c005428029df1dac09fb121060cff1382865fe0b4f682f0955ed62ac3",
+        "lib/constants.js": "c18ac5adb57308f1ce42a28552da3a31f5d83709743ebd9a636336813a744d4b",
+        "lib/expand.js": "e18ab00c111be1489720738ca125443b82baa8fae92af0edf7768a548abd191d",
+        "lib/parse.js": "2353fc00b99e2e0611cc7ccd492370efdea3c9e0059026ecc3037d24c01d83b6",
+        "lib/stringify.js": "f9aec13a14be76438a496a455f8522ea8d0f88716ad14accab68706fcbdd4bfe",
+        "lib/utils.js": "b5a7596aa67730412b3c029ef09e84e6b67b8e445cffd35d1d295549c89066c7",
+        "lib/validate-ast.js": "90eccff719299f077bcd7b215366586482e5ee9f83f08f8f993707595e369efe"
+      },
+      "reviewedAt": "2026-10-16",
+      "scope": "Local mitigation of GHSA-vfj7-8cjw-p6xm only; the upstream advisory remains open. Depth, total work, cycles and scalar coercion are bounded."
+    }
+  ]
+}

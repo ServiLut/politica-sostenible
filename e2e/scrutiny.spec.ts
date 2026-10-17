@@ -292,7 +292,7 @@ async function installRoutes(
         resourceId: "document-internal-e2e",
       });
       await fulfill(route, {
-        url: "https://storage.example.test/signed-scrutiny-document",
+        url: "http://127.0.0.1:3000/storage/v1/object/sign/private-fixture/scrutiny-document?token=synthetic-download-token",
         expiresAt: "2026-10-26T15:05:00.000Z",
       });
       return;
@@ -372,7 +372,7 @@ test("opera aplicabilidad con hash canónico y sin tenant enviado por la UI", as
     page.getByRole("link", { name: "Descargar archivo autorizado" }).first(),
   ).toHaveAttribute(
     "href",
-    "https://storage.example.test/signed-scrutiny-document",
+    "http://127.0.0.1:3000/storage/v1/object/sign/private-fixture/scrutiny-document?token=synthetic-download-token",
   );
   await expect(documentReview).toHaveAttribute("open", "");
   await expect(
@@ -469,6 +469,9 @@ test("ofrece un reintento accesible después de una falla transitoria", async ({
 
   await page.goto("/dashboard/scrutiny");
   await expect(page.locator("section[role='alert']")).toContainText(
+    "El servidor no pudo completar la solicitud. Intenta nuevamente más tarde.",
+  );
+  await expect(page.locator("section[role='alert']")).not.toContainText(
     "Falla temporal del expediente.",
   );
   await page.getByRole("button", { name: "Reintentar carga" }).click();
